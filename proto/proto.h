@@ -496,6 +496,11 @@ void *hashmap_delete(hashmap_t *map, void *key);
 typedef int64_t timestamp_t;
 #endif
 
+/** Tic toc macros */
+#define TIC(X) struct timespec X = tic()
+#define TOC(X) toc(&X)
+#define MTOC(X) mtoc(&X)
+
 struct timespec tic();
 float toc(struct timespec *tic);
 float mtoc(struct timespec *tic);
@@ -716,6 +721,19 @@ void dot_XAXt(const real_t *X,
               const size_t A_n,
               real_t *Y);
 
+void bdiag_inv(const real_t *A, const int m, const int bs, real_t *A_inv);
+void bdiag_inv_sub(const real_t *A,
+                   const int stride,
+                   const int m,
+                   const int bs,
+                   real_t *A_inv);
+void bdiag_dot(const real_t *A,
+               const int m,
+               const int n,
+               const int bs,
+               const real_t *x,
+               real_t *b);
+
 void hat(const real_t x[3], real_t A[3 * 3]);
 void vee(const real_t A[3 * 3], real_t x[3]);
 void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
@@ -751,6 +769,11 @@ void enforce_spd(real_t *A, const int m, const int n);
   vee(A, X);
 
 int check_inv(const real_t *A, const real_t *A_inv, const int m);
+real_t check_Axb(const real_t *A,
+                 const real_t *x,
+                 const real_t *b,
+                 const int m,
+                 const int n);
 int check_jacobian(const char *jac_name,
                    const real_t *fdiff,
                    const real_t *jac,
@@ -2261,12 +2284,13 @@ typedef struct solver_t {
                          real_t *H,
                          real_t *g,
                          real_t *r);
+  void (*linsolve_func)(const void *data,
+                        const int sv_size,
+                        param_order_t *hash,
+                        real_t *H,
+                        real_t *g,
+                        real_t *dx);
 } solver_t;
-
-void invert_block_diagonal(const real_t *A,
-                           const int m,
-                           const int bs,
-                           real_t *A_inv);
 
 void solver_setup(solver_t *solver);
 real_t solver_cost(const solver_t *solver, const void *data);
@@ -2507,6 +2531,12 @@ void calib_camera_linearize_compact(const void *data,
                                     real_t *H,
                                     real_t *g,
                                     real_t *r);
+void calib_camera_linsolve(const void *data,
+                           const int sv_size,
+                           param_order_t *hash,
+                           real_t *H,
+                           real_t *g,
+                           real_t *dx);
 void calib_camera_solve(calib_camera_t *calib);
 
 ////////////////////////////

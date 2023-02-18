@@ -400,11 +400,12 @@ dev_euroc() {
 # run_test test_inertial_odometry
 # run_test test_tsif
 # run_test test_ceres_example
+# run_test test_invert_block_diagonal
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_camchain
-# run_test test_calib_camera_mono
+run_test test_calib_camera_mono
 # run_test test_calib_camera_stereo
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
@@ -418,7 +419,7 @@ dev_euroc() {
 # PROTO-DATASET
 # run_test test_assoc_pose_data
 # PROTO-PLOTTING
-run_test test_gnuplot_xyplot
+# run_test test_gnuplot_xyplot
 # run_test test_gnuplot_multiplot
 # PROTO-SIM
 # run_test test_sim_features_load

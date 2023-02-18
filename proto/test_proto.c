@@ -1457,6 +1457,45 @@ int test_dot() {
   return 0;
 }
 
+int test_bdiag_inv() {
+  int num_rows = 0;
+  int num_cols = 0;
+  real_t *H = mat_load("/tmp/H.csv", &num_rows, &num_cols);
+
+  // Invert taking advantage of block diagonal structure
+  {
+    real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
+
+    struct timespec t_start = tic();
+    bdiag_inv(H, num_rows, 6, H_inv);
+    // printf("H: %dx%d\n", num_rows, num_cols);
+    // printf("invert block diagonal -> time taken: %f\n", toc(&t_start));
+
+    MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
+
+    free(H_inv);
+  }
+
+  // Invert the dumb way
+  {
+
+    real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
+
+    struct timespec t_start = tic();
+    pinv(H, num_rows, num_rows, H_inv);
+    // eig_inv(H, num_rows, num_rows, 0, H_inv);
+    // printf("invert dumb way -> time taken: %f\n", toc(&t_start));
+
+    MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
+
+    free(H_inv);
+  }
+
+  free(H);
+
+  return 0;
+}
+
 int test_hat() {
   real_t x[3] = {1.0, 2.0, 3.0};
   real_t S[3 * 3] = {0};
@@ -4837,45 +4876,6 @@ int test_ceres_example() {
 
 #endif // USE_CERES
 
-int test_invert_block_diagonal() {
-  int num_rows = 0;
-  int num_cols = 0;
-  real_t *H = mat_load("/tmp/H.csv", &num_rows, &num_cols);
-
-  // Invert taking advantage of block diagonal structure
-  {
-    real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
-
-    struct timespec t_start = tic();
-    invert_block_diagonal(H, num_rows, 6, H_inv);
-    // printf("H: %dx%d\n", num_rows, num_cols);
-    // printf("invert block diagonal -> time taken: %f\n", toc(&t_start));
-
-    MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
-
-    free(H_inv);
-  }
-
-  // Invert the dumb way
-  {
-
-    real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
-
-    struct timespec t_start = tic();
-    pinv(H, num_rows, num_rows, H_inv);
-    // eig_inv(H, num_rows, num_rows, 0, H_inv);
-    // printf("invert dumb way -> time taken: %f\n", toc(&t_start));
-
-    MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
-
-    free(H_inv);
-  }
-
-  free(H);
-
-  return 0;
-}
-
 int test_solver_setup() {
   solver_t solver;
   solver_setup(&solver);
@@ -5030,6 +5030,7 @@ int test_calib_camera_mono() {
   const real_t cam_params[8] =
       {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
 
+  struct timespec t_start = tic();
   calib_camera_t *calib = calib_camera_malloc();
   calib_camera_add_camera(calib,
                           0,
@@ -5041,6 +5042,7 @@ int test_calib_camera_mono() {
   calib_camera_add_data(calib, 0, "/data/proto/cam_april/cam0");
   calib_camera_solve(calib);
   calib_camera_free(calib);
+  printf("toc: %f\n", toc(&t_start));
 
   return 0;
 }
@@ -6030,6 +6032,7 @@ void test_suite() {
   MU_ADD_TEST(test_vec_add);
   MU_ADD_TEST(test_vec_sub);
   MU_ADD_TEST(test_dot);
+  MU_ADD_TEST(test_bdiag_inv);
   MU_ADD_TEST(test_hat);
   MU_ADD_TEST(test_check_jacobian);
   MU_ADD_TEST(test_svd);

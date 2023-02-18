@@ -3267,6 +3267,93 @@ void dot_XAXt(const real_t *X,
 }
 
 /**
+ * Invert a block diagonal matrix.
+ */
+void bdiag_inv(const real_t *A, const int m, const int bs, real_t *A_inv) {
+  real_t *A_sub = MALLOC(real_t, bs * bs);
+  real_t *A_sub_inv = MALLOC(real_t, bs * bs);
+  zeros(A_inv, m, m);
+
+  for (int idx = 0; idx < m; idx += bs) {
+    const int rs = idx;
+    const int re = idx + bs - 1;
+    const int cs = idx;
+    const int ce = idx + bs - 1;
+    mat_block_get(A, m, rs, re, cs, ce, A_sub);
+
+    // Invert using SVD
+    // pinv(A_sub, bs, bs, A_sub_inv);
+
+    // Inverse using Eigen-decomp
+    eig_inv(A_sub, bs, bs, 0, A_sub_inv);
+
+    mat_block_set(A_inv, m, rs, re, cs, ce, A_sub_inv);
+  }
+
+  free(A_sub);
+  free(A_sub_inv);
+}
+
+/**
+ * Invert a sub block diagonal matrix.
+ */
+void bdiag_inv_sub(const real_t *A,
+                   const int stride,
+                   const int m,
+                   const int bs,
+                   real_t *A_inv) {
+  real_t *A_sub = MALLOC(real_t, bs * bs);
+  real_t *A_sub_inv = MALLOC(real_t, bs * bs);
+  zeros(A_inv, m, m);
+
+  for (int idx = 0; idx < m; idx += bs) {
+    const int rs = idx;
+    const int re = idx + bs - 1;
+    const int cs = idx;
+    const int ce = idx + bs - 1;
+    mat_block_get(A, stride, rs, re, cs, ce, A_sub);
+
+    // Invert using SVD
+    // pinv(A_sub, bs, bs, A_sub_inv);
+
+    // Inverse using Eigen-decomp
+    eig_inv(A_sub, bs, bs, 0, A_sub_inv);
+
+    mat_block_set(A_inv, m, rs, re, cs, ce, A_sub_inv);
+  }
+
+  free(A_sub);
+  free(A_sub_inv);
+}
+
+/**
+ * Dot product of A * x = b, where A is a block diagonal matrix, x is a vector
+ * and b is the result.
+ */
+void bdiag_dot(const real_t *A,
+               const int m,
+               const int n,
+               const int bs,
+               const real_t *x,
+               real_t *b) {
+  real_t *A_sub = MALLOC(real_t, bs * bs);
+  real_t *x_sub = MALLOC(real_t, bs);
+
+  for (int idx = 0; idx < m; idx += bs) {
+    const int rs = idx;
+    const int re = idx + bs - 1;
+    const int cs = idx;
+    const int ce = idx + bs - 1;
+    mat_block_get(A, m, rs, re, cs, ce, A_sub);
+    vec_copy(x + rs, bs, x_sub);
+    dot(A_sub, bs, bs, x_sub, bs, 1, b + rs);
+  }
+
+  free(A_sub);
+  free(x_sub);
+}
+
+/**
  * Create skew-symmetric matrix `A` from a 3x1 vector `x`.
  */
 void hat(const real_t x[3], real_t A[3 * 3]) {
@@ -3367,6 +3454,7 @@ void enforce_spd(real_t *A, const int m, const int n) {
 int check_inv(const real_t *A, const real_t *A_inv, const int m) {
   real_t *inv_check = MALLOC(real_t, m * m);
   dot(A, m, m, A_inv, m, m, inv_check);
+  print_matrix("inv_check", inv_check, m, m);
 
   for (int i = 0; i < m; i++) {
     if (fltcmp(inv_check[i * m + i], 1.0) != 0) {
@@ -3377,6 +3465,28 @@ int check_inv(const real_t *A, const real_t *A_inv, const int m) {
 
   free(inv_check);
   return 0;
+}
+
+/**
+ * Return the linear least squares norm.
+ */
+real_t check_Axb(const real_t *A,
+                 const real_t *x,
+                 const real_t *b,
+                 const int m,
+                 const int n) {
+  real_t *b_est = MALLOC(real_t, m);
+  real_t *diff = MALLOC(real_t, m);
+  real_t r_sq = 0.0;
+
+  dot(A, m, n, x, n, 1, b_est);
+  vec_sub(b_est, b, diff, m);
+  dot(diff, 1, m, diff, m, 1, &r_sq);
+
+  free(b_est);
+  free(diff);
+
+  return sqrt(r_sq);
 }
 
 /**
@@ -11932,37 +12042,6 @@ int marg_factor_eval(void *marg_ptr) {
 ////////////
 
 /**
- * Invert a block diagonal matrix.
- */
-void invert_block_diagonal(const real_t *A,
-                           const int m,
-                           const int bs,
-                           real_t *A_inv) {
-  real_t *A_sub = MALLOC(real_t, bs * bs);
-  real_t *A_sub_inv = MALLOC(real_t, bs * bs);
-
-  for (int idx = 0; idx < m; idx += bs) {
-    const int rs = idx;
-    const int re = idx + bs - 1;
-    const int cs = idx;
-    const int ce = idx + bs - 1;
-
-    mat_block_get(A, m, rs, re, cs, ce, A_sub);
-
-    // Invert using SVD
-    pinv(A_sub, bs, bs, A_sub_inv);
-
-    // Inverse using Eigen-decomp
-    // eig_inv(A_sub, bs, bs, 0, A_sub_inv);
-
-    mat_block_set(A_inv, m, rs, re, cs, ce, A_sub_inv);
-  }
-
-  free(A_sub);
-  free(A_sub_inv);
-}
-
-/**
  * Setup Solver
  */
 void solver_setup(solver_t *solver) {
@@ -11994,6 +12073,7 @@ void solver_setup(solver_t *solver) {
   solver->param_order_func = NULL;
   solver->cost_func = NULL;
   solver->linearize_func = NULL;
+  solver->linsolve_func = NULL;
 }
 
 /**
@@ -12223,6 +12303,7 @@ void solver_update(solver_t *solver, real_t *dx, int sv_size) {
 real_t **solver_step(solver_t *solver, const real_t lambda_k, void *data) {
   // Linearize non-linear system
   if (solver->linearize) {
+    // Linearize
     zeros(solver->H, solver->sv_size, solver->sv_size);
     zeros(solver->g, solver->sv_size, 1);
     zeros(solver->r, solver->r_size, 1);
@@ -12240,52 +12321,28 @@ real_t **solver_step(solver_t *solver, const real_t lambda_k, void *data) {
     solver->H_damped[(i * solver->sv_size) + i] += lambda_k;
   }
 
-  // // Form Preconditioner M_inv
-  // real_t *M_inv = CALLOC(real_t, solver->sv_size * solver->sv_size);
-  // real_t *h_diag = MALLOC(real_t, solver->sv_size);
-  // real_t *H_ = MALLOC(real_t, solver->sv_size * solver->sv_size);
-  // real_t *g_ = MALLOC(real_t, solver->sv_size * solver->sv_size);
-  // mat_diag_get(solver->H_damped, solver->sv_size, solver->sv_size, h_diag);
-  // for (int i = 0; i < solver->sv_size; i++) {
-  //   printf("h_diag[%d]: %f -> ", i, h_diag[i]);
-  //   h_diag[i] = 1.0 / h_diag[i];
-  //   printf("h_diag[%d]: %f\n", i, h_diag[i]);
-  // }
-  // mat_diag_set(M_inv, solver->sv_size, solver->sv_size, h_diag);
-  // dot(M_inv,
-  //     solver->sv_size,
-  //     solver->sv_size,
-  //     solver->H,
-  //     solver->sv_size,
-  //     solver->sv_size,
-  //     H_);
-  // dot(M_inv,
-  //     solver->sv_size,
-  //     solver->sv_size,
-  //     solver->g,
-  //     solver->sv_size,
-  //     1,
-  //     g_);
-  // mat_copy(H_, solver->sv_size, solver->sv_size, solver->H_damped);
-  // vec_copy(g_, solver->sv_size, solver->g);
-
-  // free(M_inv);
-  // free(h_diag);
-  // free(H_);
-  // free(g_);
-
-  // Solve: H * dx = g
+  // Solve non-linear system
+  if (solver->linearize && solver->linsolve_func) {
+    solver->linsolve_func(data,
+                          solver->sv_size,
+                          solver->hash,
+                          solver->H_damped,
+                          solver->g,
+                          solver->dx);
+  } else if (solver->linearize) {
+    // Solve: H * dx = g
 #ifdef SOLVER_USE_SUITESPARSE
-  suitesparse_chol_solve(solver->common,
-                         solver->H_damped,
-                         solver->sv_size,
-                         solver->sv_size,
-                         solver->g,
-                         solver->sv_size,
-                         solver->dx);
+    suitesparse_chol_solve(solver->common,
+                           solver->H_damped,
+                           solver->sv_size,
+                           solver->sv_size,
+                           solver->g,
+                           solver->sv_size,
+                           solver->dx);
 #else
-  chol_solve(solver->H_damped, solver->g, solver->dx, solver->sv_size);
+    chol_solve(solver->H_damped, solver->g, solver->dx, solver->sv_size);
 #endif
+  }
 
   // Update
   real_t **x_copy = solver_params_copy(solver);
@@ -12322,10 +12379,10 @@ int solver_solve(solver_t *solver, void *data) {
   solver->dx = CALLOC(real_t, sv_size);
   real_t J_km1 = solver_cost(solver, data);
   if (solver->verbose) {
-    printf("iter: 0, lambda_k: %.2e, J: %.2e\n", solver->lambda, J_km1);
+    printf("iter 0: lambda_k: %.2e, J: %.2e\n", solver->lambda, J_km1);
   }
 
-// Start cholmod workspace
+  // Start cholmod workspace
 #ifdef SOLVER_USE_SUITESPARSE
   solver->common = MALLOC(cholmod_common, 1);
   cholmod_start(solver->common);
@@ -12343,6 +12400,7 @@ int solver_solve(solver_t *solver, void *data) {
 
     // Accept or reject update*/
     const real_t dJ = J_k - J_km1;
+    const real_t dx_norm = vec_norm(solver->dx, solver->sv_size);
     if (J_k < J_km1) {
       // Accept update
       J_km1 = J_k;
@@ -12358,20 +12416,23 @@ int solver_solve(solver_t *solver, void *data) {
 
     // Display
     if (solver->verbose) {
-      printf("iter: %d, lambda_k: %.2e, J: %e, dJ: %e\n",
+      printf("iter %d: lambda_k: %.2e, J: %.2e, dJ: %.2e, norm(dx): %.2e\n",
              iter + 1,
              lambda_k,
              J_km1,
-             dJ);
+             dJ,
+             dx_norm);
     }
 
     // Termination criteria
     if (solver->linearize && fabs(dJ) < fabs(-1e-10)) {
       break;
+    } else if (solver->linearize && dx_norm < 1e-10) {
+      break;
     }
   }
 
-// Clean up
+  // Clean up
 #ifdef SOLVER_USE_SUITESPARSE
   cholmod_finish(solver->common);
   free(solver->common);
@@ -12885,7 +12946,7 @@ calib_camera_t *calib_camera_malloc() {
   calib->fix_cam_params = 0;
   aprilgrid_setup(0, &calib->calib_target);
   calib->verbose = 1;
-  calib->max_iter = 20;
+  calib->max_iter = 30;
 
   // Flags
   calib->cams_ok = 0;
@@ -13150,6 +13211,9 @@ void calib_camera_add_view(calib_camera_t *calib,
   calib->num_factors += num_corners;
 }
 
+/**
+ * Camera calibration reprojection errors.
+ */
 void calib_camera_errors(calib_camera_t *calib,
                          real_t *reproj_rmse,
                          real_t *reproj_mean,
@@ -13201,6 +13265,9 @@ void calib_camera_errors(calib_camera_t *calib,
   free(r);
 }
 
+/**
+ * Camera calibration parameter order.
+ */
 param_order_t *calib_camera_param_order(const void *data,
                                         int *sv_size,
                                         int *r_size) {
@@ -13233,6 +13300,9 @@ param_order_t *calib_camera_param_order(const void *data,
   return hash;
 }
 
+/**
+ * Calculate camera calibration problem cost.
+ */
 void calib_camera_cost(const void *data, real_t *r) {
   // Evaluate factors
   calib_camera_t *calib = (calib_camera_t *) data;
@@ -13255,6 +13325,9 @@ void calib_camera_cost(const void *data, real_t *r) {
   }     // For each views
 }
 
+/**
+ * Linearize camera calibration problem.
+ */
 void calib_camera_linearize_compact(const void *data,
                                     const int sv_size,
                                     param_order_t *hash,
@@ -13292,6 +13365,134 @@ void calib_camera_linearize_compact(const void *data,
   }     // For each views
 }
 
+/**
+ * Reduce camera calibration problem via Schur-Complement.
+ *
+ * The Gauss newton system we are trying to solve has the form:
+ *
+ *   H dx = b (1)
+ *
+ * Where the H is the Hessian, dx is the update vector and b is a vector. In the
+ * camera calibration problem the Hessian has a arrow head pattern (see (25) in
+ * [Triggs2000]). This means to avoid inverting the full H matrix we can
+ * decompose (1) as,
+ *
+ *   [A B * [dx0    [b0
+ *    C D]   dx1] =  b1]  (2)
+ *
+ * and take the Shur-complement of A, we get a reduced system of:
+ *
+ *   D_bar = D − C * A^-1 * B
+ *   b1_bar = b1 − C * A^-1 * b0  (3)
+ *
+ * Since A is a block diagonal, inverting it is much cheaper than inverting the
+ * full H or A matrix. With (3) we can solve for dx1.
+ *
+ *   D_bar * dx1 = b1_bar
+ *
+ * And finally back-substitute the newly estimated dx1 to find dx0,
+ *
+ *   A * dx0 = b0 - B * dx1
+ *   dx0 = A^-1 * b0 - B * dx1
+ *
+ * where in the previous steps we have already computed A^-1.
+ *
+ * [Triggs2000]:
+ *
+ *   Triggs, Bill, et al. "Bundle adjustment—a modern synthesis." Vision
+ *   Algorithms: Theory and Practice: International Workshop on Vision
+ *   Algorithms Corfu, Greece, September 21–22, 1999 Proceedings. Springer
+ *   Berlin Heidelberg, 2000.
+ *
+ */
+void calib_camera_linsolve(const void *data,
+                           const int sv_size,
+                           param_order_t *hash,
+                           real_t *H,
+                           real_t *g,
+                           real_t *dx) {
+  calib_camera_t *calib = (calib_camera_t *) data;
+  const int m = calib->num_views * 6;
+  const int r = sv_size - m;
+  const int H_size = sv_size;
+  const int bs = 6; // Diagonal block size
+
+  // Extract sub-blocks of matrix H
+  // H = [A, B,
+  //      C, D]
+  real_t *B = MALLOC(real_t, m * r);
+  real_t *C = MALLOC(real_t, r * m);
+  real_t *D = MALLOC(real_t, r * r);
+  real_t *A_inv = MALLOC(real_t, m * m);
+  mat_block_get(H, H_size, 0, m - 1, m, H_size - 1, B);
+  mat_block_get(H, H_size, m, H_size - 1, 0, m - 1, C);
+  mat_block_get(H, H_size, m, H_size - 1, m, H_size - 1, D);
+
+  // Extract sub-blocks of vector b
+  // b = [b0, b1]
+  real_t *b0 = MALLOC(real_t, m);
+  real_t *b1 = MALLOC(real_t, r);
+  vec_copy(g, m, b0);
+  vec_copy(g + m, r, b1);
+
+  // Invert A
+  bdiag_inv_sub(H, sv_size, m, bs, A_inv);
+
+  // Reduce H b = b with Shur-Complement
+  // D_ = D - C * A_inv * B
+  // b1_ = b1 - C * A_inv * b0
+  real_t *D_ = MALLOC(real_t, r * r);
+  real_t *b1_ = MALLOC(real_t, r * 1);
+  dot3(C, r, m, A_inv, m, m, B, m, r, D_);
+  dot3(C, r, m, A_inv, m, m, b0, m, 1, b1_);
+  for (int i = 0; i < (r * r); i++) {
+    D_[i] = D[i] - D_[i];
+  }
+  for (int i = 0; i < r; i++) {
+    b1_[i] = b1[i] - b1_[i];
+  }
+
+  // Solve reduced system: D_ * dx_r = b1_
+  real_t *dx_r = MALLOC(real_t, r * 1);
+  chol_solve(D_, b1_, dx_r, r);
+
+  // Back-subsitute
+  real_t *B_dx_r = CALLOC(real_t, m * 1);
+  real_t *dx_m = CALLOC(real_t, m * 1);
+  dot(B, m, r, dx_r, r, 1, B_dx_r);
+  for (int i = 0; i < m; i++) {
+    b0[i] = b0[i] - B_dx_r[i];
+  }
+  bdiag_dot(A_inv, m, m, bs, b0, dx_m);
+
+  // Form full dx vector
+  for (int i = 0; i < m; i++) {
+    dx[i] = dx_m[i];
+  }
+  for (int i = 0; i < r; i++) {
+    dx[i + m] = dx_r[i];
+  }
+
+  // Clean-up
+  free(B);
+  free(C);
+  free(D);
+  free(A_inv);
+
+  free(b0);
+  free(b1);
+
+  free(D_);
+  free(b1_);
+
+  free(B_dx_r);
+  free(dx_m);
+  free(dx_r);
+}
+
+/**
+ * Solve camera calibration problem.
+ */
 void calib_camera_solve(calib_camera_t *calib) {
   assert(calib != NULL);
 
@@ -13306,6 +13507,7 @@ void calib_camera_solve(calib_camera_t *calib) {
   solver.cost_func = &calib_camera_cost;
   solver.param_order_func = &calib_camera_param_order;
   solver.linearize_func = &calib_camera_linearize_compact;
+  // solver.linsolve_func = &calib_camera_linsolve;
   solver_solve(&solver, calib);
 
   if (calib->verbose) {
