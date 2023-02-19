@@ -2878,6 +2878,12 @@ void gnuplot_send_xy(FILE *pipe,
                      const real_t *xvals,
                      const real_t *yvals,
                      const int n);
+void gnuplot_send_matrix(FILE *pipe,
+                         const char *data_name,
+                         const real_t *A,
+                         const int m,
+                         const int n);
+void gnuplot_matshow(const real_t *A, const int m, const int n);
 
 /******************************************************************************
  * SIMULATION

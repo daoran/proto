@@ -15545,6 +15545,50 @@ void gnuplot_send_xy(FILE *pipe,
   fprintf(pipe, "EOD\n");
 }
 
+void gnuplot_send_matrix(FILE *pipe,
+                         const char *data_name,
+                         const real_t *A,
+                         const int m,
+                         const int n) {
+  // Start data
+  fprintf(pipe, "%s << EOD \n", data_name);
+
+  // Print first row with column indices
+  fprintf(pipe, "%d ", n);
+  for (int j = 0; j < n; j++) {
+    fprintf(pipe, "%d ", j);
+  }
+  fprintf(pipe, "\n");
+
+  // Print rows here first number is row index
+  for (int i = 0; i < m; i++) {
+    fprintf(pipe, "%d ", i);
+    for (int j = 0; j < n; j++) {
+      fprintf(pipe, "%lf ", A[(i * n) + j]);
+    }
+    fprintf(pipe, "\n");
+  }
+
+  // End data
+  fprintf(pipe, "EOD\n");
+}
+
+void gnuplot_matshow(const real_t *A, const int m, const int n) {
+  FILE *gnuplot = gnuplot_init();
+
+  gnuplot_send(gnuplot, "set pal gray");
+  gnuplot_send(gnuplot, "set autoscale xfix");
+  gnuplot_send(gnuplot, "set autoscale yfix");
+  gnuplot_send(gnuplot, "set yrange [* : *] reverse");
+  gnuplot_send(gnuplot, "set autoscale cbfix");
+
+  gnuplot_send_matrix(gnuplot, "$H", A, m, n);
+  gnuplot_send(gnuplot, "plot $H matrix nonuniform with image notitle");
+  gnuplot_send(gnuplot, "pause mouse close");
+
+  gnuplot_close(gnuplot);
+}
+
 /******************************************************************************
  * SIMULATION
  ******************************************************************************/
