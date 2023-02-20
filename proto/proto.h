@@ -2122,21 +2122,59 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 // MARGINALIZER //
 //////////////////
 
-#define BA_FACTOR 1
-#define CAMERA_FACTOR 2
-#define IDF_FACTOR 3
-#define IMU_FACTOR 4
-#define CALIB_CAMERA_FACTOR 5
-#define CALIB_VI_FACTOR 6
-
-#define MARGINALIZER_CAPACITY_INIT 2000
-#define MARGINALIZER_CAPACITY_GROWTH 2.0
+#define MARG_FACTOR 1
+#define BA_FACTOR 2
+#define CAMERA_FACTOR 3
+#define IDF_FACTOR 4
+#define IMU_FACTOR 5
+#define CALIB_CAMERA_FACTOR 6
+#define CALIB_VI_FACTOR 7
 
 #define MARG_TRACK(RHASH, MHASH, PARAM)                                        \
   if (PARAM->marginalize == 0) {                                               \
     hmput(RHASH, PARAM, PARAM);                                                \
   } else {                                                                     \
     hmput(MHASH, PARAM, PARAM);                                                \
+  }
+
+#define MARG_TRACK_FACTOR(PARAM, PARAM_TYPE)                                   \
+  switch (PARAM_TYPE) {                                                        \
+    case POSITION_PARAM:                                                       \
+      MARG_TRACK(r_positions, m_positions, ((pos_t *) PARAM));                 \
+      break;                                                                   \
+    case ROTATION_PARAM:                                                       \
+      MARG_TRACK(r_rotations, m_rotations, ((rot_t *) PARAM));                 \
+      break;                                                                   \
+    case POSE_PARAM:                                                           \
+      MARG_TRACK(r_poses, m_poses, ((pose_t *) PARAM));                        \
+      break;                                                                   \
+    case VELOCITY_PARAM:                                                       \
+      MARG_TRACK(r_velocities, m_velocities, ((velocity_t *) PARAM));          \
+      break;                                                                   \
+    case IMU_BIASES_PARAM:                                                     \
+      MARG_TRACK(r_imu_biases, m_imu_biases, ((imu_biases_t *) PARAM));        \
+      break;                                                                   \
+    case FEATURE_PARAM:                                                        \
+      MARG_TRACK(r_features, m_features, ((feature_t *) PARAM));               \
+      break;                                                                   \
+    case FIDUCIAL_PARAM:                                                       \
+      MARG_TRACK(r_fiducials, m_fiducials, ((fiducial_t *) PARAM));            \
+      break;                                                                   \
+    case EXTRINSIC_PARAM:                                                      \
+      MARG_TRACK(r_extrinsics, m_extrinsics, ((extrinsic_t *) PARAM));         \
+      break;                                                                   \
+    case JOINT_PARAM:                                                          \
+      MARG_TRACK(r_joints, m_joints, ((joint_t *) PARAM));                     \
+      break;                                                                   \
+    case CAMERA_PARAM:                                                         \
+      MARG_TRACK(r_cam_params, m_cam_params, ((camera_params_t *) PARAM));     \
+      break;                                                                   \
+    case TIME_DELAY_PARAM:                                                     \
+      MARG_TRACK(r_time_delays, m_time_delays, ((time_delay_t *) PARAM));      \
+      break;                                                                   \
+    default:                                                                   \
+      FATAL("Implementation Error!\n");                                        \
+      break;                                                                   \
   }
 
 #define MARG_INDEX(HASH, PARAM_TYPE, PARAM_ORDER, COL_IDX, SZ, GZ, N)          \
@@ -2157,9 +2195,11 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
     if (HASH[i].value->fix) {                                                  \
       continue;                                                                \
     }                                                                          \
+    void *param = HASH[i].value;                                               \
     real_t *data = HASH[i].value->data;                                        \
                                                                                \
     MARG->param_types[PARAM_IDX] = PARAM_TYPE;                                 \
+    MARG->param_ptrs[PARAM_IDX] = param;                                       \
     MARG->params[PARAM_IDX] = data;                                            \
     PARAM_IDX++;                                                               \
                                                                                \
@@ -2220,6 +2260,7 @@ typedef struct marg_factor_t {
   list_t *imu_factors;
   list_t *calib_camera_factors;
   list_t *calib_vi_factors;
+  struct marg_factor_t *marg_factor;
 
   // Hessian, Jacobians and residuals
   param_order_t *hash;
@@ -2241,6 +2282,7 @@ typedef struct marg_factor_t {
   // Parameters, residuals and Jacobians (needed by the solver)
   int num_params;
   int *param_types;
+  void **param_ptrs;
   real_t **params;
   real_t *r;
   real_t **jacs;

@@ -11594,6 +11594,7 @@ marg_factor_t *marg_factor_malloc() {
   marg->imu_factors = list_malloc();
   marg->calib_camera_factors = list_malloc();
   marg->calib_vi_factors = list_malloc();
+  marg->marg_factor = NULL;
 
   // Hessian and residuals
   marg->hash = NULL;
@@ -11634,6 +11635,10 @@ marg_factor_t *marg_factor_malloc() {
  * Free marginalization factor.
  */
 void marg_factor_free(marg_factor_t *marg) {
+  if (marg == NULL) {
+    return;
+  }
+
   // Factors
   list_free(marg->ba_factors);
   list_free(marg->camera_factors);
@@ -11641,6 +11646,7 @@ void marg_factor_free(marg_factor_t *marg) {
   list_free(marg->imu_factors);
   list_free(marg->calib_camera_factors);
   list_free(marg->calib_vi_factors);
+  marg_factor_free(marg->marg_factor);
 
   // Residuals
   hmfree(marg->hash);
@@ -11658,6 +11664,7 @@ void marg_factor_free(marg_factor_t *marg) {
 
   // Jacobians
   free(marg->param_types);
+  free(marg->param_ptrs);
   free(marg->params);
   free(marg->r);
   for (int i = 0; i < marg->num_params; i++) {
@@ -11728,6 +11735,14 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   marg_time_delay_t *m_time_delays = NULL;
 
   // Track Factor Params
+  // -- Track marginalization factor params
+  if (marg->marg_factor) {
+    for (int i = 0; i < marg->marg_factor->num_params; i++) {
+      void *param = marg->marg_factor->param_ptrs[i];
+      int param_type = marg->marg_factor->param_types[i];
+      MARG_TRACK_FACTOR(param, param_type);
+    }
+  }
   // -- Track BA factor params
   {
     list_node_t *node = marg->ba_factors->first;
@@ -11848,6 +11863,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   marg->x0 = MALLOC(real_t, gr);
   marg->num_params = nr;
   marg->param_types = MALLOC(int, nr);
+  marg->param_ptrs = MALLOC(void *, nr);
   marg->params = MALLOC(real_t *, nr);
   MARG_PARAMS(marg, r_positions, POSITION_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, r_rotations, ROTATION_PARAM, param_idx, x0_idx);
