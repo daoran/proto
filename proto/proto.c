@@ -11885,6 +11885,17 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   real_t *b = CALLOC(real_t, ls * 1);
 
   // Fill Hessian
+  if (marg->marg_factor) {
+    solver_fill_hessian(marg->hash,
+                        marg->marg_factor->num_params,
+                        marg->marg_factor->params,
+                        marg->marg_factor->jacs,
+                        marg->marg_factor->r,
+                        marg->marg_factor->r_size,
+                        ls,
+                        H,
+                        b);
+  }
   MARG_H(marg, ba_factor_t, marg->ba_factors, H, b, ls);
   MARG_H(marg, camera_factor_t, marg->camera_factors, H, b, ls);
   MARG_H(marg, idf_factor_t, marg->idf_factors, H, b, ls);
