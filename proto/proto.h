@@ -500,6 +500,8 @@ typedef int64_t timestamp_t;
 #define TIC(X) struct timespec X = tic()
 #define TOC(X) toc(&X)
 #define MTOC(X) mtoc(&X)
+#define PRINT_TOC(PREFIX, X) printf("[%s]: %.4fs\n", PREFIX, toc(&X))
+#define PRINT_MTOC(PREFIX, X) printf("[%s]: %.4fms\n", PREFIX, mtoc(&X))
 
 struct timespec tic();
 float toc(struct timespec *tic);
@@ -2204,6 +2206,7 @@ MARG_PARAM_HASH(time_delay_t, marg_time_delay_t)
 typedef struct marg_factor_t {
   // Settings
   int debug;
+  int cond_hessian;
 
   // Flags
   int marginalized;
@@ -2218,15 +2221,22 @@ typedef struct marg_factor_t {
   list_t *calib_camera_factors;
   list_t *calib_vi_factors;
 
-  // Hessian and residuals
+  // Hessian, Jacobians and residuals
   param_order_t *hash;
   int m_size;
   int r_size;
+
   real_t *x0;
   real_t *r0;
   real_t *J0;
+  real_t *J0_inv;
   real_t *dchi;
   real_t *J0_dchi;
+
+  real_t *H;
+  real_t *b;
+  real_t *H_marg;
+  real_t *b_marg;
 
   // Parameters, residuals and Jacobians (needed by the solver)
   int num_params;
@@ -2234,6 +2244,13 @@ typedef struct marg_factor_t {
   real_t **params;
   real_t *r;
   real_t **jacs;
+
+  // Profiling
+  real_t time_hessian_form;
+  real_t time_schur_complement;
+  real_t time_hessian_decomp;
+  real_t time_fejs;
+  real_t time_total;
 } marg_factor_t;
 
 marg_factor_t *marg_factor_malloc();

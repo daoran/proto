@@ -2251,8 +2251,8 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
 
   printf("%s: ", prefix);
   for (size_t i = 0; i < n; i++) {
-    // printf("%e ", v[i]);
-    printf("%f ", v[i]);
+    printf("%e ", v[i]);
+    // printf("%f ", v[i]);
     // printf("%.4f ", v[i]);
     // printf("%.10f ", v[i]);
   }
@@ -3452,12 +3452,15 @@ void enforce_spd(real_t *A, const int m, const int n) {
  * @returns `0` for succces, `-1` for failure.
  */
 int check_inv(const real_t *A, const real_t *A_inv, const int m) {
-  real_t *inv_check = MALLOC(real_t, m * m);
+  real_t *inv_check = CALLOC(real_t, m * m);
   dot(A, m, m, A_inv, m, m, inv_check);
-  print_matrix("inv_check", inv_check, m, m);
+  // print_matrix("inv_check", inv_check, m, m);
+  // gnuplot_matshow(inv_check, m, m);
+  // exit(0);
 
   for (int i = 0; i < m; i++) {
     if (fltcmp(inv_check[i * m + i], 1.0) != 0) {
+      printf("%d, %e\n", i, inv_check[i * m + i]);
       free(inv_check);
       return -1;
     }
@@ -3842,13 +3845,13 @@ void pinv(const real_t *A, const int m, const int n, real_t *A_inv) {
 
   // Decompose A = U * S * Vt
   const int diag_size = (m < n) ? m : n;
-  real_t *s = MALLOC(real_t, diag_size);
-  real_t *U = MALLOC(real_t, m * n);
-  real_t *V = MALLOC(real_t, n * n);
+  real_t *s = CALLOC(real_t, diag_size);
+  real_t *U = CALLOC(real_t, m * n);
+  real_t *V = CALLOC(real_t, n * n);
   svd(A, m, n, U, s, V);
 
   // Form Sinv diagonal matrix
-  real_t *Si = MALLOC(real_t, m * n);
+  real_t *Si = CALLOC(real_t, m * n);
   zeros(Si, n, m);
   for (int idx = 0; idx < m; idx++) {
     const int diag_idx = idx * n + idx;
@@ -3867,8 +3870,8 @@ void pinv(const real_t *A, const int m, const int n, real_t *A_inv) {
   // dot(V_Si, m, m, Ut, m, n, A_inv);
 
   // A_inv = U * Si * Ut
-  real_t *Ut = MALLOC(real_t, m * n);
-  real_t *Si_Ut = MALLOC(real_t, diag_size * n);
+  real_t *Ut = CALLOC(real_t, m * n);
+  real_t *Si_Ut = CALLOC(real_t, diag_size * n);
   mat_transpose(U, m, n, Ut);
   dot(Si, diag_size, diag_size, Ut, m, n, Si_Ut);
   dot(V, m, n, Si_Ut, diag_size, n, A_inv);
@@ -7512,10 +7515,10 @@ int schur_complement(const real_t *H,
   if (eig_inv(Hmm, m, m, c, Hmm_inv) != 0) {
     status = -1;
   }
-  // if (check_inv(Hmm, Hmm_inv, m) == -1) {
-  //   status = -1;
-  //   printf("Inverse Hmm failed!\n");
-  // }
+  if (check_inv(Hmm, Hmm_inv, m) == -1) {
+    status = -1;
+    printf("Inverse Hmm failed!\n");
+  }
 
   // Shur-Complement
   // H_marg = H_rr - H_rm * H_mm_inv * H_mr
@@ -11570,6 +11573,9 @@ error:
 // MARGINALIZER //
 //////////////////
 
+/**
+ * Malloc marginalization factor.
+ */
 marg_factor_t *marg_factor_malloc() {
   marg_factor_t *marg = MALLOC(marg_factor_t, 1);
 
@@ -11593,11 +11599,19 @@ marg_factor_t *marg_factor_malloc() {
   marg->hash = NULL;
   marg->m_size = 0;
   marg->r_size = 0;
+
   marg->x0 = NULL;
   marg->r0 = NULL;
   marg->J0 = NULL;
   marg->dchi = NULL;
   marg->J0_dchi = NULL;
+
+  marg->J0 = NULL;
+  marg->J0_inv = NULL;
+  marg->H = NULL;
+  marg->b = NULL;
+  marg->H_marg = NULL;
+  marg->b_marg = NULL;
 
   // Parameters, residuals and Jacobians
   marg->num_params = 0;
@@ -11606,9 +11620,19 @@ marg_factor_t *marg_factor_malloc() {
   marg->r = NULL;
   marg->jacs = NULL;
 
+  // Profiling
+  marg->time_hessian_form = 0;
+  marg->time_schur_complement = 0;
+  marg->time_hessian_decomp = 0;
+  marg->time_fejs = 0;
+  marg->time_total = 0;
+
   return marg;
 }
 
+/**
+ * Free marginalization factor.
+ */
 void marg_factor_free(marg_factor_t *marg) {
   // Factors
   list_free(marg->ba_factors);
@@ -11623,8 +11647,14 @@ void marg_factor_free(marg_factor_t *marg) {
   free(marg->x0);
   free(marg->r0);
   free(marg->J0);
+  free(marg->J0_inv);
   free(marg->dchi);
   free(marg->J0_dchi);
+
+  free(marg->H);
+  free(marg->b);
+  free(marg->H_marg);
+  free(marg->b_marg);
 
   // Jacobians
   free(marg->param_types);
@@ -11638,6 +11668,9 @@ void marg_factor_free(marg_factor_t *marg) {
   free(marg);
 }
 
+/**
+ * Add factor to marginalization factor.
+ */
 void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr) {
   switch (factor_type) {
     case BA_FACTOR:
@@ -11664,9 +11697,10 @@ void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr) {
   };
 }
 
-static void marg_factor_schur_complement(marg_factor_t *marg,
-                                         real_t **H_marg,
-                                         real_t **b_marg) {
+/**
+ * Form Hessian matrix using data in marginalization factor.
+ */
+static void marg_factor_hessian_form(marg_factor_t *marg) {
   // Track parameters
   // -- Remain parameters
   marg_pos_t *r_positions = NULL;
@@ -11745,6 +11779,35 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
     }
   }
 
+  // Print stats
+  // printf("Parameters to be marginalized:\n");
+  // printf("m_positions: %ld\n", hmlen(m_positions));
+  // printf("m_rotations: %ld\n", hmlen(m_rotations));
+  // printf("m_poses: %ld\n", hmlen(m_poses));
+  // printf("m_velocities: %ld\n", hmlen(m_velocities));
+  // printf("m_imu_biases: %ld\n", hmlen(m_imu_biases));
+  // printf("m_features: %ld\n", hmlen(m_features));
+  // printf("m_joints: %ld\n", hmlen(m_joints));
+  // printf("m_extrinsics: %ld\n", hmlen(m_extrinsics));
+  // printf("m_fiducials: %ld\n", hmlen(m_fiducials));
+  // printf("m_cam_params: %ld\n", hmlen(m_cam_params));
+  // printf("m_time_delays: %ld\n", hmlen(m_time_delays));
+  // printf("\n");
+
+  // printf("Parameters to remain:\n");
+  // printf("r_positions: %ld\n", hmlen(r_positions));
+  // printf("r_rotations: %ld\n", hmlen(r_rotations));
+  // printf("r_poses: %ld\n", hmlen(r_poses));
+  // printf("r_velocities: %ld\n", hmlen(r_velocities));
+  // printf("r_imu_biases: %ld\n", hmlen(r_imu_biases));
+  // printf("r_features: %ld\n", hmlen(r_features));
+  // printf("r_joints: %ld\n", hmlen(r_joints));
+  // printf("r_extrinsics: %ld\n", hmlen(r_extrinsics));
+  // printf("r_fiducials: %ld\n", hmlen(r_fiducials));
+  // printf("r_cam_params: %ld\n", hmlen(r_cam_params));
+  // printf("r_time_delays: %ld\n", hmlen(r_time_delays));
+  // printf("\n");
+
   // Determine parameter block column indicies for Hessian matrix H
   int H_idx = 0; // Column / row index of Hessian matrix H
   int m = 0;     // Marginal local parameter length
@@ -11779,34 +11842,6 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
   MARG_INDEX(r_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(r_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r, gr, nr);
 
-  // printf("Parameters to be marginalized:\n");
-  // printf("m_positions: %ld\n", hmlen(m_positions));
-  // printf("m_rotations: %ld\n", hmlen(m_rotations));
-  // printf("m_poses: %ld\n", hmlen(m_poses));
-  // printf("m_velocities: %ld\n", hmlen(m_velocities));
-  // printf("m_imu_biases: %ld\n", hmlen(m_imu_biases));
-  // printf("m_features: %ld\n", hmlen(m_features));
-  // printf("m_joints: %ld\n", hmlen(m_joints));
-  // printf("m_extrinsics: %ld\n", hmlen(m_extrinsics));
-  // printf("m_fiducials: %ld\n", hmlen(m_fiducials));
-  // printf("m_cam_params: %ld\n", hmlen(m_cam_params));
-  // printf("m_time_delays: %ld\n", hmlen(m_time_delays));
-  // printf("\n");
-
-  // printf("Parameters to remain:\n");
-  // printf("r_positions: %ld\n", hmlen(r_positions));
-  // printf("r_rotations: %ld\n", hmlen(r_rotations));
-  // printf("r_poses: %ld\n", hmlen(r_poses));
-  // printf("r_velocities: %ld\n", hmlen(r_velocities));
-  // printf("r_imu_biases: %ld\n", hmlen(r_imu_biases));
-  // printf("r_features: %ld\n", hmlen(r_features));
-  // printf("r_joints: %ld\n", hmlen(r_joints));
-  // printf("r_extrinsics: %ld\n", hmlen(r_extrinsics));
-  // printf("r_fiducials: %ld\n", hmlen(r_fiducials));
-  // printf("r_cam_params: %ld\n", hmlen(r_cam_params));
-  // printf("r_time_delays: %ld\n", hmlen(r_time_delays));
-  // printf("\n");
-
   // Track linearization point x0 and parameter pointers
   int param_idx = 0;
   int x0_idx = 0;
@@ -11839,6 +11874,8 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
   MARG_H(marg, idf_factor_t, marg->idf_factors, H, b, ls);
   MARG_H(marg, imu_factor_t, marg->imu_factors, H, b, ls);
   MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
+  marg->H = H;
+  marg->b = b;
 
   // Clean up
   // -- Remain parameters
@@ -11865,44 +11902,54 @@ static void marg_factor_schur_complement(marg_factor_t *marg,
   hmfree(m_fiducials);
   hmfree(m_cam_params);
   hmfree(m_time_delays);
-
-  // Compute Schurs Complement
-  *H_marg = MALLOC(real_t, r * r);
-  *b_marg = MALLOC(real_t, r * 1);
-  if (schur_complement(H, b, ls, m, r, *H_marg, *b_marg) == 0) {
-    marg->schur_complement_ok = 1;
-  }
-
-  // Enforce symmetry: H_marg = 0.5 * (H_marg + H_marg')
-  enforce_spd(*H_marg, r, r);
-
-  // Clean up
-  free(H);
-  free(b);
 }
 
-static void marg_factor_decomp_hessian(marg_factor_t *marg,
-                                       const real_t *H_marg,
-                                       const real_t *b_marg,
-                                       real_t **J,
-                                       real_t **J_inv) {
-  // Decompose H_marg into J'and J, and in the process also obtain inv(J).
+/**
+ * Perform Schur-Complement.
+ */
+static void marg_factor_schur_complement(marg_factor_t *marg) {
+  // Compute Schurs Complement
+  const int m = marg->m_size;
+  const int r = marg->r_size;
+  const int ls = m + r;
+  const real_t *H = marg->H;
+  const real_t *b = marg->b;
+  real_t *H_marg = MALLOC(real_t, r * r);
+  real_t *b_marg = MALLOC(real_t, r * 1);
+  if (schur_complement(H, b, ls, m, r, H_marg, b_marg) == 0) {
+    marg->schur_complement_ok = 1;
+  }
+  marg->H_marg = H_marg;
+  marg->b_marg = b_marg;
+
+  // Enforce symmetry: H_marg = 0.5 * (H_marg + H_marg')
+  if (marg->cond_hessian) {
+    enforce_spd(marg->H_marg, r, r);
+  }
+}
+
+/**
+ * Decompose Hessian into two Jacobians.
+ */
+static void marg_factor_hessian_decomp(marg_factor_t *marg) {
+  // Decompose H_marg into Jt and J, and in the process also obtain inv(J).
   // Hessian H_marg can be decomposed via Eigen-decomposition:
   //
   //   H_marg = J' * J = V * diag(w) * V'
   //   J = diag(w^{0.5}) * V'
+  //   J_inv = diag(w^-0.5) * V'
   //
   // -- Setup
   const int r = marg->r_size;
-  *J = CALLOC(real_t, r * r);
-  *J_inv = CALLOC(real_t, r * r);
+  real_t *J = CALLOC(real_t, r * r);
+  real_t *J_inv = CALLOC(real_t, r * r);
   real_t *V = CALLOC(real_t, r * r);
   real_t *Vt = CALLOC(real_t, r * r);
   real_t *w = CALLOC(real_t, r);
   real_t *W_sqrt = CALLOC(real_t, r * r);
   real_t *W_inv_sqrt = CALLOC(real_t, r * r);
   // -- Eigen decomposition
-  if (eig_sym(H_marg, r, r, V, w) != 0) {
+  if (eig_sym(marg->H_marg, r, r, V, w) != 0) {
     free(V);
     free(Vt);
     free(w);
@@ -11922,28 +11969,28 @@ static void marg_factor_decomp_hessian(marg_factor_t *marg,
       W_sqrt[(i * r) + i] = sqrt(w[i]);
       W_inv_sqrt[(i * r) + i] = sqrt(1.0 / w[i]);
     } else {
-      W_sqrt[(i * r) + i] = 0.0;
-      W_inv_sqrt[(i * r) + i] = 0.0;
+      W_sqrt[(i * r) + i] = tol;
+      W_inv_sqrt[(i * r) + i] = tol;
     }
   }
-  dot(W_sqrt, r, r, Vt, r, r, *J);
-  dot(W_inv_sqrt, r, r, Vt, r, r, *J_inv);
-  mat_scale(*J_inv, r, r, -1.0);
+  dot(W_sqrt, r, r, Vt, r, r, J);
+  dot(W_inv_sqrt, r, r, Vt, r, r, J_inv);
+  mat_scale(J_inv, r, r, -1.0);
   marg->eigen_decomp_ok = 1;
 
   // Check J' * J == H_marg
   if (marg->debug) {
     real_t *Jt = CALLOC(real_t, r * r);
     real_t *H_ = CALLOC(real_t, r * r);
-    mat_transpose(*J, r, r, Jt);
-    dot(Jt, r, r, *J, r, r, H_);
+    mat_transpose(J, r, r, Jt);
+    dot(Jt, r, r, J, r, r, H_);
 
     real_t diff = 0.0;
     for (int i = 0; i < (r * r); i++) {
-      diff += fabs(H_[i] - H_marg[i]);
+      diff += fabs(H_[i] - marg->H_marg[i]);
     }
 
-    if (diff > 1.0) {
+    if (diff > 1e-4) {
       marg->eigen_decomp_ok = 0;
       LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
       LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
@@ -11953,13 +12000,17 @@ static void marg_factor_decomp_hessian(marg_factor_t *marg,
     free(H_);
   }
 
-  // Check J_inv * J == eye
-  if (marg->debug) {
-    if (check_inv(*J_inv, *J, r) != 0) {
-      marg->eigen_decomp_ok = 0;
-      LOG_WARN("inv(J) * J != eye\n");
-    }
-  }
+  // // Check J_inv * J == eye
+  // if (marg->debug) {
+  //   if (check_inv(*J_inv, *J, r) != 0) {
+  //     marg->eigen_decomp_ok = 0;
+  //     LOG_WARN("inv(J) * J != eye\n");
+  //   }
+  // }
+
+  // Update
+  marg->J0 = J;
+  marg->J0_inv = J_inv;
 
   // Clean up
   free(V);
@@ -11969,54 +12020,65 @@ static void marg_factor_decomp_hessian(marg_factor_t *marg,
   free(W_inv_sqrt);
 }
 
-static void marg_factor_form_fejs(marg_factor_t *marg,
-                                  const real_t *b_marg,
-                                  const real_t *J_inv,
-                                  real_t *J) {
+static void marg_factor_form_fejs(marg_factor_t *marg) {
   // Track Linearized residuals, jacobians
-  // -- Linearized residuals: r0 = -J_inv * b_marg;
+  // -- Linearized residuals: r0 = -J0_inv * b_marg;
   marg->r0 = MALLOC(real_t, marg->r_size);
-  dot(J_inv, marg->r_size, marg->r_size, b_marg, marg->r_size, 1, marg->r0);
+  dot(marg->J0_inv,
+      marg->r_size,
+      marg->r_size,
+      marg->b_marg,
+      marg->r_size,
+      1,
+      marg->r0);
   // -- Linearized jacobians: J0 = J;
-  marg->J0 = J;
   marg->dchi = MALLOC(real_t, marg->r_size);
   marg->J0_dchi = MALLOC(real_t, marg->r_size);
 
   // Form First-Estimate Jacobians (FEJ)
   const size_t m = marg->r_size;
+  const int col_offset = -marg->m_size;
   const int rs = 0;
   const int re = m - 1;
-  marg->r = MALLOC(real_t, marg->r_size);
+  marg->r = MALLOC(real_t, m);
   marg->jacs = MALLOC(real_t *, marg->num_params);
-  int col_idx = 0;
+
   for (size_t i = 0; i < marg->num_params; i++) {
-    const int n = param_local_size(hmgets(marg->hash, marg->params[i]).type);
-    const int cs = col_idx;
+    real_t *param_ptr = marg->params[i];
+    const param_order_t *param_info = &hmgets(marg->hash, param_ptr);
+    const int n = param_local_size(param_info->type);
+    const int cs = param_info->idx + col_offset;
     const int ce = cs + n - 1;
-    col_idx += 1;
+
     marg->jacs[i] = MALLOC(real_t, m * n);
-    mat_block_get(marg->J0, marg->r_size, rs, re, cs, ce, marg->jacs[i]);
+    mat_block_get(marg->J0, m, rs, re, cs, ce, marg->jacs[i]);
   }
 }
 
 void marg_factor_marginalize(marg_factor_t *marg) {
-  // Form Hessian and RHS of Gauss newton and apply Schur Complement
-  real_t *H_marg = NULL;
-  real_t *b_marg = NULL;
-  marg_factor_schur_complement(marg, &H_marg, &b_marg);
+  // Form Hessian and RHS of Gauss newton
+  TIC(hessian_form);
+  marg_factor_hessian_form(marg);
+  marg->time_hessian_form = TOC(hessian_form);
+  marg->time_total += marg->time_hessian_form;
+
+  // Apply Schur Complement
+  TIC(schur);
+  marg_factor_schur_complement(marg);
+  marg->time_schur_complement = TOC(schur);
+  marg->time_total += marg->time_schur_complement;
 
   // Decompose marginalized Hessian
-  real_t *J = NULL;
-  real_t *J_inv = NULL;
-  marg_factor_decomp_hessian(marg, H_marg, b_marg, &J, &J_inv);
+  TIC(hessian_decomp);
+  marg_factor_hessian_decomp(marg);
+  marg->time_hessian_decomp = TOC(hessian_decomp);
+  marg->time_total += marg->time_hessian_decomp;
 
   // Form FEJs
-  marg_factor_form_fejs(marg, b_marg, J_inv, J);
-
-  // Clean up
-  free(H_marg);
-  free(b_marg);
-  free(J_inv);
+  TIC(fejs);
+  marg_factor_form_fejs(marg);
+  marg->time_fejs = TOC(fejs);
+  marg->time_total += marg->time_fejs;
 
   // Update state
   marg->marginalized = 1;
@@ -15574,18 +15636,27 @@ void gnuplot_send_matrix(FILE *pipe,
 }
 
 void gnuplot_matshow(const real_t *A, const int m, const int n) {
+  // Open gnuplot
   FILE *gnuplot = gnuplot_init();
 
-  gnuplot_send(gnuplot, "set pal gray");
-  gnuplot_send(gnuplot, "set autoscale xfix");
-  gnuplot_send(gnuplot, "set autoscale yfix");
+  // Set color scheme
+  gnuplot_send(gnuplot, "set palette gray");
+
+  // Set x and y tic labels
+  gnuplot_send(gnuplot, "set size square");
+  gnuplot_send(gnuplot, "set xtics format ''");
+  gnuplot_send(gnuplot, "set x2tics");
   gnuplot_send(gnuplot, "set yrange [* : *] reverse");
+  gnuplot_send(gnuplot, "set autoscale x2fix");
+  gnuplot_send(gnuplot, "set autoscale yfix");
   gnuplot_send(gnuplot, "set autoscale cbfix");
 
-  gnuplot_send_matrix(gnuplot, "$H", A, m, n);
-  gnuplot_send(gnuplot, "plot $H matrix nonuniform with image notitle");
+  // Plot
+  gnuplot_send_matrix(gnuplot, "$A", A, m, n);
+  gnuplot_send(gnuplot, "plot $A matrix with image notitle axes x2y1");
   gnuplot_send(gnuplot, "pause mouse close");
 
+  // Close gnuplot
   gnuplot_close(gnuplot);
 }
 

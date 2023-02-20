@@ -1466,11 +1466,10 @@ int test_bdiag_inv() {
   {
     real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
 
-    struct timespec t_start = tic();
+    // TIC(bdiag_time);
     bdiag_inv(H, num_rows, 6, H_inv);
     // printf("H: %dx%d\n", num_rows, num_cols);
-    // printf("invert block diagonal -> time taken: %f\n", toc(&t_start));
-
+    // printf("invert block diagonal -> time taken: %f\n", TOC(bdiag_time));
     MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
 
     free(H_inv);
@@ -1481,11 +1480,10 @@ int test_bdiag_inv() {
 
     real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
 
-    struct timespec t_start = tic();
+    // TIC(pinv_time);
     pinv(H, num_rows, num_rows, H_inv);
     // eig_inv(H, num_rows, num_rows, 0, H_inv);
-    // printf("invert dumb way -> time taken: %f\n", toc(&t_start));
-
+    // printf("invert dumb way -> time taken: %f\n", TOC(pinv_time));
     MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
 
     free(H_inv);
@@ -4519,7 +4517,7 @@ int test_marg() {
   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   // Setup features and poses
-  int num_poses = 2;
+  int num_poses = 5;
   int num_features = 10;
   pose_t poses[20] = {0};
   feature_t features[100] = {0};
@@ -4531,7 +4529,7 @@ int test_marg() {
     const real_t dx = randf(-0.5, 0.5);
     const real_t dy = randf(-0.5, 0.5);
     const real_t dz = randf(-0.5, 0.5);
-    const real_t p_W[3] = {5.0 + dx, 0.0 + dy, 0.0 + dz};
+    const real_t p_W[3] = {3.0 + dx, 0.0 + dy, 0.0 + dz};
     feature_t *feature = &features[i];
     feature_setup(feature, 0, p_W);
     points[i * 3 + 0] = p_W[0];
@@ -4570,8 +4568,8 @@ int test_marg() {
 
       real_t z[2];
       pinhole_radtan4_project(cam_data, p_Ci, z);
-      keypoints[i * 2 + 0] = z[0];
-      keypoints[i * 2 + 1] = z[1];
+      keypoints[i * 2 + 0] = z[0] + 0.001;
+      keypoints[i * 2 + 1] = z[1] - 0.001;
 
       // Setup camera factor
       camera_factor_t *cam_factor = &factors[factor_idx];
@@ -4614,7 +4612,7 @@ int test_marg() {
   const int sv_size = col_idx;
   const int r_size = (factor_idx * 2);
 
-  // Form hessian
+  // Form Hessian
   int r_idx = 0;
   real_t *H = CALLOC(real_t, sv_size * sv_size);
   real_t *g = CALLOC(real_t, sv_size * 1);
@@ -4635,10 +4633,8 @@ int test_marg() {
                         g);
     r_idx += factor->r_size;
   }
-  printf("sv_size: %d\n", sv_size);
-  mat_save("/tmp/H.csv", H, sv_size, sv_size);
 
-  // Setup
+  // Setup marginalization factor
   marg_factor_t *marg = marg_factor_malloc();
   for (int i = 0; i < (num_poses * num_features); i++) {
     marg_factor_add(marg, CAMERA_FACTOR, &factors[i]);
@@ -4646,7 +4642,15 @@ int test_marg() {
   marg_factor_marginalize(marg);
   marg_factor_eval(marg);
 
-  // Determine parameter order for marginalized Hessian
+  // Print timings
+  printf("marg->time_hessian_form:     %.4fs\n", marg->time_hessian_form);
+  printf("marg->time_schur_complement: %.4fs\n", marg->time_schur_complement);
+  printf("marg->time_hessian_decomp:   %.4fs\n", marg->time_hessian_decomp);
+  printf("marg->time_fejs:             %.4fs\n", marg->time_fejs);
+  printf("------------------------------------\n");
+  printf("marg->time_total:            %.4fs\n", marg->time_total);
+
+  // Determine parameter order for the marginalized Hessian
   param_order_t *hash_ = NULL;
   int col_idx_ = 0;
   // -- Add body poses
@@ -5141,7 +5145,6 @@ int test_calib_camera_mono() {
   const real_t cam_params[8] =
       {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
 
-  struct timespec t_start = tic();
   calib_camera_t *calib = calib_camera_malloc();
   calib_camera_add_camera(calib,
                           0,
@@ -5153,7 +5156,6 @@ int test_calib_camera_mono() {
   calib_camera_add_data(calib, 0, "/data/proto/cam_april-small/cam0");
   calib_camera_solve(calib);
   calib_camera_free(calib);
-  printf("toc: %f\n", toc(&t_start));
 
   return 0;
 }
