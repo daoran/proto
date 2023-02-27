@@ -4810,8 +4810,8 @@ class CalibGimbalFactor(Factor):
       return r
 
     # Calculate jacobians
-    if status is False:
-      return (r, jacs)
+    # if status is False:
+    #   return (r, jacs)
 
     neg_sqrt_info = -1.0 * sqrt_info
     T_WF = fiducial
@@ -5562,8 +5562,8 @@ class Solver:
     param_order.append("pose")
     param_order.append("speed_and_biases")
     param_order.append("feature")
-    param_order.append("extrinsics")
     param_order.append("camera")
+    param_order.append("extrinsics")
 
     param_idxs = {}
     param_size = 0
@@ -5627,6 +5627,51 @@ class Solver:
 
     return (H, g, param_idxs)
 
+  def _linearize2(self, params):
+    """ Linearize non-linear problem
+
+    This function forms the Jacboian J instead of the Hessian H.
+
+    """
+    # Setup
+    (param_idxs, param_size) = self._form_param_indices()
+    r_size = np.sum([len(f.measurement) for _, f in self.factors.items()])
+    J = zeros((r_size, param_size))
+    g = zeros(param_size)
+
+    # Form Jacobian and R.H.S of Gauss newton
+    J_idx = 0
+    for _, factor in self.factors.items():
+      factor_params = [params[pid].param for pid in factor.param_ids]
+      r, jacobians = factor.eval(factor_params)
+      J_rs = J_idx
+      J_re = J_rs + len(r)
+
+      # Form Jacobian
+      nb_params = len(factor_params)
+      for i in range(nb_params):
+        param_i = params[factor.param_ids[i]]
+        if param_i.fix:
+          continue
+        idx_i = param_idxs[factor.param_ids[i]]
+        size_i = param_i.min_dims
+        J_i = jacobians[i]
+
+        J_cs = idx_i
+        J_ce = J_cs + size_i
+        J[J_rs:J_re, J_cs:J_ce] = J_i
+
+        # Form R.H.S. Gauss Newton g
+        rs = idx_i
+        re = idx_i + size_i
+        g[rs:re] += (-J_i.T @ r)
+
+      # Update row index
+      J_idx = J_rs + len(r)
+
+    # print(f"J.shape: {J.shape}")
+    return (J, g, param_idxs)
+
   def _calculate_residuals(self, params):
     """ Calculate Residuals """
     residuals = np.array([])
@@ -5665,29 +5710,28 @@ class Solver:
   def _solve_for_dx(lambda_k, H, g):
     """ Solve for dx """
     # Damp Hessian
-    H = H + lambda_k * eye(H.shape[0])
-    # H = H + lambda_k * np.diag(H.diagonal())
+    H_damped = H + lambda_k * eye(H.shape[0])
+    # H_damped = H + lambda_k * np.diag(H.diagonal())
 
     # # Pseudo inverse
     # dx = pinv(H) @ g
 
     # Cholesky decomposition
     # print(f"np.linalg.det(H): {np.linalg.det(H)}", flush=True)
-    c, low = scipy.linalg.cho_factor(H)
+    c, low = scipy.linalg.cho_factor(H_damped)
     dx = scipy.linalg.cho_solve((c, low), g)
 
     # SVD
-    # dx = solve_svd(H, g)
+    # dx = solve_svd(H_damped, g)
 
     # # QR
-    # q, r = np.linalg.qr(H)
+    # q, r = np.linalg.qr(H_damped)
     # p = np.dot(q.T, g)
     # dx = np.dot(np.linalg.inv(r), p)
 
     # Sparse cholesky decomposition
-    # sH = scipy.sparse.csc_matrix(H)
+    # sH = scipy.sparse.csc_matrix(H_damped)
     # dx = scipy.sparse.linalg.spsolve(sH, g)
-    # dx = scipy.sparse.linalg.spsolve(H, g, permc_spec="NATURAL")
 
     return dx
 
@@ -5704,9 +5748,31 @@ class Solver:
       self._print_to_console(0, lambda_k, cost_k, cost_k)
 
     # Iterate
+    success = False
+    H = None
+    g = None
+    param_idxs = None
+
+    # (J, g, param_idxs) = self._linearize2(params_k)
+    # np.savetxt("/tmp/J.csv", J, delimiter=",")
+
+    # idx_i = None
+    # size_i = None
+    # for _, f in self.factors.items():
+    #   if f.factor_type == "CalibGimbalFactor":
+    #     idx_i = param_idxs[f.param_ids[3]]
+    #     size_i = params_k[f.param_ids[3]].min_dims
+    #     break
+
+    # (U, s, Vt) = svd(J)
+    # J0 = np.delete(J, [idx_i, idx_i + 1, idx_i + 2, idx_i + 5], 1)
+    # print(f"drop 0: {rank(J0)}, {J0.shape}")
+
     for i in range(1, self.solver_max_iter):
       # Update and calculate cost
-      (H, g, param_idxs) = self._linearize(params_k)
+      if i == 1 or success:
+        (H, g, param_idxs) = self._linearize(params_k)
+
       dx = self._solve_for_dx(lambda_k, H, g)
       params_kp1 = self._update(params_k, param_idxs, dx)
       cost_kp1 = self._calculate_cost(params_kp1)
@@ -5716,8 +5782,10 @@ class Solver:
         self._print_to_console(i, lambda_k, cost_kp1, cost_k)
 
       # Accept or reject update
-      # dcost = cost_kp1 - cost_k
-      if cost_kp1 < cost_k:
+      dcost = cost_kp1 - cost_k
+      success = dcost < 0
+
+      if success:
         # Accept update
         cost_k = cost_kp1
         params_k = params_kp1
@@ -7352,6 +7420,7 @@ class GimbalCalibrator:
     self.cam_ext_ids = {}
 
     # Factor ids
+    self.pose_factor_ids = []
     self.link_factor_ids = []
     self.joint_factor_ids = []
     self.calib_factor_ids = []
@@ -7371,36 +7440,52 @@ class GimbalCalibrator:
     self.fiducial_id = self.graph.add_param(self.fiducial)
     return self.fiducial_id
 
-  def add_body_pose(self, ts, T_WB, fix=True):
+  def add_body_pose(self, ts, T_WB, **kwargs):
     """ Add body pose """
+    fix = kwargs.get("fix", False)
+    covar = kwargs.get("covar", eye(6) * 0.1)
     pose = pose_setup(ts, T_WB, fix=fix)
     pose_id = self.graph.add_param(pose)
     self.body_pose_ids.append(pose_id)
     self.body_poses.append(pose)
+
+    if fix is False:
+      pids = [pose_id]
+      pose_factor = PoseFactor(pids, T_WB, covar)
+      self.pose_factor_ids.append(self.graph.add_factor(pose_factor))
+
     return pose_id
 
-  def add_gimbal_extrinsic(self, T_BM0, fix=True):
+  def add_gimbal_extrinsic(self, T_BM0, **kwargs):
     """ Add gimbal extrinsic """
+    fix = kwargs.get("fix", False)
+    covar = kwargs.get("covar", eye(6) * 0.1)
     ext = extrinsics_setup(T_BM0, fix=fix)
     ext_id = self.graph.add_param(ext)
     self.gimbal_ext_id = ext_id
     self.gimbal_ext = ext
+
+    if fix is False:
+      pids = [ext_id]
+      pose_factor = PoseFactor(pids, T_BM0, covar)
+      self.pose_factor_ids.append(self.graph.add_factor(pose_factor))
+
     return ext_id
 
   def add_gimbal_link(self, link_idx, T_link, **kwargs):
     """ Add gimbal link """
     fix = kwargs.get("fix", False)
-    # covar = kwargs.get("covar", eye(6) * 0.1)
+    covar = kwargs.get("covar", eye(6) * 0.1)
 
     link = extrinsics_setup(T_link, fix=fix)
     link_id = self.graph.add_param(link)
     self.gimbal_link_ids[link_idx] = link_id
     self.gimbal_links[link_idx] = link
 
-    # if fix is False:
-    #   pids = [link_id]
-    #   link_factor = PoseFactor(pids, T_link, covar)
-    #   self.link_factor_ids.append(self.graph.add_factor(link_factor))
+    if fix is False:
+      pids = [link_id]
+      link_factor = PoseFactor(pids, T_link, covar)
+      self.link_factor_ids.append(self.graph.add_factor(link_factor))
 
     return link_id
 
@@ -8336,7 +8421,7 @@ class GimbalProblem:
     ]
     gimbal = GimbalKinematics(links, joint_angles)
     T_M0L = gimbal.forward_kinematics(joint_idx=joint_idx)
-    T_WL = self.gimbal_pose @ self.gimbal_exts @ T_M0L
+    T_WL = self.gimbal_poses[0] @ self.gimbal_exts @ T_M0L
     return T_WL
 
   def get_camera_pose(self, view_idx, cam_idx):
@@ -8889,12 +8974,12 @@ class SimGimbal:
     # Estimation
     est = copy.deepcopy(gnd)
 
-    # -- Perturb gimbal pose
-    dpos = [-0.1, 0.1]
-    drot = [-0.1, 0.1]
-    for i, pose in enumerate(est.gimbal_poses):
-      pose = perturb_tf_random(pose, dpos, drot)
-      est.gimbal_poses[i] = pose
+    # # -- Perturb gimbal pose
+    # dpos = [-0.1, 0.1]
+    # drot = [-0.1, 0.1]
+    # for i, pose in enumerate(est.gimbal_poses):
+    #   pose = perturb_tf_random(pose, dpos, drot)
+    #   est.gimbal_poses[i] = pose
 
     # -- Perturb gimbal links
     dpos = [-0.01, 0.01]
@@ -8908,8 +8993,8 @@ class SimGimbal:
     #   est.joint_angles[view_idx] = joints + drot
     init = copy.deepcopy(est)
 
-    fix_fiducial = True
-    fix_gimbal_pose = False
+    fix_fiducial = False
+    fix_gimbal_pose = True
     fix_gimbal_exts = True
     fix_gimbal_links = [False, False]
     fix_gimbal_joints = [False, False, False]
@@ -8961,7 +9046,7 @@ class SimGimbal:
     est = calib.results()
     gnd.compare(est)
 
-    self.plot(gnd, init, est)
+    # self.plot(gnd, init, est)
 
 
 ###############################################################################
@@ -10011,6 +10096,11 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_feature"))
     self.assertTrue(factor.check_jacobian(fvars, 2, "J_cam_params"))
 
+    # params = [sv.param for sv in fvars]
+    # r, jacs = factor.eval(params)
+    # for J in jacs:
+    #   print(rank(J), J.shape)
+
   def test_vision_factor(self):
     """ Test vision factor """
     # Setup camera pose T_WB
@@ -10246,42 +10336,42 @@ class TestFactors(unittest.TestCase):
     kwargs = {"verbose": True}
     self.assertTrue(factor.check_jacobian(fvars, 5, "J_cam_params", **kwargs))
 
-  @unittest.skip("")
   def test_calib_gimbal_factor(self):
     """ Test calib gimbal factor """
     # Setup
-    sandbox = GimbalSandbox()
-    grid = sandbox.calib_target
+    sim = SimGimbal()
+    grid = sim.calib_target
     cam_idx = 0
     tag_id = 2
     corner_idx = 2
     p_FFi = grid.get_object_point(tag_id, corner_idx)
 
-    T_WL2 = sandbox.get_link_tf(2)
-    T_L2Ci = sandbox.cam_exts[cam_idx]
-    T_WCi = T_WL2 @ T_L2Ci
-    T_CiW = np.linalg.inv(T_WCi)
-    T_WF = sandbox.T_WF
-    p_CiFi = tf_point(T_CiW @ T_WF, p_FFi)
+    T_WF = sim.T_WF  # Fiducial pose
+    T_WB = sim.T_WB  # Body pose
+    T_BM0 = sim.T_BM0  # Body to gimbal extrinsic
+    T_L2C0 = sim.cam_exts[0]
+    T_M0L2 = sim.gimbal.forward_kinematics(joint_idx=2)
+    T_C0W = np.linalg.inv(T_WB @ T_BM0 @ T_M0L2 @ T_L2C0)
+    p_C0Fi = tf_point(T_C0W @ T_WF, p_FFi)
 
-    cam_geom = sandbox.cam_params[cam_idx].data
-    cam_params = sandbox.cam_params[cam_idx].param
-    status, z = cam_geom.project(cam_params, p_CiFi)
+    cam_geom = sim.cam_params[cam_idx].data
+    cam_params = sim.cam_params[cam_idx].param
+    status, z = cam_geom.project(cam_params, p_C0Fi)
     self.assertTrue(status)
 
     # Form CalibGimbalFactor
-    fiducial = pose_setup(0, sandbox.T_WF)
-    pose = pose_setup(0, sandbox.T_WB)
-    gimbal_exts = extrinsics_setup(sandbox.T_BM0)
-    link0 = extrinsics_setup(sandbox.links[0])
-    link1 = extrinsics_setup(sandbox.links[1])
-    th0 = joint_angle_setup(sandbox.joint_angles[0])
-    th1 = joint_angle_setup(sandbox.joint_angles[1])
-    th2 = joint_angle_setup(sandbox.joint_angles[2])
-    cam0_exts = extrinsics_setup(sandbox.cam_exts[0])
-    cam0_params = sandbox.cam_params[0]
+    fiducial = pose_setup(0, sim.T_WF)
+    pose = pose_setup(0, sim.T_WB)
+    gimbal_exts = extrinsics_setup(sim.T_BM0)
+    link0 = extrinsics_setup(sim.links[0])
+    link1 = extrinsics_setup(sim.links[1])
+    th0 = joint_angle_setup(sim.joint_angles[0])
+    th1 = joint_angle_setup(sim.joint_angles[1])
+    th2 = joint_angle_setup(sim.joint_angles[2])
+    cam0_exts = extrinsics_setup(sim.cam_exts[0])
+    cam0_params = sim.cam_params[0]
 
-    cam0_geom = sandbox.cam_params[0].data
+    cam0_geom = sim.cam_params[0].data
     pids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     grid_data = tag_id, corner_idx, p_FFi, z
     factor = CalibGimbalFactor(cam0_geom, pids, grid_data)
@@ -10309,6 +10399,11 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 7, "J_th2"))
     self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_exts"))
     self.assertTrue(factor.check_jacobian(fvars, 9, "J_cam_params"))
+
+    # params = [sv.param for sv in fvars]
+    # r, jacs = factor.eval(params)
+    # for idx, J in enumerate(jacs):
+    #   print(rank(J.T @ J), J.shape)
 
     save_jacobians = False
     if save_jacobians:
@@ -10807,8 +10902,8 @@ class TestFactorGraph(unittest.TestCase):
         graph.add_factor(BAFactor(cam0_geom, param_ids, z))
 
     # Solve
-    # debug = True
-    debug = False
+    debug = True
+    # debug = False
     # prof = profile_start()
     graph.solve(debug)
     # profile_stop(prof)
@@ -12134,16 +12229,16 @@ class TestSandbox(unittest.TestCase):
     sim = SimGimbal()
     self.assertTrue(sim)
 
-    sim.gimbal.set_joint_angle(0, deg2rad(0))
-    sim.gimbal.set_joint_angle(1, deg2rad(0))
-    sim.gimbal.set_joint_angle(2, deg2rad(0))
+    # sim.gimbal.set_joint_angle(0, deg2rad(0))
+    # sim.gimbal.set_joint_angle(1, deg2rad(0))
+    # sim.gimbal.set_joint_angle(2, deg2rad(0))
     # sim.visualize()
     # pyqtgraph_example(sys)
     # sim.plot_camera_frame()
 
-    sim_data = sim.simulate(num_views=100)
-    sim.save(sim_data)
-    # sim.solve(sim_data)
+    sim_data = sim.simulate(num_views=30)
+    # sim.save(sim_data)
+    sim.solve(sim_data)
 
 
 if __name__ == '__main__':
