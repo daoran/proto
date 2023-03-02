@@ -203,6 +203,40 @@ module board_camera() {
     m12_lens_mount();
 }
 
+module arducam_MT9V034() {
+  pcb_width = 40.0;
+  pcb_thickness = 1.58;
+  pcb_hole = 2.1;
+  mount_w = 34.0;
+  lens_hole = 2.0;
+
+  difference() {
+    // PCB body
+    translate([0.0, 0.0, pcb_thickness / 2.0])
+      color([0.0, 1.0, 0.0])
+        cube([pcb_width, pcb_width, pcb_thickness], center=true);
+
+    // Lens holes
+    translate([0.0, 9.0, pcb_thickness / 2.0])
+      cylinder(h=pcb_thickness + 0.01, r=lens_hole / 2.0, center=true);
+    translate([0.0, -9.0, pcb_thickness / 2.0])
+      cylinder(h=pcb_thickness + 0.01, r=lens_hole / 2.0, center=true);
+
+
+    // Mount holes
+    for (i = [1 : 4]) {
+      rotate([0.0, 0.0, i * 90.0])
+        translate([mount_w / 2.0, mount_w / 2.0, pcb_thickness / 2.0])
+          cylinder(h=pcb_thickness + 0.01, r=pcb_hole / 2.0, center=true);
+    }
+  }
+
+  // Lens mount
+  translate([0.0, 0.0, pcb_thickness-0.01])
+    m12_lens_mount();
+
+}
+
 module gimbal_imu() {
   tol = 0.01;
   w = 20.0;
@@ -856,80 +890,51 @@ module gimbal_motor(has_encoders=0) {
 }
 
 module gimbal_camera_frame(show_camera=1) {
-  camera_mount_w = 24.5;
-
-
-  frame_w = camera_mount_w + 18;
-  frame_d = camera_mount_w + 5;
-  frame_h = 6;
-  frame_standoff_w = 8;
-
-  rod_hole_w = 36;
-  rod_standoff_x = 30.0;
-  rod_standoff_w = 6.0;
-  rod_standoff_l = 30.0;
+  camera_mount_w = 34;
+  frame_w = 34;
+  frame_d = frame_w;
+  frame_t = 5;
+  support_w = frame_t;
+  support_h = frame_t;
+  standoff_w = frame_t + 1;
+  standoff_h = frame_t;
 
   // Show camera
   if (show_camera) {
     translate([0, 0, -10])
-      board_camera();
+      arducam_MT9V034();
   }
 
+  // Camera frame
   difference() {
     union() {
-      // Camera frame
-      translate([0, 0, frame_h / 2]) {
-        // Body
-        cube([frame_w, frame_d, frame_h], center=true);
+      // Main frame
+      frame(frame_w, frame_d,
+            M2_screw_w,
+            M2_nut_w, M2_nut_h,
+            standoff_w, standoff_h,
+            support_w, support_h);
 
-        // Camera mount supports
-        translate([camera_mount_w / 2, camera_mount_w / 2, 0])
-          cylinder(r=frame_standoff_w / 2, h=frame_h, center=true);
-        translate([-camera_mount_w / 2, camera_mount_w / 2, 0])
-          cylinder(r=frame_standoff_w / 2, h=frame_h, center=true);
-        translate([camera_mount_w / 2, -camera_mount_w / 2, 0])
-          cylinder(r=frame_standoff_w / 2, h=frame_h, center=true);
-        translate([-camera_mount_w / 2, -camera_mount_w / 2, 0])
-          cylinder(r=frame_standoff_w / 2, h=frame_h, center=true);
-      }
+      // Rod standoffs
+      translate([-frame_w / 2 - frame_t / 2 - 2, 0, frame_t / 2])
+        cube([frame_t, frame_w + 5, frame_t], center=true);
+      translate([+frame_w / 2 + frame_t / 2 + 2, 0, frame_t / 2])
+        cube([frame_t, frame_w + 5, frame_t], center=true);
     }
 
-    // Camera hole
-    {
-      w = camera_mount_w - 4;
-      d = camera_mount_w - 4;
-      h = frame_h + 0.01;
-      translate([0, 0, frame_h / 2]) {
-        // cube([w, d, h], center=true);
-        cylinder(r=12, h=frame_h + 0.01, center=true);
-      }
-    }
+    // Rod standoff holes
+    translate([-frame_w / 2 - frame_t / 2 - 2, 0, frame_t / 2])
+      rotate([90, 0, 0])
+        cylinder(r=M3_screw_w / 2, h=frame_w + 5 + 0.01, center=true);
+    translate([+frame_w / 2 + frame_t / 2 + 2, 0, frame_t / 2])
+      rotate([90, 0, 0])
+        cylinder(r=M3_screw_w / 2, h=frame_w + 5 + 0.01, center=true);
 
-    // Camera mount holes
-    {
-      // Screw hole
-      mount_holes(camera_mount_w, camera_mount_w, M2_screw_w, frame_h);
-
-      // Nut counter sink
-      translate([0, 0, frame_h - M2_nut_h])
-        mount_holes(camera_mount_w, camera_mount_w, M2_nut_w, M2_nut_h, fn=6);
-    }
-
-    // Rod standoffs
-    rod_standoff_positions = [
-      [rod_hole_w / 2, 0.0, rod_standoff_w / 2],
-      [-rod_hole_w / 2, 0.0, rod_standoff_w / 2]
-    ];
-    for (pos = rod_standoff_positions) {
-      translate(pos) {
-        // Rod standoff hole
-        rotate([90, 0, 0])
-          cylinder(r=M3_screw_w / 2, h=rod_standoff_l + 0.01, center=true);
-
-        // Rod standoff cutout
-        cube([6.5 + 0.1, rod_hole_w / 3, frame_h + 0.01], center=true);
-      }
-    }
+    // Rod standoff cutouts
+    translate([frame_w / 2 + frame_t / 2 + 2, 0, frame_t / 2])
+      cube([frame_t + 0.01, frame_w - frame_t, frame_t + 0.01], center=true);
+    translate([-frame_w / 2 - frame_t / 2 - 2, 0, frame_t / 2])
+      cube([frame_t + 0.01, frame_w - frame_t, frame_t + 0.01], center=true);
   }
 }
 
@@ -948,6 +953,79 @@ module gimbal_camera_frame_spacer(base_h, top_h) {
     translate([0, 0, base_h + top_h / 2])
       cylinder(r=(M3_screw_w + 0.5) / 2, h=top_h + 0.01, center=true);
   }
+}
+
+module stereo_frame(show_cameras=0) {
+  baseline = 35 * 2;
+  frame_t = 5;
+
+  mount_w = 15;
+  mount_t = 5;
+
+  frame_w = 34;
+  frame_d = frame_w;
+
+  support_w = frame_t - 2;
+  support_h = frame_t - 0;
+  standoff_w = frame_t;
+  standoff_h = frame_t;
+
+  // Show camera frame
+  if (show_cameras) {
+    translate([0, baseline / 2, -4])
+      arducam_MT9V034();
+
+    translate([0, -baseline / 2, -4])
+      arducam_MT9V034();
+  }
+
+  difference() {
+    union() {
+      // Supports
+      translate([mount_w / 2, 0, frame_t / 2])
+        cube([frame_t - 2, baseline / 2, frame_t], center=true);
+      translate([-mount_w / 2, 0, frame_t / 2])
+        cube([frame_t - 2, baseline / 2, frame_t], center=true);
+
+      // Mount frame
+      frame(mount_w, mount_w,
+            M2_screw_w,
+            M2_nut_w, M2_nut_h,
+            mount_t, mount_t,
+            mount_t - 2, mount_t);
+    }
+
+    w = mount_w;
+    d = mount_w;
+    standoff_h = mount_t;
+    positions = [
+      [w / 2, d / 2, standoff_h / 2],
+      [w / 2, -d / 2, standoff_h / 2],
+      [-w / 2, -d / 2, standoff_h / 2],
+      [-w / 2, d / 2, standoff_h / 2]
+    ];
+    for (pos = positions) {
+      translate(pos) {
+        cylinder(r=M2_screw_w / 2.0, h=standoff_h + 0.1, center=true);
+      }
+    }
+  }
+
+  // Camera frames
+  translate([0, baseline / 2, 0])
+    frame(frame_w, frame_d,
+          M2_screw_w,
+          M2_nut_w, M2_nut_h,
+          standoff_w, standoff_h,
+          support_w, support_h);
+
+  translate([0, -baseline / 2, 0])
+    frame(frame_w, frame_d,
+          M2_screw_w,
+          M2_nut_w, M2_nut_h,
+          standoff_w, standoff_h,
+          support_w, support_h);
+
 }
 
 module gimbal_roll_frame(show_roll_motor=1,
@@ -1059,15 +1137,15 @@ module gimbal_pitch_frame(show_pitch_motor=0, show_encoder=0, show_cameras=1) {
   pitch_support_h = pitch_standoff_h;
 
   rod_offset_x = motor_mount_d + 5;
-  rod_standoff_w = 6;
-  rod_hole_w = 36;
+  rod_standoff_w = 5;
+  rod_hole_w = 34 + 9;
 
   support_hole_d = 15;
-  support_hole_h = 8;
+  support_hole_h = 11;
   support_h = pitch_support_h / 2;
 
   ext_mount_w = 16;
-  stereo_baseline = 75;
+  stereo_baseline = 90;
 
   // Show pitch motor
   if (show_pitch_motor) {
@@ -1104,16 +1182,16 @@ module gimbal_pitch_frame(show_pitch_motor=0, show_encoder=0, show_cameras=1) {
 
       // Support
       translate([rod_offset_x, 0, pitch_support_h / 2])
-        cube([rod_standoff_w, motor_mount_d * 1.6, pitch_support_h], center=true);
+        cube([rod_standoff_w, motor_mount_d * 2, pitch_support_h], center=true);
       translate([rod_offset_x / 2, 0, pitch_mount_h / 2])
-        cube([rod_offset_x, motor_mount_d * 1.6, pitch_mount_h], center=true);
+        cube([rod_offset_x, motor_mount_d * 2, pitch_mount_h], center=true);
     }
 
     // Rod standoff cutout
     translate([rod_offset_x, rod_hole_w / 2, pitch_standoff_h / 2])
-      cube([rod_standoff_w + 0.01, rod_standoff_w + 0.01, pitch_standoff_h / 2], center=true);
+      cube([rod_standoff_w + 0.01, rod_standoff_w + 0.01, pitch_standoff_h / 2 * 1.5], center=true);
     translate([rod_offset_x, -rod_hole_w / 2, pitch_standoff_h / 2])
-      cube([rod_standoff_w + 0.01, rod_standoff_w + 0.01, pitch_standoff_h / 2], center=true);
+      cube([rod_standoff_w + 0.01, rod_standoff_w + 0.01, pitch_standoff_h * 1.5 / 2], center=true);
 
     // Pitch motor holes
     mount_holes(motor_mount_w, motor_mount_w, M2_screw_w, pitch_mount_h);
@@ -1571,7 +1649,6 @@ module perception_module() {
 // perception_module();
 
 // Component Development
-// spacer(batt_h + 2, nut_counter_sink=1);
 
 // spacer_h = 16; // NUC frame
 // spacer_h = 25; // PCB frame
@@ -1582,6 +1659,11 @@ module perception_module() {
 //        nut_h=M3_nut_h,
 //        nts=1);
 
+// Stereo camera frame spacer
+// spacer(spacer_w=M2_screw_w * 1.85,
+//        spacer_h=8,
+//        hole_w=M2_screw_w * 0.85);
+
 // battery_frame(batt_frame_w, batt_frame_d);
 // fcu_frame(show_fcu);
 // encoder_frame(0);
@@ -1590,6 +1672,8 @@ module perception_module() {
 // landing_feet();
 // stereo_camera_frame();
 
+// board_camera();
+// arducam_MT9V034();
 // usb_hub_board();
 // sbgc_board();
 // sbgc_frame(show_sbgc=0, show_usb_hub=0);
@@ -1598,6 +1682,7 @@ module perception_module() {
 // gimbal_imu_frame();
 // gimbal_camera_frame(show_camera=0);
 // gimbal_camera_frame_spacer(3.5, 3);
+// stereo_frame();
 // gimbal_roll_frame(show_roll_motor=0,
 //                   show_pitch_motor=1,
 //                   show_pitch_frame=1,
