@@ -37,3 +37,4 @@
 [submodule "third_party/src/ArduCAM_USB_Camera_Shield_Config"]
 	path = third_party/src/ArduCAM_USB_Camera_Shield_Config
 	url = https://github.com/ArduCAM/ArduCAM_USB_Camera_Shield_Config
+        ignore = dirty
