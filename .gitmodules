@@ -34,3 +34,6 @@
 	path = third_party/src/DBoW2
 	url = https://github.com/dorian3d/DBoW2
         ignore = dirty
+[submodule "third_party/src/ArduCAM_USB_Camera_Shield_Config"]
+	path = third_party/src/ArduCAM_USB_Camera_Shield_Config
+	url = https://github.com/ArduCAM/ArduCAM_USB_Camera_Shield_Config
