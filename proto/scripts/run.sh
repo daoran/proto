@@ -171,6 +171,7 @@ dev_arducam() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
 cd ~/projects/proto/proto \
+  && rm -f arducam \
   && make arducam \
   && ./build/arducam ~/projects/proto/third_party/src/ArduCAM_USB_Camera_Shield_Config/USB2.0_UC-391_Rev.D/DVP/MT9V034/MT9V034_RAW_10b_640x480.cfg \
   " C-m
@@ -200,6 +201,7 @@ dev_euroc() {
 
 # dev_sbgc
 # dev_tiscam
+dev_arducam
 # dev_aprilgrid
 # dev_p3p
 # dev_euroc
@@ -406,7 +408,7 @@ dev_euroc() {
 # run_test test_calib_camera_factor
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
-run_test test_marg
+# run_test test_marg
 # run_test test_inertial_odometry
 # run_test test_tsif
 # run_test test_ceres_example

@@ -15,30 +15,51 @@
 #include <arducam_config_parser.h>
 #define USE_SOFT_TRIGGER
 
-using namespace std;
-using namespace cv;
-
 ArduCamCfg cameraCfg;
 volatile bool _running = true;
 bool save_raw = false;
 bool save_flag = true;
-
 int color_mode = 0;
 
-void showHelp() {
-  printf(" usage: sudo ./ArduCam_Ext_Trigger_Demo <path/config-file-name> \
-   \n\n example: sudo ./ArduCam_Ext_Trigger_Demo ./../../cpp_config/AR0134_960p_Color.yml \
-   \n\n");
+namespace ArduCamUtils {
+
+int list_cameras() {
+  ArduCamIndexinfo infos[16];
+  int num_cameras = ArduCam_scan(infos);
+
+  printf("num_cameras:%d\n", num_cameras);
+
+  char serial[16];
+  for (int i = 0; i < num_cameras; i++) {
+    unsigned char *buf = infos[i].u8SerialNum;
+    sprintf(serial,
+            "%c%c%c%c-%c%c%c%c-%c%c%c%c",
+            buf[0],
+            buf[1],
+            buf[2],
+            buf[3],
+            buf[4],
+            buf[5],
+            buf[6],
+            buf[7],
+            buf[8],
+            buf[9],
+            buf[10],
+            buf[11]);
+    printf("index:%4d\tSerial: %s\n", infos[i].u8UsbIndex, serial);
+  }
+
+  return num_cameras;
 }
 
 cv::Mat JPGToMat(Uint8 *bytes, int length) {
-  cv::Mat image = Mat(1, length, CV_8UC1, bytes);
+  cv::Mat image = cv::Mat(1, length, CV_8UC1, bytes);
   if (length <= 0) {
     image.data = NULL;
     return image;
   }
 
-  image = imdecode(image, IMREAD_ANYCOLOR);
+  image = imdecode(image, cv::IMREAD_ANYCOLOR);
   return image;
 }
 
@@ -132,143 +153,6 @@ cv::Mat BytestoMat(Uint8 *bytes, int width, int height) {
   return image;
 }
 
-void configBoard(ArduCamHandle &cameraHandle, Config config) {
-  uint8_t u8Buf[10];
-  for (int n = 0; n < config.params[3]; n++) {
-    u8Buf[n] = config.params[4 + n];
-  }
-  ArduCam_setboardConfig(cameraHandle,
-                         config.params[0],
-                         config.params[1],
-                         config.params[2],
-                         config.params[3],
-                         u8Buf);
-}
-
-/**
- * read config file and open the camera.
- * @param filename : path/config_file_name
- * @param cameraHandle : camera handle
- * @param cameraCfg :camera config struct
- * @return TURE or FALSE
- * */
-bool camera_initFromFile(std::string filename,
-                         ArduCamHandle &cameraHandle,
-                         ArduCamCfg &cameraCfg,
-                         int index) {
-  CameraConfigs cam_cfgs;
-  memset(&cam_cfgs, 0x00, sizeof(CameraConfigs));
-  if (arducam_parse_config(filename.c_str(), &cam_cfgs)) {
-    std::cout << "Cannot find configuration file." << std::endl << std::endl;
-    showHelp();
-    return false;
-  }
-  CameraParam *cam_param = &cam_cfgs.camera_param;
-  Config *configs = cam_cfgs.configs;
-  int configs_length = cam_cfgs.configs_length;
-
-  switch (cam_param->i2c_mode) {
-    case 0:
-      cameraCfg.emI2cMode = I2C_MODE_8_8;
-      break;
-    case 1:
-      cameraCfg.emI2cMode = I2C_MODE_8_16;
-      break;
-    case 2:
-      cameraCfg.emI2cMode = I2C_MODE_16_8;
-      break;
-    case 3:
-      cameraCfg.emI2cMode = I2C_MODE_16_16;
-      break;
-    default:
-      break;
-  }
-
-  color_mode = cam_param->format & 0xFF;
-  switch (cam_param->format >> 8) {
-    case 0:
-      cameraCfg.emImageFmtMode = FORMAT_MODE_RAW;
-      break;
-    case 1:
-      cameraCfg.emImageFmtMode = FORMAT_MODE_RGB;
-      break;
-    case 2:
-      cameraCfg.emImageFmtMode = FORMAT_MODE_YUV;
-      break;
-    case 3:
-      cameraCfg.emImageFmtMode = FORMAT_MODE_JPG;
-      break;
-    case 4:
-      cameraCfg.emImageFmtMode = FORMAT_MODE_MON;
-      break;
-    case 5:
-      cameraCfg.emImageFmtMode = FORMAT_MODE_RAW_D;
-      break;
-    case 6:
-      cameraCfg.emImageFmtMode = FORMAT_MODE_MON_D;
-      break;
-    default:
-      break;
-  }
-
-  cameraCfg.u32Width = cam_param->width;
-  cameraCfg.u32Height = cam_param->height;
-
-  cameraCfg.u32I2cAddr = cam_param->i2c_addr;
-  cameraCfg.u8PixelBits = cam_param->bit_width;
-  cameraCfg.u32TransLvl = cam_param->trans_lvl;
-
-  if (cameraCfg.u8PixelBits <= 8) {
-    cameraCfg.u8PixelBytes = 1;
-  } else if (cameraCfg.u8PixelBits > 8 && cameraCfg.u8PixelBits <= 16) {
-    cameraCfg.u8PixelBytes = 2;
-    save_raw = true;
-  }
-
-  int ret_val = ArduCam_open(cameraHandle, &cameraCfg, index);
-  if (ret_val == USB_CAMERA_NO_ERROR) {
-    Uint8 u8Buf[8];
-    for (int i = 0; i < configs_length; i++) {
-      uint32_t type = configs[i].type;
-      if (((type >> 16) & 0xFF) && ((type >> 16) & 0xFF) != cameraCfg.usbType)
-        continue;
-      switch (type & 0xFFFF) {
-        case CONFIG_TYPE_REG:
-          ArduCam_writeSensorReg(cameraHandle,
-                                 configs[i].params[0],
-                                 configs[i].params[1]);
-          break;
-        case CONFIG_TYPE_DELAY:
-          usleep(1000 * configs[i].params[0]);
-          break;
-        case CONFIG_TYPE_VRCMD:
-          configBoard(cameraHandle, configs[i]);
-          break;
-      }
-    }
-    unsigned char u8TmpData[16];
-    ArduCam_readUserData(cameraHandle, 0x400 - 16, 16, u8TmpData);
-    printf("Serial: %c%c%c%c-%c%c%c%c-%c%c%c%c\n",
-           u8TmpData[0],
-           u8TmpData[1],
-           u8TmpData[2],
-           u8TmpData[3],
-           u8TmpData[4],
-           u8TmpData[5],
-           u8TmpData[6],
-           u8TmpData[7],
-           u8TmpData[8],
-           u8TmpData[9],
-           u8TmpData[10],
-           u8TmpData[11]);
-  } else {
-    std::cout << "Cannot open camera.rtn_val = " << ret_val << std::endl;
-    return false;
-  }
-
-  return true;
-}
-
 cv::Mat ConvertImage(ArduCamOutData *frameData) {
   cv::Mat rawImage;
   Uint8 *data = frameData->pu8ImageData;
@@ -278,10 +162,10 @@ cv::Mat ConvertImage(ArduCamOutData *frameData) {
 
   switch (cameraCfg.emImageFmtMode) {
     case FORMAT_MODE_RGB:
-      rawImage = RGB565toMat(data, width, height);
+      rawImage = ArduCamUtils::RGB565toMat(data, width, height);
       break;
     case FORMAT_MODE_RAW_D:
-      rawImage = separationImage(data, width, height);
+      rawImage = ArduCamUtils::separationImage(data, width, height);
       switch (color_mode) {
         case RAW_RG:
           cv::cvtColor(rawImage, rawImage, cv::COLOR_BayerRG2BGR);
@@ -301,23 +185,24 @@ cv::Mat ConvertImage(ArduCamOutData *frameData) {
       }
       break;
     case FORMAT_MODE_MON_D:
-      rawImage = separationImage(data, width, height);
+      rawImage = ArduCamUtils::separationImage(data, width, height);
       break;
     case FORMAT_MODE_JPG:
-      rawImage = JPGToMat(data, frameData->stImagePara.u32Size);
+      rawImage = ArduCamUtils::JPGToMat(data, frameData->stImagePara.u32Size);
       break;
     case FORMAT_MODE_RAW:
       if (cameraCfg.u8PixelBytes == 2) {
-        rawImage = dBytesToMat(data,
-                               frameData->stImagePara.u8PixelBits,
-                               width,
-                               height);
+        rawImage = ArduCamUtils::dBytesToMat(data,
+                                             frameData->stImagePara.u8PixelBits,
+                                             width,
+                                             height);
       } else {
-        rawImage = BytestoMat(data, width, height);
+        rawImage = ArduCamUtils::BytestoMat(data, width, height);
       }
       switch (color_mode) {
         case RAW_RG:
           cv::cvtColor(rawImage, rawImage, cv::COLOR_BayerRG2BGR);
+          // cv::cvtColor(rawImage, rawImage, cv::COLOR_BayerRG2GRAY);
           break;
         case RAW_GR:
           cv::cvtColor(rawImage, rawImage, cv::COLOR_BayerGR2BGR);
@@ -334,26 +219,26 @@ cv::Mat ConvertImage(ArduCamOutData *frameData) {
       }
       break;
     case FORMAT_MODE_YUV:
-      rawImage = YUV422toMat(data, width, height);
+      rawImage = ArduCamUtils::YUV422toMat(data, width, height);
       break;
     case FORMAT_MODE_MON:
       if (cameraCfg.u8PixelBytes == 2) {
-        rawImage = dBytesToMat(data,
-                               frameData->stImagePara.u8PixelBits,
-                               width,
-                               height);
+        rawImage = ArduCamUtils::dBytesToMat(data,
+                                             frameData->stImagePara.u8PixelBits,
+                                             width,
+                                             height);
       } else {
-        rawImage = BytestoMat(data, width, height);
+        rawImage = ArduCamUtils::BytestoMat(data, width, height);
       }
       break;
     default:
       if (cameraCfg.u8PixelBytes == 2) {
-        rawImage = dBytesToMat(data,
-                               frameData->stImagePara.u8PixelBits,
-                               width,
-                               height);
+        rawImage = ArduCamUtils::dBytesToMat(data,
+                                             frameData->stImagePara.u8PixelBits,
+                                             width,
+                                             height);
       } else {
-        rawImage = BytestoMat(data, width, height);
+        rawImage = ArduCamUtils::BytestoMat(data, width, height);
       }
       cv::cvtColor(rawImage, rawImage, cv::COLOR_BayerRG2RGB);
       break;
@@ -361,6 +246,94 @@ cv::Mat ConvertImage(ArduCamOutData *frameData) {
 
   return rawImage;
 }
+
+} // namespace ArduCamUtils
+
+class MT9V034 {
+public:
+  ArduCamHandle handle;
+
+  MT9V034(const int index) {
+    // Set camera configuration
+    ArduCamCfg cfg = {};
+    cfg.u32Width = 640;
+    cfg.u32Height = 480;
+    cfg.emI2cMode = I2C_MODE_8_16;
+    cfg.emImageFmtMode = FORMAT_MODE_RAW;
+    cfg.u32I2cAddr = 0x90; // I2C address of camera
+    cfg.u8PixelBits = 10;  // Bit width of the image generated by camera
+    cfg.u8PixelBytes = 2;  // Number of bytes per pixel
+    cfg.u32TransLvl = 0;
+
+    cameraCfg.u32Width = 640;
+    cameraCfg.u32Height = 480;
+    cameraCfg.emI2cMode = I2C_MODE_8_16;
+    cameraCfg.emImageFmtMode = FORMAT_MODE_RAW;
+    cameraCfg.u32I2cAddr = 0x90; // I2C address of camera
+    cameraCfg.u8PixelBits = 10;  // Bit width of the image generated by camera
+    cameraCfg.u8PixelBytes = 2;  // Number of bytes per pixel
+    cameraCfg.u32TransLvl = 0;
+
+    // Open camera
+    int ret_val = ArduCam_open(handle, &cfg, index);
+    if (ret_val != USB_CAMERA_NO_ERROR) {
+      printf("FAIL ret_val: %d\n", ret_val);
+      return;
+    }
+
+    // Set USB-Shield configurations
+    // VRCMD = 0xD7, 0x4600, 0x0100, 1, 0x85
+    // VRCMD = 0xD7, 0x4600, 0x0200, 1, 0x00
+    // VRCMD = 0xD7, 0x4600, 0x0300, 1, 0xC0
+    // VRCMD = 0xD7, 0x4600, 0x0300, 1, 0x40
+    // VRCMD = 0xD7, 0x4600, 0x0400, 1, 0x00
+    // VRCMD = 0xD7, 0x4600, 0x0A00, 1, 0x02
+    // VRCMD = 0xF6, 0x0000, 0x0000, 3, 0x03, 0x04, 0x0C
+    uint8_t cmd = 0xD7;
+    uint8_t buf_all[7][3] = {{0x85}, {0x00}, {0xC0}, {0x40}, {0x00}, {0x02}};
+    uint8_t buf_usb2[3] = {0x03, 0x04, 0x0C};
+    ArduCam_setboardConfig(handle, cmd, 0x4600, 0x0100, 1, buf_all[0]);
+    ArduCam_setboardConfig(handle, cmd, 0x4600, 0x0200, 1, buf_all[1]);
+    ArduCam_setboardConfig(handle, cmd, 0x4600, 0x0300, 1, buf_all[2]);
+    ArduCam_setboardConfig(handle, cmd, 0x4600, 0x0300, 1, buf_all[3]);
+    ArduCam_setboardConfig(handle, cmd, 0x4600, 0x0400, 1, buf_all[4]);
+    ArduCam_setboardConfig(handle, cmd, 0x4600, 0x0A00, 1, buf_all[5]);
+    ArduCam_setboardConfig(handle, cmd, 0, 0, 3, buf_usb2);
+
+    // Set MT9V034 camera configurations
+    ArduCam_writeSensorReg(handle, 0x03, 480);
+    ArduCam_writeSensorReg(handle, 0x04, 640);
+    ArduCam_writeSensorReg(handle, 0x0D, 0x320);
+
+    // Set Hardware-trigger mode
+    int retval = ArduCam_setMode(handle, EXTERNAL_TRIGGER_MODE);
+    if (retval == USB_BOARD_FW_VERSION_NOT_SUPPORT_ERROR) {
+      printf("Usb board firmware version not support single mode.\n");
+      printf("Fail!\n");
+    }
+
+    // Read camera serial number
+    unsigned char buf[16];
+    ArduCam_readUserData(handle, 0x400 - 16, 16, buf);
+    printf("Serial: %c%c%c%c-%c%c%c%c-%c%c%c%c\n",
+           buf[0],
+           buf[1],
+           buf[2],
+           buf[3],
+           buf[4],
+           buf[5],
+           buf[6],
+           buf[7],
+           buf[8],
+           buf[9],
+           buf[10],
+           buf[11]);
+  }
+
+  virtual ~MT9V034() {
+    ArduCam_close(handle);
+  }
+};
 
 long total_frames[16];
 void getAndDisplaySingleFrame(ArduCamHandle handle, int index) {
@@ -376,7 +349,7 @@ void getAndDisplaySingleFrame(ArduCamHandle handle, int index) {
   Uint32 rtn_val = ArduCam_getSingleFrame(handle, frameData);
 
   if (rtn_val == USB_CAMERA_NO_ERROR) {
-    rawImage = ConvertImage(frameData);
+    rawImage = ArduCamUtils::ConvertImage(frameData);
     if (!rawImage.data) {
       std::cout << "Convert image fail,No image data \n";
       return;
@@ -429,11 +402,7 @@ void signal_handle(int signal) {
   if (SIGINT == signal) {
     _running = false;
   }
-#ifdef linux
   usleep(1000 * 500);
-#elif _WIN32
-  Sleep(500);
-#endif
   exit(0);
 }
 
@@ -451,89 +420,32 @@ int main(int argc, char **argv) {
   if (argc > 1) {
     config_file_name = argv[1];
   } else {
-    showHelp();
     return 0;
   }
 
-  ArduCamIndexinfo pUsbIdxArray[16];
-  int camera_num = ArduCam_scan(pUsbIdxArray);
+  // const auto camera_num = ArduCamUtils::list_cameras();
+  // printf("Found %d devices.\n", camera_num);
+  MT9V034 camera{0};
 
-  printf("device num:%d\n", camera_num);
-  char serial[16];
-  unsigned char *u8TmpData;
-  for (int i = 0; i < camera_num; i++) {
-    u8TmpData = pUsbIdxArray[i].u8SerialNum;
-    sprintf(serial,
-            "%c%c%c%c-%c%c%c%c-%c%c%c%c",
-            u8TmpData[0],
-            u8TmpData[1],
-            u8TmpData[2],
-            u8TmpData[3],
-            u8TmpData[4],
-            u8TmpData[5],
-            u8TmpData[6],
-            u8TmpData[7],
-            u8TmpData[8],
-            u8TmpData[9],
-            u8TmpData[10],
-            u8TmpData[11]);
-    printf("index:%4d\tSerial:%s\n", pUsbIdxArray[i].u8UsbIndex, serial);
-  }
+  while (_running) {
 
-  sleep(2);
-
-  printf("Found %d devices.\n", camera_num);
-  ArduCamHandle cameraHandles[16];
-  long sTriggerSendTime[16];
-
-  for (int i = 0; i < camera_num; i++) {
-    // read config file and open the camera.
-    sTriggerSendTime[i] = 0;
-    if (!camera_initFromFile(config_file_name, cameraHandles[i], cameraCfg, i))
-      cameraHandles[i] = NULL;
-    else {
-      Uint32 ret_val = ArduCam_setMode(cameraHandles[i], EXTERNAL_TRIGGER_MODE);
-      if (ret_val == USB_BOARD_FW_VERSION_NOT_SUPPORT_ERROR) {
-        printf("Usb board firmware version not support single mode.\n");
-        return 1;
-      }
+    // for (int i = 0; i < camera_num; i++) {
+    ArduCamHandle &tempHandle = camera.handle;
+    if (tempHandle == NULL) {
+      continue;
     }
-  }
-
-  while (_running && camera_num > 0) {
-
-    for (int i = 0; i < camera_num; i++) {
-      ArduCamHandle tempHandle = cameraHandles[i];
-      if (tempHandle == NULL) {
-        continue;
-      }
-      Uint32 rtn_val = ArduCam_isFrameReady(tempHandle);
-      // printf("-----%d\n",rtn_val);
-      if (rtn_val == 1) {
-
+    Uint32 rtn_val = ArduCam_isFrameReady(tempHandle);
+    if (rtn_val == 1) {
+      getAndDisplaySingleFrame(tempHandle, 0);
+    } else {
 #ifdef USE_SOFT_TRIGGER
-        sTriggerSendTime[i] = 0;
-#endif
-        getAndDisplaySingleFrame(tempHandle, i);
-      }
-#ifdef USE_SOFT_TRIGGER
-      else if (time(NULL) - sTriggerSendTime[i] > 3) {
-        ArduCam_softTrigger(tempHandle);
-        sTriggerSendTime[i] = time(NULL);
-      }
+      ArduCam_softTrigger(tempHandle);
 #endif
     }
-    // usleep( 1000 * 50);
-    cv::waitKey(10);
+    cv::waitKey(1);
   }
 
   cv::destroyAllWindows();
-
-  for (int i = 0; i < camera_num; i++) {
-    if (cameraHandles[i] != NULL) {
-      ArduCam_close(cameraHandles[i]);
-    }
-  }
   std::cout << std::endl << "Press ENTER to exit..." << std::endl;
   std::string str_key;
   std::getline(std::cin, str_key);

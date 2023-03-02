@@ -162,7 +162,6 @@ arducam:
 		-lArduCamLib -lusb-1.0 -larducam_config_parser -lpthread \
 		$(shell pkg-config opencv4 --libs)
 
-
 test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
