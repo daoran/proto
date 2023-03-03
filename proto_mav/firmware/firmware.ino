@@ -242,9 +242,9 @@ void loop() {
 
   // Trigger camera
   digitalWrite(CAMERA_TRIGGER_PIN, HIGH);
-  delay(1);
+  delay(10);
   digitalWrite(CAMERA_TRIGGER_PIN, LOW);
-  delay(20);
+  delay(40);
 
   // task_control();
   // task_rc();
