@@ -4108,10 +4108,11 @@ def idp_point(param):
 
 class Factor:
   """ Factor """
-  def __init__(self, ftype, pids, z, covar):
+  def __init__(self, ftype, pids, z, covar, r_size):
     self.factor_id = None
     self.factor_type = ftype
     self.param_ids = pids
+    self.r_size = r_size
 
     if isinstance(z, (np.ndarray, tuple)):
       self.measurement = z
@@ -4181,7 +4182,8 @@ class MeasurementFactor(Factor):
   """ Measurement Factor """
   def __init__(self, pids, z, covar):
     assert len(pids) == 1
-    Factor.__init__(self, "MeasurementFactor", pids, z, covar)
+    r_size = 1 if isinstance(z, (float, np.float64)) else len(z)
+    Factor.__init__(self, "MeasurementFactor", pids, z, covar, r_size)
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -4214,7 +4216,7 @@ class PoseFactor(Factor):
     assert len(pids) == 1
     assert z.shape == (4, 4)
     assert covar.shape == (6, 6)
-    Factor.__init__(self, "PoseFactor", pids, z, covar)
+    Factor.__init__(self, "PoseFactor", pids, z, covar, 6)
 
   def eval(self, params, **kwargs):
     """ Evaluate """
@@ -4298,7 +4300,7 @@ class BAFactor(Factor):
     assert len(pids) == 3
     assert len(z) == 2
     assert covar.shape == (2, 2)
-    Factor.__init__(self, "BAFactor", pids, z, covar)
+    Factor.__init__(self, "BAFactor", pids, z, covar, 2)
     self.cam_geom = cam_geom
 
   def get_residual(self, cam_pose, feature, cam_params):
@@ -4381,7 +4383,7 @@ class VisionFactor(Factor):
     assert len(pids) == 4
     assert len(z) == 2
     assert covar.shape == (2, 2)
-    Factor.__init__(self, "VisionFactor", pids, z, covar)
+    Factor.__init__(self, "VisionFactor", pids, z, covar, 2)
     self.cam_geom = cam_geom
 
   def get_residual(self, pose, cam_exts, feature, cam_params):
@@ -4472,7 +4474,7 @@ class CameraFactor(Factor):
     assert len(pids) == 4
     assert len(z) == 2
     assert covar.shape == (2, 2)
-    Factor.__init__(self, "CameraFactor", pids, z, covar)
+    Factor.__init__(self, "CameraFactor", pids, z, covar, 2)
     self.cam_geom = cam_geom
 
   def get_residual(self, pose, cam_exts, bearing_vec, depth, cam_params):
@@ -4502,7 +4504,7 @@ class CalibVisionFactor(Factor):
     assert len(grid_data) == 4
     assert covar.shape == (2, 2)
     tag_id, corner_idx, r_FFi, z = grid_data
-    Factor.__init__(self, "CalibVisionFactor", pids, z, covar)
+    Factor.__init__(self, "CalibVisionFactor", pids, z, covar, 2)
     self.cam_geom = cam_geom
     self.tag_id = tag_id
     self.corner_idx = corner_idx
@@ -4589,7 +4591,7 @@ class TwoStateVisionFactor(Factor):
     assert covar.shape == (2, 2)
 
     measurement = [z_km1, v_km1, z_k, v_k]
-    Factor.__init__(self, "TwoStateVisionFactor", pids, measurement, covar)
+    Factor.__init__(self, "TwoStateVisionFactor", pids, measurement, covar, 2)
     self.cam_geom = cam_geom
 
   def get_residual(self, pose_km1, pose_k, cam_exts, inv_depth_km1, time_delay,
@@ -4721,7 +4723,7 @@ class CalibGimbalFactor(Factor):
   def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
     assert covar.shape == (2, 2)
     tag_id, corner_idx, p_FFi, z = grid_data
-    Factor.__init__(self, "CalibGimbalFactor", pids, z, covar)
+    Factor.__init__(self, "CalibGimbalFactor", pids, z, covar, 2)
     self.cam_geom = cam_geom
     self.tag_id = tag_id
     self.corner_idx = corner_idx
@@ -5066,7 +5068,7 @@ class ImuFactor(Factor):
     self.imu_buf = imu_buf
 
     data = self.propagate(imu_buf, imu_params, sb_i)
-    Factor.__init__(self, "ImuFactor", pids, None, data.state_P)
+    Factor.__init__(self, "ImuFactor", pids, None, data.state_P, 15)
 
     self.state_F = data.state_F
     self.state_P = data.state_P
@@ -5255,7 +5257,7 @@ class ImuFactor(Factor):
 class MargFactor(Factor):
   """ Marginalization Factor """
   def __init__(self):
-    Factor.__init__(self, "MargFactor", [], None, None)
+    Factor.__init__(self, "MargFactor", [], None, None, None)
 
     self.marg_param_ids = set()  # Parameters to be marginalized
     self.remain_param_ids = set()  # Parameters to remain
@@ -5635,7 +5637,7 @@ class Solver:
     """
     # Setup
     (param_idxs, param_size) = self._form_param_indices()
-    r_size = np.sum([len(f.measurement) for _, f in self.factors.items()])
+    r_size = np.sum([f.r_size for _, f in self.factors.items()])
     J = zeros((r_size, param_size))
     g = zeros(param_size)
 
@@ -5764,9 +5766,13 @@ class Solver:
     #     size_i = params_k[f.param_ids[3]].min_dims
     #     break
 
+    # print(idx_i)
+    # print(size_i)
     # (U, s, Vt) = svd(J)
     # J0 = np.delete(J, [idx_i, idx_i + 1, idx_i + 2, idx_i + 5], 1)
+    # print(f"rank(J): {rank(J)}, {J.shape}")
     # print(f"drop 0: {rank(J0)}, {J0.shape}")
+    # exit(0)
 
     for i in range(1, self.solver_max_iter):
       # Update and calculate cost
@@ -7444,6 +7450,7 @@ class GimbalCalibrator:
     """ Add body pose """
     fix = kwargs.get("fix", False)
     covar = kwargs.get("covar", eye(6) * 0.1)
+
     pose = pose_setup(ts, T_WB, fix=fix)
     pose_id = self.graph.add_param(pose)
     self.body_pose_ids.append(pose_id)
@@ -7460,6 +7467,7 @@ class GimbalCalibrator:
     """ Add gimbal extrinsic """
     fix = kwargs.get("fix", False)
     covar = kwargs.get("covar", eye(6) * 0.1)
+
     ext = extrinsics_setup(T_BM0, fix=fix)
     ext_id = self.graph.add_param(ext)
     self.gimbal_ext_id = ext_id
@@ -7475,7 +7483,7 @@ class GimbalCalibrator:
   def add_gimbal_link(self, link_idx, T_link, **kwargs):
     """ Add gimbal link """
     fix = kwargs.get("fix", False)
-    covar = kwargs.get("covar", eye(6) * 0.1)
+    covar = kwargs.get("covar", eye(6) * 0.5)
 
     link = extrinsics_setup(T_link, fix=fix)
     link_id = self.graph.add_param(link)
@@ -8983,18 +8991,18 @@ class SimGimbal:
 
     # -- Perturb gimbal links
     dpos = [-0.01, 0.01]
-    drot = [-0.1, 0.1]
+    drot = [-0.0, 0.0]
     est.gimbal_link0 = perturb_tf_random(est.gimbal_link0, dpos, drot)
     est.gimbal_link1 = perturb_tf_random(est.gimbal_link1, dpos, drot)
 
     # -- Perturb gimbal joints
-    # for view_idx, joints in enumerate(est.joint_angles):
-    #   drot = np.random.uniform(-0.01, 0.01, size=(3,))
-    #   est.joint_angles[view_idx] = joints + drot
+    for view_idx, joints in enumerate(est.joint_angles):
+      drot = np.random.uniform(-0.01, 0.01, size=(3,))
+      est.joint_angles[view_idx] = joints + drot
     init = copy.deepcopy(est)
 
-    fix_fiducial = False
-    fix_gimbal_pose = True
+    fix_fiducial = True
+    fix_body_pose = True
     fix_gimbal_exts = True
     fix_gimbal_links = [False, False]
     fix_gimbal_joints = [False, False, False]
@@ -9003,7 +9011,7 @@ class SimGimbal:
 
     calib = GimbalCalibrator()
     calib.add_fiducial(est.fiducial, fix=fix_fiducial)
-    calib.add_body_pose(0, est.gimbal_poses[0], fix=fix_gimbal_pose)
+    calib.add_body_pose(0, est.gimbal_poses[0], fix=fix_body_pose)
     calib.add_gimbal_extrinsic(est.gimbal_exts, fix=fix_gimbal_exts)
     calib.add_gimbal_link(0, est.gimbal_link0, fix=fix_gimbal_links[0])
     calib.add_gimbal_link(1, est.gimbal_link1, fix=fix_gimbal_links[1])
@@ -9019,7 +9027,7 @@ class SimGimbal:
       if len(est.gimbal_poses) > 1 and view_idx >= 1:
         calib.add_body_pose(view_idx,
                             est.gimbal_poses[view_idx],
-                            fix=fix_gimbal_pose)
+                            fix=fix_body_pose)
 
       # Add views
       calib.add_gimbal_joint(view_idx, 0, joints[0], fix=fix_gimbal_joints[0])
@@ -9029,7 +9037,7 @@ class SimGimbal:
 
     # Solve
     print(f"fix_fiducial: {fix_fiducial}")
-    print(f"fix_gimbal_pose: {fix_gimbal_pose}")
+    print(f"fix_body_pose: {fix_body_pose}")
     print(f"fix_gimbal_exts: {fix_gimbal_exts}")
     print(f"fix_gimbal_links: {fix_gimbal_links}")
     print(f"fix_gimbal_joints: {fix_gimbal_joints}")

@@ -12458,14 +12458,14 @@ real_t **solver_step(solver_t *solver, const real_t lambda_k, void *data) {
   }
 
   // Solve non-linear system
-  if (solver->linearize && solver->linsolve_func) {
+  if (solver->linsolve_func) {
     solver->linsolve_func(data,
                           solver->sv_size,
                           solver->hash,
                           solver->H_damped,
                           solver->g,
                           solver->dx);
-  } else if (solver->linearize) {
+  } else {
     // Solve: H * dx = g
 #ifdef SOLVER_USE_SUITESPARSE
     suitesparse_chol_solve(solver->common,
@@ -12545,7 +12545,7 @@ int solver_solve(solver_t *solver, void *data) {
     } else {
       // Reject update
       lambda_k *= solver->lambda_factor;
-      solver_params_restore(solver, x_copy);
+      // solver_params_restore(solver, x_copy);
       solver->linearize = 0;
     }
     solver_params_free(solver, x_copy);
@@ -13082,7 +13082,7 @@ calib_camera_t *calib_camera_malloc() {
   calib->fix_cam_params = 0;
   aprilgrid_setup(0, &calib->calib_target);
   calib->verbose = 1;
-  calib->max_iter = 30;
+  calib->max_iter = 20;
 
   // Flags
   calib->cams_ok = 0;
@@ -13829,13 +13829,13 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
  */
 void calib_gimbal_setup(calib_gimbal_t *calib) {
   // Settings
-  calib->fix_fiducial_exts = 1;
+  calib->fix_fiducial_exts = 0;
   calib->fix_gimbal_exts = 1;
   calib->fix_poses = 1;
   calib->fix_links = 0;
   calib->fix_joints = 0;
-  calib->fix_cam_exts = 0;
-  calib->fix_cam_params = 0;
+  calib->fix_cam_exts = 1;
+  calib->fix_cam_params = 1;
   aprilgrid_setup(0, &calib->calib_target);
 
   // Counters
@@ -14470,29 +14470,25 @@ static void calib_gimbal_load_config(calib_gimbal_t *calib,
   // Parse camera parameters
   calib->cam_params = MALLOC(camera_params_t, calib->num_cams);
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-    real_t proj_params[4] = {0};
-    real_t dist_params[4] = {0};
-
-    camera_params_t *cam_params = &calib->cam_params[cam_idx];
-    cam_params->cam_idx = cam_idx;
+    int cam_res[2] = {0};
+    char proj_model[30] = {0};
+    char dist_model[30] = {0};
+    real_t cam_vec[8] = {0};
 
     parse_skip_line(conf);
-    parse_key_value(conf, "resolution", "vec2i", cam_params->resolution);
-    parse_key_value(conf, "proj_model", "string", cam_params->proj_model);
-    parse_key_value(conf, "dist_model", "string", cam_params->dist_model);
-    parse_key_value(conf, "proj_params", "vec4d", proj_params);
-    parse_key_value(conf, "dist_params", "vec4d", dist_params);
+    parse_key_value(conf, "resolution", "vec2i", cam_res);
+    parse_key_value(conf, "proj_model", "string", proj_model);
+    parse_key_value(conf, "dist_model", "string", dist_model);
+    parse_key_value(conf, "proj_params", "vec4d", cam_vec);
+    parse_key_value(conf, "dist_params", "vec4d", cam_vec + 4);
     parse_skip_line(conf);
 
-    cam_params->data[0] = proj_params[0];
-    cam_params->data[1] = proj_params[1];
-    cam_params->data[2] = proj_params[2];
-    cam_params->data[3] = proj_params[3];
-
-    cam_params->data[4] = dist_params[0];
-    cam_params->data[5] = dist_params[1];
-    cam_params->data[6] = dist_params[2];
-    cam_params->data[7] = dist_params[3];
+    camera_params_setup(&calib->cam_params[cam_idx],
+                        cam_idx,
+                        cam_res,
+                        proj_model,
+                        dist_model,
+                        cam_vec);
   }
 
   // Parse camera extrinsic
@@ -14991,6 +14987,7 @@ param_order_t *calib_gimbal_param_order(const void *data,
 
   *sv_size = col_idx;
   *r_size = (calib->num_calib_factors * 2) + calib->num_joint_factors;
+  // *r_size = (calib->num_calib_factors * 2);
   return hash;
 }
 
@@ -15002,14 +14999,24 @@ void calib_gimbal_cost(const void *data, real_t *r) {
   assert(calib != NULL);
   assert(calib_gimbal_validate(calib) == 0);
 
+  int r_idx = 0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    // Joint factors
+    for (int i = 0; i < calib->num_joints; i++) {
+      joint_factor_t *factor = &calib->joint_factors[view_idx][i];
+      joint_factor_eval(factor);
+      vec_copy(factor->r, factor->r_size, &r[r_idx]);
+      r_idx += factor->r_size;
+    } // For each joint factor
+
+    // Calib factors
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
       calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
         calib_gimbal_factor_t *factor = &view->calib_factors[factor_idx];
         calib_gimbal_factor_eval(factor);
-        r[factor_idx * 2] = factor->r[0];
-        r[factor_idx * 2 + 1] = factor->r[1];
+        vec_copy(factor->r, factor->r_size, &r[r_idx]);
+        r_idx += factor->r_size;
       } // For each factor
     }   // For each cameras
   }     // For each views
@@ -15028,16 +15035,34 @@ void calib_gimbal_linearize(const void *data,
   // Evaluate factors
   calib_gimbal_t *calib = (calib_gimbal_t *) data;
   assert(calib_gimbal_validate(calib) == 0);
-  int J_row_idx = 0;
+  int r_idx = 0;
 
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    // Joint factors
+    for (int i = 0; i < calib->num_joints; i++) {
+      joint_factor_t *factor = &calib->joint_factors[view_idx][i];
+      joint_factor_eval(factor);
+      vec_copy(factor->r, factor->r_size, &r[r_idx]);
+
+      solver_fill_jacobian(hash,
+                           factor->num_params,
+                           factor->params,
+                           factor->jacs,
+                           factor->r,
+                           factor->r_size,
+                           J_cols,
+                           r_idx,
+                           J,
+                           g);
+      r_idx += factor->r_size;
+    } // For each joint factor
+
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
       calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
         calib_gimbal_factor_t *factor = &view->calib_factors[factor_idx];
         calib_gimbal_factor_eval(factor);
-        r[factor_idx * 2] = factor->r[0];
-        r[factor_idx * 2 + 1] = factor->r[1];
+        vec_copy(factor->r, factor->r_size, &r[r_idx]);
 
         solver_fill_jacobian(hash,
                              factor->num_params,
@@ -15046,10 +15071,10 @@ void calib_gimbal_linearize(const void *data,
                              factor->r,
                              factor->r_size,
                              J_cols,
-                             J_row_idx,
+                             r_idx,
                              J,
                              g);
-        J_row_idx += 2;
+        r_idx += factor->r_size;
       } // For each factor
     }   // For each cameras
   }     // For each views
@@ -15110,6 +15135,7 @@ void calib_gimbal_linearize_compact(const void *data,
     }   // For each cameras
   }     // For each views
 
+  // gnuplot_matshow(H, sv_size, sv_size);
   // printf("rank: %d, sv_size: %d\n",
   //        eig_rank(H, sv_size, sv_size, 1e-4),
   //        sv_size);
