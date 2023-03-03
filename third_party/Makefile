@@ -87,6 +87,15 @@ build_tiscamera:
 			-DTCAM_BUILD_ARAVIS=ON .. \
 		&& make && sudo make install
 
+build_arducam:
+	@curl -s --compressed "https://arducam.github.io/arducam_ppa/KEY.gpg" | sudo apt-key add -
+	@sudo curl -s --compressed -o /etc/apt/sources.list.d/arducam_list_files.list "https://arducam.github.io/arducam_ppa/arducam_list_files.list"
+	@sudo apt update
+	@sudo apt install arducam-config-parser-dev arducam-usb-sdk-dev
+	@curl https://github.com/ArduCAM/ArduCAM_USB_Camera_Shield/releases/download/install_drivers/configure_udev_rules.sh -L -o /tmp/configure_udev_rules.sh
+	@chmod +x /tmp/configure_udev_rules.sh
+	@bash /tmp/configure_udev_rules.sh
+
 build_stb:
 	@cd "$(PREFIX)/include" \
     && ln -sf $(PWD)/src/stb/stb_c_lexer.h . \

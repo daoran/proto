@@ -153,6 +153,15 @@ avs: $(BLD_DIR)/libproto.a
 		-lproto \
 		$(shell pkg-config opencv4 --libs)
 
+arducam:
+	@g++ \
+		-std=c++17 \
+		$(shell pkg-config opencv4 --cflags) \
+		arducam.cpp \
+		-o $(BLD_DIR)/arducam \
+		-lArduCamLib -lusb-1.0 -larducam_config_parser -lpthread \
+		$(shell pkg-config opencv4 --libs)
+
 test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
