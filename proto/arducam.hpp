@@ -1,3 +1,6 @@
+#ifndef ARDUCAM_HPP
+#define ARDUCAM_HPP
+
 #include <iostream>
 #include <string>
 #include <thread>
@@ -5,6 +8,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <ArduCamLib.h>
+#define USE_SOFT_TRIGGER
 
 namespace ArduCam {
 
@@ -257,6 +261,14 @@ public:
 
 } // namespace ArduCam
 
+#endif // ARDUCAM_HPP
+
+//////////////////////////////////////////////////////////////////////////////
+//                             IMPLEMENTATION                               //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef ARDUCAM_IMPLEMENTATION
+
 int main(int argc, char **argv) {
   const auto num_cameras = ArduCam::list_cameras();
 
@@ -294,3 +306,5 @@ int main(int argc, char **argv) {
 
   return 0;
 }
+
+#endif // ARDUCAM_IMPLEMENTATION
