@@ -4556,7 +4556,7 @@ int test_marg() {
     real_t pose_data[7] = {dx, dy, dz, q[0], q[1], q[2], q[3]};
     poses[k] = MALLOC(pose_t, 1);
     pose_setup(poses[k], ts + k, pose_data);
-    poses[k]->marginalize = (k == 0) ? 1 : 0; // Marginalize 1st two poses
+    poses[k]->marginalize = (k == 0) ? 1 : 0; // Marginalize 1st pose
 
     for (int i = 0; i < num_features; i++) {
       // Project point from world to image plane
@@ -4656,51 +4656,51 @@ int test_marg() {
   printf("------------------------------------\n");
   printf("marg->time_total:            %.4fs\n", marg->time_total);
 
-  // Determine parameter order for the marginalized Hessian
-  param_order_t *hash_ = NULL;
-  int col_idx_ = 0;
-  // -- Add body poses
-  for (int i = 0; i < num_poses; i++) {
-    void *data = poses[i]->data;
-    const int fix = poses[i]->marginalize;
-    param_order_add(&hash_, POSE_PARAM, fix, data, &col_idx_);
-  }
-  // -- Add points
-  for (int i = 0; i < num_features; i++) {
-    void *data = features[i]->data;
-    const int fix = 0;
-    param_order_add(&hash_, FEATURE_PARAM, fix, data, &col_idx_);
-  }
-  // -- Add camera extrinsic
-  {
-    void *data = cam_ext->data;
-    const int fix = 1;
-    param_order_add(&hash_, EXTRINSIC_PARAM, fix, data, &col_idx_);
-  }
-  // -- Add camera parameters
-  {
-    void *data = cam->data;
-    const int fix = 0;
-    param_order_add(&hash_, CAMERA_PARAM, fix, data, &col_idx_);
-  }
-  // -- Misc
-  const int sv_size_ = col_idx_;
+  // // Determine parameter order for the marginalized Hessian
+  // param_order_t *hash_ = NULL;
+  // int col_idx_ = 0;
+  // // -- Add body poses
+  // for (int i = 0; i < num_poses; i++) {
+  //   void *data = poses[i]->data;
+  //   const int fix = poses[i]->marginalize;
+  //   param_order_add(&hash_, POSE_PARAM, fix, data, &col_idx_);
+  // }
+  // // -- Add points
+  // for (int i = 0; i < num_features; i++) {
+  //   void *data = features[i]->data;
+  //   const int fix = 0;
+  //   param_order_add(&hash_, FEATURE_PARAM, fix, data, &col_idx_);
+  // }
+  // // -- Add camera extrinsic
+  // {
+  //   void *data = cam_ext->data;
+  //   const int fix = 1;
+  //   param_order_add(&hash_, EXTRINSIC_PARAM, fix, data, &col_idx_);
+  // }
+  // // -- Add camera parameters
+  // {
+  //   void *data = cam->data;
+  //   const int fix = 0;
+  //   param_order_add(&hash_, CAMERA_PARAM, fix, data, &col_idx_);
+  // }
+  // // -- Misc
+  // const int sv_size_ = col_idx_;
 
-  // Form marg hessian
-  real_t *H_ = CALLOC(real_t, sv_size_ * sv_size_);
-  real_t *g_ = CALLOC(real_t, sv_size_ * 1);
-  solver_fill_hessian(hash_,
-                      marg->num_params,
-                      marg->params,
-                      marg->jacs,
-                      marg->r,
-                      marg->r_size,
-                      sv_size_,
-                      H_,
-                      g_);
+  // // Form marg hessian
+  // real_t *H_ = CALLOC(real_t, sv_size_ * sv_size_);
+  // real_t *g_ = CALLOC(real_t, sv_size_ * 1);
+  // solver_fill_hessian(hash_,
+  //                     marg->num_params,
+  //                     marg->params,
+  //                     marg->jacs,
+  //                     marg->r,
+  //                     marg->r_size,
+  //                     sv_size_,
+  //                     H_,
+  //                     g_);
 
-  mat_save("/tmp/H.csv", H, sv_size, sv_size);
-  mat_save("/tmp/H_.csv", H_, sv_size_, sv_size_);
+  // mat_save("/tmp/H.csv", H, sv_size, sv_size);
+  // mat_save("/tmp/H_.csv", H_, sv_size_, sv_size_);
 
   // Clean up
   marg_factor_free(marg);
@@ -4709,14 +4709,14 @@ int test_marg() {
   free(g);
   free(r);
 
-  param_order_free(hash_);
-  free(H_);
-  free(g_);
+  // param_order_free(hash_);
+  // free(H_);
+  // free(g_);
 
   free(cam_ext);
   free(cam);
 
-  for (int k = 0; k < num_poses; k++) {
+  for (int k = 1; k < num_poses; k++) {
     free(poses[k]);
   }
   free(poses);

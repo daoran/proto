@@ -11929,17 +11929,17 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   hmfree(r_cam_params);
   hmfree(r_time_delays);
   // -- Marginal parameters
-  hmfree(m_positions);
-  hmfree(m_rotations);
-  hmfree(m_poses);
-  hmfree(m_velocities);
-  hmfree(m_imu_biases);
-  hmfree(m_features);
-  hmfree(m_joints);
-  hmfree(m_extrinsics);
-  hmfree(m_fiducials);
-  hmfree(m_cam_params);
-  hmfree(m_time_delays);
+  MARG_FREE_PARAMS(marg, m_positions);
+  MARG_FREE_PARAMS(marg, m_rotations);
+  MARG_FREE_PARAMS(marg, m_poses);
+  MARG_FREE_PARAMS(marg, m_velocities);
+  MARG_FREE_PARAMS(marg, m_imu_biases);
+  MARG_FREE_PARAMS(marg, m_features);
+  MARG_FREE_PARAMS(marg, m_joints);
+  MARG_FREE_PARAMS(marg, m_extrinsics);
+  MARG_FREE_PARAMS(marg, m_fiducials);
+  MARG_FREE_PARAMS(marg, m_cam_params);
+  MARG_FREE_PARAMS(marg, m_time_delays);
 }
 
 /**

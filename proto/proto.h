@@ -2231,6 +2231,14 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
     PARAM_TYPE *value;                                                         \
   } HASH_NAME;
 
+#define MARG_FREE_PARAMS(MARG, HASH)                                           \
+  if (marg->take_ownership) {                                                  \
+    for (int i = 0; i < hmlen(HASH); i++) {                                    \
+      free(HASH[i].value);                                                     \
+    }                                                                          \
+  }                                                                            \
+  hmfree(HASH)
+
 MARG_PARAM_HASH(pos_t, marg_pos_t)
 MARG_PARAM_HASH(rot_t, marg_rot_t)
 MARG_PARAM_HASH(pose_t, marg_pose_t)
