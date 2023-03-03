@@ -395,7 +395,7 @@ typedef struct list_t {
 list_t *list_malloc();
 void list_free(list_t *list);
 void list_clear(list_t *list);
-void list_clear_free(list_t *list);
+void list_clear_free(list_t *list, void (*free_func)(void *));
 void list_push(list_t *list, void *value);
 void *list_pop(list_t *list);
 void *list_pop_front(list_t *list);
@@ -2247,6 +2247,7 @@ typedef struct marg_factor_t {
   // Settings
   int debug;
   int cond_hessian;
+  int take_ownership;
 
   // Flags
   int marginalized;

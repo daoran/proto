@@ -1080,13 +1080,13 @@ void list_clear(list_t *list) {
   }
 }
 
-void list_clear_free(list_t *list) {
+void list_clear_free(list_t *list, void (*free_func)(void *)) {
   assert(list != NULL);
 
   list_node_t *node = list->first;
   while (node != NULL) {
     list_node_t *next_node = node->next;
-    free(node->value);
+    free_func(node->value);
     free(node);
     node = next_node;
   }
@@ -11581,6 +11581,8 @@ marg_factor_t *marg_factor_malloc() {
 
   // Settings
   marg->debug = 1;
+  marg->cond_hessian = 0;
+  marg->take_ownership = 1;
 
   // Flags
   marg->marginalized = 0;
@@ -11640,12 +11642,21 @@ void marg_factor_free(marg_factor_t *marg) {
   }
 
   // Factors
-  list_free(marg->ba_factors);
-  list_free(marg->camera_factors);
-  list_free(marg->idf_factors);
-  list_free(marg->imu_factors);
-  list_free(marg->calib_camera_factors);
-  list_free(marg->calib_vi_factors);
+  if (marg->take_ownership) {
+    list_clear_free(marg->ba_factors, free);
+    list_clear_free(marg->camera_factors, free);
+    list_clear_free(marg->idf_factors, free);
+    list_clear_free(marg->imu_factors, free);
+    list_clear_free(marg->calib_camera_factors, free);
+    list_clear_free(marg->calib_vi_factors, free);
+  } else {
+    list_free(marg->ba_factors);
+    list_free(marg->camera_factors);
+    list_free(marg->idf_factors);
+    list_free(marg->imu_factors);
+    list_free(marg->calib_camera_factors);
+    list_free(marg->calib_vi_factors);
+  }
   marg_factor_free(marg->marg_factor);
 
   // Residuals
