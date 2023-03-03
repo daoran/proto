@@ -4716,7 +4716,7 @@ int test_marg() {
   free(cam_ext);
   free(cam);
 
-  for (int k = 1; k < num_poses; k++) {
+  for (int k = 0; k < num_poses; k++) {
     free(poses[k]);
   }
   free(poses);

@@ -2131,46 +2131,60 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 #define CALIB_VI_FACTOR 7
 
 #define MARG_TRACK(RHASH, MHASH, PARAM)                                        \
-  if (PARAM->marginalize == 0) {                                               \
-    hmput(RHASH, PARAM, PARAM);                                                \
-  } else {                                                                     \
-    hmput(MHASH, PARAM, PARAM);                                                \
+  {                                                                            \
+    if (PARAM->marginalize == 0) {                                             \
+      hmput(MHASH, PARAM, PARAM);                                              \
+    } else {                                                                   \
+      hmput(RHASH, PARAM, PARAM);                                              \
+    }                                                                          \
   }
 
-#define MARG_TRACK_FACTOR(PARAM, PARAM_TYPE)                                   \
+#define MARG_TRACK_FACTOR(MARG, PARAM_TYPE, PARAM)                             \
   switch (PARAM_TYPE) {                                                        \
     case POSITION_PARAM:                                                       \
-      MARG_TRACK(r_positions, m_positions, ((pos_t *) PARAM));                 \
+      MARG_TRACK(marg->r_positions, marg->m_positions, ((pos_t *) PARAM));     \
       break;                                                                   \
     case ROTATION_PARAM:                                                       \
-      MARG_TRACK(r_rotations, m_rotations, ((rot_t *) PARAM));                 \
+      MARG_TRACK(marg->r_rotations, marg->m_rotations, ((rot_t *) PARAM));     \
       break;                                                                   \
     case POSE_PARAM:                                                           \
-      MARG_TRACK(r_poses, m_poses, ((pose_t *) PARAM));                        \
+      MARG_TRACK(marg->r_poses, marg->m_poses, ((pose_t *) PARAM));            \
       break;                                                                   \
     case VELOCITY_PARAM:                                                       \
-      MARG_TRACK(r_velocities, m_velocities, ((velocity_t *) PARAM));          \
+      MARG_TRACK(marg->r_velocities,                                           \
+                 marg->m_velocities,                                           \
+                 ((velocity_t *) PARAM));                                      \
       break;                                                                   \
     case IMU_BIASES_PARAM:                                                     \
-      MARG_TRACK(r_imu_biases, m_imu_biases, ((imu_biases_t *) PARAM));        \
+      MARG_TRACK(marg->r_imu_biases,                                           \
+                 marg->m_imu_biases,                                           \
+                 ((imu_biases_t *) PARAM));                                    \
       break;                                                                   \
     case FEATURE_PARAM:                                                        \
-      MARG_TRACK(r_features, m_features, ((feature_t *) PARAM));               \
+      MARG_TRACK(marg->r_features, marg->m_features, ((feature_t *) PARAM));   \
       break;                                                                   \
     case FIDUCIAL_PARAM:                                                       \
-      MARG_TRACK(r_fiducials, m_fiducials, ((fiducial_t *) PARAM));            \
+      MARG_TRACK(marg->r_fiducials,                                            \
+                 marg->m_fiducials,                                            \
+                 ((fiducial_t *) PARAM));                                      \
       break;                                                                   \
     case EXTRINSIC_PARAM:                                                      \
-      MARG_TRACK(r_extrinsics, m_extrinsics, ((extrinsic_t *) PARAM));         \
+      MARG_TRACK(marg->r_extrinsics,                                           \
+                 marg->m_extrinsics,                                           \
+                 ((extrinsic_t *) PARAM));                                     \
       break;                                                                   \
     case JOINT_PARAM:                                                          \
-      MARG_TRACK(r_joints, m_joints, ((joint_t *) PARAM));                     \
+      MARG_TRACK(marg->r_joints, marg->m_joints, ((joint_t *) PARAM));         \
       break;                                                                   \
     case CAMERA_PARAM:                                                         \
-      MARG_TRACK(r_cam_params, m_cam_params, ((camera_params_t *) PARAM));     \
+      MARG_TRACK(marg->r_cam_params,                                           \
+                 marg->m_cam_params,                                           \
+                 ((camera_params_t *) PARAM));                                 \
       break;                                                                   \
     case TIME_DELAY_PARAM:                                                     \
-      MARG_TRACK(r_time_delays, m_time_delays, ((time_delay_t *) PARAM));      \
+      MARG_TRACK(marg->r_time_delays,                                          \
+                 marg->m_time_delays,                                          \
+                 ((time_delay_t *) PARAM));                                    \
       break;                                                                   \
     default:                                                                   \
       FATAL("Implementation Error!\n");                                        \
@@ -2261,6 +2275,32 @@ typedef struct marg_factor_t {
   int marginalized;
   int schur_complement_ok;
   int eigen_decomp_ok;
+
+  // Parameters
+  // -- Remain parameters
+  marg_pos_t *r_positions;
+  marg_rot_t *r_rotations;
+  marg_pose_t *r_poses;
+  marg_velocity_t *r_velocities;
+  marg_imu_biases_t *r_imu_biases;
+  marg_fiducial_t *r_fiducials;
+  marg_joint_t *r_joints;
+  marg_extrinsic_t *r_extrinsics;
+  marg_feature_t *r_features;
+  marg_camera_params_t *r_cam_params;
+  marg_time_delay_t *r_time_delays;
+  // -- Marginal parameters
+  marg_pos_t *m_positions;
+  marg_rot_t *m_rotations;
+  marg_pose_t *m_poses;
+  marg_velocity_t *m_velocities;
+  marg_imu_biases_t *m_imu_biases;
+  marg_feature_t *m_features;
+  marg_fiducial_t *m_fiducials;
+  marg_extrinsic_t *m_extrinsics;
+  marg_joint_t *m_joints;
+  marg_camera_params_t *m_cam_params;
+  marg_time_delay_t *m_time_delays;
 
   // Factors
   list_t *ba_factors;

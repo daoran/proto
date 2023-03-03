@@ -11589,6 +11589,32 @@ marg_factor_t *marg_factor_malloc() {
   marg->schur_complement_ok = 0;
   marg->eigen_decomp_ok = 0;
 
+  // Parameters
+  // -- Remain parameters
+  marg->r_positions = NULL;
+  marg->r_rotations = NULL;
+  marg->r_poses = NULL;
+  marg->r_velocities = NULL;
+  marg->r_imu_biases = NULL;
+  marg->r_fiducials = NULL;
+  marg->r_joints = NULL;
+  marg->r_extrinsics = NULL;
+  marg->r_features = NULL;
+  marg->r_cam_params = NULL;
+  marg->r_time_delays = NULL;
+  // -- Marginal parameters
+  marg->m_positions = NULL;
+  marg->m_rotations = NULL;
+  marg->m_poses = NULL;
+  marg->m_velocities = NULL;
+  marg->m_imu_biases = NULL;
+  marg->m_features = NULL;
+  marg->m_fiducials = NULL;
+  marg->m_extrinsics = NULL;
+  marg->m_joints = NULL;
+  marg->m_cam_params = NULL;
+  marg->m_time_delays = NULL;
+
   // Factors
   marg->ba_factors = list_malloc();
   marg->camera_factors = list_malloc();
@@ -11640,6 +11666,32 @@ void marg_factor_free(marg_factor_t *marg) {
   if (marg == NULL) {
     return;
   }
+
+  // Parameters
+  // -- Remain parameters
+  hmfree(marg->r_positions);
+  hmfree(marg->r_rotations);
+  hmfree(marg->r_poses);
+  hmfree(marg->r_velocities);
+  hmfree(marg->r_imu_biases);
+  hmfree(marg->r_features);
+  hmfree(marg->r_joints);
+  hmfree(marg->r_extrinsics);
+  hmfree(marg->r_fiducials);
+  hmfree(marg->r_cam_params);
+  hmfree(marg->r_time_delays);
+  // -- Marginal parameters
+  hmfree(marg->m_positions);
+  hmfree(marg->m_rotations);
+  hmfree(marg->m_poses);
+  hmfree(marg->m_velocities);
+  hmfree(marg->m_imu_biases);
+  hmfree(marg->m_features);
+  hmfree(marg->m_joints);
+  hmfree(marg->m_extrinsics);
+  hmfree(marg->m_fiducials);
+  hmfree(marg->m_cam_params);
+  hmfree(marg->m_time_delays);
 
   // Factors
   if (marg->take_ownership) {
@@ -11719,39 +11771,13 @@ void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr) {
  * Form Hessian matrix using data in marginalization factor.
  */
 static void marg_factor_hessian_form(marg_factor_t *marg) {
-  // Track parameters
-  // -- Remain parameters
-  marg_pos_t *r_positions = NULL;
-  marg_rot_t *r_rotations = NULL;
-  marg_pose_t *r_poses = NULL;
-  marg_velocity_t *r_velocities = NULL;
-  marg_imu_biases_t *r_imu_biases = NULL;
-  marg_fiducial_t *r_fiducials = NULL;
-  marg_joint_t *r_joints = NULL;
-  marg_extrinsic_t *r_extrinsics = NULL;
-  marg_feature_t *r_features = NULL;
-  marg_camera_params_t *r_cam_params = NULL;
-  marg_time_delay_t *r_time_delays = NULL;
-  // -- Marginal parameters
-  marg_pos_t *m_positions = NULL;
-  marg_rot_t *m_rotations = NULL;
-  marg_pose_t *m_poses = NULL;
-  marg_velocity_t *m_velocities = NULL;
-  marg_imu_biases_t *m_imu_biases = NULL;
-  marg_feature_t *m_features = NULL;
-  marg_fiducial_t *m_fiducials = NULL;
-  marg_extrinsic_t *m_extrinsics = NULL;
-  marg_joint_t *m_joints = NULL;
-  marg_camera_params_t *m_cam_params = NULL;
-  marg_time_delay_t *m_time_delays = NULL;
-
   // Track Factor Params
   // -- Track marginalization factor params
   if (marg->marg_factor) {
     for (int i = 0; i < marg->marg_factor->num_params; i++) {
       void *param = marg->marg_factor->param_ptrs[i];
       int param_type = marg->marg_factor->param_types[i];
-      MARG_TRACK_FACTOR(param, param_type);
+      MARG_TRACK_FACTOR(marg, param_type, param);
     }
   }
   // -- Track BA factor params
@@ -11759,9 +11785,9 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     list_node_t *node = marg->ba_factors->first;
     while (node != NULL) {
       ba_factor_t *factor = (ba_factor_t *) node->value;
-      MARG_TRACK(r_poses, m_poses, factor->pose);
-      MARG_TRACK(r_features, m_features, factor->feature);
-      MARG_TRACK(r_cam_params, m_cam_params, factor->camera);
+      MARG_TRACK_FACTOR(marg, factor->param_types[0], factor->pose);
+      MARG_TRACK_FACTOR(marg, factor->param_types[1], factor->feature);
+      MARG_TRACK_FACTOR(marg, factor->param_types[2], factor->camera);
       node = node->next;
     }
   }
@@ -11770,10 +11796,10 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     list_node_t *node = marg->camera_factors->first;
     while (node != NULL) {
       camera_factor_t *factor = (camera_factor_t *) node->value;
-      MARG_TRACK(r_poses, m_poses, factor->pose);
-      MARG_TRACK(r_extrinsics, m_extrinsics, factor->extrinsic);
-      MARG_TRACK(r_features, m_features, factor->feature);
-      MARG_TRACK(r_cam_params, m_cam_params, factor->camera);
+      MARG_TRACK_FACTOR(marg, factor->param_types[0], factor->pose);
+      MARG_TRACK_FACTOR(marg, factor->param_types[1], factor->extrinsic);
+      MARG_TRACK_FACTOR(marg, factor->param_types[2], factor->feature);
+      MARG_TRACK_FACTOR(marg, factor->param_types[3], factor->camera);
       node = node->next;
     }
   }
@@ -11782,11 +11808,11 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     list_node_t *node = marg->idf_factors->first;
     while (node != NULL) {
       idf_factor_t *factor = (idf_factor_t *) node->value;
-      MARG_TRACK(r_poses, m_poses, factor->pose);
-      MARG_TRACK(r_extrinsics, m_extrinsics, factor->extrinsic);
-      MARG_TRACK(r_cam_params, m_cam_params, factor->camera);
-      MARG_TRACK(r_positions, m_positions, factor->idf_pos);
-      MARG_TRACK(r_features, m_features, factor->idf_param);
+      MARG_TRACK_FACTOR(marg, factor->param_types[0], factor->pose);
+      MARG_TRACK_FACTOR(marg, factor->param_types[1], factor->extrinsic);
+      MARG_TRACK_FACTOR(marg, factor->param_types[2], factor->camera);
+      MARG_TRACK_FACTOR(marg, factor->param_types[3], factor->idf_pos);
+      MARG_TRACK_FACTOR(marg, factor->param_types[4], factor->idf_param);
       node = node->next;
     }
   }
@@ -11795,12 +11821,12 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     list_node_t *node = marg->imu_factors->first;
     while (node != NULL) {
       imu_factor_t *factor = (imu_factor_t *) node->value;
-      MARG_TRACK(r_poses, m_poses, factor->pose_i);
-      MARG_TRACK(r_velocities, m_velocities, factor->vel_i);
-      MARG_TRACK(r_imu_biases, m_imu_biases, factor->biases_i);
-      MARG_TRACK(r_poses, m_poses, factor->pose_j);
-      MARG_TRACK(r_velocities, m_velocities, factor->vel_j);
-      MARG_TRACK(r_imu_biases, m_imu_biases, factor->biases_j);
+      MARG_TRACK_FACTOR(marg, factor->param_types[0], factor->pose_i);
+      MARG_TRACK_FACTOR(marg, factor->param_types[1], factor->vel_i);
+      MARG_TRACK_FACTOR(marg, factor->param_types[2], factor->biases_i);
+      MARG_TRACK_FACTOR(marg, factor->param_types[3], factor->pose_j);
+      MARG_TRACK_FACTOR(marg, factor->param_types[4], factor->vel_j);
+      MARG_TRACK_FACTOR(marg, factor->param_types[5], factor->biases_j);
       node = node->next;
     }
   }
@@ -11835,6 +11861,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   // printf("\n");
 
   // Determine parameter block column indicies for Hessian matrix H
+  // clang-format off
   int H_idx = 0; // Column / row index of Hessian matrix H
   int m = 0;     // Marginal local parameter length
   int r = 0;     // Remain local parameter length
@@ -11843,30 +11870,30 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   int nm = 0;    // Number of marginal parameters
   int nr = 0;    // Number of remain parameters
   // -- Column indices for parameter blocks to be marginalized
-  MARG_INDEX(m_positions, POSITION_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_rotations, ROTATION_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_poses, POSE_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_features, FEATURE_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_joints, JOINT_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_cam_params, CAMERA_PARAM, marg->hash, &H_idx, m, gm, nm);
-  MARG_INDEX(m_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_positions, POSITION_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_rotations, ROTATION_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_poses, POSE_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_features, FEATURE_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_joints, JOINT_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_cam_params, CAMERA_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, m, gm, nm);
   // -- Column indices for parameter blocks to remain
-  MARG_INDEX(r_positions, POSITION_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_rotations, ROTATION_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_poses, POSE_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m, gr, nr);
-  MARG_INDEX(r_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, m, gr, nr);
-  MARG_INDEX(r_features, FEATURE_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_joints, JOINT_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_velocities, VELOCITY_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(r_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_positions, POSITION_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_rotations, ROTATION_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_poses, POSE_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_features, FEATURE_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_joints, JOINT_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r, gr, nr);
+  // clang-format on
 
   // Track linearization point x0 and parameter pointers
   int param_idx = 0;
@@ -11876,17 +11903,17 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   marg->param_types = MALLOC(int, nr);
   marg->param_ptrs = MALLOC(void *, nr);
   marg->params = MALLOC(real_t *, nr);
-  MARG_PARAMS(marg, r_positions, POSITION_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_rotations, ROTATION_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_poses, POSE_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_velocities, VELOCITY_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_imu_biases, IMU_BIASES_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_features, FEATURE_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_joints, JOINT_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_extrinsics, EXTRINSIC_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_fiducials, FIDUCIAL_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_cam_params, CAMERA_PARAM, param_idx, x0_idx);
-  MARG_PARAMS(marg, r_time_delays, TIME_DELAY_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_positions, POSITION_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_rotations, ROTATION_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_poses, POSE_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_velocities, VELOCITY_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_imu_biases, IMU_BIASES_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_features, FEATURE_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_joints, JOINT_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_extrinsics, EXTRINSIC_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_fiducials, FIDUCIAL_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_cam_params, CAMERA_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_time_delays, TIME_DELAY_PARAM, param_idx, x0_idx);
 
   // Allocate memory LHS and RHS of Gauss newton
   marg->m_size = m;
@@ -11914,32 +11941,6 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
   marg->H = H;
   marg->b = b;
-
-  // Clean up
-  // -- Remain parameters
-  hmfree(r_positions);
-  hmfree(r_rotations);
-  hmfree(r_poses);
-  hmfree(r_velocities);
-  hmfree(r_imu_biases);
-  hmfree(r_features);
-  hmfree(r_joints);
-  hmfree(r_extrinsics);
-  hmfree(r_fiducials);
-  hmfree(r_cam_params);
-  hmfree(r_time_delays);
-  // -- Marginal parameters
-  MARG_FREE_PARAMS(marg, m_positions);
-  MARG_FREE_PARAMS(marg, m_rotations);
-  MARG_FREE_PARAMS(marg, m_poses);
-  MARG_FREE_PARAMS(marg, m_velocities);
-  MARG_FREE_PARAMS(marg, m_imu_biases);
-  MARG_FREE_PARAMS(marg, m_features);
-  MARG_FREE_PARAMS(marg, m_joints);
-  MARG_FREE_PARAMS(marg, m_extrinsics);
-  MARG_FREE_PARAMS(marg, m_fiducials);
-  MARG_FREE_PARAMS(marg, m_cam_params);
-  MARG_FREE_PARAMS(marg, m_time_delays);
 }
 
 /**
@@ -12038,9 +12039,9 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
     free(H_);
   }
 
-  // // Check J_inv * J == eye
+  // Check J_inv * J == eye
   // if (marg->debug) {
-  //   if (check_inv(*J_inv, *J, r) != 0) {
+  //   if (check_inv(J_inv, J, r) != 0) {
   //     marg->eigen_decomp_ok = 0;
   //     LOG_WARN("inv(J) * J != eye\n");
   //   }
