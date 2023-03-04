@@ -11727,35 +11727,35 @@ void marg_factor_free(marg_factor_t *marg) {
   free(marg);
 }
 
-void marg_factor_print_stats() {
+void marg_factor_print_stats(const marg_factor_t *marg) {
   printf("Parameters to be marginalized:\n");
   printf("------------------------------\n");
-  printf("m_positions: %ld\n", hmlen(m_positions));
-  printf("m_rotations: %ld\n", hmlen(m_rotations));
-  printf("m_poses: %ld\n", hmlen(m_poses));
-  printf("m_velocities: %ld\n", hmlen(m_velocities));
-  printf("m_imu_biases: %ld\n", hmlen(m_imu_biases));
-  printf("m_features: %ld\n", hmlen(m_features));
-  printf("m_joints: %ld\n", hmlen(m_joints));
-  printf("m_extrinsics: %ld\n", hmlen(m_extrinsics));
-  printf("m_fiducials: %ld\n", hmlen(m_fiducials));
-  printf("m_cam_params: %ld\n", hmlen(m_cam_params));
-  printf("m_time_delays: %ld\n", hmlen(m_time_delays));
+  printf("m_positions: %ld\n", hmlen(marg->m_positions));
+  printf("m_rotations: %ld\n", hmlen(marg->m_rotations));
+  printf("m_poses: %ld\n", hmlen(marg->m_poses));
+  printf("m_velocities: %ld\n", hmlen(marg->m_velocities));
+  printf("m_imu_biases: %ld\n", hmlen(marg->m_imu_biases));
+  printf("m_features: %ld\n", hmlen(marg->m_features));
+  printf("m_joints: %ld\n", hmlen(marg->m_joints));
+  printf("m_extrinsics: %ld\n", hmlen(marg->m_extrinsics));
+  printf("m_fiducials: %ld\n", hmlen(marg->m_fiducials));
+  printf("m_cam_params: %ld\n", hmlen(marg->m_cam_params));
+  printf("m_time_delays: %ld\n", hmlen(marg->m_time_delays));
   printf("\n");
 
   printf("Parameters to remain:\n");
   printf("---------------------\n");
-  printf("r_positions: %ld\n", hmlen(r_positions));
-  printf("r_rotations: %ld\n", hmlen(r_rotations));
-  printf("r_poses: %ld\n", hmlen(r_poses));
-  printf("r_velocities: %ld\n", hmlen(r_velocities));
-  printf("r_imu_biases: %ld\n", hmlen(r_imu_biases));
-  printf("r_features: %ld\n", hmlen(r_features));
-  printf("r_joints: %ld\n", hmlen(r_joints));
-  printf("r_extrinsics: %ld\n", hmlen(r_extrinsics));
-  printf("r_fiducials: %ld\n", hmlen(r_fiducials));
-  printf("r_cam_params: %ld\n", hmlen(r_cam_params));
-  printf("r_time_delays: %ld\n", hmlen(r_time_delays));
+  printf("r_positions: %ld\n", hmlen(marg->r_positions));
+  printf("r_rotations: %ld\n", hmlen(marg->r_rotations));
+  printf("r_poses: %ld\n", hmlen(marg->r_poses));
+  printf("r_velocities: %ld\n", hmlen(marg->r_velocities));
+  printf("r_imu_biases: %ld\n", hmlen(marg->r_imu_biases));
+  printf("r_features: %ld\n", hmlen(marg->r_features));
+  printf("r_joints: %ld\n", hmlen(marg->r_joints));
+  printf("r_extrinsics: %ld\n", hmlen(marg->r_extrinsics));
+  printf("r_fiducials: %ld\n", hmlen(marg->r_fiducials));
+  printf("r_cam_params: %ld\n", hmlen(marg->r_cam_params));
+  printf("r_time_delays: %ld\n", hmlen(marg->r_time_delays));
   printf("\n");
 }
 
