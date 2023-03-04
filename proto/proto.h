@@ -288,26 +288,24 @@
  * Path Functions
  * --------------
  *
- * Functions:
+ * void path_file_name(const char *path, char *fname);
  *
- *   void path_file_name(const char *path, char *fname);
- *
- *     Extract filename from `path` to `fname`.
+ *   Extract filename from `path` to `fname`.
  *
  *
- *   void path_file_ext(const char *path, char *fext);
+ * void path_file_ext(const char *path, char *fext);
  *
- *     Extract file extension from `path` to `fext`.
- *
- *
- *   void path_dir_name(const char *path, char *dir_name);
- *
- *     Extract dir name from `path` to `dirname`.
+ *   Extract file extension from `path` to `fext`.
  *
  *
- *   char *path_join(const char *x, const char *y);
+ * void path_dir_name(const char *path, char *dir_name);
  *
- *     Join two paths `x` and `y`
+ *   Extract dir name from `path` to `dirname`.
+ *
+ *
+ * char *path_join(const char *x, const char *y);
+ *
+ *   Join two paths `x` and `y`
  *
  */
 void path_file_name(const char *path, char *fname);
@@ -319,16 +317,14 @@ char *path_join(const char *x, const char *y);
  * List files Function
  * -------------------
  *
- * Functions:
+ * char **list_files(const char *path, int *num_files);
  *
- *   char **list_files(const char *path, int *num_files);
+ *   List files in `path`.
+ *   Returns List of files in directory and number of files `n`.
  *
- *     List files in `path`.
- *     Returns List of files in directory and number of files `n`.
+ * void list_files_free(char **data, const int n);
  *
- *   void list_files_free(char **data, const int n);
- *
- *     Free list of `files` of length `n`.
+ *   Free list of `files` of length `n`.
  *
  */
 char **list_files(const char *path, int *num_files);
@@ -338,52 +334,50 @@ void list_files_free(char **data, const int n);
  * File Functions
  * --------------
  *
- * Functions:
+ * char *file_read(const char *fp);
  *
- *   char *file_read(const char *fp);
+ *   Read file contents in file path `fp`.
  *
- *     Read file contents in file path `fp`.
+ *   Returns:
  *
- *     Returns:
- *
- *     - Success: File contents
- *     - Failure: NULL
+ *   - Success: File contents
+ *   - Failure: NULL
  *
  *
- *   void skip_line(FILE *fp);
+ * void skip_line(FILE *fp);
  *
- *     Skip file line.
- *
- *
- *   STATUS file_exists(const char *fp);
- *
- *     Check if file exists.
- *
- *     Returns
- *
- *     - `1`: File exists
- *     - `0`: File does not exist
+ *   Skip file line.
  *
  *
- *   int file_rows(const char *fp);
+ * STATUS file_exists(const char *fp);
  *
- *     Get number of rows in file `fp`.
+ *   Check if file exists.
  *
- *     Returns:
+ *   Returns
  *
- *     - Number of rows in file
- *     - `-1` for failure.
+ *   - `1`: File exists
+ *   - `0`: File does not exist
  *
  *
- *   STATUS file_copy(const char *src, const char *dest);
+ * int file_rows(const char *fp);
  *
- *     Copy file from path `src` to path `dst`.
+ *   Get number of rows in file `fp`.
  *
- *     Returns:
+ *   Returns:
  *
- *     - `0`  for success
- *     - `-1` if src file could not be opend
- *     - `-2` if dst file could not be opened
+ *   - Number of rows in file
+ *   - `-1` for failure.
+ *
+ *
+ * STATUS file_copy(const char *src, const char *dest);
+ *
+ *   Copy file from path `src` to path `dst`.
+ *
+ *   Returns:
+ *
+ *   - `0`  for success
+ *   - `-1` if src file could not be opend
+ *   - `-2` if dst file could not be opened
  *
  */
 char *file_read(const char *fp);
@@ -410,36 +404,34 @@ typedef double complex real_complex_t;
  * String Functions
  * ----------------
  *
- * Functions:
+ * size_t string_copy(char *dst, const char *src)
  *
- *   size_t string_copy(char *dst, const char *src)
- *
- *     Copy string `src` to `dst`.
+ *   Copy string `src` to `dst`.
  *
  *
- *   void string_cat(char *dst, const char *src)
+ * void string_cat(char *dst, const char *src)
  *
- *     Concatenate string from `src` to `dst`.
- *
- *
- *   char *string_malloc(const char *s)
- *
- *     Allocate heap memory for string `s`.
+ *   Concatenate string from `src` to `dst`.
  *
  *
- *   char *string_strip(char *s)
+ * char *string_malloc(const char *s)
  *
- *     Strip whitespace from string `s`.
- *
- *
- *   char *string_strip_char(char *s, const char c)
- *
- *     Strip specific character `c` from string `s`.
+ *   Allocate heap memory for string `s`.
  *
  *
- *   char **string_split(char *a_str, const char a_delim, size_t *n)
+ * char *string_strip(char *s)
  *
- *     Split string `s` by delimiter `d`
+ *   Strip whitespace from string `s`.
+ *
+ *
+ * char *string_strip_char(char *s, const char c)
+ *
+ *   Strip specific character `c` from string `s`.
+ *
+ *
+ * char **string_split(char *a_str, const char a_delim, size_t *n)
+ *
+ *   Split string `s` by delimiter `d`
  *
  */
 size_t string_copy(char *dst, const char *src);
@@ -453,27 +445,25 @@ char **string_split(char *s, const char d, size_t *n);
  * Integer / Float Arrays Functions
  * --------------------------------
  *
- * Functions:
+ * int **load_iarrays(const char *csv_path, int *num_arrays);
  *
- *   int **load_iarrays(const char *csv_path, int *num_arrays);
+ *   Parse 2D integer arrays from csv file.
  *
- *     Parse 2D integer arrays from csv file.
+ *   Returns:
  *
- *     Returns:
- *
- *     - List of 1D vector of integers
- *     - NULL for failure
+ *   - List of 1D vector of integers
+ *   - NULL for failure
  *
  *
- *   real_t **load_darrays(const char *csv_path, int *num_arrays);
+ * real_t **load_darrays(const char *csv_path, int *num_arrays);
  *
- *     Parse 2D real arrays from csv file at `csv_path`, on success
- *     `num_arrays` will return number of arrays.
+ *   Parse 2D real arrays from csv file at `csv_path`, on success
+ *   `num_arrays` will return number of arrays.
  *
- *     Returns:
+ *   Returns:
  *
- *     - List of 1D vector of reals
- *     - NULL for failure
+ *   - List of 1D vector of reals
+ *   - NULL for failure
  */
 int **load_iarrays(const char *csv_path, int *num_arrays);
 real_t **load_darrays(const char *csv_path, int *num_arrays);
@@ -482,14 +472,12 @@ real_t **load_darrays(const char *csv_path, int *num_arrays);
  * Functions to allocate memory for integer, float, double and vector
  * ------------------------------------------------------------------
  *
- * Functions:
+ * int *int_malloc(const int val);
+ * float *float_malloc(const float val);
+ * double *double_malloc(const double val);
+ * real_t *vector_malloc(const real_t *vec, const real_t N);
  *
- *   int *int_malloc(const int val);
- *   float *float_malloc(const float val);
- *   double *double_malloc(const double val);
- *   real_t *vector_malloc(const real_t *vec, const real_t N);
- *
- *     Functions to allocate memory for integer, float, double and vector.
+ *   Functions to allocate memory for integer, float, double and vector.
  *
  */
 int *int_malloc(const int val);
@@ -501,41 +489,39 @@ real_t *vector_malloc(const real_t *vec, const real_t N);
  * Delimited Separated Data
  * ------------------------
  *
- * Functions:
+ * int dsv_rows(const char *fp);
+ * int dsv_cols(const char *fp, const char d);
  *
- *   int dsv_rows(const char *fp);
- *   int dsv_cols(const char *fp, const char d);
- *
- *     Get number of rows and columns of a delimited `d` separated file `fp`.
+ *   Get number of rows and columns of a delimited `d` separated file `fp`.
  *
  *
- *   char **dsv_fields(const char *fp, const char d, int *num_fields);
+ * char **dsv_fields(const char *fp, const char d, int *num_fields);
  *
- *     Get the fields of the delimited file at `fp`, where `delim` is the value
- *     separated symbol and `num_fields` returns the length of the fields
- *     returned.
+ *   Get the fields of the delimited file at `fp`, where `delim` is the value
+ *   separated symbol and `num_fields` returns the length of the fields
+ *   returned.
  *
- *     Returns:
+ *   Returns:
  *
- *     - List of field strings
- *     - NULL for failure
- *
- *
- *   real_t **dsv_data(const char *fp,
- *                     const char d,
- *                     int *num_rows,
- *                     int *num_cols);
- *
- *     Load delimited separated value data as a matrix.
- *
- *     Returns:
- *     - Matrix of DSV data
- *     - NULL for failure
+ *   - List of field strings
+ *   - NULL for failure
  *
  *
- *   void dsv_free(real_t **data, const int num_rows);
+ * real_t **dsv_data(const char *fp,
+ *                   const char d,
+ *                   int *num_rows,
+ *                   int *num_cols);
  *
- *     Free DSV data `data` of `num_rows`.
+ *   Load delimited separated value data as a matrix.
+ *
+ *   Returns:
+ *   - Matrix of DSV data
+ *   - NULL for failure
+ *
+ *
+ * void dsv_free(real_t **data, const int num_rows);
+ *
+ *   Free DSV data `data` of `num_rows`.
  *
  */
 int dsv_rows(const char *fp);
@@ -548,22 +534,20 @@ void dsv_free(real_t **data, const int num_rows);
  * Comma Separated Data Functions
  * ------------------------------
  *
- * Functions:
+ * real_t **csv_data(const char *fp, int *num_rows, int *num_cols);
  *
- *   real_t **csv_data(const char *fp, int *num_rows, int *num_cols);
+ *   Load comma separated data as a matrix, where `fp` is the csv file path,
+ *   on success `num_rows` and `num_cols` will be filled.
  *
- *     Load comma separated data as a matrix, where `fp` is the csv file path,
- *     on success `num_rows` and `num_cols` will be filled.
+ *   Returns:
  *
- *     Returns:
- *
- *     - Matrix of CSV data
- *     - NULL for failure
+ *   - Matrix of CSV data
+ *   - NULL for failure
  *
  *
- *   void csv_free(real_t **data, const int num_rows);
+ * void csv_free(real_t **data, const int num_rows);
  *
- *     Free 2D float array `data` of size `num_rows`.
+ *   Free 2D float array `data` of size `num_rows`.
  *
  */
 real_t **csv_data(const char *fp, int *num_rows, int *num_cols);
@@ -741,24 +725,22 @@ typedef int64_t timestamp_t;
  * Time Functions
  * --------------
  *
- * Functions:
+ * struct timespec tic();
+ * float toc(struct timespec *tic);
+ * float mtoc(struct timespec *tic);
  *
- *   struct timespec tic();
- *   float toc(struct timespec *tic);
- *   float mtoc(struct timespec *tic);
- *
- *     Start and stop timer.
+ *   Start and stop timer.
  *
  *
- *   timestamp_t time_now();
+ * timestamp_t time_now();
  *
- *     Returns current time.
+ *   Returns current time.
  *
  *
- *   real_t ts2sec(const timestamp_t ts);
- *   timestamp_t sec2ts(const real_t time_s);
+ * real_t ts2sec(const timestamp_t ts);
+ * timestamp_t sec2ts(const real_t time_s);
  *
- *     Convert from timestamp to seconds and back.
+ *   Convert from timestamp to seconds and back.
  *
  */
 struct timespec tic();
@@ -796,22 +778,20 @@ typedef struct tcp_client_t {
  * TCP Functions
  * -------------
  *
- * Functions:
+ * STATUS ip_port_info(const int sockfd, char *ip, int *port);
  *
- *   STATUS ip_port_info(const int sockfd, char *ip, int *port);
+ *   Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ *   `port`. Returns `0` for success and `-1` for failure.
  *
- *     Return IP and Port info from socket file descriptor `sockfd` to `ip` and
- *     `port`. Returns `0` for success and `-1` for failure.
+ * STATUS tcp_server_setup(tcp_server_t *server, const int port);
+ * STATUS tcp_server_loop(tcp_server_t *server);
+ * STATUS tcp_client_setup(tcp_client_t *client,
+ *                         const char *server_ip,
+ *                         const int server_port);
+ * STATUS tcp_client_loop(tcp_client_t *client);
  *
- *   STATUS tcp_server_setup(tcp_server_t *server, const int port);
- *   STATUS tcp_server_loop(tcp_server_t *server);
- *   STATUS tcp_client_setup(tcp_client_t *client,
- *                           const char *server_ip,
- *                           const int server_port);
- *   STATUS tcp_client_loop(tcp_client_t *client);
- *
- *     Setup, loop TCP server and client. Returns `0` for success and `-1` for
- *     failure.
+ *   Setup, loop TCP server and client. Returns `0` for success and `-1` for
+ *   failure.
  *
  */
 STATUS ip_port_info(const int sockfd, char *ip, int *port);
