@@ -11,3 +11,4 @@ PenaltyReturnTypeOnItsOwnLine: 100
 PenaltyBreakBeforeFirstCallParameter: 10000
 SortIncludes: false
 SpaceAfterCStyleCast: true
+ReflowComments: false

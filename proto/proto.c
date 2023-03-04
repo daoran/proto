@@ -22,9 +22,6 @@
  * FILE SYSTEM
  ******************************************************************************/
 
-/**
- * Extract filename from `path` to `fname`.
- */
 void path_file_name(const char *path, char *fname) {
   assert(path != NULL);
   assert(fname != NULL);
@@ -38,9 +35,6 @@ void path_file_name(const char *path, char *fname) {
   memcpy(fname, base, strlen(base));
 }
 
-/**
- * Extract file extension from `path` to `fext`.
- */
 void path_file_ext(const char *path, char *fext) {
   assert(path != NULL);
   assert(fext != NULL);
@@ -57,9 +51,6 @@ void path_file_ext(const char *path, char *fext) {
   }
 }
 
-/**
- * Extract dir name from `path` to `dirname`.
- */
 void path_dir_name(const char *path, char *dir_name) {
   assert(path != NULL);
   assert(dir_name != NULL);
@@ -71,9 +62,6 @@ void path_dir_name(const char *path, char *dir_name) {
   memcpy(dir_name, path_copy, base - path_copy);
 }
 
-/**
- * Join two paths `x` and `y`
- */
 char *path_join(const char *x, const char *y) {
   assert(x != NULL && y != NULL);
 
@@ -92,10 +80,6 @@ char *path_join(const char *x, const char *y) {
   return retval;
 }
 
-/**
- * List files in `path`.
- * @returns List of files in directory and number of files `n`.
- */
 char **list_files(const char *path, int *n) {
   assert(path != NULL);
   assert(n != NULL);
@@ -134,9 +118,6 @@ char **list_files(const char *path, int *n) {
   return files;
 }
 
-/**
- * Free list of `files` of length `n`.
- */
 void list_files_free(char **data, const int n) {
   assert(data != NULL);
   for (int i = 0; i < n; i++) {
@@ -145,12 +126,6 @@ void list_files_free(char **data, const int n) {
   free(data);
 }
 
-/**
- * Read file contents in file path `fp`.
- * @returns
- * - Success: File contents
- * - Failure: NULL
- */
 char *file_read(const char *fp) {
   assert(fp != NULL);
   FILE *f = fopen(fp, "rb");
@@ -176,9 +151,6 @@ char *file_read(const char *fp) {
   return buf;
 }
 
-/**
- * Skip line in file.
- */
 void skip_line(FILE *fp) {
   assert(fp != NULL);
 
@@ -189,22 +161,10 @@ void skip_line(FILE *fp) {
   }
 }
 
-/**
- * Check if file exists.
- * @returns
- * - 1 File exists
- * - 0 File does not exist
- */
 int file_exists(const char *fp) {
   return (access(fp, F_OK) == 0) ? 1 : 0;
 }
 
-/**
- * Get number of rows in file `fp`.
- * @returns
- * - Number of rows in file
- * - -1 for failure.
- */
 int file_rows(const char *fp) {
   assert(fp != NULL);
 
@@ -229,13 +189,6 @@ int file_rows(const char *fp) {
   return num_rows;
 }
 
-/**
- * Copy file from path `src` to path `dst`.
- * @returns
- * - 0 for success
- * - -1 if src file could not be opend
- * - -2 if dst file could not be opened
- */
 int file_copy(const char *src, const char *dst) {
   assert(src != NULL);
   assert(dst != NULL);
@@ -274,9 +227,6 @@ int file_copy(const char *src, const char *dst) {
  * DATA
  ******************************************************************************/
 
-/**
- * String copy from `src` to `dst`.
- */
 size_t string_copy(char *dst, const char *src) {
   dst[0] = '\0';
   memcpy(dst, src, strlen(src));
@@ -284,18 +234,12 @@ size_t string_copy(char *dst, const char *src) {
   return strlen(dst);
 }
 
-/**
- * Concatenate string from `src` to `dst`.
- */
 void string_cat(char *dst, const char *src) {
   size_t dst_len = strlen(dst);
   strcat(dst + dst_len, src);
   dst[dst_len + strlen(src)] = '\0'; // strncat does not null terminate
 }
 
-/**
- * Allocate heap memory for string `s`.
- */
 char *string_malloc(const char *s) {
   assert(s != NULL);
   char *retval = MALLOC(char, strlen(s) + 1);
@@ -304,9 +248,6 @@ char *string_malloc(const char *s) {
   return retval;
 }
 
-/**
- * Strip whitespace from string `s`.
- */
 char *string_strip(char *s) {
   char *end;
 
@@ -331,9 +272,6 @@ char *string_strip(char *s) {
   return s;
 }
 
-/**
- * Strip specific character `c` from string `s`.
- */
 char *string_strip_char(char *s, const char c) {
   char *end;
 
@@ -358,9 +296,6 @@ char *string_strip_char(char *s, const char c) {
   return s;
 }
 
-/**
- * Split string `s` by delimiter `d`
- */
 char **string_split(char *a_str, const char a_delim, size_t *n) {
   char **result = 0;
   char *tmp = a_str;
@@ -406,12 +341,6 @@ char **string_split(char *a_str, const char a_delim, size_t *n) {
   return result;
 }
 
-/**
- * Parse integer array line.
- * @returns
- * - 1D vector of integers
- * - NULL for failure
- */
 static int *parse_iarray_line(char *line) {
   assert(line != NULL);
   char entry[MAX_LINE_LENGTH] = {0};
@@ -440,12 +369,6 @@ static int *parse_iarray_line(char *line) {
   return data;
 }
 
-/**
- * Parse 2D integer arrays from csv file.
- * @returns
- * - List of 1D vector of integers
- * - NULL for failure
- */
 int **load_iarrays(const char *csv_path, int *num_arrays) {
   assert(csv_path != NULL);
   FILE *csv_file = fopen(csv_path, "r");
@@ -467,12 +390,6 @@ int **load_iarrays(const char *csv_path, int *num_arrays) {
   return array;
 }
 
-/**
- * Parse real array line.
- * @returns
- * - 1D vector of real
- * - NULL for failure
- */
 static real_t *parse_darray_line(char *line) {
   assert(line != NULL);
   char entry[MAX_LINE_LENGTH] = {0};
@@ -501,13 +418,6 @@ static real_t *parse_darray_line(char *line) {
   return data;
 }
 
-/**
- * Parse 2D real arrays from csv file at `csv_path`, on success `num_arrays`
- * will return number of arrays.
- * @returns
- * - List of 1D vector of reals
- * - NULL for failure
- */
 real_t **load_darrays(const char *csv_path, int *num_arrays) {
   assert(csv_path != NULL);
   assert(num_arrays != NULL);
@@ -530,36 +440,24 @@ real_t **load_darrays(const char *csv_path, int *num_arrays) {
   return array;
 }
 
-/**
- * Allocate heap memory for integer `val`.
- */
 int *int_malloc(const int val) {
   int *i = MALLOC(int, 1);
   *i = val;
   return i;
 }
 
-/**
- * Allocate heap memory for float `val`.
- */
 float *float_malloc(const float val) {
   float *f = MALLOC(float, 1);
   *f = val;
   return f;
 }
 
-/**
- * Allocate heap memory for double `val`.
- */
 double *double_malloc(const double val) {
   double *d = MALLOC(double, 1);
   *d = val;
   return d;
 }
 
-/**
- * Allocate heap memory for vector `vec` with length `N`.
- */
 real_t *vector_malloc(const real_t *vec, const real_t N) {
   real_t *retval = MALLOC(real_t, N);
   for (int i = 0; i < N; i++) {
@@ -568,12 +466,6 @@ real_t *vector_malloc(const real_t *vec, const real_t N) {
   return retval;
 }
 
-/**
- * Get number of rows in a delimited file at `fp`.
- * @returns
- * - Number of rows
- * - -1 for failure
- */
 int dsv_rows(const char *fp) {
   assert(fp != NULL);
 
@@ -598,12 +490,6 @@ int dsv_rows(const char *fp) {
   return num_rows;
 }
 
-/**
- * Get number of columns in a delimited file at `fp`.
- * @returns
- * - Number of columns
- * - -1 for failure
- */
 int dsv_cols(const char *fp, const char delim) {
   assert(fp != NULL);
 
@@ -637,13 +523,6 @@ int dsv_cols(const char *fp, const char delim) {
   return (found_separator) ? num_elements : -1;
 }
 
-/**
- * Get the fields of the delimited file at `fp`, where `delim` is the value
- * separated symbol and `num_fields` returns the length of the fields returned.
- * @returns
- * - List of field strings
- * - NULL for failure
- */
 char **dsv_fields(const char *fp, const char delim, int *num_fields) {
   assert(fp != NULL);
 
@@ -696,19 +575,12 @@ char **dsv_fields(const char *fp, const char delim, int *num_fields) {
   return fields;
 }
 
-/**
- * Load delimited separated value data as a matrix.
- * @returns
- * - Matrix of DSV data
- * - NULL for failure
- */
-real_t **
-dsv_data(const char *fp, const char delim, int *num_rows, int *num_cols) {
+real_t **dsv_data(const char *fp, const char d, int *num_rows, int *num_cols) {
   assert(fp != NULL);
 
   // Obtain number of rows and columns in dsv data
   *num_rows = dsv_rows(fp);
-  *num_cols = dsv_cols(fp, delim);
+  *num_cols = dsv_cols(fp, d);
   if (*num_rows == -1 || *num_cols == -1) {
     return NULL;
   }
@@ -761,9 +633,6 @@ dsv_data(const char *fp, const char delim, int *num_rows, int *num_cols) {
   return data;
 }
 
-/**
- * Free DSV data.
- */
 void dsv_free(real_t **data, const int num_rows) {
   assert(data != NULL);
   for (int i = 0; i < num_rows; i++) {
@@ -772,21 +641,11 @@ void dsv_free(real_t **data, const int num_rows) {
   free(data);
 }
 
-/**
- * Load comma separated data as a matrix, where `fp` is the csv file path, on
- * success `num_rows` and `num_cols` will be filled.
- * @returns
- * - Matrix of CSV data
- * - NULL for failure
- */
 real_t **csv_data(const char *fp, int *num_rows, int *num_cols) {
   assert(fp != NULL);
   return dsv_data(fp, ',', num_rows, num_cols);
 }
 
-/**
- * Free CSV data.
- */
 void csv_free(real_t **data, const int num_rows) {
   for (int i = 0; i < num_rows; i++) {
     free(data[i]);
