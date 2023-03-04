@@ -281,88 +281,19 @@
   }
 
 /******************************************************************************
- * FILE-SYSTEM
+ * FILESYSTEM
  ******************************************************************************/
 
 void path_file_name(const char *path, char *fname);
 void path_file_ext(const char *path, char *fext);
 void path_dir_name(const char *path, char *dir_name);
 char *path_join(const char *x, const char *y);
-char **list_files(const char *path, int *n);
-void list_files_free(char **data, const int n);
-char *file_read(const char *fp);
-void skip_line(FILE *fp);
-int file_exists(const char *fp);
-int file_rows(const char *fp);
-int file_copy(const char *src, const char *dst);
-
-/**
- * Extract filename from `path` to `fname`.
- */
-void path_file_name(const char *path, char *fname);
-
-/**
- * Extract file extension from `path` to `fext`.
- */
-void path_file_ext(const char *path, char *fext);
-
-/**
- * Extract dir name from `path` to `dirname`.
- */
-void path_dir_name(const char *path, char *dir_name);
-
-/**
- * Join two paths `x` and `y`
- */
-char *path_join(const char *x, const char *y);
-
-/**
- * List files in `path`.
- * @returns List of files in directory and number of files `n`.
- */
 char **list_files(const char *path, int *num_files);
-
-/**
- * Free list of `files` of length `n`.
- */
 void list_files_free(char **data, const int n);
-
-/**
- * Read file contents in file path `fp`.
- * @returns
- * - Success: File contents
- * - Failure: NULL
- */
 char *file_read(const char *fp);
-
-/**
- * Skip line in file.
- */
 void skip_line(FILE *fp);
-
-/**
- * Check if file exists.
- * @returns
- * - 1 File exists
- * - 0 File does not exist
- */
 STATUS file_exists(const char *fp);
-
-/**
- * Get number of rows in file `fp`.
- * @returns
- * - Number of rows in file
- * - -1 for failure.
- */
 STATUS file_rows(const char *fp);
-
-/**
- * Copy file from path `src` to path `dst`.
- * @returns
- * - 0 for success
- * - -1 if src file could not be opend
- * - -2 if dst file could not be opened
- */
 STATUS file_copy(const char *src, const char *dest);
 
 /******************************************************************************
@@ -385,137 +316,23 @@ char *string_malloc(const char *s);
 char *string_strip(char *s);
 char *string_strip_char(char *s, const char c);
 char **string_split(char *s, const char d, size_t *n);
+
 int **load_iarrays(const char *csv_path, int *num_arrays);
 real_t **load_darrays(const char *csv_path, int *num_arrays);
+
 int *int_malloc(const int val);
 float *float_malloc(const float val);
 double *double_malloc(const double val);
 real_t *vector_malloc(const real_t *vec, const real_t N);
+
 int dsv_rows(const char *fp);
 int dsv_cols(const char *fp, const char delim);
 char **dsv_fields(const char *fp, const char delim, int *num_fields);
-real_t **dsv_data(const char *fp, const char d, int *num_rows, int *num_cols);
-void dsv_free(real_t **data, const int num_rows);
-real_t **csv_data(const char *fp, int *num_rows, int *num_cols);
-void csv_free(real_t **data, const int num_rows);
-
-/**
- * String copy from `src` to `dst`.
- */
-size_t string_copy(char *dst, const char *src);
-
-/**
- * Concatenate string from `src` to `dst`.
- */
-void string_cat(char *dst, const char *src);
-
-/**
- * Allocate heap memory for string `s`.
- */
-char *string_malloc(const char *s);
-
-/**
- * Strip whitespace from string `s`.
- */
-char *string_strip(char *s);
-
-/**
- * Strip specific character `c` from string `s`.
- */
-char *string_strip_char(char *s, const char c);
-
-/**
- * Split string `s` by delimiter `d`
- */
-char **string_split(char *s, const char d, size_t *n);
-
-/**
- * Parse 2D integer arrays from csv file.
- * @returns
- * - List of 1D vector of integers
- * - NULL for failure
- */
-int **load_iarrays(const char *csv_path, int *num_arrays);
-
-/**
- * Parse 2D real arrays from csv file at `csv_path`, on success `num_arrays`
- * will return number of arrays.
- * @returns
- * - List of 1D vector of reals
- * - NULL for failure
- */
-real_t **load_darrays(const char *csv_path, int *num_arrays);
-
-/**
- * Allocate heap memory for integer `val`.
- */
-int *int_malloc(const int val);
-
-/**
- * Allocate heap memory for float `val`.
- */
-float *float_malloc(const float val);
-
-/**
- * Allocate heap memory for double `val`.
- */
-double *double_malloc(const double val);
-
-/**
- * Allocate heap memory for vector `vec` with length `N`.
- */
-real_t *vector_malloc(const real_t *vec, const real_t N);
-
-/**
- * Get number of rows in a delimited file at `fp`.
- * @returns
- * - Number of rows
- * - -1 for failure
- */
-int dsv_rows(const char *fp);
-
-/**
- * Get number of columns in a delimited file at `fp`.
- * @returns
- * - Number of columns
- * - -1 for failure
- */
-int dsv_cols(const char *fp, const char delim);
-
-/**
- * Get the fields of the delimited file at `fp`, where `delim` is the value
- * separated symbol and `num_fields` returns the length of the fields returned.
- * @returns
- * - List of field strings
- * - NULL for failure
- */
-char **dsv_fields(const char *fp, const char delim, int *num_fields);
-
-/**
- * Load delimited separated value data as a matrix.
- * @returns
- * - Matrix of DSV data
- * - NULL for failure
- */
-real_t **dsv_data(const char *fp, const char d, int *num_rows, int *num_cols);
-
-/**
- * Free DSV data.
- */
+real_t **
+dsv_data(const char *fp, const char delim, int *num_rows, int *num_cols);
 void dsv_free(real_t **data, const int num_rows);
 
-/**
- * Load comma separated data as a matrix, where `fp` is the csv file path, on
- * success `num_rows` and `num_cols` will be filled.
- * @returns
- * - Matrix of CSV data
- * - NULL for failure
- */
 real_t **csv_data(const char *fp, int *num_rows, int *num_cols);
-
-/**
- * Free CSV data.
- */
 void csv_free(real_t **data, const int num_rows);
 
 /******************************************************************************
@@ -694,40 +511,6 @@ timestamp_t time_now();
 real_t ts2sec(const timestamp_t ts);
 timestamp_t sec2ts(const real_t time_s);
 
-/**
- * Tic, start timer.
- * @returns A timespec encapsulating the time instance when tic() is called
- */
-struct timespec tic();
-
-/**
- * Toc, stop timer.
- * @returns Time elapsed in seconds
- */
-float toc(struct timespec *tic);
-
-/**
- * Toc, stop timer.
- * @returns Time elapsed in milli-seconds
- */
-float mtoc(struct timespec *tic);
-
-/**
- * Get time now since epoch.
- * @return Time now in nano-seconds since epoch
- */
-timestamp_t time_now();
-
-/**
- * Convert timestamp to seconds
- */
-real_t ts2sec(const timestamp_t ts);
-
-/**
- * Convert seconds to timestamp
- */
-timestamp_t sec2ts(const real_t time_s);
-
 /******************************************************************************
  * NETWORK
  ******************************************************************************/
@@ -752,45 +535,14 @@ typedef struct tcp_client_t {
   int (*loop_cb)(struct tcp_client_t *);
 } tcp_client_t;
 
-/* TCP Prototypes */
 STATUS ip_port_info(const int sockfd, char *ip, int *port);
+
 STATUS tcp_server_setup(tcp_server_t *server, const int port);
 STATUS tcp_server_loop(tcp_server_t *server);
+
 STATUS tcp_client_setup(tcp_client_t *client,
                         const char *server_ip,
                         const int server_port);
-STATUS tcp_client_loop(tcp_client_t *client);
-
-/**
- * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
- * `port`. Returns `0` for success and `-1` for failure.
- * @returns
- * - 0 for success
- * - -1 for failure
- */
-STATUS ip_port_info(const int sockfd, char *ip, int *port);
-
-/**
- * Configure TCP server
- */
-STATUS tcp_server_setup(tcp_server_t *server, const int port);
-
-/**
- * Loop TCP server
- * @returns `0` for success, `-1` for failure
- */
-STATUS tcp_server_loop(tcp_server_t *server);
-
-/**
- * Configure TCP client
- */
-STATUS tcp_client_setup(tcp_client_t *client,
-                        const char *server_ip,
-                        const int server_port);
-
-/**
- * Loop TCP client
- */
 STATUS tcp_client_loop(tcp_client_t *client);
 
 /******************************************************************************
@@ -816,7 +568,6 @@ STATUS tcp_client_loop(tcp_client_t *client);
 /** Based on sign of b, return +ve or -ve a. */
 #define SIGN2(a, b) ((b) > 0.0 ? fabs(a) : -fabs(a))
 
-/** Prototypes **/
 float randf(float a, float b);
 real_t deg2rad(const real_t d);
 real_t rad2deg(const real_t r);
@@ -836,139 +587,6 @@ real_t sinc(const real_t x);
 real_t mean(const real_t *x, const size_t length);
 real_t median(const real_t *x, const size_t length);
 real_t var(const real_t *x, const size_t length);
-real_t stddev(const real_t *x, const size_t length);
-
-/**
- * Generate random number between a and b from a uniform distribution.
- * @returns Random number
- */
-float randf(float a, float b);
-
-/**
- * Degrees to radians.
- * @returns Radians
- */
-real_t deg2rad(const real_t d);
-
-/**
- * Radians to degrees.
- * @returns Degrees
- */
-real_t rad2deg(const real_t r);
-
-/**
- * Compare ints.
- * @returns
- * - 0 if v1 == v2
- * - 1 if v1 > v2
- * - -1 if v1 < v2
- */
-int intcmp(const int x, const int y);
-
-/**
- Compare ints.
- * @returns
- * - 0 if v1 == v2
- * - 1 if v1 > v2
- * - -1 if v1 < v2
- */
-int intcmp2(const void *x, const void *y);
-
-/**
- * Compare reals.
- * @returns
- * - 0 if x == y
- * - 1 if x > y
- * - -1 if x < y
- */
-int fltcmp(const real_t x, const real_t y);
-
-/**
- * Compare reals.
- * @returns
- * - 0 if x == y
- * - 1 if x > y
- * - -1 if x < y
- */
-int fltcmp2(const void *x, const void *y);
-
-/**
- * Compare strings.
- */
-int strcmp2(const void *x, const void *y);
-
-/**
- * Check if reals are equal.
- * @returns 1 if x == y, 0 if x != y.
- */
-int flteqs(const real_t x, const real_t y);
-
-/**
- * Check if strings are equal.
- * @returns 1 if x == y, 0 if x != y.
- */
-int streqs(const char *x, const char *y);
-
-/**
- * Cumulative Sum.
- */
-void cumsum(const real_t *x, const size_t n, real_t *s);
-
-/**
- * Logspace. Generates `n` points between decades `10^a` and `10^b`.
- */
-void logspace(const real_t a, const real_t b, const size_t n, real_t *x);
-
-/**
- * Pythagoras
- *
- *   c = sqrt(a^2 + b^2)
- *
- * @returns Hypotenuse of a and b
- */
-real_t pythag(const real_t a, const real_t b);
-
-/**
- * Perform 1D Linear interpolation between `a` and `b` with `t` as the
- * interpolation hyper-parameter.
- * @returns Linear interpolated value between a and b
- */
-real_t lerp(const real_t a, const real_t b, const real_t t);
-
-/**
- * Perform 3D Linear interpolation between `a` and `b` with `t` as the
- * interpolation hyper-parameter.
- */
-void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);
-
-/**
- * Sinc.
- * @return Result of sinc
- */
-real_t sinc(const real_t x);
-
-/**
- * Calculate mean from vector `x` of length `n`.
- * @returns Mean of x
- */
-real_t mean(const real_t *x, const size_t length);
-
-/**
- * Calculate median from vector `x` of length `n`.
- * @returns Median of x
- */
-real_t median(const real_t *x, const size_t length);
-
-/**
- * Calculate variance from vector `x` of length `n`.
- * @returns Variance of x
- */
-real_t var(const real_t *x, const size_t length);
-
-/**
- * Calculate standard deviation from vector `x` of length `n`.
- * @returns Standard deviation of x
- */
 real_t stddev(const real_t *x, const size_t length);
 
 /******************************************************************************
