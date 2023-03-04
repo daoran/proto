@@ -1080,13 +1080,13 @@ void list_clear(list_t *list) {
   }
 }
 
-void list_clear_free(list_t *list, void (*free_func)(void *)) {
+void list_clear_free(list_t *list) {
   assert(list != NULL);
 
   list_node_t *node = list->first;
   while (node != NULL) {
     list_node_t *next_node = node->next;
-    free_func(node->value);
+    free(node->value);
     free(node);
     node = next_node;
   }
@@ -11581,8 +11581,6 @@ marg_factor_t *marg_factor_malloc() {
 
   // Settings
   marg->debug = 1;
-  marg->cond_hessian = 0;
-  marg->take_ownership = 1;
 
   // Flags
   marg->marginalized = 0;
@@ -11608,10 +11606,10 @@ marg_factor_t *marg_factor_malloc() {
   marg->m_poses = NULL;
   marg->m_velocities = NULL;
   marg->m_imu_biases = NULL;
-  marg->m_features = NULL;
   marg->m_fiducials = NULL;
-  marg->m_extrinsics = NULL;
   marg->m_joints = NULL;
+  marg->m_extrinsics = NULL;
+  marg->m_features = NULL;
   marg->m_cam_params = NULL;
   marg->m_time_delays = NULL;
 
@@ -11694,21 +11692,12 @@ void marg_factor_free(marg_factor_t *marg) {
   hmfree(marg->m_time_delays);
 
   // Factors
-  if (marg->take_ownership) {
-    list_clear_free(marg->ba_factors, free);
-    list_clear_free(marg->camera_factors, free);
-    list_clear_free(marg->idf_factors, free);
-    list_clear_free(marg->imu_factors, free);
-    list_clear_free(marg->calib_camera_factors, free);
-    list_clear_free(marg->calib_vi_factors, free);
-  } else {
-    list_free(marg->ba_factors);
-    list_free(marg->camera_factors);
-    list_free(marg->idf_factors);
-    list_free(marg->imu_factors);
-    list_free(marg->calib_camera_factors);
-    list_free(marg->calib_vi_factors);
-  }
+  list_free(marg->ba_factors);
+  list_free(marg->camera_factors);
+  list_free(marg->idf_factors);
+  list_free(marg->imu_factors);
+  list_free(marg->calib_camera_factors);
+  list_free(marg->calib_vi_factors);
   marg_factor_free(marg->marg_factor);
 
   // Residuals
@@ -11777,7 +11766,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     for (int i = 0; i < marg->marg_factor->num_params; i++) {
       void *param = marg->marg_factor->param_ptrs[i];
       int param_type = marg->marg_factor->param_types[i];
-      MARG_TRACK_FACTOR(marg, param_type, param);
+      MARG_TRACK_FACTOR(param, param_type);
     }
   }
   // -- Track BA factor params
@@ -11785,9 +11774,9 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     list_node_t *node = marg->ba_factors->first;
     while (node != NULL) {
       ba_factor_t *factor = (ba_factor_t *) node->value;
-      MARG_TRACK_FACTOR(marg, factor->param_types[0], factor->pose);
-      MARG_TRACK_FACTOR(marg, factor->param_types[1], factor->feature);
-      MARG_TRACK_FACTOR(marg, factor->param_types[2], factor->camera);
+      MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
+      MARG_TRACK(marg->r_features, marg->m_features, factor->feature);
+      MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->camera);
       node = node->next;
     }
   }
@@ -11796,10 +11785,10 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     list_node_t *node = marg->camera_factors->first;
     while (node != NULL) {
       camera_factor_t *factor = (camera_factor_t *) node->value;
-      MARG_TRACK_FACTOR(marg, factor->param_types[0], factor->pose);
-      MARG_TRACK_FACTOR(marg, factor->param_types[1], factor->extrinsic);
-      MARG_TRACK_FACTOR(marg, factor->param_types[2], factor->feature);
-      MARG_TRACK_FACTOR(marg, factor->param_types[3], factor->camera);
+      MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
+      MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->extrinsic);
+      MARG_TRACK(marg->r_features, marg->m_features, factor->feature);
+      MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->camera);
       node = node->next;
     }
   }
@@ -11808,11 +11797,11 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     list_node_t *node = marg->idf_factors->first;
     while (node != NULL) {
       idf_factor_t *factor = (idf_factor_t *) node->value;
-      MARG_TRACK_FACTOR(marg, factor->param_types[0], factor->pose);
-      MARG_TRACK_FACTOR(marg, factor->param_types[1], factor->extrinsic);
-      MARG_TRACK_FACTOR(marg, factor->param_types[2], factor->camera);
-      MARG_TRACK_FACTOR(marg, factor->param_types[3], factor->idf_pos);
-      MARG_TRACK_FACTOR(marg, factor->param_types[4], factor->idf_param);
+      MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
+      MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->extrinsic);
+      MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->camera);
+      MARG_TRACK(marg->r_positions, marg->m_positions, factor->idf_pos);
+      MARG_TRACK(marg->r_features, marg->m_features, factor->idf_param);
       node = node->next;
     }
   }
@@ -11821,12 +11810,12 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     list_node_t *node = marg->imu_factors->first;
     while (node != NULL) {
       imu_factor_t *factor = (imu_factor_t *) node->value;
-      MARG_TRACK_FACTOR(marg, factor->param_types[0], factor->pose_i);
-      MARG_TRACK_FACTOR(marg, factor->param_types[1], factor->vel_i);
-      MARG_TRACK_FACTOR(marg, factor->param_types[2], factor->biases_i);
-      MARG_TRACK_FACTOR(marg, factor->param_types[3], factor->pose_j);
-      MARG_TRACK_FACTOR(marg, factor->param_types[4], factor->vel_j);
-      MARG_TRACK_FACTOR(marg, factor->param_types[5], factor->biases_j);
+      MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose_i);
+      MARG_TRACK(marg->r_velocities, marg->m_velocities, factor->vel_i);
+      MARG_TRACK(marg->r_imu_biases, marg->m_imu_biases, factor->biases_i);
+      MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose_j);
+      MARG_TRACK(marg->r_velocities, marg->m_velocities, factor->vel_j);
+      MARG_TRACK(marg->r_imu_biases, marg->m_imu_biases, factor->biases_j);
       node = node->next;
     }
   }
@@ -11941,6 +11930,32 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
   marg->H = H;
   marg->b = b;
+
+  // // Clean up
+  // // -- Remain parameters
+  // hmfree(r_positions);
+  // hmfree(r_rotations);
+  // hmfree(r_poses);
+  // hmfree(r_velocities);
+  // hmfree(r_imu_biases);
+  // hmfree(r_features);
+  // hmfree(r_joints);
+  // hmfree(r_extrinsics);
+  // hmfree(r_fiducials);
+  // hmfree(r_cam_params);
+  // hmfree(r_time_delays);
+  // // -- Marginal parameters
+  // hmfree(m_positions);
+  // hmfree(m_rotations);
+  // hmfree(m_poses);
+  // hmfree(m_velocities);
+  // hmfree(m_imu_biases);
+  // hmfree(m_features);
+  // hmfree(m_joints);
+  // hmfree(m_extrinsics);
+  // hmfree(m_fiducials);
+  // hmfree(m_cam_params);
+  // hmfree(m_time_delays);
 }
 
 /**
@@ -12039,9 +12054,9 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
     free(H_);
   }
 
-  // Check J_inv * J == eye
+  // // Check J_inv * J == eye
   // if (marg->debug) {
-  //   if (check_inv(J_inv, J, r) != 0) {
+  //   if (check_inv(*J_inv, *J, r) != 0) {
   //     marg->eigen_decomp_ok = 0;
   //     LOG_WARN("inv(J) * J != eye\n");
   //   }

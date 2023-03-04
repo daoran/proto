@@ -401,7 +401,7 @@ int test_darray_expand_and_contract(void) {
 int test_list_malloc_and_free(void) {
   list_t *list = list_malloc();
   MU_ASSERT(list != NULL);
-  list_clear_free(list, free);
+  list_clear_free(list);
   return 0;
 }
 
@@ -445,7 +445,7 @@ int test_list_push_pop(void) {
   MU_ASSERT(list->length == 0);
   free(val);
 
-  list_clear_free(list, free);
+  list_clear_free(list);
   return 0;
 }
 
@@ -470,7 +470,7 @@ int test_list_shift(void) {
   MU_ASSERT(list->length == 0);
   free(val);
 
-  list_clear_free(list, free);
+  list_clear_free(list);
   return 0;
 }
 
@@ -496,7 +496,7 @@ int test_list_unshift(void) {
   MU_ASSERT(strcmp(list->first->value, t3) == 0);
   MU_ASSERT(strcmp(list->first->value, t3) == 0);
   MU_ASSERT(list->length == 3);
-  list_clear_free(list, free);
+  list_clear_free(list);
 
   return 0;
 }
@@ -528,7 +528,7 @@ int test_list_remove(void) {
   MU_ASSERT(list->length == 1);
   MU_ASSERT(list->first->next == NULL);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
-  list_clear_free(list, free);
+  list_clear_free(list);
 
   return 0;
 }
@@ -562,7 +562,7 @@ int test_list_remove_destroy(void) {
   MU_ASSERT(list->length == 1);
   MU_ASSERT(list->first->next == NULL);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
-  list_clear_free(list, free);
+  list_clear_free(list);
 
   return 0;
 }
@@ -4502,38 +4502,36 @@ int test_marg() {
   timestamp_t ts = 0;
 
   // Extrinsic T_BC
-  extrinsic_t *cam_ext = MALLOC(extrinsic_t, 1);
+  extrinsic_t cam_ext;
   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, 0.5, -0.5, -0.5};
-  extrinsic_setup(cam_ext, ext_data);
-  cam_ext->fix = 1;
+  extrinsic_setup(&cam_ext, ext_data);
+  cam_ext.fix = 1;
 
   // Camera parameters
-  camera_params_t *cam = MALLOC(camera_params_t, 1);
+  camera_params_t cam;
   const int cam_idx = 0;
   const int cam_res[2] = {640, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   const real_t cam_data[8] = {320, 240, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_setup(cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   // Setup features and poses
   int num_poses = 5;
   int num_features = 10;
-  int num_factors = num_poses * num_features;
+  pose_t poses[20] = {0};
+  feature_t features[100] = {0};
   real_t points[100 * 3] = {0};
   real_t keypoints[100 * 2] = {0};
-  pose_t **poses = MALLOC(pose_t *, num_poses);
-  feature_t **features = MALLOC(features_t *, num_features);
-  camera_factor_t **factors = MALLOC(camera_factor_t *, num_factors);
+  camera_factor_t factors[20 * 100];
 
   for (int i = 0; i < num_features; i++) {
     const real_t dx = randf(-0.5, 0.5);
     const real_t dy = randf(-0.5, 0.5);
     const real_t dz = randf(-0.5, 0.5);
     const real_t p_W[3] = {3.0 + dx, 0.0 + dy, 0.0 + dz};
-
-    features[i] = MALLOC(feature_t, 1);
-    feature_setup(features[i], 0, p_W);
+    feature_t *feature = &features[i];
+    feature_setup(feature, 0, p_W);
     points[i * 3 + 0] = p_W[0];
     points[i * 3 + 1] = p_W[1];
     points[i * 3 + 2] = p_W[2];
@@ -4553,10 +4551,10 @@ int test_marg() {
     real_t q[4] = {0};
     euler2quat(ypr, q);
 
+    pose_t *pose = &poses[k];
     real_t pose_data[7] = {dx, dy, dz, q[0], q[1], q[2], q[3]};
-    poses[k] = MALLOC(pose_t, 1);
-    pose_setup(poses[k], ts + k, pose_data);
-    poses[k]->marginalize = (k == 0) ? 1 : 0; // Marginalize 1st pose
+    pose_setup(pose, ts + k, pose_data);
+    pose->marginalize = (k == 0) ? 1 : 0; // Marginalize 1st two poses
 
     for (int i = 0; i < num_features; i++) {
       // Project point from world to image plane
@@ -4574,16 +4572,11 @@ int test_marg() {
       keypoints[i * 2 + 1] = z[1] - 0.001;
 
       // Setup camera factor
-      factors[factor_idx] = MALLOC(camera_factor_t, 1);
+      camera_factor_t *cam_factor = &factors[factor_idx];
+      feature_t *feature = &features[i];
       real_t var[2] = {1.0, 1.0};
-      camera_factor_setup(factors[factor_idx],
-                          poses[k],
-                          cam_ext,
-                          features[i],
-                          cam,
-                          z,
-                          var);
-      camera_factor_eval(factors[factor_idx]);
+      camera_factor_setup(cam_factor, pose, &cam_ext, feature, &cam, z, var);
+      camera_factor_eval(cam_factor);
       factor_idx++;
     }
   }
@@ -4593,25 +4586,25 @@ int test_marg() {
   int col_idx = 0;
   // -- Add body poses
   for (int i = 0; i < num_poses; i++) {
-    void *data = poses[i]->data;
+    void *data = poses[i].data;
     const int fix = 0;
     param_order_add(&hash, POSE_PARAM, fix, data, &col_idx);
   }
   // -- Add points
   for (int i = 0; i < num_features; i++) {
-    void *data = features[i]->data;
+    void *data = &features[i].data;
     const int fix = 0;
     param_order_add(&hash, FEATURE_PARAM, fix, data, &col_idx);
   }
   // -- Add camera extrinsic
   {
-    void *data = cam_ext->data;
+    void *data = cam_ext.data;
     const int fix = 1;
     param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add camera parameters
   {
-    void *data = cam->data;
+    void *data = cam.data;
     const int fix = 0;
     param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
   }
@@ -4625,25 +4618,26 @@ int test_marg() {
   real_t *g = CALLOC(real_t, sv_size * 1);
   real_t *r = CALLOC(real_t, r_size * 1);
   for (int i = 0; i < (num_poses * num_features); i++) {
-    camera_factor_eval(factors[i]);
-    vec_copy(factors[i]->r, factors[i]->r_size, &r[r_idx]);
+    camera_factor_t *factor = &factors[i];
+    camera_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
 
     solver_fill_hessian(hash,
-                        factors[i]->num_params,
-                        factors[i]->params,
-                        factors[i]->jacs,
-                        factors[i]->r,
-                        factors[i]->r_size,
+                        factor->num_params,
+                        factor->params,
+                        factor->jacs,
+                        factor->r,
+                        factor->r_size,
                         sv_size,
                         H,
                         g);
-    r_idx += factors[i]->r_size;
+    r_idx += factor->r_size;
   }
 
   // Setup marginalization factor
   marg_factor_t *marg = marg_factor_malloc();
   for (int i = 0; i < (num_poses * num_features); i++) {
-    marg_factor_add(marg, CAMERA_FACTOR, factors[i]);
+    marg_factor_add(marg, CAMERA_FACTOR, &factors[i]);
   }
   marg_factor_marginalize(marg);
   marg_factor_eval(marg);
@@ -4656,51 +4650,51 @@ int test_marg() {
   printf("------------------------------------\n");
   printf("marg->time_total:            %.4fs\n", marg->time_total);
 
-  // // Determine parameter order for the marginalized Hessian
-  // param_order_t *hash_ = NULL;
-  // int col_idx_ = 0;
-  // // -- Add body poses
-  // for (int i = 0; i < num_poses; i++) {
-  //   void *data = poses[i]->data;
-  //   const int fix = poses[i]->marginalize;
-  //   param_order_add(&hash_, POSE_PARAM, fix, data, &col_idx_);
-  // }
-  // // -- Add points
-  // for (int i = 0; i < num_features; i++) {
-  //   void *data = features[i]->data;
-  //   const int fix = 0;
-  //   param_order_add(&hash_, FEATURE_PARAM, fix, data, &col_idx_);
-  // }
-  // // -- Add camera extrinsic
-  // {
-  //   void *data = cam_ext->data;
-  //   const int fix = 1;
-  //   param_order_add(&hash_, EXTRINSIC_PARAM, fix, data, &col_idx_);
-  // }
-  // // -- Add camera parameters
-  // {
-  //   void *data = cam->data;
-  //   const int fix = 0;
-  //   param_order_add(&hash_, CAMERA_PARAM, fix, data, &col_idx_);
-  // }
-  // // -- Misc
-  // const int sv_size_ = col_idx_;
+  // Determine parameter order for the marginalized Hessian
+  param_order_t *hash_ = NULL;
+  int col_idx_ = 0;
+  // -- Add body poses
+  for (int i = 0; i < num_poses; i++) {
+    void *data = poses[i].data;
+    const int fix = poses[i].marginalize;
+    param_order_add(&hash_, POSE_PARAM, fix, data, &col_idx_);
+  }
+  // -- Add points
+  for (int i = 0; i < num_features; i++) {
+    void *data = &features[i].data;
+    const int fix = 0;
+    param_order_add(&hash_, FEATURE_PARAM, fix, data, &col_idx_);
+  }
+  // -- Add camera extrinsic
+  {
+    void *data = cam_ext.data;
+    const int fix = 1;
+    param_order_add(&hash_, EXTRINSIC_PARAM, fix, data, &col_idx_);
+  }
+  // -- Add camera parameters
+  {
+    void *data = cam.data;
+    const int fix = 0;
+    param_order_add(&hash_, CAMERA_PARAM, fix, data, &col_idx_);
+  }
+  // -- Misc
+  const int sv_size_ = col_idx_;
 
-  // // Form marg hessian
-  // real_t *H_ = CALLOC(real_t, sv_size_ * sv_size_);
-  // real_t *g_ = CALLOC(real_t, sv_size_ * 1);
-  // solver_fill_hessian(hash_,
-  //                     marg->num_params,
-  //                     marg->params,
-  //                     marg->jacs,
-  //                     marg->r,
-  //                     marg->r_size,
-  //                     sv_size_,
-  //                     H_,
-  //                     g_);
+  // Form marg hessian
+  real_t *H_ = CALLOC(real_t, sv_size_ * sv_size_);
+  real_t *g_ = CALLOC(real_t, sv_size_ * 1);
+  solver_fill_hessian(hash_,
+                      marg->num_params,
+                      marg->params,
+                      marg->jacs,
+                      marg->r,
+                      marg->r_size,
+                      sv_size_,
+                      H_,
+                      g_);
 
-  // mat_save("/tmp/H.csv", H, sv_size, sv_size);
-  // mat_save("/tmp/H_.csv", H_, sv_size_, sv_size_);
+  mat_save("/tmp/H.csv", H, sv_size, sv_size);
+  mat_save("/tmp/H_.csv", H_, sv_size_, sv_size_);
 
   // Clean up
   marg_factor_free(marg);
@@ -4709,23 +4703,9 @@ int test_marg() {
   free(g);
   free(r);
 
-  // param_order_free(hash_);
-  // free(H_);
-  // free(g_);
-
-  free(cam_ext);
-  free(cam);
-
-  for (int k = 0; k < num_poses; k++) {
-    free(poses[k]);
-  }
-  free(poses);
-
-  for (int i = 0; i < num_features; i++) {
-    free(features[i]);
-  }
-  free(features);
-  free(factors);
+  param_order_free(hash_);
+  free(H_);
+  free(g_);
 
   return 0;
 }

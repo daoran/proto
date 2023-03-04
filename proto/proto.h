@@ -395,7 +395,7 @@ typedef struct list_t {
 list_t *list_malloc();
 void list_free(list_t *list);
 void list_clear(list_t *list);
-void list_clear_free(list_t *list, void (*free_func)(void *));
+void list_clear_free(list_t *list);
 void list_push(list_t *list, void *value);
 void *list_pop(list_t *list);
 void *list_pop_front(list_t *list);
@@ -2131,15 +2131,13 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 #define CALIB_VI_FACTOR 7
 
 #define MARG_TRACK(RHASH, MHASH, PARAM)                                        \
-  {                                                                            \
-    if (PARAM->marginalize == 0) {                                             \
-      hmput(MHASH, PARAM, PARAM);                                              \
-    } else {                                                                   \
-      hmput(RHASH, PARAM, PARAM);                                              \
-    }                                                                          \
+  if (PARAM->marginalize == 0) {                                               \
+    hmput(RHASH, PARAM, PARAM);                                                \
+  } else {                                                                     \
+    hmput(MHASH, PARAM, PARAM);                                                \
   }
 
-#define MARG_TRACK_FACTOR(MARG, PARAM_TYPE, PARAM)                             \
+#define MARG_TRACK_FACTOR(PARAM, PARAM_TYPE)                                   \
   switch (PARAM_TYPE) {                                                        \
     case POSITION_PARAM:                                                       \
       MARG_TRACK(marg->r_positions, marg->m_positions, ((pos_t *) PARAM));     \
@@ -2245,14 +2243,6 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
     PARAM_TYPE *value;                                                         \
   } HASH_NAME;
 
-#define MARG_FREE_PARAMS(MARG, HASH)                                           \
-  if (marg->take_ownership) {                                                  \
-    for (int i = 0; i < hmlen(HASH); i++) {                                    \
-      free(HASH[i].value);                                                     \
-    }                                                                          \
-  }                                                                            \
-  hmfree(HASH)
-
 MARG_PARAM_HASH(pos_t, marg_pos_t)
 MARG_PARAM_HASH(rot_t, marg_rot_t)
 MARG_PARAM_HASH(pose_t, marg_pose_t)
@@ -2269,14 +2259,13 @@ typedef struct marg_factor_t {
   // Settings
   int debug;
   int cond_hessian;
-  int take_ownership;
 
   // Flags
   int marginalized;
   int schur_complement_ok;
   int eigen_decomp_ok;
 
-  // Parameters
+  // parameters
   // -- Remain parameters
   marg_pos_t *r_positions;
   marg_rot_t *r_rotations;
