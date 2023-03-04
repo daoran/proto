@@ -365,7 +365,7 @@ void list_files_free(char **data, const int n);
  *     - `0`: File does not exist
  *
  *
- *   STATUS file_rows(const char *fp);
+ *   int file_rows(const char *fp);
  *
  *     Get number of rows in file `fp`.
  *
@@ -389,7 +389,7 @@ void list_files_free(char **data, const int n);
 char *file_read(const char *fp);
 void skip_line(FILE *fp);
 STATUS file_exists(const char *fp);
-STATUS file_rows(const char *fp);
+int file_rows(const char *fp);
 STATUS file_copy(const char *src, const char *dest);
 
 /******************************************************************************
@@ -737,11 +737,34 @@ typedef int64_t timestamp_t;
 #define PRINT_TOC(PREFIX, X) printf("[%s]: %.4fs\n", PREFIX, toc(&X))
 #define PRINT_MTOC(PREFIX, X) printf("[%s]: %.4fms\n", PREFIX, mtoc(&X))
 
+/**
+ * Time Functions
+ * --------------
+ *
+ * Functions:
+ *
+ *   struct timespec tic();
+ *   float toc(struct timespec *tic);
+ *   float mtoc(struct timespec *tic);
+ *
+ *     Start and stop timer.
+ *
+ *
+ *   timestamp_t time_now();
+ *
+ *     Returns current time.
+ *
+ *
+ *   real_t ts2sec(const timestamp_t ts);
+ *   timestamp_t sec2ts(const real_t time_s);
+ *
+ *     Convert from timestamp to seconds and back.
+ *
+ */
 struct timespec tic();
 float toc(struct timespec *tic);
 float mtoc(struct timespec *tic);
 timestamp_t time_now();
-
 real_t ts2sec(const timestamp_t ts);
 timestamp_t sec2ts(const real_t time_s);
 
@@ -769,11 +792,31 @@ typedef struct tcp_client_t {
   int (*loop_cb)(struct tcp_client_t *);
 } tcp_client_t;
 
+/**
+ * TCP Functions
+ * -------------
+ *
+ * Functions:
+ *
+ *   STATUS ip_port_info(const int sockfd, char *ip, int *port);
+ *
+ *     Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ *     `port`. Returns `0` for success and `-1` for failure.
+ *
+ *   STATUS tcp_server_setup(tcp_server_t *server, const int port);
+ *   STATUS tcp_server_loop(tcp_server_t *server);
+ *   STATUS tcp_client_setup(tcp_client_t *client,
+ *                           const char *server_ip,
+ *                           const int server_port);
+ *   STATUS tcp_client_loop(tcp_client_t *client);
+ *
+ *     Setup, loop TCP server and client. Returns `0` for success and `-1` for
+ *     failure.
+ *
+ */
 STATUS ip_port_info(const int sockfd, char *ip, int *port);
-
 STATUS tcp_server_setup(tcp_server_t *server, const int port);
 STATUS tcp_server_loop(tcp_server_t *server);
-
 STATUS tcp_client_setup(tcp_client_t *client,
                         const char *server_ip,
                         const int server_port);
@@ -802,6 +845,86 @@ STATUS tcp_client_loop(tcp_client_t *client);
 /** Based on sign of b, return +ve or -ve a. */
 #define SIGN2(a, b) ((b) > 0.0 ? fabs(a) : -fabs(a))
 
+/**
+ * Math Functions
+ * --------------
+ *
+ * float randf(float a, float b);
+ *
+ *   Generate random number between a and b from a uniform distribution.
+ *
+ *
+ * real_t deg2rad(const real_t d);
+ * real_t rad2deg(const real_t r);
+ *
+ *   Convert from degrees `d` to radians `r`.
+ *
+ *
+ * int intcmp(const int x, const int y);
+ * int intcmp2(const void *x, const void *y);
+ * int fltcmp(const real_t x, const real_t y);
+ * int fltcmp2(const void *x, const void *y);
+ * int strcmp2(const void *x, const void *y);
+ *
+ *   Compare integer, floats and strings.
+ *   Returns:
+ *
+ *     - `0`  if x == y
+ *     - `1`  if x > y
+ *     - `-1` if x < y
+ *
+ *
+ * int flteqs(const real_t x, const real_t y);
+ * int streqs(const char *x, const char *y);
+ *
+ *   Check if floats / strings are equal. Returns 1 if true else 0.
+ *
+ *
+ * void cumsum(const real_t *x, const size_t n, real_t *s);
+ *
+ *   Cumulative sum of vector `x` of size `n`, results are written to `s`.
+ *
+ *
+ * void logspace(const real_t a, const real_t b, const size_t n, real_t *x);
+ *
+ *   Logspace. Generates `n` points between decades `10^a` and `10^b`.
+ *
+ *
+ * real_t pythag(const real_t a, const real_t b);
+ *
+ *   Pythagoras, hypotenuse of a and b.
+ *
+ *     c = sqrt(a^2 + b^2)
+ *
+ *
+ * real_t lerp(const real_t a, const real_t b, const real_t t);
+ *
+ *   Perform 1D Linear interpolation between `a` and `b` with `t` as the
+ *   interpolation hyper-parameter. Returns Linear interpolated value between
+ *   `a` and `b`.
+ *
+ *
+ * void lerp3(const real_t a[3],
+ *            const real_t b[3],
+ *            const real_t t,
+ *            real_t x[3]);
+ *
+ *   Perform 3D Linear interpolation between `a` and `b` with `t` as the
+ *   interpolation hyper-parameter.
+ *
+ *
+ * real_t sinc(const real_t x);
+ *
+ *
+ * real_t mean(const real_t *x, const size_t n);
+ * real_t median(const real_t *x, const size_t n);
+ * real_t var(const real_t *x, const size_t n);
+ * real_t stddev(const real_t *x, const size_t n);
+ *
+ *   Calculate the mean, median, variance and standard deviation of a vector
+ *   `x` of length `n`.
+ *
+ */
 float randf(float a, float b);
 real_t deg2rad(const real_t d);
 real_t rad2deg(const real_t r);
