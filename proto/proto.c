@@ -161,7 +161,7 @@ void skip_line(FILE *fp) {
   }
 }
 
-int file_exists(const char *fp) {
+STATUS file_exists(const char *fp) {
   return (access(fp, F_OK) == 0) ? 1 : 0;
 }
 
@@ -1554,20 +1554,12 @@ void *hashmap_delete(hashmap_t *map, void *k) {
  * TIME
  ******************************************************************************/
 
-/**
- * Tic, start timer.
- * @returns A timespec encapsulating the time instance when tic() is called
- */
 struct timespec tic() {
   struct timespec time_start;
   clock_gettime(CLOCK_MONOTONIC, &time_start);
   return time_start;
 }
 
-/**
- * Toc, stop timer.
- * @returns Time elapsed in seconds
- */
 float toc(struct timespec *tic) {
   assert(tic != NULL);
   struct timespec toc;
@@ -1580,19 +1572,11 @@ float toc(struct timespec *tic) {
   return time_elasped;
 }
 
-/**
- * Toc, stop timer.
- * @returns Time elapsed in milli-seconds
- */
 float mtoc(struct timespec *tic) {
   assert(tic != NULL);
   return toc(tic) * 1000.0;
 }
 
-/**
- * Get time now since epoch.
- * @return Time now in nano-seconds since epoch
- */
 timestamp_t time_now() {
   struct timespec spec;
   clock_gettime(CLOCK_REALTIME, &spec);
@@ -1604,16 +1588,10 @@ timestamp_t time_now() {
   return (uint64_t) sec * BILLION + (uint64_t) ns;
 }
 
-/**
- * Convert timestamp to seconds
- */
 real_t ts2sec(const timestamp_t ts) {
   return ts * 1e-9;
 }
 
-/**
- * Convert seconds to timestamp
- */
 timestamp_t sec2ts(const real_t time_s) {
   return time_s * 1e9;
 }
@@ -1622,13 +1600,6 @@ timestamp_t sec2ts(const real_t time_s) {
  * NETWORK
  ******************************************************************************/
 
-/**
- * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
- * `port`. Returns `0` for success and `-1` for failure.
- * @returns
- * - 0 for success
- * - -1 for failure
- */
 STATUS ip_port_info(const int sockfd, char *ip, int *port) {
   assert(ip != NULL);
   assert(port != NULL);
@@ -1659,9 +1630,6 @@ STATUS ip_port_info(const int sockfd, char *ip, int *port) {
   return 0;
 }
 
-/**
- * Configure TCP server
- */
 STATUS tcp_server_setup(tcp_server_t *server, const int port) {
   assert(server != NULL);
 
@@ -1704,10 +1672,6 @@ STATUS tcp_server_setup(tcp_server_t *server, const int port) {
   return 0;
 }
 
-/**
- * Loop TCP server
- * @returns `0` for success, `-1` for failure
- */
 STATUS tcp_server_loop(tcp_server_t *server) {
   assert(server != NULL);
 
@@ -1737,9 +1701,6 @@ STATUS tcp_server_loop(tcp_server_t *server) {
   return 0;
 }
 
-/**
- * Configure TCP client
- */
 STATUS tcp_client_setup(tcp_client_t *client,
                         const char *server_ip,
                         const int server_port) {
@@ -1774,9 +1735,6 @@ STATUS tcp_client_setup(tcp_client_t *client,
   return 0;
 }
 
-/**
- * Loop TCP client
- */
 STATUS tcp_client_loop(tcp_client_t *client) {
   while (1) {
     if (client->loop_cb) {
@@ -1797,10 +1755,6 @@ STATUS tcp_client_loop(tcp_client_t *client) {
  *                                 MATHS
  ******************************************************************************/
 
-/**
- * Generate random number between a and b from a uniform distribution.
- * @returns Random number
- */
 float randf(const float a, const float b) {
   float random = ((float) rand()) / (float) RAND_MAX;
   float diff = b - a;
@@ -1808,29 +1762,14 @@ float randf(const float a, const float b) {
   return a + r;
 }
 
-/**
- * Degrees to radians.
- * @returns Radians
- */
 real_t deg2rad(const real_t d) {
   return d * (M_PI / 180.0);
 }
 
-/**
- * Radians to degrees.
- * @returns Degrees
- */
 real_t rad2deg(const real_t r) {
   return r * (180.0 / M_PI);
 }
 
-/**
- * Compare ints.
- * @returns
- * - 0 if v1 == v2
- * - 1 if v1 > v2
- * - -1 if v1 < v2
- */
 int intcmp(const int x, int y) {
   if (x > y) {
     return 1;
@@ -1840,24 +1779,10 @@ int intcmp(const int x, int y) {
   return 0;
 }
 
-/**
- Compare ints.
- * @returns
- * - 0 if v1 == v2
- * - 1 if v1 > v2
- * - -1 if v1 < v2
- */
 int intcmp2(const void *x, const void *y) {
   return intcmp(*(int *) x, *(int *) y);
 }
 
-/**
- * Compare reals.
- * @returns
- * - 0 if x == y
- * - 1 if x > y
- * - -1 if x < y
- */
 int fltcmp(const real_t x, const real_t y) {
   if (fabs(x - y) < CMP_TOL) {
     return 0;
@@ -1868,45 +1793,24 @@ int fltcmp(const real_t x, const real_t y) {
   return -1;
 }
 
-/**
- * Compare reals.
- * @returns
- * - 0 if x == y
- * - 1 if x > y
- * - -1 if x < y
- */
 int fltcmp2(const void *x, const void *y) {
   assert(x != NULL);
   assert(y != NULL);
   return fltcmp(*(real_t *) x, *(real_t *) y);
 }
 
-/**
- * Compare strings.
- */
 int strcmp2(const void *x, const void *y) {
   return strcmp((char *) x, (char *) y);
 }
 
-/**
- * Check if reals are equal.
- * @returns 1 if x == y, 0 if x != y.
- */
 int flteqs(const real_t x, const real_t y) {
   return (fltcmp(x, y) == 0) ? 1 : 0;
 }
 
-/**
- * Check if strings are equal.
- * @returns 1 if x == y, 0 if x != y.
- */
 int streqs(const char *x, const char *y) {
   return (strcmp(x, y) == 0) ? 1 : 0;
 }
 
-/**
- * Cumulative Sum.
- */
 void cumsum(const real_t *x, const size_t n, real_t *s) {
   s[0] = x[0];
   for (size_t i = 1; i < n; i++) {
@@ -1915,9 +1819,6 @@ void cumsum(const real_t *x, const size_t n, real_t *s) {
   }
 }
 
-/**
- * Logspace. Generates `n` points between decades `10^a` and `10^b`.
- */
 void logspace(const real_t a, const real_t b, const size_t n, real_t *x) {
   const real_t h = (b - a) / (n - 1);
 
@@ -1928,13 +1829,6 @@ void logspace(const real_t a, const real_t b, const size_t n, real_t *x) {
   }
 }
 
-/**
- * Pythagoras
- *
- *   c = sqrt(a^2 + b^2)
- *
- * @returns Hypotenuse of a and b
- */
 real_t pythag(const real_t a, const real_t b) {
   real_t at = fabs(a);
   real_t bt = fabs(b);
@@ -1954,19 +1848,10 @@ real_t pythag(const real_t a, const real_t b) {
   return result;
 }
 
-/**
- * Perform 1D Linear interpolation between `a` and `b` with `t` as the
- * interpolation hyper-parameter.
- * @returns Linear interpolated value between a and b
- */
 real_t lerp(const real_t a, const real_t b, const real_t t) {
   return a * (1.0 - t) + b * t;
 }
 
-/**
- * Perform 3D Linear interpolation between `a` and `b` with `t` as the
- * interpolation hyper-parameter.
- */
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]) {
   assert(a != NULL);
   assert(b != NULL);
@@ -1977,10 +1862,6 @@ void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]) {
   x[2] = lerp(a[2], b[2], t);
 }
 
-/**
- * Sinc.
- * @return Result of sinc
- */
 real_t sinc(const real_t x) {
   if (fabs(x) > 1e-6) {
     return sin(x) / x;
@@ -1995,10 +1876,6 @@ real_t sinc(const real_t x) {
   }
 }
 
-/**
- * Calculate mean from vector `x` of length `n`.
- * @returns Mean of x
- */
 real_t mean(const real_t *x, const size_t n) {
   assert(x != NULL);
   assert(n > 0);
@@ -2010,10 +1887,6 @@ real_t mean(const real_t *x, const size_t n) {
   return sum / n;
 }
 
-/**
- * Calculate median from vector `x` of length `n`.
- * @returns Median of x
- */
 real_t median(const real_t *x, const size_t n) {
   assert(x != NULL);
   assert(n > 0);
@@ -2044,10 +1917,6 @@ real_t median(const real_t *x, const size_t n) {
   return median_value;
 }
 
-/**
- * Calculate variance from vector `x` of length `n`.
- * @returns Variance of x
- */
 real_t var(const real_t *x, const size_t n) {
   assert(x != NULL);
   assert(n > 0);
@@ -2061,10 +1930,6 @@ real_t var(const real_t *x, const size_t n) {
   return sse / (n - 1);
 }
 
-/**
- * Calculate standard deviation from vector `x` of length `n`.
- * @returns Standard deviation of x
- */
 real_t stddev(const real_t *x, const size_t n) {
   assert(x != NULL);
   assert(n > 0);
