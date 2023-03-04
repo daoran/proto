@@ -1940,9 +1940,6 @@ real_t stddev(const real_t *x, const size_t n) {
  * LINEAR ALGEBRA
  ******************************************************************************/
 
-/**
- * Print matrix `A` of size `m x n`.
- */
 void print_matrix(const char *prefix,
                   const real_t *A,
                   const size_t m,
@@ -1965,9 +1962,6 @@ void print_matrix(const char *prefix,
   printf("\n");
 }
 
-/**
- * Print vector `v` of length `n`.
- */
 void print_vector(const char *prefix, const real_t *v, const size_t n) {
   assert(prefix != NULL);
   assert(v != NULL);
@@ -1983,9 +1977,6 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
   printf("\n");
 }
 
-/**
- * Convert vector string
- */
 void vec2str(const real_t *v, const int n, char *s) {
   s[0] = '[';
   for (int i = 0; i < n; i++) {
@@ -1997,9 +1988,6 @@ void vec2str(const real_t *v, const int n, char *s) {
   strcat(s + strlen(s), "]");
 }
 
-/**
- * Form identity matrix `A` of size `m x n`.
- */
 void eye(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
   assert(m != 0);
@@ -2014,9 +2002,6 @@ void eye(real_t *A, const size_t m, const size_t n) {
   }
 }
 
-/**
- * Form ones matrix `A` of size `m x n`.
- */
 void ones(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
   assert(m != 0);
@@ -2031,9 +2016,6 @@ void ones(real_t *A, const size_t m, const size_t n) {
   }
 }
 
-/**
- * Form zeros matrix `A` of size `m x n`.
- */
 void zeros(real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
   assert(m != 0);
@@ -2048,23 +2030,12 @@ void zeros(real_t *A, const size_t m, const size_t n) {
   }
 }
 
-/**
- * Malloc matrix of size `m x n`.
- */
 real_t *mat_malloc(const size_t m, const size_t n) {
   assert(m > 0);
   assert(n > 0);
   return CALLOC(real_t, m * n);
 }
 
-/**
- * Compare two matrices `A` and `B` of size `m x n`.
- *
- * @returns
- * - 0 if A == B
- * - 1 if A > B
- * - -1 if A < B
- */
 int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n) {
   assert(A != NULL);
   assert(B != NULL);
@@ -2087,11 +2058,6 @@ int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n) {
   return 0;
 }
 
-/**
- * Check to see if two matrices `A` and `B` of size `m x n` are equal to a
- * tolerance.
- * @returns 1 if A == B or 0 if A != B
- */
 int mat_equals(const real_t *A,
                const real_t *B,
                const size_t m,
@@ -2118,10 +2084,6 @@ int mat_equals(const real_t *A,
   return 1;
 }
 
-/**
- * Save matrix `A` of size `m x n` to `save_path`.
- * @returns `0` for success, `-1` for failure
- */
 int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
   assert(save_path != NULL);
   assert(A != NULL);
@@ -2149,10 +2111,6 @@ int mat_save(const char *save_path, const real_t *A, const int m, const int n) {
   return 0;
 }
 
-/**
- * Load matrix from file in `mat_path`, on success `num_rows` and `num_cols`
- * will be set respectively.
- */
 real_t *mat_load(const char *mat_path, int *num_rows, int *num_cols) {
   assert(mat_path != NULL);
   assert(num_rows != NULL);
@@ -2218,32 +2176,23 @@ real_t *mat_load(const char *mat_path, int *num_rows, int *num_cols) {
   return A;
 }
 
-/**
- * Set matrix `A` with value `val` at `(i, j)`.
- */
-void mat_set(real_t *A,
-             const size_t stride,
-             const size_t i,
-             const size_t j,
-             const real_t val) {
-  assert(A != NULL);
-  assert(stride != 0);
-  A[(i * stride) + j] = val;
-}
+// void mat_set(real_t *A,
+//              const size_t s,
+//              const size_t i,
+//              const size_t j,
+//              const real_t val) {
+//   assert(A != NULL);
+//   assert(s != 0);
+//   A[(i * s) + j] = val;
+// }
 
-/**
- * Get value from matrix `A` with `stride` at `(i, j)`.
- */
-real_t
-mat_val(const real_t *A, const size_t stride, const size_t i, const size_t j) {
-  assert(A != NULL);
-  assert(stride != 0);
-  return A[(i * stride) + j];
-}
+// real_t
+// mat_val(const real_t *A, const size_t s, const size_t i, const size_t j) {
+//   assert(A != NULL);
+//   assert(s != 0);
+//   return A[(i * s) + j];
+// }
 
-/**
- * Copy matrix `src` of size `m x n` to `dest`.
- */
 void mat_copy(const real_t *src, const int m, const int n, real_t *dest) {
   assert(src != NULL);
   assert(m > 0);
@@ -2255,36 +2204,27 @@ void mat_copy(const real_t *src, const int m, const int n, real_t *dest) {
   }
 }
 
-/**
- * Set matrix row.
- */
 void mat_row_set(real_t *A,
-                 const size_t stride,
+                 const size_t s,
                  const int row_idx,
                  const real_t *x) {
   int vec_idx = 0;
-  for (size_t i = 0; i < stride; i++) {
-    A[(stride * row_idx) + i] = x[vec_idx++];
+  for (size_t i = 0; i < s; i++) {
+    A[(s * row_idx) + i] = x[vec_idx++];
   }
 }
 
-/**
- * Set matrix column.
- */
 void mat_col_set(real_t *A,
-                 const size_t stride,
+                 const size_t s,
                  const int num_rows,
                  const int col_idx,
                  const real_t *x) {
   int vec_idx = 0;
   for (int i = 0; i < num_rows; i++) {
-    A[i * stride + col_idx] = x[vec_idx++];
+    A[i * s + col_idx] = x[vec_idx++];
   }
 }
 
-/**
- * Get matrix column.
- */
 void mat_col_get(
     const real_t *A, const int m, const int n, const int col_idx, real_t *x) {
   int vec_idx = 0;
@@ -2293,13 +2233,8 @@ void mat_col_get(
   }
 }
 
-/**
- * Get matrix sub-block from `A` with `stride` from row and column start `rs`
- * and `cs`, to row and column end `re` and `ce`. The sub-block is written to
- * `block`.
- */
 void mat_block_get(const real_t *A,
-                   const size_t stride,
+                   const size_t s,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
@@ -2308,24 +2243,19 @@ void mat_block_get(const real_t *A,
   assert(A != NULL);
   assert(block != NULL);
   assert(A != block);
-  assert(stride != 0);
+  assert(s != 0);
 
   size_t idx = 0;
   for (size_t i = rs; i <= re; i++) {
     for (size_t j = cs; j <= ce; j++) {
-      // block[idx] = mat_val(A, stride, i, j);
-      block[idx] = A[(i * stride) + j];
+      block[idx] = A[(i * s) + j];
       idx++;
     }
   }
 }
 
-/**
- * Set matrix sub-block `block` to `A` with `stride` from row and column start
- * `rs` and `cs`, to row and column end `re` and `ce`.
- */
 void mat_block_set(real_t *A,
-                   const size_t stride,
+                   const size_t s,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
@@ -2334,23 +2264,19 @@ void mat_block_set(real_t *A,
   assert(A != NULL);
   assert(block != NULL);
   assert(A != block);
-  assert(stride != 0);
+  assert(s != 0);
 
   size_t idx = 0;
   for (size_t i = rs; i <= re; i++) {
     for (size_t j = cs; j <= ce; j++) {
-      A[(i * stride) + j] = block[idx];
+      A[(i * s) + j] = block[idx];
       idx++;
     }
   }
 }
 
-/**
- * Add to matrix sub-block in `A` with `block` from row and column start `rs`
- * and `cs`, to row and column end `re` and `ce`.
- */
 void mat_block_add(real_t *A,
-                   const size_t stride,
+                   const size_t s,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
@@ -2359,23 +2285,19 @@ void mat_block_add(real_t *A,
   assert(A != NULL);
   assert(block != NULL);
   assert(A != block);
-  assert(stride != 0);
+  assert(s != 0);
 
   size_t idx = 0;
   for (size_t i = rs; i <= re; i++) {
     for (size_t j = cs; j <= ce; j++) {
-      A[(i * stride) + j] += block[idx];
+      A[(i * s) + j] += block[idx];
       idx++;
     }
   }
 }
 
-/**
- * Subtract matrix sub-block in `A` with `block` from row and column start `rs`
- * and `cs`, to row and column end `re` and `ce`.
- */
 void mat_block_sub(real_t *A,
-                   const size_t stride,
+                   const size_t s,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
@@ -2384,20 +2306,17 @@ void mat_block_sub(real_t *A,
   assert(A != NULL);
   assert(block != NULL);
   assert(A != block);
-  assert(stride != 0);
+  assert(s != 0);
 
   size_t idx = 0;
   for (size_t i = rs; i <= re; i++) {
     for (size_t j = cs; j <= ce; j++) {
-      A[(i * stride) + j] -= block[idx];
+      A[(i * s) + j] -= block[idx];
       idx++;
     }
   }
 }
 
-/**
- * Get diagonal vector `d` from matrix `A` of size `m x n`.
- */
 void mat_diag_get(const real_t *A, const int m, const int n, real_t *d) {
   int mat_index = 0;
   int vec_index = 0;
@@ -2413,9 +2332,6 @@ void mat_diag_get(const real_t *A, const int m, const int n, real_t *d) {
   }
 }
 
-/**
- * Set the diagonal of matrix `A` of size `m x n` with vector `d`.
- */
 void mat_diag_set(real_t *A, const int m, const int n, const real_t *d) {
   assert(A != NULL);
   assert(m > 0);
@@ -2438,10 +2354,6 @@ void mat_diag_set(real_t *A, const int m, const int n, const real_t *d) {
   }
 }
 
-/**
- * Get upper triangular square matrix of `A` of size `m x m`, results are
- * outputted to `U`.
- */
 void mat_triu(const real_t *A, const size_t m, real_t *U) {
   assert(A != NULL);
   assert(m > 0);
@@ -2454,10 +2366,6 @@ void mat_triu(const real_t *A, const size_t m, real_t *U) {
   }
 }
 
-/**
- * Get lower triangular square matrix of `A` of size `m x m`, results are
- * outputted to `L`.
- */
 void mat_tril(const real_t *A, const size_t m, real_t *L) {
   assert(A != NULL);
   assert(m > 0);
@@ -2470,9 +2378,6 @@ void mat_tril(const real_t *A, const size_t m, real_t *L) {
   }
 }
 
-/**
- * Get the trace matrix of `A` of size `m x n`.
- */
 real_t mat_trace(const real_t *A, const size_t m, const size_t n) {
   assert(A != NULL);
   assert(m > 0);
@@ -2487,9 +2392,6 @@ real_t mat_trace(const real_t *A, const size_t m, const size_t n) {
   return tr;
 }
 
-/**
- * Transpose of matrix `A` of size `m x n`, results are outputted to `A_t`.
- */
 void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
   assert(A != NULL && A != A_t);
   assert(m > 0 && n > 0);
@@ -2501,9 +2403,6 @@ void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t) {
   }
 }
 
-/**
- * Add two matrices `A` and `B` of size `m x n`, results are outputted to `C`.
- */
 void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
   assert(A != NULL && B != NULL && C != NULL);
   assert(m > 0 && n > 0);
@@ -2513,10 +2412,6 @@ void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
   }
 }
 
-/**
- * Subtract two matrices `A` and `B` of size `m x n`, results are outputted to
- * matrix `C`.
- */
 void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
   assert(A != NULL && B != NULL && C != NULL && B != C && A != C);
   assert(m > 0 && n > 0);
@@ -2526,9 +2421,6 @@ void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n) {
   }
 }
 
-/**
- * Scale matrix `A` of size `m x n` inplace with `scale`.
- */
 void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale) {
   assert(A != NULL);
   assert(m > 0 && n > 0);

@@ -930,68 +930,244 @@ real_t stddev(const real_t *x, const size_t length);
  * LINEAR ALGEBRA
  ******************************************************************************/
 
+/**
+ * Linear-Algebra Utils
+ * --------------------
+ *
+ * void print_matrix(const char *prefix,
+ *                   const real_t *A,
+ *                   const size_t m,
+ *                   const size_t n);
+ *
+ *   Print matrix `A` of size `m x n`.
+ *
+ *
+ * void print_vector(const char *prefix, const real_t *v, const size_t n);
+ *
+ *   Print vector `v` of length `n`.
+ *
+ *
+ * void vec2str(const real_t *v, const int n, char *s);
+ *
+ *   Convert vector string
+ *
+ *
+ * void eye(real_t *A, const size_t m, const size_t n);
+ * void ones(real_t *A, const size_t m, const size_t n);
+ * void zeros(real_t *A, const size_t m, const size_t n);
+ *
+ *   Form identity, ones and zeros matrix `A` of size `m x n`.
+ *
+ */
 void print_matrix(const char *prefix,
                   const real_t *A,
                   const size_t m,
                   const size_t n);
 void print_vector(const char *prefix, const real_t *v, const size_t n);
 void vec2str(const real_t *v, const int n, char *s);
-
 void eye(real_t *A, const size_t m, const size_t n);
 void ones(real_t *A, const size_t m, const size_t n);
 void zeros(real_t *A, const size_t m, const size_t n);
 
+/**
+ * Matrix Functions
+ * ----------------
+ *
+ * real_t *mat_malloc(const size_t m, const size_t n);
+ *
+ *   Malloc matrix of size `m x n`.
+ *
+ *
+ * int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n);
+ *
+ *   Compare two matrices `A` and `B` of size `m x n`. Returns `0` if `A` ==
+ *   `B`,  `1` if `A > B`, `-1` if `A` < `B`.
+ *
+ *
+ * int mat_equals(const real_t *A,
+ *                const real_t *B,
+ *                const size_t m,
+ *                const size_t n,
+ *                const real_t tol);
+ *
+ *   Check to see if two matrices `A` and `B` of size `m x n` are equal to a
+ *   tolerance.  Returns `1` if `A == B` or `0` if `A != B1.
+ *
+ *
+ * int mat_save(const char *save_path, const real_t *A, const int m, const int n);
+ * real_t *mat_load(const char *save_path, int *num_rows, int *num_cols);
+ *
+ *   Save and load matrix `A` of size `m x n` to `save_path`.  Returns `0` for
+ *   success, `-1` for failure
+ *
+ *
+ * void mat_set(real_t *A,
+ *              const size_t stride,
+ *              const size_t i,
+ *              const size_t j,
+ *              const real_t val);
+ * real_t mat_val(const real_t *A,
+ *                const size_t s,
+ *                const size_t i,
+ *                const size_t j);
+ *
+ *   Set and get matrix `A` with stride `s` and value `val` at `(i, j)`.
+ *
+ *
+ * void mat_copy(const real_t *src, const int m, const int n, real_t *dest);
+ *
+ *   Copy matrix `src` of size `m x n` to `dest`.
+ *
+ *
+ * void mat_row_set(real_t *A,
+ *                  const size_t stride,
+ *                  const int row_idx,
+ *                  const real_t *x);
+ * void mat_col_set(real_t *A,
+ *                  const size_t stride,
+ *                  const int num_rows,
+ *                  const int col_idx,
+ *                  const real_t *x);
+ * void mat_col_get(const real_t *A,
+ *                  const int m,
+ *                  const int n,
+ *                  const int col_idx,
+ *                  real_t *x);
+ *
+ *   Set and get matrix `A` of stride `s` with vector `x` at row index
+ *   `row_idx` and column index `col_idx`.
+ *
+ *
+ * void mat_block_get(const real_t *A,
+ *                    const size_t stride,
+ *                    const size_t rs,
+ *                    const size_t re,
+ *                    const size_t cs,
+ *                    const size_t ce,
+ *                    real_t *block);
+ *
+ *   Get matrix sub-block from `A` with `stride` from row and column start `rs`
+ *   and `cs`, to row and column end `re` and `ce`. The sub-block is written to
+ *   `block`.
+ *
+ *
+ * void mat_block_set(real_t *A,
+ *                    const size_t s,
+ *                    const size_t rs,
+ *                    const size_t re,
+ *                    const size_t cs,
+ *                    const size_t ce,
+ *                    const real_t *block);
+*
+ *   Set matrix sub-block `block` to `A` with stride `s` from row and column
+ *   start `rs` and `cs`, to row and column end `re` and `ce`.
+ *
+ *
+ * void mat_block_add(real_t *A,
+ *                    const size_t s,
+ *                    const size_t rs,
+ *                    const size_t re,
+ *                    const size_t cs,
+ *                    const size_t ce,
+ *                    const real_t *block);
+ * void mat_block_sub(real_t *A,
+ *                    const size_t s,
+ *                    const size_t rs,
+ *                    const size_t re,
+ *                    const size_t cs,
+ *                    const size_t ce,
+ *                    const real_t *block);
+*
+ *   Add or subtract matrix sub-block in `A` with `block` from row and column
+ *   start `rs` and `cs`, to row and column end `re` and `ce`.
+ *
+ *
+ * void mat_diag_get(const real_t *A, const int m, const int n, real_t *d);
+ * void mat_diag_set(real_t *A, const int m, const int n, const real_t *d);
+ *
+ *   Get and set diagonal vector `d` from matrix `A` of size `m x n`.
+ *
+ *
+ * void mat_triu(const real_t *A, const size_t n, real_t *U);
+ * void mat_tril(const real_t *A, const size_t n, real_t *L);
+ *
+ *   Get upper / lower triangular square matrix of `A` of size `m x m`, results
+ *   are outputted to `U`.
+ *
+ *
+ * real_t mat_trace(const real_t *A, const size_t m, const size_t n);
+ *
+ *   Get the trace matrix of `A` of size `m x n`.
+ *
+ *
+ * void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t);
+ *
+ *   Transpose of matrix `A` of size `m x n`, results are outputted to `A_t`.
+ *
+ *
+ * void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
+ * void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
+ *
+ *   Add / subtract two matrices `A` and `B` of size `m x n`, results are
+ *   outputted to `C`.
+ *
+ *
+ * void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale);
+ *
+ *   Scale matrix `A` of size `m x n` inplace with `scale`.
+ *
+ */
 real_t *mat_malloc(const size_t m, const size_t n);
+
 int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n);
 int mat_equals(const real_t *A,
                const real_t *B,
                const size_t m,
                const size_t n,
                const real_t tol);
+
 int mat_save(const char *save_path, const real_t *A, const int m, const int n);
 real_t *mat_load(const char *save_path, int *num_rows, int *num_cols);
+
 void mat_set(real_t *A,
-             const size_t stride,
+             const size_t s,
              const size_t i,
              const size_t j,
              const real_t val);
-real_t
-mat_val(const real_t *A, const size_t stride, const size_t i, const size_t j);
+real_t mat_val(const real_t *A, const size_t s, const size_t i, const size_t j);
 void mat_copy(const real_t *src, const int m, const int n, real_t *dest);
-void mat_row_set(real_t *A,
-                 const size_t stride,
-                 const int row_idx,
-                 const real_t *x);
+
+void mat_row_set(real_t *A, const size_t s, const int row_idx, const real_t *x);
 void mat_col_set(real_t *A,
-                 const size_t stride,
+                 const size_t s,
                  const int num_rows,
                  const int col_idx,
                  const real_t *x);
 void mat_col_get(
     const real_t *A, const int m, const int n, const int col_idx, real_t *x);
 void mat_block_get(const real_t *A,
-                   const size_t stride,
+                   const size_t s,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
                    const size_t ce,
                    real_t *block);
 void mat_block_set(real_t *A,
-                   const size_t stride,
+                   const size_t s,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
                    const size_t ce,
                    const real_t *block);
 void mat_block_add(real_t *A,
-                   const size_t stride,
+                   const size_t s,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
                    const size_t ce,
                    const real_t *block);
 void mat_block_sub(real_t *A,
-                   const size_t stride,
+                   const size_t s,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
