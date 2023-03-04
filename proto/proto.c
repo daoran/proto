@@ -11727,6 +11727,38 @@ void marg_factor_free(marg_factor_t *marg) {
   free(marg);
 }
 
+void marg_factor_print_stats() {
+  printf("Parameters to be marginalized:\n");
+  printf("------------------------------\n");
+  printf("m_positions: %ld\n", hmlen(m_positions));
+  printf("m_rotations: %ld\n", hmlen(m_rotations));
+  printf("m_poses: %ld\n", hmlen(m_poses));
+  printf("m_velocities: %ld\n", hmlen(m_velocities));
+  printf("m_imu_biases: %ld\n", hmlen(m_imu_biases));
+  printf("m_features: %ld\n", hmlen(m_features));
+  printf("m_joints: %ld\n", hmlen(m_joints));
+  printf("m_extrinsics: %ld\n", hmlen(m_extrinsics));
+  printf("m_fiducials: %ld\n", hmlen(m_fiducials));
+  printf("m_cam_params: %ld\n", hmlen(m_cam_params));
+  printf("m_time_delays: %ld\n", hmlen(m_time_delays));
+  printf("\n");
+
+  printf("Parameters to remain:\n");
+  printf("---------------------\n");
+  printf("r_positions: %ld\n", hmlen(r_positions));
+  printf("r_rotations: %ld\n", hmlen(r_rotations));
+  printf("r_poses: %ld\n", hmlen(r_poses));
+  printf("r_velocities: %ld\n", hmlen(r_velocities));
+  printf("r_imu_biases: %ld\n", hmlen(r_imu_biases));
+  printf("r_features: %ld\n", hmlen(r_features));
+  printf("r_joints: %ld\n", hmlen(r_joints));
+  printf("r_extrinsics: %ld\n", hmlen(r_extrinsics));
+  printf("r_fiducials: %ld\n", hmlen(r_fiducials));
+  printf("r_cam_params: %ld\n", hmlen(r_cam_params));
+  printf("r_time_delays: %ld\n", hmlen(r_time_delays));
+  printf("\n");
+}
+
 /**
  * Add factor to marginalization factor.
  */
@@ -11820,35 +11852,6 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     }
   }
 
-  // Print stats
-  // printf("Parameters to be marginalized:\n");
-  // printf("m_positions: %ld\n", hmlen(m_positions));
-  // printf("m_rotations: %ld\n", hmlen(m_rotations));
-  // printf("m_poses: %ld\n", hmlen(m_poses));
-  // printf("m_velocities: %ld\n", hmlen(m_velocities));
-  // printf("m_imu_biases: %ld\n", hmlen(m_imu_biases));
-  // printf("m_features: %ld\n", hmlen(m_features));
-  // printf("m_joints: %ld\n", hmlen(m_joints));
-  // printf("m_extrinsics: %ld\n", hmlen(m_extrinsics));
-  // printf("m_fiducials: %ld\n", hmlen(m_fiducials));
-  // printf("m_cam_params: %ld\n", hmlen(m_cam_params));
-  // printf("m_time_delays: %ld\n", hmlen(m_time_delays));
-  // printf("\n");
-
-  // printf("Parameters to remain:\n");
-  // printf("r_positions: %ld\n", hmlen(r_positions));
-  // printf("r_rotations: %ld\n", hmlen(r_rotations));
-  // printf("r_poses: %ld\n", hmlen(r_poses));
-  // printf("r_velocities: %ld\n", hmlen(r_velocities));
-  // printf("r_imu_biases: %ld\n", hmlen(r_imu_biases));
-  // printf("r_features: %ld\n", hmlen(r_features));
-  // printf("r_joints: %ld\n", hmlen(r_joints));
-  // printf("r_extrinsics: %ld\n", hmlen(r_extrinsics));
-  // printf("r_fiducials: %ld\n", hmlen(r_fiducials));
-  // printf("r_cam_params: %ld\n", hmlen(r_cam_params));
-  // printf("r_time_delays: %ld\n", hmlen(r_time_delays));
-  // printf("\n");
-
   // Determine parameter block column indicies for Hessian matrix H
   // clang-format off
   int H_idx = 0; // Column / row index of Hessian matrix H
@@ -11930,32 +11933,6 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
   marg->H = H;
   marg->b = b;
-
-  // // Clean up
-  // // -- Remain parameters
-  // hmfree(r_positions);
-  // hmfree(r_rotations);
-  // hmfree(r_poses);
-  // hmfree(r_velocities);
-  // hmfree(r_imu_biases);
-  // hmfree(r_features);
-  // hmfree(r_joints);
-  // hmfree(r_extrinsics);
-  // hmfree(r_fiducials);
-  // hmfree(r_cam_params);
-  // hmfree(r_time_delays);
-  // // -- Marginal parameters
-  // hmfree(m_positions);
-  // hmfree(m_rotations);
-  // hmfree(m_poses);
-  // hmfree(m_velocities);
-  // hmfree(m_imu_biases);
-  // hmfree(m_features);
-  // hmfree(m_joints);
-  // hmfree(m_extrinsics);
-  // hmfree(m_fiducials);
-  // hmfree(m_cam_params);
-  // hmfree(m_time_delays);
 }
 
 /**

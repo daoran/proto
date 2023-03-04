@@ -2335,6 +2335,7 @@ typedef struct marg_factor_t {
 
 marg_factor_t *marg_factor_malloc();
 void marg_factor_free(marg_factor_t *marg);
+void marg_factor_print_stats();
 void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr);
 void marg_factor_marginalize(marg_factor_t *marg);
 int marg_factor_eval(void *marg_ptr);
