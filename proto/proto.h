@@ -284,106 +284,16 @@
  * FILESYSTEM
  ******************************************************************************/
 
-/**
- * Path Functions
- * --------------
- *
- * void path_file_name(const char *path, char *fname);
- *
- *   Extract filename from `path` to `fname`.
- *
- *
- * void path_file_ext(const char *path, char *fext);
- *
- *   Extract file extension from `path` to `fext`.
- *
- *
- * void path_dir_name(const char *path, char *dir_name);
- *
- *   Extract dir name from `path` to `dirname`.
- *
- *
- * char *path_join(const char *x, const char *y);
- *
- *   Join two paths `x` and `y`
- *
- */
 void path_file_name(const char *path, char *fname);
 void path_file_ext(const char *path, char *fext);
 void path_dir_name(const char *path, char *dir_name);
 char *path_join(const char *x, const char *y);
-
-/**
- * List files Function
- * -------------------
- *
- * char **list_files(const char *path, int *num_files);
- *
- *   List files in `path`.
- *   Returns List of files in directory and number of files `n`.
- *
- * void list_files_free(char **data, const int n);
- *
- *   Free list of `files` of length `n`.
- *
- */
 char **list_files(const char *path, int *num_files);
 void list_files_free(char **data, const int n);
-
-/**
- * File Functions
- * --------------
- *
- * char *file_read(const char *fp);
- *
- *   Read file contents in file path `fp`.
- *
- *   Returns:
- *
- *   - Success: File contents
- *   - Failure: NULL
- *
- *
- * void skip_line(FILE *fp);
- *
- *   Skip file line.
- *
- *
- * STATUS file_exists(const char *fp);
- *
- *   Check if file exists.
- *
- *   Returns
- *
- *   - `1`: File exists
- *   - `0`: File does not exist
- *
- *
- * int file_rows(const char *fp);
- *
- *   Get number of rows in file `fp`.
- *
- *   Returns:
- *
- *   - Number of rows in file
- *   - `-1` for failure.
- *
- *
- * STATUS file_copy(const char *src, const char *dest);
- *
- *   Copy file from path `src` to path `dst`.
- *
- *   Returns:
- *
- *   - `0`  for success
- *   - `-1` if src file could not be opend
- *   - `-2` if dst file could not be opened
- *
- */
 char *file_read(const char *fp);
 void skip_line(FILE *fp);
 STATUS file_exists(const char *fp);
-int file_rows(const char *fp);
+STATUS file_rows(const char *fp);
 STATUS file_copy(const char *src, const char *dest);
 
 /******************************************************************************
@@ -400,40 +310,6 @@ typedef double complex real_complex_t;
 #error "Floating Point Precision not defined!"
 #endif
 
-/**
- * String Functions
- * ----------------
- *
- * size_t string_copy(char *dst, const char *src)
- *
- *   Copy string `src` to `dst`.
- *
- *
- * void string_cat(char *dst, const char *src)
- *
- *   Concatenate string from `src` to `dst`.
- *
- *
- * char *string_malloc(const char *s)
- *
- *   Allocate heap memory for string `s`.
- *
- *
- * char *string_strip(char *s)
- *
- *   Strip whitespace from string `s`.
- *
- *
- * char *string_strip_char(char *s, const char c)
- *
- *   Strip specific character `c` from string `s`.
- *
- *
- * char **string_split(char *a_str, const char a_delim, size_t *n)
- *
- *   Split string `s` by delimiter `d`
- *
- */
 size_t string_copy(char *dst, const char *src);
 void string_cat(char *dst, const char *src);
 char *string_malloc(const char *s);
@@ -441,115 +317,21 @@ char *string_strip(char *s);
 char *string_strip_char(char *s, const char c);
 char **string_split(char *s, const char d, size_t *n);
 
-/**
- * Integer / Float Arrays Functions
- * --------------------------------
- *
- * int **load_iarrays(const char *csv_path, int *num_arrays);
- *
- *   Parse 2D integer arrays from csv file.
- *
- *   Returns:
- *
- *   - List of 1D vector of integers
- *   - NULL for failure
- *
- *
- * real_t **load_darrays(const char *csv_path, int *num_arrays);
- *
- *   Parse 2D real arrays from csv file at `csv_path`, on success
- *   `num_arrays` will return number of arrays.
- *
- *   Returns:
- *
- *   - List of 1D vector of reals
- *   - NULL for failure
- */
 int **load_iarrays(const char *csv_path, int *num_arrays);
 real_t **load_darrays(const char *csv_path, int *num_arrays);
 
-/**
- * Functions to allocate memory for integer, float, double and vector
- * ------------------------------------------------------------------
- *
- * int *int_malloc(const int val);
- * float *float_malloc(const float val);
- * double *double_malloc(const double val);
- * real_t *vector_malloc(const real_t *vec, const real_t N);
- *
- *   Functions to allocate memory for integer, float, double and vector.
- *
- */
 int *int_malloc(const int val);
 float *float_malloc(const float val);
 double *double_malloc(const double val);
 real_t *vector_malloc(const real_t *vec, const real_t N);
 
-/**
- * Delimited Separated Data
- * ------------------------
- *
- * int dsv_rows(const char *fp);
- * int dsv_cols(const char *fp, const char d);
- *
- *   Get number of rows and columns of a delimited `d` separated file `fp`.
- *
- *
- * char **dsv_fields(const char *fp, const char d, int *num_fields);
- *
- *   Get the fields of the delimited file at `fp`, where `delim` is the value
- *   separated symbol and `num_fields` returns the length of the fields
- *   returned.
- *
- *   Returns:
- *
- *   - List of field strings
- *   - NULL for failure
- *
- *
- * real_t **dsv_data(const char *fp,
- *                   const char d,
- *                   int *num_rows,
- *                   int *num_cols);
- *
- *   Load delimited separated value data as a matrix.
- *
- *   Returns:
- *   - Matrix of DSV data
- *   - NULL for failure
- *
- *
- * void dsv_free(real_t **data, const int num_rows);
- *
- *   Free DSV data `data` of `num_rows`.
- *
- */
 int dsv_rows(const char *fp);
-int dsv_cols(const char *fp, const char d);
-char **dsv_fields(const char *fp, const char d, int *num_fields);
-real_t **dsv_data(const char *fp, const char d, int *num_rows, int *num_cols);
+int dsv_cols(const char *fp, const char delim);
+char **dsv_fields(const char *fp, const char delim, int *num_fields);
+real_t **
+dsv_data(const char *fp, const char delim, int *num_rows, int *num_cols);
 void dsv_free(real_t **data, const int num_rows);
 
-/**
- * Comma Separated Data Functions
- * ------------------------------
- *
- * real_t **csv_data(const char *fp, int *num_rows, int *num_cols);
- *
- *   Load comma separated data as a matrix, where `fp` is the csv file path,
- *   on success `num_rows` and `num_cols` will be filled.
- *
- *   Returns:
- *
- *   - Matrix of CSV data
- *   - NULL for failure
- *
- *
- * void csv_free(real_t **data, const int num_rows);
- *
- *   Free 2D float array `data` of size `num_rows`.
- *
- */
 real_t **csv_data(const char *fp, int *num_rows, int *num_cols);
 void csv_free(real_t **data, const int num_rows);
 
@@ -721,32 +503,11 @@ typedef int64_t timestamp_t;
 #define PRINT_TOC(PREFIX, X) printf("[%s]: %.4fs\n", PREFIX, toc(&X))
 #define PRINT_MTOC(PREFIX, X) printf("[%s]: %.4fms\n", PREFIX, mtoc(&X))
 
-/**
- * Time Functions
- * --------------
- *
- * struct timespec tic();
- * float toc(struct timespec *tic);
- * float mtoc(struct timespec *tic);
- *
- *   Start and stop timer.
- *
- *
- * timestamp_t time_now();
- *
- *   Returns current time.
- *
- *
- * real_t ts2sec(const timestamp_t ts);
- * timestamp_t sec2ts(const real_t time_s);
- *
- *   Convert from timestamp to seconds and back.
- *
- */
 struct timespec tic();
 float toc(struct timespec *tic);
 float mtoc(struct timespec *tic);
 timestamp_t time_now();
+
 real_t ts2sec(const timestamp_t ts);
 timestamp_t sec2ts(const real_t time_s);
 
@@ -774,29 +535,11 @@ typedef struct tcp_client_t {
   int (*loop_cb)(struct tcp_client_t *);
 } tcp_client_t;
 
-/**
- * TCP Functions
- * -------------
- *
- * STATUS ip_port_info(const int sockfd, char *ip, int *port);
- *
- *   Return IP and Port info from socket file descriptor `sockfd` to `ip` and
- *   `port`. Returns `0` for success and `-1` for failure.
- *
- * STATUS tcp_server_setup(tcp_server_t *server, const int port);
- * STATUS tcp_server_loop(tcp_server_t *server);
- * STATUS tcp_client_setup(tcp_client_t *client,
- *                         const char *server_ip,
- *                         const int server_port);
- * STATUS tcp_client_loop(tcp_client_t *client);
- *
- *   Setup, loop TCP server and client. Returns `0` for success and `-1` for
- *   failure.
- *
- */
 STATUS ip_port_info(const int sockfd, char *ip, int *port);
+
 STATUS tcp_server_setup(tcp_server_t *server, const int port);
 STATUS tcp_server_loop(tcp_server_t *server);
+
 STATUS tcp_client_setup(tcp_client_t *client,
                         const char *server_ip,
                         const int server_port);
@@ -825,86 +568,6 @@ STATUS tcp_client_loop(tcp_client_t *client);
 /** Based on sign of b, return +ve or -ve a. */
 #define SIGN2(a, b) ((b) > 0.0 ? fabs(a) : -fabs(a))
 
-/**
- * Math Functions
- * --------------
- *
- * float randf(float a, float b);
- *
- *   Generate random number between a and b from a uniform distribution.
- *
- *
- * real_t deg2rad(const real_t d);
- * real_t rad2deg(const real_t r);
- *
- *   Convert from degrees `d` to radians `r`.
- *
- *
- * int intcmp(const int x, const int y);
- * int intcmp2(const void *x, const void *y);
- * int fltcmp(const real_t x, const real_t y);
- * int fltcmp2(const void *x, const void *y);
- * int strcmp2(const void *x, const void *y);
- *
- *   Compare integer, floats and strings.
- *   Returns:
- *
- *     - `0`  if x == y
- *     - `1`  if x > y
- *     - `-1` if x < y
- *
- *
- * int flteqs(const real_t x, const real_t y);
- * int streqs(const char *x, const char *y);
- *
- *   Check if floats / strings are equal. Returns 1 if true else 0.
- *
- *
- * void cumsum(const real_t *x, const size_t n, real_t *s);
- *
- *   Cumulative sum of vector `x` of size `n`, results are written to `s`.
- *
- *
- * void logspace(const real_t a, const real_t b, const size_t n, real_t *x);
- *
- *   Logspace. Generates `n` points between decades `10^a` and `10^b`.
- *
- *
- * real_t pythag(const real_t a, const real_t b);
- *
- *   Pythagoras, hypotenuse of a and b.
- *
- *     c = sqrt(a^2 + b^2)
- *
- *
- * real_t lerp(const real_t a, const real_t b, const real_t t);
- *
- *   Perform 1D Linear interpolation between `a` and `b` with `t` as the
- *   interpolation hyper-parameter. Returns Linear interpolated value between
- *   `a` and `b`.
- *
- *
- * void lerp3(const real_t a[3],
- *            const real_t b[3],
- *            const real_t t,
- *            real_t x[3]);
- *
- *   Perform 3D Linear interpolation between `a` and `b` with `t` as the
- *   interpolation hyper-parameter.
- *
- *
- * real_t sinc(const real_t x);
- *
- *
- * real_t mean(const real_t *x, const size_t n);
- * real_t median(const real_t *x, const size_t n);
- * real_t var(const real_t *x, const size_t n);
- * real_t stddev(const real_t *x, const size_t n);
- *
- *   Calculate the mean, median, variance and standard deviation of a vector
- *   `x` of length `n`.
- *
- */
 float randf(float a, float b);
 real_t deg2rad(const real_t d);
 real_t rad2deg(const real_t r);
@@ -930,244 +593,71 @@ real_t stddev(const real_t *x, const size_t length);
  * LINEAR ALGEBRA
  ******************************************************************************/
 
-/**
- * Linear-Algebra Utils
- * --------------------
- *
- * void print_matrix(const char *prefix,
- *                   const real_t *A,
- *                   const size_t m,
- *                   const size_t n);
- *
- *   Print matrix `A` of size `m x n`.
- *
- *
- * void print_vector(const char *prefix, const real_t *v, const size_t n);
- *
- *   Print vector `v` of length `n`.
- *
- *
- * void vec2str(const real_t *v, const int n, char *s);
- *
- *   Convert vector string
- *
- *
- * void eye(real_t *A, const size_t m, const size_t n);
- * void ones(real_t *A, const size_t m, const size_t n);
- * void zeros(real_t *A, const size_t m, const size_t n);
- *
- *   Form identity, ones and zeros matrix `A` of size `m x n`.
- *
- */
 void print_matrix(const char *prefix,
                   const real_t *A,
                   const size_t m,
                   const size_t n);
 void print_vector(const char *prefix, const real_t *v, const size_t n);
 void vec2str(const real_t *v, const int n, char *s);
+
 void eye(real_t *A, const size_t m, const size_t n);
 void ones(real_t *A, const size_t m, const size_t n);
 void zeros(real_t *A, const size_t m, const size_t n);
 
-/**
- * Matrix Functions
- * ----------------
- *
- * real_t *mat_malloc(const size_t m, const size_t n);
- *
- *   Malloc matrix of size `m x n`.
- *
- *
- * int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n);
- *
- *   Compare two matrices `A` and `B` of size `m x n`. Returns `0` if `A` ==
- *   `B`,  `1` if `A > B`, `-1` if `A` < `B`.
- *
- *
- * int mat_equals(const real_t *A,
- *                const real_t *B,
- *                const size_t m,
- *                const size_t n,
- *                const real_t tol);
- *
- *   Check to see if two matrices `A` and `B` of size `m x n` are equal to a
- *   tolerance.  Returns `1` if `A == B` or `0` if `A != B1.
- *
- *
- * int mat_save(const char *save_path, const real_t *A, const int m, const int n);
- * real_t *mat_load(const char *save_path, int *num_rows, int *num_cols);
- *
- *   Save and load matrix `A` of size `m x n` to `save_path`.  Returns `0` for
- *   success, `-1` for failure
- *
- *
- * void mat_set(real_t *A,
- *              const size_t stride,
- *              const size_t i,
- *              const size_t j,
- *              const real_t val);
- * real_t mat_val(const real_t *A,
- *                const size_t s,
- *                const size_t i,
- *                const size_t j);
- *
- *   Set and get matrix `A` with stride `s` and value `val` at `(i, j)`.
- *
- *
- * void mat_copy(const real_t *src, const int m, const int n, real_t *dest);
- *
- *   Copy matrix `src` of size `m x n` to `dest`.
- *
- *
- * void mat_row_set(real_t *A,
- *                  const size_t stride,
- *                  const int row_idx,
- *                  const real_t *x);
- * void mat_col_set(real_t *A,
- *                  const size_t stride,
- *                  const int num_rows,
- *                  const int col_idx,
- *                  const real_t *x);
- * void mat_col_get(const real_t *A,
- *                  const int m,
- *                  const int n,
- *                  const int col_idx,
- *                  real_t *x);
- *
- *   Set and get matrix `A` of stride `s` with vector `x` at row index
- *   `row_idx` and column index `col_idx`.
- *
- *
- * void mat_block_get(const real_t *A,
- *                    const size_t stride,
- *                    const size_t rs,
- *                    const size_t re,
- *                    const size_t cs,
- *                    const size_t ce,
- *                    real_t *block);
- *
- *   Get matrix sub-block from `A` with `stride` from row and column start `rs`
- *   and `cs`, to row and column end `re` and `ce`. The sub-block is written to
- *   `block`.
- *
- *
- * void mat_block_set(real_t *A,
- *                    const size_t s,
- *                    const size_t rs,
- *                    const size_t re,
- *                    const size_t cs,
- *                    const size_t ce,
- *                    const real_t *block);
-*
- *   Set matrix sub-block `block` to `A` with stride `s` from row and column
- *   start `rs` and `cs`, to row and column end `re` and `ce`.
- *
- *
- * void mat_block_add(real_t *A,
- *                    const size_t s,
- *                    const size_t rs,
- *                    const size_t re,
- *                    const size_t cs,
- *                    const size_t ce,
- *                    const real_t *block);
- * void mat_block_sub(real_t *A,
- *                    const size_t s,
- *                    const size_t rs,
- *                    const size_t re,
- *                    const size_t cs,
- *                    const size_t ce,
- *                    const real_t *block);
-*
- *   Add or subtract matrix sub-block in `A` with `block` from row and column
- *   start `rs` and `cs`, to row and column end `re` and `ce`.
- *
- *
- * void mat_diag_get(const real_t *A, const int m, const int n, real_t *d);
- * void mat_diag_set(real_t *A, const int m, const int n, const real_t *d);
- *
- *   Get and set diagonal vector `d` from matrix `A` of size `m x n`.
- *
- *
- * void mat_triu(const real_t *A, const size_t n, real_t *U);
- * void mat_tril(const real_t *A, const size_t n, real_t *L);
- *
- *   Get upper / lower triangular square matrix of `A` of size `m x m`, results
- *   are outputted to `U`.
- *
- *
- * real_t mat_trace(const real_t *A, const size_t m, const size_t n);
- *
- *   Get the trace matrix of `A` of size `m x n`.
- *
- *
- * void mat_transpose(const real_t *A, size_t m, size_t n, real_t *A_t);
- *
- *   Transpose of matrix `A` of size `m x n`, results are outputted to `A_t`.
- *
- *
- * void mat_add(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
- * void mat_sub(const real_t *A, const real_t *B, real_t *C, size_t m, size_t n);
- *
- *   Add / subtract two matrices `A` and `B` of size `m x n`, results are
- *   outputted to `C`.
- *
- *
- * void mat_scale(real_t *A, const size_t m, const size_t n, const real_t scale);
- *
- *   Scale matrix `A` of size `m x n` inplace with `scale`.
- *
- */
 real_t *mat_malloc(const size_t m, const size_t n);
-
 int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n);
 int mat_equals(const real_t *A,
                const real_t *B,
                const size_t m,
                const size_t n,
                const real_t tol);
-
 int mat_save(const char *save_path, const real_t *A, const int m, const int n);
 real_t *mat_load(const char *save_path, int *num_rows, int *num_cols);
-
 void mat_set(real_t *A,
-             const size_t s,
+             const size_t stride,
              const size_t i,
              const size_t j,
              const real_t val);
-real_t mat_val(const real_t *A, const size_t s, const size_t i, const size_t j);
+real_t
+mat_val(const real_t *A, const size_t stride, const size_t i, const size_t j);
 void mat_copy(const real_t *src, const int m, const int n, real_t *dest);
-
-void mat_row_set(real_t *A, const size_t s, const int row_idx, const real_t *x);
+void mat_row_set(real_t *A,
+                 const size_t stride,
+                 const int row_idx,
+                 const real_t *x);
 void mat_col_set(real_t *A,
-                 const size_t s,
+                 const size_t stride,
                  const int num_rows,
                  const int col_idx,
                  const real_t *x);
-void mat_col_get(
-    const real_t *A, const int m, const int n, const int col_idx, real_t *x);
+void mat_col_get(const real_t *A,
+                 const int m,
+                 const int n,
+                 const int col_idx,
+                 real_t *x);
 void mat_block_get(const real_t *A,
-                   const size_t s,
+                   const size_t stride,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
                    const size_t ce,
                    real_t *block);
 void mat_block_set(real_t *A,
-                   const size_t s,
+                   const size_t stride,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
                    const size_t ce,
                    const real_t *block);
 void mat_block_add(real_t *A,
-                   const size_t s,
+                   const size_t stride,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
                    const size_t ce,
                    const real_t *block);
 void mat_block_sub(real_t *A,
-                   const size_t s,
+                   const size_t stride,
                    const size_t rs,
                    const size_t re,
                    const size_t cs,
@@ -1437,8 +927,12 @@ int check_jacobian(const char *jac_name,
 // SVD //
 /////////
 
-int svd(
-    const real_t *A, const int m, const int n, real_t *U, real_t *s, real_t *V);
+int svd(const real_t *A,
+        const int m,
+        const int n,
+        real_t *U,
+        real_t *s,
+        real_t *V);
 void pinv(const real_t *A, const int m, const int n, real_t *A_inv);
 int svd_det(const real_t *A, const int m, const int n, real_t *det);
 int svd_rank(const real_t *A, const int m, const int n, real_t tol);
