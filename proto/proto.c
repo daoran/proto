@@ -15736,7 +15736,7 @@ void gnuplot_matshow(const real_t *A, const int m, const int n) {
 //////////////////
 
 /**
- * Load simulation feature data
+ * Load simulation feature data.
  */
 sim_features_t *sim_features_load(const char *csv_path) {
   sim_features_t *features_data = MALLOC(sim_features_t, 1);
@@ -15748,7 +15748,7 @@ sim_features_t *sim_features_load(const char *csv_path) {
 }
 
 /**
- * Free simulation feature data
+ * Free simulation feature data.
  */
 void sim_features_free(sim_features_t *feature_data) {
   // Pre-check
@@ -15790,7 +15790,7 @@ sim_imu_data_t *sim_imu_data_malloc() {
 }
 
 /**
- * Free simulation imu data
+ * Free simulation imu data.
  */
 void sim_imu_data_free(sim_imu_data_t *imu_data) {
   // Pre-check
@@ -15808,7 +15808,7 @@ void sim_imu_data_free(sim_imu_data_t *imu_data) {
 }
 
 /**
- * Load simulation imu data
+ * Load simulation imu data.
  */
 sim_imu_data_t *sim_imu_data_load(const char *csv_path) {
   return NULL;
@@ -15907,7 +15907,7 @@ sim_imu_data_t *sim_imu_circle_trajectory(const int imu_rate,
 /////////////////////
 
 /**
- * Extract timestamp from path
+ * Extract timestamp from path.
  */
 static timestamp_t path2ts(const char *path) {
   char fname[128] = {0};
@@ -15946,7 +15946,7 @@ sim_camera_frame_t *sim_camera_frame_malloc(const timestamp_t ts,
 }
 
 /**
- * Free simulated camera frame
+ * Free simulated camera frame.
  */
 void sim_camera_frame_free(sim_camera_frame_t *frame_data) {
   // Pre-check
@@ -15976,7 +15976,7 @@ void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame,
 }
 
 /**
- * Load simulated camera frame
+ * Load simulated camera frame.
  */
 sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
   // Check if file exists
@@ -16008,7 +16008,7 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
 }
 
 /**
- * Print camera frame
+ * Print camera frame.
  */
 void sim_camera_frame_print(const sim_camera_frame_t *frame_data) {
   printf("ts: %ld\n", frame_data->ts);
@@ -16043,7 +16043,7 @@ sim_camera_data_t *sim_camerea_data_malloc() {
 }
 
 /**
- * Free simulated camera data
+ * Free simulated camera data.
  */
 void sim_camera_data_free(sim_camera_data_t *cam_data) {
   // Pre-check
@@ -16062,7 +16062,7 @@ void sim_camera_data_free(sim_camera_data_t *cam_data) {
 }
 
 /**
- * Load simulated camera data
+ * Load simulated camera data.
  */
 sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
   assert(dir_path != NULL);
@@ -16147,7 +16147,7 @@ sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
 }
 
 /**
- * Simulate 3D features
+ * Simulate 3D features.
  */
 void sim_create_features(const real_t origin[3],
                          const real_t dim[3],
@@ -16218,6 +16218,9 @@ void sim_create_features(const real_t origin[3],
   }
 }
 
+/**
+ * Simulate camera going round in a circle.
+ */
 sim_camera_data_t *
 sim_camera_circle_trajectory(const real_t cam_rate,
                              const real_t circle_r,
@@ -16311,7 +16314,7 @@ sim_camera_circle_trajectory(const real_t cam_rate,
 /////////////////////
 
 /**
- * Malloc a simulated gimbal view
+ * Malloc a simulated gimbal view.
  */
 sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners) {
   sim_gimbal_view_t *view = MALLOC(sim_gimbal_view_t, 1);
@@ -16331,7 +16334,7 @@ sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners) {
 }
 
 /**
- * Free simulated gimbal view
+ * Free simulated gimbal view.
  */
 void sim_gimbal_view_free(sim_gimbal_view_t *view) {
   free(view->tag_ids);
@@ -16342,7 +16345,7 @@ void sim_gimbal_view_free(sim_gimbal_view_t *view) {
 }
 
 /**
- * Print simulated gimbal view
+ * Print simulated gimbal view.
  */
 void sim_gimbal_view_print(const sim_gimbal_view_t *view) {
   printf("num_measurements: %d\n", view->num_measurements);
@@ -16359,7 +16362,7 @@ void sim_gimbal_view_print(const sim_gimbal_view_t *view) {
 }
 
 /**
- * Malloc gimbal simulation
+ * Malloc gimbal simulation.
  */
 sim_gimbal_t *sim_gimbal_malloc() {
   sim_gimbal_t *sim = MALLOC(sim_gimbal_t, 1);
@@ -16451,7 +16454,7 @@ sim_gimbal_t *sim_gimbal_malloc() {
 }
 
 /**
- * Free gimbal simulation
+ * Free gimbal simulation.
  */
 void sim_gimbal_free(sim_gimbal_t *sim) {
   if (sim == NULL) {
@@ -16466,7 +16469,7 @@ void sim_gimbal_free(sim_gimbal_t *sim) {
 }
 
 /**
- * Print gimbal simulation
+ * Print gimbal simulation.
  */
 void sim_gimbal_print(const sim_gimbal_t *sim) {
   // Configuration file
@@ -16489,7 +16492,7 @@ void sim_gimbal_print(const sim_gimbal_t *sim) {
 }
 
 /**
- * Set gimbal joint
+ * Set gimbal joint.
  */
 void sim_gimbal_set_joint(sim_gimbal_t *sim,
                           const int joint_idx,
@@ -16498,7 +16501,7 @@ void sim_gimbal_set_joint(sim_gimbal_t *sim,
 }
 
 /**
- * Get gimbal joint
+ * Get gimbal joint.
  */
 void sim_gimbal_get_joints(sim_gimbal_t *sim,
                            const int num_joints,
@@ -16509,7 +16512,7 @@ void sim_gimbal_get_joints(sim_gimbal_t *sim,
 }
 
 /**
- * Simulate 3-axis gimbal view
+ * Simulate 3-axis gimbal view.
  */
 sim_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
                                     const timestamp_t ts,
@@ -16584,7 +16587,7 @@ sim_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
 }
 
 /**
- * Simulate 3-axis gimbal view
+ * Simulate 3-axis gimbal view.
  */
 sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
                                    const timestamp_t ts,
