@@ -2325,6 +2325,100 @@ void zeros(real_t *A, const size_t m, const size_t n) {
 }
 
 /**
+ * Create skew-symmetric matrix `A` from a 3x1 vector `x`.
+ */
+void hat(const real_t x[3], real_t A[3 * 3]) {
+  assert(x != NULL);
+  assert(A != NULL);
+
+  // First row
+  A[0] = 0.0;
+  A[1] = -x[2];
+  A[2] = x[1];
+
+  // Second row
+  A[3] = x[2];
+  A[4] = 0.0;
+  A[5] = -x[0];
+
+  // Third row
+  A[6] = -x[1];
+  A[7] = x[0];
+  A[8] = 0.0;
+}
+
+/**
+ * Opposite of the skew-symmetric matrix
+ */
+void vee(const real_t A[3 * 3], real_t x[3]) {
+  assert(A != NULL);
+  assert(x != NULL);
+
+  const real_t A02 = A[2];
+  const real_t A10 = A[3];
+  const real_t A21 = A[7];
+
+  x[0] = A21;
+  x[1] = A02;
+  x[2] = A10;
+}
+
+/**
+ * Perform forward substitution with a lower triangular matrix `L`, column
+ * vector `b` and solve for vector `y` of size `n`.
+ */
+void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n) {
+  assert(L != NULL);
+  assert(b != NULL);
+  assert(y != NULL);
+  assert(n > 0);
+
+  for (size_t i = 0; i < n; i++) {
+    real_t alpha = b[i];
+    for (size_t j = 0; j < i; j++) {
+      alpha -= L[i * n + j] * y[j];
+    }
+    y[i] = alpha / L[i * n + i];
+  }
+}
+
+/**
+ * Perform backward substitution with a upper triangular matrix `U`, column
+ * vector `y` and solve for vector `x` of size `n`.
+ */
+void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n) {
+  assert(U != NULL);
+  assert(y != NULL);
+  assert(x != NULL);
+  assert(n > 0);
+
+  for (int i = n - 1; i >= 0; i--) {
+    real_t alpha = y[i];
+    for (int j = i; j < (int) n; j++) {
+      alpha -= U[i * n + j] * x[j];
+    }
+    x[i] = alpha / U[i * n + i];
+  }
+}
+
+/**
+ * Enforce semi-positive definite. This function assumes the matrix `A` is
+ * square where number of rows `m` and columns `n` is equal, and symmetric.
+ */
+void enforce_spd(real_t *A, const int m, const int n) {
+  assert(A != NULL);
+  assert(m == n);
+
+  for (int i = 0; i < m; i++) {
+    for (int j = 0; j < n; j++) {
+      const real_t a = A[(i * n) + j];
+      const real_t b = A[(j * n) + i];
+      A[(i * n) + j] = (a + b) / 2.0;
+    }
+  }
+}
+
+/**
  * Malloc matrix of size `m x n`.
  */
 real_t *mat_malloc(const size_t m, const size_t n) {
@@ -2561,8 +2655,11 @@ void mat_col_set(real_t *A,
 /**
  * Get matrix column.
  */
-void mat_col_get(
-    const real_t *A, const int m, const int n, const int col_idx, real_t *x) {
+void mat_col_get(const real_t *A,
+                 const int m,
+                 const int n,
+                 const int col_idx,
+                 real_t *x) {
   int vec_idx = 0;
   for (int i = 0; i < m; i++) {
     x[vec_idx++] = A[i * n + col_idx];
@@ -3354,100 +3451,6 @@ void bdiag_dot(const real_t *A,
 }
 
 /**
- * Create skew-symmetric matrix `A` from a 3x1 vector `x`.
- */
-void hat(const real_t x[3], real_t A[3 * 3]) {
-  assert(x != NULL);
-  assert(A != NULL);
-
-  // First row
-  A[0] = 0.0;
-  A[1] = -x[2];
-  A[2] = x[1];
-
-  // Second row
-  A[3] = x[2];
-  A[4] = 0.0;
-  A[5] = -x[0];
-
-  // Third row
-  A[6] = -x[1];
-  A[7] = x[0];
-  A[8] = 0.0;
-}
-
-/**
- * Opposite of the skew-symmetric matrix
- */
-void vee(const real_t A[3 * 3], real_t x[3]) {
-  assert(A != NULL);
-  assert(x != NULL);
-
-  const real_t A02 = A[2];
-  const real_t A10 = A[3];
-  const real_t A21 = A[7];
-
-  x[0] = A21;
-  x[1] = A02;
-  x[2] = A10;
-}
-
-/**
- * Perform forward substitution with a lower triangular matrix `L`, column
- * vector `b` and solve for vector `y` of size `n`.
- */
-void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n) {
-  assert(L != NULL);
-  assert(b != NULL);
-  assert(y != NULL);
-  assert(n > 0);
-
-  for (size_t i = 0; i < n; i++) {
-    real_t alpha = b[i];
-    for (size_t j = 0; j < i; j++) {
-      alpha -= L[i * n + j] * y[j];
-    }
-    y[i] = alpha / L[i * n + i];
-  }
-}
-
-/**
- * Perform backward substitution with a upper triangular matrix `U`, column
- * vector `y` and solve for vector `x` of size `n`.
- */
-void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n) {
-  assert(U != NULL);
-  assert(y != NULL);
-  assert(x != NULL);
-  assert(n > 0);
-
-  for (int i = n - 1; i >= 0; i--) {
-    real_t alpha = y[i];
-    for (int j = i; j < (int) n; j++) {
-      alpha -= U[i * n + j] * x[j];
-    }
-    x[i] = alpha / U[i * n + i];
-  }
-}
-
-/**
- * Enforce semi-positive definite. This function assumes the matrix `A` is
- * square where number of rows `m` and columns `n` is equal, and symmetric.
- */
-void enforce_spd(real_t *A, const int m, const int n) {
-  assert(A != NULL);
-  assert(m == n);
-
-  for (int i = 0; i < m; i++) {
-    for (int j = 0; j < n; j++) {
-      const real_t a = A[(i * n) + j];
-      const real_t b = A[(j * n) + i];
-      A[(i * n) + j] = (a + b) / 2.0;
-    }
-  }
-}
-
-/**
  * Check inverted matrix A by multiplying by its inverse.
  * @returns `0` for succces, `-1` for failure.
  */
@@ -3564,8 +3567,12 @@ int check_jacobian(const char *jac_name,
 /**
  * Decompose matrix A with SVD
  */
-int __lapack_svd(
-    real_t *A, const int m, const int n, real_t *s, real_t *U, real_t *Vt) {
+int __lapack_svd(real_t *A,
+                 const int m,
+                 const int n,
+                 real_t *s,
+                 real_t *U,
+                 real_t *Vt) {
   const int lda = n;
 
 #if PRECISION == 1
@@ -4171,8 +4178,11 @@ void qr(real_t *A, const int m, const int n, real_t *R) {
 // EIG //
 /////////
 
-int __lapack_eig(
-    const real_t *A, const int m, const int n, real_t *V, real_t *w) {
+int __lapack_eig(const real_t *A,
+                 const int m,
+                 const int n,
+                 real_t *V,
+                 real_t *w) {
   assert(A != NULL);
   assert(m > 0 && n > 0);
   assert(m == n);

@@ -603,6 +603,11 @@ void vec2str(const real_t *v, const int n, char *s);
 void eye(real_t *A, const size_t m, const size_t n);
 void ones(real_t *A, const size_t m, const size_t n);
 void zeros(real_t *A, const size_t m, const size_t n);
+void hat(const real_t x[3], real_t A[3 * 3]);
+void vee(const real_t A[3 * 3], real_t x[3]);
+void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
+void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
+void enforce_spd(real_t *A, const int m, const int n);
 
 real_t *mat_malloc(const size_t m, const size_t n);
 int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n);
@@ -738,12 +743,6 @@ void bdiag_dot(const real_t *A,
                const int bs,
                const real_t *x,
                real_t *b);
-
-void hat(const real_t x[3], real_t A[3 * 3]);
-void vee(const real_t A[3 * 3], real_t x[3]);
-void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
-void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
-void enforce_spd(real_t *A, const int m, const int n);
 
 #define MAT_TRANSPOSE(A, M, N, B)                                              \
   real_t B[N * M] = {0};                                                       \
