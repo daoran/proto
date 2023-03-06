@@ -5132,19 +5132,17 @@ int test_camchain() {
 }
 
 int test_calib_camera_mono() {
+  const char *data_path = "/data/proto/cam_april-small/cam0";
+
   // Initialize camera intrinsics
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  // const real_t focal = pinhole_focal(cam_res[0], 90.0);
-  // const real_t cx = cam_res[0] / 2.0;
-  // const real_t cy = cam_res[1] / 2.0;
-  // real_t cam_params[8] = {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0};
   const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-
   const real_t cam_params[8] =
       {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
 
+  // Setup camera calibration problem
   calib_camera_t *calib = calib_camera_malloc();
   calib_camera_add_camera(calib,
                           0,
@@ -5153,8 +5151,56 @@ int test_calib_camera_mono() {
                           dist_model,
                           cam_params,
                           cam_ext);
-  calib_camera_add_data(calib, 0, "/data/proto/cam_april-small/cam0");
-  calib_camera_solve(calib);
+
+  // Batch solve
+  // calib_camera_add_data(calib, 0, data_path);
+  // calib_camera_solve(calib);
+  // calib_camera_free(calib);
+
+  // Incremental solve
+  int cam_idx = 0;
+  int num_files = 0;
+  char **files = list_files(data_path, &num_files);
+
+  for (int view_idx = 0; view_idx < num_files; view_idx++) {
+    // Load aprilgrid
+    aprilgrid_t grid;
+    aprilgrid_load(&grid, files[view_idx]);
+
+    // Get aprilgrid measurements
+    int n = 0;
+    int tag_ids[APRILGRID_MAX_CORNERS] = {0};
+    int corner_indices[APRILGRID_MAX_CORNERS] = {0};
+    real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
+    real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
+    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
+
+    // Add view
+    const timestamp_t ts = grid.timestamp;
+    calib_camera_add_view(calib,
+                          ts,
+                          view_idx,
+                          cam_idx,
+                          n,
+                          tag_ids,
+                          corner_indices,
+                          pts,
+                          kps);
+
+    // Incremental solve
+    if (calib->num_views >= 10) {
+      calib_camera_marginalize(calib);
+      calib_camera_solve(calib);
+      break;
+    }
+    calib_camera_solve(calib);
+  }
+
+  // Clean up
+  for (int view_idx = 0; view_idx < num_files; view_idx++) {
+    free(files[view_idx]);
+  }
+  free(files);
   calib_camera_free(calib);
 
   return 0;
