@@ -631,7 +631,7 @@ def schurs_complement(H, g, m, r, precond=False):
   assert rank(Hmm) == Hmm.shape[0]
   (w, V) = eig(Hmm)
   W_inv = diag(1.0 / w)
-  Hmm_inv = V * W_inv * V.T
+  Hmm_inv = V @ W_inv @ V.T
 
   # Schurs complement
   H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
