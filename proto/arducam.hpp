@@ -272,7 +272,7 @@ public:
 
     ArduCamOutData *frame = NULL;
     ts = time_now();
-    if (ArduCam_getSingleFrame(handle_, frame) != USB_CAMERA_NO_ERROR) {
+    if (ArduCam_getSingleFrame(handle_, frame, 1000) != USB_CAMERA_NO_ERROR) {
       return -1;
     }
 
@@ -324,13 +324,51 @@ int main(int argc, char **argv) {
   const int img_w = cameras[0]->imageWidth();
   const int img_h = cameras[0]->imageHeight();
   std::vector<cv::Mat> cam_frames;
+  std::map<int, timestamp_t> cam_ts;
   for (int cam_idx = 0; cam_idx < num_cameras; cam_idx++) {
     cam_frames.push_back(cv::Mat::zeros(img_h, img_w, CV_8UC3));
+    cam_ts[cam_idx] = 0;
   }
+
+  // int frame_idx = 0;
+  // timestamp_t last_ts = -1;
+  // while (true) {
+  //   // Grab frames from camera
+  //   for (int cam_idx = 0; cam_idx < num_cameras; cam_idx++) {
+  //     cv::Mat image;
+  //     timestamp_t ts = 0;
+  //     if (cameras[cam_idx]->update(image, ts) == 0) {
+  //       cam_frames[cam_idx] = image;
+  //       cam_ts[cam_idx] = ts;
+  //     }
+  //   }
+
+  //   // Check timestamps
+  //   const auto timestamps_ok = fabs(ts2sec(cam_ts[0]) - ts2sec(cam_ts[1])) <= 0.1;
+  //   if (timestamps_ok && cam_ts[0] != last_ts) {
+  //     cv::Mat viz = cam_frames[0];
+  //     for (size_t i = 1; i < cam_frames.size(); i++) {
+  //       cv::hconcat(viz, cam_frames[i], viz);
+  //     }
+
+  //     printf("frame: %d\n", frame_idx);
+  //     printf("cam0 ts: %ld\n", cam_ts[0]);
+  //     printf("cam1 ts: %ld\n", cam_ts[1]);
+  //     printf("last ts: %ld\n", last_ts);
+  //     printf("diff ts: %f\n", fabs(ts2sec(cam_ts[0]) - ts2sec(cam_ts[1])));
+  //     printf("\n");
+
+  //     // printf("fps: %f\n", cameras[0]->fps());
+  //     // cv::imshow("Stereo", viz);
+  //     cv::imwrite("./images/" + std::to_string(frame_idx) + ".png", viz);
+  //     // cv::waitKey(1);
+  //     last_ts = cam_ts[0];
+  //     frame_idx++;
+  //   }
+  // }
 
   // Run cameras
   std::vector<std::thread> threads;
-  std::map<int, timestamp_t> cam_ts;
   std::mutex mtx;
 
   auto thread_func = [&](const int cam_idx) {
@@ -374,7 +412,7 @@ int main(int argc, char **argv) {
     printf("diff ts: %f\n", fabs(ts2sec(cam_ts[0]) - ts2sec(cam_ts[1])));
     printf("\n");
 
-    // printf("fps: %f\n", cameras[0]->fps());
+    printf("fps: %f\n", cameras[0]->fps());
     cv::imshow("Stereo", viz);
     cv::imwrite("./images/" + std::to_string(frame_idx) + ".png", viz);
     cv::waitKey(1);

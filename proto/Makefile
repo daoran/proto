@@ -157,6 +157,7 @@ arducam:
 	@g++ \
 		-Wall \
 		-std=c++11 \
+		-O2 \
 		$(shell pkg-config opencv4 --cflags) \
 		arducam.cpp \
 		-o $(BLD_DIR)/arducam \
