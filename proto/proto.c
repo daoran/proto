@@ -12204,11 +12204,13 @@ int marg_factor_eval(void *marg_ptr) {
 
   // Compute residuals
   // -- Compute dchi vector
-  int row_idx = 0;
+  int param_row_idx = 0;
+  int dchi_row_idx = 0;
   for (size_t i = 0; i < marg->num_params; i++) {
     const int param_type = marg->param_types[i];
+    const int param_size = param_global_size(param_type);
     const int local_size = param_local_size(param_type);
-    const real_t *x0 = marg->x0 + row_idx;
+    const real_t *x0 = marg->x0 + param_row_idx;
     const real_t *x = marg->params[i];
 
     // Calculate i-th dchi
@@ -12228,19 +12230,20 @@ int marg_factor_eval(void *marg_ptr) {
         quat_inv(q0, q0_inv);
         quat_mul(q0_inv, q, dq);
 
-        marg->dchi[row_idx + 0] = dr[0];
-        marg->dchi[row_idx + 1] = dr[1];
-        marg->dchi[row_idx + 2] = dr[2];
-        marg->dchi[row_idx + 3] = 2.0 * dq[1];
-        marg->dchi[row_idx + 4] = 2.0 * dq[2];
-        marg->dchi[row_idx + 5] = 2.0 * dq[3];
+        marg->dchi[dchi_row_idx + 0] = dr[0];
+        marg->dchi[dchi_row_idx + 1] = dr[1];
+        marg->dchi[dchi_row_idx + 2] = dr[2];
+        marg->dchi[dchi_row_idx + 3] = 2.0 * dq[1];
+        marg->dchi[dchi_row_idx + 4] = 2.0 * dq[2];
+        marg->dchi[dchi_row_idx + 5] = 2.0 * dq[3];
       } break;
       default:
         // Trivial minus: x - x0
-        vec_sub(x, x0, marg->dchi + row_idx, local_size);
+        vec_sub(x, x0, marg->dchi + dchi_row_idx, param_size);
         break;
     }
-    row_idx += local_size;
+    param_row_idx += param_size;
+    dchi_row_idx += local_size;
   }
   // -- Compute residuals: r = r0 + J0 * dchi;
   dot(marg->J0,
@@ -15534,7 +15537,7 @@ void tsif_add_imu(tsif_t *tsif,
  */
 param_order_t *tsif_param_order(const void *data, int *sv_size, int *r_size) {
   // Setup parameter order
-  tsif_t *tsif = (tsif_t *) data;
+  // tsif_t *tsif = (tsif_t *) data;
   param_order_t *hash = NULL;
   int col_idx = 0;
 

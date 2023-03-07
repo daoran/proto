@@ -4554,7 +4554,7 @@ int test_marg() {
     pose_t *pose = &poses[k];
     real_t pose_data[7] = {dx, dy, dz, q[0], q[1], q[2], q[3]};
     pose_setup(pose, ts + k, pose_data);
-    pose->marginalize = (k == 0) ? 1 : 0; // Marginalize 1st two poses
+    pose->marginalize = (k == 0) ? 1 : 0; // Marginalize 1st pose
 
     for (int i = 0; i < num_features; i++) {
       // Project point from world to image plane
@@ -4612,7 +4612,7 @@ int test_marg() {
   const int sv_size = col_idx;
   const int r_size = (factor_idx * 2);
 
-  // Form Hessian
+  // Form Hessian **before** marginalization
   int r_idx = 0;
   real_t *H = CALLOC(real_t, sv_size * sv_size);
   real_t *g = CALLOC(real_t, sv_size * 1);
@@ -4640,7 +4640,7 @@ int test_marg() {
     marg_factor_add(marg, CAMERA_FACTOR, &factors[i]);
   }
   marg_factor_marginalize(marg);
-  marg_factor_eval(marg);
+  // marg_factor_eval(marg);
 
   // Print timings
   printf("marg->time_hessian_form:     %.4fs\n", marg->time_hessian_form);
@@ -4692,9 +4692,6 @@ int test_marg() {
                       sv_size_,
                       H_,
                       g_);
-
-  mat_save("/tmp/H.csv", H, sv_size, sv_size);
-  mat_save("/tmp/H_.csv", H_, sv_size_, sv_size_);
 
   // Clean up
   marg_factor_free(marg);
@@ -5151,6 +5148,7 @@ int test_calib_camera_mono() {
                           dist_model,
                           cam_params,
                           cam_ext);
+  calib->verbose = 0;
 
   // Batch solve
   // calib_camera_add_data(calib, 0, data_path);
@@ -5190,11 +5188,12 @@ int test_calib_camera_mono() {
     // Incremental solve
     if (calib->num_views >= 10) {
       calib_camera_marginalize(calib);
-      calib_camera_solve(calib);
-      break;
+      // calib_camera_solve(calib);
+      // break;
     }
     calib_camera_solve(calib);
   }
+  calib_camera_print(calib);
 
   // Clean up
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
