@@ -9,6 +9,42 @@
 #include <opencv2/opencv.hpp>
 #include <ArduCamLib.h>
 
+#ifndef timestamp_t
+typedef int64_t timestamp_t;
+#endif
+
+struct timespec tic() {
+  struct timespec time_start;
+  clock_gettime(CLOCK_MONOTONIC, &time_start);
+  return time_start;
+}
+
+float toc(struct timespec *tic) {
+  struct timespec toc;
+  float time_elasped;
+
+  clock_gettime(CLOCK_MONOTONIC, &toc);
+  time_elasped = (toc.tv_sec - tic->tv_sec);
+  time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
+
+  return time_elasped;
+}
+
+timestamp_t time_now() {
+  struct timespec spec;
+  clock_gettime(CLOCK_REALTIME, &spec);
+
+  const time_t sec = spec.tv_sec;
+  const long int ns = spec.tv_nsec;
+  const uint64_t BILLION = 1000000000L;
+
+  return (uint64_t) sec * BILLION + (uint64_t) ns;
+}
+
+double ts2sec(const timestamp_t ts) {
+  return ts * 1e-9;
+}
+
 namespace ArduCam {
 
 // MACROS
@@ -53,21 +89,27 @@ namespace ArduCam {
   exit(-1)
 #endif
 
-struct timespec tic() {
-  struct timespec time_start;
-  clock_gettime(CLOCK_MONOTONIC, &time_start);
-  return time_start;
-}
+std::string cvtype2str(const int type) {
+  std::string r;
 
-float toc(struct timespec *tic) {
-  struct timespec toc;
-  float time_elasped;
+  uchar depth = type & CV_MAT_DEPTH_MASK;
+  uchar chans = 1 + (type >> CV_CN_SHIFT);
 
-  clock_gettime(CLOCK_MONOTONIC, &toc);
-  time_elasped = (toc.tv_sec - tic->tv_sec);
-  time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
+  switch ( depth ) {
+    case CV_8U:  r = "8U"; break;
+    case CV_8S:  r = "8S"; break;
+    case CV_16U: r = "16U"; break;
+    case CV_16S: r = "16S"; break;
+    case CV_32S: r = "32S"; break;
+    case CV_32F: r = "32F"; break;
+    case CV_64F: r = "64F"; break;
+    default:     r = "User"; break;
+  }
 
-  return time_elasped;
+  r += "C";
+  r += (chans+'0');
+
+  return r;
 }
 
 int list_cameras() {
@@ -222,20 +264,20 @@ public:
     return 0;
   }
 
-  int update(cv::Mat &image) {
+  int update(cv::Mat &image, timestamp_t &ts) {
     const auto retval = ArduCam_isFrameReady(handle_);
     if (retval != 1) {
       return -1;
     }
 
     ArduCamOutData *frame = NULL;
+    ts = time_now();
     if (ArduCam_getSingleFrame(handle_, frame) != USB_CAMERA_NO_ERROR) {
       return -1;
     }
 
     const auto bytes = frame->pu8ImageData;
     const auto bit_width = frame->stImagePara.u8PixelBits;
-
     image = cv::Mat(img_h_, img_w_, CV_8UC1);
     unsigned char *tmp = (unsigned char *) malloc(img_w_ * img_h_);
     int idx = 0;
@@ -278,29 +320,71 @@ int main(int argc, char **argv) {
     cameras[cam_idx]->open();
   }
 
+  // Initialize images
+  const int img_w = cameras[0]->imageWidth();
+  const int img_h = cameras[0]->imageHeight();
+  std::vector<cv::Mat> cam_frames;
+  for (int cam_idx = 0; cam_idx < num_cameras; cam_idx++) {
+    cam_frames.push_back(cv::Mat::zeros(img_h, img_w, CV_8UC3));
+  }
+
   // Run cameras
-  while (true) {
-    std::vector<cv::Mat> cam_frames;
+  std::vector<std::thread> threads;
+  std::map<int, timestamp_t> cam_ts;
+  std::mutex mtx;
 
-    // ArduCam_softTrigger(cameras[0]->handle());
-
-    for (auto &camera : cameras) {
+  auto thread_func = [&](const int cam_idx) {
+    while (true) {
       cv::Mat image;
-      if (camera->update(image) == 0) {
-        cam_frames.push_back(image);
+      timestamp_t ts;
+      // ArduCam_softTrigger(cameras[0]->handle());
+      if (cameras[cam_idx]->update(image, ts) == 0) {
+        std::lock_guard<std::mutex> guard(mtx);
+        cam_frames[cam_idx] = image;
+        cam_ts[cam_idx] = ts;
       }
     }
+  };
 
-    if (cam_frames.size()) {
-      cv::Mat viz = cam_frames[0];
-      for (size_t i = 1; i < cam_frames.size(); i++) {
-        cv::hconcat(viz, cam_frames[i], viz);
-      }
+  for (int cam_idx = 0; cam_idx < num_cameras; cam_idx++) {
+    std::thread th(thread_func, cam_idx);
+    threads.push_back(std::move(th));
+  }
 
-      printf("fps: %f\n", cameras[0]->fps());
-      cv::imshow("Stereo", viz);
-      cv::waitKey(1);
+  int frame_idx = 0;
+  timestamp_t last_ts = 0;
+  while (true) {
+    std::lock_guard<std::mutex> guard(mtx);
+    const auto cams_ok = cam_ts.size() == 2 && cam_ts[0] > 0;
+    const auto timestamps_ok = fabs(ts2sec(cam_ts[0]) - ts2sec(cam_ts[1])) <= 0.008;
+    const auto last_seen_ok = cam_ts[0] != last_ts;
+    if (!(cams_ok && timestamps_ok && last_seen_ok)) {
+      continue;
     }
+
+    cv::Mat viz = cam_frames[0];
+    for (size_t i = 1; i < cam_frames.size(); i++) {
+      cv::hconcat(viz, cam_frames[i], viz);
+    }
+
+    printf("frame: %d\n", frame_idx);
+    printf("cam0 ts: %ld\n", cam_ts[0]);
+    printf("cam1 ts: %ld\n", cam_ts[1]);
+    printf("last ts: %ld\n", last_ts);
+    printf("diff ts: %f\n", fabs(ts2sec(cam_ts[0]) - ts2sec(cam_ts[1])));
+    printf("\n");
+
+    // printf("fps: %f\n", cameras[0]->fps());
+    cv::imshow("Stereo", viz);
+    cv::imwrite("./images/" + std::to_string(frame_idx) + ".png", viz);
+    cv::waitKey(1);
+    last_ts = cam_ts[0];
+    frame_idx++;
+  }
+
+  // Wait for join
+  for (auto &th : threads) {
+    th.join();
   }
 
   return 0;
