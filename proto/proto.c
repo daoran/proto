@@ -13549,6 +13549,58 @@ void calib_camera_errors(calib_camera_t *calib,
   free(r);
 }
 
+int calib_camera_shannon_entropy(calib_camera_t *calib, real_t *entropy) {
+  // Determine parameter order
+  int sv_size = 0;
+  int r_size = 0;
+  param_order_t *hash = calib_camera_param_order(calib, &sv_size, &r_size);
+
+  // Form Hessian H
+  real_t *H = CALLOC(real_t, sv_size * sv_size);
+  real_t *g = CALLOC(real_t, sv_size);
+  real_t *r = CALLOC(real_t, r_size);
+  calib_camera_linearize_compact(calib, sv_size, hash, H, g, r);
+
+  // Estimate covariance
+  real_t *covar = CALLOC(real_t, sv_size * sv_size);
+  pinv(H, sv_size, sv_size, covar);
+
+  // Grab the rows and columns corresponding to calib parameters
+  // In the following we assume the state vector x is ordered:
+  //
+  //   x = [ poses [1..k], N camera extrinsics, N camera parameters]
+  //
+  // We are only interested in the Shannon-Entropy, or the uncertainty of the
+  // calibration parameters. In this case the N camera extrinsics and
+  // parameters, so once we have formed the full Hessian H matrix, inverted it
+  // to form the covariance matrix, we can extract the lower right block matrix
+  // that corresponds to the uncertainty of the calibration parameters, then
+  // use it to calculate the shannon entropy.
+  const timestamp_t last_ts = calib->timestamps[calib->num_views - 1];
+  void *data = hmgets(calib->poses, last_ts).value->data;
+  const int idx_s = hmgets(hash, data).idx + 6;
+  const int idx_e = sv_size - 1;
+  const int m = idx_e - idx_s + 1;
+  real_t *covar_params = CALLOC(real_t, m * m);
+  mat_block_get(covar, sv_size, idx_s, idx_e, idx_s, idx_e, covar_params);
+
+  // Calculate shannon-entropy
+  int status = 0;
+  if (shannon_entropy(covar_params, m, entropy) != 0) {
+    status = -1;
+  }
+
+  // Clean up
+  hmfree(hash);
+  free(covar_params);
+  free(covar);
+  free(H);
+  free(g);
+  free(r);
+
+  return status;
+}
+
 /**
  * Camera calibration parameter order.
  */

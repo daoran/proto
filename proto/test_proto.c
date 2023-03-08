@@ -5193,6 +5193,13 @@ int test_calib_camera_mono() {
       calib_camera_marginalize(calib);
     }
     calib_camera_solve(calib);
+
+    if (calib->num_views) {
+      real_t entropy = 0.0f;
+      if (calib_camera_shannon_entropy(calib, &entropy) == 0) {
+        printf("entropy: %f\n", entropy);
+      }
+    }
   }
   calib_camera_print(calib);
 

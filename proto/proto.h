@@ -2645,6 +2645,7 @@ void calib_camera_errors(calib_camera_t *calib,
                          real_t *reproj_rmse,
                          real_t *reproj_mean,
                          real_t *reproj_median);
+int calib_camera_shannon_entropy(calib_camera_t *calib, real_t *entropy);
 
 param_order_t *calib_camera_param_order(const void *data,
                                         int *sv_size,
