@@ -5129,7 +5129,7 @@ int test_camchain() {
 }
 
 int test_calib_camera_mono() {
-  const char *data_path = "/data/proto/cam_april-small/cam0";
+  const char *data_path = "/data/proto/cam_april/cam0";
 
   // Initialize camera intrinsics
   const int cam_res[2] = {752, 480};
@@ -5156,11 +5156,14 @@ int test_calib_camera_mono() {
   // calib_camera_free(calib);
 
   // Incremental solve
+  int window_size = 5;
   int cam_idx = 0;
   int num_files = 0;
   char **files = list_files(data_path, &num_files);
 
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
+    printf(".");
+    fflush(stdout);
     // Load aprilgrid
     aprilgrid_t grid;
     aprilgrid_load(&grid, files[view_idx]);
@@ -5186,10 +5189,8 @@ int test_calib_camera_mono() {
                           kps);
 
     // Incremental solve
-    if (calib->num_views >= 10) {
+    if (calib->num_views >= window_size) {
       calib_camera_marginalize(calib);
-      // calib_camera_solve(calib);
-      // break;
     }
     calib_camera_solve(calib);
   }

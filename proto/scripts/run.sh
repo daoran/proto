@@ -200,7 +200,7 @@ dev_euroc() {
 
 # dev_sbgc
 # dev_tiscam
-dev_arducam
+# dev_arducam
 # dev_aprilgrid
 # dev_p3p
 # dev_euroc

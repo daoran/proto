@@ -13201,6 +13201,16 @@ void calib_camera_free(calib_camera_t *calib) {
   free(calib->cam_params);
 
   if (calib->num_views) {
+    // View sets
+    for (int i = 0; i < arrlen(calib->timestamps); i++) {
+			const timestamp_t ts = calib->timestamps[i];
+      calib_camera_view_t **cam_views = hmgets(calib->view_sets, ts).value;
+      for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+        calib_camera_view_free(cam_views[cam_idx]);
+      }
+      free(cam_views);
+    }
+
     // Timestamps
     arrfree(calib->timestamps);
 
@@ -13209,17 +13219,11 @@ void calib_camera_free(calib_camera_t *calib) {
       free(calib->poses[i].value);
     }
 
-    // View sets
-    for (int i = 0; i < hmlen(calib->view_sets); i++) {
-      calib_camera_view_t **cam_views = calib->view_sets[i].value;
-      for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-        calib_camera_view_free(cam_views[cam_idx]);
-      }
-      free(cam_views);
-    }
   }
   hmfree(calib->poses);
   hmfree(calib->view_sets);
+
+  // Free previous marg_factor_t
   marg_factor_free(calib->marg);
 
   free(calib);
@@ -13419,7 +13423,6 @@ void calib_camera_marginalize(calib_camera_t *calib) {
 
   // Marginalize
   marg_factor_marginalize(marg);
-  // marg_factor_eval(marg);
   if (calib->marg) {
     marg_factor_free(calib->marg);
   }
@@ -13430,7 +13433,7 @@ void calib_camera_marginalize(calib_camera_t *calib) {
     calib_camera_view_free(cam_views[cam_idx]);
   }
   free(cam_views);
-  assert(hmdel(calib->view_sets, ts) == 1);
+  hmdel(calib->view_sets, ts);
 
   // Remove timestamp
   arrdel(calib->timestamps, 0);
@@ -13507,7 +13510,8 @@ void calib_camera_errors(calib_camera_t *calib,
   int r_idx = 0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      calib_camera_view_t *view = calib->view_sets[view_idx].value[cam_idx];
+			const timestamp_t ts = calib->timestamps[view_idx];
+      calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
       if (view == NULL) {
         continue;
       }
@@ -13595,7 +13599,8 @@ void calib_camera_cost(const void *data, real_t *r) {
   int r_idx = 0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      calib_camera_view_t *view = calib->view_sets[view_idx].value[cam_idx];
+			const timestamp_t ts = calib->timestamps[view_idx];
+      calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
       if (view == NULL) {
         continue;
       }
@@ -13632,7 +13637,8 @@ void calib_camera_linearize_compact(const void *data,
   // -- Evaluate calib camera factors
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-      calib_camera_view_t *view = calib->view_sets[view_idx].value[cam_idx];
+			const timestamp_t ts = calib->timestamps[view_idx];
+      calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
       if (view == NULL) {
         continue;
       }
@@ -13661,15 +13667,15 @@ void calib_camera_linearize_compact(const void *data,
     marg_factor_eval(calib->marg);
     vec_copy(calib->marg->r, calib->marg->r_size, &r[r_idx]);
 
-    // solver_fill_hessian(hash,
-    //                     calib->marg->num_params,
-    //                     calib->marg->params,
-    //                     calib->marg->jacs,
-    //                     calib->marg->r,
-    //                     calib->marg->r_size,
-    //                     sv_size,
-    //                     H,
-    //                     g);
+    solver_fill_hessian(hash,
+                        calib->marg->num_params,
+                        calib->marg->params,
+                        calib->marg->jacs,
+                        calib->marg->r,
+                        calib->marg->r_size,
+                        sv_size,
+                        H,
+                        g);
   }
 }
 
