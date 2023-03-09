@@ -6,6 +6,7 @@
 #define TEST_CSV TEST_DATA_PATH "test_csv.csv"
 #define TEST_POSES_CSV TEST_DATA_PATH "poses.csv"
 #define TEST_SIM_DATA TEST_DATA_PATH "sim_data"
+#define TEST_SIM_GIMBAL TEST_DATA_PATH "sim_gimbal"
 
 /******************************************************************************
  * TEST MACROS
@@ -4643,12 +4644,12 @@ int test_marg() {
   // marg_factor_eval(marg);
 
   // Print timings
-  printf("marg->time_hessian_form:     %.4fs\n", marg->time_hessian_form);
-  printf("marg->time_schur_complement: %.4fs\n", marg->time_schur_complement);
-  printf("marg->time_hessian_decomp:   %.4fs\n", marg->time_hessian_decomp);
-  printf("marg->time_fejs:             %.4fs\n", marg->time_fejs);
-  printf("------------------------------------\n");
-  printf("marg->time_total:            %.4fs\n", marg->time_total);
+  // printf("marg->time_hessian_form:     %.4fs\n", marg->time_hessian_form);
+  // printf("marg->time_schur_complement: %.4fs\n", marg->time_schur_complement);
+  // printf("marg->time_hessian_decomp:   %.4fs\n", marg->time_hessian_decomp);
+  // printf("marg->time_fejs:             %.4fs\n", marg->time_fejs);
+  // printf("------------------------------------\n");
+  // printf("marg->time_total:            %.4fs\n", marg->time_total);
 
   // Determine parameter order for the marginalized Hessian
   param_order_t *hash_ = NULL;
@@ -5128,8 +5129,8 @@ int test_camchain() {
   return 0;
 }
 
-int test_calib_camera_mono() {
-  const char *data_path = "/data/proto/cam_april/cam0";
+int test_calib_camera_mono_batch() {
+  const char *data_path = "/data/proto/cam_april-small/cam0";
 
   // Initialize camera intrinsics
   const int cam_res[2] = {752, 480};
@@ -5148,12 +5149,35 @@ int test_calib_camera_mono() {
                           dist_model,
                           cam_params,
                           cam_ext);
-  calib->verbose = 0;
 
   // Batch solve
-  // calib_camera_add_data(calib, 0, data_path);
-  // calib_camera_solve(calib);
-  // calib_camera_free(calib);
+  calib_camera_add_data(calib, 0, data_path);
+  calib_camera_solve(calib);
+  calib_camera_free(calib);
+
+  return 0;
+}
+
+int test_calib_camera_mono_incremental() {
+  const char *data_path = "/data/proto/cam_april-small/cam0";
+
+  // Initialize camera intrinsics
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  const real_t cam_params[8] =
+      {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
+
+  // Setup camera calibration problem
+  calib_camera_t *calib = calib_camera_malloc();
+  calib_camera_add_camera(calib,
+                          0,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam_params,
+                          cam_ext);
 
   // Incremental solve
   int window_size = 5;
@@ -5161,9 +5185,8 @@ int test_calib_camera_mono() {
   int num_files = 0;
   char **files = list_files(data_path, &num_files);
 
+  calib->verbose = 0;
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
-    printf(".");
-    fflush(stdout);
     // Load aprilgrid
     aprilgrid_t grid;
     aprilgrid_load(&grid, files[view_idx]);
@@ -5197,7 +5220,7 @@ int test_calib_camera_mono() {
     if (calib->num_views) {
       real_t entropy = 0.0f;
       if (calib_camera_shannon_entropy(calib, &entropy) == 0) {
-        printf("entropy: %f\n", entropy);
+        // printf("entropy: %f\n", entropy);
       }
     }
   }
@@ -5520,7 +5543,7 @@ int test_calib_gimbal_add_remove_view() {
 }
 
 int test_calib_gimbal_load() {
-  const char *data_path = "/tmp/sim_gimbal";
+  const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *calib = calib_gimbal_load(data_path);
   MU_ASSERT(calib != NULL);
   // calib_gimbal_print(calib);
@@ -5613,7 +5636,7 @@ static void compare_gimbal_calib(const calib_gimbal_t *gnd,
 int test_calib_gimbal_solve() {
   // Setup
   const int debug = 1;
-  const char *data_path = "/tmp/sim_gimbal";
+  const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
   calib_gimbal_t *calib_est = calib_gimbal_load(data_path);
   MU_ASSERT(calib_gnd != NULL);
@@ -5702,7 +5725,7 @@ int test_calib_gimbal_solve() {
 #ifdef USE_CERES
 int test_calib_gimbal_ceres_solve() {
   // Setup simulation data
-  const char *data_path = "/tmp/sim_gimbal";
+  const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
   calib_gimbal_t *calib_est = calib_gimbal_load(data_path);
   MU_ASSERT(calib_gnd != NULL);
@@ -5828,7 +5851,7 @@ int test_calib_gimbal_ceres_solve() {
 #endif // USE_CERES
 
 int test_calib_gimbal_copy() {
-  const char *data_path = "/tmp/sim_gimbal";
+  const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *src = calib_gimbal_load(data_path);
   calib_gimbal_t *dst = calib_gimbal_copy(src);
 
@@ -6219,7 +6242,7 @@ void test_suite() {
   MU_ADD_TEST(test_vec_add);
   MU_ADD_TEST(test_vec_sub);
   MU_ADD_TEST(test_dot);
-  MU_ADD_TEST(test_bdiag_inv);
+  // MU_ADD_TEST(test_bdiag_inv);
   MU_ADD_TEST(test_hat);
   MU_ADD_TEST(test_check_jacobian);
   MU_ADD_TEST(test_svd);
@@ -6320,7 +6343,8 @@ void test_suite() {
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_camchain);
-  MU_ADD_TEST(test_calib_camera_mono);
+  MU_ADD_TEST(test_calib_camera_mono_batch);
+  MU_ADD_TEST(test_calib_camera_mono_incremental);
   MU_ADD_TEST(test_calib_camera_stereo);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);

@@ -13189,6 +13189,7 @@ calib_camera_t *calib_camera_malloc() {
   // Factors
   calib->view_sets = NULL;
   hmdefault(calib->view_sets, NULL);
+  calib->marg = NULL;
 
   return calib;
 }
