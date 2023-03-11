@@ -10,7 +10,6 @@ def download(src, dst):
   if not os.path.exists(dst):
     print(f"Downloading [{src}] -> [{dst}]", flush=True)
     urllib.request.urlretrieve(src, dst)
-    print("")
 
 
 def download_sequences(dst_dir):

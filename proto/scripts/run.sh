@@ -385,6 +385,7 @@ dev_euroc() {
 # memcheck run_test test_load_sim_cam_data
 # PROTO-SF
 # run_test test_schur_complement
+run_test test_timeline
 # run_test test_pose
 # run_test test_speed_bias
 # run_test test_extrinsics
@@ -416,8 +417,10 @@ dev_euroc() {
 # run_test test_solver_print
 # run_test test_solver_eval
 # run_test test_camchain
-run_test test_calib_camera_mono
+# run_test test_calib_camera_mono_batch
+# run_test test_calib_camera_mono_incremental
 # run_test test_calib_camera_stereo
+# run_test test_calib_imucam_batch
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
 # run_test test_calib_gimbal_add_gimbal_extrinsic
