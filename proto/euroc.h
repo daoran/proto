@@ -234,37 +234,6 @@ typedef struct euroc_calib_t {
 euroc_calib_t *euroc_calib_load(const char *data_path);
 void euroc_calib_free(euroc_calib_t *data);
 
-//   timeline_t timeline() {
-//     // Create timeline
-//     timeline_t timeline;
-
-//     // -- Add cam0 events
-//     for (size_t i = 0; i < cam0_data.timestamps.size(); i++) {
-//       const auto ts = cam0_data.timestamps[i];
-//       const auto img_path = cam0_data.image_paths[i];
-//       const timeline_event_t event{ts, 0, img_path};
-//       timeline.add(event);
-//     }
-//     // -- Add cam1 events
-//     for (size_t i = 0; i < cam1_data.timestamps.size(); i++) {
-//       const auto ts = cam1_data.timestamps[i];
-//       const auto img_path = cam1_data.image_paths[i];
-//       const timeline_event_t event{ts, 1, img_path};
-//       timeline.add(event);
-//     }
-//     // -- Add imu events
-//     for (size_t i = 0; i < imu_data.timestamps.size(); i++) {
-//       const auto ts = imu_data.timestamps[i];
-//       const auto a_B = imu_data.a_B[i];
-//       const auto w_B = imu_data.w_B[i];
-//       const timeline_event_t event{ts, a_B, w_B};
-//       timeline.add(event);
-//     }
-
-//     return timeline;
-//   }
-// };
-
 #endif // EUROC_H
 
 //////////////////////////////////////////////////////////////////////////////
@@ -276,32 +245,6 @@ void euroc_calib_free(euroc_calib_t *data);
 /*****************************************************************************
  * UTILS
  ****************************************************************************/
-
-// /**
-//  * Tic, start timer.
-//  * @returns A timespec encapsulating the time instance when tic() is called
-//  */
-// static struct timespec tic() {
-//   struct timespec time_start;
-//   clock_gettime(CLOCK_MONOTONIC, &time_start);
-//   return time_start;
-// }
-
-// /**
-//  * Toc, stop timer.
-//  * @returns Time elapsed in seconds
-//  */
-// static float toc(struct timespec *tic) {
-//   assert(tic != NULL);
-//   struct timespec toc;
-//   float time_elasped;
-
-//   clock_gettime(CLOCK_MONOTONIC, &toc);
-//   time_elasped = (toc.tv_sec - tic->tv_sec);
-//   time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
-
-//   return time_elasped;
-// }
 
 /**
  * Skip line in file.

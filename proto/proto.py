@@ -12245,8 +12245,8 @@ class TestSandbox(unittest.TestCase):
     # sim.plot_camera_frame()
 
     sim_data = sim.simulate(num_views=30)
-    # sim.save(sim_data)
-    sim.solve(sim_data)
+    sim.save(sim_data)
+    # sim.solve(sim_data)
 
 
 if __name__ == '__main__':

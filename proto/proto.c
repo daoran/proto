@@ -285,6 +285,20 @@ size_t string_copy(char *dst, const char *src) {
 }
 
 /**
+ * Copy a substring from `src` to `dst` where `s` and `n` are the start index
+ * and length.
+ */
+void string_subcopy(char *dst, const char *src, const int s, const int n) {
+  assert(s >= 0);
+  assert(n > 0);
+
+  dst[0] = '\0';
+  for (int i = 0; i < n; i++) {
+    dst[i] = src[s + i];
+  }
+}
+
+/**
  * Concatenate string from `src` to `dst`.
  */
 void string_cat(char *dst, const char *src) {
@@ -1743,6 +1757,13 @@ timestamp_t time_now() {
   const uint64_t BILLION = 1000000000L;
 
   return (uint64_t) sec * BILLION + (uint64_t) ns;
+}
+
+/**
+ * Convert string to timestamp
+ */
+timestamp_t str2ts(const char *ts_str) {
+  return strtoll(ts_str, NULL, 10);
 }
 
 /**
@@ -7626,6 +7647,335 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
   *entropy = 0.5 * log(k * covar_det);
 
   return 0;
+}
+
+//////////////
+// TIMELINE //
+//////////////
+
+static void timestamps_insertion_sort(timestamp_t *timestamps, const size_t n) {
+  for (size_t i = 1; i < n; i++) {
+    timestamp_t key = timestamps[i];
+    size_t j = i - 1;
+
+    while (j >= 0 && timestamps[j] > key) {
+      timestamps[j + 1] = timestamps[j];
+      j = j - 1;
+    }
+    timestamps[j + 1] = key;
+  }
+}
+
+static void timestamps_unique(timestamp_t *set,
+                              size_t *set_len,
+                              const timestamp_t *timestamps,
+                              const size_t num_timestamps) {
+  for (size_t i = 0; i < num_timestamps; i++) {
+    const timestamp_t ts_k = timestamps[i];
+
+    // Check duplicate in set
+    int dup = 0;
+    for (size_t j = 0; j < *set_len; j++) {
+      if (set[j] == ts_k) {
+        dup = 1;
+        break;
+      }
+    }
+
+    // Add to set if no duplicate
+    if (dup == 0) {
+      set[*set_len] = ts_k;
+      (*set_len)++;
+    }
+  }
+
+  // Sort timestamps (just to be sure)
+  timestamps_insertion_sort(set, *set_len);
+}
+
+timeline_t *timeline_malloc() {
+  timeline_t *timeline = MALLOC(timeline_t, 1);
+  timeline->num_events = 0;
+  timeline->events = NULL;
+  return timeline;
+}
+
+void timeline_free(timeline_t *timeline) {
+  // Pre-check
+  if (timeline == NULL) {
+    return;
+  }
+
+  // Free events
+  for (size_t k = 0; k < timeline->num_events; k++) {
+    for (int i = 0; i < timeline->num_event_types; i++) {
+      timeline_event_t *event = timeline->events[k][i];
+      if (event == NULL) {
+        continue;
+      }
+    }
+    free(timeline->events[k]);
+  }
+  free(timeline->events);
+
+  // Free fiducial events
+  timeline_event_t **events_fiducial = timeline->events_fiducial;
+  int *events_fiducial_length = timeline->events_fiducial_length;
+  timestamp_t **events_fiducial_timestamps = timeline->events_fiducial_timestamps;
+  for (int cam_idx = 0; cam_idx < timeline->num_cams; cam_idx++) {
+    for (int k = 0; k < events_fiducial_length[cam_idx]; k++) {
+      free(events_fiducial[cam_idx][k].data.fiducial.tag_ids);
+      free(events_fiducial[cam_idx][k].data.fiducial.corner_indices);
+      free(events_fiducial[cam_idx][k].data.fiducial.object_points);
+      free(events_fiducial[cam_idx][k].data.fiducial.keypoints);
+    }
+    free(events_fiducial[cam_idx]);
+    free(events_fiducial_timestamps[cam_idx]);
+  }
+  free(events_fiducial);
+  free(events_fiducial_length);
+  free(events_fiducial_timestamps);
+
+  // Free imu events
+  timeline_event_t **events_imu = timeline->events_imu;
+  int *events_imu_length = timeline->events_imu_length;
+  timestamp_t **events_imu_timestamps = timeline->events_imu_timestamps;
+  for (int imu_idx = 0; imu_idx < timeline->num_imus; imu_idx++) {
+    free(events_imu[imu_idx]);
+    free(events_imu_timestamps[imu_idx]);
+  }
+  free(events_imu);
+  free(events_imu_length);
+  free(events_imu_timestamps);
+
+  // Free timeline
+  free(timeline);
+}
+
+/**
+ * Load timeline fiducial data
+ */
+timeline_event_t *timeline_load_fiducial(const char *data_dir,
+                                         const int cam_idx,
+                                         int *num_events) {
+  // Load fiducial files
+  *num_events = 0;
+  char **files = list_files(data_dir, num_events);
+
+  // Exit if no data
+  if (*num_events == 0) {
+    for (int view_idx = 0; view_idx < *num_events; view_idx++) {
+      free(files[view_idx]);
+    }
+    free(files);
+    return NULL;
+  }
+
+  // Load fiducial events
+  timeline_event_t *events = MALLOC(timeline_event_t, *num_events);
+
+  for (int view_idx = 0; view_idx < *num_events; view_idx++) {
+    // Load aprilgrid
+    aprilgrid_t grid;
+    aprilgrid_load(&grid, files[view_idx]);
+
+    // Get aprilgrid measurements
+    const timestamp_t ts = grid.timestamp;
+    int num_corners = grid.corners_detected;
+    int *tag_ids = MALLOC(int, num_corners);
+    int *corner_indices = MALLOC(int, num_corners);
+    real_t *kps = MALLOC(real_t, num_corners * 2);
+    real_t *pts = MALLOC(real_t, num_corners * 3);
+    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &num_corners);
+
+    // Create event
+    events[view_idx].type = FIDUCIAL_EVENT;
+    events[view_idx].ts = ts;
+    events[view_idx].data.fiducial.cam_idx = cam_idx;
+    events[view_idx].data.fiducial.num_corners = num_corners;
+    events[view_idx].data.fiducial.corner_indices = corner_indices;
+    events[view_idx].data.fiducial.tag_ids = tag_ids;
+    events[view_idx].data.fiducial.object_points = pts;
+    events[view_idx].data.fiducial.keypoints = kps;
+
+    // Clean up
+    free(files[view_idx]);
+  }
+  free(files);
+
+  return events;
+}
+
+/**
+ * Load timeline IMU data
+ */
+timeline_event_t *timeline_load_imu(const char *csv_path, int *num_events) {
+  // Open file for loading
+  const int num_rows = file_rows(csv_path);
+  FILE *fp = fopen(csv_path, "r");
+  skip_line(fp);
+  if (fp == NULL) {
+    FATAL("Failed to open [%s]!\n", csv_path);
+  }
+
+  // Malloc
+  assert(num_rows > 0);
+  *num_events = num_rows - 1;
+  timeline_event_t *events = MALLOC(timeline_event_t, *num_events);
+
+  // Parse file
+  for (size_t k = 0; k < *num_events; k++) {
+    // Parse line
+    timestamp_t ts = 0;
+    double w[3] = {0};
+    double a[3] = {0};
+    int retval = fscanf(fp,
+                        "%" SCNd64 ",%lf,%lf,%lf,%lf,%lf,%lf",
+                        &ts,
+                        &w[0],
+                        &w[1],
+                        &w[2],
+                        &a[0],
+                        &a[1],
+                        &a[2]);
+    if (retval != 7) {
+      FATAL("Failed to parse line in [%s]\n", csv_path);
+    }
+
+    // Add data
+    events[k].type = IMU_EVENT;
+    events[k].ts = ts;
+    events[k].data.imu.acc[0] = a[0];
+    events[k].data.imu.acc[1] = a[1];
+    events[k].data.imu.acc[2] = a[2];
+    events[k].data.imu.gyr[0] = w[0];
+    events[k].data.imu.gyr[1] = w[1];
+    events[k].data.imu.gyr[2] = w[2];
+  }
+  fclose(fp);
+
+  return events;
+}
+
+/**
+ * Load timeline
+ */
+timeline_t *timeline_load_data(const char *data_dir,
+                               const int num_cams,
+                               const int num_imus) {
+  assert(num_cams >= 0);
+  assert(num_imus >= 0 && num_imus <= 1);
+  int max_num_timestamps = 0;
+  int max_event_types = num_cams + num_imus;
+
+  // Load fiducial events
+  timeline_event_t **events_fiducial = MALLOC(timeline_event_t *, num_cams);
+  int *events_fiducial_length = CALLOC(int, num_cams);
+  timestamp_t **fiducial_timestamps = MALLOC(timestamp_t *, num_cams);
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    // Form events
+    int num_events = 0;
+    char dir[1024] = {0};
+    sprintf(dir, "%s/cam%d", data_dir, cam_idx);
+    events_fiducial[cam_idx] = timeline_load_fiducial(dir, cam_idx, &num_events);
+    events_fiducial_length[cam_idx] = num_events;
+    max_num_timestamps += num_events;
+
+    // Form timestamps
+    fiducial_timestamps[cam_idx] = CALLOC(timestamp_t, num_events);
+    for (int k = 0; k < num_events; k++) {
+      fiducial_timestamps[cam_idx][k] = events_fiducial[cam_idx][k].ts;
+    }
+  }
+
+  // Load IMU events
+  timeline_event_t **events_imu = MALLOC(timeline_event_t *, num_imus);
+  int *events_imu_length = CALLOC(int, num_imus);
+  timestamp_t **imu_timestamps = MALLOC(timestamp_t *, num_cams);
+  for (int imu_idx = 0; imu_idx < num_imus; imu_idx++) {
+    // Form events
+    int num_events = 0;
+    char csv_path[1024] = {0};
+    sprintf(csv_path, "%s/imu%d/data.csv", data_dir, imu_idx);
+    events_imu[imu_idx] = timeline_load_imu(csv_path, &num_events);
+    events_imu_length[imu_idx] = num_events;
+    max_num_timestamps += num_events;
+
+    // Form timestamps
+    imu_timestamps[imu_idx] = CALLOC(timestamp_t, num_events);
+    for (int k = 0; k < num_events; k++) {
+      imu_timestamps[imu_idx][k] = events_imu[imu_idx][k].ts;
+    }
+  }
+
+  // Determine unique set of timestamps
+  size_t ts_set_len = 0;
+  timestamp_t *ts_set = CALLOC(timestamp_t, max_num_timestamps);
+  // -- Fiducial timestamps
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    timestamp_t *timestamps = fiducial_timestamps[cam_idx];
+    int num_timestamps = events_fiducial_length[cam_idx];
+    timestamps_unique(ts_set, &ts_set_len, timestamps, num_timestamps);
+  }
+  // -- IMU timestamps
+  for (int imu_idx = 0; imu_idx < num_imus; imu_idx++) {
+    timestamp_t *timestamps = imu_timestamps[imu_idx];
+    int num_timestamps = events_imu_length[imu_idx];
+    timestamps_unique(ts_set, &ts_set_len, timestamps, num_timestamps);
+  }
+
+  // Add events to timeline
+  timeline_t *timeline = timeline_malloc();
+  timeline->num_cams = num_cams;
+  timeline->num_imus = num_imus;
+  timeline->num_events = ts_set_len;
+  timeline->num_event_types = max_event_types;
+  timeline->events = CALLOC(timeline_event_t **, ts_set_len);
+  timeline->events_fiducial = events_fiducial;
+  timeline->events_fiducial_length = events_fiducial_length;
+  timeline->events_fiducial_timestamps = fiducial_timestamps;
+  timeline->events_imu = events_imu;
+  timeline->events_imu_length = events_imu_length;
+  timeline->events_imu_timestamps = imu_timestamps;
+
+  int *indices = CALLOC(int, max_event_types);
+  for (int k = 0; k < ts_set_len; k++) {
+    // Initialize events at k
+    timeline->events[k] = CALLOC(timeline_event_t *, max_event_types);
+
+    // Add events at k
+    int type_idx = 0;
+    for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+      // Find timestamp index
+      int ts_found = 0;
+      int ts_idx = 0;
+      for (int i = indices[type_idx]; i < events_fiducial_length[cam_idx]; i++) {
+        timeline_event_t *event = &events_fiducial[cam_idx][i];
+        if (event->ts == ts_set[k]) {
+          indices[type_idx] = i;
+          ts_found = 1;
+          ts_idx = i;
+          break;
+        } else if (event->ts > ts_set[k]) {
+          break;
+        }
+      }
+
+      // Add event
+      if (ts_found) {
+        timeline->events[k][type_idx] = &events_fiducial[cam_idx][ts_idx];
+      } else {
+        timeline->events[k][type_idx] = NULL;
+      }
+      type_idx++;
+    }
+  }
+
+  // Clean up
+  free(ts_set);
+  free(indices);
+
+  return timeline;
 }
 
 //////////////
@@ -13880,6 +14230,387 @@ void calib_camera_solve(calib_camera_t *calib) {
   if (calib->verbose) {
     calib_camera_print(calib);
   }
+}
+
+///////////////////////////////
+// CALIB IMU-CAM CALIBRATION //
+///////////////////////////////
+
+calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
+                                              const int view_idx,
+                                              const int cam_idx,
+                                              const int num_corners,
+                                              const int *tag_ids,
+                                              const int *corner_indices,
+                                              const real_t *object_points,
+                                              const real_t *keypoints,
+                                              pose_t *pose,
+                                              extrinsic_t *cam_ext,
+                                              camera_params_t *cam_params) {
+  calib_imucam_view_t *view = MALLOC(calib_imucam_view_t, 1);
+
+  // Properties
+  view->ts = ts;
+  view->view_idx = view_idx;
+  view->cam_idx = cam_idx;
+  view->num_corners = num_corners;
+
+  // Measurements
+  if (num_corners) {
+    view->tag_ids = MALLOC(int, num_corners);
+    view->corner_indices = MALLOC(int, num_corners);
+    view->object_points = MALLOC(real_t, num_corners * 3);
+    view->keypoints = MALLOC(real_t, num_corners * 2);
+  }
+
+  // Factors
+  view->factors = MALLOC(calib_imucam_factor_t, num_corners);
+  assert(view->tag_ids != NULL);
+  assert(view->corner_indices != NULL);
+  assert(view->object_points != NULL);
+  assert(view->keypoints != NULL);
+  assert(view->factors != NULL);
+
+  for (int i = 0; i < num_corners; i++) {
+    view->tag_ids[i] = tag_ids[i];
+    view->corner_indices[i] = corner_indices[i];
+    view->object_points[i * 3] = object_points[i * 3];
+    view->object_points[i * 3 + 1] = object_points[i * 3 + 1];
+    view->object_points[i * 3 + 2] = object_points[i * 3 + 2];
+    view->keypoints[i * 2] = keypoints[i * 2];
+    view->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
+  }
+
+  const real_t var[2] = {1.0, 1.0};
+  for (int i = 0; i < view->num_corners; i++) {
+    const int tag_id = tag_ids[i];
+    const int corner_idx = corner_indices[i];
+    const real_t *p_FFi = &object_points[i * 3];
+    const real_t *z = &keypoints[i * 2];
+
+    view->tag_ids[i] = tag_id;
+    view->corner_indices[i] = corner_idx;
+    view->object_points[i * 3] = p_FFi[0];
+    view->object_points[i * 3 + 1] = p_FFi[1];
+    view->object_points[i * 3 + 2] = p_FFi[2];
+    view->keypoints[i * 2] = z[0];
+    view->keypoints[i * 2 + 1] = z[1];
+
+    calib_camera_factor_setup(&view->factors[i],
+                              pose,
+                              cam_ext,
+                              cam_params,
+                              cam_idx,
+                              tag_id,
+                              corner_idx,
+                              p_FFi,
+                              z,
+                              var);
+  }
+
+  return view;
+
+}
+
+void calib_imucam_view_free(calib_imucam_view_t *view) {
+  if (view) {
+    free(view->tag_ids);
+    free(view->corner_indices);
+    free(view->object_points);
+    free(view->keypoints);
+    free(view->factors);
+    free(view);
+  }
+}
+
+/**
+ * Malloc imu-cam calibration problem
+ */
+calib_imucam_t *calib_imucam_malloc() {
+  calib_imucam_t *calib = MALLOC(calib_imucam_t, 1);
+
+  // Settings
+  calib->fix_fiducial = 0;
+  calib->fix_poses = 0;
+  calib->fix_cam_params = 0;
+  calib->fix_cam_exts = 0;
+  aprilgrid_setup(0, &calib->calib_target);
+  calib->verbose = 1;
+  calib->max_iter = 20;
+
+  // Flags
+  calib->imu_ok = 0;
+  calib->cams_ok = 0;
+
+  // Counters
+  calib->num_cams = 0;
+  calib->num_views = 0;
+  calib->num_factors = 0;
+
+  // Variables
+  calib->timestamps = NULL;
+  calib->fiducial = NULL;
+  calib->poses = NULL;
+  calib->cam_exts = NULL;
+  calib->cam_params = NULL;
+  hmdefault(calib->poses, NULL);
+
+  // Factors
+  calib->view_sets = NULL;
+  hmdefault(calib->view_sets, NULL);
+  calib->marg = NULL;
+
+  return calib;
+}
+
+/**
+ * Free camera calibration problem
+ */
+void calib_imucam_free(calib_imucam_t *calib) {
+  free(calib->cam_exts);
+  free(calib->imucam_ext);
+  free(calib->cam_params);
+  free(calib->imu_params);
+
+  if (calib->num_views) {
+    // View sets
+    for (int i = 0; i < arrlen(calib->timestamps); i++) {
+			const timestamp_t ts = calib->timestamps[i];
+      calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
+      for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+        calib_imucam_view_free(cam_views[cam_idx]);
+      }
+      free(cam_views);
+    }
+
+    // Timestamps
+    arrfree(calib->timestamps);
+
+    // Poses
+    for (int i = 0; i < hmlen(calib->poses); i++) {
+      free(calib->poses[i].value);
+    }
+
+  }
+  hmfree(calib->poses);
+  hmfree(calib->view_sets);
+
+  // Free previous marg_factor_t
+  marg_factor_free(calib->marg);
+
+  free(calib);
+}
+
+/**
+ * Print imu-cam calibration problem
+ */
+void calib_imucam_print(calib_imucam_t *calib) {
+  real_t reproj_rmse = 0.0;
+  real_t reproj_mean = 0.0;
+  real_t reproj_median = 0.0;
+  // calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+
+  printf("settings:\n");
+  printf("  fix_fiducial: %d\n", calib->fix_fiducial);
+  printf("  fix_poses: %d\n", calib->fix_poses);
+  printf("  fix_cam_exts: %d\n", calib->fix_cam_exts);
+  printf("  fix_cam_params: %d\n", calib->fix_cam_params);
+  printf("\n");
+
+  printf("statistics:\n");
+  printf("  num_cams: %d\n", calib->num_cams);
+  printf("  num_views: %d\n", calib->num_views);
+  printf("  num_factors: %d\n", calib->num_factors);
+  printf("\n");
+
+  printf("reproj_errors:\n");
+  printf("  rmse: %f\n", reproj_rmse);
+  printf("  mean: %f\n", reproj_mean);
+  printf("  median: %f\n", reproj_median);
+  printf("\n");
+
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    camera_params_t *cam = &calib->cam_params[cam_idx];
+    char param_str[100] = {0};
+    vec2str(cam->data, 8, param_str);
+
+    printf("cam%d:\n", cam_idx);
+    printf("  resolution: [%d, %d]\n", cam->resolution[0], cam->resolution[1]);
+    printf("  proj_model: %s\n", cam->proj_model);
+    printf("  dist_model: %s\n", cam->dist_model);
+    printf("  param: %s\n", param_str);
+    printf("\n");
+
+    if (cam_idx > 0) {
+      char tf_str[20] = {0};
+      sprintf(tf_str, "T_cam0_cam%d", cam_idx);
+
+      POSE2TF(calib->cam_exts[cam_idx].data, T);
+      printf("%s:\n", tf_str);
+      printf("  rows: 4\n");
+      printf("  cols: 4\n");
+      printf("  data: [\n");
+      printf("    %.8f, %.8f, %.8f, %.8f,\n", T[0], T[1], T[2], T[3]);
+      printf("    %.8f, %.8f, %.8f, %.8f,\n", T[4], T[5], T[6], T[7]);
+      printf("    %.8f, %.8f, %.8f, %.8f,\n", T[8], T[9], T[10], T[11]);
+      printf("    %.8f, %.8f, %.8f, %.8f,\n", T[12], T[13], T[14], T[15]);
+      printf("  ]\n");
+    }
+  }
+
+  if (calib->imucam_ext) {
+    POSE2TF(calib->imucam_ext->data, T);
+    printf("T_imu0_cam0:\n");
+    printf("  rows: 4\n");
+    printf("  cols: 4\n");
+    printf("  data: [\n");
+    printf("    %.8f, %.8f, %.8f, %.8f,\n", T[0], T[1], T[2], T[3]);
+    printf("    %.8f, %.8f, %.8f, %.8f,\n", T[4], T[5], T[6], T[7]);
+    printf("    %.8f, %.8f, %.8f, %.8f,\n", T[8], T[9], T[10], T[11]);
+    printf("    %.8f, %.8f, %.8f, %.8f,\n", T[12], T[13], T[14], T[15]);
+    printf("  ]\n");
+  }
+}
+
+void calib_imucam_add_imu(calib_imucam_t *calib,
+                          const real_t imu_rate,
+                          const real_t sigma_aw,
+                          const real_t sigma_gw,
+                          const real_t sigma_a,
+                          const real_t sigma_g,
+                          const real_t g,
+                          const real_t *imucam_ext) {
+  assert(calib != NULL);
+  assert(imu_rate > 0);
+  assert(sigma_aw > 0);
+  assert(sigma_gw > 0);
+  assert(sigma_a > 0);
+  assert(sigma_g > 0);
+  assert(g > 9.0);
+  assert(imucam_ext);
+
+  if (calib->imu_params) {
+    LOG_ERROR("Currently only supports 1 IMU!\n");
+    return;
+  }
+
+  calib->imu_params = MALLOC(imu_params_t, 1);
+  calib->imu_params->imu_idx  = 0;
+  calib->imu_params->rate     = imu_rate;
+  calib->imu_params->sigma_aw = sigma_aw;
+  calib->imu_params->sigma_gw = sigma_gw;
+  calib->imu_params->sigma_a  = sigma_a;
+  calib->imu_params->sigma_g  = sigma_g;
+  calib->imu_params->g        = g;
+
+  calib->imucam_ext = MALLOC(extrinsic_t, 1);
+  extrinsic_setup(calib->imucam_ext, imucam_ext);
+}
+
+/**
+ * Add camera to imu-cam calibration problem
+ */
+void calib_imucam_add_camera(calib_imucam_t *calib,
+                             const int cam_idx,
+                             const int cam_res[2],
+                             const char *proj_model,
+                             const char *dist_model,
+                             const real_t *cam_params,
+                             const real_t *cam_ext) {
+  assert(calib != NULL);
+  assert(cam_idx <= calib->num_cams);
+  assert(cam_res != NULL);
+  assert(proj_model != NULL);
+  assert(dist_model != NULL);
+  assert(cam_params != NULL);
+  assert(cam_ext != NULL);
+
+  if (cam_idx > (calib->num_cams - 1)) {
+    const int new_size = calib->num_cams + 1;
+    calib->cam_params = REALLOC(calib->cam_params, camera_params_t, new_size);
+    calib->cam_exts = REALLOC(calib->cam_exts, extrinsic_t, new_size);
+  }
+
+  camera_params_setup(&calib->cam_params[cam_idx],
+                      cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_params);
+  extrinsic_setup(&calib->cam_exts[cam_idx], cam_ext);
+  calib->num_cams++;
+  calib->cams_ok = 1;
+}
+
+/**
+ * Add camera calibration view.
+ */
+void calib_imucam_add_view(calib_imucam_t *calib,
+                           const timestamp_t ts,
+                           const int view_idx,
+                           const int cam_idx,
+                           const int num_corners,
+                           const int *tag_ids,
+                           const int *corner_indices,
+                           const real_t *object_points,
+                           const real_t *keypoints) {
+  assert(calib != NULL);
+  assert(calib->cams_ok);
+  if (num_corners == 0) {
+    return;
+  }
+
+  // Pose T_C0F
+  pose_t *pose = hmgets(calib->poses, ts).value;
+  if (pose == NULL) {
+    // Estimate relative pose T_CiF
+    real_t T_CiF[4 * 4] = {0};
+    const int status = solvepnp_camera(&calib->cam_params[cam_idx],
+                                       keypoints,
+                                       object_points,
+                                       num_corners,
+                                       T_CiF);
+    if (status != 0) {
+      return;
+    }
+
+    // Form T_BF
+    POSE2TF(calib->cam_exts[cam_idx].data, T_BCi);
+    TF_CHAIN(T_BF, 2, T_BCi, T_CiF);
+    TF_VECTOR(T_BF, pose_vector);
+
+    // New pose
+    arrput(calib->timestamps, ts);
+    pose = MALLOC(pose_t, 1);
+    pose_setup(pose, ts, pose_vector);
+    hmput(calib->poses, ts, pose);
+  }
+
+  // Form new view
+  calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
+  if (cam_views == NULL) {
+    cam_views = CALLOC(calib_imucam_view_t **, calib->num_cams);
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      cam_views[cam_idx] = NULL;
+    }
+    hmput(calib->view_sets, ts, cam_views);
+    calib->num_views++;
+  }
+
+  calib_imucam_view_t *view =
+      calib_imucam_view_malloc(ts,
+                               view_idx,
+                               cam_idx,
+                               num_corners,
+                               tag_ids,
+                               corner_indices,
+                               object_points,
+                               keypoints,
+                               pose,
+                               &calib->cam_exts[cam_idx],
+                               &calib->cam_params[cam_idx]);
+  cam_views[cam_idx] = view;
+  calib->num_factors += num_corners;
 }
 
 ////////////////////////

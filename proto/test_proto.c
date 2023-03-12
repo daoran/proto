@@ -3271,6 +3271,14 @@ int test_schur_complement() {
   return 0;
 }
 
+int test_timeline() {
+  const char *data_dir = "/data/proto/imu_april";
+  timeline_t *timeline = timeline_load_data(data_dir, 2, 0);
+  timeline_free(timeline);
+
+  return 0;
+}
+
 int test_pose() {
   timestamp_t ts = 1;
   pose_t pose;
@@ -5370,6 +5378,107 @@ int test_calib_camera_stereo() {
   return 0;
 }
 
+int test_calib_imucam_batch() {
+  // clang-format off
+  // int num_cams = 2;
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_params[2][8] = {
+    {458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05},
+    {457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.555e-05}
+  };
+  const real_t cam_ext[7] = {
+    1.099270e-01, -2.450375e-04, 7.188873e-04,
+    9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03
+  };
+  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  const int imu_rate = 200;
+  const real_t sigma_a = 0.08;
+  const real_t sigma_g = 0.004;
+  const real_t sigma_aw = 0.00004;
+  const real_t sigma_gw = 2.0e-6;
+  const real_t g = 9.81;
+  // clang-format on
+
+  calib_imucam_t *calib = calib_imucam_malloc();
+  calib_imucam_add_imu(calib,
+                       imu_rate,
+                       sigma_a,
+                       sigma_g,
+                       sigma_aw,
+                       sigma_gw,
+                       g,
+                       imu_ext);
+  calib_imucam_add_camera(calib,
+                          0,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam_params[0],
+                          cam_ext);
+  calib_imucam_add_camera(calib,
+                          1,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam_params[1],
+                          cam_ext);
+
+  // Incremental solve
+  // char *cam_data_dir = "/data/proto/imu_april/";
+
+  // for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+  //   char data_path[1024] = {0};
+  //   int num_files = 0;
+  //   sprintf(data_path, cam_data_dir, cam_idx);
+  //   char **files = list_files(data_path, &num_files);
+
+  //   for (int view_idx = 0; view_idx < num_files; view_idx++) {
+  //     // Load aprilgrid
+  //     aprilgrid_t grid;
+  //     aprilgrid_load(&grid, files[view_idx]);
+
+  //     // Get aprilgrid measurements
+  //     int n = 0;
+  //     int tag_ids[APRILGRID_MAX_CORNERS] = {0};
+  //     int corner_indices[APRILGRID_MAX_CORNERS] = {0};
+  //     real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
+  //     real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
+  //     aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
+
+  //     // Add view
+  //     const timestamp_t ts = grid.timestamp;
+  //     calib_imucam_add_view(calib,
+  //                           ts,
+  //                           view_idx,
+  //                           cam_idx,
+  //                           n,
+  //                           tag_ids,
+  //                           corner_indices,
+  //                           pts,
+  //                           kps);
+
+  //     // Incremental solve
+  //     if (calib->num_views >= window_size) {
+  //       calib_camera_marginalize(calib);
+  //     }
+  //     calib_camera_solve(calib);
+  //   }
+  // }
+  // calib_camera_print(calib);
+
+  // Clean up
+  // for (int view_idx = 0; view_idx < num_files; view_idx++) {
+  //   free(files[view_idx]);
+  // }
+  // free(files);
+
+  calib_imucam_free(calib);
+
+  return 0;
+}
+
 int test_calib_gimbal_add_fiducial() {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
@@ -6310,6 +6419,7 @@ void test_suite() {
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);
+  MU_ADD_TEST(test_timeline);
   MU_ADD_TEST(test_pose);
   MU_ADD_TEST(test_extrinsics);
   MU_ADD_TEST(test_imu_biases);
@@ -6346,13 +6456,14 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_mono_batch);
   MU_ADD_TEST(test_calib_camera_mono_incremental);
   MU_ADD_TEST(test_calib_camera_stereo);
+  MU_ADD_TEST(test_calib_imucam_batch);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_link);
   MU_ADD_TEST(test_calib_gimbal_add_camera);
   MU_ADD_TEST(test_calib_gimbal_add_remove_view);
-  // MU_ADD_TEST(test_calib_gimbal_load);
+  MU_ADD_TEST(test_calib_gimbal_load);
   MU_ADD_TEST(test_calib_gimbal_solve);
 #ifdef USE_CERES
   MU_ADD_TEST(test_calib_gimbal_ceres_solve);
