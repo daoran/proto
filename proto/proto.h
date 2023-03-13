@@ -1366,6 +1366,8 @@ typedef struct timeline_t {
   int num_events;
   int num_event_types;
   timeline_event_t ***events;
+  timestamp_t *events_ts;
+  int **events_types;
 
   // Fiducial events
   timeline_event_t **events_fiducial;

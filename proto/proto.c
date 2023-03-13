@@ -7715,8 +7715,11 @@ void timeline_free(timeline_t *timeline) {
       }
     }
     free(timeline->events[k]);
+    free(timeline->events_types[k]);
   }
   free(timeline->events);
+  free(timeline->events_ts);
+  free(timeline->events_types);
 
   // Free fiducial events
   timeline_event_t **events_fiducial = timeline->events_fiducial;
@@ -7857,6 +7860,71 @@ timeline_event_t *timeline_load_imu(const char *csv_path, int *num_events) {
   return events;
 }
 
+static void timeline_add(timeline_t *tl,
+                         const int k,
+                         const int num_cams,
+                         const int num_imus,
+                         const int max_event_types,
+                         int *indices) {
+  // Allocate memory
+  tl->events[k] = CALLOC(timeline_event_t *, max_event_types);
+  tl->events_types[k] = CALLOC(int, max_event_types);
+
+  // Add fiducial events at k
+  int type_idx = 0;
+
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    // Find timestamp index
+    int ts_found = 0;
+    int ts_idx = 0;
+    for (int i = indices[type_idx]; i < tl->events_fiducial_length[cam_idx]; i++) {
+      timeline_event_t *event = &tl->events_fiducial[cam_idx][i];
+      if (event->ts == tl->events_ts[k]) {
+        indices[type_idx] = i;
+        ts_found = 1;
+        ts_idx = i;
+        break;
+      } else if (event->ts > tl->events_ts[k]) {
+        break;
+      }
+    }
+
+    // Add event
+    if (ts_found) {
+      tl->events[k][type_idx] = &tl->events_fiducial[cam_idx][ts_idx];
+    } else {
+      tl->events[k][type_idx] = NULL;
+    }
+    type_idx++;
+  }
+
+  // Add IMU events at k
+  for (int imu_idx = 0; imu_idx < num_imus; imu_idx++) {
+    // Find timestamp index
+    int ts_found = 0;
+    int ts_idx = 0;
+    for (int i = indices[type_idx]; i < tl->events_imu_length[imu_idx]; i++) {
+      timeline_event_t *event = &tl->events_imu[imu_idx][i];
+      if (event->ts == tl->events_ts[k]) {
+        indices[type_idx] = i;
+        ts_found = 1;
+        ts_idx = i;
+        break;
+      } else if (event->ts > tl->events_ts[k]) {
+        break;
+      }
+    }
+
+    // Add event
+    if (ts_found) {
+      tl->events[k][type_idx] = &tl->events_imu[imu_idx][ts_idx];
+    } else {
+      tl->events[k][type_idx] = NULL;
+    }
+    type_idx++;
+  }
+}
+
 /**
  * Load timeline
  */
@@ -7909,28 +7977,30 @@ timeline_t *timeline_load_data(const char *data_dir,
   }
 
   // Determine unique set of timestamps
-  size_t ts_set_len = 0;
-  timestamp_t *ts_set = CALLOC(timestamp_t, max_num_timestamps);
+  size_t events_ts_len = 0;
+  timestamp_t *events_ts = CALLOC(timestamp_t, max_num_timestamps);
   // -- Fiducial timestamps
   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
     timestamp_t *timestamps = fiducial_timestamps[cam_idx];
     int num_timestamps = events_fiducial_length[cam_idx];
-    timestamps_unique(ts_set, &ts_set_len, timestamps, num_timestamps);
+    timestamps_unique(events_ts, &events_ts_len, timestamps, num_timestamps);
   }
   // -- IMU timestamps
   for (int imu_idx = 0; imu_idx < num_imus; imu_idx++) {
     timestamp_t *timestamps = imu_timestamps[imu_idx];
     int num_timestamps = events_imu_length[imu_idx];
-    timestamps_unique(ts_set, &ts_set_len, timestamps, num_timestamps);
+    timestamps_unique(events_ts, &events_ts_len, timestamps, num_timestamps);
   }
 
   // Add events to timeline
   timeline_t *timeline = timeline_malloc();
   timeline->num_cams = num_cams;
   timeline->num_imus = num_imus;
-  timeline->num_events = ts_set_len;
+  timeline->num_events = events_ts_len;
   timeline->num_event_types = max_event_types;
-  timeline->events = CALLOC(timeline_event_t **, ts_set_len);
+  timeline->events = CALLOC(timeline_event_t **, events_ts_len);
+  timeline->events_ts = events_ts;
+  timeline->events_types = CALLOC(int *, events_ts_len);
   timeline->events_fiducial = events_fiducial;
   timeline->events_fiducial_length = events_fiducial_length;
   timeline->events_fiducial_timestamps = fiducial_timestamps;
@@ -7939,40 +8009,9 @@ timeline_t *timeline_load_data(const char *data_dir,
   timeline->events_imu_timestamps = imu_timestamps;
 
   int *indices = CALLOC(int, max_event_types);
-  for (int k = 0; k < ts_set_len; k++) {
-    // Initialize events at k
-    timeline->events[k] = CALLOC(timeline_event_t *, max_event_types);
-
-    // Add events at k
-    int type_idx = 0;
-    for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-      // Find timestamp index
-      int ts_found = 0;
-      int ts_idx = 0;
-      for (int i = indices[type_idx]; i < events_fiducial_length[cam_idx]; i++) {
-        timeline_event_t *event = &events_fiducial[cam_idx][i];
-        if (event->ts == ts_set[k]) {
-          indices[type_idx] = i;
-          ts_found = 1;
-          ts_idx = i;
-          break;
-        } else if (event->ts > ts_set[k]) {
-          break;
-        }
-      }
-
-      // Add event
-      if (ts_found) {
-        timeline->events[k][type_idx] = &events_fiducial[cam_idx][ts_idx];
-      } else {
-        timeline->events[k][type_idx] = NULL;
-      }
-      type_idx++;
-    }
+  for (int k = 0; k < events_ts_len; k++) {
+    timeline_add(timeline, k, num_cams, num_imus, max_event_types, indices);
   }
-
-  // Clean up
-  free(ts_set);
   free(indices);
 
   return timeline;
