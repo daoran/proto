@@ -35,3 +35,4 @@ tags
 *.bag
 *.pdf
 .bash_history
+.session.vim

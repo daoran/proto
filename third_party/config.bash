@@ -42,12 +42,7 @@ install_base() {
 
   pip3 install --upgrade pip
   pip3 install --user dataclasses
-  pip3 install --user numpy
-  pip3 install --user scipy
-  pip3 install --user scikit-build
   pip3 install --user pandas
-  pip3 install --user opencv-python
-  pip3 install --user matplotlib
 }
 
 build_cmake_project() {

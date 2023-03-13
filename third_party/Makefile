@@ -2,8 +2,6 @@ MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 MKFILE_DIR := $(dir $(MKFILE_PATH))
 PREFIX := $(MKFILE_DIR)
 SRC_PATH := $(PREFIX)/src
-ROS_VERSION := "noetic"
-
 
 default: dirs install
 .PHONY: dirs install
@@ -41,12 +39,6 @@ apt_base:
 		python3-setuptools
 	@pip3 install --upgrade pip
 	@pip3 install --user dataclasses
-	@pip3 install --user numpy
-	@pip3 install --user scipy
-	@pip3 install --user scikit-build
-	@pip3 install --user pandas
-	@pip3 install --user opencv-python
-	@pip3 install --user matplotlib
 
 install_apt_pkgs:
 	@sudo apt-get update -qqq
@@ -60,8 +52,8 @@ install_apt_pkgs:
 	@sudo apt-get install -y -qqq libsdl2-*
 	@sudo apt-get install -y -qqq libyaml-cpp-dev
 
-install_ros:
-	@bash scripts/install_ros.bash
+install_ros2:
+	@bash scripts/install_ros2.bash
 
 build_pkgs: build_apriltag build_tiscamera build_stb build_dbow2
 

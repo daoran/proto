@@ -78,11 +78,11 @@ INSTALL(
 # ADD_EXECUTABLE(atl_node src/ros/atl_node.cpp)
 # TARGET_LINK_LIBRARIES(atl_node ${DEPS})
 
-ADD_EXECUTABLE(px4_hover_node src/ros/px4_hover_node.cpp)
-TARGET_LINK_LIBRARIES(px4_hover_node ${DEPS})
+# ADD_EXECUTABLE(px4_hover_node src/ros/px4_hover_node.cpp)
+# TARGET_LINK_LIBRARIES(px4_hover_node ${DEPS})
 
-ADD_EXECUTABLE(px4_sysid_node src/ros/px4_sysid_node.cpp)
-TARGET_LINK_LIBRARIES(px4_sysid_node ${DEPS})
+# ADD_EXECUTABLE(px4_sysid_node src/ros/px4_sysid_node.cpp)
+# TARGET_LINK_LIBRARIES(px4_sysid_node ${DEPS})
 
 # ADD_EXECUTABLE(example_node src/ros/example_node.cpp)
 # TARGET_LINK_LIBRARIES(example_node ${DEPS})

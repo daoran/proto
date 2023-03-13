@@ -1374,7 +1374,6 @@ typedef struct timeline_t {
   timestamp_t *timeline_timestamps;
   timeline_event_t ***timeline_events;
   int *timeline_events_lengths;
-
 } timeline_t;
 
 timeline_t *timeline_malloc();
