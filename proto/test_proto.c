@@ -3273,7 +3273,23 @@ int test_schur_complement() {
 
 int test_timeline() {
   const char *data_dir = "/data/proto/imu_april";
-  timeline_t *timeline = timeline_load_data(data_dir, 2, 0);
+  const int num_cams = 2;
+  const int num_imus = 1;
+  timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
+
+  // for (int k = 0; k < timeline->timeline_length; k++) {
+  //   for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+  //     timeline_event_t *event = timeline->timeline_events[k][i];
+  //     if (event->type == FIDUCIAL_EVENT) {
+  //       printf("ts: %ld, cam_idx: %d\n", event->ts, event->data.fiducial.cam_idx);
+  //     } else {
+  //       printf("ts: %ld, [%.2f, %.2f, %.2f]\n", event->ts, event->data.imu.acc[0], event->data.imu.acc[1], event->data.imu.acc[2]);
+
+  //     }
+  //   }
+  //   // printf("%d: %d\n", k, timeline->timeline_events_lengths[k]);
+  // }
+
   timeline_free(timeline);
 
   return 0;

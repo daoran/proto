@@ -1318,9 +1318,9 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
 // TIMELINE //
 //////////////
 
-#define CAMERA_EVENT 0
-#define IMU_EVENT 1
-#define FIDUCIAL_EVENT 2
+#define CAMERA_EVENT 1
+#define IMU_EVENT 2
+#define FIDUCIAL_EVENT 3
 
 typedef struct camera_event_t {
   timestamp_t ts;
@@ -1361,23 +1361,20 @@ typedef struct timeline_t {
   // Stats
   int num_cams;
   int num_imus;
+  int num_event_types;
 
   // Events
-  int num_events;
-  int num_event_types;
-  timeline_event_t ***events;
-  timestamp_t *events_ts;
-  int **events_types;
+  timeline_event_t **events;
+  timestamp_t **events_timestamps;
+  int *events_lengths;
+  int *events_types;
 
-  // Fiducial events
-  timeline_event_t **events_fiducial;
-  int *events_fiducial_length;
-  timestamp_t **events_fiducial_timestamps;
+  // Timeline
+  size_t timeline_length;
+  timestamp_t *timeline_timestamps;
+  timeline_event_t ***timeline_events;
+  int *timeline_events_lengths;
 
-  // IMU events
-  timeline_event_t **events_imu;
-  int *events_imu_length;
-  timestamp_t **events_imu_timestamps;
 } timeline_t;
 
 timeline_t *timeline_malloc();

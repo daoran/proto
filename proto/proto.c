@@ -7653,6 +7653,9 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
 // TIMELINE //
 //////////////
 
+/**
+ * Sort timestamps `timestamps` of length `n` with insertion sort.
+ */
 static void timestamps_insertion_sort(timestamp_t *timestamps, const size_t n) {
   for (size_t i = 1; i < n; i++) {
     timestamp_t key = timestamps[i];
@@ -7666,6 +7669,9 @@ static void timestamps_insertion_sort(timestamp_t *timestamps, const size_t n) {
   }
 }
 
+/**
+ * This function only adds unique timestamps to `set` if it does not already exists.
+ */
 static void timestamps_unique(timestamp_t *set,
                               size_t *set_len,
                               const timestamp_t *timestamps,
@@ -7693,13 +7699,35 @@ static void timestamps_unique(timestamp_t *set,
   timestamps_insertion_sort(set, *set_len);
 }
 
+/**
+ * Malloc timeline.
+ */
 timeline_t *timeline_malloc() {
   timeline_t *timeline = MALLOC(timeline_t, 1);
-  timeline->num_events = 0;
+
+  // Stats
+  timeline->num_cams = 0;
+  timeline->num_imus = 0;
+  timeline->num_event_types = 0;
+
+  // Events
   timeline->events = NULL;
+  timeline->events_timestamps = NULL;
+  timeline->events_lengths = NULL;
+  timeline->events_types = NULL;
+
+  // Timeline
+  timeline->timeline_length = 0;
+  timeline->timeline_timestamps = 0;
+  timeline->timeline_events = 0;
+  timeline->timeline_events_lengths = 0;
+
   return timeline;
 }
 
+/**
+ * Free timeline.
+ */
 void timeline_free(timeline_t *timeline) {
   // Pre-check
   if (timeline == NULL) {
@@ -7707,56 +7735,51 @@ void timeline_free(timeline_t *timeline) {
   }
 
   // Free events
-  for (size_t k = 0; k < timeline->num_events; k++) {
-    for (int i = 0; i < timeline->num_event_types; i++) {
-      timeline_event_t *event = timeline->events[k][i];
+  for (size_t type_idx = 0; type_idx < timeline->num_event_types; type_idx++) {
+    for (int k = 0; k < timeline->events_lengths[type_idx]; k++) {
+      timeline_event_t *event = &timeline->events[type_idx][k];
       if (event == NULL) {
         continue;
       }
+
+      switch(event->type) {
+      case CAMERA_EVENT:
+        free(event->data.camera.image_path);
+        free(event->data.camera.keypoints);
+        break;
+      case IMU_EVENT:
+        // Do nothing
+        break;
+      case FIDUCIAL_EVENT:
+        free(event->data.fiducial.tag_ids);
+        free(event->data.fiducial.corner_indices);
+        free(event->data.fiducial.object_points);
+        free(event->data.fiducial.keypoints);
+        break;
+      }
     }
-    free(timeline->events[k]);
-    free(timeline->events_types[k]);
+    free(timeline->events[type_idx]);
+    free(timeline->events_timestamps[type_idx]);
   }
   free(timeline->events);
-  free(timeline->events_ts);
+  free(timeline->events_timestamps);
+  free(timeline->events_lengths);
   free(timeline->events_types);
 
-  // Free fiducial events
-  timeline_event_t **events_fiducial = timeline->events_fiducial;
-  int *events_fiducial_length = timeline->events_fiducial_length;
-  timestamp_t **events_fiducial_timestamps = timeline->events_fiducial_timestamps;
-  for (int cam_idx = 0; cam_idx < timeline->num_cams; cam_idx++) {
-    for (int k = 0; k < events_fiducial_length[cam_idx]; k++) {
-      free(events_fiducial[cam_idx][k].data.fiducial.tag_ids);
-      free(events_fiducial[cam_idx][k].data.fiducial.corner_indices);
-      free(events_fiducial[cam_idx][k].data.fiducial.object_points);
-      free(events_fiducial[cam_idx][k].data.fiducial.keypoints);
-    }
-    free(events_fiducial[cam_idx]);
-    free(events_fiducial_timestamps[cam_idx]);
+  // Free timeline
+  free(timeline->timeline_timestamps);
+  for (int k = 0; k < timeline->timeline_length; k++) {
+    free(timeline->timeline_events[k]);
   }
-  free(events_fiducial);
-  free(events_fiducial_length);
-  free(events_fiducial_timestamps);
-
-  // Free imu events
-  timeline_event_t **events_imu = timeline->events_imu;
-  int *events_imu_length = timeline->events_imu_length;
-  timestamp_t **events_imu_timestamps = timeline->events_imu_timestamps;
-  for (int imu_idx = 0; imu_idx < timeline->num_imus; imu_idx++) {
-    free(events_imu[imu_idx]);
-    free(events_imu_timestamps[imu_idx]);
-  }
-  free(events_imu);
-  free(events_imu_length);
-  free(events_imu_timestamps);
+  free(timeline->timeline_events);
+  free(timeline->timeline_events_lengths);
 
   // Free timeline
   free(timeline);
 }
 
 /**
- * Load timeline fiducial data
+ * Load timeline fiducial data.
  */
 timeline_event_t *timeline_load_fiducial(const char *data_dir,
                                          const int cam_idx,
@@ -7810,7 +7833,7 @@ timeline_event_t *timeline_load_fiducial(const char *data_dir,
 }
 
 /**
- * Load timeline IMU data
+ * Load timeline IMU data.
  */
 timeline_event_t *timeline_load_imu(const char *csv_path, int *num_events) {
   // Open file for loading
@@ -7860,69 +7883,124 @@ timeline_event_t *timeline_load_imu(const char *csv_path, int *num_events) {
   return events;
 }
 
-static void timeline_add(timeline_t *tl,
-                         const int k,
-                         const int num_cams,
-                         const int num_imus,
-                         const int max_event_types,
-                         int *indices) {
-  // Allocate memory
-  tl->events[k] = CALLOC(timeline_event_t *, max_event_types);
-  tl->events_types[k] = CALLOC(int, max_event_types);
+/**
+ * Load events.
+ */
+static void timeline_load_events(timeline_t *timeline, const char *data_dir) {
+  // Load events
+  const int num_event_types = timeline->num_event_types;
+  timeline_event_t **events = MALLOC(timeline_event_t *, num_event_types);
+  int *events_lengths = CALLOC(int, num_event_types);
+  int *events_types = CALLOC(int, num_event_types);
+  timestamp_t **events_timestamps = MALLOC(timestamp_t *, num_event_types);
 
-  // Add fiducial events at k
+  // -- Load fiducial events
   int type_idx = 0;
+  for (int cam_idx = 0; cam_idx < timeline->num_cams; cam_idx++) {
+    // Form events
+    int num_events = 0;
+    char dir[1024] = {0};
+    sprintf(dir, "%s/cam%d", data_dir, cam_idx);
+    events[type_idx] = timeline_load_fiducial(dir, cam_idx, &num_events);
+    events_lengths[type_idx] = num_events;
+    events_types[type_idx] = FIDUCIAL_EVENT;
 
-  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-    // Find timestamp index
-    int ts_found = 0;
-    int ts_idx = 0;
-    for (int i = indices[type_idx]; i < tl->events_fiducial_length[cam_idx]; i++) {
-      timeline_event_t *event = &tl->events_fiducial[cam_idx][i];
-      if (event->ts == tl->events_ts[k]) {
-        indices[type_idx] = i;
-        ts_found = 1;
-        ts_idx = i;
-        break;
-      } else if (event->ts > tl->events_ts[k]) {
-        break;
-      }
+    // Form timestamps
+    events_timestamps[type_idx] = CALLOC(timestamp_t, num_events);
+    for (int k = 0; k < num_events; k++) {
+      events_timestamps[type_idx][k] = events[type_idx][k].ts;
     }
 
-    // Add event
-    if (ts_found) {
-      tl->events[k][type_idx] = &tl->events_fiducial[cam_idx][ts_idx];
-    } else {
-      tl->events[k][type_idx] = NULL;
-    }
+    // Update
     type_idx++;
   }
 
-  // Add IMU events at k
-  for (int imu_idx = 0; imu_idx < num_imus; imu_idx++) {
-    // Find timestamp index
-    int ts_found = 0;
-    int ts_idx = 0;
-    for (int i = indices[type_idx]; i < tl->events_imu_length[imu_idx]; i++) {
-      timeline_event_t *event = &tl->events_imu[imu_idx][i];
-      if (event->ts == tl->events_ts[k]) {
-        indices[type_idx] = i;
-        ts_found = 1;
-        ts_idx = i;
-        break;
-      } else if (event->ts > tl->events_ts[k]) {
-        break;
+  // -- Load imu events
+  for (int imu_idx = 0; imu_idx < timeline->num_imus; imu_idx++) {
+    // Form events
+    int num_events = 0;
+    char csv_path[1024] = {0};
+    sprintf(csv_path, "%s/imu%d/data.csv", data_dir, imu_idx);
+    events[type_idx] = timeline_load_imu(csv_path, &num_events);
+    events_lengths[type_idx] = num_events;
+    events_types[type_idx] = IMU_EVENT;
+
+    // Form timestamps
+    events_timestamps[type_idx] = CALLOC(timestamp_t, num_events);
+    for (int k = 0; k < num_events; k++) {
+      events_timestamps[type_idx][k] = events[type_idx][k].ts;
+    }
+
+    // Update
+    type_idx++;
+  }
+
+  // Set timeline events
+  timeline->events = events;
+  timeline->events_timestamps = events_timestamps;
+  timeline->events_lengths = events_lengths;
+  timeline->events_types = events_types;
+}
+
+/**
+ * Form timeline.
+ */
+static void timeline_form_timeline(timeline_t *tl) {
+  // Determine timeline timestamps
+  int max_timeline_length = 0;
+  for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {
+    max_timeline_length += tl->events_lengths[type_idx];
+  }
+
+  tl->timeline_length = 0;
+  tl->timeline_timestamps = CALLOC(timestamp_t, max_timeline_length);
+  for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {
+    timestamps_unique(tl->timeline_timestamps,
+                      &tl->timeline_length,
+                      tl->events_timestamps[type_idx],
+                      tl->events_lengths[type_idx]);
+  }
+
+  // Form timeline events
+  tl->timeline_events = CALLOC(timeline_event_t **, tl->timeline_length);
+  tl->timeline_events_lengths = CALLOC(int, tl->timeline_length);
+
+  int *indices = CALLOC(int, tl->num_event_types);
+  for (int k = 0; k < tl->timeline_length; k++) {
+    // Allocate memory
+    tl->timeline_events[k] = CALLOC(timeline_event_t *, tl->num_event_types);
+
+    // Add events at k
+    int k_len = 0;  // Number of events at k
+    for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {
+      // Find timestamp index
+      int ts_found = 0;
+      int ts_idx = 0;
+      for (int i = indices[type_idx]; i < tl->events_lengths[type_idx]; i++) {
+        timeline_event_t *event = &tl->events[type_idx][i];
+        if (event->ts == tl->timeline_timestamps[k]) {
+          indices[type_idx] = i;
+          ts_found = 1;
+          ts_idx = i;
+          break;
+        } else if (event->ts > tl->timeline_timestamps[k]) {
+          break;
+        }
+      }
+
+      // Add event to timeline
+      if (ts_found) {
+        tl->timeline_events[k][k_len] = &tl->events[type_idx][ts_idx];
+        k_len++;
       }
     }
 
-    // Add event
-    if (ts_found) {
-      tl->events[k][type_idx] = &tl->events_imu[imu_idx][ts_idx];
-    } else {
-      tl->events[k][type_idx] = NULL;
-    }
-    type_idx++;
+    // Set number of events at timestep k
+    tl->timeline_events_lengths[k] = k_len;
   }
+
+  // Clean-up
+  free(indices);
 }
 
 /**
@@ -7933,86 +8011,16 @@ timeline_t *timeline_load_data(const char *data_dir,
                                const int num_imus) {
   assert(num_cams >= 0);
   assert(num_imus >= 0 && num_imus <= 1);
-  int max_num_timestamps = 0;
-  int max_event_types = num_cams + num_imus;
 
-  // Load fiducial events
-  timeline_event_t **events_fiducial = MALLOC(timeline_event_t *, num_cams);
-  int *events_fiducial_length = CALLOC(int, num_cams);
-  timestamp_t **fiducial_timestamps = MALLOC(timestamp_t *, num_cams);
-  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-    // Form events
-    int num_events = 0;
-    char dir[1024] = {0};
-    sprintf(dir, "%s/cam%d", data_dir, cam_idx);
-    events_fiducial[cam_idx] = timeline_load_fiducial(dir, cam_idx, &num_events);
-    events_fiducial_length[cam_idx] = num_events;
-    max_num_timestamps += num_events;
-
-    // Form timestamps
-    fiducial_timestamps[cam_idx] = CALLOC(timestamp_t, num_events);
-    for (int k = 0; k < num_events; k++) {
-      fiducial_timestamps[cam_idx][k] = events_fiducial[cam_idx][k].ts;
-    }
-  }
-
-  // Load IMU events
-  timeline_event_t **events_imu = MALLOC(timeline_event_t *, num_imus);
-  int *events_imu_length = CALLOC(int, num_imus);
-  timestamp_t **imu_timestamps = MALLOC(timestamp_t *, num_cams);
-  for (int imu_idx = 0; imu_idx < num_imus; imu_idx++) {
-    // Form events
-    int num_events = 0;
-    char csv_path[1024] = {0};
-    sprintf(csv_path, "%s/imu%d/data.csv", data_dir, imu_idx);
-    events_imu[imu_idx] = timeline_load_imu(csv_path, &num_events);
-    events_imu_length[imu_idx] = num_events;
-    max_num_timestamps += num_events;
-
-    // Form timestamps
-    imu_timestamps[imu_idx] = CALLOC(timestamp_t, num_events);
-    for (int k = 0; k < num_events; k++) {
-      imu_timestamps[imu_idx][k] = events_imu[imu_idx][k].ts;
-    }
-  }
-
-  // Determine unique set of timestamps
-  size_t events_ts_len = 0;
-  timestamp_t *events_ts = CALLOC(timestamp_t, max_num_timestamps);
-  // -- Fiducial timestamps
-  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-    timestamp_t *timestamps = fiducial_timestamps[cam_idx];
-    int num_timestamps = events_fiducial_length[cam_idx];
-    timestamps_unique(events_ts, &events_ts_len, timestamps, num_timestamps);
-  }
-  // -- IMU timestamps
-  for (int imu_idx = 0; imu_idx < num_imus; imu_idx++) {
-    timestamp_t *timestamps = imu_timestamps[imu_idx];
-    int num_timestamps = events_imu_length[imu_idx];
-    timestamps_unique(events_ts, &events_ts_len, timestamps, num_timestamps);
-  }
-
-  // Add events to timeline
+  // Form timeline
   timeline_t *timeline = timeline_malloc();
   timeline->num_cams = num_cams;
   timeline->num_imus = num_imus;
-  timeline->num_events = events_ts_len;
-  timeline->num_event_types = max_event_types;
-  timeline->events = CALLOC(timeline_event_t **, events_ts_len);
-  timeline->events_ts = events_ts;
-  timeline->events_types = CALLOC(int *, events_ts_len);
-  timeline->events_fiducial = events_fiducial;
-  timeline->events_fiducial_length = events_fiducial_length;
-  timeline->events_fiducial_timestamps = fiducial_timestamps;
-  timeline->events_imu = events_imu;
-  timeline->events_imu_length = events_imu_length;
-  timeline->events_imu_timestamps = imu_timestamps;
-
-  int *indices = CALLOC(int, max_event_types);
-  for (int k = 0; k < events_ts_len; k++) {
-    timeline_add(timeline, k, num_cams, num_imus, max_event_types, indices);
-  }
-  free(indices);
+  timeline->num_event_types = num_cams + num_imus;
+  // -- Events
+  timeline_load_events(timeline, data_dir);
+  // -- Timeline
+  timeline_form_timeline(timeline);
 
   return timeline;
 }
