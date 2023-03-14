@@ -1,6 +1,20 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
   <world name="shapes">
+		<!-- <plugin -->
+		<!-- 		filename="gz-sim-physics-system" -->
+		<!-- 		name="gz::sim::systems::Physics"> -->
+		<!-- </plugin> -->
+		<!-- <plugin -->
+		<!-- 		filename="gz-sim-user-commands-system" -->
+		<!-- 		name="gz::sim::systems::UserCommands"> -->
+		<!-- </plugin> -->
+		<!-- <plugin -->
+		<!-- 		filename="gz-sim-scene-broadcaster-system" -->
+		<!-- 		name="gz::sim::systems::SceneBroadcaster"> -->
+		<!-- </plugin> -->
+
+
     <scene>
       <ambient>1.0 1.0 1.0</ambient>
       <background>0.8 0.8 0.8</background>
@@ -48,8 +62,66 @@
     </model>
 
     <include>
+      <static>true</static>
       <uri>model://AprilGrid</uri>
       <pose>0 0 1 0 0 -1.570796</pose>
     </include>
+
+    <model name="camera0">
+      <static>true</static>
+      <pose>-2 0.1 1.0 0 0 0</pose>
+      <link name="link">
+        <pose>0.05 0.05 0.05 0 0 0</pose>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 0.1 0.1</size>
+            </box>
+          </geometry>
+        </visual>
+
+        <sensor name="camera0" type="camera">
+					<topic>/camera0</topic>
+          <camera>
+            <horizontal_fov>1.047</horizontal_fov>
+            <image>
+              <width>320</width>
+              <height>240</height>
+            </image>
+          </camera>
+          <update_rate>30</update_rate>
+          <visualize>1</visualize>
+        </sensor>
+      </link>
+    </model>
+
+    <model name="camera1">
+      <static>true</static>
+      <pose>-2 -0.1 1.0 0 0 0</pose>
+      <link name="link">
+        <pose>0.05 0.05 0.05 0 0 0</pose>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 0.1 0.1</size>
+            </box>
+          </geometry>
+        </visual>
+
+        <sensor name="camera1" type="camera">
+					<topic>/camera1</topic>
+          <camera>
+            <horizontal_fov>1.047</horizontal_fov>
+            <image>
+              <width>320</width>
+              <height>240</height>
+            </image>
+          </camera>
+          <update_rate>30</update_rate>
+          <visualize>1</visualize>
+        </sensor>
+      </link>
+    </model>
+
   </world>
 </sdf>
