@@ -1,4 +1,4 @@
-ROS_VERSION=foxy
+ROS_VERSION=humble
 ARCH=$(dpkg --print-architecture)
 ROS2_GPG=/usr/share/keyrings/ros-archive-keyring.gpg
 ROS2_PKGS_URL=http://packages.ros.org/ros2/ubuntu
@@ -19,13 +19,7 @@ echo \
 
 # Install ROS2
 sudo apt-get update -y -qq
-sudo apt install -y -qq \
+sudo apt install -y -q \
   ros-$ROS_VERSION-desktop \
   python3-argcomplete \
-  ros-dev-tools \
-  ros-$ROS_VERSION-gazebo-msgs \
-  ros-$ROS_VERSION-gazebo-ros2-control \
-  ros-$ROS_VERSION-gazebo-ros2-control-dbgsym \
-  ros-$ROS_VERSION-gazebo-ros2-control-demos \
-  ros-$ROS_VERSION-gazebo-ros2-control-demos-dbgsym
-
+  ros-dev-tools
