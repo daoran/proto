@@ -53,6 +53,12 @@
       <pose>0 0 1 0 0 -1.570796</pose>
     </include>
 
+    <include>
+      <static>true</static>
+      <uri>model://MAV</uri>
+      <pose>-2 0 1 0 0 0</pose>
+    </include>
+
     <model name="camera0">
       <static>true</static>
       <pose>-2 0.1 1.0 0 0 0</pose>
