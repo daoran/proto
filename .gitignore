@@ -14,6 +14,7 @@
 
 # Proto
 proto/build
+proto_gazebo/build
 proto_mav/fcu/fcu-backups
 
 # Docs
