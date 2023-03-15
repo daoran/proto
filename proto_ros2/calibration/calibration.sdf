@@ -49,13 +49,13 @@
 
     <include>
       <static>true</static>
-      <uri>model://AprilGrid</uri>
+      <uri>model://aprilgrid</uri>
       <pose>0 0 1 0 0 -1.570796</pose>
     </include>
 
     <include>
       <static>true</static>
-      <uri>model://MAV</uri>
+      <uri>model://mav</uri>
       <pose>-2 0 1 0 0 0</pose>
     </include>
 

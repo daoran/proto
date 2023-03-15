@@ -18,7 +18,7 @@
       <collision name="collision">
         <geometry>
           <mesh>
-            <uri>model://MAV/model.obj</uri>
+            <uri>model://mav/model.obj</uri>
           </mesh>
         </geometry>
         <!-- <surface> -->
@@ -37,7 +37,7 @@
         <cast_shadows>true</cast_shadows>
         <geometry>
           <mesh>
-            <uri>model://MAV/model.obj</uri>
+            <uri>model://mav/model.obj</uri>
           </mesh>
         </geometry>
       </visual>
