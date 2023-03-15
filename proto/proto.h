@@ -258,8 +258,8 @@
                                                                                \
     qsort(VALUES, BUF_SIZE, sizeof(DATA_TYPE), DATA_CMP);                      \
     if ((BUF_SIZE % 2) == 0) {                                                 \
-      const size_t bwd_idx = (size_t)(BUF_SIZE - 1) / 2.0;                     \
-      const size_t fwd_idx = (size_t)(BUF_SIZE + 1) / 2.0;                     \
+      const size_t bwd_idx = (size_t) (BUF_SIZE - 1) / 2.0;                    \
+      const size_t fwd_idx = (size_t) (BUF_SIZE + 1) / 2.0;                    \
       MEDIAN_VAR = (VALUES[bwd_idx] + VALUES[fwd_idx]) / 2.0;                  \
     } else {                                                                   \
       const size_t mid_idx = (BUF_SIZE - 1) / 2;                               \
@@ -582,6 +582,10 @@ int streqs(const char *x, const char *y);
 void cumsum(const real_t *x, const size_t n, real_t *s);
 void logspace(const real_t a, const real_t b, const size_t n, real_t *x);
 real_t pythag(const real_t a, const real_t b);
+void clip(real_t *x,
+          const int n,
+          const real_t val_min,
+          const real_t val_max);
 real_t lerp(const real_t a, const real_t b, const real_t t);
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);
 real_t sinc(const real_t x);
@@ -1283,6 +1287,90 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
 void pinhole_equi4_params_jacobian(const real_t params[8],
                                    const real_t p_C[3],
                                    real_t J[2 * 8]);
+
+/******************************************************************************
+ * CONTROL
+ ******************************************************************************/
+
+typedef struct pid_ctrl_t {
+  real_t error_prev;
+  real_t error_sum;
+
+  real_t error_p;
+  real_t error_i;
+  real_t error_d;
+
+  real_t k_p;
+  real_t k_i;
+  real_t k_d;
+} pid_ctrl_t;
+
+void pid_ctrl_setup(pid_ctrl_t *pid,
+                    const real_t kp,
+                    const real_t ki,
+                    const real_t kd);
+real_t pid_ctrl_update(pid_ctrl_t *pid,
+                       const real_t setpoint,
+                       const real_t input,
+                       const real_t dt);
+void pid_ctrl_reset(pid_ctrl_t *pid);
+
+/******************************************************************************
+ * MAV
+ ******************************************************************************/
+
+typedef struct mav_model_t {
+  real_t state[12];  // State
+  real_t inertia[3]; // Moment of inertia
+  real_t kr;         // Rotation drag constant
+  real_t kt;         // Translation drag constant
+  real_t l;          // Arm length
+  real_t m;          // Mass
+  real_t g;          // Gravitational constant
+} mav_model_t;
+
+typedef struct mav_att_ctrl_t {
+  real_t dt;
+  pid_ctrl_t roll;
+  pid_ctrl_t pitch;
+  pid_ctrl_t yaw;
+
+  real_t setpoints[3];
+  real_t outputs[4];
+} mav_att_ctrl_t;
+
+typedef struct mav_pos_ctrl_t {
+  real_t dt;
+  pid_ctrl_t x;
+  pid_ctrl_t y;
+  pid_ctrl_t z;
+
+  real_t roll_limit[2];
+  real_t pitch_limit[2];
+  real_t hover_throttle;
+
+  real_t setpoints[3];
+  real_t outputs[4];
+} mav_pos_ctrl_t;
+
+void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl);
+void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
+                         const real_t setpoints[4],
+                         const real_t actual[4],
+                         const real_t dt,
+                         real_t outputs[4]);
+
+void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl);
+
+void mav_model_setup(mav_model_t *mav,
+                     const real_t x[12],
+                     const real_t inertia[3],
+                     const real_t kr,
+                     const real_t kt,
+                     const real_t l,
+                     const real_t m,
+                     const real_t g);
+void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt);
 
 /******************************************************************************
  * SENSOR FUSION

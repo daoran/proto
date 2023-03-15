@@ -2117,6 +2117,16 @@ real_t pythag(const real_t a, const real_t b) {
 }
 
 /**
+ * Clip vector `x` to be between `val_min` and `val_max`.
+ */
+void clip(real_t *x, const int n, const real_t val_min, const real_t val_max) {
+  for (int i = 0; i < n; i++) {
+    x[i] = (x[i] > val_max) ? val_max : x[i];
+    x[i] = (x[i] < val_min) ? val_min : x[i];
+  }
+}
+
+/**
  * Perform 1D Linear interpolation between `a` and `b` with `t` as the
  * interpolation hyper-parameter.
  * @returns Linear interpolated value between a and b
@@ -7551,6 +7561,207 @@ void pinhole_equi4_params_jacobian(const real_t params[8],
 }
 
 /******************************************************************************
+ * CONTROL
+ ******************************************************************************/
+
+void pid_ctrl_setup(pid_ctrl_t *pid,
+                    const real_t kp,
+                    const real_t ki,
+                    const real_t kd) {
+  pid->error_prev = 0.0;
+  pid->error_sum = 0.0;
+
+  pid->error_p = 0.0;
+  pid->error_i = 0.0;
+  pid->error_d = 0.0;
+
+  pid->k_p = kp;
+  pid->k_i = ki;
+  pid->k_d = kd;
+}
+
+real_t pid_ctrl_update(pid_ctrl_t *pid,
+                       const real_t setpoint,
+                       const real_t input,
+                       const real_t dt) {
+  // Calculate errors
+  real_t error = setpoint - input;
+  pid->error_sum += error * dt;
+
+  // Calculate output
+  pid->error_p = pid->k_p * error;
+  pid->error_i = pid->k_i * pid->error_sum;
+  pid->error_d = pid->k_d * (error - pid->error_prev) / dt;
+  real_t output = pid->error_p + pid->error_i + pid->error_d;
+
+  // Update error
+  pid->error_prev = error;
+
+  return output;
+}
+
+void pid_ctrl_reset(pid_ctrl_t *pid) {
+  pid->error_prev = 0;
+  pid->error_sum = 0;
+
+  pid->error_p = 0;
+  pid->error_i = 0;
+  pid->error_d = 0;
+}
+
+/******************************************************************************
+ * MAV
+ ******************************************************************************/
+
+void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
+  ctrl->dt = 0;
+  // pid_ctrl_setup(ctrl->roll);
+  // pid_ctrl_setup(ctrl->pitch);
+  // pid_ctrl_setup(ctrl->yaw);
+
+  zeros(ctrl->setpoints, 3);
+  zeros(ctrl->outputs, 4);
+}
+
+void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
+                         const real_t setpoints[4],
+                         const real_t actual[4],
+                         const real_t dt,
+                         real_t outputs[4]) {
+  // Check rate
+  ctrl->dt += dt;
+  if (ctrl->dt < 0.001) {
+    return ctrl->outputs;
+  }
+
+  // Calculate yaw error
+  real_t actual_yaw = rad2deg(actual(2));
+  real_t setpoint_yaw = rad2deg(setpoints(2));
+  real_t error_yaw = setpoint_yaw - actual_yaw;
+  if (error_yaw > 180.0) {
+    error_yaw -= 360.0;
+  } else if (error_yaw < -180.0) {
+    error_yaw += 360.0;
+  }
+  error_yaw = deg2rad(error_yaw);
+
+  // Roll, pitch and yaw
+  real_t r = pid_ctrl_update(ctrl->roll, setpoints[0], actual[0], ctrl->dt);
+  real_t p = pid_ctrl_update(ctrl->pitch, setpoints[1], actual[1], ctrl->dt);
+  real_t y = pid_ctrl_update(ctrl->yaw, error_yaw, 0.0, ctrl->dt);
+
+  // Thrust
+  real_t max_thrust = 5.0;
+  real_t t = max_thrust * setpoints(3);  // Convert relative to true thrust
+  t = (t > max_thrust) ? max_thrust : t; // Limit thrust
+  t = (t < 0) ? 0.0 : t;                 // Limit thrust
+
+  // Map roll, pitch, yaw and thrust to motor outputs
+  outputs[0] = -p - y + t;
+  outputs[1] = -r + y + t;
+  outputs[2] = p - y + t;
+  outputs[3] = r + y + t;
+
+  // Limit outputs
+  for (int i = 0; i < 4; i++) {
+    if (outputs[i] > max_thrust) {
+      outputs[i] = max_thrust;
+    } else if (outputs[i] < 0.0) {
+      outputs[i] = 0.0;
+    }
+  }
+
+  // Keep track of outputs
+  ctrl->outputs = outputs;
+  ctrl->dt = 0.0;
+}
+
+void mav_model_setup(mav_model_t *mav,
+                     const real_t x[12],
+                     const real_t inertia[3],
+                     const real_t kr,
+                     const real_t kt,
+                     const real_t l,
+                     const real_t m,
+                     const real_t g) {
+  vec_copy(x, 12, mav->state);        // State
+  vec_copy(inertia, 3, mav->inertia); // Moment of inertia
+  mav->kr = kr;                       // Rotation drag constant
+  mav->kt = kt;                       // Translation drag constant
+  mav->l = l;                         // Arm length
+  mav->m = m;                         // Mass
+  mav->g = g;                         // Gravitational constant
+}
+
+void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
+  // Map out previous state
+  // -- Attitude
+  const real_t ph = mav->state[0];
+  const real_t th = mav->state[1];
+  const real_t ps = mav->state[2];
+  // -- Angular velocity
+  const real_t p = mav->state[3];
+  const real_t q = mav->state[4];
+  const real_t r = mav->state[5];
+  // -- Velocity
+  const real_t vx = mav->state[9];
+  const real_t vy = mav->state[10];
+  const real_t vz = mav->state[11];
+
+  // Map out constants
+  const real_t Ix = mav->inertia[0];
+  const real_t Iy = mav->inertia[1];
+  const real_t Iz = mav->inertia[2];
+  const real_t kr = mav->kr;
+  const real_t kt = mav->kt;
+  const real_t m = mav->m;
+  const real_t mr = 1.0 / m;
+  const real_t g = mav->g;
+
+  // Convert motor inputs to angular p, q, r and total thrust
+  // clang-format off
+  real_t A[4 * 4] = {
+    1.0,          1.0,     1.0,   1.0,
+    0.0,      -mav->l,     0.0,   mav->l,
+    -mav->l,      0.0,  mav->l,   0.0,
+    -mav->d,   mav->d,  -mav->d,  mav->d
+  };
+  // clang-format on
+  const real_t tauf = A[0] * u[0] + A[1] * u[1] + A[2] * u[2] + A[3] * u[3];
+  const real_t taup = A[4] * u[0] + A[5] * u[1] + A[6] * u[2] + A[7] * u[3];
+  const real_t tauq = A[8] * u[0] + A[9] * u[1] + A[10] * u[2] + A[11] * u[3];
+  const real_t taur = A[12] * u[0] + A[13] * u[1] + A[14] * u[2] + A[15] * u[3];
+
+  // Update state
+  const real_t cph = cos(ph);
+  const real_t sph = sin(ph);
+  const real_t cth = cos(th);
+  const real_t sth = sin(th);
+  const real_t tth = tan(th);
+  const real_t cps = cos(ps);
+  const real_t sps = sin(ps);
+
+  real_t *s = mav->state;
+  // -- Attitude
+  s[0] += (p + q * sph * tth + r * cos(ph) * tth) * dt;
+  s[1] += (q * cph - r * sph) * dt;
+  s[2] += ((1 / cth) * (q * sph + r * cph)) * dt;
+  // s[2] = wrapToPi(s[2]);
+  // -- Angular velocity
+  s[3] += (-((Iz - Iy) / Ix) * q * r - (kr * p / Ix) + (1 / Ix) * taup) * dt;
+  s[4] += (-((Ix - Iz) / Iy) * p * r - (kr * q / Iy) + (1 / Iy) * tauq) * dt;
+  s[5] += (-((Iy - Ix) / Iz) * p * q - (kr * r / Iz) + (1 / Iz) * taur) * dt;
+  // -- Position
+  s[6] += vx * dt;
+  s[7] += vy * dt;
+  s[8] += vz * dt;
+  // -- Linear velocity
+  s[9] += ((-kt * vx / m) + mr * (cph * sth * cps + sph * sps) * tauf) * dt;
+  s[10] += ((-kt * vy / m) + mr * (cph * sth * sps - sph * cps) * tauf) * dt;
+  s[11] += (-(kt * vz / m) + mr * (cph * cth) * tauf - g) * dt;
+}
+
+/******************************************************************************
  * SENSOR FUSION
  ******************************************************************************/
 
@@ -7742,20 +7953,20 @@ void timeline_free(timeline_t *timeline) {
         continue;
       }
 
-      switch(event->type) {
-      case CAMERA_EVENT:
-        free(event->data.camera.image_path);
-        free(event->data.camera.keypoints);
-        break;
-      case IMU_EVENT:
-        // Do nothing
-        break;
-      case FIDUCIAL_EVENT:
-        free(event->data.fiducial.tag_ids);
-        free(event->data.fiducial.corner_indices);
-        free(event->data.fiducial.object_points);
-        free(event->data.fiducial.keypoints);
-        break;
+      switch (event->type) {
+        case CAMERA_EVENT:
+          free(event->data.camera.image_path);
+          free(event->data.camera.keypoints);
+          break;
+        case IMU_EVENT:
+          // Do nothing
+          break;
+        case FIDUCIAL_EVENT:
+          free(event->data.fiducial.tag_ids);
+          free(event->data.fiducial.corner_indices);
+          free(event->data.fiducial.object_points);
+          free(event->data.fiducial.keypoints);
+          break;
       }
     }
     free(timeline->events[type_idx]);
@@ -7812,7 +8023,12 @@ timeline_event_t *timeline_load_fiducial(const char *data_dir,
     int *corner_indices = MALLOC(int, num_corners);
     real_t *kps = MALLOC(real_t, num_corners * 2);
     real_t *pts = MALLOC(real_t, num_corners * 3);
-    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &num_corners);
+    aprilgrid_measurements(&grid,
+                           tag_ids,
+                           corner_indices,
+                           kps,
+                           pts,
+                           &num_corners);
 
     // Create event
     events[view_idx].type = FIDUCIAL_EVENT;
@@ -7971,7 +8187,7 @@ static void timeline_form_timeline(timeline_t *tl) {
     tl->timeline_events[k] = CALLOC(timeline_event_t *, tl->num_event_types);
 
     // Add events at k
-    int k_len = 0;  // Number of events at k
+    int k_len = 0; // Number of events at k
     for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {
       // Find timestamp index
       int ts_found = 0;
@@ -13601,7 +13817,7 @@ void calib_camera_free(calib_camera_t *calib) {
   if (calib->num_views) {
     // View sets
     for (int i = 0; i < arrlen(calib->timestamps); i++) {
-			const timestamp_t ts = calib->timestamps[i];
+      const timestamp_t ts = calib->timestamps[i];
       calib_camera_view_t **cam_views = hmgets(calib->view_sets, ts).value;
       for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
         calib_camera_view_free(cam_views[cam_idx]);
@@ -13616,7 +13832,6 @@ void calib_camera_free(calib_camera_t *calib) {
     for (int i = 0; i < hmlen(calib->poses); i++) {
       free(calib->poses[i].value);
     }
-
   }
   hmfree(calib->poses);
   hmfree(calib->view_sets);
@@ -13908,7 +14123,7 @@ void calib_camera_errors(calib_camera_t *calib,
   int r_idx = 0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-			const timestamp_t ts = calib->timestamps[view_idx];
+      const timestamp_t ts = calib->timestamps[view_idx];
       calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
       if (view == NULL) {
         continue;
@@ -14049,7 +14264,7 @@ void calib_camera_cost(const void *data, real_t *r) {
   int r_idx = 0;
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-			const timestamp_t ts = calib->timestamps[view_idx];
+      const timestamp_t ts = calib->timestamps[view_idx];
       calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
       if (view == NULL) {
         continue;
@@ -14087,7 +14302,7 @@ void calib_camera_linearize_compact(const void *data,
   // -- Evaluate calib camera factors
   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-			const timestamp_t ts = calib->timestamps[view_idx];
+      const timestamp_t ts = calib->timestamps[view_idx];
       calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
       if (view == NULL) {
         continue;
@@ -14356,7 +14571,6 @@ calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
   }
 
   return view;
-
 }
 
 void calib_imucam_view_free(calib_imucam_view_t *view) {
@@ -14422,7 +14636,7 @@ void calib_imucam_free(calib_imucam_t *calib) {
   if (calib->num_views) {
     // View sets
     for (int i = 0; i < arrlen(calib->timestamps); i++) {
-			const timestamp_t ts = calib->timestamps[i];
+      const timestamp_t ts = calib->timestamps[i];
       calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
       for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
         calib_imucam_view_free(cam_views[cam_idx]);
@@ -14437,7 +14651,6 @@ void calib_imucam_free(calib_imucam_t *calib) {
     for (int i = 0; i < hmlen(calib->poses); i++) {
       free(calib->poses[i].value);
     }
-
   }
   hmfree(calib->poses);
   hmfree(calib->view_sets);
@@ -14542,13 +14755,13 @@ void calib_imucam_add_imu(calib_imucam_t *calib,
   }
 
   calib->imu_params = MALLOC(imu_params_t, 1);
-  calib->imu_params->imu_idx  = 0;
-  calib->imu_params->rate     = imu_rate;
+  calib->imu_params->imu_idx = 0;
+  calib->imu_params->rate = imu_rate;
   calib->imu_params->sigma_aw = sigma_aw;
   calib->imu_params->sigma_gw = sigma_gw;
-  calib->imu_params->sigma_a  = sigma_a;
-  calib->imu_params->sigma_g  = sigma_g;
-  calib->imu_params->g        = g;
+  calib->imu_params->sigma_a = sigma_a;
+  calib->imu_params->sigma_g = sigma_g;
+  calib->imu_params->g = g;
 
   calib->imucam_ext = MALLOC(extrinsic_t, 1);
   extrinsic_setup(calib->imucam_ext, imucam_ext);

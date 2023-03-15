@@ -1,11 +1,13 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
   <world name="shapes">
+    <!-- SCENE -->
     <scene>
       <ambient>1.0 1.0 1.0</ambient>
       <background>0.8 0.8 0.8</background>
     </scene>
 
+    <!-- SUN -->
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -20,6 +22,7 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
+    <!-- GROUND PLANE -->
     <model name="ground_plane">
       <static>true</static>
       <link name="link">
@@ -47,12 +50,14 @@
       </link>
     </model>
 
+    <!-- ARPILGRID -->
     <include>
       <static>true</static>
       <uri>model://aprilgrid</uri>
       <pose>0 0 1 0 0 -1.570796</pose>
     </include>
 
+    <!-- VI-SENSOR -->
     <include>
       <static>true</static>
       <uri>model://visensor</uri>
