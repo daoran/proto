@@ -582,10 +582,7 @@ int streqs(const char *x, const char *y);
 void cumsum(const real_t *x, const size_t n, real_t *s);
 void logspace(const real_t a, const real_t b, const size_t n, real_t *x);
 real_t pythag(const real_t a, const real_t b);
-void clip(real_t *x,
-          const int n,
-          const real_t val_min,
-          const real_t val_max);
+void clip(real_t *x, const int n, const real_t val_min, const real_t val_max);
 real_t lerp(const real_t a, const real_t b, const real_t t);
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);
 real_t sinc(const real_t x);
