@@ -178,6 +178,10 @@ test_euroc:  ## Compile test_euroc
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_euroc.c -o $(BLD_DIR)/test_euroc $(LDFLAGS)
 
+test_gui:  ## Compile test_gui
+	@echo "CC [$@]"
+	@$(CC) $(CFLAGS) test_gui.c -o $(BLD_DIR)/test_gui $(LDFLAGS)
+
 test_tis:  ## Compile test_tis
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_tis.c -o $(BLD_DIR)/test_tis $(LDFLAGS)

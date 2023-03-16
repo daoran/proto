@@ -1,6 +1,9 @@
 #ifndef GUI_H
 #define GUI_H
 
+#include <stdio.h>
+#include <assert.h>
+
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -10,6 +13,76 @@
 #include <SDL2/SDL_image.h>
 
 // OPENGL UTILS //////////////////////////////////////////////////////////////
+
+/**
+ * Mark variable unused.
+ * @param[in] expr Variable to mark as unused
+ */
+#ifndef UNUSED
+#define UNUSED(expr)                                                           \
+  do {                                                                         \
+    (void) (expr);                                                             \
+  } while (0)
+#endif
+
+/**
+ * Fatal
+ *
+ * @param[in] M Message
+ * @param[in] ... Varadic arguments
+ */
+#ifndef FATAL
+#define FATAL(...)                                                             \
+  do {                                                                         \
+    fprintf(stderr, "[FATAL] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0);                                                                 \
+  exit(-1)
+#endif
+
+/**
+ * Log error
+ * @param[in] M Message
+ * @param[in] ... Varadic arguments
+ */
+#ifndef LOG_ERROR
+#define LOG_ERROR(...)                                                         \
+  do {                                                                         \
+    fprintf(stderr, "[ERROR] [%s:%d:%s()]: ", __FILE__, __LINE__, __func__);   \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0)
+#endif
+
+/** Macro that adds the ability to switch between C / C++ style mallocs */
+#ifdef __cplusplus
+
+#ifndef MALLOC
+#define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
+#endif
+
+#ifndef REALLOC
+#define REALLOC(PTR, TYPE, N) (TYPE *) realloc(PTR, sizeof(TYPE) * (N));
+#endif
+
+#ifndef CALLOC
+#define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
+#endif
+
+#else
+
+#ifndef MALLOC
+#define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
+#endif
+
+#ifndef REALLOC
+#define REALLOC(PTR, TYPE, N) realloc(PTR, sizeof(TYPE) * (N));
+#endif
+
+#ifndef CALLOC
+#define CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
+#endif
+
+#endif
 
 GLfloat gl_deg2rad(const GLfloat d);
 GLfloat gl_rad2deg(const GLfloat r);
@@ -240,6 +313,37 @@ void imshow_loop(imshow_t *imshow);
 //////////////////////////////////////////////////////////////////////////////
 
 // OPENGL UTILS //////////////////////////////////////////////////////////////
+
+/**
+ * Read file contents in file path `fp`.
+ * @returns
+ * - Success: File contents
+ * - Failure: NULL
+ */
+static char *file_read(const char *fp) {
+  assert(fp != NULL);
+  FILE *f = fopen(fp, "rb");
+  if (f == NULL) {
+    return NULL;
+  }
+
+  fseek(f, 0, SEEK_END);
+  long int len = ftell(f);
+  fseek(f, 0, SEEK_SET);
+
+  char *buf = MALLOC(char, len + 1);
+  if (buf == NULL) {
+    return NULL;
+  }
+  const ssize_t read = fread(buf, 1, len, f);
+  if (read != len) {
+    FATAL("Failed to read file [%s]\n", fp);
+  }
+  buf[len] = '\0';
+  fclose(f);
+
+  return buf;
+}
 
 GLfloat gl_deg2rad(const GLfloat d) {
   return d * M_PI / 180.0f;
@@ -1752,7 +1856,7 @@ int test_gl_zeros() {
 
   gl_zeros(A, 3, 3);
   gl_print_matrix("A", A, 3, 3);
-  MU_ASSERT(gl_equals(A, expected, 3, 3, 1e-8));
+  TEST_ASSERT(gl_equals(A, expected, 3, 3, 1e-8));
 
   return 0;
 }
@@ -1769,7 +1873,7 @@ int test_gl_ones() {
 
   gl_ones(A, 3, 3);
   gl_print_matrix("A", A, 3, 3);
-  MU_ASSERT(gl_equals(A, expected, 3, 3, 1e-8));
+  TEST_ASSERT(gl_equals(A, expected, 3, 3, 1e-8));
 
   return 0;
 }
@@ -1788,7 +1892,7 @@ int test_gl_eye() {
   // clang-format on
   gl_eye(A, 4, 4);
   gl_print_matrix("A", A, 4, 4);
-  MU_ASSERT(gl_equals(A, A_expected, 4, 4, 1e-8));
+  TEST_ASSERT(gl_equals(A, A_expected, 4, 4, 1e-8));
 
   /* Check 3x4 matrix */
   // clang-format off
@@ -1803,7 +1907,7 @@ int test_gl_eye() {
   // clang-format on
   gl_eye(B, 3, 4);
   gl_print_matrix("B", B, 3, 4);
-  MU_ASSERT(gl_equals(B, B_expected, 3, 4, 1e-8));
+  TEST_ASSERT(gl_equals(B, B_expected, 3, 4, 1e-8));
 
   return 0;
 }
@@ -1822,8 +1926,8 @@ int test_gl_equals() {
   // clang-format on
 
   /* Assert */
-  MU_ASSERT(gl_equals(A, B, 3, 3, 1e-8) == 1);
-  MU_ASSERT(gl_equals(A, C, 3, 3, 1e-8) == 0);
+  TEST_ASSERT(gl_equals(A, B, 3, 3, 1e-8) == 1);
+  TEST_ASSERT(gl_equals(A, C, 3, 3, 1e-8) == 0);
 
   return 0;
 }
@@ -1854,21 +1958,21 @@ int test_gl_matf_val() {
   // clang-format on
 
   const float tol = 1e-4;
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 0) - 1.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 0) - 2.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 0) - 3.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 0) - 1.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 0) - 2.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 0) - 3.0) < tol);
 
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 1) - 4.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 1) - 5.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 1) - 6.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 1) - 4.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 1) - 5.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 1) - 6.0) < tol);
 
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 2) - 7.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 2) - 8.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 2) - 9.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 2) - 7.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 2) - 8.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 2) - 9.0) < tol);
 
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 3) - 10.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 3) - 11.0) < tol);
-  MU_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 3) - 12.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 3) - 10.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 3) - 11.0) < tol);
+  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 3) - 12.0) < tol);
 
   return 0;
 }
@@ -1911,7 +2015,7 @@ int test_gl_vec3_cross() {
   GLfloat expected[3] = {-3.0f, 6.0f, -3.0f};
   gl_print_vector("z", z, 3);
   gl_print_vector("expected", z, 3);
-  MU_ASSERT(gl_equals(z, expected, 3, 1, 1e-8));
+  TEST_ASSERT(gl_equals(z, expected, 3, 1, 1e-8));
 
   return 0;
 }
@@ -1936,7 +2040,7 @@ int test_gl_dot() {
   // clang-format on
   gl_print_matrix("C", C, 3, 3);
   gl_print_matrix("expected", expected, 3, 3);
-  MU_ASSERT(gl_equals(C, expected, 3, 3, 1e-8));
+  TEST_ASSERT(gl_equals(C, expected, 3, 3, 1e-8));
 
   return 0;
 }
@@ -1947,7 +2051,7 @@ int test_gl_norm() {
 
   /* Assert */
   const GLfloat expected = 3.741657f;
-  MU_ASSERT(fabs(n - expected) < 1e-6);
+  TEST_ASSERT(fabs(n - expected) < 1e-6);
 
   return 0;
 }
@@ -1958,7 +2062,7 @@ int test_gl_normalize() {
 
   /* Assert */
   const GLfloat expected[3] = {0.26726f, 0.53452f, 0.80178f};
-  MU_ASSERT(gl_equals(x, expected, 3, 1, 1e-5));
+  TEST_ASSERT(gl_equals(x, expected, 3, 1, 1e-5));
 
   return 0;
 }
@@ -1987,7 +2091,7 @@ int test_gl_perspective() {
   printf("\n");
   gl_print_matrix("P", P, 4, 4);
   gl_print_matrix("P_expected", P_expected, 4, 4);
-  MU_ASSERT(gl_equals(P, P_expected, 4, 4, 1e-4));
+  TEST_ASSERT(gl_equals(P, P_expected, 4, 4, 1e-4));
 
   return 0;
 }
@@ -2019,7 +2123,7 @@ int test_gl_lookat() {
   /* printf("\n"); */
   /* gl_print_matrix("V", V, 4, 4); */
   /* gl_print_matrix("V_expected", V_expected, 4, 4); */
-  MU_ASSERT(gl_equals(V, V_expected, 4, 4, 1e-4));
+  TEST_ASSERT(gl_equals(V, V_expected, 4, 4, 1e-4));
 
   return 0;
 }
@@ -2062,12 +2166,12 @@ int test_gl_shader_compile() {
   char *glcube_vs = file_read("./shaders/cube.vert");
   const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
   free(glcube_vs);
-  MU_ASSERT(vs != GL_FALSE);
+  TEST_ASSERT(vs != GL_FALSE);
 
   char *glcube_fs = file_read("./shaders/cube.frag");
   const GLuint fs = gl_shader_compile(glcube_fs, GL_VERTEX_SHADER);
   free(glcube_fs);
-  MU_ASSERT(fs != GL_FALSE);
+  TEST_ASSERT(fs != GL_FALSE);
 
   return 0;
 }
@@ -2109,18 +2213,18 @@ int test_gl_shaders_link() {
   char *glcube_vs = file_read("./shaders/cube.vert");
   const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
   free(glcube_vs);
-  MU_ASSERT(vs != GL_FALSE);
+  TEST_ASSERT(vs != GL_FALSE);
 
   /* Cube fragment shader */
   char *glcube_fs = file_read("./shaders/cube.frag");
   const GLuint fs = gl_shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
   free(glcube_fs);
-  MU_ASSERT(fs != GL_FALSE);
+  TEST_ASSERT(fs != GL_FALSE);
 
   /* Link shakders */
   const GLuint gs = GL_FALSE;
   const GLuint prog = gl_shaders_link(vs, fs, gs);
-  MU_ASSERT(prog != GL_FALSE);
+  TEST_ASSERT(prog != GL_FALSE);
 
   return 0;
 }
@@ -2166,7 +2270,7 @@ int test_gl_prog_setup() {
   const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL);
   free(glcube_vs);
   free(glcube_fs);
-  MU_ASSERT(program_id != GL_FALSE);
+  TEST_ASSERT(program_id != GL_FALSE);
 
   return 0;
 }
@@ -2192,21 +2296,21 @@ int test_gl_camera_setup() {
   const GLfloat near_expected = 0.1f;
   const GLfloat far_expected = 100.0f;
 
-  MU_ASSERT(camera.window_width == &window_width);
-  MU_ASSERT(camera.window_height == &window_height);
+  TEST_ASSERT(camera.window_width == &window_width);
+  TEST_ASSERT(camera.window_height == &window_height);
 
-  MU_ASSERT(gl_equals(camera.focal, focal_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.world_up, world_up_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.position, position_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.right, right_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.up, up_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(gl_equals(camera.front, front_expected, 3, 1, 1e-8) == 1);
-  MU_ASSERT(fabs(camera.yaw - yaw_expected) < 1e-8);
-  MU_ASSERT(fabs(camera.pitch - pitch_expected) < 1e-8);
+  TEST_ASSERT(gl_equals(camera.focal, focal_expected, 3, 1, 1e-8) == 1);
+  TEST_ASSERT(gl_equals(camera.world_up, world_up_expected, 3, 1, 1e-8) == 1);
+  TEST_ASSERT(gl_equals(camera.position, position_expected, 3, 1, 1e-8) == 1);
+  TEST_ASSERT(gl_equals(camera.right, right_expected, 3, 1, 1e-8) == 1);
+  TEST_ASSERT(gl_equals(camera.up, up_expected, 3, 1, 1e-8) == 1);
+  TEST_ASSERT(gl_equals(camera.front, front_expected, 3, 1, 1e-8) == 1);
+  TEST_ASSERT(fabs(camera.yaw - yaw_expected) < 1e-8);
+  TEST_ASSERT(fabs(camera.pitch - pitch_expected) < 1e-8);
 
-  MU_ASSERT(fabs(camera.fov - fov_expected) < 1e-8);
-  MU_ASSERT(fabs(camera.near - near_expected) < 1e-8);
-  MU_ASSERT(fabs(camera.far - far_expected) < 1e-8);
+  TEST_ASSERT(fabs(camera.fov - fov_expected) < 1e-8);
+  TEST_ASSERT(fabs(camera.near - near_expected) < 1e-8);
+  TEST_ASSERT(fabs(camera.far - far_expected) < 1e-8);
 
   return 0;
 }
@@ -2247,28 +2351,28 @@ int test_imshow() {
   return 0;
 }
 
-void test_suite() {
-  MU_ADD_TEST(test_gl_zeros);
-  MU_ADD_TEST(test_gl_ones);
-  MU_ADD_TEST(test_gl_eye);
-  MU_ADD_TEST(test_gl_equals);
-  MU_ADD_TEST(test_gl_matf_set);
-  MU_ADD_TEST(test_gl_matf_val);
-  MU_ADD_TEST(test_gl_transpose);
-  MU_ADD_TEST(test_gl_vec3_cross);
-  MU_ADD_TEST(test_gl_dot);
-  MU_ADD_TEST(test_gl_norm);
-  MU_ADD_TEST(test_gl_normalize);
-  MU_ADD_TEST(test_gl_perspective);
-  MU_ADD_TEST(test_gl_lookat);
-  MU_ADD_TEST(test_gl_shader_compile);
-  MU_ADD_TEST(test_gl_shaders_link);
-  MU_ADD_TEST(test_gl_prog_setup);
-  MU_ADD_TEST(test_gl_camera_setup);
-  MU_ADD_TEST(test_gui);
-  MU_ADD_TEST(test_imshow);
-}
+int main(int argc, char *argv[]) {
+  TEST(test_gl_zeros);
+  TEST(test_gl_ones);
+  TEST(test_gl_eye);
+  TEST(test_gl_equals);
+  TEST(test_gl_matf_set);
+  TEST(test_gl_matf_val);
+  TEST(test_gl_transpose);
+  TEST(test_gl_vec3_cross);
+  TEST(test_gl_dot);
+  TEST(test_gl_norm);
+  TEST(test_gl_normalize);
+  TEST(test_gl_perspective);
+  TEST(test_gl_lookat);
+  TEST(test_gl_shader_compile);
+  TEST(test_gl_shaders_link);
+  TEST(test_gl_prog_setup);
+  TEST(test_gl_camera_setup);
+  TEST(test_gui);
+  TEST(test_imshow);
 
-MU_RUN_TESTS(test_suite)
+  return (nb_failed) ? -1 : 0;
+}
 
 #endif // GUI_UNITTEST
