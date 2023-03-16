@@ -23,6 +23,7 @@ OPENGL_LDFLAGS := $(SDL2_LDFLAGS) $(GLEW_LDFLAGS) -lGL
 
 BLAS_LDFLAGS := -lblas -llapack -llapacke
 SUITESPARSE_LDFLAGS := -llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod -lcxsparse
+CERES_CFLAGS := -I/usr/include/eigen3
 CERES_LDFLAGS := -lgflags -lglog -lceres
 
 TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
@@ -63,7 +64,8 @@ CFLAGS += \
 	-I$(DEPS_DIR)/include \
 	$(SDL2_CFLAGS) \
 	$(STB_CFLAGS) \
-	$(TIS_CFLAGS)
+	$(TIS_CFLAGS) \
+	$(CERES_CFLAGS)
 
 
 # LDFLAGS
@@ -93,11 +95,11 @@ ARFLAGS = rvs
 LIBPROTO := $(BLD_DIR)/libproto.a
 LIBPROTO_OBJS := \
 	$(BLD_DIR)/proto.o \
-	$(BLD_DIR)/ceres_bridge.o \
 	$(BLD_DIR)/aprilgrid.o \
 	$(BLD_DIR)/euroc.o \
 	$(BLD_DIR)/sbgc.o \
-	$(BLD_DIR)/tis.o
+	$(BLD_DIR)/tis.o \
+	#$(BLD_DIR)/ceres_bridge.o
 
 TESTS := \
 	test_proto \

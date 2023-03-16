@@ -2119,10 +2119,10 @@ real_t pythag(const real_t a, const real_t b) {
 /**
  * Clip vector `x` to be between `val_min` and `val_max`.
  */
-void clip(real_t *x, const int n, const real_t val_min, const real_t val_max) {
-  for (int i = 0; i < n; i++) {
-    x[i] = (x[i] > val_max) ? val_max : x[i];
-    x[i] = (x[i] < val_min) ? val_min : x[i];
+void clip(real_t *x, const size_t n, const real_t vmin, const real_t vmax) {
+  for (size_t i = 0; i < n; i++) {
+    x[i] = (x[i] > vmax) ? vmax : x[i];
+    x[i] = (x[i] < vmin) ? vmin : x[i];
   }
 }
 
@@ -3204,7 +3204,7 @@ void vec_normalize(real_t *x, const size_t n) {
 /**
  * Copy vector of size 3 from `src` to `dst`.
  */
-void vec3_copy(const real_t *src, real_t *dst) {
+void vec3_copy(const real_t src[3], real_t dst[3]) {
   dst[0] = src[0];
   dst[1] = src[1];
   dst[2] = src[2];
@@ -3595,24 +3595,54 @@ int check_jacobian(const char *jac_name,
 /////////
 
 #ifdef USE_LAPACK
+
+// LAPACK fortran prototypes
+extern void dgesdd_(char *jobz,
+                    int *m,
+                    int *n,
+                    double *a,
+                    int *lda,
+                    double *s,
+                    double *u,
+                    int *ldu,
+                    double *vt,
+                    int *ldvt,
+                    double *work,
+                    int *lwork,
+                    int *iwork,
+                    int *info);
+
 /**
  * Decompose matrix A with SVD
  */
-int __lapack_svd(real_t *A,
-                 const int m,
-                 const int n,
-                 real_t *s,
-                 real_t *U,
-                 real_t *Vt) {
-  const int lda = n;
+int __lapack_svd(real_t *A, int m, int n, real_t *s, real_t *U, real_t *Vt) {
+  // Transpose matrix A because LAPACK is column major
+  int lda = m;
+  real_t *At = MALLOC(real_t, m * n);
+  mat_transpose(A, m, n, At);
 
-#if PRECISION == 1
-  const int info =
-      LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n, A, lda, s, U, m, Vt, n);
-#elif PRECISION == 2
-  const int info =
-      LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'A', m, n, A, lda, s, U, m, Vt, n);
-#endif
+  // Query and allocate optimal workspace
+  int lwork = -1;
+  int info = 0;
+  real_t work_size;
+  real_t *work = &work_size;
+  int num_sv = (m < n) ? m : n;
+  int *iwork = MALLOC(int, 8 * num_sv);
+
+  dgesdd_("A", &m, &n, At, &lda, s, U, &m, Vt, &n, work, &lwork, iwork, &info);
+  lwork = work_size;
+  work = MALLOC(real_t, lwork);
+
+  // Compute SVD
+  dgesdd_("A", &m, &n, At, &lda, s, U, &m, Vt, &n, work, &lwork, iwork, &info);
+  if (info > 0) {
+    LOG_ERROR("Failed to compute svd!\n");
+  }
+
+  // Clean up
+  free(At);
+  free(iwork);
+  free(work);
 
   return (info == 0) ? 0 : -1;
 }
@@ -3878,16 +3908,19 @@ int svd(const real_t *A,
 #ifdef USE_LAPACK
   real_t *A_copy = MALLOC(real_t, m * n);
   real_t *U_ = MALLOC(real_t, m * m);
+  real_t *Ut_ = MALLOC(real_t, m * m);
   real_t *Vt = MALLOC(real_t, n * n);
 
   mat_copy(A, m, n, A_copy);
   const int retval = __lapack_svd(A_copy, m, n, s, U_, Vt);
 
-  mat_block_get(U_, m, 0, m - 1, 0, n - 1, U);
-  mat_transpose(Vt, n, n, V);
+  mat_transpose(U_, m, m, Ut_);
+  mat_block_get(Ut_, m, 0, m - 1, 0, n - 1, U);
+  mat_copy(Vt, n, n, V);
 
-  free(Vt);
   free(U_);
+  free(Ut_);
+  free(Vt);
   free(A_copy);
 
   return retval;
@@ -4015,6 +4048,27 @@ int svd_rank(const real_t *A, const int m, const int n, real_t tol) {
 //////////
 
 #ifdef USE_LAPACK
+
+// LAPACK fortran prototypes
+extern int spotrf_(char *uplo, int *n, float *A, int *lda, int *info);
+extern int spotrs_(char *uplo,
+                   int *n,
+                   int *nrhs,
+                   float *A,
+                   int *lda,
+                   float *B,
+                   int *ldb,
+                   int *info);
+extern int dpotrf_(char *uplo, int *n, double *A, int *lda, int *info);
+extern int dpotrs_(char *uplo,
+                   int *n,
+                   int *nrhs,
+                   double *A,
+                   int *lda,
+                   double *B,
+                   int *ldb,
+                   int *info);
+
 /**
  * Decompose matrix A to lower triangular matrix L
  */
@@ -4024,11 +4078,12 @@ void __lapack_chol(const real_t *A, const size_t m, real_t *L) {
   assert(L != NULL);
 
   // Cholesky Decomposition
-  int info = 0;
   int lda = m;
   int n = m;
   char uplo = 'L';
+  int info = 0;
   mat_copy(A, m, m, L);
+
 #if PRECISION == 1
   spotrf_(&uplo, &n, L, &lda, &info);
 #elif PRECISION == 2
@@ -4067,7 +4122,7 @@ void __lapack_chol_solve(const real_t *A,
   int info = 0;
   int lda = m;
   int n = m;
-  char uplo = 'L';
+  char uplo = 'U';
   real_t *a = mat_malloc(m, m);
   mat_copy(A, m, m, a);
 #if PRECISION == 1
@@ -4214,22 +4269,50 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
 // QR //
 ////////
 
+#ifdef USE_LAPACK
 void __lapack_qr(real_t *A, const int m, const int n, real_t *R) {
   int lda = m;
   real_t *tau = MALLOC(real_t, (m < n) ? m : n);
-  LAPACKE_dgeqrf(LAPACK_ROW_MAJOR, m, n, A, lda, tau);
+
+  // LAPACKE_dgeqrf(LAPACK_ROW_MAJOR, m, n, A, lda, tau);
+  FATAL("NOT IMPLEMENTED!");
   free(tau);
 }
+#endif // USE_LAPACK
 
 void qr(real_t *A, const int m, const int n, real_t *R) {
 #ifdef USE_LAPACK
   __lapack_qr(A, m, n, R);
+#else
+  FATAL("NOT IMPLEMENTED!");
 #endif // USE_LAPACK
 }
 
 /////////
 // EIG //
 /////////
+
+#ifdef USE_LAPACK
+
+// LAPACK fortran prototypes
+void ssyev_(char *jobz,
+            char *uplo,
+            int *n,
+            float *a,
+            int *lda,
+            float *w,
+            float *work,
+            int *lwork,
+            int *info);
+void dsyev_(char *jobz,
+            char *uplo,
+            int *n,
+            double *a,
+            int *lda,
+            double *w,
+            double *work,
+            int *lwork,
+            int *info);
 
 int __lapack_eig(const real_t *A,
                  const int m,
@@ -4239,19 +4322,8 @@ int __lapack_eig(const real_t *A,
   assert(A != NULL);
   assert(m > 0 && n > 0);
   assert(m == n);
-  const int lda = n;
-
-  //   mat_triu(A, n, V);
-  // #if PRECISION == 1
-  //   const int info = LAPACKE_ssyev(LAPACK_ROW_MAJOR, 'V', 'U', n, A, lda, w);
-  // #elif PRECISION == 2
-  //   const int info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', n, A, lda, w);
-  // #endif // Precision
-  //   // Check for convergence
-  //   if (info > 0) {
-  //     LOG_ERROR("The algorithm failed to compute eigenvalues.\n");
-  //     return -1;
-  //   }
+  int n_ = n;
+  int lda = n;
 
   // Copy matrix A to output matrix V
   mat_triu(A, n, V);
@@ -4261,18 +4333,18 @@ int __lapack_eig(const real_t *A,
   int info = 0;
   real_t wkopt;
 #if PRECISION == 1
-  ssyev_("Vectors", "Lower", &n, V, &lda, w, &wkopt, &lwork, &info);
+  ssyev_("Vectors", "Lower", &n_, V, &lda, w, &wkopt, &lwork, &info);
 #elif PRECISION == 2
-  dsyev_("Vectors", "Lower", &n, V, &lda, w, &wkopt, &lwork, &info);
+  dsyev_("Vectors", "Lower", &n_, V, &lda, w, &wkopt, &lwork, &info);
 #endif // Precision
   lwork = (int) wkopt;
   real_t *work = MALLOC(double, lwork);
 
   // Solve eigenproblem
 #if PRECISION == 1
-  ssyev_("Vectors", "Lower", &n, V, &lda, w, work, &lwork, &info);
+  ssyev_("Vectors", "Lower", &n_, V, &lda, w, work, &lwork, &info);
 #elif PRECISION == 2
-  dsyev_("Vectors", "Lower", &n, V, &lda, w, work, &lwork, &info);
+  dsyev_("Vectors", "Lower", &n_, V, &lda, w, work, &lwork, &info);
 #endif // Precision
   if (info > 0) {
     LOG_ERROR("The algorithm failed to compute eigenvalues.\n");
@@ -4289,6 +4361,7 @@ int __lapack_eig(const real_t *A,
 
   return 0;
 }
+#endif // USE_LAPACK
 
 /**
  * Perform Eigen-Decomposition of a symmetric matrix `A` of size `m` x `n`.
@@ -4298,7 +4371,12 @@ int eig_sym(const real_t *A, const int m, const int n, real_t *V, real_t *w) {
   assert(m > 0 && n > 0);
   assert(m == n);
   assert(V != NULL && w != NULL);
+#ifdef USE_LAPACK
   return __lapack_eig(A, m, n, V, w);
+#else
+  FATAL("Not implemented!");
+  return 0;
+#endif // USE_LAPACK
 }
 
 /**
@@ -7619,8 +7697,8 @@ void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
   // pid_ctrl_setup(ctrl->pitch);
   // pid_ctrl_setup(ctrl->yaw);
 
-  zeros(ctrl->setpoints, 3);
-  zeros(ctrl->outputs, 4);
+  zeros(ctrl->setpoints, 3, 1);
+  zeros(ctrl->outputs, 4, 1);
 }
 
 void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
@@ -7631,12 +7709,17 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
   // Check rate
   ctrl->dt += dt;
   if (ctrl->dt < 0.001) {
-    return ctrl->outputs;
+    // Return previous command
+    outputs[0] = ctrl->outputs[0];
+    outputs[1] = ctrl->outputs[1];
+    outputs[2] = ctrl->outputs[2];
+    outputs[3] = ctrl->outputs[3];
+    return;
   }
 
   // Calculate yaw error
-  real_t actual_yaw = rad2deg(actual(2));
-  real_t setpoint_yaw = rad2deg(setpoints(2));
+  real_t actual_yaw = rad2deg(actual[2]);
+  real_t setpoint_yaw = rad2deg(setpoints[2]);
   real_t error_yaw = setpoint_yaw - actual_yaw;
   if (error_yaw > 180.0) {
     error_yaw -= 360.0;
@@ -7646,13 +7729,13 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
   error_yaw = deg2rad(error_yaw);
 
   // Roll, pitch and yaw
-  real_t r = pid_ctrl_update(ctrl->roll, setpoints[0], actual[0], ctrl->dt);
-  real_t p = pid_ctrl_update(ctrl->pitch, setpoints[1], actual[1], ctrl->dt);
-  real_t y = pid_ctrl_update(ctrl->yaw, error_yaw, 0.0, ctrl->dt);
+  real_t r = pid_ctrl_update(&ctrl->roll, setpoints[0], actual[0], ctrl->dt);
+  real_t p = pid_ctrl_update(&ctrl->pitch, setpoints[1], actual[1], ctrl->dt);
+  real_t y = pid_ctrl_update(&ctrl->yaw, error_yaw, 0.0, ctrl->dt);
 
   // Thrust
   real_t max_thrust = 5.0;
-  real_t t = max_thrust * setpoints(3);  // Convert relative to true thrust
+  real_t t = max_thrust * setpoints[3];  // Convert relative to true thrust
   t = (t > max_thrust) ? max_thrust : t; // Limit thrust
   t = (t < 0) ? 0.0 : t;                 // Limit thrust
 
@@ -7672,8 +7755,11 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
   }
 
   // Keep track of outputs
-  ctrl->outputs = outputs;
-  ctrl->dt = 0.0;
+  ctrl->outputs[0] = outputs[0];
+  ctrl->outputs[1] = outputs[1];
+  ctrl->outputs[2] = outputs[2];
+  ctrl->outputs[3] = outputs[3];
+  ctrl->dt = 0.0; // Reset dt
 }
 
 void mav_model_setup(mav_model_t *mav,
@@ -7682,6 +7768,7 @@ void mav_model_setup(mav_model_t *mav,
                      const real_t kr,
                      const real_t kt,
                      const real_t l,
+                     const real_t d,
                      const real_t m,
                      const real_t g) {
   vec_copy(x, 12, mav->state);        // State
@@ -7689,6 +7776,7 @@ void mav_model_setup(mav_model_t *mav,
   mav->kr = kr;                       // Rotation drag constant
   mav->kt = kt;                       // Translation drag constant
   mav->l = l;                         // Arm length
+  mav->d = d;                         // Drag co-efficient
   mav->m = m;                         // Mass
   mav->g = g;                         // Gravitational constant
 }
@@ -8445,7 +8533,7 @@ void camera_params_setup(camera_params_t *camera,
                          const int cam_res[2],
                          const char *proj_model,
                          const char *dist_model,
-                         const real_t data[8]) {
+                         const real_t *data) {
   assert(camera != NULL);
   assert(cam_res != NULL);
   assert(proj_model != NULL);
@@ -10053,12 +10141,11 @@ static void idf_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
   // J_rot = Jh_w * C_CB * hat(C_BC * p_C);
 
   // Setup
-  real_t C_BC[3 * 3] = {0};
   real_t C_CB[3 * 3] = {0};
   real_t C_BW[3 * 3] = {0};
   real_t C_CW[3 * 3] = {0};
 
-  tf_rot_get(T_BC, C_BC);
+  TF_ROT(T_BC, C_BC);
   mat_transpose(C_BC, 3, 3, C_CB);
   dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
 
@@ -10284,7 +10371,7 @@ int idf_factor_eval(void *factor_ptr) {
   TF(factor->pose->data, T_WB);
   TF(factor->extrinsic->data, T_BCi);
   TF_CHAIN(T_WCi, 2, T_WB, T_BCi);
-  TF_TRANS(T_WCi, r_WCi);
+  // TF_TRANS(T_WCi, r_WCi);
   TF_INV(T_WCi, T_CiW);
 
   // Calculate residuals and jacobians

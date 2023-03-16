@@ -40,10 +40,6 @@
 #include <cblas.h>
 #endif
 
-#ifdef USE_LAPACK
-#include <lapacke.h>
-#endif
-
 #ifdef USE_SUITESPARSE
 #include <suitesparse/cholmod.h>
 #endif
@@ -582,7 +578,7 @@ int streqs(const char *x, const char *y);
 void cumsum(const real_t *x, const size_t n, real_t *s);
 void logspace(const real_t a, const real_t b, const size_t n, real_t *x);
 real_t pythag(const real_t a, const real_t b);
-void clip(real_t *x, const int n, const real_t val_min, const real_t val_max);
+void clip(real_t *x, const size_t n, const real_t vmin, const real_t vmax);
 real_t lerp(const real_t a, const real_t b, const real_t t);
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);
 real_t sinc(const real_t x);
@@ -991,13 +987,19 @@ real_t suitesparse_chol_solve(cholmod_common *c,
   real_t T[4 * 4] = {0};                                                       \
   tf(PARAMS, T);
 
-#define TF_TRANS(T, TRANS)                                                     \
-  real_t TRANS[3] = {0};                                                       \
-  tf_trans_get(T, TRANS);
+#define TF_TRANS(T, TRANS) real_t TRANS[3] = {T[3], T[7], T[11]};
 
 #define TF_ROT(T, ROT)                                                         \
   real_t ROT[3 * 3] = {0};                                                     \
-  tf_rot_get(T, ROT);
+  ROT[0] = T[0];                                                               \
+  ROT[1] = T[1];                                                               \
+  ROT[2] = T[2];                                                               \
+  ROT[3] = T[4];                                                               \
+  ROT[4] = T[5];                                                               \
+  ROT[5] = T[6];                                                               \
+  ROT[6] = T[8];                                                               \
+  ROT[7] = T[9];                                                               \
+  ROT[8] = T[10];
 
 #define TF_QUAT(T, QUAT)                                                       \
   real_t QUAT[4] = {0};                                                        \
@@ -1091,7 +1093,7 @@ void pose_get_quat(const real_t pose[7], real_t q[4]);
 void pose_diff(const real_t pose0[7], const real_t pose1[7], real_t diff[6]);
 void pose_diff2(const real_t pose0[7],
                 const real_t pose1[7],
-                real_t *dr,
+                real_t dr[3],
                 real_t *dangle);
 void pose_vector_update(real_t pose[7], const real_t dx[6]);
 void print_pose_vector(const char *prefix, const real_t pose[7]);
@@ -1322,6 +1324,7 @@ typedef struct mav_model_t {
   real_t kr;         // Rotation drag constant
   real_t kt;         // Translation drag constant
   real_t l;          // Arm length
+  real_t d;          // Drag
   real_t m;          // Mass
   real_t g;          // Gravitational constant
 } mav_model_t;
@@ -1365,6 +1368,7 @@ void mav_model_setup(mav_model_t *mav,
                      const real_t kr,
                      const real_t kt,
                      const real_t l,
+                     const real_t d,
                      const real_t m,
                      const real_t g);
 void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt);
@@ -3349,6 +3353,6 @@ sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
                                    const timestamp_t ts,
                                    const int view_idx,
                                    const int cam_idx,
-                                   const real_t T_WB[4 * 4]);
+                                   const real_t body_pose[7]);
 
 #endif // PROTO_H

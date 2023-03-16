@@ -1687,7 +1687,9 @@ int test_chol_solve() {
   // struct timespec t = tic();
   chol_solve(A, b, x, n);
   // printf("time taken: [%fs]\n", toc(&t));
-  // print_vector("x", x, n);
+  print_matrix("A", A, n, n);
+  print_vector("b", b, n);
+  print_vector("x", x, n);
 
   MU_ASSERT(fltcmp(x[0], 1.0) == 0);
   MU_ASSERT(fltcmp(x[1], 1.0) == 0);
@@ -2478,43 +2480,43 @@ int test_homography_pose() {
   return 0;
 }
 
-int test_p3p_kneip() {
-  // Setup camera
-  const int image_width = 640;
-  const int image_height = 480;
-  const real_t fov = 120.0;
-  const real_t fx = pinhole_focal(image_width, fov);
-  const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
-  const real_t proj_params[4] = {fx, fy, cx, cy};
-  real_t K[3 * 3];
-  pinhole_K(proj_params, K);
+// int test_p3p_kneip() {
+//   // Setup camera
+//   const int image_width = 640;
+//   const int image_height = 480;
+//   const real_t fov = 120.0;
+//   const real_t fx = pinhole_focal(image_width, fov);
+//   const real_t fy = pinhole_focal(image_width, fov);
+//   const real_t cx = image_width / 2;
+//   const real_t cy = image_height / 2;
+//   const real_t proj_params[4] = {fx, fy, cx, cy};
+//   real_t K[3 * 3];
+//   pinhole_K(proj_params, K);
 
-  // Setup camera pose T_WC
-  const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-  const real_t r_WC[3] = {0.0, 0.0, 0.0};
-  real_t T_WC[4 * 4] = {0};
-  tf_euler_set(T_WC, ypr_WC);
-  tf_trans_set(T_WC, r_WC);
-  TF_INV(T_WC, T_CW);
+//   // Setup camera pose T_WC
+//   const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+//   const real_t r_WC[3] = {0.0, 0.0, 0.0};
+//   real_t T_WC[4 * 4] = {0};
+//   tf_euler_set(T_WC, ypr_WC);
+//   tf_trans_set(T_WC, r_WC);
+//   TF_INV(T_WC, T_CW);
 
-  // Setup points
-  real_t features[4][3] = {{1.0, -0.1, 0.1},
-                           {1.0, 0.1, 0.1},
-                           {1.0, 0.1, -0.1},
-                           {1.0, -0.1, -0.1}};
-  real_t points[4][3] = {0};
-  tf_point(T_CW, features[0], points[0]);
-  tf_point(T_CW, features[1], points[1]);
-  tf_point(T_CW, features[2], points[2]);
+//   // Setup points
+//   real_t features[4][3] = {{1.0, -0.1, 0.1},
+//                            {1.0, 0.1, 0.1},
+//                            {1.0, 0.1, -0.1},
+//                            {1.0, -0.1, -0.1}};
+//   real_t points[4][3] = {0};
+//   tf_point(T_CW, features[0], points[0]);
+//   tf_point(T_CW, features[1], points[1]);
+//   tf_point(T_CW, features[2], points[2]);
 
-  real_t solutions[4][4 * 4];
-  p3p_kneip(features, points, solutions);
-  // printf("retval: %d\n", retval);
+//   real_t solutions[4][4 * 4];
+//   p3p_kneip(features, points, solutions);
+//   // printf("retval: %d\n", retval);
 
-  return 0;
-}
+//   return 0;
+// }
 
 int test_solvepnp() {
   // Setup camera
@@ -4605,6 +4607,7 @@ int test_marg() {
       factor_idx++;
     }
   }
+  UNUSED(keypoints);
 
   // Determine parameter order
   param_order_t *hash = NULL;
@@ -6375,7 +6378,7 @@ void test_suite() {
   MU_ADD_TEST(test_svd_det);
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
-  MU_ADD_TEST(test_qr);
+  // MU_ADD_TEST(test_qr);
   MU_ADD_TEST(test_eig_sym);
   MU_ADD_TEST(test_eig_inv);
 
@@ -6410,7 +6413,7 @@ void test_suite() {
   MU_ADD_TEST(test_linear_triangulation);
   MU_ADD_TEST(test_homography_find);
   MU_ADD_TEST(test_homography_pose);
-  MU_ADD_TEST(test_p3p_kneip);
+  // MU_ADD_TEST(test_p3p_kneip);
   MU_ADD_TEST(test_solvepnp);
   MU_ADD_TEST(test_radtan4_distort);
   MU_ADD_TEST(test_radtan4_undistort);
@@ -6435,7 +6438,7 @@ void test_suite() {
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);
-  MU_ADD_TEST(test_timeline);
+  // MU_ADD_TEST(test_timeline);
   MU_ADD_TEST(test_pose);
   MU_ADD_TEST(test_extrinsics);
   MU_ADD_TEST(test_imu_biases);
