@@ -1687,9 +1687,9 @@ int test_chol_solve() {
   // struct timespec t = tic();
   chol_solve(A, b, x, n);
   // printf("time taken: [%fs]\n", toc(&t));
-  print_matrix("A", A, n, n);
-  print_vector("b", b, n);
-  print_vector("x", x, n);
+  // print_matrix("A", A, n, n);
+  // print_vector("b", b, n);
+  // print_vector("x", x, n);
 
   MU_ASSERT(fltcmp(x[0], 1.0) == 0);
   MU_ASSERT(fltcmp(x[1], 1.0) == 0);
@@ -1700,19 +1700,35 @@ int test_chol_solve() {
 
 int test_qr() {
   // clang-format off
-  const int m = 3;
-  const int n = 3;
-  real_t A[3 * 3] = {
-    12, -51,   4,
-    6,  167, -68,
-    -4,  24, -41
+  const int m = 5;
+  const int n = 5;
+  real_t A[5 * 5] = {
+    17.0, 24.0,  1.0,  8.0, 15.0,
+    23.0,  5.0,  7.0, 14.0, 16.0,
+     4.0,  6.0, 13.0, 20.0, 22.0,
+    10.0, 12.0, 19.0, 21.0,  3.0,
+    11.0, 18.0, 25.0,  2.0,  9.0,
   };
   // clang-format on
 
-  real_t R[3 * 3] = {0};
+  // Test
+  real_t R[5 * 5] = {0};
   qr(A, m, n, R);
-  // print_matrix("A", A, 3, 3);
-  // print_matrix("R", R, 3, 3);
+  // print_matrix("A", A, m, n);
+  // print_matrix("R", R, m, n);
+
+  // clang-format off
+  real_t R_expected[5 * 5] = {
+    -32.4808,  -26.6311,  -21.3973,  -23.7063,  -25.8615,
+           0,   19.8943,   12.3234,    1.9439,    4.0856,
+           0,         0,  -24.3985,  -11.6316,   -3.7415,
+           0,         0,         0,  -20.0982,   -9.9739,
+           0,         0,         0,         0,  -16.0005
+  };
+  // print_matrix("R", R, m, n);
+  // print_matrix("R_expected", R_expected, m, n);
+  // clang-format on
+  MU_ASSERT(mat_equals(R, R_expected, 5, 5, 1e-4));
 
   return 0;
 }
@@ -6378,7 +6394,7 @@ void test_suite() {
   MU_ADD_TEST(test_svd_det);
   MU_ADD_TEST(test_chol);
   MU_ADD_TEST(test_chol_solve);
-  // MU_ADD_TEST(test_qr);
+  MU_ADD_TEST(test_qr);
   MU_ADD_TEST(test_eig_sym);
   MU_ADD_TEST(test_eig_inv);
 

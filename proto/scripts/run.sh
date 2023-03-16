@@ -330,7 +330,7 @@ dev_euroc() {
 # run_test test_eig_inv
 # run_test test_chol
 # run_test test_chol_solve
-# run_test test_qr
+run_test test_qr
 # run_test test_suitesparse_chol_solve
 # PROTO-TIME
 # PROTO-TRANSFORMS
@@ -385,7 +385,7 @@ dev_euroc() {
 # memcheck run_test test_load_sim_cam_data
 # PROTO-SF
 # run_test test_schur_complement
-run_test test_timeline
+# run_test test_timeline
 # run_test test_pose
 # run_test test_speed_bias
 # run_test test_extrinsics

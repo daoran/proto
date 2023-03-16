@@ -3617,11 +3617,11 @@ extern void dgesdd_(char *jobz,
  */
 int __lapack_svd(real_t *A, int m, int n, real_t *s, real_t *U, real_t *Vt) {
   // Transpose matrix A because LAPACK is column major
-  int lda = m;
   real_t *At = MALLOC(real_t, m * n);
   mat_transpose(A, m, n, At);
 
   // Query and allocate optimal workspace
+  int lda = m;
   int lwork = -1;
   int info = 0;
   real_t work_size;
@@ -4270,12 +4270,103 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
 ////////
 
 #ifdef USE_LAPACK
-void __lapack_qr(real_t *A, const int m, const int n, real_t *R) {
+
+// LAPACK fortran prototype
+void sgeqrf_(const int *M,
+             const int *N,
+             float *A,
+             const int *lda,
+             float *TAU,
+             float *work,
+             const int *lwork,
+             int *info);
+void dgeqrf_(const int *M,
+             const int *N,
+             double *A,
+             const int *lda,
+             double *TAU,
+             double *work,
+             const int *lwork,
+             int *info);
+
+void __lapack_qr(real_t *A, int m, int n, real_t *R) {
+  // Transpose matrix A because LAPACK is column major
+  real_t *At = MALLOC(real_t, m * n);
+  mat_transpose(A, m, n, At);
+
+  // Query and allocate optimal workspace
   int lda = m;
+  int lwork = -1;
+  int info = 0;
+  real_t work_size;
+  real_t *work = &work_size;
   real_t *tau = MALLOC(real_t, (m < n) ? m : n);
 
-  // LAPACKE_dgeqrf(LAPACK_ROW_MAJOR, m, n, A, lda, tau);
-  FATAL("NOT IMPLEMENTED!");
+  dgeqrf_(&m, &n, At, &lda, tau, work, &lwork, &info);
+  lwork = work_size;
+  work = MALLOC(real_t, lwork);
+
+  // Compute QR
+  dgeqrf_(&m, &n, At, &lda, tau, work, &lwork, &info);
+  // mat_transpose(At, m, n, R);
+
+  // Transpose result and zero lower triangular
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = 0; j < m; j++) {
+      if (i <= j) {
+        R[(i * m) + j] = At[(j * m) + i];
+      } else {
+        R[(i * m) + j] = 0;
+      }
+    }
+  }
+
+  // Recover matrix Q
+  // From the LAPACK documentation:
+  //
+  // The matrix Q is represented as a product of elementary reflectors
+  //
+  //   Q = H(1) H(2) . . . H(k), where k = min(m, n).
+  //
+  // Each H(i) has the form
+  //
+  //   H(i) = I - tau * v * v**T
+  //
+  // where tau is a real scalar, and v is a real vector with v(1:i-1) = 0 and
+  // v(i) = 1; v(i+1:m) is stored on exit in A(i+1:m,i), and tau in (i).
+  //
+  // Q = eye(6); % Initial
+  // v = [ 0 0 0 0 0 0];
+  // m = 6;
+  // for i = 1:4
+  //   v(1:i-1) = 0;
+  //   v(i) = 1;
+  //   v(i+1:m) = A(i+1:m,i);
+  //   A(i+1:m,i)
+  //   Q = Q*(eye(6) - tau(i)*v'*v);
+  // end
+  // real_t *Q = CALLOC(real_t, m * m);
+  // real_t *v = CALLOC(real_t, m);
+  // for (int i = 0; i < n; i++) {
+  //   for (int ii = 0; ii < i; i++) {
+  //     v[ii] = 0.0;
+  //   }
+  //   v[i] = 1.0;
+  //   for (int ii = i+1; ii < m; ii++) {
+  //     v[ii] = At[(i + 1) * m + i];
+  //   }
+
+
+  // }
+  // free(Q);
+  // free(v);
+
+  // print_matrix("R", R, m, n);
+  // print_vector("tau", tau, m);
+
+  // Clean up
+  free(At);
+  free(work);
   free(tau);
 }
 #endif // USE_LAPACK
