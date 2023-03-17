@@ -3231,6 +3231,14 @@ int test_pinhole_equi4_params_jacobian() {
 }
 
 /******************************************************************************
+ * TEST CONTROL
+ ******************************************************************************/
+
+int test_pid_ctrl() {
+  return 0;
+}
+
+/******************************************************************************
  * TEST SENSOR FUSION
  ******************************************************************************/
 
@@ -6451,6 +6459,9 @@ void test_suite() {
   MU_ADD_TEST(test_pinhole_equi4_project);
   MU_ADD_TEST(test_pinhole_equi4_project_jacobian);
   MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
+
+  // CONTROL
+  MU_ADD_TEST(test_pid_ctrl);
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);

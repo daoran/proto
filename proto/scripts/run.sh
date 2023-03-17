@@ -330,7 +330,7 @@ dev_euroc() {
 # run_test test_eig_inv
 # run_test test_chol
 # run_test test_chol_solve
-run_test test_qr
+# run_test test_qr
 # run_test test_suitesparse_chol_solve
 # PROTO-TIME
 # PROTO-TRANSFORMS
