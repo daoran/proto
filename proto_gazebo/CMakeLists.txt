@@ -12,12 +12,12 @@ SET(GZ_MATH_VER ${gz-math7_VERSION_MAJOR})
 SET(GZ_SIM_VER ${gz-sim7_VERSION_MAJOR})
 
 # Build Plugins
-SET(
-  DEPS
-  PRIVATE gz-plugin${GZ_PLUGIN_VER}::gz-plugin${GZ_PLUGIN_VER}
-  PRIVATE gz-sim7::gz-sim7
-)
+SET(DEPS
+    PRIVATE gz-plugin${GZ_PLUGIN_VER}::gz-plugin${GZ_PLUGIN_VER}
+    PRIVATE gz-sim7::gz-sim7)
+
 ADD_LIBRARY(HelloWorldPlugin SHARED plugins/HelloWorldPlugin.cc)
 TARGET_LINK_LIBRARIES(HelloWorldPlugin ${DEPS})
-# ADD_LIBRARY(CommandActor SHARED CommandActor.cc)
-# TARGET_LINK_LIBRARIES(CommandActor ${DEPS})
+
+ADD_LIBRARY(GimbalPlugin SHARED plugins/GimbalPlugin.cc)
+TARGET_LINK_LIBRARIES(GimbalPlugin ${DEPS})

@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
-export IGN_GAZEBO_SERVER_CONFIG_PATH=$PWD/server.config
-export IGN_GAZEBO_RESOURCE_PATH=$PWD/worlds:$PWD/models
-# gz sim calibration.sdf --gui-config gui.config
-
+export GZ_SIM_SERVER_CONFIG_PATH=$PWD/server.config
+export GZ_SIM_RESOURCE_PATH=$PWD/worlds:$PWD/models
+export GZ_SIM_SYSTEM_PLUGIN_PATH=$PWD/build
 mkdir -p build && cd build && cmake .. && make
+gz sim calibration.sdf --gui-config gui.config
+# gz sim sandbox.sdf --gui-config gui.config
+

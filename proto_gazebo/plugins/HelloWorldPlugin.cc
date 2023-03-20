@@ -3,8 +3,6 @@
 #include <gz/common/Console.hh>
 #include <gz/plugin/Register.hh>
 
-namespace proto_gazebo {
-
 class HelloWorldPlugin : public gz::sim::System,
                          public gz::sim::ISystemPostUpdate {
 public:
@@ -21,10 +19,8 @@ public:
   }
 };
 
-} // namespace proto_gazebo
-
 // This is required to register the plugin. Make sure the interfaces match
 // what's in the header.
-GZ_ADD_PLUGIN(proto_gazebo::HelloWorldPlugin,
+GZ_ADD_PLUGIN(HelloWorldPlugin,
               gz::sim::System,
-              proto_gazebo::HelloWorldPlugin::ISystemPostUpdate)
+              HelloWorldPlugin::ISystemPostUpdate)
