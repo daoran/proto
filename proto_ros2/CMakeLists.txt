@@ -29,10 +29,9 @@ FIND_PACKAGE(sensor_msgs REQUIRED)
 # TARGETS #
 ###########
 
-# examples/offboard/offboard_control
-# add_executable(offboard_control src/examples/offboard/offboard_control.cpp)
-# ament_target_dependencies(offboard_control rclcpp px4_msgs)
-# install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
+add_executable(offboard src/offboard.cpp)
+ament_target_dependencies(offboard rclcpp px4_msgs)
+install(TARGETS offboard DESTINATION lib/${PROJECT_NAME})
 
 ###########
 # INSTALL #
