@@ -18,9 +18,10 @@
 
   <depend>builtin_interfaces</depend>
   <depend>rclcpp</depend>
-  <depend>px4_msgs</depend>
-  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>px4_msgs</depend>
   <depend>launch</depend>
   <depend>launch_testing</depend>
   <depend>launch_testing_ros</depend>

@@ -231,7 +231,7 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
       <joint_name>joint_yaw</joint_name>
-      <topic>/gimbal/joint0</topic>
+      <topic>/gimbal/joint0_cmd</topic>
       <p_gain>1</p_gain>
       <i_gain>0.1</i_gain>
       <d_gain>0.01</d_gain>
@@ -239,6 +239,12 @@
       <i_min>-1</i_min>
       <cmd_max>1000</cmd_max>
       <cmd_min>-1000</cmd_min>
+    </plugin>
+    <plugin
+        filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher">
+      <joint_name>joint_yaw</joint_name>
+      <topic>/gimbal/joint0_state</topic>
     </plugin>
 
     <!-- Roll joint -->
@@ -257,7 +263,7 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
       <joint_name>joint_roll</joint_name>
-      <topic>/gimbal/joint1</topic>
+      <topic>/gimbal/joint1_cmd</topic>
       <p_gain>1</p_gain>
       <i_gain>0.1</i_gain>
       <d_gain>0.01</d_gain>
@@ -265,6 +271,12 @@
       <i_min>-1</i_min>
       <cmd_max>1000</cmd_max>
       <cmd_min>-1000</cmd_min>
+    </plugin>
+    <plugin
+        filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher">
+      <joint_name>joint_roll</joint_name>
+      <topic>/gimbal/joint1_state</topic>
     </plugin>
 
     <!-- Pitch joint -->
@@ -283,7 +295,7 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
       <joint_name>joint_pitch</joint_name>
-      <topic>/gimbal/joint2</topic>
+      <topic>/gimbal/joint2_cmd</topic>
       <p_gain>1</p_gain>
       <i_gain>0.1</i_gain>
       <d_gain>0.01</d_gain>
@@ -291,6 +303,12 @@
       <i_min>-1</i_min>
       <cmd_max>1000</cmd_max>
       <cmd_min>-1000</cmd_min>
+    </plugin>
+    <plugin
+        filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher">
+      <joint_name>joint_pitch</joint_name>
+      <topic>/gimbal/joint2_state</topic>
     </plugin>
 
     <!-- Gimbal pitch to camera0 -->

@@ -1,6 +1,8 @@
 DATA_DIR=/data
+ROS2_WS=${HOME}/proto_ws
+SHELL := /bin/bash
 
-help:
+help: ## Help
 	@echo "\033[1;34m[make targets]:\033[0m"
 	@egrep -h '\s##\s' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; \
@@ -9,14 +11,14 @@ help:
 install_docker: ## Install Docker (Ubuntu only)
 	@bash scripts/install_docker.bash
 
-build:  ## Build proto_ros2
+build_docker:  ## Build proto_ros2 docker
 	@cd docker && \
 		docker build -t proto_ros2 \
 			--build-arg USERNAME=${USER} \
 			--build-arg USER_ID=`id -u` \
 			--build-arg GROUP_ID=`id -g` .
 
-run: build   ## Run proto_ros2
+run_docker: build   ## Run proto_ros2 docker
 	@xhost +local:docker
 	@cd docker && \
 		docker run -e DISPLAY \
@@ -25,3 +27,18 @@ run: build   ## Run proto_ros2
 			-v $(DATA_DIR):$(DATA_DIR) \
 			--network="host" \
 			-it --rm proto_ros2 /bin/bash
+
+build: ## Build proto_ws
+	@cd ${ROS2_WS} && colcon build
+
+calib_sim: ## Build proto_ws
+	@cd ${ROS2_WS} \
+		&& colcon build --packages-select proto_ros2 \
+		&& source install/setup.bash \
+		&& ros2 launch proto_ros2 calib_sim.launch.py
+
+gimbal_dance: ## Build gimbal dance
+	@cd ${ROS2_WS} \
+		&& colcon build --packages-select proto_ros2 \
+		&& source install/setup.bash \
+		&& ros2 run proto_ros2 gimbal_dance

@@ -18,10 +18,16 @@ def ros_gz_image_bridge(topic):
     direction = "["
     return ros_gz_bridge(topic, ros_type, gz_type, direction)
 
-def ros_gz_gimbal_joint_bridge(topic):
+def ros_gz_gimbal_joint_cmd_bridge(topic):
     ros_type = "std_msgs/msg/Float64"
     gz_type = "gz.msgs.Double"
     direction = "]"
+    return ros_gz_bridge(topic, ros_type, gz_type, direction)
+
+def ros_gz_gimbal_joint_state_bridge(topic):
+    ros_type = "sensor_msgs/msg/JointState"
+    gz_type = "gz.msgs.Model"
+    direction = "["
     return ros_gz_bridge(topic, ros_type, gz_type, direction)
 
 def generate_launch_description():
@@ -40,17 +46,23 @@ def generate_launch_description():
     # Gazebo -> ROS2 bridges
     cam0_bridge = ros_gz_image_bridge("/gimbal/camera0")
     cam1_bridge = ros_gz_image_bridge("/gimbal/camera1")
-    yaw_bridge = ros_gz_gimbal_joint_bridge("/gimbal/joint0")
-    roll_bridge = ros_gz_gimbal_joint_bridge("/gimbal/joint1")
-    pitch_bridge = ros_gz_gimbal_joint_bridge("/gimbal/joint2")
+    yaw_cmd_bridge = ros_gz_gimbal_joint_cmd_bridge("/gimbal/joint0_cmd")
+    roll_cmd_bridge = ros_gz_gimbal_joint_cmd_bridge("/gimbal/joint1_cmd")
+    pitch_cmd_bridge = ros_gz_gimbal_joint_cmd_bridge("/gimbal/joint2_cmd")
+    yaw_state_bridge = ros_gz_gimbal_joint_state_bridge("/gimbal/joint0_state")
+    roll_state_bridge = ros_gz_gimbal_joint_state_bridge("/gimbal/joint1_state")
+    pitch_state_bridge = ros_gz_gimbal_joint_state_bridge("/gimbal/joint2_state")
 
     # Launch
     descs = []
     descs.append(gz_proc)
     descs.append(cam0_bridge)
     descs.append(cam1_bridge)
-    descs.append(yaw_bridge)
-    descs.append(roll_bridge)
-    descs.append(pitch_bridge)
+    descs.append(yaw_cmd_bridge)
+    descs.append(roll_cmd_bridge)
+    descs.append(pitch_cmd_bridge)
+    descs.append(yaw_state_bridge)
+    descs.append(roll_state_bridge)
+    descs.append(pitch_state_bridge)
 
     return LaunchDescription(descs)
