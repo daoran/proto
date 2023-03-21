@@ -1,4 +1,0 @@
-/home/chutsu/projects/proto/proto_gazebo/build/CMakeFiles/HelloWorldPlugin.dir
-/home/chutsu/projects/proto/proto_gazebo/build/CMakeFiles/GimbalPlugin.dir
-/home/chutsu/projects/proto/proto_gazebo/build/CMakeFiles/edit_cache.dir
-/home/chutsu/projects/proto/proto_gazebo/build/CMakeFiles/rebuild_cache.dir
