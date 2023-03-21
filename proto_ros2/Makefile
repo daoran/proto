@@ -10,16 +10,18 @@ install_docker: ## Install Docker (Ubuntu only)
 	@bash scripts/install_docker.bash
 
 build:  ## Build proto_ros2
-	@docker build -t proto_ros2 \
-		--build-arg USERNAME=${USER} \
-		--build-arg USER_ID=`id -u` \
-		--build-arg GROUP_ID=`id -g` .
+	@cd docker && \
+		docker build -t proto_ros2 \
+			--build-arg USERNAME=${USER} \
+			--build-arg USER_ID=`id -u` \
+			--build-arg GROUP_ID=`id -g` .
 
 run: build   ## Run proto_ros2
 	@xhost +local:docker
-	@docker run -e DISPLAY \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-v /tmp:/tmp \
-		-v $(DATA_DIR):$(DATA_DIR) \
-		--network="host" \
-		-it --rm proto_ros2 /bin/bash
+	@cd docker && \
+		docker run -e DISPLAY \
+			-v /tmp/.X11-unix:/tmp/.X11-unix \
+			-v /tmp:/tmp \
+			-v $(DATA_DIR):$(DATA_DIR) \
+			--network="host" \
+			-it --rm proto_ros2 /bin/bash

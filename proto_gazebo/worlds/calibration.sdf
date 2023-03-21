@@ -72,13 +72,6 @@
       <pose>0 0 1 0 0 -1.570796</pose>
     </include>
 
-    <!-- VI-SENSOR -->
-    <!-- <include> -->
-    <!--   <static>true</static> -->
-    <!--   <uri>model://visensor</uri> -->
-    <!--   <pose>-2 0 1 0 0 0</pose> -->
-    <!-- </include> -->
-
     <!-- GIMBAL -->
     <include>
       <uri>model://gimbal</uri>

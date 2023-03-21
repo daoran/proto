@@ -7,4 +7,3 @@ export GZ_SIM_SYSTEM_PLUGIN_PATH=$PWD/build
 mkdir -p build && cd build && cmake .. && make
 gz sim calibration.sdf --gui-config ~/.gz/sim/7/gui.config
 # gz sim sandbox.sdf --gui-config gui.config
-
