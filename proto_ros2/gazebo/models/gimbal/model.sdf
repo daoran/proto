@@ -231,7 +231,7 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
       <joint_name>joint_yaw</joint_name>
-      <topic>yaw_cmd</topic>
+      <topic>/gimbal/joint0</topic>
       <p_gain>1</p_gain>
       <i_gain>0.1</i_gain>
       <d_gain>0.01</d_gain>
@@ -257,7 +257,7 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
       <joint_name>joint_roll</joint_name>
-      <topic>roll_cmd</topic>
+      <topic>/gimbal/joint1</topic>
       <p_gain>1</p_gain>
       <i_gain>0.1</i_gain>
       <d_gain>0.01</d_gain>
@@ -283,7 +283,7 @@
         filename="gz-sim-joint-position-controller-system"
         name="gz::sim::systems::JointPositionController">
       <joint_name>joint_pitch</joint_name>
-      <topic>pitch_cmd</topic>
+      <topic>/gimbal/joint2</topic>
       <p_gain>1</p_gain>
       <i_gain>0.1</i_gain>
       <d_gain>0.01</d_gain>
