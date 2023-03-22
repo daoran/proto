@@ -1,14 +1,34 @@
 #include <iostream>
 #include <memory>
+#include <thread>
 #include <unistd.h>
+#include <signal.h>
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/highgui.hpp>
 
+// clang-format off
 using namespace std_msgs::msg;
 using namespace sensor_msgs::msg;
 using std::placeholders::_1;
+using std::placeholders::_2;
+typedef message_filters::sync_policies::ApproximateTime<Image, Image> approx_policy;
+int keep_running = 1;
+// clang-format on
+
+/**
+ * Signal handler
+ */
+void signal_handler(int signum) {
+  keep_running = 0;
+}
 
 /**
  * Degrees to radians.
@@ -42,12 +62,17 @@ void clip(double *x, const size_t n, const double vmin, const double vmax) {
 class GimbalNode : public rclcpp::Node {
 private:
   // Publishers / Subscribers
+  // clang-format off
   rclcpp::Publisher<Float64>::SharedPtr joint0_cmd_;
   rclcpp::Publisher<Float64>::SharedPtr joint1_cmd_;
   rclcpp::Publisher<Float64>::SharedPtr joint2_cmd_;
   rclcpp::Subscription<JointState>::SharedPtr joint0_state_;
   rclcpp::Subscription<JointState>::SharedPtr joint1_state_;
   rclcpp::Subscription<JointState>::SharedPtr joint2_state_;
+  message_filters::Subscriber<Image> cam0_;
+  message_filters::Subscriber<Image> cam1_;
+  std::shared_ptr<message_filters::Synchronizer<approx_policy>> sync_;
+  // clang-format on
 
   // Joint limits
   double jlims0_[2] = {deg2rad(-60.0), deg2rad(60.0)};
@@ -83,6 +108,22 @@ private:
     joint2_ = msg->position[0];
   }
 
+  /* Stereo Callback */
+  void stereoCallback(const Image::ConstSharedPtr &cam0_msg,
+                      const Image::ConstSharedPtr &cam1_msg) {
+    const auto ptr0 = cv_bridge::toCvCopy(cam0_msg, cam0_msg->encoding);
+    const auto ptr1 = cv_bridge::toCvCopy(cam1_msg, cam1_msg->encoding);
+    const auto img0 = ptr0->image;
+    const auto img1 = ptr1->image;
+
+    cv::Mat viz = img0;
+    cv::hconcat(viz, img1, viz);
+    cv::imshow("Viz", viz);
+    cv::waitKey(1);
+  }
+
+  std::thread calib_dance_thread_;
+
 public:
   GimbalNode() : Node("GimbalNode") {
     // Setup publishers / subscribers
@@ -96,9 +137,19 @@ public:
     joint0_state_ = create_subscription<JointState>("/gimbal/joint0_state", 1, j0cb);
     joint1_state_ = create_subscription<JointState>("/gimbal/joint1_state", 1, j1cb);
     joint2_state_ = create_subscription<JointState>("/gimbal/joint2_state", 1, j2cb);
+    cam0_.subscribe(this, "/gimbal/camera0");
+    cam1_.subscribe(this, "/gimbal/camera1");
+    sync_ = std::make_shared<message_filters::Synchronizer<approx_policy>>(approx_policy(1), cam0_, cam1_);
+    sync_->setMaxIntervalDuration(rclcpp::Duration(0, 0.01 * 1e9));
+    sync_->registerCallback(std::bind(&GimbalNode::stereoCallback, this, _1, _2));
     // clang-format on
 
-    calibrationDance();
+    // Start calibration dance
+    calib_dance_thread_ = std::thread(&GimbalNode::calibrationDance, this);
+  }
+
+  virtual ~GimbalNode() {
+    calib_dance_thread_.join();
   }
 
   /** Perform gimbal calibration dance. **/
@@ -134,7 +185,13 @@ public:
 
           view_idx += 1;
           pitch += dpitch;
-          sleep(5);
+          sleep(2);
+
+          if (keep_running == false) {
+            i = num_yaw_;
+            j = num_roll_;
+            k = num_pitch_;
+          }
         }
         roll += droll;
       }
@@ -147,11 +204,11 @@ public:
 
   /** Reset gimbal angles to 0, 0, 0 **/
   void reset() {
-    sleep(5);
+    sleep(2);
     publishJointCommand(0, 0);
     publishJointCommand(1, 0);
     publishJointCommand(2, 0);
-    sleep(8);
+    sleep(2);
   }
 
   /** Publish joint angle command **/
@@ -180,8 +237,13 @@ public:
 };
 
 int main(int argc, char *argv[]) {
+  // Setup signal handler
+  signal(SIGINT, signal_handler);
+
+  // Setup ROS2
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<GimbalNode>());
   rclcpp::shutdown();
+
   return 0;
 }

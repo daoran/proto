@@ -12,6 +12,12 @@ FIND_PACKAGE(geometry_msgs REQUIRED)
 FIND_PACKAGE(rclcpp REQUIRED)
 FIND_PACKAGE(rclcpp_components REQUIRED)
 FIND_PACKAGE(px4_msgs REQUIRED)
+FIND_PACKAGE(message_filters REQUIRED)
+FIND_PACKAGE(cv_bridge REQUIRED)
+FIND_PACKAGE(OpenCV REQUIRED)
+
+# INCLUDES
+INCLUDE_DIRECTORIES(include ${OpenCV_INCLUDE_DIRS})
 
 # EXECUTABLES
 ADD_EXECUTABLE(offboard src/offboard.cpp)
@@ -19,8 +25,16 @@ AMENT_TARGET_DEPENDENCIES(offboard rclcpp px4_msgs)
 INSTALL(TARGETS offboard DESTINATION lib/${PROJECT_NAME})
 
 ADD_EXECUTABLE(gimbal_dance src/gimbal_dance.cpp)
-AMENT_TARGET_DEPENDENCIES(gimbal_dance rclcpp std_msgs sensor_msgs)
+AMENT_TARGET_DEPENDENCIES(
+  gimbal_dance
+  rclcpp
+  std_msgs
+  sensor_msgs
+  message_filters
+  cv_bridge
+)
 INSTALL(TARGETS gimbal_dance DESTINATION lib/${PROJECT_NAME})
+TARGET_LINK_LIBRARIES(gimbal_dance ${OpenCV_LIBS})
 
 # EXPORT DEPENDENCIES
 AMENT_EXPORT_DEPENDENCIES(
@@ -34,6 +48,8 @@ AMENT_EXPORT_DEPENDENCIES(
 	sensor_msgs
 	geometry_msgs
 	px4_msgs
+  message_filters
+  cv_bridge
 )
 
 # INSTALL LAUNCH FILES
