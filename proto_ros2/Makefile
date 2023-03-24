@@ -3,7 +3,7 @@ ROS2_WS=${HOME}/proto_ws
 SHELL := /bin/bash
 
 help: ## Help
-	@echo "\033[1;34m[make targets]:\033[0m"
+	@echo -e "\033[1;34m[make targets]:\033[0m"
 	@egrep -h '\s##\s' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; \
 		{printf "\033[1;36m%-15s\033[0m %s\n", $$1, $$2}'

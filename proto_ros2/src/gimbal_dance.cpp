@@ -20,14 +20,14 @@ using namespace sensor_msgs::msg;
 using std::placeholders::_1;
 using std::placeholders::_2;
 typedef message_filters::sync_policies::ApproximateTime<Image, Image> approx_policy;
-int keep_running = 1;
+bool keep_running = true;
 // clang-format on
 
 /**
  * Signal handler
  */
 void signal_handler(int signum) {
-  keep_running = 0;
+  keep_running = false;
 }
 
 /**
