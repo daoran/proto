@@ -18,6 +18,7 @@ static char *test_target_name = NULL;
 #define MU_LOG_DIR "/tmp"
 #define MU_KEEP_LOGS 1
 #define MU_ENABLE_TERM_COLORS 1
+#define MU_ENABLE_PRINT 1
 
 #if MU_ENABLE_TERM_COLORS == 1
 #define MU_RED "\x1B[1;31m"
@@ -30,6 +31,40 @@ static char *test_target_name = NULL;
 #define MU_WHT
 #define MU_NRM
 #endif
+
+#define MU_PRINT(...)                                                          \
+  do {                                                                         \
+    if (MU_ENABLE_PRINT) {                                                     \
+      fprintf(stderr, __VA_ARGS__);                                            \
+    }                                                                          \
+  } while (0)
+
+#define MU_PRINT_MATRIX(PREFIX, A, M, N)                                       \
+  {                                                                            \
+    if (MU_ENABLE_PRINT) {                                                     \
+      size_t idx = 0;                                                          \
+      printf("%s:\n", PREFIX);                                                 \
+      for (size_t i = 0; i < M; i++) {                                         \
+        for (size_t j = 0; j < N; j++) {                                       \
+          printf("%.4f  ", A[idx]);                                            \
+          idx++;                                                               \
+        }                                                                      \
+        printf("\n");                                                          \
+      }                                                                        \
+      printf("\n");                                                            \
+    }                                                                          \
+  }
+
+#define MU_PRINT_VECTOR(PREFIX, V, N)                                          \
+  {                                                                            \
+    if (MU_ENABLE_PRINT) {                                                     \
+      printf("%s: ", PREFIX);                                                  \
+      for (size_t i = 0; i < N; i++) {                                         \
+        printf("%f ", V[i]);                                                   \
+      }                                                                        \
+      printf("\n");                                                            \
+    }                                                                          \
+  }
 
 /**
  * Redirect stdout and stderr to file.

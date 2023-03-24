@@ -3966,6 +3966,81 @@ static void free_imu_test_data(imu_test_data_t *test_data) {
   free(test_data->imu_gyr);
 }
 
+int test_imu_propagate() {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data);
+
+  // Setup IMU buffer
+  const int n = 100;
+  imu_buf_t imu_buf;
+  imu_buf_setup(&imu_buf);
+  for (int k = 0; k < n; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *acc = test_data.imu_acc[k];
+    const real_t *gyr = test_data.imu_gyr[k];
+    imu_buf_add(&imu_buf, ts, acc, gyr);
+  }
+
+  // Test imu propagate
+  real_t pose_k[7] = {0};
+  real_t vel_k[3] = {0};
+  real_t pose_kp1[7] = {0};
+  real_t vel_kp1[3] = {0};
+
+  vec_copy(test_data.poses[0], 7, pose_k);
+  vec_copy(test_data.velocities[0], 3, vel_k);
+  imu_propagate(pose_k, vel_k, &imu_buf, pose_kp1, vel_kp1);
+
+  MU_PRINT_VECTOR("[gnd] pose_kp1", test_data.poses[n], 7);
+  MU_PRINT_VECTOR("[est] pose_kp1", pose_kp1, 7);
+  MU_PRINT_VECTOR("[gnd] vel_kp1", test_data.velocities[n], 3);
+  MU_PRINT_VECTOR("[est] vel_kp1", vel_kp1, 3);
+
+  real_t dr[3] = {0};
+  real_t dtheta = 0;
+  pose_diff2(test_data.poses[n], pose_kp1, dr, &dtheta);
+
+  const real_t tol = 1e-3;
+  MU_ASSERT(fabs(dr[0]) < tol);
+  MU_ASSERT(fabs(dr[1]) < tol);
+  MU_ASSERT(fabs(dr[2]) < tol);
+  MU_ASSERT(fabs(dtheta) < tol);
+
+  // Clean up
+  free_imu_test_data(&test_data);
+
+  return 0;
+}
+
+int test_imu_initial_attitude() {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data);
+
+  // Setup IMU buffer
+  const int n = 1;
+  imu_buf_t imu_buf;
+  imu_buf_setup(&imu_buf);
+  for (int k = 0; k < n; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *acc = test_data.imu_acc[k];
+    const real_t *gyr = test_data.imu_gyr[k];
+    imu_buf_add(&imu_buf, ts, acc, gyr);
+  }
+
+  // Test imu initial attitude
+  real_t q_WS[4] = {0};
+  imu_initial_attitude(&imu_buf, q_WS);
+  MU_PRINT_VECTOR("[gnd] q_WS", test_data.poses[0], 7);
+  MU_PRINT_VECTOR("[est] q_WS", q_WS, 4);
+
+  // Clean up
+  free_imu_test_data(&test_data);
+
+  return 0;
+}
+
 int test_imu_factor_propagate_step() {
   // Setup test data
   imu_test_data_t test_data;
@@ -3990,7 +4065,6 @@ int test_imu_factor_propagate_step() {
   real_t bg[3] = {0};
 
   // Integrate imu measuremenets
-  real_t Dt = 0.0;
   real_t dt = 0.0;
   for (int k = 0; k < imu_buf.size; k++) {
     if (k + 1 < imu_buf.size) {
@@ -4001,7 +4075,6 @@ int test_imu_factor_propagate_step() {
     const real_t *a = imu_buf.acc[k];
     const real_t *w = imu_buf.gyr[k];
     imu_factor_propagate_step(r, v, q, ba, bg, a, w, dt);
-    Dt += dt;
   }
 
   TF(test_data.poses[0], T_WS_i_gnd);
@@ -5467,57 +5540,45 @@ int test_calib_imucam_batch() {
                           dist_model,
                           cam_params[1],
                           cam_ext);
+  calib_imucam_print(calib);
 
   // Incremental solve
-  // char *cam_data_dir = "/data/proto/imu_april/";
+  char *data_dir = "/data/proto/imu_april/";
+  int num_cams = 2;
+  int num_imus = 1;
+  timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
-  // for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-  //   char data_path[1024] = {0};
-  //   int num_files = 0;
-  //   sprintf(data_path, cam_data_dir, cam_idx);
-  //   char **files = list_files(data_path, &num_files);
+  for (int k = 0; k < timeline->timeline_length; k++) {
+    // Extract timeline events
+    for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+      timeline_event_t *event = timeline->timeline_events[k][i];
+      const timestamp_t ts = event->ts;
 
-  //   for (int view_idx = 0; view_idx < num_files; view_idx++) {
-  //     // Load aprilgrid
-  //     aprilgrid_t grid;
-  //     aprilgrid_load(&grid, files[view_idx]);
+      if (event->type == IMU_EVENT) {
+        const imu_event_t *data = &event->data.imu;
+        calib_imucam_add_imu_event(calib, ts, data->acc, data->gyr);
 
-  //     // Get aprilgrid measurements
-  //     int n = 0;
-  //     int tag_ids[APRILGRID_MAX_CORNERS] = {0};
-  //     int corner_indices[APRILGRID_MAX_CORNERS] = {0};
-  //     real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
-  //     real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
-  //     aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
+      } else if (event->type == FIDUCIAL_EVENT) {
+        const fiducial_event_t *data = &event->data.fiducial;
+        const int cam_idx = data->cam_idx;
+        calib_imucam_add_fiducial_event(calib,
+                                        ts,
+                                        cam_idx,
+                                        data->num_corners,
+                                        data->tag_ids,
+                                        data->corner_indices,
+                                        data->object_points,
+                                        data->keypoints);
+      }
+    }
 
-  //     // Add view
-  //     const timestamp_t ts = grid.timestamp;
-  //     calib_imucam_add_view(calib,
-  //                           ts,
-  //                           view_idx,
-  //                           cam_idx,
-  //                           n,
-  //                           tag_ids,
-  //                           corner_indices,
-  //                           pts,
-  //                           kps);
-
-  //     // Incremental solve
-  //     if (calib->num_views >= window_size) {
-  //       calib_camera_marginalize(calib);
-  //     }
-  //     calib_camera_solve(calib);
-  //   }
-  // }
-  // calib_camera_print(calib);
+    // Trigger update
+    calib_imucam_update(calib);
+  }
 
   // Clean up
-  // for (int view_idx = 0; view_idx < num_files; view_idx++) {
-  //   free(files[view_idx]);
-  // }
-  // free(files);
-
   calib_imucam_free(calib);
+  timeline_free(timeline);
 
   return 0;
 }
@@ -6484,6 +6545,8 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buf_add);
   MU_ADD_TEST(test_imu_buf_clear);
   MU_ADD_TEST(test_imu_buf_copy);
+  MU_ADD_TEST(test_imu_propagate);
+  MU_ADD_TEST(test_imu_initial_attitude);
   MU_ADD_TEST(test_imu_factor_propagate_step);
   MU_ADD_TEST(test_imu_factor);
   MU_ADD_TEST(test_joint_factor);

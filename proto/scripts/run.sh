@@ -402,6 +402,8 @@ dev_euroc() {
 # run_test test_imu_buf_clear
 # run_test test_imu_buf_copy
 # run_test test_imu_buf_print
+# run_test test_imu_propagate
+# run_test test_imu_initial_attitude
 # run_test test_imu_factor_propagate_step
 # run_test test_imu_factor
 # run_test test_joint_angle_factor
@@ -420,7 +422,7 @@ dev_euroc() {
 # run_test test_calib_camera_mono_batch
 # run_test test_calib_camera_mono_incremental
 # run_test test_calib_camera_stereo
-# run_test test_calib_imucam_batch
+run_test test_calib_imucam_batch
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
 # run_test test_calib_gimbal_add_gimbal_extrinsic
