@@ -2050,6 +2050,11 @@ typedef struct imu_factor_t {
   real_t J_biases_j[15 * 6];
 } imu_factor_t;
 
+typedef struct imu_factor_hash_t {
+  timestamp_t key;
+  imu_factor_t *value;
+} imu_factor_hash_t;
+
 void imu_buf_setup(imu_buf_t *imu_buf);
 void imu_buf_add(imu_buf_t *imu_buf,
                  const timestamp_t ts,
@@ -2853,7 +2858,6 @@ typedef struct calib_imucam_view_t {
 typedef struct calib_imucam_viewset_t {
   timestamp_t key;
   calib_imucam_view_t **value;
-  imu_factor_t *imu_factor;
 } calib_imucam_viewset_t;
 
 typedef struct fiducial_buf_t {
@@ -2882,12 +2886,16 @@ typedef struct calib_imucam_t {
   int num_cams;
   int num_views;
   int num_states;
-  int num_factors;
+  int num_vision_factors;
+  int num_imu_factors;
 
   // Variables
   timestamp_t *timestamps;
+
   pose_hash_t *poses;
   velocity_hash_t *velocities;
+  imu_biases_hash_t *biases;
+
   fiducial_t *fiducial;
   extrinsic_t *cam_exts;
   extrinsic_t *imucam_ext;
@@ -2901,6 +2909,7 @@ typedef struct calib_imucam_t {
 
   // Factors
   calib_imucam_viewset_t *view_sets;
+  imu_factor_hash_t *imu_factors;
   marg_factor_t *marg;
 } calib_imucam_t;
 
@@ -2963,6 +2972,27 @@ void calib_imucam_add_fiducial_event(calib_imucam_t *calib,
                                      const real_t *object_points,
                                      const real_t *keypoints);
 void calib_imucam_update(calib_imucam_t *calib);
+void calib_imucam_errors(calib_imucam_t *calib,
+                         real_t *reproj_rmse,
+                         real_t *reproj_mean,
+                         real_t *reproj_median);
+param_order_t *calib_imucam_param_order(const void *data,
+                                        int *sv_size,
+                                        int *r_size);
+void calib_imucam_cost(const void *data, real_t *r);
+void calib_imucam_linearize_compact(const void *data,
+                                    const int sv_size,
+                                    param_order_t *hash,
+                                    real_t *H,
+                                    real_t *g,
+                                    real_t *r);
+void calib_imucam_linsolve(const void *data,
+                           const int sv_size,
+                           param_order_t *hash,
+                           real_t *H,
+                           real_t *g,
+                           real_t *dx);
+void calib_imucam_solve(calib_imucam_t *calib);
 
 ////////////////////////
 // GIMBAL CALIBRATION //

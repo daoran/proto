@@ -5576,6 +5576,8 @@ int test_calib_imucam_batch() {
     calib_imucam_update(calib);
   }
 
+  calib_imucam_solve(calib);
+
   // Clean up
   calib_imucam_free(calib);
   timeline_free(timeline);
