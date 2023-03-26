@@ -3300,21 +3300,19 @@ int test_schur_complement() {
 int test_timeline() {
   const char *data_dir = "/data/proto/imu_april";
   const int num_cams = 2;
-  const int num_imus = 1;
+  const int num_imus = 0;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
-  // for (int k = 0; k < timeline->timeline_length; k++) {
-  //   for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
-  //     timeline_event_t *event = timeline->timeline_events[k][i];
-  //     if (event->type == FIDUCIAL_EVENT) {
-  //       printf("ts: %ld, cam_idx: %d\n", event->ts, event->data.fiducial.cam_idx);
-  //     } else {
-  //       printf("ts: %ld, [%.2f, %.2f, %.2f]\n", event->ts, event->data.imu.acc[0], event->data.imu.acc[1], event->data.imu.acc[2]);
-
-  //     }
-  //   }
-  //   // printf("%d: %d\n", k, timeline->timeline_events_lengths[k]);
-  // }
+  for (int k = 0; k < timeline->timeline_length; k++) {
+    for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+      timeline_event_t *event = timeline->timeline_events[k][i];
+      if (event->type == FIDUCIAL_EVENT) {
+        print_fiducial_event(&event->data);
+      } else {
+        print_imu_event(&event->data);
+      }
+    }
+  }
 
   timeline_free(timeline);
 
@@ -5504,10 +5502,19 @@ int test_calib_imucam_batch() {
     {458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05},
     {457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.555e-05}
   };
-  const real_t cam_ext[7] = {
-    1.099270e-01, -2.450375e-04, 7.188873e-04,
-    9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03
+  const real_t cam_exts[2][7] = {
+    {0, 0, 0, 1, 0, 0, 0},
+    {1.099270e-01, -2.450375e-04, 7.188873e-04,
+     9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03}
   };
+  // const real_t T_SC0[4 * 4] = {
+  //   0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+  //   0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+  //   -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+  //   0.0, 0.0, 0.0, 1.0
+  // };
+  // real_t imu_ext[7] = {0};
+  // tf_vector(T_SC0, imu_ext);
   const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   const int imu_rate = 200;
   const real_t sigma_a = 0.08;
@@ -5532,14 +5539,14 @@ int test_calib_imucam_batch() {
                           proj_model,
                           dist_model,
                           cam_params[0],
-                          cam_ext);
+                          cam_exts[0]);
   calib_imucam_add_camera(calib,
                           1,
                           cam_res,
                           proj_model,
                           dist_model,
                           cam_params[1],
-                          cam_ext);
+                          cam_exts[1]);
   calib_imucam_print(calib);
 
   // Incremental solve
@@ -5555,11 +5562,11 @@ int test_calib_imucam_batch() {
       const timestamp_t ts = event->ts;
 
       if (event->type == IMU_EVENT) {
-        const imu_event_t *data = &event->data.imu;
+        const imu_event_t *data = &event->data;
         calib_imucam_add_imu_event(calib, ts, data->acc, data->gyr);
 
       } else if (event->type == FIDUCIAL_EVENT) {
-        const fiducial_event_t *data = &event->data.fiducial;
+        const fiducial_event_t *data = &event->data;
         const int cam_idx = data->cam_idx;
         calib_imucam_add_fiducial_event(calib,
                                         ts,
@@ -5574,8 +5581,13 @@ int test_calib_imucam_batch() {
 
     // Trigger update
     calib_imucam_update(calib);
+    // if (calib->num_views > 200) {
+    //   break;
+    // }
   }
 
+  // Solve
+  // calib->max_iter = 1;
   calib_imucam_solve(calib);
 
   // Clean up
@@ -6528,7 +6540,7 @@ void test_suite() {
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);
-  // MU_ADD_TEST(test_timeline);
+  MU_ADD_TEST(test_timeline);
   MU_ADD_TEST(test_pose);
   MU_ADD_TEST(test_extrinsics);
   MU_ADD_TEST(test_imu_biases);

@@ -693,9 +693,9 @@ void vec_normalize(real_t *x, const size_t n);
 void vec3_copy(const real_t src[3], real_t dst[3]);
 void vec3_add(const real_t a[3], const real_t b[3], real_t c[3]);
 void vec3_sub(const real_t a[3], const real_t b[3], real_t c[3]);
-void cross3(const real_t a[3], const real_t b[3], real_t c[3]);
-real_t norm3(const real_t x[3]);
-void normalize3(real_t x[3]);
+void vec3_cross(const real_t a[3], const real_t b[3], real_t c[3]);
+real_t vec3_norm(const real_t x[3]);
+void vec3_normalize(real_t x[3]);
 
 void dot(const real_t *A,
          const size_t A_m,
@@ -1097,6 +1097,7 @@ void pose_diff2(const real_t pose0[7],
                 real_t *dangle);
 void pose_vector_update(real_t pose[7], const real_t dx[6]);
 void print_pose_vector(const char *prefix, const real_t pose[7]);
+void vecs2rot(const real_t acc[3], const real_t g[3], real_t *C);
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R);
 void euler321(const real_t ypr[3], real_t C[3 * 3]);
 void euler2quat(const real_t ypr[3], real_t q[4]);
@@ -1467,6 +1468,9 @@ typedef struct timeline_t {
   timeline_event_t ***timeline_events;
   int *timeline_events_lengths;
 } timeline_t;
+
+void print_imu_event(const imu_event_t *event);
+void print_fiducial_event(const fiducial_event_t *event);
 
 timeline_t *timeline_malloc();
 void timeline_free(timeline_t *timeline);
@@ -2898,7 +2902,7 @@ typedef struct calib_imucam_t {
 
   fiducial_t *fiducial;
   extrinsic_t *cam_exts;
-  extrinsic_t *imucam_ext;
+  extrinsic_t *imu_ext;
   camera_params_t *cam_params;
   time_delay_t *time_delay;
   imu_params_t *imu_params;
@@ -2951,7 +2955,7 @@ void calib_imucam_add_imu(calib_imucam_t *calib,
                           const real_t sigma_a,
                           const real_t sigma_g,
                           const real_t g,
-                          const real_t *imucam_ext);
+                          const real_t *imu_ext);
 void calib_imucam_add_camera(calib_imucam_t *calib,
                              const int cam_idx,
                              const int cam_res[2],

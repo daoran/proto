@@ -3231,7 +3231,7 @@ void vec3_sub(const real_t x[3], const real_t y[3], real_t z[3]) {
 /**
  * Cross product between vector `a` and `b`, output is written to `c`.
  */
-void cross3(const real_t a[3], const real_t b[3], real_t c[3]) {
+void vec3_cross(const real_t a[3], const real_t b[3], real_t c[3]) {
   assert(a != b);
   assert(a != c);
 
@@ -3246,15 +3246,15 @@ void cross3(const real_t a[3], const real_t b[3], real_t c[3]) {
 /**
  * Calculate the norm of vector `x` of size 3.
  */
-real_t norm3(const real_t x[3]) {
+real_t vec3_norm(const real_t x[3]) {
   return sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
 }
 
 /**
  * Normalize vector `x` of size 3.
  */
-void normalize3(real_t x[3]) {
-  const real_t n = norm3(x);
+void vec3_normalize(real_t x[3]) {
+  const real_t n = vec3_norm(x);
   x[0] = x[0] / n;
   x[1] = x[1] / n;
   x[2] = x[2] / n;
@@ -5440,6 +5440,47 @@ void print_pose_vector(const char *prefix, const real_t pose[7]) {
   printf("\n");
 }
 
+void vecs2rot(const real_t acc[3], const real_t gravity[3], real_t *C) {
+  // Normalize vectors
+  real_t a[3] = {acc[0], acc[1], acc[2]};
+  real_t g[3] = {gravity[0], gravity[1], gravity[2]};
+  vec3_normalize(a);
+  vec3_normalize(g);
+
+  // Create Quaternion from two vectors
+  const real_t cos_theta = a[0] * g[0] + a[1] * g[1] + a[2] * g[2];
+  const real_t half_cos = sqrt(0.5 * (1.0 + cos_theta));
+  const real_t half_sin = sqrt(0.5 * (1.0 - cos_theta));
+  real_t w[3] = {0};
+  w[0] = a[1] * g[2] - a[2] * g[1];
+  w[1] = -a[0] * g[2] + a[2] * g[0];
+  w[2] = a[0] * g[1] - a[1] * g[0];
+  vec3_normalize(w);
+
+  const real_t qw = half_cos;
+  const real_t qx = half_sin * w[0];
+  const real_t qy = half_sin * w[1];
+  const real_t qz = half_sin * w[2];
+
+  // Convert Quaternion to rotation matrix
+  const real_t qx2 = qx * qx;
+  const real_t qy2 = qy * qy;
+  const real_t qz2 = qz * qz;
+  const real_t qw2 = qw * qw;
+
+  C[0] = qw2 + qx2 - qy2 - qz2;
+  C[1] = 2 * (qx * qy - qw * qz);
+  C[2] = 2 * (qx * qz + qw * qy);
+
+  C[3] = 2 * (qx * qy + qw * qz);
+  C[4] = qw2 - qx2 + qy2 - qz2;
+  C[5] = 2 * (qy * qz - qw * qx);
+
+  C[6] = 2 * (qx * qz - qw * qy);
+  C[7] = 2 * (qy * qz + qw * qx);
+  C[8] = qw2 - qx2 - qy2 + qz2;
+}
+
 /**
  * Convert rotation vector `rvec` to 3x3 rotation matrix `R`, where `eps` is
  * the tolerance to determine if the rotation is too small.
@@ -6282,7 +6323,7 @@ int homography_pose(const real_t *proj_params,
   const real_t c1[3] = {H[0], H[3], H[6]};
   const real_t c2[3] = {H[1], H[4], H[7]};
   real_t c3[3] = {0};
-  cross3(c1, c2, c3);
+  vec3_cross(c1, c2, c3);
 
   real_t C[3 * 3] = {0};
   for (int i = 0; i < 3; i++) {
@@ -6397,8 +6438,8 @@ int p3p_kneip(const real_t features[3][3],
   real_t temp1[3] = {P2[0] - P1[0], P2[1] - P1[1], P2[2] - P2[2]};
   real_t temp2[3] = {P3[0] - P1[0], P3[1] - P1[1], P3[2] - P2[2]};
   real_t temp3[3] = {0};
-  cross3(temp1, temp2, temp3);
-  if (fabs(norm3(temp3)) > 1e-10) {
+  vec3_cross(temp1, temp2, temp3);
+  if (fabs(vec3_norm(temp3)) > 1e-10) {
     return -1;
   }
 
@@ -6410,10 +6451,10 @@ int p3p_kneip(const real_t features[3][3],
   // Creation of intermediate camera frame
   real_t e1[3] = {f1[0], f1[1], f1[2]};
   real_t e3[3] = {0};
-  cross3(f1, f2, e3);
-  normalize3(e3);
+  vec3_cross(f1, f2, e3);
+  vec3_normalize(e3);
   real_t e2[3] = {0};
-  cross3(e3, e1, e2);
+  vec3_cross(e3, e1, e2);
 
   // clang-format off
   real_t T[3 * 3] = {
@@ -6458,11 +6499,11 @@ int p3p_kneip(const real_t features[3][3],
 
     // e3 = f1.cross(f2);
     // e3 = e3 / e3.norm();
-    cross3(f1, f2, e3);
-    normalize3(e3);
+    vec3_cross(f1, f2, e3);
+    vec3_normalize(e3);
 
     // e2 = e3.cross(e1);
-    cross3(e3, e1, e2);
+    vec3_cross(e3, e1, e2);
 
     // T.row(0) = e1.transpose();
     T[0] = e1[0];
@@ -6511,17 +6552,17 @@ int p3p_kneip(const real_t features[3][3],
   // n1 = n1 / n1.norm();
   real_t n1[3] = {0};
   vec3_sub(P2, P1, n1);
-  normalize3(n1);
+  vec3_normalize(n1);
 
   // n3 = n1.cross(P3 - P1);
   // n3 = n3 / n3.norm();
   real_t n3[3] = {0};
   vec3_sub(P3, P1, n3);
-  normalize3(n3);
+  vec3_normalize(n3);
 
   // n2 = n3.cross(n1);
   real_t n2[3] = {0};
-  cross3(n3, n1, n2);
+  vec3_cross(n3, n1, n2);
 
   // N.row(0) = n1.transpose();
   // N.row(1) = n2.transpose();
@@ -6546,7 +6587,7 @@ int p3p_kneip(const real_t features[3][3],
 
   real_t dP21[3] = {0};
   vec3_sub(P2, P1, dP21);
-  real_t d_12 = norm3(dP21);
+  real_t d_12 = vec3_norm(dP21);
   real_t f_1 = f3[0] / f3[2];
   real_t f_2 = f3[1] / f3[2];
   real_t p_1 = P3[0];
@@ -8105,6 +8146,37 @@ static void timestamps_unique(timestamp_t *set,
 
   // Sort timestamps (just to be sure)
   timestamps_insertion_sort(set, *set_len);
+}
+
+void print_imu_event(const imu_event_t *event) {
+  printf("imu_event:\n");
+  printf("  ts: %ld\n", event->ts);
+  printf("  acc: [%.4f, %.4f, %.4f]\n", event->acc[0], event->acc[1], event->acc[2]);
+  printf("  gyr: [%.4f, %.4f, %.4f]\n", event->gyr[0], event->gyr[1], event->gyr[2]);
+  printf("\n");
+}
+
+void print_fiducial_event(const fiducial_event_t *event) {
+  printf("fiducial_event:\n");
+  printf("  ts: %ld\n", event->ts);
+  printf("  cam_idx: %d\n", event->cam_idx);
+  printf("  num_corners: %d\n", event->num_corners);
+  printf("\n");
+  printf("  #tag_id, corner_idx, kp_x, kp_y, p_x, p_y, p_z\n");
+  for (int i = 0; i < event->num_corners; i++) {
+    const int tag_id = event->tag_ids[i];
+    const int corner_idx = event->corner_indices[i];
+    printf("  ");
+    printf("%d, ", tag_id);
+    printf("%d, ", corner_idx);
+    printf("%.2f, ", event->keypoints[i * 2 + 0]);
+    printf("%.2f, ", event->keypoints[i * 2 + 1]);
+    printf("%.2f, ", event->object_points[i * 3 + 0]);
+    printf("%.2f, ", event->object_points[i * 3 + 1]);
+    printf("%.2f", event->object_points[i * 3 + 2]);
+    printf("\n");
+  }
+  printf("\n");
 }
 
 /**
@@ -10714,16 +10786,23 @@ void imu_initial_attitude(const imu_buf_t *imu_buf, real_t q_WS[4]) {
   ay /= imu_buf->size;
   az /= imu_buf->size;
 
-  //   const real_t a_norm = sqrt(ax * ax + ay * ay + az * az);
-  //   ax /= a_norm;
-  //   ay /= a_norm;
-  //   az /= a_norm;
-
   // Initialize orientation
   const real_t ypr[3] = {0.0,
                          atan2(-ax, sqrt(ay * ay + az * az)),
                          atan2(ay, az)};
   euler2quat(ypr, q_WS);
+
+  // const real_t a[3] = {ax, ay, az};
+  // const real_t g[3] = {0.0, 0.0, 9.81};
+  // real_t C[3 * 3] = {0};
+  // real_t q[4] = {0};
+  // real_t euler[3] = {0};
+  // vecs2rot(a, g, C);
+  // rot2quat(C, q);
+  // quat2euler(q, euler);
+  // print_vector("euler", euler, 3);
+  // print_vector("ypr", ypr, 3);
+  // exit(0);
 }
 
 /**
@@ -14851,8 +14930,8 @@ void fiducial_buf_add(fiducial_buf_t *buf,
     buf->data[idx]->object_points[i * 3 + 0] = object_points[i * 3 + 0];
     buf->data[idx]->object_points[i * 3 + 1] = object_points[i * 3 + 1];
     buf->data[idx]->object_points[i * 3 + 2] = object_points[i * 3 + 2];
-    buf->data[idx]->keypoints[i * 2 + 0] = object_points[i * 2 + 0];
-    buf->data[idx]->keypoints[i * 2 + 1] = object_points[i * 2 + 1];
+    buf->data[idx]->keypoints[i * 2 + 0] = keypoints[i * 2 + 0];
+    buf->data[idx]->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
   }
 
   buf->size++;
@@ -15017,7 +15096,7 @@ calib_imucam_t *calib_imucam_malloc() {
 void calib_imucam_free(calib_imucam_t *calib) {
   free(calib->fiducial);
   free(calib->cam_exts);
-  free(calib->imucam_ext);
+  free(calib->imu_ext);
   free(calib->cam_params);
   free(calib->time_delay);
   free(calib->imu_params);
@@ -15134,8 +15213,8 @@ void calib_imucam_print(calib_imucam_t *calib) {
   }
   printf("\n");
 
-  if (calib->imucam_ext) {
-    POSE2TF(calib->imucam_ext->data, T);
+  if (calib->imu_ext) {
+    POSE2TF(calib->imu_ext->data, T);
     printf("T_imu0_cam0:\n");
     printf("  rows: 4\n");
     printf("  cols: 4\n");
@@ -15158,7 +15237,7 @@ void calib_imucam_add_imu(calib_imucam_t *calib,
                           const real_t sigma_a,
                           const real_t sigma_g,
                           const real_t g,
-                          const real_t *imucam_ext) {
+                          const real_t *imu_ext) {
   assert(calib != NULL);
   assert(imu_rate > 0);
   assert(sigma_aw > 0);
@@ -15166,7 +15245,7 @@ void calib_imucam_add_imu(calib_imucam_t *calib,
   assert(sigma_a > 0);
   assert(sigma_g > 0);
   assert(g > 9.0);
-  assert(imucam_ext);
+  assert(imu_ext);
 
   if (calib->imu_params) {
     LOG_ERROR("Currently only supports 1 IMU!\n");
@@ -15182,8 +15261,8 @@ void calib_imucam_add_imu(calib_imucam_t *calib,
   calib->imu_params->sigma_g = sigma_g;
   calib->imu_params->g = g;
 
-  calib->imucam_ext = MALLOC(extrinsic_t, 1);
-  extrinsic_setup(calib->imucam_ext, imucam_ext);
+  calib->imu_ext = MALLOC(extrinsic_t, 1);
+  extrinsic_setup(calib->imu_ext, imu_ext);
 
   calib->time_delay = MALLOC(time_delay_t, 1);
   time_delay_setup(calib->time_delay, 0.0);
@@ -15230,8 +15309,7 @@ static int calib_imucam_estimate_relative_pose(calib_imucam_t *calib,
                                                real_t T_CiF[4 * 4]) {
   for (int i = 0; i < calib->fiducial_buf->size; i++) {
     const fiducial_event_t *data = calib->fiducial_buf->data[i];
-    *cam_idx = data->cam_idx;
-    const int status = solvepnp_camera(&calib->cam_params[*cam_idx],
+    const int status = solvepnp_camera(&calib->cam_params[data->cam_idx],
                                        data->keypoints,
                                        data->object_points,
                                        data->num_corners,
@@ -15240,6 +15318,7 @@ static int calib_imucam_estimate_relative_pose(calib_imucam_t *calib,
       return status;
     }
 
+    *cam_idx = data->cam_idx;
     break;
   }
 
@@ -15254,18 +15333,23 @@ static void calib_imucam_initialize_fiducial(calib_imucam_t *calib,
   real_t T_CiF[4 * 4] = {0};
   int status = calib_imucam_estimate_relative_pose(calib, &cam_idx, T_CiF);
   if (status != 0) {
+    FATAL("FAILED!\n");
     return;
   }
 
   // Form fiducial pose: T_WF
   pose_t *pose = hmgets(calib->poses, ts).value;
   TF(pose->data, T_WS);
-  TF(calib->cam_exts[cam_idx].data, T_BCi);
-  TF(calib->imucam_ext->data, T_BS);
-  TF_INV(T_BS, T_SB);
-  TF_CHAIN(T_SCi, 2, T_SB, T_BCi);
+  TF(calib->cam_exts[cam_idx].data, T_C0Ci);
+  TF(calib->imu_ext->data, T_SC0);
+  TF_CHAIN(T_SCi, 2, T_SC0, T_C0Ci);
   TF_CHAIN(T_WF, 3, T_WS, T_SCi, T_CiF);
   TF_VECTOR(T_WF, fiducial_vector);
+
+  // print_matrix("T_WS", T_WS, 4, 4);
+  // print_matrix("T_SCi", T_SCi, 4, 4);
+  // print_matrix("T_CiF", T_CiF, 4, 4);
+  // print_matrix("T_WF", T_WF, 4, 4);
 
   // Form fiducial
   calib->fiducial = MALLOC(fiducial_t, 1);
@@ -15307,11 +15391,12 @@ static void calib_imucam_add_state(calib_imucam_t *calib,
 
     // Form T_WS
     TF(calib->fiducial->data, T_WF);
-    TF(calib->cam_exts[cam_idx].data, T_BCi);
-    TF(calib->imucam_ext->data, T_BS);
+    TF(calib->cam_exts[cam_idx].data, T_C0Ci);
+    TF(calib->imu_ext->data, T_SC0);
+    TF_INV(T_SC0, T_C0S);
     TF_INV(T_CiF, T_FCi);
-    TF_INV(T_BCi, T_CiB);
-    TF_CHAIN(T_WS, 4, T_WF, T_FCi, T_CiB, T_BS);
+    TF_INV(T_C0Ci, T_CiC0);
+    TF_CHAIN(T_WS, 4, T_WF, T_FCi, T_CiC0, T_C0S);
     tf_vector(T_WS, pose_k);
 
     // Estimate v_WS
@@ -15471,7 +15556,7 @@ void calib_imucam_update(calib_imucam_t *calib) {
                                  optflows,
                                  calib->fiducial,
                                  hmgets(calib->poses, ts).value,
-                                 calib->imucam_ext,
+                                 calib->imu_ext,
                                  &calib->cam_exts[data->cam_idx],
                                  &calib->cam_params[data->cam_idx],
                                  calib->time_delay);
@@ -15512,6 +15597,9 @@ void calib_imucam_update(calib_imucam_t *calib) {
   // Clear buffers
   imu_buf_clear(&calib->imu_buf);
   fiducial_buf_clear(calib->fiducial_buf);
+
+  // Solve incrementally
+  calib_imucam_solve(calib);
 }
 
 /**
@@ -15607,25 +15695,28 @@ param_order_t *calib_imucam_param_order(const void *data,
   // -- Add camera extrinsic
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
     void *data = &calib->cam_exts[cam_idx].data;
-    const int fix = (calib->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
+    // const int fix = (calib->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
+    const int fix = 1;
     param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add IMU-camera extrinsic
   {
-    void *data = &calib->imucam_ext->data;
-    const int fix = calib->imucam_ext->marginalize;
+    void *data = &calib->imu_ext->data;
+    const int fix = calib->imu_ext->marginalize;
     param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add camera parameters
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
     void *data = &calib->cam_params[cam_idx].data;
-    const int fix = calib->fix_cam_params;
+    // const int fix = calib->fix_cam_params;
+    const int fix = 1;
     param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
   }
   // -- Add time delay
   {
     void *data = calib->time_delay->data;
-    const int fix = calib->time_delay->marginalize;
+    // const int fix = calib->time_delay->marginalize;
+    const int fix = 1;
     param_order_add(&hash, TIME_DELAY_PARAM, fix, data, &col_idx);
   }
 
