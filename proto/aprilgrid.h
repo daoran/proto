@@ -125,8 +125,7 @@ void aprilgrid_measurements(const aprilgrid_t *grid,
                             int *tag_ids,
                             int *corner_idxs,
                             double *tag_kps,
-                            double *obj_pts,
-                            int *num_corners);
+                            double *obj_pts);
 int aprilgrid_save(const aprilgrid_t *grid, const char *save_path);
 aprilgrid_t *aprilgrid_load(const char *data_path);
 
@@ -465,17 +464,14 @@ void aprilgrid_measurements(const aprilgrid_t *grid,
                             int *tag_ids,
                             int *corner_idxs,
                             double *tag_kps,
-                            double *obj_pts,
-                            int *num_corners) {
+                            double *obj_pts) {
   assert(grid != NULL);
   assert(tag_ids != NULL);
   assert(corner_idxs != NULL);
   assert(tag_kps != NULL);
   assert(obj_pts != NULL);
-  assert(num_corners != NULL);
 
   // Pre-check
-  *num_corners = grid->corners_detected;
   if (grid->corners_detected == 0) {
     return;
   }

@@ -3307,9 +3307,9 @@ int test_timeline() {
     for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
       timeline_event_t *event = timeline->timeline_events[k][i];
       if (event->type == FIDUCIAL_EVENT) {
-        print_fiducial_event(&event->data);
+        print_fiducial_event(&event->data.fiducial);
       } else {
-        print_imu_event(&event->data);
+        print_imu_event(&event->data.imu);
       }
     }
   }
@@ -4273,17 +4273,23 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
                       cam_data);
 
   // Project to image plane
-  aprilgrid_t grid;
-  aprilgrid_setup(0, &grid);
+  int num_rows = 6;
+  int num_cols = 6;
+  double tag_size = 0.088;
+  double tag_spacing = 0.3;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(0, num_rows, num_cols, tag_size, tag_spacing);
 
   data->tag_id = 1;
   data->corner_idx = 2;
-  aprilgrid_object_point(&grid, data->tag_id, data->corner_idx, data->p_FFi);
+  aprilgrid_object_point(grid, data->tag_id, data->corner_idx, data->p_FFi);
 
   TF_INV(data->T_BCi, T_CiB);
   TF_CHAIN(T_CiF, 2, T_CiB, data->T_BF);
   TF_POINT(T_CiF, data->p_FFi, p_CiFi);
   pinhole_radtan4_project(cam_data, p_CiFi, data->z);
+
+  aprilgrid_free(grid);
 }
 
 int test_calib_camera_factor() {
@@ -4389,12 +4395,16 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   time_delay_setup(&data->time_delay, 0.0);
 
   // Project to image plane
-  aprilgrid_t grid;
-  aprilgrid_setup(0, &grid);
+  int num_rows = 6;
+  int num_cols = 6;
+  double tag_size = 0.088;
+  double tag_spacing = 0.3;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(0, num_rows, num_cols, tag_size, tag_spacing);
 
   data->tag_id = 1;
   data->corner_idx = 2;
-  aprilgrid_object_point(&grid, data->tag_id, data->corner_idx, data->p_FFi);
+  aprilgrid_object_point(grid, data->tag_id, data->corner_idx, data->p_FFi);
 
   TF_INV(data->T_WS, T_SW);
   TF_INV(data->T_SC0, T_C0S);
@@ -4402,6 +4412,8 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   TF_CHAIN(T_CiF, 4, T_CiC0, T_C0S, T_SW, data->T_WF);
   TF_POINT(T_CiF, data->p_FFi, p_CiFi);
   pinhole_radtan4_project(cam_data, p_CiFi, data->z);
+
+  aprilgrid_free(grid);
 }
 
 int test_calib_imucam_factor() {
@@ -5310,24 +5322,23 @@ int test_calib_camera_mono_incremental() {
   calib->verbose = 0;
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
     // Load aprilgrid
-    aprilgrid_t grid;
-    aprilgrid_load(&grid, files[view_idx]);
+    aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
 
     // Get aprilgrid measurements
-    int n = 0;
-    int tag_ids[APRILGRID_MAX_CORNERS] = {0};
-    int corner_indices[APRILGRID_MAX_CORNERS] = {0};
-    real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
-    real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
-    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
+    const timestamp_t ts = grid->timestamp;
+    const int num_corners = grid->corners_detected;
+    int *tag_ids = MALLOC(int, num_corners);
+    int *corner_indices = MALLOC(int, num_corners);
+    real_t *kps = MALLOC(real_t, num_corners * 2);
+    real_t *pts = MALLOC(real_t, num_corners * 3);
+    aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
 
     // Add view
-    const timestamp_t ts = grid.timestamp;
     calib_camera_add_view(calib,
                           ts,
                           view_idx,
                           cam_idx,
-                          n,
+                          num_corners,
                           tag_ids,
                           corner_indices,
                           pts,
@@ -5345,6 +5356,13 @@ int test_calib_camera_mono_incremental() {
         // printf("entropy: %f\n", entropy);
       }
     }
+
+    // Clean up
+    free(tag_ids);
+    free(corner_indices);
+    free(kps);
+    free(pts);
+    aprilgrid_free(grid);
   }
   calib_camera_print(calib);
 
@@ -5425,32 +5443,34 @@ int test_calib_camera_stereo() {
 
     for (int view_idx = 0; view_idx < num_files; view_idx++) {
       // Load aprilgrid
-      aprilgrid_t grid;
-      aprilgrid_load(&grid, files[view_idx]);
-      if (grid.corners_detected == 0) {
+      aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
+      if (grid->corners_detected == 0) {
         free(files[view_idx]);
         continue;
       }
 
       // Get aprilgrid measurements
-      int n = 0;
-      int tag_ids[APRILGRID_MAX_CORNERS] = {0};
-      int corner_indices[APRILGRID_MAX_CORNERS] = {0};
-      real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
-      real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
-      aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
+      const timestamp_t ts = grid->timestamp;
+      const int n = grid->corners_detected;
+      int *tag_ids = MALLOC(int, n);
+      int *corner_indices = MALLOC(int, n);
+      real_t *kps = MALLOC(real_t, n * 2);
+      real_t *pts = MALLOC(real_t, n * 3);
+      aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
 
-      // Estimate relative pose T_CiF
+      // Estimate relative pose T_CiF and add to camchain
       real_t T_CiF[4 * 4] = {0};
-      if (solvepnp_camera(&cam_params[cam_idx], kps, pts, n, T_CiF) != 0) {
-        continue;
+      if (solvepnp_camera(&cam_params[cam_idx], kps, pts, n, T_CiF) == 0) {
+        camchain_add_pose(camchain, cam_idx, ts, T_CiF);
       }
-
-      // Add to camchain
-      camchain_add_pose(camchain, cam_idx, grid.timestamp, T_CiF);
 
       // Clean up
       free(files[view_idx]);
+      free(tag_ids);
+      free(corner_indices);
+      free(kps);
+      free(pts);
+      aprilgrid_free(grid);
     }
     free(files);
   }
@@ -5507,14 +5527,6 @@ int test_calib_imucam_batch() {
     {1.099270e-01, -2.450375e-04, 7.188873e-04,
      9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03}
   };
-  // const real_t T_SC0[4 * 4] = {
-  //   0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
-  //   0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
-  //   -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
-  //   0.0, 0.0, 0.0, 1.0
-  // };
-  // real_t imu_ext[7] = {0};
-  // tf_vector(T_SC0, imu_ext);
   const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   const int imu_rate = 200;
   const real_t sigma_a = 0.08;
@@ -5562,11 +5574,11 @@ int test_calib_imucam_batch() {
       const timestamp_t ts = event->ts;
 
       if (event->type == IMU_EVENT) {
-        const imu_event_t *data = &event->data;
+        const imu_event_t *data = &event->data.imu;
         calib_imucam_add_imu_event(calib, ts, data->acc, data->gyr);
 
       } else if (event->type == FIDUCIAL_EVENT) {
-        const fiducial_event_t *data = &event->data;
+        const fiducial_event_t *data = &event->data.fiducial;
         const int cam_idx = data->cam_idx;
         calib_imucam_add_fiducial_event(calib,
                                         ts,
@@ -5587,7 +5599,7 @@ int test_calib_imucam_batch() {
   }
 
   // Solve
-  // calib->max_iter = 1;
+  calib->max_iter = 50;
   calib_imucam_solve(calib);
 
   // Clean up

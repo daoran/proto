@@ -1418,7 +1418,8 @@ typedef struct camera_event_t {
   int cam_idx;
   char *image_path;
 
-  int num_keypoints;
+  int num_features;
+  size_t *feature_ids;
   real_t *keypoints;
 } camera_event_t;
 
@@ -1469,6 +1470,7 @@ typedef struct timeline_t {
   int *timeline_events_lengths;
 } timeline_t;
 
+void print_camera_event(const camera_event_t *event);
 void print_imu_event(const imu_event_t *event);
 void print_fiducial_event(const fiducial_event_t *event);
 
@@ -2759,7 +2761,6 @@ typedef struct calib_camera_t {
   int fix_poses;
   int fix_cam_params;
   int fix_cam_exts;
-  aprilgrid_t calib_target;
   int verbose;
   int max_iter;
 
@@ -2876,7 +2877,6 @@ typedef struct calib_imucam_t {
   int fix_poses;
   int fix_cam_params;
   int fix_cam_exts;
-  aprilgrid_t calib_target;
   int verbose;
   int max_iter;
 
@@ -3024,7 +3024,11 @@ typedef struct calib_gimbal_t {
   int fix_cam_exts;
   int fix_links;
   int fix_joints;
-  aprilgrid_t calib_target;
+
+  int num_rows;
+  int num_cols;
+  double tag_size;
+  double tag_spacing;
 
   // Flags
   int fiducial_ext_ok;
@@ -3383,7 +3387,7 @@ typedef struct sim_gimbal_view_t {
 } sim_gimbal_view_t;
 
 typedef struct sim_gimbal_t {
-  aprilgrid_t grid;
+  aprilgrid_t *grid;
 
   int num_links;
   int num_joints;

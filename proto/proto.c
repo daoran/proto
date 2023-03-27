@@ -8148,14 +8148,47 @@ static void timestamps_unique(timestamp_t *set,
   timestamps_insertion_sort(set, *set_len);
 }
 
+/**
+ * Print camera event.
+ */
+void print_camera_event(const camera_event_t *event) {
+  printf("camera_event:\n");
+  printf("  ts: %ld\n", event->ts);
+  printf("  cam_idx: %d\n", event->cam_idx);
+  if (event->image_path) {
+    printf("  image_path: %s\n", event->image_path);
+  }
+  printf("\n");
+  printf("  num_features: %d\n", event->num_features);
+  printf("  features: [\n");
+  for (size_t i = 0; i < event->num_features; i++) {
+    const size_t feature_id = event->feature_ids[i];
+    const real_t *kps = &event->keypoints[i * 2 + 0];
+    printf("    %zu: [%.2f, %.2f]\n", feature_id, kps[0], kps[1]);
+  }
+  printf("  ]\n");
+}
+
+/**
+ * Print IMU event.
+ */
 void print_imu_event(const imu_event_t *event) {
   printf("imu_event:\n");
   printf("  ts: %ld\n", event->ts);
-  printf("  acc: [%.4f, %.4f, %.4f]\n", event->acc[0], event->acc[1], event->acc[2]);
-  printf("  gyr: [%.4f, %.4f, %.4f]\n", event->gyr[0], event->gyr[1], event->gyr[2]);
+  printf("  acc: [%.4f, %.4f, %.4f]\n",
+         event->acc[0],
+         event->acc[1],
+         event->acc[2]);
+  printf("  gyr: [%.4f, %.4f, %.4f]\n",
+         event->gyr[0],
+         event->gyr[1],
+         event->gyr[2]);
   printf("\n");
 }
 
+/**
+ * Print Fiducial event.
+ */
 void print_fiducial_event(const fiducial_event_t *event) {
   printf("fiducial_event:\n");
   printf("  ts: %ld\n", event->ts);
@@ -8282,22 +8315,16 @@ timeline_event_t *timeline_load_fiducial(const char *data_dir,
 
   for (int view_idx = 0; view_idx < *num_events; view_idx++) {
     // Load aprilgrid
-    aprilgrid_t grid;
-    aprilgrid_load(&grid, files[view_idx]);
+    aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
 
     // Get aprilgrid measurements
-    const timestamp_t ts = grid.timestamp;
-    int num_corners = grid.corners_detected;
+    const timestamp_t ts = grid->timestamp;
+    const int num_corners = grid->corners_detected;
     int *tag_ids = MALLOC(int, num_corners);
     int *corner_indices = MALLOC(int, num_corners);
     real_t *kps = MALLOC(real_t, num_corners * 2);
     real_t *pts = MALLOC(real_t, num_corners * 3);
-    aprilgrid_measurements(&grid,
-                           tag_ids,
-                           corner_indices,
-                           kps,
-                           pts,
-                           &num_corners);
+    aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
 
     // Create event
     events[view_idx].type = FIDUCIAL_EVENT;
@@ -8312,6 +8339,7 @@ timeline_event_t *timeline_load_fiducial(const char *data_dir,
 
     // Clean up
     free(files[view_idx]);
+    aprilgrid_free(grid);
   }
   free(files);
 
@@ -13620,7 +13648,7 @@ int solver_solve(solver_t *solver, void *data) {
     } else {
       // Reject update
       lambda_k *= solver->lambda_factor;
-      // solver_params_restore(solver, x_copy);
+      solver_params_restore(solver, x_copy);
       solver->linearize = 0;
     }
     solver_params_free(solver, x_copy);
@@ -14155,7 +14183,6 @@ calib_camera_t *calib_camera_malloc() {
   calib->fix_poses = 0;
   calib->fix_cam_exts = 0;
   calib->fix_cam_params = 0;
-  aprilgrid_setup(0, &calib->calib_target);
   calib->verbose = 1;
   calib->max_iter = 20;
 
@@ -14451,31 +14478,35 @@ int calib_camera_add_data(calib_camera_t *calib,
 
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
     // Load aprilgrid
-    aprilgrid_t grid;
-    aprilgrid_load(&grid, files[view_idx]);
+    aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
 
     // Get aprilgrid measurements
-    int n = 0;
-    int tag_ids[APRILGRID_MAX_CORNERS] = {0};
-    int corner_indices[APRILGRID_MAX_CORNERS] = {0};
-    real_t kps[APRILGRID_MAX_CORNERS * 2] = {0};
-    real_t pts[APRILGRID_MAX_CORNERS * 3] = {0};
-    aprilgrid_measurements(&grid, tag_ids, corner_indices, kps, pts, &n);
+    const timestamp_t ts = grid->timestamp;
+    const int num_corners = grid->corners_detected;
+    int *tag_ids = MALLOC(int, num_corners);
+    int *corner_indices = MALLOC(int, num_corners);
+    real_t *kps = MALLOC(real_t, num_corners * 2);
+    real_t *pts = MALLOC(real_t, num_corners * 3);
+    aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
 
     // Add view
-    const timestamp_t ts = grid.timestamp;
     calib_camera_add_view(calib,
                           ts,
                           view_idx,
                           cam_idx,
-                          n,
+                          num_corners,
                           tag_ids,
                           corner_indices,
                           pts,
                           kps);
 
     // Clean up
+    free(tag_ids);
+    free(corner_indices);
+    free(kps);
+    free(pts);
     free(files[view_idx]);
+    aprilgrid_free(grid);
   }
   free(files);
 
@@ -15045,7 +15076,6 @@ calib_imucam_t *calib_imucam_malloc() {
   calib->fix_poses = 0;
   calib->fix_cam_params = 0;
   calib->fix_cam_exts = 0;
-  aprilgrid_setup(0, &calib->calib_target);
   calib->verbose = 1;
   calib->max_iter = 20;
 
@@ -15161,7 +15191,9 @@ void calib_imucam_print(calib_imucam_t *calib) {
   real_t reproj_rmse = 0.0;
   real_t reproj_mean = 0.0;
   real_t reproj_median = 0.0;
-  // calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  if (calib->num_views) {
+    calib_imucam_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  }
 
   printf("settings:\n");
   printf("  fix_fiducial: %d\n", calib->fix_fiducial);
@@ -15181,6 +15213,10 @@ void calib_imucam_print(calib_imucam_t *calib) {
   printf("  rmse: %f\n", reproj_rmse);
   printf("  mean: %f\n", reproj_mean);
   printf("  median: %f\n", reproj_median);
+  printf("\n");
+
+  printf("time_delay: %.4e  # [s] (cam_ts = imu_ts + time_delay)\n",
+         calib->time_delay->data[0]);
   printf("\n");
 
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
@@ -15346,11 +15382,6 @@ static void calib_imucam_initialize_fiducial(calib_imucam_t *calib,
   TF_CHAIN(T_WF, 3, T_WS, T_SCi, T_CiF);
   TF_VECTOR(T_WF, fiducial_vector);
 
-  // print_matrix("T_WS", T_WS, 4, 4);
-  // print_matrix("T_SCi", T_SCi, 4, 4);
-  // print_matrix("T_CiF", T_CiF, 4, 4);
-  // print_matrix("T_WF", T_WF, 4, 4);
-
   // Form fiducial
   calib->fiducial = MALLOC(fiducial_t, 1);
   fiducial_setup(calib->fiducial, fiducial_vector);
@@ -15510,6 +15541,58 @@ static int calib_imucam_update_precheck(calib_imucam_t *calib) {
   return 0;
 }
 
+static real_t *calib_imucam_optflow(calib_imucam_t *calib,
+                                    const fiducial_event_t *fiducial) {
+  real_t *optflows = CALLOC(real_t, fiducial->num_corners * 2);
+  if (arrlen(calib->timestamps) < 2) {
+    return optflows;
+  }
+
+  const timestamp_t ts_km1 = calib->timestamps[arrlen(calib->timestamps) - 2];
+  calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts_km1).value;
+  if (cam_views == NULL || cam_views[fiducial->cam_idx] == NULL) {
+    return optflows;
+  }
+
+  const calib_imucam_view_t *prev_view = cam_views[fiducial->cam_idx];
+  for (int i = 0; i < fiducial->num_corners; i++) {
+    // Get corner tag id, corner index and keypoint measurement
+    const int t_tag_id = fiducial->tag_ids[i];
+    const int t_corner_idx = fiducial->corner_indices[i];
+    const real_t *kp_k = &fiducial->keypoints[i * 2];
+
+    // Find same corner in previous view
+    int found_corner = 0;
+    real_t *kp_km1 = NULL;
+    for (int j = 0; j < prev_view->num_corners; j++) {
+      const int q_tag_id = prev_view->tag_ids[j];
+      const int q_corner_idx = prev_view->corner_indices[j];
+
+      const int tag_id_ok = (t_tag_id == q_tag_id);
+      const int corner_idx_ok = (t_corner_idx == q_corner_idx);
+
+      if (tag_id_ok && corner_idx_ok) {
+        found_corner = 1;
+        kp_km1 = &prev_view->keypoints[j * 2];
+        break;
+      }
+    }
+
+    // Calculate optical flow
+    if (found_corner) {
+      optflows[2 * i + 0] = kp_k[0] - kp_km1[0];
+      optflows[2 * i + 1] = kp_k[1] - kp_km1[1];
+
+      // printf("kp_k: [%.2f, %.2f] ", kp_k[0], kp_k[1]);
+      // printf("kp_km1: [%.2f, %.2f] ", kp_km1[0], kp_km1[1]);
+      // printf("v: [%.2f, %.2f] ", optflows[2 * i + 0], optflows[2 * i + 1]);
+      // printf("\n");
+    }
+  }
+
+  return optflows;
+}
+
 /**
  * Update IMU-Camera calibration problem.
  */
@@ -15531,7 +15614,7 @@ void calib_imucam_update(calib_imucam_t *calib) {
     const fiducial_event_t *data = calib->fiducial_buf->data[i];
 
     // Calculate keypoint optical flow velocity
-    real_t *optflows = CALLOC(real_t, data->num_corners * 2);
+    real_t *optflows = calib_imucam_optflow(calib, data);
 
     // Form new view
     calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
@@ -15569,17 +15652,19 @@ void calib_imucam_update(calib_imucam_t *calib) {
 
   // Add imu factor
   if (calib->num_views >= 2) {
+    // Pose, velocity and biases at km1
     const timestamp_t ts_k = calib->timestamps[arrlen(calib->timestamps) - 1];
-    const timestamp_t ts_km1 = calib->timestamps[arrlen(calib->timestamps) - 2];
-
     pose_t *pose_k = hmgets(calib->poses, ts_k).value;
     velocity_t *vel_k = hmgets(calib->velocities, ts_k).value;
     imu_biases_t *biases_k = hmgets(calib->biases, ts_k).value;
 
+    // Pose, velocity and biases at k
+    const timestamp_t ts_km1 = calib->timestamps[arrlen(calib->timestamps) - 2];
     pose_t *pose_km1 = hmgets(calib->poses, ts_km1).value;
     velocity_t *vel_km1 = hmgets(calib->velocities, ts_km1).value;
     imu_biases_t *biases_km1 = hmgets(calib->biases, ts_km1).value;
 
+    // Form IMU factor
     imu_factor_t *factor = MALLOC(imu_factor_t, 1);
     imu_factor_setup(factor,
                      calib->imu_params,
@@ -15599,7 +15684,10 @@ void calib_imucam_update(calib_imucam_t *calib) {
   fiducial_buf_clear(calib->fiducial_buf);
 
   // Solve incrementally
-  calib_imucam_solve(calib);
+  // if (calib->num_views >= 10) {
+  //   calib->max_iter = 4;
+  //   calib_imucam_solve(calib);
+  // }
 }
 
 /**
@@ -15695,8 +15783,7 @@ param_order_t *calib_imucam_param_order(const void *data,
   // -- Add camera extrinsic
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
     void *data = &calib->cam_exts[cam_idx].data;
-    // const int fix = (calib->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
-    const int fix = 1;
+    const int fix = (calib->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
     param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add IMU-camera extrinsic
@@ -15708,15 +15795,13 @@ param_order_t *calib_imucam_param_order(const void *data,
   // -- Add camera parameters
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
     void *data = &calib->cam_params[cam_idx].data;
-    // const int fix = calib->fix_cam_params;
-    const int fix = 1;
+    const int fix = calib->fix_cam_params;
     param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
   }
   // -- Add time delay
   {
     void *data = calib->time_delay->data;
-    // const int fix = calib->time_delay->marginalize;
-    const int fix = 1;
+    const int fix = calib->time_delay->marginalize;
     param_order_add(&hash, TIME_DELAY_PARAM, fix, data, &col_idx);
   }
 
@@ -15844,6 +15929,131 @@ void calib_imucam_linearize_compact(const void *data,
                         H,
                         g);
   }
+}
+
+/**
+ * Reduce IMU-camera calibration problem via Schur-Complement.
+ *
+ * The Gauss newton system we are trying to solve has the form:
+ *
+ *   H dx = b (1)
+ *
+ * Where the H is the Hessian, dx is the update vector and b is a vector. In the
+ * camera calibration problem the Hessian has a arrow head pattern (see (25) in
+ * [Triggs2000]). This means to avoid inverting the full H matrix we can
+ * decompose (1) as,
+ *
+ *   [A B * [dx0    [b0
+ *    C D]   dx1] =  b1]  (2)
+ *
+ * and take the Shur-complement of A, we get a reduced system of:
+ *
+ *   D_bar = D − C * A^-1 * B
+ *   b1_bar = b1 − C * A^-1 * b0  (3)
+ *
+ * Since A is a block diagonal, inverting it is much cheaper than inverting the
+ * full H or A matrix. With (3) we can solve for dx1.
+ *
+ *   D_bar * dx1 = b1_bar
+ *
+ * And finally back-substitute the newly estimated dx1 to find dx0,
+ *
+ *   A * dx0 = b0 - B * dx1
+ *   dx0 = A^-1 * b0 - B * dx1
+ *
+ * where in the previous steps we have already computed A^-1.
+ *
+ * [Triggs2000]:
+ *
+ *   Triggs, Bill, et al. "Bundle adjustment—a modern synthesis." Vision
+ *   Algorithms: Theory and Practice: International Workshop on Vision
+ *   Algorithms Corfu, Greece, September 21–22, 1999 Proceedings. Springer
+ *   Berlin Heidelberg, 2000.
+ *
+ */
+void calib_imucam_linsolve(const void *data,
+                           const int sv_size,
+                           param_order_t *hash,
+                           real_t *H,
+                           real_t *g,
+                           real_t *dx) {
+  calib_imucam_t *calib = (calib_imucam_t *) data;
+  const int m = calib->num_views * 6;
+  const int r = sv_size - m;
+  const int H_size = sv_size;
+  const int bs = 6; // Diagonal block size
+
+  // Extract sub-blocks of matrix H
+  // H = [A, B,
+  //      C, D]
+  real_t *B = MALLOC(real_t, m * r);
+  real_t *C = MALLOC(real_t, r * m);
+  real_t *D = MALLOC(real_t, r * r);
+  real_t *A_inv = MALLOC(real_t, m * m);
+  mat_block_get(H, H_size, 0, m - 1, m, H_size - 1, B);
+  mat_block_get(H, H_size, m, H_size - 1, 0, m - 1, C);
+  mat_block_get(H, H_size, m, H_size - 1, m, H_size - 1, D);
+
+  // Extract sub-blocks of vector b
+  // b = [b0, b1]
+  real_t *b0 = MALLOC(real_t, m);
+  real_t *b1 = MALLOC(real_t, r);
+  vec_copy(g, m, b0);
+  vec_copy(g + m, r, b1);
+
+  // Invert A
+  bdiag_inv_sub(H, sv_size, m, bs, A_inv);
+
+  // Reduce H * dx = b with Shur-Complement
+  // D_bar = D - C * A_inv * B
+  // b1_bar = b1 - C * A_inv * b0
+  real_t *D_bar = MALLOC(real_t, r * r);
+  real_t *b1_bar = MALLOC(real_t, r * 1);
+  dot3(C, r, m, A_inv, m, m, B, m, r, D_bar);
+  dot3(C, r, m, A_inv, m, m, b0, m, 1, b1_bar);
+  for (int i = 0; i < (r * r); i++) {
+    D_bar[i] = D[i] - D_bar[i];
+  }
+  for (int i = 0; i < r; i++) {
+    b1_bar[i] = b1[i] - b1_bar[i];
+  }
+
+  // Solve reduced system: D_bar * dx_r = b1_bar
+  real_t *dx_r = MALLOC(real_t, r * 1);
+  chol_solve(D_bar, b1_bar, dx_r, r);
+
+  // Back-subsitute
+  real_t *B_dx_r = CALLOC(real_t, m * 1);
+  real_t *dx_m = CALLOC(real_t, m * 1);
+  dot(B, m, r, dx_r, r, 1, B_dx_r);
+  for (int i = 0; i < m; i++) {
+    b0[i] = b0[i] - B_dx_r[i];
+  }
+  bdiag_dot(A_inv, m, m, bs, b0, dx_m);
+
+  // Form full dx vector
+  for (int i = 0; i < m; i++) {
+    dx[i] = dx_m[i];
+  }
+  for (int i = 0; i < r; i++) {
+    dx[i + m] = dx_r[i];
+  }
+
+  // Clean-up
+  free(B);
+  free(C);
+  free(D);
+  free(A_inv);
+
+  free(b0);
+  free(b1);
+
+  free(D_bar);
+  free(b1_bar);
+
+  free(B_dx_r);
+  free(dx_m);
+  free(dx_r);
 }
 
 /**
@@ -16056,7 +16266,6 @@ void calib_gimbal_setup(calib_gimbal_t *calib) {
   calib->fix_joints = 0;
   calib->fix_cam_exts = 1;
   calib->fix_cam_params = 1;
-  aprilgrid_setup(0, &calib->calib_target);
 
   // Counters
   calib->num_cams = 0;
@@ -16135,7 +16344,6 @@ int calib_gimbal_equals(const calib_gimbal_t *calib0,
   CHECK(calib0->fix_joints == calib1->fix_joints);
   CHECK(calib0->fix_cam_exts == calib1->fix_cam_exts);
   CHECK(calib0->fix_cam_params == calib1->fix_cam_params);
-  CHECK(aprilgrid_equals(&calib0->calib_target, &calib1->calib_target) == 1);
 
   CHECK(calib0->fiducial_ext_ok == calib1->fiducial_ext_ok);
   CHECK(calib0->gimbal_ext_ok == calib1->gimbal_ext_ok);
@@ -16217,7 +16425,6 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
   dst->fix_cam_exts = src->fix_cam_exts;
   dst->fix_links = src->fix_links;
   dst->fix_joints = src->fix_joints;
-  aprilgrid_copy(&src->calib_target, &dst->calib_target);
 
   // Flags
   dst->fiducial_ext_ok = src->fiducial_ext_ok;
@@ -17052,6 +17259,7 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   const int nbv_idx = calib->num_views;
   const timestamp_t ts = nbv_idx;
   const int pose_idx = 0;
+  aprilgrid_t *calib_target = aprilgrid_malloc(0, calib->num_rows, calib->num_cols, calib->tag_size, calib->tag_spacing);
 
 #pragma omp parallel for
   for (int view_idx = 0; view_idx < num_views; view_idx++) {
@@ -17069,7 +17277,7 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
       // Gimbal view
       sim_gimbal_view_t *view =
-          sim_gimbal3_view(&calib_copy->calib_target,
+          sim_gimbal3_view(calib_target,
                            ts,
                            nbv_idx,
                            calib_copy->fiducial_exts.data,
@@ -17145,6 +17353,9 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   printf("%.2f, ", rad2deg(nbv_joints[1]));
   printf("%.2f]\n", rad2deg(nbv_joints[2]));
   // printf("\n");
+
+  // Clean up
+  aprilgrid_free(calib_target);
 }
 
 /**
@@ -18574,7 +18785,11 @@ sim_gimbal_t *sim_gimbal_malloc() {
   sim_gimbal_t *sim = MALLOC(sim_gimbal_t, 1);
 
   // Aprilgrid
-  aprilgrid_setup(0, &sim->grid);
+  int num_rows = 6;
+  int num_cols = 6;
+  double tag_size = 0.088;
+  double tag_spacing = 0.3;
+  sim->grid = aprilgrid_malloc(0, num_rows, num_cols, tag_size, tag_spacing);
 
   // Fiducial pose
   const real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
@@ -18585,7 +18800,7 @@ sim_gimbal_t *sim_gimbal_malloc() {
   // Gimbal pose
   real_t x = 0.0;
   real_t y = 0.0;
-  aprilgrid_center(&sim->grid, &x, &y);
+  aprilgrid_center(sim->grid, &x, &y);
   const real_t r_WB[3] = {0, -y, 0};
   const real_t ypr_WB[3] = {0, 0, 0};
   POSE_ER(ypr_WB, r_WB, gimbal_pose);
@@ -18667,6 +18882,7 @@ void sim_gimbal_free(sim_gimbal_t *sim) {
     return;
   }
 
+  aprilgrid_free(sim->grid);
   FREE(sim->gimbal_links);
   FREE(sim->gimbal_joints);
   FREE(sim->cam_exts);
@@ -18800,7 +19016,7 @@ sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
                                    const int view_idx,
                                    const int cam_idx,
                                    const real_t body_pose[7]) {
-  return sim_gimbal3_view(&sim->grid,
+  return sim_gimbal3_view(sim->grid,
                           ts,
                           view_idx,
                           sim->fiducial_ext.data,
