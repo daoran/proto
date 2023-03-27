@@ -1,6 +1,10 @@
 #ifndef APRILGRID_H
 #define APRILGRID_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +23,29 @@
 #endif
 
 // MACROS
+/** Macro that adds the ability to switch between C / C++ style mallocs */
+#ifdef __cplusplus
+#ifndef MALLOC
+#define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
+#endif // MALLOC
+#ifndef REALLOC
+#define REALLOC(PTR, TYPE, N) (TYPE *) realloc(PTR, sizeof(TYPE) * (N));
+#endif // REALLOC
+#ifndef CALLOC
+#define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
+#endif // CALLOC
+#else
+#ifndef MALLOC
+#define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
+#endif // MALLOC
+#ifndef REALLOC
+#define REALLOC(PTR, TYPE, N) realloc(PTR, sizeof(TYPE) * (N));
+#endif // REALLOC
+#ifndef CALLOC
+#define CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
+#endif // CALLOC
+#endif // __cplusplus
+
 #ifndef APRILGRID_LOG
 #define APRILGRID_LOG(...) printf(__VA_ARGS__);
 #endif
@@ -46,11 +73,11 @@
 
 // APRILGRID /////////////////////////////////////////////////////////////////
 
-#define APRILGRID_NUM_ROWS 6
-#define APRILGRID_NUM_COLS 6
-#define APRILGRID_MAX_CORNERS APRILGRID_NUM_ROWS *APRILGRID_NUM_COLS * 4
-#define APRILGRID_TAG_SIZE 0.10
-#define APRILGRID_TAG_SPACING 0.0
+// #define APRILGRID_NUM_ROWS 6
+// #define APRILGRID_NUM_COLS 6
+// #define APRILGRID_MAX_CORNERS APRILGRID_NUM_ROWS *APRILGRID_NUM_COLS * 4
+// #define APRILGRID_TAG_SIZE 0.10
+// #define APRILGRID_TAG_SPACING 0.0
 
 typedef struct aprilgrid_t {
   // Grid properties
@@ -62,10 +89,15 @@ typedef struct aprilgrid_t {
 
   // Grid data
   int corners_detected;
-  double data[APRILGRID_MAX_CORNERS][6];
+  double *data;
 } aprilgrid_t;
 
-void aprilgrid_setup(const timestamp_t ts, aprilgrid_t *grid);
+aprilgrid_t *aprilgrid_malloc(const timestamp_t ts,
+                              const int num_rows,
+                              const int num_cols,
+                              const double tag_size,
+                              const double tag_spacing);
+void aprilgrid_free(aprilgrid_t *grid);
 void aprilgrid_reset(aprilgrid_t *grid);
 void aprilgrid_copy(const aprilgrid_t *src, aprilgrid_t *dst);
 int aprilgrid_equals(const aprilgrid_t *grid0, const aprilgrid_t *grid1);
@@ -96,24 +128,35 @@ void aprilgrid_measurements(const aprilgrid_t *grid,
                             double *obj_pts,
                             int *num_corners);
 int aprilgrid_save(const aprilgrid_t *grid, const char *save_path);
-int aprilgrid_load(aprilgrid_t *grid, const char *data_path);
+aprilgrid_t *aprilgrid_load(const char *data_path);
 
 // APRILGRID DETECTOR ////////////////////////////////////////////////////////
 
 typedef struct aprilgrid_detector_t {
   apriltag_family_t *tf;
   apriltag_detector_t *td;
+
+  int num_rows;
+  int num_cols;
+  double tag_size;
+  double tag_spacing;
 } aprilgrid_detector_t;
 
-aprilgrid_detector_t *aprilgrid_detector_malloc();
+aprilgrid_detector_t *aprilgrid_detector_malloc(int num_rows,
+                                                int num_cols,
+                                                double tag_size,
+                                                double tag_spacing);
 void aprilgrid_detector_free(aprilgrid_detector_t *det);
-int aprilgrid_detector_detect(const aprilgrid_detector_t *det,
-                              aprilgrid_t *grid,
-                              const int32_t image_width,
-                              const int32_t image_height,
-                              const int32_t image_stride,
-                              uint8_t *image_data);
+aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
+                                       const timestamp_t ts,
+                                       const int32_t image_width,
+                                       const int32_t image_height,
+                                       const int32_t image_stride,
+                                       uint8_t *image_data);
 
+#ifdef __cplusplus
+} // extern C
+#endif
 #endif // APRILGRID_H
 
 //////////////////////////////////////////////////////////////////////////////
@@ -125,27 +168,34 @@ int aprilgrid_detector_detect(const aprilgrid_detector_t *det,
 // APRILGRID /////////////////////////////////////////////////////////////////
 
 /**
- * Setup AprilGrid
+ * Malloc AprilGrid.
  *
  * @param ts Timestamp
  * @param grid AprilGrid
  */
-void aprilgrid_setup(const timestamp_t ts, aprilgrid_t *grid) {
-  assert(grid != NULL);
-
+aprilgrid_t *aprilgrid_malloc(const timestamp_t ts,
+                              const int num_rows,
+                              const int num_cols,
+                              const double tag_size,
+                              const double tag_spacing) {
+  aprilgrid_t *grid = MALLOC(aprilgrid_t, 1);
   grid->timestamp = ts;
-  grid->num_rows = APRILGRID_NUM_ROWS;
-  grid->num_cols = APRILGRID_NUM_COLS;
-  grid->tag_size = APRILGRID_TAG_SIZE;
-  grid->tag_spacing = APRILGRID_TAG_SPACING;
+  grid->num_rows = num_rows;
+  grid->num_cols = num_cols;
+  grid->tag_size = tag_size;
+  grid->tag_spacing = tag_spacing;
 
   // Grid data
-  grid->corners_detected = 0; // Number of corners detected
-  for (int i = 0; i < APRILGRID_MAX_CORNERS; i++) {
-    for (int j = 0; j < 6; j++) {
-      grid->data[i][j] = 0;
-    }
-  }
+  const int max_corners = (num_rows * num_cols * 4);
+  grid->corners_detected = 0;
+  grid->data = CALLOC(double, max_corners * 6);
+
+  return grid;
+}
+
+void aprilgrid_free(aprilgrid_t *grid) {
+  free(grid->data);
+  free(grid);
 }
 
 /**
@@ -153,7 +203,18 @@ void aprilgrid_setup(const timestamp_t ts, aprilgrid_t *grid) {
  */
 void aprilgrid_reset(aprilgrid_t *grid) {
   assert(grid != NULL);
-  aprilgrid_setup(grid->timestamp, grid);
+
+  grid->timestamp = 0;
+  grid->corners_detected = 0;
+  const int max_corners = (grid->num_rows * grid->num_cols * 4);
+  for (int i = 0; i < (max_corners * 6); i++) {
+    grid->data[i] = 0;
+  }
+
+  grid->num_rows = 0;
+  grid->num_cols = 0;
+  grid->tag_size = 0;
+  grid->tag_spacing = 0;
 }
 
 /**
@@ -169,7 +230,7 @@ void aprilgrid_copy(const aprilgrid_t *src, aprilgrid_t *dst) {
   dst->corners_detected = src->corners_detected;
   for (size_t i = 0; i < (dst->num_rows * dst->num_cols * 4); i++) {
     for (size_t j = 0; j < 6; j++) {
-      dst->data[i][j] = src->data[i][j];
+      dst->data[i * 6 + j] = src->data[i * 6 + j];
     }
   }
 }
@@ -187,7 +248,8 @@ int aprilgrid_equals(const aprilgrid_t *grid0, const aprilgrid_t *grid1) {
 
   for (size_t i = 0; i < (grid0->num_rows * grid0->num_cols * 4); i++) {
     for (size_t j = 0; j < 6; j++) {
-      APRILGRID_CHECK(fabs(grid0->data[i][j] - grid1->data[i][j]) < 1e-8);
+      APRILGRID_CHECK(fabs(grid0->data[i * 6 + j] - grid1->data[i * 6 + j]) <
+                      1e-8);
     }
   }
 
@@ -210,8 +272,9 @@ void aprilgrid_print(const aprilgrid_t *grid) {
   printf("\n");
   printf("corners_detected: %d\n", grid->corners_detected);
   printf("#tag_id, corner_idx, kp_x, kp_y, p_x, p_y, p_z\n");
-  for (int i = 0; i < APRILGRID_MAX_CORNERS; i++) {
-    if (grid->data[i][0] <= 0) {
+  const int max_corners = (grid->num_rows * grid->num_cols * 4);
+  for (int i = 0; i < max_corners; i++) {
+    if (grid->data[i * 6 + 0] <= 0) {
       continue;
     }
 
@@ -219,11 +282,11 @@ void aprilgrid_print(const aprilgrid_t *grid) {
     const int corner_idx = i % 4;
     printf("%d, ", tag_id);
     printf("%d, ", corner_idx);
-    printf("%.2f, ", grid->data[i][1]);
-    printf("%.2f, ", grid->data[i][2]);
-    printf("%.2f, ", grid->data[i][3]);
-    printf("%.2f, ", grid->data[i][4]);
-    printf("%.2f", grid->data[i][5]);
+    printf("%.2f, ", grid->data[i * 6 + 1]);
+    printf("%.2f, ", grid->data[i * 6 + 2]);
+    printf("%.2f, ", grid->data[i * 6 + 3]);
+    printf("%.2f, ", grid->data[i * 6 + 4]);
+    printf("%.2f", grid->data[i * 6 + 5]);
     printf("\n");
   }
 }
@@ -336,12 +399,12 @@ void aprilgrid_add_corner(aprilgrid_t *grid,
   double p[3] = {0};
   aprilgrid_object_point(grid, tag_id, corner_idx, p);
 
-  grid->data[data_row][0] = 1;
-  grid->data[data_row][1] = kp[0];
-  grid->data[data_row][2] = kp[1];
-  grid->data[data_row][3] = p[0];
-  grid->data[data_row][4] = p[1];
-  grid->data[data_row][5] = p[2];
+  grid->data[data_row * 6 + 0] = 1;
+  grid->data[data_row * 6 + 1] = kp[0];
+  grid->data[data_row * 6 + 2] = kp[1];
+  grid->data[data_row * 6 + 3] = p[0];
+  grid->data[data_row * 6 + 4] = p[1];
+  grid->data[data_row * 6 + 5] = p[2];
 }
 
 /**
@@ -356,12 +419,12 @@ void aprilgrid_remove_corner(aprilgrid_t *grid,
 
   const int data_row = (tag_id * 4) + corner_idx;
   assert(data_row >= 0);
-  grid->data[data_row][0] = 0;
-  grid->data[data_row][1] = 0;
-  grid->data[data_row][2] = 0;
-  grid->data[data_row][3] = 0;
-  grid->data[data_row][4] = 0;
-  grid->data[data_row][5] = 0;
+  grid->data[data_row * 6 + 0] = 0;
+  grid->data[data_row * 6 + 1] = 0;
+  grid->data[data_row * 6 + 2] = 0;
+  grid->data[data_row * 6 + 3] = 0;
+  grid->data[data_row * 6 + 4] = 0;
+  grid->data[data_row * 6 + 5] = 0;
   grid->corners_detected--;
 }
 
@@ -420,17 +483,17 @@ void aprilgrid_measurements(const aprilgrid_t *grid,
   // Get measurements
   int meas_idx = 0;
   for (long i = 0; i < (grid->num_rows * grid->num_cols * 4); i++) {
-    if (grid->data[i][0] < 1.0) {
+    if (grid->data[i * 6 + 0] < 1.0) {
       continue;
     }
 
     const int tag_id = i / 4;
     const int corner_idx = i % 4;
-    const double kp_x = grid->data[i][1];
-    const double kp_y = grid->data[i][2];
-    const double p_x = grid->data[i][3];
-    const double p_y = grid->data[i][4];
-    const double p_z = grid->data[i][5];
+    const double kp_x = grid->data[i * 6 + 1];
+    const double kp_y = grid->data[i * 6 + 2];
+    const double p_x = grid->data[i * 6 + 3];
+    const double p_y = grid->data[i * 6 + 4];
+    const double p_z = grid->data[i * 6 + 5];
 
     tag_ids[meas_idx] = tag_id;
     corner_idxs[meas_idx] = corner_idx;
@@ -476,14 +539,14 @@ int aprilgrid_save(const aprilgrid_t *grid, const char *save_path) {
       const int tag_id = i / 4;
       const int corner_idx = i % 4;
 
-      if (grid->data[i][0] > 0) { // Corner detected?
+      if (grid->data[i * 6 + 0] > 0) { // Corner detected?
         fprintf(fp, "%d,", tag_id);
         fprintf(fp, "%d,", corner_idx);
-        fprintf(fp, "%f,", grid->data[i][1]);
-        fprintf(fp, "%f,", grid->data[i][2]);
-        fprintf(fp, "%f,", grid->data[i][3]);
-        fprintf(fp, "%f,", grid->data[i][4]);
-        fprintf(fp, "%f", grid->data[i][5]);
+        fprintf(fp, "%f,", grid->data[i * 6 + 1]);
+        fprintf(fp, "%f,", grid->data[i * 6 + 2]);
+        fprintf(fp, "%f,", grid->data[i * 6 + 3]);
+        fprintf(fp, "%f,", grid->data[i * 6 + 4]);
+        fprintf(fp, "%f", grid->data[i * 6 + 5]);
         fprintf(fp, "\n");
       }
     }
@@ -548,15 +611,14 @@ static void aprilgrid_parse_skip_line(FILE *fp) {
 /**
  * Load AprilGrid
  */
-int aprilgrid_load(aprilgrid_t *grid, const char *data_path) {
-  assert(grid != NULL);
+aprilgrid_t *aprilgrid_load(const char *data_path) {
   assert(data_path != NULL);
 
   // Open file for loading
   FILE *fp = fopen(data_path, "r");
   if (fp == NULL) {
     APRILGRID_LOG("Failed to open [%s]!\n", data_path);
-    return -1;
+    return NULL;
   }
 
   // Parse configuration
@@ -571,11 +633,8 @@ int aprilgrid_load(aprilgrid_t *grid, const char *data_path) {
   aprilgrid_parse_line(fp, "tag_size", "double", &tag_size);
   aprilgrid_parse_line(fp, "tag_spacing", "double", &tag_spacing);
   aprilgrid_parse_skip_line(fp);
-  aprilgrid_setup(timestamp, grid);
-  grid->num_rows = num_rows;
-  grid->num_cols = num_cols;
-  grid->tag_size = tag_size;
-  grid->tag_spacing = tag_spacing;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(timestamp, num_rows, num_cols, tag_size, tag_spacing);
 
   // Parse data
   int corners_detected = 0;
@@ -609,16 +668,25 @@ int aprilgrid_load(aprilgrid_t *grid, const char *data_path) {
   // Clean up
   fclose(fp);
 
-  return 0;
+  return grid;
 }
 
 // APRILGRID DETECTOR ////////////////////////////////////////////////////////
 
-aprilgrid_detector_t *aprilgrid_detector_malloc() {
-  aprilgrid_detector_t *det = malloc(sizeof(aprilgrid_detector_t));
+aprilgrid_detector_t *aprilgrid_detector_malloc(int num_rows,
+                                                int num_cols,
+                                                double tag_size,
+                                                double tag_spacing) {
+  aprilgrid_detector_t *det = MALLOC(aprilgrid_detector_t, 1);
   det->tf = tagStandard41h12_create();
   det->td = apriltag_detector_create();
   apriltag_detector_add_family_bits(det->td, det->tf, 1);
+
+  det->num_rows = num_rows;
+  det->num_cols = num_cols;
+  det->tag_size = tag_size;
+  det->tag_spacing = tag_spacing;
+
   return det;
 }
 
@@ -630,14 +698,13 @@ void aprilgrid_detector_free(aprilgrid_detector_t *det) {
   det = NULL;
 }
 
-int aprilgrid_detector_detect(const aprilgrid_detector_t *det,
-                              aprilgrid_t *grid,
-                              const int32_t image_width,
-                              const int32_t image_height,
-                              const int32_t image_stride,
-                              uint8_t *image_data) {
+aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
+                                       const timestamp_t ts,
+                                       const int32_t image_width,
+                                       const int32_t image_height,
+                                       const int32_t image_stride,
+                                       uint8_t *image_data) {
   assert(det != NULL);
-  assert(grid != NULL);
   assert(image_width > 0);
   assert(image_height > 0);
   assert(image_stride > 0);
@@ -650,6 +717,11 @@ int aprilgrid_detector_detect(const aprilgrid_detector_t *det,
                    .buf = image_data};
 
   // Detect AprilTags
+  aprilgrid_t *grid = aprilgrid_malloc(ts,
+                                       det->num_rows,
+                                       det->num_cols,
+                                       det->tag_size,
+                                       det->tag_spacing);
   zarray_t *dets = apriltag_detector_detect(det->td, &im);
   int num_corners = 0;
   for (int i = 0; i < zarray_size(dets); i++) {
@@ -663,7 +735,13 @@ int aprilgrid_detector_detect(const aprilgrid_detector_t *det,
   }
   apriltag_detections_destroy(dets);
 
-  return num_corners;
+  // Return NULL if no apriltag detected
+  if (num_corners == 0) {
+    aprilgrid_free(grid);
+    return NULL;
+  }
+
+  return grid;
 }
 
 #endif // APRILGRID_IMPLEMENTATION
@@ -744,18 +822,23 @@ static int fltcmp(const float x, const float y) {
   return -1;
 }
 
-int test_aprilgrid_setup() {
+int test_aprilgrid_malloc_and_free() {
   // Setup
   const timestamp_t ts = 0;
-  aprilgrid_t grid;
-  aprilgrid_setup(ts, &grid);
+  const int num_rows = 6;
+  const int num_cols = 7;
+  const double tsize = 0.1;
+  const double tspacing = 0.1;
+  aprilgrid_t *g = aprilgrid_malloc(ts, num_rows, num_cols, tsize, tspacing);
 
-  TEST_ASSERT(grid.timestamp == 0);
-  TEST_ASSERT(grid.num_rows == APRILGRID_NUM_ROWS);
-  TEST_ASSERT(grid.num_cols == APRILGRID_NUM_COLS);
-  TEST_ASSERT(fltcmp(grid.tag_size, APRILGRID_TAG_SIZE) == 0);
-  TEST_ASSERT(fltcmp(grid.tag_spacing, APRILGRID_TAG_SPACING) == 0);
-  TEST_ASSERT(grid.corners_detected == 0);
+  TEST_ASSERT(g->timestamp == 0);
+  TEST_ASSERT(g->num_rows == num_rows);
+  TEST_ASSERT(g->num_cols == num_cols);
+  TEST_ASSERT(fltcmp(g->tag_size, tsize) == 0);
+  TEST_ASSERT(fltcmp(g->tag_spacing, tspacing) == 0);
+  TEST_ASSERT(g->corners_detected == 0);
+
+  aprilgrid_free(g);
 
   return 0;
 }
@@ -763,19 +846,22 @@ int test_aprilgrid_setup() {
 int test_aprilgrid_center() {
   // Setup
   const timestamp_t ts = 0;
-  aprilgrid_t grid;
-  aprilgrid_setup(ts, &grid);
-  grid.num_rows = 5;
-  grid.num_cols = 2;
-  grid.tag_size = 0.1;
-  grid.tag_spacing = 0;
+  int num_rows = 5;
+  int num_cols = 2;
+  double tag_size = 0.1;
+  double tag_spacing = 0;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(ts, num_rows, num_cols, tag_size, tag_spacing);
 
   // Aprilgrid center
   double cx = 0.0;
   double cy = 0.0;
-  aprilgrid_center(&grid, &cx, &cy);
+  aprilgrid_center(grid, &cx, &cy);
   TEST_ASSERT(fltcmp(cx, 0.1) == 0);
   TEST_ASSERT(fltcmp(cy, 0.25) == 0);
+
+  // Clean up
+  aprilgrid_free(grid);
 
   return 0;
 }
@@ -787,35 +873,34 @@ int test_aprilgrid_grid_index() {
   const int num_cols = 6;
   const double tag_size = 0.088;
   const double tag_spacing = 0.3;
-  aprilgrid_t grid;
-  aprilgrid_setup(ts, &grid);
-  grid.num_rows = num_rows;
-  grid.num_cols = num_cols;
-  grid.tag_size = tag_size;
-  grid.tag_spacing = tag_spacing;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(ts, num_rows, num_cols, tag_size, tag_spacing);
 
   // Get grid index
   int i = 0;
   int j = 0;
-  aprilgrid_grid_index(&grid, 0, &i, &j);
+  aprilgrid_grid_index(grid, 0, &i, &j);
   TEST_ASSERT(i == 0);
   TEST_ASSERT(j == 0);
 
-  aprilgrid_grid_index(&grid, 1, &i, &j);
+  aprilgrid_grid_index(grid, 1, &i, &j);
   TEST_ASSERT(i == 0);
   TEST_ASSERT(j == 1);
 
-  aprilgrid_grid_index(&grid, 5, &i, &j);
+  aprilgrid_grid_index(grid, 5, &i, &j);
   TEST_ASSERT(i == 0);
   TEST_ASSERT(j == 5);
 
-  aprilgrid_grid_index(&grid, 7, &i, &j);
+  aprilgrid_grid_index(grid, 7, &i, &j);
   TEST_ASSERT(i == 1);
   TEST_ASSERT(j == 1);
 
-  aprilgrid_grid_index(&grid, 17, &i, &j);
+  aprilgrid_grid_index(grid, 17, &i, &j);
   TEST_ASSERT(i == 2);
   TEST_ASSERT(j == 5);
+
+  // Clean up
+  aprilgrid_free(grid);
 
   return 0;
 }
@@ -827,34 +912,33 @@ int test_aprilgrid_object_point() {
   const int num_cols = 6;
   const double tag_size = 0.1;
   const double tag_spacing = 0.0;
-  aprilgrid_t grid;
-  aprilgrid_setup(ts, &grid);
-  grid.num_rows = num_rows;
-  grid.num_cols = num_cols;
-  grid.tag_size = tag_size;
-  grid.tag_spacing = tag_spacing;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(ts, num_rows, num_cols, tag_size, tag_spacing);
 
   // Get object point
   double p[3] = {0};
-  aprilgrid_object_point(&grid, 1, 0, p);
+  aprilgrid_object_point(grid, 1, 0, p);
   TEST_ASSERT(fltcmp(p[0], tag_size) == 0);
   TEST_ASSERT(fltcmp(p[1], 0) == 0);
   TEST_ASSERT(fltcmp(p[2], 0) == 0);
 
-  aprilgrid_object_point(&grid, 1, 1, p);
+  aprilgrid_object_point(grid, 1, 1, p);
   TEST_ASSERT(fltcmp(p[0], tag_size * 2) == 0);
   TEST_ASSERT(fltcmp(p[1], 0) == 0);
   TEST_ASSERT(fltcmp(p[2], 0) == 0);
 
-  aprilgrid_object_point(&grid, 1, 2, p);
+  aprilgrid_object_point(grid, 1, 2, p);
   TEST_ASSERT(fltcmp(p[0], tag_size * 2) == 0);
   TEST_ASSERT(fltcmp(p[1], tag_size) == 0);
   TEST_ASSERT(fltcmp(p[2], 0) == 0);
 
-  aprilgrid_object_point(&grid, 1, 3, p);
+  aprilgrid_object_point(grid, 1, 3, p);
   TEST_ASSERT(fltcmp(p[0], tag_size) == 0);
   TEST_ASSERT(fltcmp(p[1], tag_size) == 0);
   TEST_ASSERT(fltcmp(p[2], 0) == 0);
+
+  // Clean up
+  aprilgrid_free(grid);
 
   return 0;
 }
@@ -866,32 +950,31 @@ int test_aprilgrid_add_and_remove_corner() {
   const int num_cols = 6;
   const double tag_size = 0.1;
   const double tag_spacing = 0.0;
-  aprilgrid_t grid;
-  aprilgrid_setup(ts, &grid);
-  grid.num_rows = num_rows;
-  grid.num_cols = num_cols;
-  grid.tag_size = tag_size;
-  grid.tag_spacing = tag_spacing;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(ts, num_rows, num_cols, tag_size, tag_spacing);
 
   // Add corner
   const int tag_id = 5;
   const int corner_idx = 0;
   const double kp[2] = {1.0, 2.0};
-  aprilgrid_add_corner(&grid, tag_id, corner_idx, kp);
+  aprilgrid_add_corner(grid, tag_id, corner_idx, kp);
 
   const int data_row = (tag_id * 4) + corner_idx;
-  TEST_ASSERT(grid.corners_detected == 1);
-  TEST_ASSERT(grid.data[data_row][0] == 1);
-  TEST_ASSERT(fltcmp(grid.data[data_row][1], kp[0]) == 0);
-  TEST_ASSERT(fltcmp(grid.data[data_row][2], kp[1]) == 0);
+  TEST_ASSERT(grid->corners_detected == 1);
+  TEST_ASSERT(grid->data[data_row * 6 + 0] == 1);
+  TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 1], kp[0]) == 0);
+  TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 2], kp[1]) == 0);
 
   // Remove corner
-  aprilgrid_remove_corner(&grid, tag_id, corner_idx);
+  aprilgrid_remove_corner(grid, tag_id, corner_idx);
 
-  TEST_ASSERT(grid.corners_detected == 0);
-  TEST_ASSERT(grid.data[data_row][0] == 0);
-  TEST_ASSERT(fltcmp(grid.data[data_row][1], 0.0) == 0);
-  TEST_ASSERT(fltcmp(grid.data[data_row][2], 0.0) == 0);
+  TEST_ASSERT(grid->corners_detected == 0);
+  TEST_ASSERT(grid->data[data_row * 6 + 0] == 0);
+  TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 1], 0.0) == 0);
+  TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 2], 0.0) == 0);
+
+  // Clean up
+  aprilgrid_free(grid);
 
   return 0;
 }
@@ -902,37 +985,38 @@ int test_aprilgrid_add_and_remove_tag() {
   const int num_rows = 6;
   const int num_cols = 6;
   const double tag_size = 0.1;
-  const double tag_spacing = 0.0;
-  aprilgrid_t grid;
-  aprilgrid_setup(ts, &grid);
-  grid.num_rows = num_rows;
-  grid.num_cols = num_cols;
-  grid.tag_size = tag_size;
-  grid.tag_spacing = tag_spacing;
+  const double tag_spacing = 0.2;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(ts, num_rows, num_cols, tag_size, tag_spacing);
 
   // Add tag
   const int tag_id = 5;
   const double tag_kps[4][2] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
-  aprilgrid_add_tag(&grid, tag_id, tag_kps);
+  aprilgrid_add_tag(grid, tag_id, tag_kps);
 
-  TEST_ASSERT(grid.corners_detected == 4);
+  TEST_ASSERT(grid->corners_detected == 4);
   for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
     const int data_row = (tag_id * 4) + corner_idx;
-    TEST_ASSERT(grid.data[data_row][0] == 1);
-    TEST_ASSERT(fltcmp(grid.data[data_row][1], tag_kps[corner_idx][0]) == 0);
-    TEST_ASSERT(fltcmp(grid.data[data_row][2], tag_kps[corner_idx][1]) == 0);
+    TEST_ASSERT(grid->data[data_row * 6 + 0] == 1);
+    TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 1], tag_kps[corner_idx][0]) ==
+                0);
+    TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 2], tag_kps[corner_idx][1]) ==
+                0);
   }
 
   // Remove tag
-  aprilgrid_remove_tag(&grid, tag_id);
+  aprilgrid_remove_tag(grid, tag_id);
 
-  TEST_ASSERT(grid.corners_detected == 0);
+  TEST_ASSERT(grid->corners_detected == 0);
   for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
     const int data_row = (tag_id * 4) + corner_idx;
-    TEST_ASSERT(grid.data[data_row][0] == 0);
-    TEST_ASSERT(fltcmp(grid.data[data_row][1], 0.0) == 0);
-    TEST_ASSERT(fltcmp(grid.data[data_row][2], 0.0) == 0);
+    TEST_ASSERT(grid->data[data_row * 6 + 0] == 0);
+    TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 1], 0.0) == 0);
+    TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 2], 0.0) == 0);
   }
+
+  // Clean up
+  aprilgrid_free(grid);
 
   return 0;
 }
@@ -940,40 +1024,49 @@ int test_aprilgrid_add_and_remove_tag() {
 int test_aprilgrid_save_and_load() {
   // Setup
   const timestamp_t ts = 0;
-  aprilgrid_t grid;
-  aprilgrid_setup(ts, &grid);
+  const int num_rows = 6;
+  const int num_cols = 6;
+  const double tag_size = 0.088;
+  const double tag_spacing = 0.3;
+  aprilgrid_t *grid =
+      aprilgrid_malloc(ts, num_rows, num_cols, tag_size, tag_spacing);
 
   // Add tag
   const int tag_id = 5;
   const double tag_kps[4][2] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
-  aprilgrid_add_tag(&grid, tag_id, tag_kps);
+  aprilgrid_add_tag(grid, tag_id, tag_kps);
 
-  TEST_ASSERT(grid.corners_detected == 4);
+  TEST_ASSERT(grid->corners_detected == 4);
   for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
     const int data_row = (tag_id * 4) + corner_idx;
-    TEST_ASSERT(grid.data[data_row][0] == 1);
-    TEST_ASSERT(fltcmp(grid.data[data_row][1], tag_kps[corner_idx][0]) == 0);
-    TEST_ASSERT(fltcmp(grid.data[data_row][2], tag_kps[corner_idx][1]) == 0);
+    TEST_ASSERT(grid->data[data_row * 6 + 0] == 1);
+    TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 1], tag_kps[corner_idx][0]) ==
+                0);
+    TEST_ASSERT(fltcmp(grid->data[data_row * 6 + 2], tag_kps[corner_idx][1]) ==
+                0);
   }
 
   // Save
-  const int retval = aprilgrid_save(&grid, "/tmp/test_aprilgrid.dat");
+  const int retval = aprilgrid_save(grid, "/tmp/test_aprilgrid.dat");
   TEST_ASSERT(retval == 0);
 
   // Load
-  aprilgrid_t grid_load;
-  aprilgrid_load(&grid_load, "/tmp/test_aprilgrid.dat");
-  TEST_ASSERT(grid_load.num_rows == grid.num_rows);
-  TEST_ASSERT(grid_load.num_cols == grid.num_cols);
-  TEST_ASSERT(fltcmp(grid_load.tag_size, grid.tag_size) == 0);
-  TEST_ASSERT(fltcmp(grid_load.tag_spacing, grid.tag_spacing) == 0);
-  TEST_ASSERT(grid_load.corners_detected == grid.corners_detected);
-  for (int i = 0; i < APRILGRID_MAX_CORNERS; i++) {
+  aprilgrid_t *grid_load = aprilgrid_load("/tmp/test_aprilgrid.dat");
+  TEST_ASSERT(grid_load->num_rows == grid->num_rows);
+  TEST_ASSERT(grid_load->num_cols == grid->num_cols);
+  TEST_ASSERT(fltcmp(grid_load->tag_size, grid->tag_size) == 0);
+  TEST_ASSERT(fltcmp(grid_load->tag_spacing, grid->tag_spacing) == 0);
+  TEST_ASSERT(grid_load->corners_detected == grid->corners_detected);
+  const int max_corners = (grid->num_rows * grid->num_cols * 4);
+  for (int i = 0; i < max_corners; i++) {
     for (int j = 0; j < 6; j++) {
-      TEST_ASSERT(fltcmp(grid_load.data[i][j], grid.data[i][j]) == 0);
+      TEST_ASSERT(fltcmp(grid_load->data[i * 6 + j], grid->data[i * 6 + j]) ==
+                  0);
     }
   }
-  // aprilgrid_print(&grid_load);
+  // aprilgrid_print(grid_load);
+  aprilgrid_free(grid_load);
+  aprilgrid_free(grid);
 
   return 0;
 }
@@ -997,38 +1090,33 @@ int test_aprilgrid_detector_detect() {
   const int num_cols = 5;
   const double tag_size = 1.0;
   const double tag_spacing = 0.0;
-  aprilgrid_t grid;
-  aprilgrid_setup(ts, &grid);
-  grid.num_rows = num_rows;
-  grid.num_cols = num_cols;
-  grid.tag_size = tag_size;
-  grid.tag_spacing = tag_spacing;
 
-  aprilgrid_detector_t *det = aprilgrid_detector_malloc();
-  int num_corners = aprilgrid_detector_detect(det,
-                                              &grid,
-                                              im->width,
-                                              im->height,
-                                              im->stride,
-                                              im->buf);
-  TEST_ASSERT(num_corners == 100);
-  TEST_ASSERT(grid.timestamp == 0);
-  TEST_ASSERT(grid.num_rows == num_rows);
-  TEST_ASSERT(grid.num_cols == num_cols);
-  TEST_ASSERT(fltcmp(grid.tag_size, tag_size) == 0);
-  TEST_ASSERT(fltcmp(grid.tag_spacing, tag_spacing) == 0);
-  TEST_ASSERT(grid.corners_detected == num_corners);
+  aprilgrid_detector_t *det =
+      aprilgrid_detector_malloc(num_rows, num_cols, tag_size, tag_spacing);
+  aprilgrid_t *grid = aprilgrid_detector_detect(det,
+                                                ts,
+                                                im->width,
+                                                im->height,
+                                                im->stride,
+                                                im->buf);
+  TEST_ASSERT(grid->corners_detected == 100);
+  TEST_ASSERT(grid->timestamp == 0);
+  TEST_ASSERT(grid->num_rows == num_rows);
+  TEST_ASSERT(grid->num_cols == num_cols);
+  TEST_ASSERT(fltcmp(grid->tag_size, tag_size) == 0);
+  TEST_ASSERT(fltcmp(grid->tag_spacing, tag_spacing) == 0);
 
   // Clean up
   pjpeg_destroy(pjpeg);
   image_u8_destroy(im);
   aprilgrid_detector_free(det);
+  aprilgrid_free(grid);
 
   return 0;
 }
 
 int main(int argc, char *argv[]) {
-  TEST(test_aprilgrid_setup);
+  TEST(test_aprilgrid_malloc_and_free);
   TEST(test_aprilgrid_center);
   TEST(test_aprilgrid_grid_index);
   TEST(test_aprilgrid_object_point);
