@@ -13,7 +13,7 @@ set -e
 { CMD=$(cat); } << EOF
 . /opt/ros/humble/setup.sh \
   && cd $HOME/projects/proto/proto_ros2 \
-  && make gimbal_dance
+  && make gz_gimbal
 EOF
 
 tmux send-keys -t dev -R C-l C-m

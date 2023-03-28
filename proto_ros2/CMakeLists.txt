@@ -24,17 +24,17 @@ ADD_EXECUTABLE(offboard src/offboard.cpp)
 AMENT_TARGET_DEPENDENCIES(offboard rclcpp px4_msgs)
 INSTALL(TARGETS offboard DESTINATION lib/${PROJECT_NAME})
 
-ADD_EXECUTABLE(gimbal_dance src/gimbal_dance.cpp)
+ADD_EXECUTABLE(gz_gimbal src/gz_gimbal.cpp)
 AMENT_TARGET_DEPENDENCIES(
-  gimbal_dance
+  gz_gimbal
   rclcpp
   std_msgs
   sensor_msgs
   message_filters
   cv_bridge
 )
-TARGET_LINK_LIBRARIES(gimbal_dance ${OpenCV_LIBS} apriltag)
-INSTALL(TARGETS gimbal_dance DESTINATION lib/${PROJECT_NAME})
+TARGET_LINK_LIBRARIES(gz_gimbal ${OpenCV_LIBS} apriltag)
+INSTALL(TARGETS gz_gimbal DESTINATION lib/${PROJECT_NAME})
 
 # EXPORT DEPENDENCIES
 AMENT_EXPORT_DEPENDENCIES(

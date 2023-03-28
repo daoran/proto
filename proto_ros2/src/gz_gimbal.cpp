@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <map>
 #include <thread>
 #include <unistd.h>
 #include <signal.h>
@@ -10,6 +11,7 @@
 #include <std_msgs/msg/float64.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
@@ -19,18 +21,18 @@
 #define APRILGRID_IMPLEMENTATION
 #include "aprilgrid.h"
 
-// clang-format off
 using timestamp_t = int64_t;
-using namespace std_msgs::msg;
-using namespace sensor_msgs::msg;
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 using std::placeholders::_4;
 using std::placeholders::_5;
-typedef message_filters::sync_policies::ApproximateTime<Image, Image, JointState, JointState, JointState> approx_policy;
+using namespace std_msgs::msg;
+using namespace sensor_msgs::msg;
+typedef message_filters::sync_policies::
+    ApproximateTime<Image, Image, JointState, JointState, JointState>
+        approx_policy;
 bool keep_running = true;
-// clang-format on
 
 /**
  * Signal handler
@@ -65,6 +67,39 @@ void clip(double *x, const size_t n, const double vmin, const double vmax) {
   }
 }
 
+/**
+ * Camera Property.
+ */
+struct CameraProperty {
+  int image_width;
+  int image_height;
+  std::string distortion_model;
+  std::vector<double> distortion;
+  std::vector<double> intrinsics;
+
+  CameraProperty(const CameraInfo &msg) {
+    image_width = msg.width;
+    image_height = msg.height;
+
+    distortion_model = msg.distortion_model;
+    for (size_t i = 0; i < msg.d.size(); i++) {
+      distortion.push_back(msg.d[i]);
+    }
+
+    const auto fx = msg.k[0];
+    const auto fy = msg.k[4];
+    const auto cx = msg.k[2];
+    const auto cy = msg.k[5];
+    intrinsics.push_back(fx);
+    intrinsics.push_back(fy);
+    intrinsics.push_back(cx);
+    intrinsics.push_back(cy);
+  }
+};
+
+/**
+ * Calibration view.
+ */
 struct CalibView {
   timestamp_t ts_;
   int num_rows_;
@@ -134,11 +169,15 @@ struct CalibView {
   }
 };
 
+/**
+ * Calibration Data
+ */
 struct CalibData {
   std::vector<timestamp_t> timestamps_;
   std::vector<double> joint0_data_;
   std::vector<double> joint1_data_;
   std::vector<double> joint2_data_;
+  std::map<int, CameraProperty> camera_props_;
   std::vector<std::shared_ptr<CalibView>> cam0_data_;
   std::vector<std::shared_ptr<CalibView>> cam1_data_;
 
@@ -146,12 +185,22 @@ struct CalibData {
   std::string cam0_dir_;
   std::string cam1_dir_;
   std::string joints_fpath_;
+  std::string config_fpath_;
 
   CalibData(const std::string &output_dir) {
     output_dir_ = output_dir;
     cam0_dir_ = output_dir_ + "/cam0";
     cam1_dir_ = output_dir_ + "/cam1";
     joints_fpath_ = output_dir_ + "/joint_angles.sim";
+    config_fpath_ = output_dir_ + "/calib.config";
+  }
+
+  void addCamera(CameraInfo &msg) {
+    const auto frame_id = msg.header.frame_id;
+    const int cam_idx = frame_id[frame_id.length() - 1] - '0';
+    if (camera_props_.count(cam_idx) == 0) {
+      camera_props_.emplace(cam_idx, msg);
+    }
   }
 
   void add(const timestamp_t ts,
@@ -176,6 +225,7 @@ struct CalibData {
     createOutputDirs();
     saveJointAngles();
     saveCameraViews();
+    saveCalibConfig();
   }
 
 private:
@@ -212,13 +262,29 @@ private:
       view->save(cam1_dir_);
     }
   }
+
+  void saveCalibConfig() const {
+    // FILE *joints_file = fopen(joints_fpath_.c_str(), "w");
+    // const int num_cams = 2;
+    // const int num_links = 2;
+
+    // fprintf(joints_file, "num_cams: %d\n", num_cams);
+    // fprintf(joints_file, "num_links: %d\n", num_links);
+    // fprintf(joints_file, "\n");
+
+    // fprintf(joints_file, "cam0\n");
+    // fprintf(joints_file, "  resolution: [%d, %d]\n", );
+
+    // fclose(joints_file);
+  }
 };
 
 /**
  * Gimbal calibration dance.
  */
-class GimbalNode : public rclcpp::Node {
+class GZGimbal : public rclcpp::Node {
 private:
+  // Mutex
   std::mutex mutex_;
 
   // Publishers / Subscribers
@@ -226,6 +292,7 @@ private:
   rclcpp::Publisher<Float64>::SharedPtr joint0_cmd_;
   rclcpp::Publisher<Float64>::SharedPtr joint1_cmd_;
   rclcpp::Publisher<Float64>::SharedPtr joint2_cmd_;
+  rclcpp::Subscription<CameraInfo>::SharedPtr camera_info_;
   message_filters::Subscriber<Image> cam0_;
   message_filters::Subscriber<Image> cam1_;
   message_filters::Subscriber<JointState> joint0_state_;
@@ -244,10 +311,12 @@ private:
   double dlims1_[2] = {deg2rad(-35.0), deg2rad(35.0)};
   double dlims2_[2] = {deg2rad(-10.0), deg2rad(10.0)};
 
+  // Dance intervals
   int num_yaw_ = 3;
   int num_roll_ = 4;
   int num_pitch_ = 4;
 
+  // State
   timestamp_t ts_ = 0;
   cv::Mat cam0_img_;
   cv::Mat cam1_img_;
@@ -255,14 +324,15 @@ private:
   double joint1_ = 0;
   double joint2_ = 0;
 
+  // Thread
+  std::thread calib_dance_thread_;
+
   // Outputs
   std::string output_dir_ = "/tmp/calib_gimbal";
   CalibData calib_data_{output_dir_};
   aprilgrid_detector_t *detector_ = nullptr;
 
-  std::thread calib_dance_thread_;
-
-  /* Measurement Callback */
+  /* Measurement Callback. **/
   void measurementCallback(const Image::ConstSharedPtr &cam0_msg,
                            const Image::ConstSharedPtr &cam1_msg,
                            const JointState::ConstSharedPtr &joint0_msg,
@@ -286,8 +356,13 @@ private:
     joint2_ = joint2_msg->position[0];
   }
 
+  /** Camera information Callback. **/
+  void cameraInfoCallback(const CameraInfo &msg) {
+    calib_data_.addCamera(msg);
+  }
+
 public:
-  GimbalNode() : Node("GimbalNode") {
+  GZGimbal() : Node("GZGimbal") {
     // Setup
     int num_rows = 10;
     int num_cols = 10;
@@ -298,22 +373,24 @@ public:
 
     // Setup publishers / subscribers
     // clang-format off
+    auto info_cb = std::bind(&GZGimbal::cameraInfoCallback, this, _1);
     joint0_cmd_ = create_publisher<Float64>("/gimbal/joint0_cmd", 1);
     joint1_cmd_ = create_publisher<Float64>("/gimbal/joint1_cmd", 1);
     joint2_cmd_ = create_publisher<Float64>("/gimbal/joint2_cmd", 1);
+    camera_info_ = create_subscription<CameraInfo>("/gimbal/camera_info", 1, info_cb);
     cam0_.subscribe(this, "/gimbal/camera0");
     cam1_.subscribe(this, "/gimbal/camera1");
     joint0_state_.subscribe(this, "/gimbal/joint0_state");
     joint1_state_.subscribe(this, "/gimbal/joint1_state");
     joint2_state_.subscribe(this, "/gimbal/joint2_state");
     sync_ = std::make_shared<message_filters::Synchronizer<approx_policy>>(approx_policy(10), cam0_, cam1_, joint0_state_, joint1_state_, joint2_state_);
-    sync_->registerCallback(std::bind(&GimbalNode::measurementCallback, this, _1, _2, _3, _4, _5));
+    sync_->registerCallback(std::bind(&GZGimbal::measurementCallback, this, _1, _2, _3, _4, _5));
     // clang-format on
 
-    calib_dance_thread_ = std::thread(&GimbalNode::calibrationDance, this);
+    calib_dance_thread_ = std::thread(&GZGimbal::calibrationDance, this);
   }
 
-  virtual ~GimbalNode() {
+  virtual ~GZGimbal() {
     calib_dance_thread_.join();
     aprilgrid_detector_free(detector_);
   }
@@ -432,7 +509,7 @@ int main(int argc, char *argv[]) {
 
   // Setup ROS2
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<GimbalNode>());
+  rclcpp::spin(std::make_shared<GZGimbal>());
   rclcpp::shutdown();
 
   return 0;

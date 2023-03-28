@@ -37,8 +37,8 @@ calib_sim: ## Build proto_ws
 		&& source install/setup.bash \
 		&& ros2 launch proto_ros2 calib_sim.launch.py
 
-gimbal_dance: ## Build gimbal dance
+gz_gimbal: ## Build gz_gimbal
 	@cd ${ROS2_WS} \
 		&& colcon build --packages-select proto_ros2 \
 		&& source install/setup.bash \
-		&& ros2 run proto_ros2 gimbal_dance
+		&& ros2 run proto_ros2 gz_gimbal

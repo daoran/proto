@@ -30,6 +30,12 @@ def ros_gz_gimbal_joint_state_bridge(topic):
     direction = "["
     return ros_gz_bridge(topic, ros_type, gz_type, direction)
 
+def ros_gz_camera_info_bridge(topic):
+    ros_type = "sensor_msgs/msg/CameraInfo"
+    gz_type = "gz.msgs.CameraInfo"
+    direction = "["
+    return ros_gz_bridge(topic, ros_type, gz_type, direction)
+
 def generate_launch_description():
     # Settings
     gz_world = "calibration.sdf"
@@ -52,6 +58,7 @@ def generate_launch_description():
     yaw_state_bridge = ros_gz_gimbal_joint_state_bridge("/gimbal/joint0_state")
     roll_state_bridge = ros_gz_gimbal_joint_state_bridge("/gimbal/joint1_state")
     pitch_state_bridge = ros_gz_gimbal_joint_state_bridge("/gimbal/joint2_state")
+    camera_info_bridge = ros_gz_camera_info_bridge("/gimbal/camera_info")
 
     # Launch
     descs = []
@@ -64,5 +71,6 @@ def generate_launch_description():
     descs.append(yaw_state_bridge)
     descs.append(roll_state_bridge)
     descs.append(pitch_state_bridge)
+    descs.append(camera_info_bridge)
 
     return LaunchDescription(descs)
