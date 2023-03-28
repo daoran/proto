@@ -17259,7 +17259,7 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   const int nbv_idx = calib->num_views;
   const timestamp_t ts = nbv_idx;
   const int pose_idx = 0;
-  aprilgrid_t *calib_target = aprilgrid_malloc(0, calib->num_rows, calib->num_cols, calib->tag_size, calib->tag_spacing);
+  aprilgrid_t *calib_target = aprilgrid_malloc(calib->num_rows, calib->num_cols, calib->tag_size, calib->tag_spacing);
 
 #pragma omp parallel for
   for (int view_idx = 0; view_idx < num_views; view_idx++) {
@@ -18789,7 +18789,7 @@ sim_gimbal_t *sim_gimbal_malloc() {
   int num_cols = 6;
   double tag_size = 0.088;
   double tag_spacing = 0.3;
-  sim->grid = aprilgrid_malloc(0, num_rows, num_cols, tag_size, tag_spacing);
+  sim->grid = aprilgrid_malloc(num_rows, num_cols, tag_size, tag_spacing);
 
   // Fiducial pose
   const real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};

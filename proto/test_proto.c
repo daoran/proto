@@ -4278,7 +4278,7 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   double tag_size = 0.088;
   double tag_spacing = 0.3;
   aprilgrid_t *grid =
-      aprilgrid_malloc(0, num_rows, num_cols, tag_size, tag_spacing);
+      aprilgrid_malloc(num_rows, num_cols, tag_size, tag_spacing);
 
   data->tag_id = 1;
   data->corner_idx = 2;
@@ -4400,7 +4400,7 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   double tag_size = 0.088;
   double tag_spacing = 0.3;
   aprilgrid_t *grid =
-      aprilgrid_malloc(0, num_rows, num_cols, tag_size, tag_spacing);
+      aprilgrid_malloc(num_rows, num_cols, tag_size, tag_spacing);
 
   data->tag_id = 1;
   data->corner_idx = 2;
@@ -5446,6 +5446,7 @@ int test_calib_camera_stereo() {
       aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
       if (grid->corners_detected == 0) {
         free(files[view_idx]);
+        aprilgrid_free(grid);
         continue;
       }
 
@@ -5465,12 +5466,12 @@ int test_calib_camera_stereo() {
       }
 
       // Clean up
-      free(files[view_idx]);
       free(tag_ids);
       free(corner_indices);
       free(kps);
       free(pts);
       aprilgrid_free(grid);
+      free(files[view_idx]);
     }
     free(files);
   }
