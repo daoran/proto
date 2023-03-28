@@ -218,8 +218,6 @@ struct CalibData {
       gimbal_ext[4] = msg.pose.orientation.x;
       gimbal_ext[5] = msg.pose.orientation.y;
       gimbal_ext[6] = msg.pose.orientation.z;
-
-      std::cout <<  msg.header.frame_id << std::endl;
     }
     gimbal_pose_set = true;
   }
@@ -465,7 +463,7 @@ public:
     joint2_cmd_ = create_publisher<Float64>("/gimbal/joint2_cmd", 1);
     camera_info_ = create_subscription<CameraInfo>("/gimbal/camera_info", 1, info_cb);
     aprilgrid_pose_ = create_subscription<PoseStamped>("/model/aprilgrid/pose", 1, grid_cb);
-    gimbal_pose_ = create_subscription<PoseStamped>("/model/gimbal/pose", 1, grid_cb);
+    gimbal_pose_ = create_subscription<PoseStamped>("/model/gimbal/pose", 1, gimbal_cb);
     cam0_.subscribe(this, "/gimbal/camera0");
     cam1_.subscribe(this, "/gimbal/camera1");
     joint0_state_.subscribe(this, "/gimbal/joint0_state");
