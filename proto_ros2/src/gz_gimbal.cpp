@@ -9,6 +9,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
@@ -20,6 +21,7 @@
 
 #define APRILGRID_IMPLEMENTATION
 #include "aprilgrid.h"
+#include "gz_utils.hpp"
 
 using timestamp_t = int64_t;
 using std::placeholders::_1;
@@ -28,6 +30,7 @@ using std::placeholders::_3;
 using std::placeholders::_4;
 using std::placeholders::_5;
 using namespace std_msgs::msg;
+using namespace geometry_msgs::msg;
 using namespace sensor_msgs::msg;
 typedef message_filters::sync_policies::
     ApproximateTime<Image, Image, JointState, JointState, JointState>
@@ -42,48 +45,26 @@ void signal_handler(int signum) {
 }
 
 /**
- * Degrees to radians.
- * @returns Radians
- */
-static double deg2rad(const double d) {
-  return d * (M_PI / 180.0);
-}
-
-/**
- * Radians to degrees.
- * @returns Degrees
- */
-static double rad2deg(const double r) {
-  return r * (180.0 / M_PI);
-}
-
-/**
- * Clip vector `x` to be between `val_min` and `val_max`.
- */
-void clip(double *x, const size_t n, const double vmin, const double vmax) {
-  for (size_t i = 0; i < n; i++) {
-    x[i] = (x[i] > vmax) ? vmax : x[i];
-    x[i] = (x[i] < vmin) ? vmin : x[i];
-  }
-}
-
-/**
  * Camera Property.
  */
 struct CameraProperty {
+  int cam_idx;
   int image_width;
   int image_height;
   std::string distortion_model;
-  std::vector<double> distortion;
+  std::vector<double> distortions;
   std::vector<double> intrinsics;
 
   CameraProperty(const CameraInfo &msg) {
+    const auto frame_id = msg.header.frame_id;
+    cam_idx = frame_id[frame_id.length() - 1] - '0';
+
     image_width = msg.width;
     image_height = msg.height;
 
     distortion_model = msg.distortion_model;
     for (size_t i = 0; i < msg.d.size(); i++) {
-      distortion.push_back(msg.d[i]);
+      distortions.push_back(msg.d[i]);
     }
 
     const auto fx = msg.k[0];
@@ -173,6 +154,9 @@ struct CalibView {
  * Calibration Data
  */
 struct CalibData {
+  bool gimbal_pose_set = false;
+  bool fiducial_pose_set = false;
+
   std::vector<timestamp_t> timestamps_;
   std::vector<double> joint0_data_;
   std::vector<double> joint1_data_;
@@ -187,15 +171,74 @@ struct CalibData {
   std::string joints_fpath_;
   std::string config_fpath_;
 
+  double cam0_ext[7] = {0};
+  double cam1_ext[7] = {0};
+  double link0_ext[7] = {0};
+  double link1_ext[7] = {0};
+  double gimbal_ext[7] = {0};
+  double fiducial_ext[7] = {0};
+
   CalibData(const std::string &output_dir) {
     output_dir_ = output_dir;
     cam0_dir_ = output_dir_ + "/cam0";
     cam1_dir_ = output_dir_ + "/cam1";
     joints_fpath_ = output_dir_ + "/joint_angles.sim";
     config_fpath_ = output_dir_ + "/calib.config";
+
+    // Get these from the gimbal model.sdf
+    double pose_BL0[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    double pose_BL1[6] = {-0.08, 0.0, 0.1, 0.0, 1.5708, 0.0};
+    double pose_L1C0[6] = {-0.08, 0.0, 0.1, 0.0, 1.5708, 0.0};
+    double pose_L1C1[6] = {0, 0, 0.1, -1.5708, 0, 0};
+
+    // Convert pose vector to transformation matrices
+    double T_BL0[4 * 4] = {0};
+    double T_BL1[4 * 4] = {0};
+    double T_L1C0[4 * 4] = {0};
+    double T_L1C1[4 * 4] = {0};
+    gzpose2tf(pose_BL0, T_BL0);
+    gzpose2tf(pose_BL1, T_BL1);
+    gzpose2tf(pose_L1C0, T_L1C0);
+    gzpose2tf(pose_L1C1, T_L1C1);
+
+    // For the transformation matrices we actually want
+    tf_vector(T_L1C0, cam0_ext);
+    tf_vector(T_L1C1, cam1_ext);
+    tf_vector(T_BL0, link0_ext);
+    tf_vector(T_BL1, link1_ext);
   }
 
-  void addCamera(CameraInfo &msg) {
+  void setGimbalPose(const PoseStamped &msg) {
+    if (gimbal_pose_set == false) {
+      gimbal_ext[0] = msg.pose.position.x;
+      gimbal_ext[1] = msg.pose.position.y;
+      gimbal_ext[2] = msg.pose.position.z;
+
+      gimbal_ext[3] = msg.pose.orientation.w;
+      gimbal_ext[4] = msg.pose.orientation.x;
+      gimbal_ext[5] = msg.pose.orientation.y;
+      gimbal_ext[6] = msg.pose.orientation.z;
+
+      std::cout <<  msg.header.frame_id << std::endl;
+    }
+    gimbal_pose_set = true;
+  }
+
+  void setFiducialPose(const PoseStamped &msg) {
+    if (fiducial_pose_set == false) {
+      fiducial_ext[0] = msg.pose.position.x;
+      fiducial_ext[1] = msg.pose.position.y;
+      fiducial_ext[2] = msg.pose.position.z;
+
+      fiducial_ext[3] = msg.pose.orientation.w;
+      fiducial_ext[4] = msg.pose.orientation.x;
+      fiducial_ext[5] = msg.pose.orientation.y;
+      fiducial_ext[6] = msg.pose.orientation.z;
+    }
+    fiducial_pose_set = true;
+  }
+
+  void addCamera(const CameraInfo &msg) {
     const auto frame_id = msg.header.frame_id;
     const int cam_idx = frame_id[frame_id.length() - 1] - '0';
     if (camera_props_.count(cam_idx) == 0) {
@@ -264,18 +307,47 @@ private:
   }
 
   void saveCalibConfig() const {
-    // FILE *joints_file = fopen(joints_fpath_.c_str(), "w");
-    // const int num_cams = 2;
-    // const int num_links = 2;
+    FILE *config_file = fopen(config_fpath_.c_str(), "w");
+    const int num_cams = 2;
+    const int num_links = 2;
 
-    // fprintf(joints_file, "num_cams: %d\n", num_cams);
-    // fprintf(joints_file, "num_links: %d\n", num_links);
-    // fprintf(joints_file, "\n");
+    fprintf(config_file, "num_cams: %d\n", num_cams);
+    fprintf(config_file, "num_links: %d\n", num_links);
+    fprintf(config_file, "\n");
 
-    // fprintf(joints_file, "cam0\n");
-    // fprintf(joints_file, "  resolution: [%d, %d]\n", );
+    for (const auto &[cam_idx, prop] : camera_props_) {
+      const int res_w = prop.image_width;
+      const int res_h = prop.image_height;
 
-    // fclose(joints_file);
+      std::string proj = "[";
+      proj += std::to_string(prop.intrinsics[0]) + ", ";
+      proj += std::to_string(prop.intrinsics[1]) + ", ";
+      proj += std::to_string(prop.intrinsics[2]) + ", ";
+      proj += std::to_string(prop.intrinsics[3]) + "]";
+
+      std::string dist = "[";
+      dist += std::to_string(prop.distortions[0]) + ", ";
+      dist += std::to_string(prop.distortions[1]) + ", ";
+      dist += std::to_string(prop.distortions[2]) + ", ";
+      dist += std::to_string(prop.distortions[3]) + "]";
+
+      fprintf(config_file, "cam%d:\n", prop.cam_idx);
+      fprintf(config_file, "  resolution: [%d, %d]\n", res_w, res_h);
+      fprintf(config_file, "  proj_model: \"%s\"\n", "pinhole");
+      fprintf(config_file, "  dist_model: \"%s\"\n", "radtan4");
+      fprintf(config_file, "  proj_params: %s\n", proj.c_str());
+      fprintf(config_file, "  dist_params: %s\n", dist.c_str());
+      fprintf(config_file, "\n");
+    }
+
+    fprintf(config_file, "cam0_exts: [%s]\n", pose2str(cam0_ext).c_str());
+    fprintf(config_file, "cam1_exts: [%s]\n", pose2str(cam1_ext).c_str());
+    fprintf(config_file, "link0_exts: [%s]\n", pose2str(link0_ext).c_str());
+    fprintf(config_file, "link1_exts: [%s]\n", pose2str(link1_ext).c_str());
+    fprintf(config_file, "gimbal_exts: [%s]\n", pose2str(gimbal_ext).c_str());
+    fprintf(config_file, "fiducial_exts: [%s]\n", pose2str(fiducial_ext).c_str());
+
+    fclose(config_file);
   }
 };
 
@@ -293,6 +365,8 @@ private:
   rclcpp::Publisher<Float64>::SharedPtr joint1_cmd_;
   rclcpp::Publisher<Float64>::SharedPtr joint2_cmd_;
   rclcpp::Subscription<CameraInfo>::SharedPtr camera_info_;
+  rclcpp::Subscription<PoseStamped>::SharedPtr aprilgrid_pose_;
+  rclcpp::Subscription<PoseStamped>::SharedPtr gimbal_pose_;
   message_filters::Subscriber<Image> cam0_;
   message_filters::Subscriber<Image> cam1_;
   message_filters::Subscriber<JointState> joint0_state_;
@@ -356,9 +430,19 @@ private:
     joint2_ = joint2_msg->position[0];
   }
 
-  /** Camera information Callback. **/
+  /** Camera information callback. **/
   void cameraInfoCallback(const CameraInfo &msg) {
     calib_data_.addCamera(msg);
+  }
+
+  /** AprilGrid pose callback. **/
+  void aprilgridCallback(const PoseStamped &msg) {
+    calib_data_.setFiducialPose(msg);
+  }
+
+  /** Gimbal pose callback. **/
+  void gimbalCallback(const PoseStamped &msg) {
+    calib_data_.setGimbalPose(msg);
   }
 
 public:
@@ -368,23 +452,34 @@ public:
     int num_cols = 10;
     double tag_size = 0.08;
     double tag_spacing = 0.25;
-    detector_ =
-        aprilgrid_detector_malloc(num_rows, num_cols, tag_size, tag_spacing);
+    detector_ = aprilgrid_detector_malloc(num_rows, num_cols, tag_size, tag_spacing);
 
     // Setup publishers / subscribers
     // clang-format off
     auto info_cb = std::bind(&GZGimbal::cameraInfoCallback, this, _1);
+    auto grid_cb = std::bind(&GZGimbal::aprilgridCallback, this, _1);
+    auto gimbal_cb = std::bind(&GZGimbal::gimbalCallback, this, _1);
+    auto meas_cb = std::bind(&GZGimbal::measurementCallback, this, _1, _2, _3, _4, _5);
     joint0_cmd_ = create_publisher<Float64>("/gimbal/joint0_cmd", 1);
     joint1_cmd_ = create_publisher<Float64>("/gimbal/joint1_cmd", 1);
     joint2_cmd_ = create_publisher<Float64>("/gimbal/joint2_cmd", 1);
     camera_info_ = create_subscription<CameraInfo>("/gimbal/camera_info", 1, info_cb);
+    aprilgrid_pose_ = create_subscription<PoseStamped>("/model/aprilgrid/pose", 1, grid_cb);
+    gimbal_pose_ = create_subscription<PoseStamped>("/model/gimbal/pose", 1, grid_cb);
     cam0_.subscribe(this, "/gimbal/camera0");
     cam1_.subscribe(this, "/gimbal/camera1");
     joint0_state_.subscribe(this, "/gimbal/joint0_state");
     joint1_state_.subscribe(this, "/gimbal/joint1_state");
     joint2_state_.subscribe(this, "/gimbal/joint2_state");
-    sync_ = std::make_shared<message_filters::Synchronizer<approx_policy>>(approx_policy(10), cam0_, cam1_, joint0_state_, joint1_state_, joint2_state_);
-    sync_->registerCallback(std::bind(&GZGimbal::measurementCallback, this, _1, _2, _3, _4, _5));
+    sync_ = std::make_shared<message_filters::Synchronizer<approx_policy>>(
+      approx_policy(10),
+      cam0_,
+      cam1_,
+      joint0_state_,
+      joint1_state_,
+      joint2_state_
+    );
+    sync_->registerCallback(meas_cb);
     // clang-format on
 
     calib_dance_thread_ = std::thread(&GZGimbal::calibrationDance, this);

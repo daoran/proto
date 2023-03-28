@@ -36,6 +36,12 @@ def ros_gz_camera_info_bridge(topic):
     direction = "["
     return ros_gz_bridge(topic, ros_type, gz_type, direction)
 
+def ros_gz_pose_bridge(topic):
+    ros_type = "geometry_msgs/msg/PoseStamped"
+    gz_type = "gz.msgs.Pose"
+    direction = "["
+    return ros_gz_bridge(topic, ros_type, gz_type, direction)
+
 def generate_launch_description():
     # Settings
     gz_world = "calibration.sdf"
@@ -59,6 +65,8 @@ def generate_launch_description():
     roll_state_bridge = ros_gz_gimbal_joint_state_bridge("/gimbal/joint1_state")
     pitch_state_bridge = ros_gz_gimbal_joint_state_bridge("/gimbal/joint2_state")
     camera_info_bridge = ros_gz_camera_info_bridge("/gimbal/camera_info")
+    aprilgrid_pose_bridge = ros_gz_pose_bridge("/model/aprilgrid/pose")
+    gimbal_pose_bridge = ros_gz_pose_bridge("/model/gimbal/pose")
 
     # Launch
     descs = []
@@ -72,5 +80,7 @@ def generate_launch_description():
     descs.append(roll_state_bridge)
     descs.append(pitch_state_bridge)
     descs.append(camera_info_bridge)
+    descs.append(aprilgrid_pose_bridge)
+    descs.append(gimbal_pose_bridge)
 
     return LaunchDescription(descs)

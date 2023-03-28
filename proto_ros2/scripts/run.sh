@@ -16,5 +16,10 @@ set -e
   && make gz_gimbal
 EOF
 
+# { CMD=$(cat); } << EOF
+#   cd $HOME/projects/proto/proto_ros2/gazebo/ \
+#   && GZ_SIM_RESOURCE_PATH=$PWD/gazebo/models:$PWD/gazebo/worlds gz sim worlds/calibration.sdf
+# EOF
+
 tmux send-keys -t dev -R C-l C-m
 tmux send-keys -t dev -R "$CMD" C-m C-m
