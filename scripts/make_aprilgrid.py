@@ -5,20 +5,27 @@ Script to generate a grid of AprilTags, aka AprilGrid.
 from PIL import Image
 
 # Config
-NUM_ROWS = 5
-NUM_COLS = 5
-TAG_FAMILY = "tagStandard41h12"
-TAG_IMG_DIR = "./apriltag-imgs"
+NUM_ROWS = 10
+NUM_COLS = 10
+TAG_FAMILY = "tag36h11"
+# TAG_FAMILY = "tagStandard41h12"
+TAG_IMG_DIR = "./third_party/src/apriltag-imgs"
 TAG_SPACING = 0  # Space between tags in pixels
 SAVE_PATH = "./aprilgrid.png"
 
 
-def make_aprilgrid(num_rows, num_cols, tag_img_dir, tag_family, tag_spacing,
-                   save_path):
+def make_aprilgrid(**kwargs):
   """ Make AprilGrid """
+  # Settings
+  num_rows = kwargs.get("num_rows", NUM_ROWS)
+  num_cols = kwargs.get("num_cols", NUM_COLS)
+  tag_img_dir = kwargs.get("tag_img_dir", TAG_IMG_DIR)
+  tag_family = kwargs.get("tag_family", TAG_FAMILY)
+  tag_spacing = kwargs.get("tag_spacing", TAG_SPACING)
+  save_path = kwargs.get("save_path", SAVE_PATH)
+
   # AprilTag defaults
-  tag_size = 9  # Default tag size in pixels
-  tag_width = 5  # Tag corner detection with in pixels
+  tag_size = 10  # Default tag size in pixels
 
   # Create AprilGrid
   img_w = tag_size * num_cols + tag_spacing * (num_cols - 1)
@@ -27,7 +34,7 @@ def make_aprilgrid(num_rows, num_cols, tag_img_dir, tag_family, tag_spacing,
   mosaic = Image.new(mode='RGB', size=(img_w, img_h))
 
   tag_id = 0
-  for i in range(num_rows):
+  for i in range(num_rows - 1, -1, -1):
     for j in range(num_cols):
       img_prefix = tag_family.replace('Circle', '')
       img_prefix = tag_family.replace('Custom', '')
@@ -50,5 +57,4 @@ def make_aprilgrid(num_rows, num_cols, tag_img_dir, tag_family, tag_spacing,
 
 
 if __name__ == "__main__":
-  make_aprilgrid(NUM_ROWS, NUM_COLS, TAG_IMG_DIR, TAG_FAMILY, TAG_SPACING,
-                 SAVE_PATH)
+  make_aprilgrid()
