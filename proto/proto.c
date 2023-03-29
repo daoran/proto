@@ -12147,8 +12147,8 @@ void gimbal_setup_joint(const timestamp_t ts,
 }
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
-                               fiducial_t *fiducial_exts,
-                               extrinsic_t *gimbal_exts,
+                               fiducial_t *fiducial_ext,
+                               extrinsic_t *gimbal_ext,
                                pose_t *pose,
                                extrinsic_t *link0,
                                extrinsic_t *link1,
@@ -12165,8 +12165,8 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                const real_t z[2],
                                const real_t var[2]) {
   assert(factor != NULL);
-  assert(fiducial_exts != NULL);
-  assert(gimbal_exts != NULL);
+  assert(fiducial_ext != NULL);
+  assert(gimbal_ext != NULL);
   assert(pose != NULL);
   assert(link0 != NULL && link1 != NULL);
   assert(joint0 != NULL && joint1 != NULL && joint2 != NULL);
@@ -12176,8 +12176,8 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
   assert(var != NULL);
 
   // Parameters
-  factor->fiducial_exts = fiducial_exts;
-  factor->gimbal_exts = gimbal_exts;
+  factor->fiducial_ext = fiducial_ext;
+  factor->gimbal_ext = gimbal_ext;
   factor->pose = pose;
   factor->link0 = link0;
   factor->link1 = link1;
@@ -12224,8 +12224,8 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
   factor->param_types[8] = EXTRINSIC_PARAM;
   factor->param_types[9] = CAMERA_PARAM;
 
-  factor->params[0] = factor->fiducial_exts->data;
-  factor->params[1] = factor->gimbal_exts->data;
+  factor->params[0] = factor->fiducial_ext->data;
+  factor->params[1] = factor->gimbal_ext->data;
   factor->params[2] = factor->pose->data;
   factor->params[3] = factor->link0->data;
   factor->params[4] = factor->link1->data;
@@ -12235,8 +12235,8 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
   factor->params[8] = factor->cam_exts->data;
   factor->params[9] = factor->cam->data;
 
-  factor->jacs[0] = factor->J_fiducial_exts;
-  factor->jacs[1] = factor->J_gimbal_exts;
+  factor->jacs[0] = factor->J_fiducial_ext;
+  factor->jacs[1] = factor->J_gimbal_ext;
   factor->jacs[2] = factor->J_pose;
   factor->jacs[3] = factor->J_link0;
   factor->jacs[4] = factor->J_link1;
@@ -16259,8 +16259,8 @@ void calib_gimbal_view_print(calib_gimbal_view_t *view) {
  */
 void calib_gimbal_setup(calib_gimbal_t *calib) {
   // Settings
-  calib->fix_fiducial_exts = 0;
-  calib->fix_gimbal_exts = 1;
+  calib->fix_fiducial_ext = 0;
+  calib->fix_gimbal_ext = 1;
   calib->fix_poses = 1;
   calib->fix_links = 0;
   calib->fix_joints = 0;
@@ -16337,8 +16337,8 @@ void calib_gimbal_free(calib_gimbal_t *calib) {
  */
 int calib_gimbal_equals(const calib_gimbal_t *calib0,
                         const calib_gimbal_t *calib1) {
-  CHECK(calib0->fix_fiducial_exts == calib1->fix_fiducial_exts);
-  CHECK(calib0->fix_gimbal_exts == calib1->fix_gimbal_exts);
+  CHECK(calib0->fix_fiducial_ext == calib1->fix_fiducial_ext);
+  CHECK(calib0->fix_gimbal_ext == calib1->fix_gimbal_ext);
   CHECK(calib0->fix_poses == calib1->fix_poses);
   CHECK(calib0->fix_links == calib1->fix_links);
   CHECK(calib0->fix_joints == calib1->fix_joints);
@@ -16360,8 +16360,8 @@ int calib_gimbal_equals(const calib_gimbal_t *calib0,
   CHECK(calib0->num_calib_factors == calib1->num_calib_factors);
   CHECK(calib0->num_joint_factors == calib1->num_joint_factors);
 
-  CHECK(vec_equals(calib0->fiducial_exts.data, calib1->fiducial_exts.data, 7));
-  CHECK(vec_equals(calib0->gimbal_exts.data, calib1->gimbal_exts.data, 7));
+  CHECK(vec_equals(calib0->fiducial_ext.data, calib1->fiducial_ext.data, 7));
+  CHECK(vec_equals(calib0->gimbal_ext.data, calib1->gimbal_ext.data, 7));
   for (int cam_idx = 0; cam_idx < calib0->num_cams; cam_idx++) {
     const real_t *p0 = calib0->cam_params[cam_idx].data;
     const real_t *p1 = calib1->cam_params[cam_idx].data;
@@ -16418,8 +16418,8 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
   calib_gimbal_t *dst = calib_gimbal_malloc();
 
   // Settings
-  dst->fix_fiducial_exts = src->fix_fiducial_exts;
-  dst->fix_gimbal_exts = src->fix_gimbal_exts;
+  dst->fix_fiducial_ext = src->fix_fiducial_ext;
+  dst->fix_gimbal_ext = src->fix_gimbal_ext;
   dst->fix_poses = src->fix_poses;
   dst->fix_cam_params = src->fix_cam_params;
   dst->fix_cam_exts = src->fix_cam_exts;
@@ -16450,9 +16450,9 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
     dst->timestamps[k] = src->timestamps[k];
   }
   // -- Fiducial
-  dst->fiducial_exts = src->fiducial_exts;
+  dst->fiducial_ext = src->fiducial_ext;
   // -- Gimbal extrinsic T_BM0
-  dst->gimbal_exts = src->gimbal_exts;
+  dst->gimbal_ext = src->gimbal_ext;
   // -- Cameras
   dst->cam_params = MALLOC(camera_params_t, src->num_cams);
   dst->cam_exts = MALLOC(extrinsic_t, src->num_cams);
@@ -16496,8 +16496,8 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
                                    src_view->object_points,
                                    src_view->keypoints,
                                    src_view->num_corners,
-                                   &dst->fiducial_exts,
-                                   &dst->gimbal_exts,
+                                   &dst->fiducial_ext,
+                                   &dst->gimbal_ext,
                                    &dst->poses[pose_idx],
                                    &dst->links[0],
                                    &dst->links[1],
@@ -16533,8 +16533,8 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
  */
 void calib_gimbal_print(const calib_gimbal_t *calib) {
   // Settings
-  printf("fix_fiducial_exts: %d\n", calib->fix_fiducial_exts);
-  printf("fix_gimbal_exts: %d\n", calib->fix_gimbal_exts);
+  printf("fix_fiducial_ext: %d\n", calib->fix_fiducial_ext);
+  printf("fix_gimbal_ext: %d\n", calib->fix_gimbal_ext);
   printf("fix_poses: %d\n", calib->fix_poses);
   printf("fix_links: %d\n", calib->fix_links);
   printf("fix_joints: %d\n", calib->fix_joints);
@@ -16557,8 +16557,8 @@ void calib_gimbal_print(const calib_gimbal_t *calib) {
     sprintf(link_str, "link%d_exts", link_idx);
     extrinsic_print(link_str, &calib->links[link_idx]);
   }
-  extrinsic_print("gimbal_exts", &calib->gimbal_exts);
-  fiducial_print("fiducial_exts", &calib->fiducial_exts);
+  extrinsic_print("gimbal_ext", &calib->gimbal_ext);
+  fiducial_print("fiducial_ext", &calib->fiducial_ext);
 }
 
 /**
@@ -16568,7 +16568,7 @@ void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
                                const real_t fiducial_pose[7]) {
   assert(calib != NULL);
   assert(fiducial_pose);
-  fiducial_setup(&calib->fiducial_exts, fiducial_pose);
+  fiducial_setup(&calib->fiducial_ext, fiducial_pose);
   calib->fiducial_ext_ok = 1;
 }
 
@@ -16595,7 +16595,7 @@ void calib_gimbal_add_gimbal_extrinsic(calib_gimbal_t *calib,
                                        const real_t gimbal_ext[7]) {
   assert(calib != NULL);
   assert(gimbal_ext);
-  extrinsic_setup(&calib->gimbal_exts, gimbal_ext);
+  extrinsic_setup(&calib->gimbal_ext, gimbal_ext);
   calib->gimbal_ext_ok = 1;
 }
 
@@ -16726,8 +16726,8 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                                object_points,
                                keypoints,
                                num_corners,
-                               &calib->fiducial_exts,
-                               &calib->gimbal_exts,
+                               &calib->fiducial_ext,
+                               &calib->gimbal_ext,
                                &calib->poses[pose_idx],
                                &calib->links[0],
                                &calib->links[1],
@@ -16923,7 +16923,7 @@ static void calib_gimbal_load_config(calib_gimbal_t *calib,
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
     char key[30] = {0};
     real_t pose[7] = {0};
-    sprintf(key, "cam%d_exts", cam_idx);
+    sprintf(key, "cam%d_ext", cam_idx);
     parse_key_value(conf, key, "pose", pose);
     extrinsic_setup(&calib->cam_exts[cam_idx], pose);
   }
@@ -16934,7 +16934,7 @@ static void calib_gimbal_load_config(calib_gimbal_t *calib,
   for (int link_idx = 0; link_idx < calib->num_links; link_idx++) {
     char key[30] = {0};
     real_t pose[7] = {0};
-    sprintf(key, "link%d_exts", link_idx);
+    sprintf(key, "link%d_ext", link_idx);
     parse_key_value(conf, key, "pose", pose);
     extrinsic_setup(&calib->links[link_idx], pose);
     calib->links_ok = 1;
@@ -16943,16 +16943,16 @@ static void calib_gimbal_load_config(calib_gimbal_t *calib,
   // Parse gimbal extrinsic
   {
     real_t pose[7] = {0};
-    parse_key_value(conf, "gimbal_exts", "pose", pose);
-    extrinsic_setup(&calib->gimbal_exts, pose);
+    parse_key_value(conf, "gimbal_ext", "pose", pose);
+    extrinsic_setup(&calib->gimbal_ext, pose);
     calib->gimbal_ext_ok = 1;
   }
 
   // Parse fiducial
   {
     real_t pose[7] = {0};
-    parse_key_value(conf, "fiducial_exts", "pose", pose);
-    fiducial_setup(&calib->fiducial_exts, pose);
+    parse_key_value(conf, "fiducial_ext", "pose", pose);
+    fiducial_setup(&calib->fiducial_ext, pose);
     calib->fiducial_ext_ok = 1;
   }
 
@@ -17124,8 +17124,8 @@ static void calib_gimbal_load_views(calib_gimbal_t *calib,
                                       object_points,
                                       keypoints,
                                       num_corners,
-                                      &calib->fiducial_exts,
-                                      &calib->gimbal_exts,
+                                      &calib->fiducial_ext,
+                                      &calib->gimbal_ext,
                                       &calib->poses[pose_idx],
                                       &calib->links[0],
                                       &calib->links[1],
@@ -17280,9 +17280,9 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
           sim_gimbal3_view(calib_target,
                            ts,
                            nbv_idx,
-                           calib_copy->fiducial_exts.data,
+                           calib_copy->fiducial_ext.data,
                            calib_copy->poses[pose_idx].data,
-                           calib_copy->gimbal_exts.data,
+                           calib_copy->gimbal_ext.data,
                            calib_copy->links[0].data,
                            calib_copy->links[1].data,
                            joints[0],
@@ -17378,14 +17378,14 @@ param_order_t *calib_gimbal_param_order(const void *data,
   }
   // -- Add fiducial extrinsic
   {
-    void *data = &calib->fiducial_exts.data;
-    const int fix = calib->fix_fiducial_exts;
+    void *data = &calib->fiducial_ext.data;
+    const int fix = calib->fix_fiducial_ext;
     param_order_add(&hash, FIDUCIAL_PARAM, fix, data, &col_idx);
   }
   // -- Add gimbal extrinsic
   {
-    void *data = &calib->gimbal_exts.data;
-    const int fix = calib->fix_gimbal_exts;
+    void *data = &calib->gimbal_ext.data;
+    const int fix = calib->fix_gimbal_ext;
     param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
   }
   // -- Add links

@@ -2227,8 +2227,8 @@ int calib_imucam_factor_eval(void *factor_ptr);
 /////////////////////////
 
 typedef struct calib_gimbal_factor_t {
-  fiducial_t *fiducial_exts;
-  extrinsic_t *gimbal_exts;
+  fiducial_t *fiducial_ext;
+  extrinsic_t *gimbal_ext;
   pose_t *pose;
   extrinsic_t *link0;
   extrinsic_t *link1;
@@ -2255,8 +2255,8 @@ typedef struct calib_gimbal_factor_t {
   real_t *params[10];
   real_t r[2];
   real_t *jacs[10];
-  real_t J_fiducial_exts[2 * 6];
-  real_t J_gimbal_exts[2 * 6];
+  real_t J_fiducial_ext[2 * 6];
+  real_t J_gimbal_ext[2 * 6];
   real_t J_pose[2 * 6];
   real_t J_link0[2 * 6];
   real_t J_link1[2 * 6];
@@ -2278,8 +2278,8 @@ void gimbal_setup_joint(const timestamp_t ts,
                         joint_t *joint);
 
 void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
-                               fiducial_t *fiducial_exts,
-                               extrinsic_t *gimbal_exts,
+                               fiducial_t *fiducial_ext,
+                               extrinsic_t *gimbal_ext,
                                pose_t *pose,
                                extrinsic_t *link0,
                                extrinsic_t *link1,
@@ -3017,8 +3017,8 @@ typedef struct calib_gimbal_view_t {
 
 typedef struct calib_gimbal_t {
   // Settings
-  int fix_fiducial_exts;
-  int fix_gimbal_exts;
+  int fix_fiducial_ext;
+  int fix_gimbal_ext;
   int fix_poses;
   int fix_cam_params;
   int fix_cam_exts;
@@ -3049,8 +3049,8 @@ typedef struct calib_gimbal_t {
 
   // Variables
   timestamp_t *timestamps;
-  fiducial_t fiducial_exts;
-  extrinsic_t gimbal_exts;
+  fiducial_t fiducial_ext;
+  extrinsic_t gimbal_ext;
   extrinsic_t *cam_exts;
   camera_params_t *cam_params;
   extrinsic_t *links;
