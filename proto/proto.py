@@ -8804,12 +8804,12 @@ class SimGimbal:
     rx, ry, rz = tf_trans(self.T_BM0)
     qw, qx, qy, qz = tf_quat(self.T_BM0)
     tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-    calib_file.write(f"gimbal_exts: [{tf_str}]\n")
+    calib_file.write(f"gimbal_ext: [{tf_str}]\n")
     # -- Save fiducial extrinsics
     rx, ry, rz = tf_trans(self.T_WF)
     qw, qx, qy, qz = tf_quat(self.T_WF)
     tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-    calib_file.write(f"fiducial_exts: [{tf_str}]\n")
+    calib_file.write(f"fiducial_ext: [{tf_str}]\n")
     # -- Clean up
     calib_file.close()
 
@@ -9038,7 +9038,7 @@ class SimGimbal:
     # Solve
     print(f"fix_fiducial: {fix_fiducial}")
     print(f"fix_body_pose: {fix_body_pose}")
-    print(f"fix_gimbal_exts: {fix_gimbal_exts}")
+    print(f"fix_gimbal_ext: {fix_gimbal_exts}")
     print(f"fix_gimbal_links: {fix_gimbal_links}")
     print(f"fix_gimbal_joints: {fix_gimbal_joints}")
     print(f"fix_cam_params: {fix_cam_params}")

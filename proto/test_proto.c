@@ -5610,6 +5610,22 @@ int test_calib_imucam_batch() {
   return 0;
 }
 
+int test_calib_gimbal_copy() {
+  const char *data_path = TEST_SIM_GIMBAL;
+  calib_gimbal_t *src = calib_gimbal_load(data_path);
+  calib_gimbal_t *dst = calib_gimbal_copy(src);
+
+  MU_ASSERT(src != NULL);
+  MU_ASSERT(dst != NULL);
+  MU_ASSERT(calib_gimbal_equals(src, dst));
+
+  calib_gimbal_print(src);
+  calib_gimbal_free(src);
+  calib_gimbal_free(dst);
+
+  return 0;
+}
+
 int test_calib_gimbal_add_fiducial() {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
@@ -5896,11 +5912,11 @@ int test_calib_gimbal_solve() {
     for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
       pose_vector_update(calib_est->links[link_idx].data, dx);
     }
-    for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
-      for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
-        calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.1, 0.1);
-      }
-    }
+    // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+    //   for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
+    //     calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.1, 0.1);
+    //   }
+    // }
     // printf("\n");
 
     //     printf("Initial:\n");
@@ -6089,22 +6105,6 @@ int test_calib_gimbal_ceres_solve() {
   return 0;
 }
 #endif // USE_CERES
-
-int test_calib_gimbal_copy() {
-  const char *data_path = TEST_SIM_GIMBAL;
-  calib_gimbal_t *src = calib_gimbal_load(data_path);
-  calib_gimbal_t *dst = calib_gimbal_copy(src);
-
-  MU_ASSERT(src != NULL);
-  MU_ASSERT(dst != NULL);
-  MU_ASSERT(calib_gimbal_equals(src, dst));
-
-  calib_gimbal_print(src);
-  calib_gimbal_free(src);
-  calib_gimbal_free(dst);
-
-  return 0;
-}
 
 /******************************************************************************
  * TEST DATASET
@@ -6593,6 +6593,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_mono_incremental);
   MU_ADD_TEST(test_calib_camera_stereo);
   MU_ADD_TEST(test_calib_imucam_batch);
+  MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
@@ -6604,7 +6605,6 @@ void test_suite() {
 #ifdef USE_CERES
   MU_ADD_TEST(test_calib_gimbal_ceres_solve);
 #endif // USE_CERES
-  // MU_ADD_TEST(test_calib_gimbal_copy);
 
   // DATASET
   // MU_ADD_TEST(test_assoc_pose_data);

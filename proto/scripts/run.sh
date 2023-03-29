@@ -199,8 +199,6 @@ dev_euroc() {
 # dev_aprilgrid
 # dev_euroc
 
-python3 scripts/make_aprilgrid.py
-
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
 # exit
@@ -414,7 +412,7 @@ python3 scripts/make_aprilgrid.py
 # run_test test_calib_gimbal_add_camera
 # run_test test_calib_gimbal_add_remove_view
 # run_test test_calib_gimbal_load
-# run_test test_calib_gimbal_solve
+run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-DATASET
 # run_test test_assoc_pose_data
