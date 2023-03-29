@@ -12155,7 +12155,7 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                joint_t *joint0,
                                joint_t *joint1,
                                joint_t *joint2,
-                               extrinsic_t *cam_exts,
+                               extrinsic_t *cam_ext,
                                camera_params_t *cam,
                                const timestamp_t ts,
                                const int cam_idx,
@@ -12170,7 +12170,7 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
   assert(pose != NULL);
   assert(link0 != NULL && link1 != NULL);
   assert(joint0 != NULL && joint1 != NULL && joint2 != NULL);
-  assert(cam_exts != NULL);
+  assert(cam_ext != NULL);
   assert(cam != NULL);
   assert(z != NULL);
   assert(var != NULL);
@@ -12184,7 +12184,7 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
   factor->joint0 = joint0;
   factor->joint1 = joint1;
   factor->joint2 = joint2;
-  factor->cam_exts = cam_exts;
+  factor->cam_ext = cam_ext;
   factor->cam = cam;
   factor->num_params = 10;
 
@@ -12232,7 +12232,7 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
   factor->params[5] = factor->joint0->data;
   factor->params[6] = factor->joint1->data;
   factor->params[7] = factor->joint2->data;
-  factor->params[8] = factor->cam_exts->data;
+  factor->params[8] = factor->cam_ext->data;
   factor->params[9] = factor->cam->data;
 
   factor->jacs[0] = factor->J_fiducial_ext;
@@ -12243,7 +12243,7 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
   factor->jacs[5] = factor->J_joint0;
   factor->jacs[6] = factor->J_joint1;
   factor->jacs[7] = factor->J_joint2;
-  factor->jacs[8] = factor->J_cam_exts;
+  factor->jacs[8] = factor->J_cam_ext;
   factor->jacs[9] = factor->J_cam_params;
 }
 
@@ -16512,7 +16512,7 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
   }
 
   // -- Joint Factors
-  const real_t joint_var = 0.1;
+  const real_t joint_var = 0.05;
   dst->joint_factors = MALLOC(joint_factor_t *, src->num_views);
   for (size_t view_idx = 0; view_idx < src->num_views; view_idx++) {
     dst->joint_factors[view_idx] = MALLOC(joint_factor_t, src->num_joints);

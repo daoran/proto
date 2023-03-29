@@ -185,10 +185,6 @@ dev_aprilgrid() {
   exit
 }
 
-dev_p3p() {
-  cd ~/projects/proto/proto && make test_p3p && ./build/test_p3p
-  exit
-}
 
 dev_euroc() {
   touch proto.c;
@@ -199,27 +195,15 @@ dev_euroc() {
 }
 
 # dev_sbgc
-# dev_tiscam
 # dev_arducam
 # dev_aprilgrid
-# dev_p3p
 # dev_euroc
+
+python3 scripts/make_aprilgrid.py
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
 # exit
-
-# CAM0_SERIAL=19220362
-# CAM1_SERIAL=19220363
-
-# format="video/x-bayer, format=gbrg, width=640, height=480,framerate=30/1"
-# displayformat="video/x-raw, format=GRAY8, width=640, height=480,framerate=30/1"
-# gst-launch-1.0 tcambin ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
-
-# format="video/x-bayer, format=gbrg, width=640, height=480,framerate=30/1"
-# displayformat="video/x-raw, format=GRAY8, width=640, height=480,framerate=30/1"
-# gst-launch-1.0 tcambin tcam-properties="tcam,ExposureAuto=Off,ExposureTime=30000,GainAuto=Off,TriggerMode=On" \
-#   ! $format ! capssetter join=false replace=true caps="$displayformat" ! videoconvert ! videoscale !  ximagesink
 
 # PROTO
 # run_all_tests
@@ -422,7 +406,7 @@ dev_euroc() {
 # run_test test_calib_camera_mono_batch
 # run_test test_calib_camera_mono_incremental
 # run_test test_calib_camera_stereo
-run_test test_calib_imucam_batch
+# run_test test_calib_imucam_batch
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
 # run_test test_calib_gimbal_add_gimbal_extrinsic

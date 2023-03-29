@@ -5889,13 +5889,13 @@ int test_calib_gimbal_solve() {
     // printf("\n");
 
     // Perturb
-    // real_t dx[6] = {0.01, 0.01, 0.01, 0.0, 0.0, 0.0};
+    real_t dx[6] = {0.01, 0.01, 0.01, 0.0, 0.0, 0.0};
     // pose_vector_update(calib_est->fiducial_ext.data, dx);
     // pose_vector_update(calib_est->cam_exts[0].data, dx);
     // pose_vector_update(calib_est->cam_exts[1].data, dx);
-    // for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
-    //   pose_vector_update(calib_est->links[link_idx].data, dx);
-    // }
+    for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
+      pose_vector_update(calib_est->links[link_idx].data, dx);
+    }
     for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
       for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
         calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.1, 0.1);

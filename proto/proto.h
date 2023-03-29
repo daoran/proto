@@ -2235,7 +2235,7 @@ typedef struct calib_gimbal_factor_t {
   joint_t *joint0;
   joint_t *joint1;
   joint_t *joint2;
-  extrinsic_t *cam_exts;
+  extrinsic_t *cam_ext;
   camera_params_t *cam;
 
   timestamp_t ts;
@@ -2263,7 +2263,7 @@ typedef struct calib_gimbal_factor_t {
   real_t J_joint0[2 * 1];
   real_t J_joint1[2 * 1];
   real_t J_joint2[2 * 1];
-  real_t J_cam_exts[2 * 6];
+  real_t J_cam_ext[2 * 6];
   real_t J_cam_params[2 * 8];
 } calib_gimbal_factor_t;
 
@@ -2286,7 +2286,7 @@ void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
                                joint_t *joint0,
                                joint_t *joint1,
                                joint_t *joint2,
-                               extrinsic_t *cam_exts,
+                               extrinsic_t *cam_ext,
                                camera_params_t *cam,
                                const timestamp_t ts,
                                const int cam_idx,
