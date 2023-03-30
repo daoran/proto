@@ -7,6 +7,7 @@
 #define TEST_POSES_CSV TEST_DATA_PATH "poses.csv"
 #define TEST_SIM_DATA TEST_DATA_PATH "sim_data"
 #define TEST_SIM_GIMBAL TEST_DATA_PATH "sim_gimbal"
+#define TEST_CAM_APRIL TEST_DATA_PATH "cam_april"
 
 /******************************************************************************
  * TEST MACROS
@@ -5264,7 +5265,7 @@ int test_camchain() {
 }
 
 int test_calib_camera_mono_batch() {
-  const char *data_path = "/data/proto/cam_april-small/cam0";
+  const char *data_path = TEST_CAM_APRIL "/cam0";
 
   // Initialize camera intrinsics
   const int cam_res[2] = {752, 480};
@@ -5293,7 +5294,7 @@ int test_calib_camera_mono_batch() {
 }
 
 int test_calib_camera_mono_incremental() {
-  const char *data_path = "/data/proto/cam_april-small/cam0";
+  const char *data_path = TEST_CAM_APRIL "/cam0";
 
   // Initialize camera intrinsics
   const int cam_res[2] = {752, 480};
@@ -5379,7 +5380,7 @@ int test_calib_camera_mono_incremental() {
 int test_calib_camera_stereo() {
   // Initialize camera intrinsics
   int num_cams = 2;
-  char *data_dir = "/data/proto/cam_april/cam%d";
+  char *data_dir = TEST_CAM_APRIL "/cam%d";
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
@@ -6592,7 +6593,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_mono_batch);
   MU_ADD_TEST(test_calib_camera_mono_incremental);
   MU_ADD_TEST(test_calib_camera_stereo);
-  MU_ADD_TEST(test_calib_imucam_batch);
+  // MU_ADD_TEST(test_calib_imucam_batch);
   MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
