@@ -9,18 +9,6 @@ import numpy as np
 from proto import *
 
 
-calib_data = "./test_data/sim_gimbal"
-
-cam0_dir = os.path.join(calib_data, "cam0")
-cam1_dir = os.path.join(calib_data, "cam1")
-config_path = os.path.join(calib_data, "calib.config")
-poses_path = os.path.join(calib_data, "poses.sim")
-joints_path = os.path.join(calib_data, "joint_angles.sim")
-
-config_file = open(config_path, "r")
-config = yaml.load(config_file, Loader=SafeLoader)
-
-
 def parse_int(line, key):
     """ Parse Integer """
     k, v = line.split(":")
@@ -28,7 +16,8 @@ def parse_int(line, key):
         raise RuntimeError(f"Key [{k} != {key}]")
     return int(v)
 
-def parse_vector(line, key):
+
+def parse_pose(line, key):
     """ Parse Vector """
     k, v = line.split(":")
     if k != key:
@@ -36,10 +25,12 @@ def parse_vector(line, key):
 
     line = line.strip().split(":")[1]
     line = line.replace("[", "").replace("]", "").split(",")
-    return np.array(line, dtype=float)
+    rx, ry, rz, qw, qx, qy, qz = np.array(line, dtype=float)
+    return np.array([rx, ry, rz, qx, qy, qz, qw])
 
 
 def parse_camera(config_file, cam_idx):
+    """ Parse camera config """
     config = open(config_file, "r")
     lines = config.readlines()
 
@@ -101,7 +92,7 @@ def load_config_file(config_file):
         key = line.split(":")[0]
         if key in target_keys:
             target_key = target_keys[target_keys.index(key)]
-            config_data[target_key] = parse_vector(line, target_key)
+            config_data[target_key] = parse_pose(line, target_key)
 
     return config_data
 
@@ -140,8 +131,8 @@ def load_poses_file(poses_file):
     assert(len(lines[3:]) == num_poses)
     pose_data = []
     for line in lines[3:]:
-        pose = np.array(line.split(","), dtype=float)
-        pose_data.append(pose)
+        rx, ry, rz, qw, qx, qy, qz = np.array(line.split(","), dtype=float)
+        pose_data.append(np.array([rx, ry, rz, qx, qy, qz, qw]))
 
     return pose_data
 
@@ -155,6 +146,9 @@ def load_joints_file(joints_file):
 
     assert(len(lines[4:]) == num_views)
     joints_data = {}
+    joints_data["num_views"] = num_views
+    joints_data["num_joints"] = num_joints
+
     for line in lines[4:]:
         line = line.split(",")
         ts = int(line[0])
@@ -167,9 +161,66 @@ def load_joints_file(joints_file):
     return joints_data
 
 
-# config_data = load_config_file(config_path)
-# poses_data = load_poses_file(poses_path)
-# joints_data = load_joints_file(joints_path)
-# cam_files = glob.glob(os.path.join(cam0_dir, "*.sim"))
-# cam_files = sorted(cam_files, key= lambda x : int(Path(x).stem))
-# view_data = load_view_file(cam_files[0])
+def plot_gimbal(config_data, poses_data, joints_data):
+    """ Plot Gimbal """
+    # links
+    links = []
+    links.append(config_data["link0_ext"])
+    links.append(config_data["link1_ext"])
+
+    # Joints
+    joint_angles = []
+    joint_angles.append(0)
+    joint_angles.append(0)
+    joint_angles.append(0)
+
+    # Gimbal
+    gimbal = GimbalKinematics(links, joint_angles)
+    T_M0L0 = gimbal.forward_kinematics(joint_idx=0)
+    T_M0L1 = gimbal.forward_kinematics(joint_idx=1)
+    T_M0L2 = gimbal.forward_kinematics(joint_idx=2)
+
+    # Transforms
+    T_WB = pose2tf(poses_data[0])
+    T_BM0 = pose2tf(config_data["gimbal_ext"])
+    T_WL0 = T_WB @ T_BM0 @ T_M0L0
+    T_WL1 = T_WB @ T_BM0 @ T_M0L1
+    T_WL2 = T_WB @ T_BM0 @ T_M0L2
+    T_WC0 = T_WL2 @ pose2tf(config_data["cam0_ext"])
+    T_WC1 = T_WL2 @ pose2tf(config_data["cam1_ext"])
+
+    # Visualize
+    plt.figure()
+    ax = plt.axes(projection='3d')
+
+    # Plot transforms
+    plot_tf(ax, T_WL0, name="Link0", size=0.05)
+    plot_tf(ax, T_WL1, name="Link1", size=0.05)
+    plot_tf(ax, T_WL2, name="Link2", size=0.05)
+    plot_tf(ax, T_WC0, name="cam0", size=0.05)
+    plot_tf(ax, T_WC1, name="cam1", size=0.05)
+
+    # Plot settings
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
+
+
+if __name__ == "__main__":
+    calib_data = "./test_data/sim_gimbal"
+    config_path = os.path.join(calib_data, "calib.config")
+    poses_path = os.path.join(calib_data, "poses.sim")
+    joints_path = os.path.join(calib_data, "joint_angles.sim")
+
+    config_data = load_config_file(config_path)
+    poses_data = load_poses_file(poses_path)
+    joints_data = load_joints_file(joints_path)
+
+    cam_dir = os.path.join(calib_data, "cam0")
+    cam_files = glob.glob(os.path.join(cam_dir, "*.sim"))
+    cam_files = sorted(cam_files, key= lambda x : int(Path(x).stem))
+    view_data = load_view_file(cam_files[0])
+
+    plot_gimbal(config_data, poses_data, joints_data)
