@@ -1491,6 +1491,7 @@ typedef struct pos_t {
 } pos_t;
 
 void pos_setup(pos_t *pos, const real_t *data);
+void pos_copy(const pos_t *src, pos_t *dst);
 void pos_print(const char *prefix, const pos_t *pos);
 
 //////////////
@@ -1518,6 +1519,7 @@ typedef struct pose_t {
 } pose_t;
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
+void pose_copy(const pose_t *src, pose_t *dst);
 void pose_print(const char *prefix, const pose_t *pose);
 
 ///////////////
@@ -1531,6 +1533,7 @@ typedef struct extrinsic_t {
 } extrinsic_t;
 
 void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
+void extrinsic_copy(const extrinsic_t *src, extrinsic_t *dst);
 void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 
 //////////////
@@ -1544,6 +1547,7 @@ typedef struct fiducial_t {
 } fiducial_t;
 
 void fiducial_setup(fiducial_t *fiducial, const real_t *param);
+void fiducial_copy(const fiducial_t *src, fiducial_t *dst);
 void fiducial_print(const char *prefix, const fiducial_t *exts);
 
 ///////////////////////
@@ -1571,6 +1575,7 @@ void camera_params_setup(camera_params_t *camera,
                          const char *proj_model,
                          const char *dist_model,
                          const real_t *data);
+void camera_params_copy(const camera_params_t *src, camera_params_t *dst);
 void camera_params_print(const camera_params_t *camera);
 void camera_project(const camera_params_t *camera,
                     const real_t p_C[3],
@@ -1601,6 +1606,7 @@ typedef struct velocity_t {
 } velocity_t;
 
 void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
+void velocity_copy(const velocity_t *src, velocity_t *dst);
 
 ////////////////
 // IMU-BIASES //
@@ -1618,6 +1624,7 @@ void imu_biases_setup(imu_biases_t *sb,
                       const timestamp_t ts,
                       const real_t ba[3],
                       const real_t bg[3]);
+void imu_biases_copy(const imu_biases_t *src, imu_biases_t *dst);
 void imu_biases_get_accel_bias(const imu_biases_t *biases, real_t ba[3]);
 void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 
@@ -1702,6 +1709,7 @@ typedef struct time_delay_t {
 } time_delay_t;
 
 void time_delay_setup(time_delay_t *time_delay, const real_t param);
+void time_delay_copy(const time_delay_t *src, time_delay_t *dst);
 void time_delay_print(const char *prefix, const time_delay_t *exts);
 
 ///////////
@@ -3049,6 +3057,7 @@ void calib_gimbal_add_view(calib_gimbal_t *calib,
                            const int num_joints);
 int calib_gimbal_remove_view(calib_gimbal_t *calib, const int view_idx);
 calib_gimbal_t *calib_gimbal_load(const char *data_path);
+void calib_gimbal_save(const calib_gimbal_t *calib, const char *data_path);
 int calib_gimbal_validate(calib_gimbal_t *calib);
 void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]);
 param_order_t *calib_gimbal_param_order(const void *data,

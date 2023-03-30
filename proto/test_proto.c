@@ -5809,6 +5809,15 @@ int test_calib_gimbal_load() {
   return 0;
 }
 
+int test_calib_gimbal_save() {
+  const char *data_path = TEST_SIM_GIMBAL;
+  calib_gimbal_t *calib = calib_gimbal_load(data_path);
+  calib_gimbal_save(calib, "/tmp");
+  calib_gimbal_free(calib);
+
+  return 0;
+}
+
 static void compare_gimbal_calib(const calib_gimbal_t *gnd,
                                  const calib_gimbal_t *est) {
   assert(gnd->num_views == est->num_views);
@@ -6602,6 +6611,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_add_camera);
   MU_ADD_TEST(test_calib_gimbal_add_remove_view);
   MU_ADD_TEST(test_calib_gimbal_load);
+  MU_ADD_TEST(test_calib_gimbal_save);
   MU_ADD_TEST(test_calib_gimbal_solve);
 #ifdef USE_CERES
   MU_ADD_TEST(test_calib_gimbal_ceres_solve);

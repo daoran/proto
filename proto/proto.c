@@ -8544,6 +8544,9 @@ timeline_t *timeline_load_data(const char *data_dir,
 // POSITION //
 //////////////
 
+/**
+ * Setup position.
+ */
 void pos_setup(pos_t *pos, const real_t *data) {
   assert(pos != NULL);
   assert(data != NULL);
@@ -8554,6 +8557,23 @@ void pos_setup(pos_t *pos, const real_t *data) {
   pos->data[2] = data[2];
 }
 
+/**
+ * Copy position.
+ */
+void pos_copy(const pos_t *src, pos_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+}
+
+/**
+ * Print position.
+ */
 void pos_print(const char *prefix, const pos_t *pos) {
   assert(prefix != NULL);
   assert(pos != NULL);
@@ -8570,6 +8590,9 @@ void pos_print(const char *prefix, const pos_t *pos) {
 // ROTATION //
 //////////////
 
+/**
+ * Setup rotation.
+ */
 void rot_setup(rot_t *rot, const real_t *data) {
   assert(rot != NULL);
   assert(data != NULL);
@@ -8581,6 +8604,24 @@ void rot_setup(rot_t *rot, const real_t *data) {
   rot->data[3] = data[3];
 }
 
+/**
+ * Copy rotation.
+ */
+void rot_copy(const rot_t *src, rot_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+  dst->data[3] = src->data[3];
+}
+
+/**
+ * Print rotation.
+ */
 void rot_print(const char *prefix, const rot_t *rot) {
   assert(prefix != NULL);
   assert(rot != NULL);
@@ -8598,6 +8639,9 @@ void rot_print(const char *prefix, const rot_t *rot) {
 // POSE //
 //////////
 
+/**
+ * Setup pose.
+ */
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   assert(pose != NULL);
   assert(data != NULL);
@@ -8619,6 +8663,25 @@ void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *data) {
   pose->data[4] = data[4]; // qx
   pose->data[5] = data[5]; // qy
   pose->data[6] = data[6]; // qz
+}
+
+/**
+ * Copy pose.
+ */
+void pose_copy(const pose_t *src, pose_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->ts = src->ts;
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+  dst->data[3] = src->data[3];
+  dst->data[4] = src->data[4];
+  dst->data[5] = src->data[5];
+  dst->data[6] = src->data[6];
 }
 
 /**
@@ -8670,6 +8733,24 @@ void extrinsic_setup(extrinsic_t *exts, const real_t *data) {
 }
 
 /**
+ * Copy extrinsic.
+ */
+void extrinsic_copy(const extrinsic_t *src, extrinsic_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+  dst->data[3] = src->data[3];
+  dst->data[4] = src->data[4];
+  dst->data[5] = src->data[5];
+  dst->data[6] = src->data[6];
+}
+
+/**
  * Print extrinsic.
  */
 void extrinsic_print(const char *prefix, const extrinsic_t *exts) {
@@ -8712,6 +8793,24 @@ void fiducial_setup(fiducial_t *exts, const real_t *data) {
   exts->data[4] = data[4]; // qx
   exts->data[5] = data[5]; // qy
   exts->data[6] = data[6]; // qz
+}
+
+/**
+ * Copy fiducial.
+ */
+void fiducial_copy(const fiducial_t *src, fiducial_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+  dst->data[3] = src->data[3];
+  dst->data[4] = src->data[4];
+  dst->data[5] = src->data[5];
+  dst->data[6] = src->data[6];
 }
 
 /**
@@ -8781,6 +8880,32 @@ void camera_params_setup(camera_params_t *camera,
   } else {
     FATAL("Unknown [%s-%s] camera model!\n", proj_model, dist_model);
   }
+}
+
+/**
+ * Copy camera parameters.
+ */
+void camera_params_copy(const camera_params_t *src, camera_params_t *dst) {
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+
+  dst->cam_idx = src->cam_idx;
+  dst->resolution[0] = src->resolution[0];
+  dst->resolution[1] = src->resolution[1];
+  strcpy(dst->proj_model, src->proj_model);
+  strcpy(dst->dist_model, src->dist_model);
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+  dst->data[3] = src->data[3];
+  dst->data[4] = src->data[4];
+  dst->data[5] = src->data[5];
+  dst->data[6] = src->data[6];
+  dst->data[7] = src->data[7];
+
+  dst->proj_func = src->proj_func;
+  dst->back_proj_func = src->back_proj_func;
+  dst->undistort_func = src->undistort_func;
 }
 
 /**
@@ -8899,7 +9024,20 @@ void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]) {
   vel->data[2] = v[2];
 }
 
-void velocity_print(const velocity_t *vel);
+/**
+ * Copy velocity.
+ */
+void velocity_copy(const velocity_t *src, velocity_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->ts = src->ts;
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+}
 
 ////////////////
 // IMU-BIASES //
@@ -8932,6 +9070,24 @@ void imu_biases_setup(imu_biases_t *biases,
   biases->data[3] = bg[0];
   biases->data[4] = bg[1];
   biases->data[5] = bg[2];
+}
+
+/**
+ * Copy imu_biases.
+ */
+void imu_biases_copy(const imu_biases_t *src, imu_biases_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->ts = src->ts;
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+  dst->data[3] = src->data[3];
+  dst->data[4] = src->data[4];
+  dst->data[5] = src->data[5];
 }
 
 /**
@@ -9257,6 +9413,18 @@ void time_delay_setup(time_delay_t *time_delay, const real_t td) {
   time_delay->marginalize = 0;
   time_delay->fix = 0;
   time_delay->data[0] = td;
+}
+
+/**
+ * Copy time_delay.
+ */
+void time_delay_copy(const time_delay_t *src, time_delay_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->data[0] = src->data[0];
 }
 
 /**
@@ -17014,7 +17182,7 @@ static void calib_gimbal_load_views(calib_gimbal_t *calib,
 }
 
 /**
- * Load gimbal calibration data
+ * Load gimbal calibration data.
  */
 calib_gimbal_t *calib_gimbal_load(const char *data_path) {
   calib_gimbal_t *calib = MALLOC(calib_gimbal_t, 1);
@@ -17024,6 +17192,117 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
   calib_gimbal_load_poses(calib, data_path);
   calib_gimbal_load_views(calib, data_path);
   return calib;
+}
+
+/**
+ * Save gimbal calibration data.
+ */
+void calib_gimbal_save(const calib_gimbal_t *calib, const char *data_path) {
+  // Setup
+  char *save_path = path_join(data_path, "/estimates.yaml");
+  FILE *yaml = fopen(save_path, "w");
+  if (yaml == NULL) {
+    FATAL("Failed to open [%s]!\n", save_path);
+  }
+
+  // -- Save counters
+  fprintf(yaml, "num_cams: %d\n", calib->num_cams);
+  fprintf(yaml, "num_views: %d\n", calib->num_views);
+  fprintf(yaml, "num_poses: %d\n", calib->num_poses);
+  fprintf(yaml, "num_links: %d\n", calib->num_links);
+  fprintf(yaml, "num_joints: %d\n", calib->num_joints);
+  fprintf(yaml, "\n");
+
+  // -- Save timestamps
+  // fprintf(yaml, "timestamps: [\n");
+  // for (int k = 0; k < calib->num_views; k++) {
+  //   fprintf(yaml, "  %s", calib->timestamps[k]);
+  //   fprintf(yaml, "%s", ((k + 1) < calib->num_views) ? ",\n" : "\n");
+  // }
+  // fprintf(yaml, "]\n");
+
+  // -- Save fiducial
+  {
+    char fiducial_str[1024] = {0};
+    vec2str(calib->fiducial_ext.data, 7, fiducial_str);
+    fprintf(yaml, "fiducial_ext: %s\n", fiducial_str);
+  }
+
+  // -- Save gimbal
+  {
+    char gimbal_str[1024] = {0};
+    vec2str(calib->gimbal_ext.data, 7, gimbal_str);
+    fprintf(yaml, "gimbal_ext: %s\n", gimbal_str);
+  }
+
+  // -- Save cameras
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    char params_str[1024] = {0};
+    vec2str(calib->cam_params[cam_idx].data, 8, params_str);
+    fprintf(yaml, "cam%d_params: %s\n", cam_idx, params_str);
+  }
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    char ext_str[1024] = {0};
+    vec2str(calib->cam_exts[cam_idx].data, 7, ext_str);
+    fprintf(yaml, "cam%d_ext: %s\n", cam_idx, ext_str);
+  }
+
+  // -- Save links
+  for (int link_idx = 0; link_idx < calib->num_links; link_idx++) {
+    char link_str[1024] = {0};
+    vec2str(calib->links[link_idx].data, 7, link_str);
+    fprintf(yaml, "link%d_ext: %s\n", link_idx, link_str);
+  }
+  fprintf(yaml, "\n");
+
+  // -- Save joints
+  {
+    fprintf(yaml, "#ts,");
+    for (int joint_idx = 0; joint_idx < calib->num_joints; joint_idx++) {
+      fprintf(yaml, "joint%d", joint_idx);
+      fprintf(yaml, "%s", ((joint_idx + 1) < calib->num_joints) ? "," : "");
+    }
+    fprintf(yaml, "\n");
+
+    fprintf(yaml, "joints: [\n");
+    for (int k = 0; k < calib->num_views; k++) {
+      fprintf(yaml, "  %ld, ", calib->joints[k][0].ts);
+
+      const int last_view = ((k + 1) >= calib->num_views);
+      for (int i = 0; i < calib->num_joints; i++) {
+        const int last_joint = ((i + 1) >= calib->num_joints);
+        fprintf(yaml, "%f", calib->joints[k][i].data[0]);
+        fprintf(yaml, "%s", (last_view && last_joint) ? "" : ", ");
+      }
+      fprintf(yaml, "\n");
+    }
+    fprintf(yaml, "]\n");
+  }
+  fprintf(yaml, "\n");
+
+  // -- Save poses
+  {
+    fprintf(yaml, "#ts,rx,ry,rz,qw,qx,qy,qz\n");
+    fprintf(yaml, "poses: [\n");
+    for (int k = 0; k < calib->num_poses; k++) {
+      pose_t *pose = &calib->poses[k];
+      fprintf(yaml, "  ");
+      fprintf(yaml, "%ld, ", pose->ts);
+      fprintf(yaml, "%f, ", pose->data[0]);
+      fprintf(yaml, "%f, ", pose->data[1]);
+      fprintf(yaml, "%f, ", pose->data[2]);
+      fprintf(yaml, "%f, ", pose->data[3]);
+      fprintf(yaml, "%f, ", pose->data[4]);
+      fprintf(yaml, "%f, ", pose->data[5]);
+      fprintf(yaml, "%f", pose->data[6]);
+      fprintf(yaml, "%s", ((k + 1) < calib->num_poses) ? ",\n" : "\n");
+    }
+    fprintf(yaml, "]\n");
+  }
+
+  // Clean up
+  fclose(yaml);
+  free(save_path);
 }
 
 int calib_gimbal_validate(calib_gimbal_t *calib) {

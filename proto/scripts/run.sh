@@ -117,10 +117,6 @@ run_memcheck() {
 # time make clean
 # time make build
 # time make debug
-# export ASAN_OPTIONS=print_legend=0 && time make tests
-# export ASAN_OPTIONS=print_legend=0 \
-#   && cd ./proto/build/ \
-#   && ./test_proto --target test_mat_transpose
 
 run_all_tests() {
   tmux send-keys -t dev -R C-l C-m
@@ -134,9 +130,6 @@ run_all_tests() {
 }
 
 run_test() {
-  # gdb -ex run -ex bt -ex quit --args ./test_proto --target "$1"
-  # && valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./build/test_proto --target $1
-
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
     cd ~/projects/proto/proto \
@@ -145,15 +138,9 @@ run_test() {
       && ./build/test_proto --target $1
   " C-m C-m
   exit
-      # && python3 proto.py TestFactors.test_imu_factor \
-      # && python3 scripts/compare_matrices.py --mata /tmp/J.csv --matb /tmp/J_test.csv
-      # && python3 scripts/plot_matrix.py --input /tmp/sqrt_info_test.csv
-      # # && valgrind --leak-check=full --show-leak-kinds=all ./build/test_proto --target $1 \
-      # # && python3 scripts/plot_matrix.py --input /tmp/H.csv
 }
 
 dev_sbgc() {
-  touch proto.c;
   time make build
   cd ./proto/build;
   ./test_sbgc
@@ -178,26 +165,22 @@ cd ~/projects/proto/proto \
 }
 
 dev_aprilgrid() {
-  # touch proto.c;
-  # tmux send-keys -t dev -R C-l C-m
-  # tmux send-keys -t dev -R "cd ~/projects/proto/proto && make && ./build/test_aprilgrid" C-m
   cd ~/projects/proto/proto && make test_aprilgrid && ./build/test_aprilgrid
   exit
 }
-
 
 dev_euroc() {
   touch proto.c;
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_euroc && ./build/test_euroc" C-m
   exit
-  # cd ~/projects/proto/proto && make test_euroc && ./build/test_euroc
 }
 
 # dev_sbgc
 # dev_arducam
 # dev_aprilgrid
 # dev_euroc
+# python3 scripts/plot_gimbal_calib.py
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
@@ -412,7 +395,8 @@ dev_euroc() {
 # run_test test_calib_gimbal_add_camera
 # run_test test_calib_gimbal_add_remove_view
 # run_test test_calib_gimbal_load
-run_test test_calib_gimbal_solve
+run_test test_calib_gimbal_save
+# run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-DATASET
 # run_test test_assoc_pose_data
