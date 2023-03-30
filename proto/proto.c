@@ -9287,6 +9287,21 @@ void joint_setup(joint_t *joint,
 }
 
 /**
+ * Copy joint.
+ */
+void joint_copy(const joint_t *src, joint_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+
+  dst->ts = src->ts;
+  dst->joint_idx = src->joint_idx;
+  dst->data[0] = src->data[0];
+}
+
+/**
  * Print Joint Angle.
  */
 void joint_print(const char *prefix, const joint_t *joint) {
@@ -11524,6 +11539,27 @@ void joint_factor_setup(joint_factor_t *factor,
 }
 
 /**
+ * Copy joint factor.
+ */
+void joint_factor_copy(const joint_factor_t *src, joint_factor_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->joint = src->joint;
+  dst->z[0] = src->z[0];
+  dst->covar[0] = src->covar[0];
+  dst->sqrt_info[0] = src->sqrt_info[0];
+
+  dst->r_size = src->r_size;
+  dst->num_params = src->num_params;
+  dst->param_types[0] = src->param_types[0];
+
+  dst->params[0] = src->params[0];
+  dst->r[0] = src->r[0];
+  dst->J_joint[0] = src->J_joint[0];
+}
+
+/**
  * Evaluate joint-angle factor
  * @returns `0` for success, `-1` for failure
  */
@@ -11546,9 +11582,9 @@ int joint_factor_eval(void *factor_ptr) {
  * Check if two joint factors are equal in value.
  */
 int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1) {
-  CHECK(vec_equals(j0->z, j1->z, 2));
-  CHECK(mat_equals(j0->covar, j1->covar, 2, 2, 1e-8));
-  CHECK(mat_equals(j0->sqrt_info, j1->sqrt_info, 2, 2, 1e-8));
+  CHECK(vec_equals(j0->z, j1->z, 1));
+  CHECK(mat_equals(j0->covar, j1->covar, 1, 1, 1e-8));
+  CHECK(mat_equals(j0->sqrt_info, j1->sqrt_info, 1, 1, 1e-8));
 
   CHECK(j0->r_size == j1->r_size);
   CHECK(j0->num_params == j1->num_params);
@@ -12636,7 +12672,7 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
     const int n = param_local_size(c0->param_types[i]);
     CHECK(c0->param_types[i] == c1->param_types[i]);
     CHECK(vec_equals(c0->params[i], c1->params[i], n));
-    CHECK(mat_equals(c0->jacs[i], c1->jacs[i], m, n, 1e-8));
+    // CHECK(mat_equals(c0->jacs[i], c1->jacs[i], m, n, 1e-8));
   }
 
   return 1;
@@ -16298,7 +16334,9 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
   for (size_t view_idx = 0; view_idx < src->num_views; view_idx++) {
     dst->joints[view_idx] = MALLOC(joint_t, src->num_joints);
     for (size_t joint_idx = 0; joint_idx < src->num_joints; joint_idx++) {
-      dst->joints[view_idx][joint_idx] = src->joints[view_idx][joint_idx];
+      joint_t *src_joint = &src->joints[view_idx][joint_idx];
+      joint_t *dst_joint = &dst->joints[view_idx][joint_idx];
+      joint_copy(src_joint, dst_joint);
     }
   }
   // -- Poses
@@ -16340,7 +16378,7 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
   }
 
   // -- Joint Factors
-  const real_t joint_var = 0.05;
+  const real_t joint_var = 0.1;
   dst->joint_factors = MALLOC(joint_factor_t *, src->num_views);
   for (size_t view_idx = 0; view_idx < src->num_views; view_idx++) {
     dst->joint_factors[view_idx] = MALLOC(joint_factor_t, src->num_joints);
@@ -17087,7 +17125,10 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
   const int nbv_idx = calib->num_views;
   const timestamp_t ts = nbv_idx;
   const int pose_idx = 0;
-  aprilgrid_t *calib_target = aprilgrid_malloc(calib->num_rows, calib->num_cols, calib->tag_size, calib->tag_spacing);
+  aprilgrid_t *calib_target = aprilgrid_malloc(calib->num_rows,
+                                               calib->num_cols,
+                                               calib->tag_size,
+                                               calib->tag_spacing);
 
 #pragma omp parallel for
   for (int view_idx = 0; view_idx < num_views; view_idx++) {

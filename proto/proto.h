@@ -1721,6 +1721,7 @@ void joint_setup(joint_t *joint,
                  const timestamp_t ts,
                  const int joint_idx,
                  const real_t theta);
+void joint_copy(const joint_t *src, joint_t *dst);
 void joint_print(const char *prefix, const joint_t *joint);
 
 ////////////////
@@ -2122,6 +2123,7 @@ void joint_factor_setup(joint_factor_t *factor,
                         joint_t *joint0,
                         const real_t z,
                         const real_t var);
+void joint_factor_copy(const joint_factor_t *src, joint_factor_t *dst);
 int joint_factor_eval(void *factor_ptr);
 int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
 

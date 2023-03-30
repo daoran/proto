@@ -5620,7 +5620,7 @@ int test_calib_gimbal_copy() {
   MU_ASSERT(dst != NULL);
   MU_ASSERT(calib_gimbal_equals(src, dst));
 
-  calib_gimbal_print(src);
+  // calib_gimbal_print(src);
   calib_gimbal_free(src);
   calib_gimbal_free(dst);
 
