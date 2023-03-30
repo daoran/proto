@@ -187,7 +187,7 @@ dev_euroc() {
 # exit
 
 # PROTO
-# run_all_tests
+run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error
@@ -395,7 +395,7 @@ dev_euroc() {
 # run_test test_calib_gimbal_add_camera
 # run_test test_calib_gimbal_add_remove_view
 # run_test test_calib_gimbal_load
-run_test test_calib_gimbal_save
+# run_test test_calib_gimbal_save
 # run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-DATASET

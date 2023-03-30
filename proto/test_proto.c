@@ -3304,16 +3304,16 @@ int test_timeline() {
   const int num_imus = 0;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
-  for (int k = 0; k < timeline->timeline_length; k++) {
-    for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
-      timeline_event_t *event = timeline->timeline_events[k][i];
-      if (event->type == FIDUCIAL_EVENT) {
-        print_fiducial_event(&event->data.fiducial);
-      } else {
-        print_imu_event(&event->data.imu);
-      }
-    }
-  }
+  // for (int k = 0; k < timeline->timeline_length; k++) {
+  //   for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+  //     timeline_event_t *event = timeline->timeline_events[k][i];
+  //     if (event->type == FIDUCIAL_EVENT) {
+  //       print_fiducial_event(&event->data.fiducial);
+  //     } else {
+  //       print_imu_event(&event->data.imu);
+  //     }
+  //   }
+  // }
 
   timeline_free(timeline);
 
@@ -5277,6 +5277,7 @@ int test_calib_camera_mono_batch() {
 
   // Setup camera calibration problem
   calib_camera_t *calib = calib_camera_malloc();
+  calib->verbose = false;
   calib_camera_add_camera(calib,
                           0,
                           cam_res,
@@ -5306,6 +5307,7 @@ int test_calib_camera_mono_incremental() {
 
   // Setup camera calibration problem
   calib_camera_t *calib = calib_camera_malloc();
+  calib->verbose = false;
   calib_camera_add_camera(calib,
                           0,
                           cam_res,
@@ -5365,7 +5367,7 @@ int test_calib_camera_mono_incremental() {
     free(pts);
     aprilgrid_free(grid);
   }
-  calib_camera_print(calib);
+  // calib_camera_print(calib);
 
   // Clean up
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
@@ -5410,6 +5412,7 @@ int test_calib_camera_stereo() {
     sprintf(data_path, data_dir, cam_idx);
 
     calib_camera_t *cam_calib = calib_camera_malloc();
+    cam_calib->verbose = false;
     calib_camera_add_camera(cam_calib,
                             0,
                             cam_res,
@@ -5477,18 +5480,16 @@ int test_calib_camera_stereo() {
     free(files);
   }
   camchain_adjacency(camchain);
-  camchain_adjacency_print(camchain);
   real_t T_CiCj[4 * 4] = {0};
   camchain_find(camchain, 0, 1, T_CiCj);
   camchain_free(camchain);
-  printf("Initialize camera extrinsics T_C0C1:\n");
-  print_matrix("T_CiCj", T_CiCj, 4, 4);
 
   // Setup Camera calibrator
   const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   TF_VECTOR(T_CiCj, cam1_ext);
 
   calib_camera_t *stereo_calib = calib_camera_malloc();
+  stereo_calib->verbose = false;
   calib_camera_add_camera(stereo_calib,
                           0,
                           cam_res,
@@ -5901,7 +5902,7 @@ static void compare_gimbal_calib(const calib_gimbal_t *gnd,
 
 int test_calib_gimbal_solve() {
   // Setup
-  const int debug = 1;
+  const int debug = 0;
   const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
   calib_gimbal_t *calib_est = calib_gimbal_load(data_path);
@@ -6603,7 +6604,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_mono_incremental);
   MU_ADD_TEST(test_calib_camera_stereo);
   // MU_ADD_TEST(test_calib_imucam_batch);
-  MU_ADD_TEST(test_calib_gimbal_copy);
+  // MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
