@@ -180,14 +180,14 @@ dev_euroc() {
 # dev_arducam
 # dev_aprilgrid
 # dev_euroc
-# python3 scripts/plot_gimbal_calib.py
+python3 scripts/plot_gimbal_calib.py
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
 # exit
 
 # PROTO
-run_all_tests
+# run_all_tests
 # PROTO-LOGGING
 # run_test test_debug
 # run_test test_log_error

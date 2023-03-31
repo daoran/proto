@@ -4730,10 +4730,10 @@ class CalibGimbalFactor(Factor):
     self.p_FFi = p_FFi
 
   @staticmethod
-  def form_forward_kinematics(gimbal_exts, links, joints, cam_ext):
+  def form_forward_kinematics(gimbal_ext, links, joints, cam_ext):
     """ Get forward kinematics transform T_BCi"""
     # Chain transforms to form T_BCi
-    T = gimbal_exts  # T_BM0
+    T = gimbal_ext  # T_BM0
 
     for i, joint_angle in enumerate(joints):
       # Link
@@ -4751,11 +4751,11 @@ class CalibGimbalFactor(Factor):
 
     return T_BCi
 
-  def get_residual(self, fiducial, pose, gimbal_exts, links, joints, cam_ext,
+  def get_residual(self, fiducial, pose, gimbal_ext, links, joints, cam_ext,
                    cam_params):
     """ Get Residual """
     # Project feature to image plane
-    T_BM0 = gimbal_exts
+    T_BM0 = gimbal_ext
     T_CiB = inv(self.form_forward_kinematics(T_BM0, links, joints, cam_ext))
     T_WF = fiducial
     T_WB = pose
@@ -4769,10 +4769,10 @@ class CalibGimbalFactor(Factor):
 
     return status, r, p_Ci
 
-  def get_reproj_error(self, fiducial, pose, gimbal_exts, links, joints,
+  def get_reproj_error(self, fiducial, pose, gimbal_ext, links, joints,
                        cam_ext, cam_params):
     """ Get reprojection error """
-    status, r, _ = self.get_residual(fiducial, pose, gimbal_exts, links, joints,
+    status, r, _ = self.get_residual(fiducial, pose, gimbal_ext, links, joints,
                                      cam_ext, cam_params)
     reproj_error = norm(r)
     return status, reproj_error
@@ -4797,7 +4797,7 @@ class CalibGimbalFactor(Factor):
     # Map out parameters
     fiducial = pose2tf(params[0])
     pose = pose2tf(params[1])
-    gimbal_exts = pose2tf(params[2])
+    gimbal_ext = pose2tf(params[2])
     links = [pose2tf(link) for link in params[3:5]]
     joints = params[5:8]
     cam_exts = pose2tf(params[8])
@@ -4805,7 +4805,7 @@ class CalibGimbalFactor(Factor):
 
     # Calculate residual
     sqrt_info = self.sqrt_info
-    status, r, p_CiFi = self.get_residual(fiducial, pose, gimbal_exts, links,
+    status, r, p_CiFi = self.get_residual(fiducial, pose, gimbal_ext, links,
                                           joints, cam_exts, cam_params)
     r = sqrt_info @ r
     if kwargs.get('only_residuals', False):
@@ -4819,7 +4819,7 @@ class CalibGimbalFactor(Factor):
     T_WF = fiducial
     T_WB = pose
     T_BF = inv(T_WB) @ T_WF
-    T_BM0 = gimbal_exts
+    T_BM0 = gimbal_ext
     T_M0L0 = tf(rotz(joints[0]), np.zeros((3,)))
     T_L0M1 = links[0]
     T_M1L1 = tf(rotz(joints[1]), np.zeros((3,)))
@@ -4835,7 +4835,7 @@ class CalibGimbalFactor(Factor):
     Jh = neg_sqrt_info @ self.cam_geom.J_proj(cam_params, p_CiFi)
 
     # -- Jacobian w.r.t. fiducial pose T_WF
-    T_BCi = self.form_forward_kinematics(gimbal_exts, links, joints, cam_exts)
+    T_BCi = self.form_forward_kinematics(gimbal_ext, links, joints, cam_exts)
     T_CiW = inv(T_BCi) @ inv(T_WB)
     C_CiW = tf_rot(T_CiW)
     C_WF = tf_rot(T_WF)
@@ -8372,14 +8372,14 @@ class MultiPlot:
 class GimbalProblem:
   """ Gimbal Problem """
   fiducial: np.ndarray
-  gimbal_exts: np.ndarray
+  gimbal_ext: np.ndarray
   gimbal_poses: np.ndarray
   gimbal_link0: np.ndarray
   gimbal_link1: np.ndarray
   cam0_params: np.ndarray
   cam1_params: np.ndarray
-  cam0_exts: np.ndarray
-  cam1_exts: np.ndarray
+  cam0_ext: np.ndarray
+  cam1_ext: np.ndarray
   joint_angles: list
 
   @staticmethod
@@ -8429,17 +8429,17 @@ class GimbalProblem:
     ]
     gimbal = GimbalKinematics(links, joint_angles)
     T_M0L = gimbal.forward_kinematics(joint_idx=joint_idx)
-    T_WL = self.gimbal_poses[0] @ self.gimbal_exts @ T_M0L
+    T_WL = self.gimbal_poses[0] @ self.gimbal_ext @ T_M0L
     return T_WL
 
   def get_camera_pose(self, view_idx, cam_idx):
     """ Get camera pose """
     T_WL2 = self.get_joint_pose(view_idx, 2)
     if cam_idx == 0:
-      T_L2Ci = self.cam0_exts
+      T_L2Ci = self.cam0_ext
       return T_WL2 @ T_L2Ci
     elif cam_idx == 1:
-      T_L2Ci = self.cam1_exts
+      T_L2Ci = self.cam1_ext
       return T_WL2 @ T_L2Ci
 
     return None
@@ -8451,14 +8451,14 @@ class GimbalProblem:
   def compare(self, data):
     """ Compare against another gimbal problem """
     self._compare_tfs("fiducial", self.fiducial, data.fiducial)
-    self._compare_tfs("gimbal_exts", self.gimbal_exts, data.gimbal_exts)
+    self._compare_tfs("gimbal_ext", self.gimbal_ext, data.gimbal_ext)
     # self._compare_tfs("gimbal_pose", self.gimbal_pose, data.gimbal_pose)
     self._compare_tfs("gimbal_link0", self.gimbal_link0, data.gimbal_link0)
     self._compare_tfs("gimbal_link1", self.gimbal_link1, data.gimbal_link1)
     self._compare_vectors("cam0_params", self.cam0_params, data.cam0_params)
     self._compare_vectors("cam1_params", self.cam1_params, data.cam1_params)
-    self._compare_tfs("cam0_exts", self.cam0_exts, data.cam0_exts)
-    self._compare_tfs("cam1_exts", self.cam1_exts, data.cam1_exts)
+    self._compare_tfs("cam0_ext", self.cam0_ext, data.cam0_ext)
+    self._compare_tfs("cam1_ext", self.cam1_ext, data.cam1_ext)
     self._compare_joints(self.joint_angles, data.joint_angles)
 
 
@@ -8842,12 +8842,14 @@ class SimGimbal:
     poses_file = open(f"/tmp/sim_gimbal/poses.sim", "w")
     poses_file.write(f"num_poses: {len(pose_data)}\n")
     poses_file.write(f"\n")
-    poses_file.write(f"#x,y,z,qw,qx,qy,qz\n")
+    poses_file.write(f"#ts,x,y,z,qw,qx,qy,qz\n")
+    view_idx = 0
     for pose in pose_data:
       rx, ry, rz = tf_trans(pose)
       qw, qx, qy, qz = tf_quat(pose)
       tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      poses_file.write(f"{tf_str}\n")
+      poses_file.write(f"{view_idx},{tf_str}\n")
+      view_idx += 1
     poses_file.close()
 
   def _save_joints_data(self, view_data, joint_data):
@@ -9003,7 +9005,7 @@ class SimGimbal:
 
     fix_fiducial = True
     fix_body_pose = True
-    fix_gimbal_exts = True
+    fix_gimbal_ext = True
     fix_gimbal_links = [False, False]
     fix_gimbal_joints = [False, False, False]
     fix_cam_params = [True, True]
@@ -9012,13 +9014,13 @@ class SimGimbal:
     calib = GimbalCalibrator()
     calib.add_fiducial(est.fiducial, fix=fix_fiducial)
     calib.add_body_pose(0, est.gimbal_poses[0], fix=fix_body_pose)
-    calib.add_gimbal_extrinsic(est.gimbal_exts, fix=fix_gimbal_exts)
+    calib.add_gimbal_extrinsic(est.gimbal_ext, fix=fix_gimbal_ext)
     calib.add_gimbal_link(0, est.gimbal_link0, fix=fix_gimbal_links[0])
     calib.add_gimbal_link(1, est.gimbal_link1, fix=fix_gimbal_links[1])
     calib.add_camera(cam_params=est.cam0_params, fix=fix_cam_params[0])
     calib.add_camera(cam_params=est.cam1_params, fix=fix_cam_params[1])
-    calib.add_camera_extrinsic(0, est.cam0_exts, fix=fix_cam_exts[0])
-    calib.add_camera_extrinsic(1, est.cam1_exts, fix=fix_cam_exts[1])
+    calib.add_camera_extrinsic(0, est.cam0_ext, fix=fix_cam_exts[0])
+    calib.add_camera_extrinsic(1, est.cam1_ext, fix=fix_cam_exts[1])
 
     # Add camera views
     est_data = zip(view_data, est.joint_angles)
@@ -9038,7 +9040,7 @@ class SimGimbal:
     # Solve
     print(f"fix_fiducial: {fix_fiducial}")
     print(f"fix_body_pose: {fix_body_pose}")
-    print(f"fix_gimbal_ext: {fix_gimbal_exts}")
+    print(f"fix_gimbal_ext: {fix_gimbal_ext}")
     print(f"fix_gimbal_links: {fix_gimbal_links}")
     print(f"fix_gimbal_joints: {fix_gimbal_joints}")
     print(f"fix_cam_params: {fix_cam_params}")
@@ -10370,13 +10372,13 @@ class TestFactors(unittest.TestCase):
     # Form CalibGimbalFactor
     fiducial = pose_setup(0, sim.T_WF)
     pose = pose_setup(0, sim.T_WB)
-    gimbal_exts = extrinsics_setup(sim.T_BM0)
+    gimbal_ext = extrinsics_setup(sim.T_BM0)
     link0 = extrinsics_setup(sim.links[0])
     link1 = extrinsics_setup(sim.links[1])
     th0 = joint_angle_setup(sim.joint_angles[0])
     th1 = joint_angle_setup(sim.joint_angles[1])
     th2 = joint_angle_setup(sim.joint_angles[2])
-    cam0_exts = extrinsics_setup(sim.cam_exts[0])
+    cam0_ext = extrinsics_setup(sim.cam_exts[0])
     cam0_params = sim.cam_params[0]
 
     cam0_geom = sim.cam_params[0].data
@@ -10388,18 +10390,18 @@ class TestFactors(unittest.TestCase):
     fvars = [
         fiducial,
         pose,
-        gimbal_exts,
+        gimbal_ext,
         link0,
         link1,
         th0,
         th1,
         th2,
-        cam0_exts,
+        cam0_ext,
         cam0_params,
     ]
     self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_pose"))
-    self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_exts"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_ext"))
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_link1"))
     self.assertTrue(factor.check_jacobian(fvars, 4, "J_link2"))
     self.assertTrue(factor.check_jacobian(fvars, 5, "J_th0"))
@@ -10427,7 +10429,7 @@ class TestFactors(unittest.TestCase):
       param_strs["th0"] = ', '.join([str(x) for x in th0.param])
       param_strs["th1"] = ', '.join([str(x) for x in th1.param])
       param_strs["th2"] = ', '.join([str(x) for x in th2.param])
-      param_strs["cam0_exts"] = ', '.join([str(x) for x in cam0_exts.param])
+      param_strs["cam0_ext"] = ', '.join([str(x) for x in cam0_ext.param])
       param_strs["cam0_params"] = ', '.join([str(x) for x in cam0_params.param])
 
       fp.write(f"tag_id: {param_strs['tag_id']}\n")
@@ -10440,7 +10442,7 @@ class TestFactors(unittest.TestCase):
       fp.write(f"th0: [{param_strs['th0']}]\n")
       fp.write(f"th1: [{param_strs['th1']}]\n")
       fp.write(f"th2: [{param_strs['th2']}]\n")
-      fp.write(f"cam0_exts: [{param_strs['cam0_exts']}]\n")
+      fp.write(f"cam0_ext: [{param_strs['cam0_ext']}]\n")
       fp.write(f"cam0_params: [{param_strs['cam0_params']}]\n")
       fp.write("\n")
       fp.close()
@@ -11327,15 +11329,15 @@ class TestFeatureTracker(unittest.TestCase):
     # Setup camera extrinsics
     # -- cam0
     T_BC0 = self.dataset.cam0_data.config.T_BS
-    cam0_exts = extrinsics_setup(T_BC0)
+    cam0_ext = extrinsics_setup(T_BC0)
     # -- cam1
     T_BC1 = self.dataset.cam1_data.config.T_BS
-    cam1_exts = extrinsics_setup(T_BC1)
+    cam1_ext = extrinsics_setup(T_BC1)
 
     # Setup feature tracker
     self.feature_tracker = FeatureTracker()
-    self.feature_tracker.add_camera(0, cam0, cam0_exts)
-    self.feature_tracker.add_camera(1, cam1, cam1_exts)
+    self.feature_tracker.add_camera(0, cam0, cam0_ext)
+    self.feature_tracker.add_camera(1, cam1, cam1_ext)
     self.feature_tracker.add_overlap(0, 1)
 
   def test_detect(self):
@@ -11489,12 +11491,12 @@ class TestTracker(unittest.TestCase):
     # Setup camera extrinsics
     # -- cam0
     T_BC0 = cls.dataset.cam0_data.config.T_BS
-    cls.cam0_exts = extrinsics_setup(T_BC0)
-    cls.cam0_exts.fix = True
+    cls.cam0_ext = extrinsics_setup(T_BC0)
+    cls.cam0_ext.fix = True
     # -- cam1
     T_BC1 = cls.dataset.cam1_data.config.T_BS
-    cls.cam1_exts = extrinsics_setup(T_BC1)
-    cls.cam1_exts.fix = True
+    cls.cam1_ext = extrinsics_setup(T_BC1)
+    cls.cam1_ext.fix = True
 
   def setUp(self):
     # Setup test dataset
@@ -11502,8 +11504,8 @@ class TestTracker(unittest.TestCase):
     self.imu_params = TestTracker.imu_params
     self.cam0 = TestTracker.cam0
     self.cam1 = TestTracker.cam1
-    self.cam0_exts = TestTracker.cam0_exts
-    self.cam1_exts = TestTracker.cam1_exts
+    self.cam0_ext = TestTracker.cam0_ext
+    self.cam1_ext = TestTracker.cam1_ext
 
     # Setup tracker
     ts0 = self.dataset.ground_truth.timestamps[0]
@@ -11512,8 +11514,8 @@ class TestTracker(unittest.TestCase):
     feature_tracker = FeatureTracker()
     self.tracker = Tracker(feature_tracker)
     self.tracker.add_imu(self.imu_params)
-    self.tracker.add_camera(0, self.cam0, self.cam0_exts)
-    self.tracker.add_camera(1, self.cam1, self.cam1_exts)
+    self.tracker.add_camera(0, self.cam0, self.cam0_ext)
+    self.tracker.add_camera(1, self.cam1, self.cam1_ext)
     self.tracker.add_overlap(0, 1)
     self.tracker.set_initial_pose(T_WB)
 
@@ -12088,13 +12090,13 @@ class TestSimulation(unittest.TestCase):
     sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
     cam0_params = sim_data.get_camera_params(0)
     cam1_params = sim_data.get_camera_params(1)
-    cam0_exts = sim_data.get_camera_extrinsics(0)
-    cam1_exts = sim_data.get_camera_extrinsics(1)
+    cam0_ext = sim_data.get_camera_extrinsics(0)
+    cam1_ext = sim_data.get_camera_extrinsics(1)
 
     # Sim feature tracker
     feature_tracker = SimFeatureTracker()
-    feature_tracker.add_camera(0, cam0_params, cam0_exts)
-    feature_tracker.add_camera(1, cam1_params, cam1_exts)
+    feature_tracker.add_camera(0, cam0_params, cam0_ext)
+    feature_tracker.add_camera(1, cam1_params, cam1_ext)
     feature_tracker.add_overlap(0, 1)
 
     # Loop through timeline events

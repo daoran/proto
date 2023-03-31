@@ -3,10 +3,88 @@ import os
 from pathlib import Path
 import glob
 import yaml
-from yaml.loader import SafeLoader
+from dataclasses import dataclass
 
 import numpy as np
 from proto import *
+
+
+def fix_pose(pose):
+    """ Fix pose vector ordering """
+    rx, ry, rz, qw, qx, qy, qz = pose
+    return np.array([rx, ry, rz, qx, qy, qz, qw])
+
+@dataclass
+class GimbalData:
+    """ Gimbal Data"""
+    num_cams: int
+    num_views: int
+    num_poses: int
+    num_links: int
+    num_joints: int
+    fiducial_ext: np.ndarray
+    gimbal_ext: np.ndarray
+    cam0_params: np.ndarray
+    cam1_params: np.ndarray
+    cam0_ext: np.ndarray
+    cam1_ext: np.ndarray
+    link0_ext: np.ndarray
+    link1_ext: np.ndarray
+    joints: dict
+    poses: dict
+
+    def get_plot_tfs(self, ts):
+        """ Get plot transforms """
+        # links
+        links = []
+        links.append(self.link0_ext)
+        links.append(self.link1_ext)
+
+        # Joints
+        joint_angles = []
+        joint_angles.append(self.joints[ts][0])
+        joint_angles.append(self.joints[ts][1])
+        joint_angles.append(self.joints[ts][2])
+
+        # Gimbal
+        gimbal = GimbalKinematics(links, joint_angles)
+        T_M0L0 = gimbal.forward_kinematics(joint_idx=0)
+        T_M0L1 = gimbal.forward_kinematics(joint_idx=1)
+        T_M0L2 = gimbal.forward_kinematics(joint_idx=2)
+
+        # Transforms
+        T_WB = pose2tf(self.poses[0])
+        T_BM0 = pose2tf(self.gimbal_ext)
+        T_WL0 = T_WB @ T_BM0 @ T_M0L0
+        T_WL1 = T_WB @ T_BM0 @ T_M0L1
+        T_WL2 = T_WB @ T_BM0 @ T_M0L2
+        T_WC0 = T_WL2 @ pose2tf(self.cam0_ext)
+        T_WC1 = T_WL2 @ pose2tf(self.cam1_ext)
+
+        return (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1)
+
+def plot_gimbal(ts, **kwargs):
+    """ Plot Gimbal """
+    data = kwargs.get("data")
+    (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = data.get_plot_tfs(ts)
+
+    # Visualize
+    plt.figure()
+    ax = plt.axes(projection='3d')
+
+    # Plot transforms
+    plot_tf(ax, T_WL0, name="Link0", size=0.05)
+    plot_tf(ax, T_WL1, name="Link1", size=0.05)
+    plot_tf(ax, T_WL2, name="Link2", size=0.05)
+    plot_tf(ax, T_WC0, name="cam0", size=0.05)
+    plot_tf(ax, T_WC1, name="cam1", size=0.05)
+
+    # Plot settings
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
 
 
 def parse_int(line, key):
@@ -84,6 +162,11 @@ def load_config_file(config_file):
     for cam_idx in range(config_data["num_cams"]):
         config_data[f"cam{cam_idx}"] = parse_camera(config_file, cam_idx)
 
+        proj_params = config_data[f"cam{cam_idx}"]["proj_params"]
+        dist_params = config_data[f"cam{cam_idx}"]["dist_params"]
+        cam_params = np.array([*proj_params, *dist_params])
+        config_data[f"cam{cam_idx}_params"] = cam_params
+
     target_keys = [f"link{i}_ext" for i in range(config_data["num_links"])]
     target_keys += [f"cam{i}_ext" for i in range(config_data["num_cams"])]
     target_keys += ["fiducial_ext", "gimbal_ext"]
@@ -129,10 +212,13 @@ def load_poses_file(poses_file):
     num_poses = parse_int(lines[0], "num_poses")
 
     assert(len(lines[3:]) == num_poses)
-    pose_data = []
+    pose_data = {}
+    pose_data["num_poses"] = num_poses
     for line in lines[3:]:
-        rx, ry, rz, qw, qx, qy, qz = np.array(line.split(","), dtype=float)
-        pose_data.append(np.array([rx, ry, rz, qx, qy, qz, qw]))
+        line = line.split(",")
+        ts = int(line[0])
+        rx, ry, rz, qw, qx, qy, qz = np.array(line[1:], dtype=float)
+        pose_data[ts] = np.array([rx, ry, rz, qx, qy, qz, qw])
 
     return pose_data
 
@@ -161,66 +247,121 @@ def load_joints_file(joints_file):
     return joints_data
 
 
-def plot_gimbal(config_data, poses_data, joints_data):
-    """ Plot Gimbal """
-    # links
-    links = []
-    links.append(config_data["link0_ext"])
-    links.append(config_data["link1_ext"])
-
-    # Joints
-    joint_angles = []
-    joint_angles.append(0)
-    joint_angles.append(0)
-    joint_angles.append(0)
-
-    # Gimbal
-    gimbal = GimbalKinematics(links, joint_angles)
-    T_M0L0 = gimbal.forward_kinematics(joint_idx=0)
-    T_M0L1 = gimbal.forward_kinematics(joint_idx=1)
-    T_M0L2 = gimbal.forward_kinematics(joint_idx=2)
-
-    # Transforms
-    T_WB = pose2tf(poses_data[0])
-    T_BM0 = pose2tf(config_data["gimbal_ext"])
-    T_WL0 = T_WB @ T_BM0 @ T_M0L0
-    T_WL1 = T_WB @ T_BM0 @ T_M0L1
-    T_WL2 = T_WB @ T_BM0 @ T_M0L2
-    T_WC0 = T_WL2 @ pose2tf(config_data["cam0_ext"])
-    T_WC1 = T_WL2 @ pose2tf(config_data["cam1_ext"])
-
-    # Visualize
-    plt.figure()
-    ax = plt.axes(projection='3d')
-
-    # Plot transforms
-    plot_tf(ax, T_WL0, name="Link0", size=0.05)
-    plot_tf(ax, T_WL1, name="Link1", size=0.05)
-    plot_tf(ax, T_WL2, name="Link2", size=0.05)
-    plot_tf(ax, T_WC0, name="cam0", size=0.05)
-    plot_tf(ax, T_WC1, name="cam1", size=0.05)
-
-    # Plot settings
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
-    plot_set_axes_equal(ax)
-    plt.show()
-
-
-if __name__ == "__main__":
-    calib_data = "./test_data/sim_gimbal"
-    config_path = os.path.join(calib_data, "calib.config")
-    poses_path = os.path.join(calib_data, "poses.sim")
-    joints_path = os.path.join(calib_data, "joint_angles.sim")
+def load_sim_gimbal_data(calib_dir):
+    """ Load gimbal simulation data. """
+    config_path = os.path.join(calib_dir, "calib.config")
+    poses_path = os.path.join(calib_dir, "poses.sim")
+    joints_path = os.path.join(calib_dir, "joint_angles.sim")
 
     config_data = load_config_file(config_path)
     poses_data = load_poses_file(poses_path)
     joints_data = load_joints_file(joints_path)
 
-    cam_dir = os.path.join(calib_data, "cam0")
+    cam_dir = os.path.join(calib_dir, "cam0")
     cam_files = glob.glob(os.path.join(cam_dir, "*.sim"))
     cam_files = sorted(cam_files, key= lambda x : int(Path(x).stem))
     view_data = load_view_file(cam_files[0])
 
-    plot_gimbal(config_data, poses_data, joints_data)
+    calib_data = {}
+    calib_data["config"] = config_data
+    calib_data["poses"] = poses_data
+    calib_data["joints"] = joints_data
+    calib_data["views"] = view_data
+
+
+    return GimbalData(
+        config_data["num_cams"],
+        joints_data["num_views"],
+        poses_data["num_poses"],
+        config_data["num_links"],
+        joints_data["num_joints"],
+        config_data["fiducial_ext"],
+        config_data["gimbal_ext"],
+        config_data["cam0_params"],
+        config_data["cam1_params"],
+        config_data["cam0_ext"],
+        config_data["cam1_ext"],
+        config_data["link0_ext"],
+        config_data["link1_ext"],
+        joints_data,
+        poses_data
+    )
+
+    return calib_data
+
+def load_calib_results(results_file):
+    """ Load calib results """
+    num_cams = None
+    num_views = None
+    num_poses = None
+    num_links = None
+    num_joints = None
+
+    fiducial_ext = None
+    gimbal_ext = None
+    cam0_params = None
+    cam1_params = None
+    link0_ext = None
+    link1_ext = None
+    joints = {}
+    poses = {}
+
+    with open(results_file, 'r') as file:
+        data = yaml.safe_load(file)
+
+        num_cams = data["num_cams"]
+        num_views = data["num_views"]
+        num_poses = data["num_poses"]
+        num_links = data["num_links"]
+        num_joints = data["num_joints"]
+
+        fiducial_ext = fix_pose(data["fiducial_ext"])
+        gimbal_ext = fix_pose(data["gimbal_ext"])
+        cam0_params = data["cam0_params"]
+        cam1_params = data["cam1_params"]
+        cam0_ext = fix_pose(data["cam0_ext"])
+        cam1_ext = fix_pose(data["cam1_ext"])
+        link0_ext = fix_pose(data["link0_ext"])
+        link1_ext = fix_pose(data["link1_ext"])
+
+        stride = num_joints + 1
+        for k in range(num_views):
+            idx = k * stride
+            ts = data["joints"][idx]
+            joints[ts] = [j for j in data["joints"][idx + 1:idx + 4]]
+
+        stride = 7 + 1
+        for k in range(num_poses):
+            idx = k * stride
+            ts = data["poses"][idx]
+            poses[ts] = fix_pose([j for j in data["poses"][idx + 1:idx + 8]])
+
+
+    return GimbalData(
+        num_cams,
+        num_views,
+        num_poses,
+        num_links,
+        num_joints,
+        fiducial_ext,
+        gimbal_ext,
+        cam0_params,
+        cam1_params,
+        cam0_ext,
+        cam1_ext,
+        link0_ext,
+        link1_ext,
+        joints,
+        poses
+    )
+
+if __name__ == "__main__":
+    # calib_dir = "./test_data/sim_gimbal"
+    # calib_data = load_sim_gimbal_data(calib_dir)
+    # plot_gimbal(0, data=calib_data)
+
+    results_file = "/tmp/estimates.yaml"
+    data = load_calib_results(results_file)
+    plot_gimbal(0, data=data)
+
+    # plot_gimbal(calib_data)
