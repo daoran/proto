@@ -14298,9 +14298,9 @@ void calib_camera_print(calib_camera_t *calib) {
   printf("\n");
 
   printf("reproj_errors:\n");
-  printf("  rmse: %f\n", reproj_rmse);
-  printf("  mean: %f\n", reproj_mean);
-  printf("  median: %f\n", reproj_median);
+  printf("  rmse:   %f  # [px]\n", reproj_rmse);
+  printf("  mean:   %f  # [px]\n", reproj_mean);
+  printf("  median: %f  # [px]\n", reproj_median);
   printf("\n");
 
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
@@ -16566,17 +16566,30 @@ calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src) {
  * Print gimbal calibration data
  */
 void calib_gimbal_print(const calib_gimbal_t *calib) {
+  real_t reproj_rmse = 0;
+  real_t reproj_mean = 0;
+  real_t reproj_median = 0;
+  calib_gimbal_reproj_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+
   // Settings
-  printf("fix_fiducial_ext: %d\n", calib->fix_fiducial_ext);
-  printf("fix_gimbal_ext: %d\n", calib->fix_gimbal_ext);
-  printf("fix_poses: %d\n", calib->fix_poses);
-  printf("fix_links: %d\n", calib->fix_links);
-  printf("fix_joints: %d\n", calib->fix_joints);
-  printf("fix_cam_exts: %d\n", calib->fix_cam_exts);
-  printf("fix_cam_params: %d\n", calib->fix_cam_params);
+  printf("settings:\n");
+  printf("  fix_fiducial_ext: %d\n", calib->fix_fiducial_ext);
+  printf("  fix_gimbal_ext: %d\n", calib->fix_gimbal_ext);
+  printf("  fix_poses: %d\n", calib->fix_poses);
+  printf("  fix_links: %d\n", calib->fix_links);
+  printf("  fix_joints: %d\n", calib->fix_joints);
+  printf("  fix_cam_exts: %d\n", calib->fix_cam_exts);
+  printf("  fix_cam_params: %d\n", calib->fix_cam_params);
   printf("\n");
 
-  // Configuration file
+  // Reprojection Errors
+  printf("reproj_errors:\n");
+  printf("  rmse:   %f  # [px]\n", reproj_rmse);
+  printf("  mean:   %f  # [px]\n", reproj_mean);
+  printf("  median: %f  # [px]\n", reproj_median);
+  printf("\n");
+
+  // Calibration parameters
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
     camera_params_print(&calib->cam_params[cam_idx]);
     printf("\n");
@@ -17027,7 +17040,7 @@ static void calib_gimbal_load_joints(calib_gimbal_t *calib,
     // Parse timestamp and joint angles
     size_t n = 0;
     char **s = string_split(buf, ',', &n);
-    const timestamp_t ts = strtod(s[0], NULL);
+    const timestamp_t ts = strtol(s[0], NULL, 10);
     assert(n == calib->num_joints + 1);
 
     calib->timestamps[view_idx] = ts;
@@ -17082,12 +17095,25 @@ static void calib_gimbal_load_poses(calib_gimbal_t *calib,
       FATAL("Failed to view parse data!\n");
     }
 
-    // Parse line
-    real_t data[7] = {0};
-    parse_vector_line(buf, "double", data, 7);
-    calib->poses[pose_idx].ts = 0;
-    vec_copy(data, 7, calib->poses[pose_idx].data);
+    // Parse pose
+    size_t n = 0;
+    char **s = string_split(buf, ',', &n);
+    assert(n == 8);
+    calib->poses[pose_idx].ts = strtol(s[0], NULL, 10);
+    calib->poses[pose_idx].data[0] = strtod(s[1], NULL);
+    calib->poses[pose_idx].data[1] = strtod(s[2], NULL);
+    calib->poses[pose_idx].data[2] = strtod(s[3], NULL);
+    calib->poses[pose_idx].data[3] = strtod(s[4], NULL);
+    calib->poses[pose_idx].data[4] = strtod(s[5], NULL);
+    calib->poses[pose_idx].data[5] = strtod(s[6], NULL);
+    calib->poses[pose_idx].data[6] = strtod(s[7], NULL);
     calib->poses_ok = 1;
+
+    // Clean up
+    for (int i = 0; i < 8; i++) {
+      free(s[i]);
+    }
+    free(s);
   }
   fclose(poses_file);
 }
@@ -17197,9 +17223,8 @@ calib_gimbal_t *calib_gimbal_load(const char *data_path) {
 /**
  * Save gimbal calibration data.
  */
-void calib_gimbal_save(const calib_gimbal_t *calib, const char *data_path) {
+void calib_gimbal_save(const calib_gimbal_t *calib, const char *save_path) {
   // Setup
-  char *save_path = path_join(data_path, "/estimates.yaml");
   FILE *yaml = fopen(save_path, "w");
   if (yaml == NULL) {
     FATAL("Failed to open [%s]!\n", save_path);
@@ -17302,7 +17327,6 @@ void calib_gimbal_save(const calib_gimbal_t *calib, const char *data_path) {
 
   // Clean up
   fclose(yaml);
-  free(save_path);
 }
 
 int calib_gimbal_validate(calib_gimbal_t *calib) {
@@ -17568,6 +17592,57 @@ param_order_t *calib_gimbal_param_order(const void *data,
   *r_size = (calib->num_calib_factors * 2) + calib->num_joint_factors;
   // *r_size = (calib->num_calib_factors * 2);
   return hash;
+}
+
+/**
+ * Calculate reprojection errors
+ */
+void calib_gimbal_reproj_errors(const calib_gimbal_t *calib,
+                                real_t *reproj_rmse,
+                                real_t *reproj_mean,
+                                real_t *reproj_median) {
+  assert(calib != NULL);
+
+  // Setup
+  const int N = calib->num_calib_factors;
+  const int r_size = N * 2;
+  real_t *r = CALLOC(real_t, r_size);
+
+  int r_idx = 0;
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      calib_gimbal_view_t *view = calib->views[view_idx][cam_idx];
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_gimbal_factor_t *factor = &view->calib_factors[factor_idx];
+        calib_gimbal_factor_eval(factor);
+        vec_copy(factor->r, factor->r_size, &r[r_idx]);
+        r_idx += factor->r_size;
+      } // For each factor
+    }   // For each cameras
+  }     // For each views
+
+  // Calculate reprojection errors
+  real_t *errors = CALLOC(real_t, N);
+  for (int i = 0; i < N; i++) {
+    const real_t x = r[i * 2 + 0];
+    const real_t y = r[i * 2 + 1];
+    errors[i] = sqrt(x * x + y * y);
+  }
+
+  // Calculate RMSE
+  real_t sum = 0.0;
+  real_t sse = 0.0;
+  for (int i = 0; i < N; i++) {
+    sum += errors[i];
+    sse += errors[i] * errors[i];
+  }
+  *reproj_rmse = sqrt(sse / N);
+  *reproj_mean = sum / N;
+  *reproj_median = median(errors, N);
+
+  // Clean up
+  free(errors);
+  free(r);
 }
 
 /**
@@ -18049,7 +18124,7 @@ static int
 parse_pose_data(const int i, const int j, const char *entry, pose_t *poses) {
   switch (j) {
     case 0:
-      poses[i].ts = strtol(entry, NULL, 0);
+      poses[i].ts = strtol(entry, NULL, 10);
       break;
     case 1:
     case 2:

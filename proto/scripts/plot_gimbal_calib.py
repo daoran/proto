@@ -63,21 +63,43 @@ class GimbalData:
 
         return (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1)
 
+
 def plot_gimbal(ts, **kwargs):
     """ Plot Gimbal """
-    data = kwargs.get("data")
-    (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = data.get_plot_tfs(ts)
+    gnd = kwargs.get("gnd")
+    init = kwargs.get("init", None)
+    est = kwargs.get("est", None)
 
     # Visualize
     plt.figure()
     ax = plt.axes(projection='3d')
 
     # Plot transforms
-    plot_tf(ax, T_WL0, name="Link0", size=0.05)
-    plot_tf(ax, T_WL1, name="Link1", size=0.05)
-    plot_tf(ax, T_WL2, name="Link2", size=0.05)
-    plot_tf(ax, T_WC0, name="cam0", size=0.05)
-    plot_tf(ax, T_WC1, name="cam1", size=0.05)
+    (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = gnd.get_plot_tfs(ts)
+    gnd_colors = ['r-', 'g-', 'b-'] if est is None else ['r-', 'r-', 'r-']
+    plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=gnd_colors)
+    # plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=gnd_colors)
+    # plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=gnd_colors)
+
+    if est:
+        (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = est.get_plot_tfs(ts)
+        est_colors = ['b-', 'b-', 'b-']
+        plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
+        # plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
+        # plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
+
+    if init:
+        (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = init.get_plot_tfs(ts)
+        est_colors = ['g-', 'g-', 'g-']
+        plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
+        # plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
+        # plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
 
     # Plot settings
     ax.set_xlabel("x [m]")
@@ -356,12 +378,17 @@ def load_calib_results(results_file):
     )
 
 if __name__ == "__main__":
-    # calib_dir = "./test_data/sim_gimbal"
-    # calib_data = load_sim_gimbal_data(calib_dir)
-    # plot_gimbal(0, data=calib_data)
+    calib_dir = "./test_data/sim_gimbal"
+    sim_data  = load_sim_gimbal_data(calib_dir)
 
-    results_file = "/tmp/estimates.yaml"
-    data = load_calib_results(results_file)
-    plot_gimbal(0, data=data)
+    results_file = "/tmp/estimates-gnd.yaml"
+    data_gnd = load_calib_results(results_file)
 
-    # plot_gimbal(calib_data)
+    results_file = "/tmp/estimates-before.yaml"
+    data_before = load_calib_results(results_file)
+
+    results_file = "/tmp/estimates-after.yaml"
+    data_after = load_calib_results(results_file)
+
+    for k in range(data_gnd.num_views):
+        plot_gimbal(k, gnd=data_gnd, init=data_before, est=data_after)
