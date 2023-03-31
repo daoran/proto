@@ -44,7 +44,7 @@
     <!-- Gimbal Roll -->
     <link name="gimbal_roll">
       <gravity>0</gravity>
-      <pose>-0.08 0.0 0.1 0.0 1.5708 0.0</pose>
+      <pose relative_to="gimbal_yaw">-0.08 0 0.1 0 1.5708 0</pose>
 
       <inertial>
         <inertia>
@@ -77,7 +77,7 @@
     <!-- Gimbal pitch -->
     <link name="gimbal_pitch">
       <gravity>0</gravity>
-      <pose>0.02 0.0 0.1 1.5708 0.0 0.0</pose>
+      <pose relative_to="gimbal_roll">0 0.02 0.1 1.5708 0 0</pose>
 
       <inertial>
         <inertia>
