@@ -164,12 +164,14 @@ struct CalibData {
   std::map<int, CameraProperty> camera_props_;
   std::vector<std::shared_ptr<CalibView>> cam0_data_;
   std::vector<std::shared_ptr<CalibView>> cam1_data_;
+  std::vector<double> gimbal_pose;
 
   std::string output_dir_;
   std::string cam0_dir_;
   std::string cam1_dir_;
   std::string joints_fpath_;
   std::string config_fpath_;
+  std::string poses_fpath_;
 
   double cam0_ext[7] = {0};
   double cam1_ext[7] = {0};
@@ -184,28 +186,46 @@ struct CalibData {
     cam1_dir_ = output_dir_ + "/cam1";
     joints_fpath_ = output_dir_ + "/joint_angles.sim";
     config_fpath_ = output_dir_ + "/calib.config";
+    poses_fpath_ = output_dir_ + "/poses.sim";
 
     // Get these from the gimbal model.sdf
-    double pose_BL0[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    double pose_BL1[6] = {-0.08, 0.0, 0.1, 0.0, 1.5708, 0.0};
-    double pose_L1C0[6] = {-0.08, 0.0, 0.1, 0.0, 1.5708, 0.0};
-    double pose_L1C1[6] = {0, 0, 0.1, -1.5708, 0, 0};
+    double gzpose_link0[6] = {-0.08, 0.0, 0.1, 0.0, 1.5708, 0.0};
+    double gzpose_link1[6] = {0, 0.02, 0.1, 1.5708, 0, 0};
+    double gzpose_cam0_ext[6] = {0, 0, -0.1, -1.5708, 0, 1.5708};
+    double gzpose_cam1_ext[6] = {0, 0, 0.1, -1.5708, 0, 1.5708};
+    double gzpose_gimbal_ext[6] = {0, 0, 0, 0, 0, 0};
 
     // Convert pose vector to transformation matrices
-    double T_BL0[4 * 4] = {0};
-    double T_BL1[4 * 4] = {0};
-    double T_L1C0[4 * 4] = {0};
-    double T_L1C1[4 * 4] = {0};
-    gzpose2tf(pose_BL0, T_BL0);
-    gzpose2tf(pose_BL1, T_BL1);
-    gzpose2tf(pose_L1C0, T_L1C0);
-    gzpose2tf(pose_L1C1, T_L1C1);
+    double T_link0[4 * 4] = {0};
+    double T_link1[4 * 4] = {0};
+    double T_gz_cam0_ext[4 * 4] = {0};
+    double T_gz_cam1_ext[4 * 4] = {0};
+    double T_gimbal_ext[4 * 4] = {0};
+    gzpose2tf(gzpose_link0, T_link0);
+    gzpose2tf(gzpose_link1, T_link1);
+    gzpose2tf(gzpose_cam0_ext, T_gz_cam0_ext);
+    gzpose2tf(gzpose_cam1_ext, T_gz_cam1_ext);
+    gzpose2tf(gzpose_gimbal_ext, T_gimbal_ext);
+
+    // clang-format off
+    double T_rot[4 * 4] = {0};
+    T_rot[0]  =  0.0; T_rot[1]  =  0.0;  T_rot[2]  =  1.0;  T_rot[3]  =  0.0;
+    T_rot[4]  = -1.0; T_rot[5]  =  0.0;  T_rot[6]  =  0.0;  T_rot[7]  =  0.0;
+    T_rot[8]  =  0.0; T_rot[9]  = -1.0;  T_rot[10] =  0.0;  T_rot[11] =  0.0;
+    T_rot[12] =  0.0; T_rot[13] =  0.0;  T_rot[14] =  0.0;  T_rot[15] =  1.0;
+
+    double T_cam0_ext[4 * 4] = {0};
+    double T_cam1_ext[4 * 4] = {0};
+    dot(T_gz_cam0_ext, 4, 4, T_rot, 4, 4, T_cam0_ext);
+    dot(T_gz_cam1_ext, 4, 4, T_rot, 4, 4, T_cam1_ext);
+    // clang-format on
 
     // For the transformation matrices we actually want
-    tf_vector(T_L1C0, cam0_ext);
-    tf_vector(T_L1C1, cam1_ext);
-    tf_vector(T_BL0, link0_ext);
-    tf_vector(T_BL1, link1_ext);
+    tf_vector(T_link0, link0_ext);
+    tf_vector(T_link1, link1_ext);
+    tf_vector(T_cam0_ext, cam0_ext);
+    tf_vector(T_cam1_ext, cam1_ext);
+    tf_vector(T_gimbal_ext, gimbal_ext);
   }
 
   void setGimbalPose(const PoseStamped &msg) {
@@ -224,14 +244,13 @@ struct CalibData {
 
   void setFiducialPose(const PoseStamped &msg) {
     if (fiducial_pose_set == false) {
-      fiducial_ext[0] = msg.pose.position.x;
-      fiducial_ext[1] = msg.pose.position.y;
-      fiducial_ext[2] = msg.pose.position.z;
-
-      fiducial_ext[3] = msg.pose.orientation.w;
-      fiducial_ext[4] = msg.pose.orientation.x;
-      fiducial_ext[5] = msg.pose.orientation.y;
-      fiducial_ext[6] = msg.pose.orientation.z;
+      gimbal_pose.push_back(msg.pose.position.x);
+      gimbal_pose.push_back(msg.pose.position.y);
+      gimbal_pose.push_back(msg.pose.position.z);
+      gimbal_pose.push_back(msg.pose.orientation.w);
+      gimbal_pose.push_back(msg.pose.orientation.x);
+      gimbal_pose.push_back(msg.pose.orientation.y);
+      gimbal_pose.push_back(msg.pose.orientation.z);
     }
     fiducial_pose_set = true;
   }
@@ -267,6 +286,7 @@ struct CalibData {
     saveJointAngles();
     saveCameraViews();
     saveCalibConfig();
+    savePoses();
   }
 
 private:
@@ -338,14 +358,35 @@ private:
       fprintf(config_file, "\n");
     }
 
-    fprintf(config_file, "cam0_exts: [%s]\n", pose2str(cam0_ext).c_str());
-    fprintf(config_file, "cam1_exts: [%s]\n", pose2str(cam1_ext).c_str());
-    fprintf(config_file, "link0_exts: [%s]\n", pose2str(link0_ext).c_str());
-    fprintf(config_file, "link1_exts: [%s]\n", pose2str(link1_ext).c_str());
-    fprintf(config_file, "gimbal_exts: [%s]\n", pose2str(gimbal_ext).c_str());
-    fprintf(config_file, "fiducial_exts: [%s]\n", pose2str(fiducial_ext).c_str());
+    fprintf(config_file, "cam0_ext: [%s]\n", pose2str(cam0_ext).c_str());
+    fprintf(config_file, "cam1_ext: [%s]\n", pose2str(cam1_ext).c_str());
+    fprintf(config_file, "link0_ext: [%s]\n", pose2str(link0_ext).c_str());
+    fprintf(config_file, "link1_ext: [%s]\n", pose2str(link1_ext).c_str());
+    fprintf(config_file, "gimbal_ext: [%s]\n", pose2str(gimbal_ext).c_str());
+    fprintf(config_file,
+            "fiducial_ext: [%s]\n",
+            pose2str(fiducial_ext).c_str());
 
     fclose(config_file);
+  }
+
+  void savePoses() const {
+    FILE *poses_file = fopen(poses_fpath_.c_str(), "w");
+    fprintf(poses_file, "num_poses: %d\n", 1);
+    fprintf(poses_file, "\n");
+    fprintf(poses_file, "#ts,rx,ry,rz,qw,qx,qy,qz\n");
+
+    const auto rx = gimbal_pose[0];
+    const auto ry = gimbal_pose[1];
+    const auto rz = gimbal_pose[2];
+    const auto qw = gimbal_pose[3];
+    const auto qx = gimbal_pose[4];
+    const auto qy = gimbal_pose[5];
+    const auto qz = gimbal_pose[6];
+    fprintf(poses_file, "%ld,", timestamps_[0]);
+    fprintf(poses_file, "%f,%f,%f,%f,%f,%f,%f\n", rx, ry, rz, qw, qx, qy, qz);
+
+    fclose(poses_file);
   }
 };
 
@@ -450,7 +491,8 @@ public:
     int num_cols = 10;
     double tag_size = 0.08;
     double tag_spacing = 0.25;
-    detector_ = aprilgrid_detector_malloc(num_rows, num_cols, tag_size, tag_spacing);
+    detector_ =
+        aprilgrid_detector_malloc(num_rows, num_cols, tag_size, tag_spacing);
 
     // Setup publishers / subscribers
     // clang-format off
@@ -538,6 +580,11 @@ public:
                                                            cam1_img_.rows,
                                                            cam1_img_.cols,
                                                            cam1_img_.data);
+
+            // const auto viz = aprilgrid_draw(grid0, cam0_img_);
+            // cv::imshow("Viz", viz);
+            // cv::waitKey(1);
+
             calib_data_.add(ts_, joint0_, joint1_, joint2_, grid0, grid1);
             aprilgrid_free(grid0);
             aprilgrid_free(grid1);

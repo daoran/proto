@@ -29,6 +29,32 @@ void clip(double *x, const size_t n, const double vmin, const double vmax) {
 }
 
 /**
+ * Dot product of two matrices or vectors `A` and `B` of size `A_m x A_n` and
+ * `B_m x B_n`. Results are written to `C`.
+ */
+void dot(const double *A,
+         const size_t A_m,
+         const size_t A_n,
+         const double *B,
+         const size_t B_m,
+         const size_t B_n,
+         double *C) {
+  assert(A != NULL && B != NULL && A != C && B != C);
+  assert(A_m > 0 && A_n > 0 && B_m > 0 && B_n > 0);
+  assert(A_n == B_m);
+
+  const size_t m = A_m;
+  const size_t n = B_n;
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = 0; j < n; j++) {
+      for (size_t k = 0; k < A_n; k++) {
+        C[(i * n) + j] += A[(i * A_n) + k] * B[(k * B_n) + j];
+      }
+    }
+  }
+}
+
+/**
  * Convert 3x3 rotation matrix `C` to Quaternion `q`.
  */
 void rot2quat(const double C[3 * 3], double q[4]) {

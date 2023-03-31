@@ -181,7 +181,7 @@ dev_euroc() {
 # dev_arducam
 # dev_aprilgrid
 # dev_euroc
-# python3 scripts/plot_gimbal_calib.py
+python3 scripts/plot_gimbal_calib.py
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
@@ -397,7 +397,7 @@ dev_euroc() {
 # run_test test_calib_gimbal_add_remove_view
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_save
-run_test test_calib_gimbal_solve
+# run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-DATASET
 # run_test test_assoc_pose_data

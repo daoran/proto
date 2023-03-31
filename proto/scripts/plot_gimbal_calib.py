@@ -22,6 +22,7 @@ class GimbalData:
     num_poses: int
     num_links: int
     num_joints: int
+    timestamps: np.ndarray
     fiducial_ext: np.ndarray
     gimbal_ext: np.ndarray
     cam0_params: np.ndarray
@@ -53,7 +54,8 @@ class GimbalData:
         T_M0L2 = gimbal.forward_kinematics(joint_idx=2)
 
         # Transforms
-        T_WB = pose2tf(self.poses[0])
+        first_ts = self.timestamps[0]
+        T_WB = pose2tf(self.poses[first_ts])
         T_BM0 = pose2tf(self.gimbal_ext)
         T_WL0 = T_WB @ T_BM0 @ T_M0L0
         T_WL1 = T_WB @ T_BM0 @ T_M0L1
@@ -78,8 +80,8 @@ def plot_gimbal(ts, **kwargs):
     (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = gnd.get_plot_tfs(ts)
     gnd_colors = ['r-', 'g-', 'b-'] if est is None else ['r-', 'r-', 'r-']
     plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=gnd_colors)
-    # plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=gnd_colors)
-    # plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=gnd_colors)
     plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=gnd_colors)
     plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=gnd_colors)
 
@@ -87,8 +89,8 @@ def plot_gimbal(ts, **kwargs):
         (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = est.get_plot_tfs(ts)
         est_colors = ['b-', 'b-', 'b-']
         plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
-        # plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
-        # plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
         plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
         plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
 
@@ -96,8 +98,8 @@ def plot_gimbal(ts, **kwargs):
         (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = init.get_plot_tfs(ts)
         est_colors = ['g-', 'g-', 'g-']
         plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
-        # plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
-        # plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
         plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
         plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
 
@@ -257,6 +259,7 @@ def load_joints_file(joints_file):
     joints_data["num_views"] = num_views
     joints_data["num_joints"] = num_joints
 
+    timestamps = []
     for line in lines[4:]:
         line = line.split(",")
         ts = int(line[0])
@@ -264,9 +267,10 @@ def load_joints_file(joints_file):
         joint1 = float(line[2])
         joint2 = float(line[3])
 
+        timestamps.append(ts)
         joints_data[ts] = np.array([joint0, joint1, joint2])
 
-    return joints_data
+    return timestamps, joints_data
 
 
 def load_sim_gimbal_data(calib_dir):
@@ -277,7 +281,7 @@ def load_sim_gimbal_data(calib_dir):
 
     config_data = load_config_file(config_path)
     poses_data = load_poses_file(poses_path)
-    joints_data = load_joints_file(joints_path)
+    timestamps, joints_data = load_joints_file(joints_path)
 
     cam_dir = os.path.join(calib_dir, "cam0")
     cam_files = glob.glob(os.path.join(cam_dir, "*.sim"))
@@ -297,6 +301,7 @@ def load_sim_gimbal_data(calib_dir):
         poses_data["num_poses"],
         config_data["num_links"],
         joints_data["num_joints"],
+        timestamps,
         config_data["fiducial_ext"],
         config_data["gimbal_ext"],
         config_data["cam0_params"],
@@ -378,17 +383,19 @@ def load_calib_results(results_file):
     )
 
 if __name__ == "__main__":
-    calib_dir = "./test_data/sim_gimbal"
+    # calib_dir = "./test_data/sim_gimbal"
+    calib_dir = "/tmp/calib_gimbal"
     sim_data  = load_sim_gimbal_data(calib_dir)
+    plot_gimbal(sim_data.timestamps[0], gnd=sim_data)
 
-    results_file = "/tmp/estimates-gnd.yaml"
-    data_gnd = load_calib_results(results_file)
+    # results_file = "/tmp/estimates-gnd.yaml"
+    # data_gnd = load_calib_results(results_file)
 
-    results_file = "/tmp/estimates-before.yaml"
-    data_before = load_calib_results(results_file)
+    # results_file = "/tmp/estimates-before.yaml"
+    # data_before = load_calib_results(results_file)
 
-    results_file = "/tmp/estimates-after.yaml"
-    data_after = load_calib_results(results_file)
+    # results_file = "/tmp/estimates-after.yaml"
+    # data_after = load_calib_results(results_file)
 
-    for k in range(data_gnd.num_views):
-        plot_gimbal(k, gnd=data_gnd, init=data_before, est=data_after)
+    # for k in range(data_gnd.num_views):
+    #     plot_gimbal(k, gnd=data_gnd, init=data_before, est=data_after)

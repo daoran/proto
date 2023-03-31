@@ -110,7 +110,7 @@
     <!-- camera0 -->
     <link name="camera0">
       <gravity>0</gravity>
-      <pose relative_to="gimbal_pitch">0 0 -0.1 -1.5708 0 0</pose>
+      <pose relative_to="gimbal_pitch">0 0 -0.1 -1.5708 0 1.5708</pose>
 
       <inertial>
         <inertia>
@@ -161,7 +161,7 @@
     <!-- camera1 -->
     <link name="camera1">
       <gravity>0</gravity>
-      <pose relative_to="gimbal_pitch">0 0 0.1 -1.5708 0 0</pose>
+      <pose relative_to="gimbal_pitch">0 0 0.1 -1.5708 0 1.5708</pose>
 
       <inertial>
         <inertia>
