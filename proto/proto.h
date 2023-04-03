@@ -2322,7 +2322,7 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
 #define IDF_FACTOR 4
 #define IMU_FACTOR 5
 #define CALIB_CAMERA_FACTOR 6
-#define CALIB_VI_FACTOR 7
+#define CALIB_IMUCAM_FACTOR 7
 
 #define MARG_TRACK(RHASH, MHASH, PARAM)                                        \
   if (PARAM->marginalize == 0) {                                               \
@@ -2491,7 +2491,7 @@ typedef struct marg_factor_t {
   list_t *idf_factors;
   list_t *imu_factors;
   list_t *calib_camera_factors;
-  list_t *calib_vi_factors;
+  list_t *calib_imucam_factors;
   struct marg_factor_t *marg_factor;
 
   // Hessian, Jacobians and residuals
@@ -2811,6 +2811,7 @@ typedef struct calib_imucam_t {
   int fix_poses;
   int fix_cam_params;
   int fix_cam_exts;
+  int fix_time_delay;
   int verbose;
   int max_iter;
 
@@ -2909,7 +2910,8 @@ void calib_imucam_add_fiducial_event(calib_imucam_t *calib,
                                      const int *corner_indices,
                                      const real_t *object_points,
                                      const real_t *keypoints);
-void calib_imucam_update(calib_imucam_t *calib);
+void calib_imucam_marginalize(calib_imucam_t *calib);
+int calib_imucam_update(calib_imucam_t *calib);
 void calib_imucam_errors(calib_imucam_t *calib,
                          real_t *reproj_rmse,
                          real_t *reproj_mean,

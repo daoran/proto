@@ -5530,6 +5530,13 @@ int test_calib_imucam_batch() {
     {1.099270e-01, -2.450375e-04, 7.188873e-04,
      9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03}
   };
+  // const real_t T_SC0[4 * 4] = {
+  //   0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+  //   0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+  //   -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+  //   0.0, 0.0, 0.0, 1.0
+  // };
+  // TF_VECTOR(T_SC0, imu_ext);
   const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   const int imu_rate = 200;
   const real_t sigma_a = 0.08;
@@ -5562,12 +5569,12 @@ int test_calib_imucam_batch() {
                           dist_model,
                           cam_params[1],
                           cam_exts[1]);
-  calib_imucam_print(calib);
 
   // Incremental solve
   char *data_dir = "/data/proto/imu_april/";
   int num_cams = 2;
   int num_imus = 1;
+  int window_size = 10;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
   for (int k = 0; k < timeline->timeline_length; k++) {
@@ -5595,14 +5602,47 @@ int test_calib_imucam_batch() {
     }
 
     // Trigger update
-    calib_imucam_update(calib);
+    if (calib_imucam_update(calib) == 0) {
+      // calib->max_iter = 20;
+      // calib->verbose = 0;
+      // calib_imucam_solve(calib);
+
+      // // Incremental solve
+      // if (calib->num_views >= window_size) {
+      //   // calib_imucam_marginalize(calib);
+
+      //   real_t reproj_rmse = 0.0;
+      //   real_t reproj_mean = 0.0;
+      //   real_t reproj_median = 0.0;
+      //   if (calib->num_views) {
+      //     calib_imucam_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+      //   }
+
+      //   char cam0_str[100] = {0};
+      //   char cam1_str[100] = {0};
+      //   char cam_ext_str[100] = {0};
+      //   char imu_ext_str[100] = {0};
+      //   vec2str(calib->cam_params[0].data, 8, cam0_str);
+      //   vec2str(calib->cam_params[1].data, 8, cam1_str);
+      //   vec2str(calib->cam_exts[1].data, 7, cam_ext_str);
+      //   vec2str(calib->imu_ext->data, 7, imu_ext_str);
+      //   printf("cam0:    %s\n", cam0_str);
+      //   printf("cam1:    %s\n", cam1_str);
+      //   printf("cam ext: %s\n", cam_ext_str);
+      //   printf("imu ext: %s\n", imu_ext_str);
+      //   printf("rmse reproj error: %f\n", reproj_rmse);
+      //   printf("\n");
+      // }
+    }
+
     // if (calib->num_views > 200) {
     //   break;
     // }
   }
 
   // Solve
-  calib->max_iter = 50;
+  calib->max_iter = 20;
+  calib->verbose = 1;
   calib_imucam_solve(calib);
 
   // Clean up
@@ -5903,7 +5943,8 @@ static void compare_gimbal_calib(const calib_gimbal_t *gnd,
 int test_calib_gimbal_solve() {
   // Setup
   const int debug = 1;
-  const char *data_path = TEST_SIM_GIMBAL;
+  // const char *data_path = TEST_SIM_GIMBAL;
+  const char *data_path = "/tmp/calib_gimbal";
   calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
   calib_gimbal_t *calib_est = calib_gimbal_load(data_path);
   MU_ASSERT(calib_gnd != NULL);
@@ -5916,18 +5957,18 @@ int test_calib_gimbal_solve() {
     // printf("\n");
 
     // Perturb
-    real_t dx[6] = {0.01, 0.01, 0.01, 0.05, 0.05, 0.05};
+    real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
     // pose_vector_update(calib_est->fiducial_ext.data, dx);
     // pose_vector_update(calib_est->cam_exts[0].data, dx);
     // pose_vector_update(calib_est->cam_exts[1].data, dx);
     for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
       pose_vector_update(calib_est->links[link_idx].data, dx);
     }
-    for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
-      for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
-        calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.05, 0.05);
-      }
-    }
+    // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+    //   for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
+    //     calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.05, 0.05);
+    //   }
+    // }
     // printf("\n");
 
     //     printf("Initial:\n");
@@ -5945,7 +5986,7 @@ int test_calib_gimbal_solve() {
   solver_t solver;
   solver_setup(&solver);
   solver.verbose = debug;
-  solver.max_iter = 100;
+  solver.max_iter = 10;
   solver.param_order_func = &calib_gimbal_param_order;
   solver.cost_func = &calib_gimbal_cost;
   solver.linearize_func = &calib_gimbal_linearize_compact;

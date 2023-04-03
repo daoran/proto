@@ -12836,7 +12836,7 @@ int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
   CHECK(c0->r_size == c1->r_size);
   CHECK(c0->num_params == c1->num_params);
   for (int i = 0; i < c0->num_params; i++) {
-    const int m = c0->r_size;
+    // const int m = c0->r_size;
     const int n = param_local_size(c0->param_types[i]);
     CHECK(c0->param_types[i] == c1->param_types[i]);
     CHECK(vec_equals(c0->params[i], c1->params[i], n));
@@ -12898,7 +12898,7 @@ marg_factor_t *marg_factor_malloc() {
   marg->idf_factors = list_malloc();
   marg->imu_factors = list_malloc();
   marg->calib_camera_factors = list_malloc();
-  marg->calib_vi_factors = list_malloc();
+  marg->calib_imucam_factors = list_malloc();
   marg->marg_factor = NULL;
 
   // Hessian and residuals
@@ -12976,7 +12976,7 @@ void marg_factor_free(marg_factor_t *marg) {
   list_free(marg->idf_factors);
   list_free(marg->imu_factors);
   list_free(marg->calib_camera_factors);
-  list_free(marg->calib_vi_factors);
+  list_free(marg->calib_imucam_factors);
 
   // Residuals
   hmfree(marg->hash);
@@ -13041,6 +13041,9 @@ void marg_factor_print_stats(const marg_factor_t *marg) {
  * Add factor to marginalization factor.
  */
 void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr) {
+  assert(marg != NULL);
+  assert(factor_ptr != NULL);
+
   switch (factor_type) {
     case MARG_FACTOR:
       if (marg->marg_factor == NULL) {
@@ -13065,8 +13068,8 @@ void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr) {
     case CALIB_CAMERA_FACTOR:
       list_push(marg->calib_camera_factors, factor_ptr);
       break;
-    case CALIB_VI_FACTOR:
-      list_push(marg->calib_vi_factors, factor_ptr);
+    case CALIB_IMUCAM_FACTOR:
+      list_push(marg->calib_imucam_factors, factor_ptr);
       break;
     default:
       FATAL("Implementation Error!\n");
@@ -13148,6 +13151,20 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
       node = node->next;
     }
   }
+  // -- Track calib imucam factor params
+  {
+    list_node_t *node = marg->calib_imucam_factors->first;
+    while (node != NULL) {
+      calib_imucam_factor_t *factor = (calib_imucam_factor_t *) node->value;
+      MARG_TRACK(marg->r_fiducials, marg->m_fiducials, factor->fiducial);
+      MARG_TRACK(marg->r_poses, marg->m_poses, factor->imu_pose);
+      MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->imu_ext);
+      MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->cam_ext);
+      MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->cam_params);
+      MARG_TRACK(marg->r_time_delays, marg->m_time_delays, factor->time_delay);
+      node = node->next;
+    }
+  }
 
   // Determine parameter block column indicies for Hessian matrix H
   // clang-format off
@@ -13174,8 +13191,8 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_INDEX(marg->r_positions, POSITION_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_rotations, ROTATION_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_poses, POSE_PARAM, marg->hash, &H_idx, r, gr, nr);
-  MARG_INDEX(marg->r_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m, gr, nr);
-  MARG_INDEX(marg->r_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_velocities, VELOCITY_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_features, FEATURE_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_joints, JOINT_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r, gr, nr);
@@ -13185,6 +13202,11 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   // clang-format on
 
   // Track linearization point x0 and parameter pointers
+  assert(gm > 0);
+  assert(nm > 0);
+  assert(gr > 0);
+  assert(nr > 0);
+
   int param_idx = 0;
   int x0_idx = 0;
   marg->x0 = MALLOC(real_t, gr);
@@ -13228,6 +13250,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_H(marg, idf_factor_t, marg->idf_factors, H, b, ls);
   MARG_H(marg, imu_factor_t, marg->imu_factors, H, b, ls);
   MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
+  MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
   marg->H = H;
   marg->b = b;
 }
@@ -13318,11 +13341,11 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
       diff += fabs(H_[i] - marg->H_marg[i]);
     }
 
-    if (diff > 1e-4) {
-      marg->eigen_decomp_ok = 0;
-      LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
-      LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
-    }
+    // if (diff > 1e-4) {
+    //   marg->eigen_decomp_ok = 0;
+    //   LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
+    //   LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
+    // }
 
     free(Jt);
     free(H_);
@@ -13371,9 +13394,11 @@ static void marg_factor_form_fejs(marg_factor_t *marg) {
   marg->r = MALLOC(real_t, m);
   marg->jacs = MALLOC(real_t *, marg->num_params);
 
+  char param_type[100] ={0};
   for (size_t i = 0; i < marg->num_params; i++) {
     real_t *param_ptr = marg->params[i];
     const param_order_t *param_info = &hmgets(marg->hash, param_ptr);
+    param_type_string(param_info->type, param_type);
     const int n = param_local_size(param_info->type);
     const int cs = param_info->idx + col_offset;
     const int ce = cs + n - 1;
@@ -15108,8 +15133,9 @@ calib_imucam_t *calib_imucam_malloc() {
   calib->fix_poses = 0;
   calib->fix_cam_params = 0;
   calib->fix_cam_exts = 0;
+  calib->fix_time_delay = 1;
   calib->verbose = 1;
-  calib->max_iter = 20;
+  calib->max_iter = 30;
 
   // Flags
   calib->imu_ok = 0;
@@ -15232,6 +15258,7 @@ void calib_imucam_print(calib_imucam_t *calib) {
   printf("  fix_poses: %d\n", calib->fix_poses);
   printf("  fix_cam_exts: %d\n", calib->fix_cam_exts);
   printf("  fix_cam_params: %d\n", calib->fix_cam_params);
+  printf("  fix_time_delay: %d\n", calib->fix_time_delay);
   printf("\n");
 
   printf("statistics:\n");
@@ -15546,6 +15573,76 @@ void calib_imucam_add_fiducial_event(calib_imucam_t *calib,
                    keypoints);
 }
 
+/**
+ * Marginalize oldest state variables in IMU-camera calibration.
+ */
+void calib_imucam_marginalize(calib_imucam_t *calib) {
+  // Setup marginalization factor
+  marg_factor_t *marg = marg_factor_malloc();
+
+  // Get first timestamp
+  const timestamp_t ts = calib->timestamps[0];
+
+  // Mark the pose at timestamp to be marginalized
+  pose_t *pose = hmgets(calib->poses, ts).value;
+  velocity_t *vel = hmgets(calib->velocities, ts).value;
+  imu_biases_t *biases = hmgets(calib->biases, ts).value;
+  assert(pose != NULL);
+  assert(vel != NULL);
+  assert(biases != NULL);
+  pose->marginalize = 1;
+  vel->marginalize = 1;
+  biases->marginalize = 1;
+
+  // Add calib camera factors to marginalization factor
+  calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    calib_imucam_view_t *view = cam_views[cam_idx];
+    if (view == NULL) {
+      continue;
+    }
+
+    for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+      marg_factor_add(marg, CALIB_IMUCAM_FACTOR, &view->factors[factor_idx]);
+      calib->num_vision_factors--;
+    }
+  }
+
+  // Add imu factor to marginalization factor
+  imu_factor_t *imu_factor = hmgets(calib->imu_factors, ts).value;
+  marg_factor_add(marg, IMU_FACTOR, imu_factor);
+  calib->num_imu_factors--;
+
+  // Add previous marginalization factor to new marginalization factor
+  if (calib->marg) {
+    marg_factor_add(marg, MARG_FACTOR, calib->marg);
+  }
+
+  // Marginalize
+  marg_factor_marginalize(marg);
+  if (calib->marg) {
+    marg_factor_free(calib->marg);
+  }
+  calib->marg = marg;
+
+  // Remove viewset
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    calib_imucam_view_free(cam_views[cam_idx]);
+  }
+  free(cam_views);
+  hmdel(calib->view_sets, ts);
+
+  // Remove IMU factor
+  free(imu_factor);
+  hmdel(calib->imu_factors, ts);
+
+  // Remove timestamp
+  arrdel(calib->timestamps, 0);
+
+  // Update number of views
+  calib->num_views--;
+}
+
 /** Check update conditions. **/
 static int calib_imucam_update_precheck(calib_imucam_t *calib) {
   // Check fiducial buffers empty?
@@ -15581,6 +15678,8 @@ static real_t *calib_imucam_optflow(calib_imucam_t *calib,
   }
 
   const timestamp_t ts_km1 = calib->timestamps[arrlen(calib->timestamps) - 2];
+  const timestamp_t ts_k = calib->timestamps[arrlen(calib->timestamps) - 1];
+  const real_t dt = ts2sec(ts_k) - ts2sec(ts_km1);
   calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts_km1).value;
   if (cam_views == NULL || cam_views[fiducial->cam_idx] == NULL) {
     return optflows;
@@ -15612,15 +15711,26 @@ static real_t *calib_imucam_optflow(calib_imucam_t *calib,
 
     // Calculate optical flow
     if (found_corner) {
-      optflows[2 * i + 0] = kp_k[0] - kp_km1[0];
-      optflows[2 * i + 1] = kp_k[1] - kp_km1[1];
-
-      // printf("kp_k: [%.2f, %.2f] ", kp_k[0], kp_k[1]);
-      // printf("kp_km1: [%.2f, %.2f] ", kp_km1[0], kp_km1[1]);
-      // printf("v: [%.2f, %.2f] ", optflows[2 * i + 0], optflows[2 * i + 1]);
-      // printf("\n");
+      optflows[2 * i + 0] = (kp_k[0] - kp_km1[0]) * dt;
+      optflows[2 * i + 1] = (kp_k[1] - kp_km1[1]) * dt;
+    } else {
+      optflows[2 * i + 0] = 0;
+      optflows[2 * i + 1] = 0;
     }
+
+    // printf("kp_k: [%.2f, %.2f] ", kp_k[0], kp_k[1]);
+    // printf("kp_km1: [%.2f, %.2f] ", kp_km1[0], kp_km1[1]);
+    // printf("found: %d ", found_corner);
+    // printf("v: [%.2f, %.2f] ", optflows[2 * i + 0], optflows[2 * i + 1]);
+    // printf("\n");
   }
+
+  // if (ts_k == 1404733408032800000) {
+  // printf("ts_k:   %ld, num_corners: %d\n", ts_k, fiducial->num_corners);
+  // printf("ts_km1: %ld, num_corners: %d\n", ts_km1, prev_view->num_corners);
+  // printf("dt:     %f\n", dt);
+  // printf("\n\n\n");
+  // }
 
   return optflows;
 }
@@ -15628,12 +15738,12 @@ static real_t *calib_imucam_optflow(calib_imucam_t *calib,
 /**
  * Update IMU-Camera calibration problem.
  */
-void calib_imucam_update(calib_imucam_t *calib) {
+int calib_imucam_update(calib_imucam_t *calib) {
   assert(calib != NULL);
 
   // Pre-check
   if (calib_imucam_update_precheck(calib) != 0) {
-    return;
+    return -1;
   }
 
   // Add state
@@ -15684,17 +15794,23 @@ void calib_imucam_update(calib_imucam_t *calib) {
 
   // Add imu factor
   if (calib->num_views >= 2) {
-    // Pose, velocity and biases at km1
-    const timestamp_t ts_k = calib->timestamps[arrlen(calib->timestamps) - 1];
-    pose_t *pose_k = hmgets(calib->poses, ts_k).value;
-    velocity_t *vel_k = hmgets(calib->velocities, ts_k).value;
-    imu_biases_t *biases_k = hmgets(calib->biases, ts_k).value;
-
     // Pose, velocity and biases at k
     const timestamp_t ts_km1 = calib->timestamps[arrlen(calib->timestamps) - 2];
     pose_t *pose_km1 = hmgets(calib->poses, ts_km1).value;
     velocity_t *vel_km1 = hmgets(calib->velocities, ts_km1).value;
     imu_biases_t *biases_km1 = hmgets(calib->biases, ts_km1).value;
+    assert(pose_km1 != NULL);
+    assert(vel_km1 != NULL);
+    assert(biases_km1 != NULL);
+
+    // Pose, velocity and biases at km1
+    const timestamp_t ts_k = calib->timestamps[arrlen(calib->timestamps) - 1];
+    pose_t *pose_k = hmgets(calib->poses, ts_k).value;
+    velocity_t *vel_k = hmgets(calib->velocities, ts_k).value;
+    imu_biases_t *biases_k = hmgets(calib->biases, ts_k).value;
+    assert(pose_k != NULL);
+    assert(vel_k != NULL);
+    assert(biases_k != NULL);
 
     // Form IMU factor
     imu_factor_t *factor = MALLOC(imu_factor_t, 1);
@@ -15707,7 +15823,7 @@ void calib_imucam_update(calib_imucam_t *calib) {
                      pose_k,
                      vel_k,
                      biases_k);
-    hmput(calib->imu_factors, ts_k, factor);
+    hmput(calib->imu_factors, ts_km1, factor);
     calib->num_imu_factors++;
   }
 
@@ -15720,6 +15836,8 @@ void calib_imucam_update(calib_imucam_t *calib) {
   //   calib->max_iter = 4;
   //   calib_imucam_solve(calib);
   // }
+
+  return 0;
 }
 
 /**
@@ -15833,7 +15951,7 @@ param_order_t *calib_imucam_param_order(const void *data,
   // -- Add time delay
   {
     void *data = calib->time_delay->data;
-    const int fix = calib->time_delay->marginalize;
+    const int fix = calib->fix_time_delay || calib->time_delay->marginalize;
     param_order_add(&hash, TIME_DELAY_PARAM, fix, data, &col_idx);
   }
 
@@ -17047,7 +17165,7 @@ static void calib_gimbal_load_joints(calib_gimbal_t *calib,
     calib->joints[view_idx] = MALLOC(joint_t, num_joints);
     calib->joint_factors[view_idx] = MALLOC(joint_factor_t, num_joints);
 
-    const real_t joint_var = 0.1;
+    const real_t joint_var = 1e-10;
     for (size_t joint_idx = 0; joint_idx < num_joints; joint_idx++) {
       // Joint angles
       joint_t *joint = &calib->joints[view_idx][joint_idx];

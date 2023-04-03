@@ -66,51 +66,6 @@ class GimbalData:
         return (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1)
 
 
-def plot_gimbal(ts, **kwargs):
-    """ Plot Gimbal """
-    gnd = kwargs.get("gnd")
-    init = kwargs.get("init", None)
-    est = kwargs.get("est", None)
-
-    # Visualize
-    plt.figure()
-    ax = plt.axes(projection='3d')
-
-    # Plot transforms
-    (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = gnd.get_plot_tfs(ts)
-    gnd_colors = ['r-', 'g-', 'b-'] if est is None else ['r-', 'r-', 'r-']
-    plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=gnd_colors)
-
-    if est:
-        (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = est.get_plot_tfs(ts)
-        est_colors = ['b-', 'b-', 'b-']
-        plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
-
-    if init:
-        (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = init.get_plot_tfs(ts)
-        est_colors = ['g-', 'g-', 'g-']
-        plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
-
-    # Plot settings
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
-    plot_set_axes_equal(ax)
-    plt.show()
-
-
 def parse_int(line, key):
     """ Parse Integer """
     k, v = line.split(":")
@@ -207,11 +162,13 @@ def load_config_file(config_file):
 
 def load_view_file(view_file):
     """ Load view file """
+    ts = int(Path(view_file).stem)
     view_file = open(view_file, "r")
     view_lines = view_file.readlines()
     num_corners = parse_int(view_lines[0], "num_corners")
 
     view_data = {}
+    view_data["ts"] = ts
     view_data["num_corners"] = num_corners
     view_data["tag_ids"] = []
     view_data["corner_indices"] = []
@@ -312,9 +269,7 @@ def load_sim_gimbal_data(calib_dir):
         config_data["link1_ext"],
         joints_data,
         poses_data
-    )
-
-    return calib_data
+    ), calib_data
 
 def load_calib_results(results_file):
     """ Load calib results """
@@ -382,11 +337,99 @@ def load_calib_results(results_file):
         poses
     )
 
+
+def plot_gimbal(ts, **kwargs):
+    """ Plot Gimbal """
+    gnd = kwargs.get("gnd")
+    init = kwargs.get("init", None)
+    est = kwargs.get("est", None)
+
+    # Visualize
+    plt.figure()
+    ax = plt.axes(projection='3d')
+
+    # Plot transforms
+    (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = gnd.get_plot_tfs(ts)
+    gnd_colors = ['r-', 'g-', 'b-'] if est is None else ['r-', 'r-', 'r-']
+    plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=gnd_colors)
+
+    if est:
+        (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = est.get_plot_tfs(ts)
+        est_colors = ['b-', 'b-', 'b-']
+        plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
+
+    if init:
+        (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = init.get_plot_tfs(ts)
+        est_colors = ['g-', 'g-', 'g-']
+        plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
+
+    # Plot settings
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
+
+
+def check_transforms(sim_data, calib_data):
+    """ Check transforms """
+    # Gimbal
+    view_data = calib_data["views"]
+    view_ts = view_data["ts"]
+
+    links = [sim_data.link0_ext, sim_data.link1_ext]
+
+    joint_angles = [
+        sim_data.joints[view_ts][0],
+        sim_data.joints[view_ts][1],
+        sim_data.joints[view_ts][2]
+    ]
+
+    gimbal = GimbalKinematics(links, joint_angles)
+    T_M0L2 = gimbal.forward_kinematics(joint_idx=2)
+    T_WB = pose2tf(sim_data.poses[sim_data.timestamps[0]])
+    T_BM0 = pose2tf(sim_data.gimbal_ext)
+    T_WL2 = T_WB @ T_BM0 @ T_M0L2
+    T_C0W = tf_inv(T_WL2 @ pose2tf(sim_data.cam0_ext))
+    T_C1W = tf_inv(T_WL2 @ pose2tf(sim_data.cam1_ext))
+
+    T_WF = pose2tf(sim_data.fiducial_ext)
+    reproj_errors = []
+    for i in range(view_data["num_corners"]):
+        z = view_data["keypoints"][i]
+        p_F = view_data["object_points"][i]
+        p_C = tf_point(T_C0W @ T_WF, p_F)
+
+        proj_params = sim_data.cam0_params[0:4]
+        dist_params = sim_data.cam0_params[4:8]
+        z_hat = pinhole_radtan4_project(proj_params, dist_params, p_C)
+        r = z - z_hat
+
+        reproj_errors.append(sqrt(r @ r))
+
+    reproj_errors = np.array(reproj_errors).flatten()
+    print(reproj_errors.mean())
+
+
+
 if __name__ == "__main__":
     # calib_dir = "./test_data/sim_gimbal"
     calib_dir = "/tmp/calib_gimbal"
-    sim_data  = load_sim_gimbal_data(calib_dir)
-    plot_gimbal(sim_data.timestamps[0], gnd=sim_data)
+    sim_data, calib_data  = load_sim_gimbal_data(calib_dir)
+    # plot_gimbal(sim_data.timestamps[0], gnd=sim_data)
+    # check_transforms(sim_data, calib_data)
 
     # results_file = "/tmp/estimates-gnd.yaml"
     # data_gnd = load_calib_results(results_file)
