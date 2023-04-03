@@ -230,20 +230,6 @@ struct CalibData {
 
   void setGimbalPose(const PoseStamped &msg) {
     if (gimbal_pose_set == false) {
-      gimbal_ext[0] = msg.pose.position.x;
-      gimbal_ext[1] = msg.pose.position.y;
-      gimbal_ext[2] = msg.pose.position.z;
-
-      gimbal_ext[3] = msg.pose.orientation.w;
-      gimbal_ext[4] = msg.pose.orientation.x;
-      gimbal_ext[5] = msg.pose.orientation.y;
-      gimbal_ext[6] = msg.pose.orientation.z;
-    }
-    gimbal_pose_set = true;
-  }
-
-  void setFiducialPose(const PoseStamped &msg) {
-    if (fiducial_pose_set == false) {
       gimbal_pose.push_back(msg.pose.position.x);
       gimbal_pose.push_back(msg.pose.position.y);
       gimbal_pose.push_back(msg.pose.position.z);
@@ -251,6 +237,19 @@ struct CalibData {
       gimbal_pose.push_back(msg.pose.orientation.x);
       gimbal_pose.push_back(msg.pose.orientation.y);
       gimbal_pose.push_back(msg.pose.orientation.z);
+    }
+    gimbal_pose_set = true;
+  }
+
+  void setFiducialPose(const PoseStamped &msg) {
+    if (fiducial_pose_set == false) {
+      fiducial_ext[0] = msg.pose.position.x;
+      fiducial_ext[1] = msg.pose.position.y;
+      fiducial_ext[2] = msg.pose.position.z;
+      fiducial_ext[3] = msg.pose.orientation.w;
+      fiducial_ext[4] = msg.pose.orientation.x;
+      fiducial_ext[5] = msg.pose.orientation.y;
+      fiducial_ext[6] = msg.pose.orientation.z;
     }
     fiducial_pose_set = true;
   }
