@@ -279,6 +279,7 @@ def load_calib_results(results_file):
     num_links = None
     num_joints = None
 
+    timestamps = []
     fiducial_ext = None
     gimbal_ext = None
     cam0_params = None
@@ -311,6 +312,7 @@ def load_calib_results(results_file):
             idx = k * stride
             ts = data["joints"][idx]
             joints[ts] = [j for j in data["joints"][idx + 1:idx + 4]]
+            timestamps.append(ts)
 
         stride = 7 + 1
         for k in range(num_poses):
@@ -325,6 +327,7 @@ def load_calib_results(results_file):
         num_poses,
         num_links,
         num_joints,
+        timestamps,
         fiducial_ext,
         gimbal_ext,
         cam0_params,
@@ -426,19 +429,20 @@ def check_transforms(sim_data, calib_data):
 
 if __name__ == "__main__":
     # calib_dir = "./test_data/sim_gimbal"
-    calib_dir = "/tmp/calib_gimbal"
-    sim_data, calib_data  = load_sim_gimbal_data(calib_dir)
+    # calib_dir = "/tmp/calib_gimbal"
+    # sim_data, calib_data  = load_sim_gimbal_data(calib_dir)
     # plot_gimbal(sim_data.timestamps[0], gnd=sim_data)
     # check_transforms(sim_data, calib_data)
 
-    # results_file = "/tmp/estimates-gnd.yaml"
-    # data_gnd = load_calib_results(results_file)
+    results_file = "/tmp/estimates-gnd.yaml"
+    data_gnd = load_calib_results(results_file)
 
-    # results_file = "/tmp/estimates-before.yaml"
-    # data_before = load_calib_results(results_file)
+    results_file = "/tmp/estimates-before.yaml"
+    data_before = load_calib_results(results_file)
 
-    # results_file = "/tmp/estimates-after.yaml"
-    # data_after = load_calib_results(results_file)
+    results_file = "/tmp/estimates-after.yaml"
+    data_after = load_calib_results(results_file)
 
-    # for k in range(data_gnd.num_views):
-    #     plot_gimbal(k, gnd=data_gnd, init=data_before, est=data_after)
+    for k in range(data_gnd.num_views):
+        ts = data_gnd.timestamps[k]
+        plot_gimbal(ts, gnd=data_gnd, init=data_before, est=data_after)
