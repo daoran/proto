@@ -7843,9 +7843,9 @@ void pid_ctrl_reset(pid_ctrl_t *pid) {
 
 void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
   ctrl->dt = 0;
-  // pid_ctrl_setup(ctrl->roll);
-  // pid_ctrl_setup(ctrl->pitch);
-  // pid_ctrl_setup(ctrl->yaw);
+  pid_ctrl_setup(&ctrl->roll, 200.0, 0.5, 10.0);
+  pid_ctrl_setup(&ctrl->pitch, 200.0, 0.5, 10.0);
+  pid_ctrl_setup(&ctrl->yaw, 200.0, 0.5, 10.0);
 
   zeros(ctrl->setpoints, 3, 1);
   zeros(ctrl->outputs, 4, 1);
@@ -7853,7 +7853,7 @@ void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
 
 void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
                          const real_t setpoints[4],
-                         const real_t actual[4],
+                         const real_t actual[3],
                          const real_t dt,
                          real_t outputs[4]) {
   // Check rate
@@ -7912,6 +7912,94 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
   ctrl->dt = 0.0; // Reset dt
 }
 
+void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl) {
+  ctrl->dt = 0;
+  pid_ctrl_setup(&ctrl->x, 0.5, 0.0, 0.035);
+  pid_ctrl_setup(&ctrl->y, 0.5, 0.0, 0.035);
+  pid_ctrl_setup(&ctrl->z, 0.5, 0.0, 0.018);
+
+  zeros(ctrl->setpoints, 3, 1);
+  zeros(ctrl->outputs, 4, 1);
+}
+
+void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
+                         const real_t setpoints[4],
+                         const real_t actual[4],
+                         const real_t dt,
+                         real_t outputs[4]) {
+  // Check rate
+  ctrl->dt += dt;
+  if (ctrl->dt < 0.01) {
+    // Return previous command
+    outputs[0] = ctrl->outputs[0];
+    outputs[1] = ctrl->outputs[1];
+    outputs[2] = ctrl->outputs[2];
+    outputs[3] = ctrl->outputs[3];
+    return;
+  }
+
+  // Calculate RPY errors relative to quadrotor by incorporating yaw
+  real_t errors_W[3] = {0};
+  errors_W[0] = setpoints[0] - actual[0];
+  errors_W[1] = setpoints[1] - actual[1];
+  errors_W[2] = setpoints[2] - actual[2];
+
+  // errors = C * errors;
+  real_t ypr[3] = {actual[3], 0.0, 0.0};
+  real_t C[3 * 3] = {0};
+  real_t errors[3] = {0};
+  euler321(ypr, C);
+  dot(C, 3, 3, errors_W, 3, 1, errors);
+
+  // Roll, pitch, yaw and thrust
+  real_t r = -pid_ctrl_update(&ctrl->y, errors[1], 0.0, ctrl->dt);
+  real_t p = pid_ctrl_update(&ctrl->x, errors[0], 0.0, ctrl->dt);
+  real_t y = setpoints[3];
+  real_t t = 0.5 + pid_ctrl_update(&ctrl->z, errors[2], 0.0, ctrl->dt);
+
+  outputs[0] = r;
+  outputs[1] = p;
+  outputs[2] = y;
+  outputs[3] = t;
+
+  // Limit roll, pitch
+  for (int i = 0; i < 2; i++) {
+    if (outputs[i] > deg2rad(30.0)) {
+      outputs[i] = deg2rad(30.0);
+    } else if (outputs[i] < deg2rad(-30.0)) {
+      outputs[i] = deg2rad(-30.0);
+    }
+  }
+
+  // Limit yaw
+  while (outputs[2] > deg2rad(360.0)) {
+    outputs[2] -= deg2rad(360.0);
+  }
+  while (outputs[2] < deg2rad(0.0)) {
+    outputs[2] += deg2rad(360.0);
+  }
+
+  // Limit thrust
+  if (outputs[3] > 1.0) {
+    outputs[3] = 1.0;
+  } else if (outputs[3] < 0.0) {
+    outputs[3] = 0.0;
+  }
+
+  // Yaw first if threshold reached
+  if (fabs(setpoints[3] - actual[3]) > deg2rad(2)) {
+    outputs[0] = 0.0;
+    outputs[1] = 0.0;
+  }
+
+  // Keep track of outputs
+  ctrl->outputs[0] = outputs[0];
+  ctrl->outputs[1] = outputs[1];
+  ctrl->outputs[2] = outputs[2];
+  ctrl->outputs[3] = outputs[3];
+  ctrl->dt = 0.0;
+}
+
 void mav_model_setup(mav_model_t *mav,
                      const real_t x[12],
                      const real_t inertia[3],
@@ -7929,6 +8017,14 @@ void mav_model_setup(mav_model_t *mav,
   mav->d = d;                         // Drag co-efficient
   mav->m = m;                         // Mass
   mav->g = g;                         // Gravitational constant
+}
+
+void mav_model_print_state(const mav_model_t *mav, const real_t time) {
+  printf("time: %f, ", time);
+  printf("pos: [%f, %f, %f], ", mav->state[6], mav->state[7], mav->state[8]);
+  printf("att: [%f, %f, %f], ", mav->state[0], mav->state[1], mav->state[2]);
+  printf("vel: [%f, %f, %f], ", mav->state[9], mav->state[10], mav->state[11]);
+  printf("\n");
 }
 
 void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
@@ -7965,6 +8061,8 @@ void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
     -mav->d,   mav->d,  -mav->d,  mav->d
   };
   // clang-format on
+
+  // tau = A * u
   const real_t tauf = A[0] * u[0] + A[1] * u[1] + A[2] * u[2] + A[3] * u[3];
   const real_t taup = A[4] * u[0] + A[5] * u[1] + A[6] * u[2] + A[7] * u[3];
   const real_t tauq = A[8] * u[0] + A[9] * u[1] + A[10] * u[2] + A[11] * u[3];
@@ -13341,11 +13439,11 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
       diff += fabs(H_[i] - marg->H_marg[i]);
     }
 
-    // if (diff > 1e-4) {
-    //   marg->eigen_decomp_ok = 0;
-    //   LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
-    //   LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
-    // }
+    if (diff > 1e-4) {
+      marg->eigen_decomp_ok = 0;
+      LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
+      LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
+    }
 
     free(Jt);
     free(H_);
@@ -13394,7 +13492,7 @@ static void marg_factor_form_fejs(marg_factor_t *marg) {
   marg->r = MALLOC(real_t, m);
   marg->jacs = MALLOC(real_t *, marg->num_params);
 
-  char param_type[100] ={0};
+  char param_type[100] = {0};
   for (size_t i = 0; i < marg->num_params; i++) {
     real_t *param_ptr = marg->params[i];
     const param_order_t *param_info = &hmgets(marg->hash, param_ptr);

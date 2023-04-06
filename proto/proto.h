@@ -1347,9 +1347,9 @@ typedef struct mav_pos_ctrl_t {
   pid_ctrl_t y;
   pid_ctrl_t z;
 
-  real_t roll_limit[2];
-  real_t pitch_limit[2];
-  real_t hover_throttle;
+  // real_t roll_limit[2];
+  // real_t pitch_limit[2];
+  // real_t hover_throttle;
 
   real_t setpoints[3];
   real_t outputs[4];
@@ -1358,11 +1358,16 @@ typedef struct mav_pos_ctrl_t {
 void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl);
 void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
                          const real_t setpoints[4],
-                         const real_t actual[4],
+                         const real_t actual[3],
                          const real_t dt,
                          real_t outputs[4]);
 
 void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl);
+void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
+                         const real_t setpoints[4],
+                         const real_t actual[4],
+                         const real_t dt,
+                         real_t outputs[4]);
 
 void mav_model_setup(mav_model_t *mav,
                      const real_t x[12],
@@ -1373,6 +1378,7 @@ void mav_model_setup(mav_model_t *mav,
                      const real_t d,
                      const real_t m,
                      const real_t g);
+void mav_model_print_state(const mav_model_t *mav, const real_t time);
 void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt);
 
 /******************************************************************************

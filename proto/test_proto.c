@@ -3236,6 +3236,77 @@ int test_pinhole_equi4_params_jacobian() {
  ******************************************************************************/
 
 int test_pid_ctrl() {
+  const real_t kp = 0.1;
+  const real_t ki = 0.2;
+  const real_t kd = 0.3;
+  pid_ctrl_t pid;
+  pid_ctrl_setup(&pid, kp, ki, kd);
+
+  MU_ASSERT(fltcmp(pid.error_prev, 0.0) == 0);
+  MU_ASSERT(fltcmp(pid.error_sum, 0.0) == 0);
+
+  MU_ASSERT(fltcmp(pid.error_p, 0.0) == 0);
+  MU_ASSERT(fltcmp(pid.error_i, 0.0) == 0);
+  MU_ASSERT(fltcmp(pid.error_d, 0.0) == 0);
+
+  MU_ASSERT(fltcmp(pid.k_p, kp) == 0);
+  MU_ASSERT(fltcmp(pid.k_i, ki) == 0);
+  MU_ASSERT(fltcmp(pid.k_d, kd) == 0);
+
+  return 0;
+}
+
+/******************************************************************************
+ * TEST MAV
+ ******************************************************************************/
+
+int test_mav() {
+  mav_model_t mav;
+  const real_t x[12] = {
+    // Attitude [rad]
+    0.0, 0.0, 0.0,
+    // Angular Velocity [rad / s]
+    0.0, 0.0, 0.0,
+    // Position [m]
+    0.0, 0.0, 0.0,
+    // Linear velocity [m / s]
+    0.0, 0.0, 0.0
+  };
+  const real_t inertia[3] = {0.0963, 0.0963, 0.1927};
+  const real_t kr = 0.1;
+  const real_t kt = 0.2;
+  const real_t l = 0.9;
+  const real_t d = 1.0;
+  const real_t m = 1.0;
+  const real_t g = 9.81;
+  mav_model_setup(&mav, x, inertia, kr, kt, l, d, m, g);
+
+  mav_att_ctrl_t mav_att_ctrl;
+  mav_pos_ctrl_t mav_pos_ctrl;
+  mav_att_ctrl_setup(&mav_att_ctrl);
+  mav_pos_ctrl_setup(&mav_pos_ctrl);
+
+  const real_t pos_setpoints[4] = {0.1, 0.5, 2.0, 0.0};
+
+  const real_t dt = 0.001;
+  const real_t t_end = 10.0;
+  real_t t = 0.0;
+  while (t <= t_end) {
+    const real_t pos_actual[4] = {mav.state[6], mav.state[7], mav.state[8], mav.state[2]};
+    const real_t att_actual[3] = {mav.state[0], mav.state[1], mav.state[2]};
+
+    real_t att_setpoints[4] = {0};
+    real_t motor_inputs[4] = {0};
+    mav_pos_ctrl_update(&mav_pos_ctrl, pos_setpoints, pos_actual, dt, att_setpoints);
+    mav_att_ctrl_update(&mav_att_ctrl, att_setpoints, att_actual, dt, motor_inputs);
+    mav_model_update(&mav, motor_inputs, dt);
+
+    // mav_model_print_state(&mav, t);
+    t += dt;
+  }
+
+  mav_model_print_state(&mav, t);
+
   return 0;
 }
 
@@ -6599,6 +6670,9 @@ void test_suite() {
 
   // CONTROL
   MU_ADD_TEST(test_pid_ctrl);
+
+  // MAV
+  MU_ADD_TEST(test_mav);
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);
