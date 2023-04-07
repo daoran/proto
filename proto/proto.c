@@ -7843,11 +7843,11 @@ void pid_ctrl_reset(pid_ctrl_t *pid) {
 
 void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
   ctrl->dt = 0;
-  pid_ctrl_setup(&ctrl->roll, 200.0, 0.5, 10.0);
-  pid_ctrl_setup(&ctrl->pitch, 200.0, 0.5, 10.0);
-  pid_ctrl_setup(&ctrl->yaw, 200.0, 0.5, 10.0);
+  pid_ctrl_setup(&ctrl->roll, 1000.0, 0.0, 22.0);
+  pid_ctrl_setup(&ctrl->pitch, 1000.0, 0.0, 22.0);
+  pid_ctrl_setup(&ctrl->yaw, 1000.0, 0.0, 22.0);
 
-  zeros(ctrl->setpoints, 3, 1);
+  zeros(ctrl->setpoints, 4, 1);
   zeros(ctrl->outputs, 4, 1);
 }
 
@@ -7914,11 +7914,11 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
 
 void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl) {
   ctrl->dt = 0;
-  pid_ctrl_setup(&ctrl->x, 0.5, 0.0, 0.035);
-  pid_ctrl_setup(&ctrl->y, 0.5, 0.0, 0.035);
-  pid_ctrl_setup(&ctrl->z, 0.5, 0.0, 0.018);
+  pid_ctrl_setup(&ctrl->x, 0.3, 0.0, 0.2);
+  pid_ctrl_setup(&ctrl->y, 0.3, 0.0, 0.2);
+  pid_ctrl_setup(&ctrl->z, 2.0, 0.0, 0.65);
 
-  zeros(ctrl->setpoints, 3, 1);
+  zeros(ctrl->setpoints, 4, 1);
   zeros(ctrl->outputs, 4, 1);
 }
 
@@ -8009,7 +8009,7 @@ void mav_model_setup(mav_model_t *mav,
                      const real_t d,
                      const real_t m,
                      const real_t g) {
-  vec_copy(x, 12, mav->state);        // State
+  vec_copy(x, 12, mav->x);        // State
   vec_copy(inertia, 3, mav->inertia); // Moment of inertia
   mav->kr = kr;                       // Rotation drag constant
   mav->kt = kt;                       // Translation drag constant
@@ -8021,26 +8021,26 @@ void mav_model_setup(mav_model_t *mav,
 
 void mav_model_print_state(const mav_model_t *mav, const real_t time) {
   printf("time: %f, ", time);
-  printf("pos: [%f, %f, %f], ", mav->state[6], mav->state[7], mav->state[8]);
-  printf("att: [%f, %f, %f], ", mav->state[0], mav->state[1], mav->state[2]);
-  printf("vel: [%f, %f, %f], ", mav->state[9], mav->state[10], mav->state[11]);
+  printf("pos: [%f, %f, %f], ", mav->x[6], mav->x[7], mav->x[8]);
+  printf("att: [%f, %f, %f], ", mav->x[0], mav->x[1], mav->x[2]);
+  printf("vel: [%f, %f, %f], ", mav->x[9], mav->x[10], mav->x[11]);
   printf("\n");
 }
 
 void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
   // Map out previous state
   // -- Attitude
-  const real_t ph = mav->state[0];
-  const real_t th = mav->state[1];
-  const real_t ps = mav->state[2];
+  const real_t ph = mav->x[0];
+  const real_t th = mav->x[1];
+  const real_t ps = mav->x[2];
   // -- Angular velocity
-  const real_t p = mav->state[3];
-  const real_t q = mav->state[4];
-  const real_t r = mav->state[5];
+  const real_t p = mav->x[3];
+  const real_t q = mav->x[4];
+  const real_t r = mav->x[5];
   // -- Velocity
-  const real_t vx = mav->state[9];
-  const real_t vy = mav->state[10];
-  const real_t vz = mav->state[11];
+  const real_t vx = mav->x[9];
+  const real_t vy = mav->x[10];
+  const real_t vz = mav->x[11];
 
   // Map out constants
   const real_t Ix = mav->inertia[0];
@@ -8077,24 +8077,24 @@ void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
   const real_t cps = cos(ps);
   const real_t sps = sin(ps);
 
-  real_t *s = mav->state;
+  real_t *x = mav->x;
   // -- Attitude
-  s[0] += (p + q * sph * tth + r * cos(ph) * tth) * dt;
-  s[1] += (q * cph - r * sph) * dt;
-  s[2] += ((1 / cth) * (q * sph + r * cph)) * dt;
+  x[0] += (p + q * sph * tth + r * cos(ph) * tth) * dt;
+  x[1] += (q * cph - r * sph) * dt;
+  x[2] += ((1 / cth) * (q * sph + r * cph)) * dt;
   // s[2] = wrapToPi(s[2]);
   // -- Angular velocity
-  s[3] += (-((Iz - Iy) / Ix) * q * r - (kr * p / Ix) + (1 / Ix) * taup) * dt;
-  s[4] += (-((Ix - Iz) / Iy) * p * r - (kr * q / Iy) + (1 / Iy) * tauq) * dt;
-  s[5] += (-((Iy - Ix) / Iz) * p * q - (kr * r / Iz) + (1 / Iz) * taur) * dt;
+  x[3] += (-((Iz - Iy) / Ix) * q * r - (kr * p / Ix) + (1 / Ix) * taup) * dt;
+  x[4] += (-((Ix - Iz) / Iy) * p * r - (kr * q / Iy) + (1 / Iy) * tauq) * dt;
+  x[5] += (-((Iy - Ix) / Iz) * p * q - (kr * r / Iz) + (1 / Iz) * taur) * dt;
   // -- Position
-  s[6] += vx * dt;
-  s[7] += vy * dt;
-  s[8] += vz * dt;
+  x[6] += vx * dt;
+  x[7] += vy * dt;
+  x[8] += vz * dt;
   // -- Linear velocity
-  s[9] += ((-kt * vx / m) + mr * (cph * sth * cps + sph * sps) * tauf) * dt;
-  s[10] += ((-kt * vy / m) + mr * (cph * sth * sps - sph * cps) * tauf) * dt;
-  s[11] += (-(kt * vz / m) + mr * (cph * cth) * tauf - g) * dt;
+  x[9] += ((-kt * vx / m) + mr * (cph * sth * cps + sph * sps) * tauf) * dt;
+  x[10] += ((-kt * vy / m) + mr * (cph * sth * sps - sph * cps) * tauf) * dt;
+  x[11] += (-(kt * vz / m) + mr * (cph * cth) * tauf - g) * dt;
 }
 
 /******************************************************************************

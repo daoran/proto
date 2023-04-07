@@ -352,7 +352,8 @@ dev_euroc() {
 # PROTO-CONTROL
 # run_test test_pid_ctrl
 # PROTO-MAV
-run_test test_mav
+# run_test test_mav_att_ctrl
+run_test test_mav_pos_ctrl
 # PROTO-SENSOR_FUSION
 # run_test test_schur_complement
 # run_test test_timeline

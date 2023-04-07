@@ -3260,8 +3260,8 @@ int test_pid_ctrl() {
  * TEST MAV
  ******************************************************************************/
 
-int test_mav() {
-  mav_model_t mav;
+static void test_setup_mav(mav_model_t *mav) {
+  // clang-format off
   const real_t x[12] = {
     // Attitude [rad]
     0.0, 0.0, 0.0,
@@ -3272,40 +3272,126 @@ int test_mav() {
     // Linear velocity [m / s]
     0.0, 0.0, 0.0
   };
-  const real_t inertia[3] = {0.0963, 0.0963, 0.1927};
-  const real_t kr = 0.1;
-  const real_t kt = 0.2;
-  const real_t l = 0.9;
-  const real_t d = 1.0;
-  const real_t m = 1.0;
-  const real_t g = 9.81;
-  mav_model_setup(&mav, x, inertia, kr, kt, l, d, m, g);
+  // clang-format on
+  const real_t inertia[3] = {0.0963, 0.0963, 0.1927}; // Moment of inertia
+  const real_t kr = 0.1;                              // Rotation drag constant
+  const real_t kt = 0.2; // Translation drag constant
+  const real_t l = 0.9;  // Arm Length
+  const real_t d = 1.0;  // Drag constant
+  const real_t m = 1.0;  // Mass
+  const real_t g = 9.81; // Gravitational constant
+  mav_model_setup(mav, x, inertia, kr, kt, l, d, m, g);
+}
+
+int test_mav_att_ctrl() {
+  mav_model_t mav;
+  test_setup_mav(&mav);
 
   mav_att_ctrl_t mav_att_ctrl;
   mav_pos_ctrl_t mav_pos_ctrl;
   mav_att_ctrl_setup(&mav_att_ctrl);
   mav_pos_ctrl_setup(&mav_pos_ctrl);
 
-  const real_t pos_setpoints[4] = {0.1, 0.5, 2.0, 0.0};
-
+  const real_t att_sp[4] = {0.1, 0.1, 0.0, 0.0};
   const real_t dt = 0.001;
-  const real_t t_end = 10.0;
+  const real_t t_end = 0.5;
   real_t t = 0.0;
+
+  int idx = 0;
+  const int N = t_end / dt;
+  real_t *time_vals = CALLOC(real_t, N);
+  real_t *roll_vals = CALLOC(real_t, N);
+  real_t *pitch_vals = CALLOC(real_t, N);
+  real_t *yaw_vals = CALLOC(real_t, N);
+
   while (t <= t_end) {
-    const real_t pos_actual[4] = {mav.state[6], mav.state[7], mav.state[8], mav.state[2]};
-    const real_t att_actual[3] = {mav.state[0], mav.state[1], mav.state[2]};
+    const real_t att_pv[3] = {mav.x[0], mav.x[1], mav.x[2]};
 
-    real_t att_setpoints[4] = {0};
-    real_t motor_inputs[4] = {0};
-    mav_pos_ctrl_update(&mav_pos_ctrl, pos_setpoints, pos_actual, dt, att_setpoints);
-    mav_att_ctrl_update(&mav_att_ctrl, att_setpoints, att_actual, dt, motor_inputs);
-    mav_model_update(&mav, motor_inputs, dt);
+    real_t u[4] = {0};
+    mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
+    mav_model_update(&mav, u, dt);
 
-    // mav_model_print_state(&mav, t);
+    time_vals[idx] = t;
+    roll_vals[idx] = mav.x[0];
+    pitch_vals[idx] = mav.x[1];
+    yaw_vals[idx] = mav.x[2];
+
     t += dt;
+    idx += 1;
   }
 
-  mav_model_print_state(&mav, t);
+  // Plot
+  FILE *gnuplot = gnuplot_init();
+  gnuplot_send(gnuplot, "set title 'Plot 1'");
+  gnuplot_send_xy(gnuplot, "$roll", time_vals, roll_vals, N);
+  gnuplot_send_xy(gnuplot, "$pitch", time_vals, pitch_vals, N);
+  gnuplot_send_xy(gnuplot, "$yaw", time_vals, yaw_vals, N);
+  gnuplot_send(gnuplot, "plot $roll with lines, $pitch with lines, $yaw with lines");
+
+  // Clean up
+  free(time_vals);
+  free(roll_vals);
+  free(pitch_vals);
+  free(yaw_vals);
+  gnuplot_close(gnuplot);
+
+  return 0;
+}
+
+int test_mav_pos_ctrl() {
+  mav_model_t mav;
+  test_setup_mav(&mav);
+
+  mav_att_ctrl_t mav_att_ctrl;
+  mav_pos_ctrl_t mav_pos_ctrl;
+  mav_att_ctrl_setup(&mav_att_ctrl);
+  mav_pos_ctrl_setup(&mav_pos_ctrl);
+
+  const real_t pos_sp[4] = {1.0, 1.0, 3.0, 0.0};
+  const real_t dt = 0.001;
+  const real_t t_end = 5.0;
+  real_t t = 0.0;
+
+  int idx = 0;
+  const int N = t_end / dt;
+  real_t *time_vals = CALLOC(real_t, N);
+  real_t *xvals = CALLOC(real_t, N);
+  real_t *yvals = CALLOC(real_t, N);
+  real_t *zvals = CALLOC(real_t, N);
+
+  while (t <= t_end) {
+    const real_t pos_pv[4] = {mav.x[6], mav.x[7], mav.x[8], mav.x[2]};
+    const real_t att_pv[3] = {mav.x[0], mav.x[1], mav.x[2]};
+
+    real_t att_sp[4] = {0};
+    real_t u[4] = {0};
+    mav_pos_ctrl_update(&mav_pos_ctrl, pos_sp, pos_pv, dt, att_sp);
+    mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
+    mav_model_update(&mav, u, dt);
+
+    time_vals[idx] = t;
+    xvals[idx] = mav.x[6];
+    yvals[idx] = mav.x[7];
+    zvals[idx] = mav.x[8];
+
+    t += dt;
+    idx += 1;
+  }
+
+  // Plot
+  FILE *gnuplot = gnuplot_init();
+  gnuplot_send(gnuplot, "set title 'Plot 1'");
+  gnuplot_send_xy(gnuplot, "$x", time_vals, xvals, N);
+  gnuplot_send_xy(gnuplot, "$y", time_vals, yvals, N);
+  gnuplot_send_xy(gnuplot, "$z", time_vals, zvals, N);
+  gnuplot_send(gnuplot, "plot $x with lines, $y with lines, $z with lines");
+
+  // Clean up
+  free(time_vals);
+  free(xvals);
+  free(yvals);
+  free(zvals);
+  gnuplot_close(gnuplot);
 
   return 0;
 }
@@ -6672,7 +6758,8 @@ void test_suite() {
   MU_ADD_TEST(test_pid_ctrl);
 
   // MAV
-  MU_ADD_TEST(test_mav);
+  MU_ADD_TEST(test_mav_att_ctrl);
+  MU_ADD_TEST(test_mav_pos_ctrl);
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);

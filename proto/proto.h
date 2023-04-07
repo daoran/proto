@@ -1321,7 +1321,7 @@ void pid_ctrl_reset(pid_ctrl_t *pid);
  ******************************************************************************/
 
 typedef struct mav_model_t {
-  real_t state[12];  // State
+  real_t x[12];  // State
   real_t inertia[3]; // Moment of inertia
   real_t kr;         // Rotation drag constant
   real_t kt;         // Translation drag constant
