@@ -2,6 +2,7 @@
 BLD_DIR := build
 INC_DIR := $(realpath $(PWD))
 DEPS_DIR := $(realpath ../third_party)
+PREFIX := /opt/proto
 
 # COMPILER SETTINGS
 BUILD_TYPE := debug
@@ -141,6 +142,27 @@ clean:  ## Clean build directory
 	@rm -rf $(BLD_DIR)
 
 libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
+
+install: libproto  ## Install libproto
+	mkdir -p $(PREFIX)
+	mkdir -p $(PREFIX)/lib
+	mkdir -p $(PREFIX)/include
+	cp build/libproto.a $(PREFIX)/lib/libproto.a
+	cp aprilgrid.h $(PREFIX)/include/aprilgrid.h
+	cp euroc.h $(PREFIX)/include/euroc.h
+	cp gui.h $(PREFIX)/include/gui.h
+	cp http.h $(PREFIX)/include/http.h
+	cp proto.h $(PREFIX)/include/proto.h
+	cp sbgc.h $(PREFIX)/include/sbgc.h
+
+uninstall: ## Uninstall libproto
+	rm $(PREFIX)/lib/libproto.a
+	rm $(PREFIX)/include/aprilgrid.h
+	rm $(PREFIX)/include/euroc.h
+	rm $(PREFIX)/include/gui.h
+	rm $(PREFIX)/include/http.h
+	rm $(PREFIX)/include/proto.h
+	rm $(PREFIX)/include/sbgc.h
 
 # -fsanitize=address -static-libasan
 avs: $(BLD_DIR)/libproto.a
