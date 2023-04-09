@@ -1,6 +1,10 @@
 #ifndef PROTO_H
 #define PROTO_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // PROTO SETTINGS
 #define PRECISION 2
 #define MAX_LINE_LENGTH 9046
@@ -297,10 +301,10 @@ STATUS file_copy(const char *src, const char *dest);
 
 #if PRECISION == 1
 typedef float real_t;
-typedef float complex real_complex_t;
+// typedef float complex real_complex_t;
 #elif PRECISION == 2
 typedef double real_t;
-typedef double complex real_complex_t;
+// typedef double complex real_complex_t;
 #else
 #error "Floating Point Precision not defined!"
 #endif
@@ -1317,7 +1321,37 @@ real_t pid_ctrl_update(pid_ctrl_t *pid,
 void pid_ctrl_reset(pid_ctrl_t *pid);
 
 /******************************************************************************
- * MAV
+ * GIMBAL MODEL
+ ******************************************************************************/
+
+typedef struct gimbal_model_t {
+  real_t x[6];
+} gimbal_model_t;
+
+typedef struct gimbal_ctrl_t {
+  real_t dt;
+  pid_ctrl_t roll;
+  pid_ctrl_t pitch;
+  pid_ctrl_t yaw;
+
+  real_t setpoints[3];
+  real_t outputs[3];
+} gimbal_ctrl_t;
+
+void gimbal_model_setup(gimbal_model_t *gimbal);
+void gimbal_model_update(gimbal_model_t *gimbal,
+                         const real_t u[3],
+                         const real_t dt);
+
+void gimbal_ctrl_setup(gimbal_ctrl_t *ctrl);
+void gimbal_ctrl_update(gimbal_ctrl_t *ctrl,
+                        const real_t setpoints[3],
+                        const real_t actual[3],
+                        const real_t dt,
+                        real_t outputs[3]);
+
+/******************************************************************************
+ * MAV MODEL
  ******************************************************************************/
 
 typedef struct mav_model_t {
@@ -3383,4 +3417,7 @@ sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
                                    const int cam_idx,
                                    const real_t body_pose[7]);
 
+#ifdef __cplusplus
+} // extern C
+#endif
 #endif // PROTO_H

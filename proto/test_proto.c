@@ -3257,7 +3257,64 @@ int test_pid_ctrl() {
 }
 
 /******************************************************************************
- * TEST MAV
+ * TEST GIMBAL MODEL
+ ******************************************************************************/
+
+int test_gimbal() {
+  gimbal_model_t model;
+  gimbal_model_setup(&model);
+
+  gimbal_ctrl_t ctrl;
+  gimbal_ctrl_setup(&ctrl);
+
+  const real_t sp[3] = {0.1, 0.2, 0.3};
+  const real_t dt = 0.001;
+  const real_t t_end = 3.0;
+  real_t t = 0.0;
+
+  int idx = 0;
+  const int N = t_end / dt;
+  real_t *time_vals = CALLOC(real_t, N);
+  real_t *roll_vals = CALLOC(real_t, N);
+  real_t *pitch_vals = CALLOC(real_t, N);
+  real_t *yaw_vals = CALLOC(real_t, N);
+
+  while (t <= t_end) {
+    const real_t pv[3] = {model.x[0], model.x[2], model.x[4]};
+
+    real_t u[3] = {0};
+    gimbal_ctrl_update(&ctrl, sp, pv, dt, u);
+    gimbal_model_update(&model, u, dt);
+
+    time_vals[idx] = t;
+    roll_vals[idx] = model.x[0];
+    pitch_vals[idx] = model.x[2];
+    yaw_vals[idx] = model.x[4];
+
+    t += dt;
+    idx += 1;
+  }
+
+  // Plot
+  FILE *gnuplot = gnuplot_init();
+  gnuplot_send(gnuplot, "set title 'Plot 1'");
+  gnuplot_send_xy(gnuplot, "$roll", time_vals, roll_vals, N);
+  gnuplot_send_xy(gnuplot, "$pitch", time_vals, pitch_vals, N);
+  gnuplot_send_xy(gnuplot, "$yaw", time_vals, yaw_vals, N);
+  gnuplot_send(gnuplot, "plot $roll with lines, $pitch with lines, $yaw with lines");
+
+  // Clean up
+  free(time_vals);
+  free(roll_vals);
+  free(pitch_vals);
+  free(yaw_vals);
+  gnuplot_close(gnuplot);
+
+  return 0;
+}
+
+/******************************************************************************
+ * TEST MAV MODEL
  ******************************************************************************/
 
 static void test_setup_mav(mav_model_t *mav) {
@@ -3292,7 +3349,7 @@ int test_mav_att_ctrl() {
   mav_att_ctrl_setup(&mav_att_ctrl);
   mav_pos_ctrl_setup(&mav_pos_ctrl);
 
-  const real_t att_sp[4] = {0.1, 0.1, 0.0, 0.0};
+  const real_t att_sp[4] = {0.1, 0.2, -0.2, 0.0};
   const real_t dt = 0.001;
   const real_t t_end = 0.5;
   real_t t = 0.0;
@@ -3347,9 +3404,9 @@ int test_mav_pos_ctrl() {
   mav_att_ctrl_setup(&mav_att_ctrl);
   mav_pos_ctrl_setup(&mav_pos_ctrl);
 
-  const real_t pos_sp[4] = {1.0, 1.0, 3.0, 0.0};
+  const real_t pos_sp[4] = {0.0, 0.0, 5.0, 0.0};
   const real_t dt = 0.001;
-  const real_t t_end = 5.0;
+  const real_t t_end = 10.0;
   real_t t = 0.0;
 
   int idx = 0;
@@ -6757,7 +6814,10 @@ void test_suite() {
   // CONTROL
   MU_ADD_TEST(test_pid_ctrl);
 
-  // MAV
+  // GIMBAL MODEL
+  MU_ADD_TEST(test_gimbal);
+
+  // MAV MODEL
   MU_ADD_TEST(test_mav_att_ctrl);
   MU_ADD_TEST(test_mav_pos_ctrl);
 
