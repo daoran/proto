@@ -1354,8 +1354,9 @@ void gimbal_ctrl_update(gimbal_ctrl_t *ctrl,
  * MAV MODEL
  ******************************************************************************/
 
+/** MAV Model **/
 typedef struct mav_model_t {
-  real_t x[12];  // State
+  real_t x[12];      // State
   real_t inertia[3]; // Moment of inertia
   real_t kr;         // Rotation drag constant
   real_t kt;         // Translation drag constant
@@ -1365,6 +1366,19 @@ typedef struct mav_model_t {
   real_t g;          // Gravitational constant
 } mav_model_t;
 
+void mav_model_setup(mav_model_t *mav,
+                     const real_t x[12],
+                     const real_t inertia[3],
+                     const real_t kr,
+                     const real_t kt,
+                     const real_t l,
+                     const real_t d,
+                     const real_t m,
+                     const real_t g);
+void mav_model_print_state(const mav_model_t *mav, const real_t time);
+void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt);
+
+/** MAV Attitude Controller **/
 typedef struct mav_att_ctrl_t {
   real_t dt;
   pid_ctrl_t roll;
@@ -1375,6 +1389,14 @@ typedef struct mav_att_ctrl_t {
   real_t outputs[4];
 } mav_att_ctrl_t;
 
+void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl);
+void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
+                         const real_t setpoints[4],
+                         const real_t actual[3],
+                         const real_t dt,
+                         real_t outputs[4]);
+
+/** MAV Position Controller **/
 typedef struct mav_pos_ctrl_t {
   real_t dt;
   pid_ctrl_t x;
@@ -1389,13 +1411,6 @@ typedef struct mav_pos_ctrl_t {
   real_t outputs[4];
 } mav_pos_ctrl_t;
 
-void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl);
-void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
-                         const real_t setpoints[4],
-                         const real_t actual[3],
-                         const real_t dt,
-                         real_t outputs[4]);
-
 void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl);
 void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
                          const real_t setpoints[4],
@@ -1403,17 +1418,49 @@ void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
                          const real_t dt,
                          real_t outputs[4]);
 
-void mav_model_setup(mav_model_t *mav,
-                     const real_t x[12],
-                     const real_t inertia[3],
-                     const real_t kr,
-                     const real_t kt,
-                     const real_t l,
-                     const real_t d,
-                     const real_t m,
-                     const real_t g);
-void mav_model_print_state(const mav_model_t *mav, const real_t time);
-void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt);
+/** MAV Velocity Controller **/
+typedef struct mav_vel_ctrl_t {
+  real_t dt;
+  pid_ctrl_t vx;
+  pid_ctrl_t vy;
+  pid_ctrl_t vz;
+
+  // real_t roll_limit[2];
+  // real_t pitch_limit[2];
+  // real_t hover_throttle;
+
+  real_t setpoints[3];
+  real_t outputs[4];
+} mav_vel_ctrl_t;
+
+void mav_vel_ctrl_setup(mav_vel_ctrl_t *ctrl);
+void mav_vel_ctrl_update(mav_vel_ctrl_t *ctrl,
+                         const real_t setpoints[4],
+                         const real_t actual[4],
+                         const real_t dt,
+                         real_t outputs[4]);
+
+/** MAV Waypoints **/
+typedef struct mav_waypoints_t {
+  int num_waypoints;
+  real_t *waypoints;
+
+  int state;
+  int index;
+  real_t dt;
+
+  real_t threshold;
+
+} mav_waypoints_t;
+
+mav_waypoints_t *mav_waypoints_malloc();
+void mav_waypoints_free(mav_waypoints_t *ctrl);
+void mav_waypoints_print(const mav_waypoints_t *wps);
+void mav_waypoints_add(mav_waypoints_t *wps, real_t wp[4]);
+int mav_waypoints_update(mav_waypoints_t *wps,
+                         const real_t state[4],
+                         const real_t dt,
+                         real_t wp[4]);
 
 /******************************************************************************
  * SENSOR FUSION
