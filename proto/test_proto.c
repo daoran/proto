@@ -3261,12 +3261,15 @@ int test_pid_ctrl() {
  ******************************************************************************/
 
 int test_gimbal() {
+  // Gimbal model
   gimbal_model_t model;
   gimbal_model_setup(&model);
 
+  // Gimbal controller
   gimbal_ctrl_t ctrl;
   gimbal_ctrl_setup(&ctrl);
 
+  // Simulate gimbal
   const real_t sp[3] = {0.1, 0.2, 0.3};
   const real_t dt = 0.001;
   const real_t t_end = 3.0;
@@ -3301,7 +3304,8 @@ int test_gimbal() {
   gnuplot_send_xy(gnuplot, "$roll", time_vals, roll_vals, N);
   gnuplot_send_xy(gnuplot, "$pitch", time_vals, pitch_vals, N);
   gnuplot_send_xy(gnuplot, "$yaw", time_vals, yaw_vals, N);
-  gnuplot_send(gnuplot, "plot $roll with lines, $pitch with lines, $yaw with lines");
+  gnuplot_send(gnuplot,
+               "plot $roll with lines, $pitch with lines, $yaw with lines");
 
   // Clean up
   free(time_vals);
@@ -3383,7 +3387,8 @@ int test_mav_att_ctrl() {
   gnuplot_send_xy(gnuplot, "$roll", time_vals, roll_vals, N);
   gnuplot_send_xy(gnuplot, "$pitch", time_vals, pitch_vals, N);
   gnuplot_send_xy(gnuplot, "$yaw", time_vals, yaw_vals, N);
-  gnuplot_send(gnuplot, "plot $roll with lines, $pitch with lines, $yaw with lines");
+  gnuplot_send(gnuplot,
+               "plot $roll with lines, $pitch with lines, $yaw with lines");
 
   // Clean up
   free(time_vals);
@@ -3449,6 +3454,55 @@ int test_mav_pos_ctrl() {
   free(yvals);
   free(zvals);
   gnuplot_close(gnuplot);
+
+  return 0;
+}
+
+int test_mav_waypoints() {
+  // Setup
+  real_t waypoints[4][4] = {
+      {0, 0, 0, 0},
+      {0, 0, 1, 0},
+      {1, 0, 1, 0},
+      {0, 1, 1, 0},
+  };
+  mav_waypoints_t *wps = mav_waypoints_malloc();
+  mav_waypoints_add(wps, waypoints[0]);
+  mav_waypoints_add(wps, waypoints[1]);
+  mav_waypoints_add(wps, waypoints[2]);
+  mav_waypoints_add(wps, waypoints[3]);
+  mav_waypoints_print(wps);
+
+  // Update
+  const real_t dt = 0.01;
+  real_t wp[4] = {0};
+
+  real_t state0[4] = {0, 0, 0, 0};
+  MU_ASSERT(mav_waypoints_update(wps, state0, dt, wp) == 1);
+  print_vector("wp", wp, 4);
+
+  real_t state1[4] = {0, 0, 0.5, 0};
+  MU_ASSERT(mav_waypoints_update(wps, state1, dt, wp) == 0);
+  print_vector("wp", wp, 4);
+
+  real_t state2[4] = {0, 0, 1, 0};
+  MU_ASSERT(mav_waypoints_update(wps, state2, dt, wp) == 1);
+  print_vector("wp", wp, 4);
+
+  real_t state3[4] = {1, 0, 1, 0};
+  MU_ASSERT(mav_waypoints_update(wps, state3, dt, wp) == 1);
+  print_vector("wp", wp, 4);
+
+  real_t state4[4] = {0, 1, 1, 0};
+  MU_ASSERT(mav_waypoints_update(wps, state4, dt, wp) == 1);
+  print_vector("wp", wp, 4);
+
+  real_t state5[4] = {2, 1, 1, 0};
+  MU_ASSERT(mav_waypoints_update(wps, state5, dt, wp) == -1);
+  print_vector("wp", wp, 4);
+
+  // Clean up
+  mav_waypoints_free(wps);
 
   return 0;
 }
@@ -6820,6 +6874,7 @@ void test_suite() {
   // MAV MODEL
   MU_ADD_TEST(test_mav_att_ctrl);
   MU_ADD_TEST(test_mav_pos_ctrl);
+  MU_ADD_TEST(test_mav_waypoints);
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);
