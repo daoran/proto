@@ -3365,7 +3365,7 @@ int test_mav_att_ctrl() {
   real_t *pitch_vals = CALLOC(real_t, N);
   real_t *yaw_vals = CALLOC(real_t, N);
 
-  while (t <= t_end) {
+  while (idx < N) {
     const real_t att_pv[3] = {mav.x[0], mav.x[1], mav.x[2]};
 
     real_t u[4] = {0};
@@ -3400,18 +3400,18 @@ int test_mav_att_ctrl() {
   return 0;
 }
 
-int test_mav_pos_ctrl() {
+int test_mav_vel_ctrl() {
   mav_model_t mav;
   test_setup_mav(&mav);
 
   mav_att_ctrl_t mav_att_ctrl;
-  mav_pos_ctrl_t mav_pos_ctrl;
+  mav_vel_ctrl_t mav_vel_ctrl;
   mav_att_ctrl_setup(&mav_att_ctrl);
-  mav_pos_ctrl_setup(&mav_pos_ctrl);
+  mav_vel_ctrl_setup(&mav_vel_ctrl);
 
-  const real_t pos_sp[4] = {0.0, 0.0, 5.0, 0.0};
+  const real_t vel_sp[4] = {0.1, 0.2, 0.0, 0.0};
   const real_t dt = 0.001;
-  const real_t t_end = 10.0;
+  const real_t t_end = 2.0;
   real_t t = 0.0;
 
   int idx = 0;
@@ -3421,13 +3421,79 @@ int test_mav_pos_ctrl() {
   real_t *yvals = CALLOC(real_t, N);
   real_t *zvals = CALLOC(real_t, N);
 
-  while (t <= t_end) {
-    const real_t pos_pv[4] = {mav.x[6], mav.x[7], mav.x[8], mav.x[2]};
+  while (idx < N) {
+    const real_t vel_pv[4] = {mav.x[9], mav.x[10], mav.x[11], mav.x[2]};
     const real_t att_pv[3] = {mav.x[0], mav.x[1], mav.x[2]};
 
     real_t att_sp[4] = {0};
     real_t u[4] = {0};
-    mav_pos_ctrl_update(&mav_pos_ctrl, pos_sp, pos_pv, dt, att_sp);
+    mav_vel_ctrl_update(&mav_vel_ctrl, vel_sp, vel_pv, dt, att_sp);
+    mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
+    mav_model_update(&mav, u, dt);
+
+    time_vals[idx] = t;
+    xvals[idx] = mav.x[9];
+    yvals[idx] = mav.x[10];
+    zvals[idx] = mav.x[11];
+    // xvals[idx] = mav.x[6];
+    // yvals[idx] = mav.x[7];
+    // zvals[idx] = mav.x[8];
+
+    t += dt;
+    idx += 1;
+  }
+
+  // Plot
+  FILE *gnuplot = gnuplot_init();
+  gnuplot_send(gnuplot, "set title 'Plot 1'");
+  gnuplot_send_xy(gnuplot, "$x", time_vals, xvals, N);
+  gnuplot_send_xy(gnuplot, "$y", time_vals, yvals, N);
+  gnuplot_send_xy(gnuplot, "$z", time_vals, zvals, N);
+  gnuplot_send(gnuplot, "plot $x with lines, $y with lines, $z with lines");
+
+  // Clean up
+  free(time_vals);
+  free(xvals);
+  free(yvals);
+  free(zvals);
+  gnuplot_close(gnuplot);
+
+  return 0;
+}
+
+int test_mav_pos_ctrl() {
+  mav_model_t mav;
+  test_setup_mav(&mav);
+
+  mav_att_ctrl_t mav_att_ctrl;
+  mav_vel_ctrl_t mav_vel_ctrl;
+  mav_pos_ctrl_t mav_pos_ctrl;
+  mav_att_ctrl_setup(&mav_att_ctrl);
+  mav_vel_ctrl_setup(&mav_vel_ctrl);
+  mav_pos_ctrl_setup(&mav_pos_ctrl);
+
+  const real_t pos_sp[4] = {10.0, 10.0, 4.0, 0.0};
+  const real_t dt = 0.001;
+  const real_t t_end = 30.0;
+  real_t t = 0.0;
+
+  int idx = 0;
+  const int N = t_end / dt;
+  real_t *time_vals = CALLOC(real_t, N);
+  real_t *xvals = CALLOC(real_t, N);
+  real_t *yvals = CALLOC(real_t, N);
+  real_t *zvals = CALLOC(real_t, N);
+
+  while (idx < N) {
+    const real_t pos_pv[4] = {mav.x[6], mav.x[7], mav.x[8], mav.x[2]};
+    const real_t vel_pv[4] = {mav.x[9], mav.x[10], mav.x[11], mav.x[2]};
+    const real_t att_pv[3] = {mav.x[0], mav.x[1], mav.x[2]};
+
+    real_t vel_sp[4] = {0};
+    real_t att_sp[4] = {0};
+    real_t u[4] = {0};
+    mav_pos_ctrl_update(&mav_pos_ctrl, pos_sp, pos_pv, dt, vel_sp);
+    mav_vel_ctrl_update(&mav_vel_ctrl, vel_sp, vel_pv, dt, att_sp);
     mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
     mav_model_update(&mav, u, dt);
 
@@ -3435,6 +3501,9 @@ int test_mav_pos_ctrl() {
     xvals[idx] = mav.x[6];
     yvals[idx] = mav.x[7];
     zvals[idx] = mav.x[8];
+    // xvals[idx] = mav.x[9];
+    // yvals[idx] = mav.x[10];
+    // zvals[idx] = mav.x[11];
 
     t += dt;
     idx += 1;
@@ -6873,6 +6942,7 @@ void test_suite() {
 
   // MAV MODEL
   MU_ADD_TEST(test_mav_att_ctrl);
+  MU_ADD_TEST(test_mav_vel_ctrl);
   MU_ADD_TEST(test_mav_pos_ctrl);
   MU_ADD_TEST(test_mav_waypoints);
 

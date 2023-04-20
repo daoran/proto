@@ -2117,6 +2117,16 @@ real_t pythag(const real_t a, const real_t b) {
 }
 
 /**
+ * Clip value `x` to be between `val_min` and `val_max`.
+ */
+real_t clip_value(const real_t x, const real_t vmin, const real_t vmax) {
+  real_t x_tmp = x;
+  x_tmp = (x_tmp > vmax) ? vmax : x_tmp;
+  x_tmp = (x_tmp < vmin) ? vmin : x_tmp;
+  return x_tmp;
+}
+
+/**
  * Clip vector `x` to be between `val_min` and `val_max`.
  */
 void clip(real_t *x, const size_t n, const real_t vmin, const real_t vmax) {
@@ -2282,8 +2292,8 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
 
   printf("%s: ", prefix);
   for (size_t i = 0; i < n; i++) {
-    printf("%e ", v[i]);
-    // printf("%f ", v[i]);
+    // printf("%e ", v[i]);
+    printf("%f ", v[i]);
     // printf("%.4f ", v[i]);
     // printf("%.10f ", v[i]);
   }
@@ -7814,7 +7824,7 @@ real_t pid_ctrl_update(pid_ctrl_t *pid,
                        const real_t dt) {
   // Calculate errors
   real_t error = setpoint - input;
-  pid->error_sum += error * dt;
+  pid->error_sum += error;
 
   // Calculate output
   pid->error_p = pid->k_p * error;
@@ -8011,6 +8021,30 @@ void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
   x[11] += (-(kt * vz / m) + mr * (cph * cth) * tauf - g) * dt;
 }
 
+void mav_model_attitude(const mav_model_t *mav, real_t rpy[3]) {
+  rpy[0] = mav->x[0];
+  rpy[1] = mav->x[1];
+  rpy[2] = mav->x[2];
+}
+
+void mav_model_angular_velocity(const mav_model_t *mav, real_t pqr[3]) {
+  pqr[0] = mav->x[3];
+  pqr[1] = mav->x[4];
+  pqr[2] = mav->x[5];
+}
+
+void mav_model_position(const mav_model_t *mav, real_t pos[3]) {
+  pos[0] = mav->x[6];
+  pos[1] = mav->x[7];
+  pos[2] = mav->x[8];
+}
+
+void mav_model_velocity(const mav_model_t *mav, real_t vel[3]) {
+  vel[0] = mav->x[9];
+  vel[1] = mav->x[10];
+  vel[2] = mav->x[11];
+}
+
 void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
   ctrl->dt = 0;
   pid_ctrl_setup(&ctrl->roll, 100.0, 0.0, 5.0);
@@ -8060,19 +8094,10 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
   t = (t < 0) ? 0.0 : t;                 // Limit thrust
 
   // Map roll, pitch, yaw and thrust to motor outputs
-  outputs[0] = -p - y + t;
-  outputs[1] = -r + y + t;
-  outputs[2] = p - y + t;
-  outputs[3] = r + y + t;
-
-  // Limit outputs
-  for (int i = 0; i < 4; i++) {
-    if (outputs[i] > max_thrust) {
-      outputs[i] = max_thrust;
-    } else if (outputs[i] < 0.0) {
-      outputs[i] = 0.0;
-    }
-  }
+  outputs[0] = clip_value(-p - y + t, 0.0, max_thrust);
+  outputs[1] = clip_value(-r + y + t, 0.0, max_thrust);
+  outputs[2] = clip_value(p - y + t, 0.0, max_thrust);
+  outputs[3] = clip_value(r + y + t, 0.0, max_thrust);
 
   // Keep track of outputs
   ctrl->outputs[0] = outputs[0];
@@ -8082,11 +8107,77 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
   ctrl->dt = 0.0; // Reset dt
 }
 
+void mav_vel_ctrl_setup(mav_vel_ctrl_t *ctrl) {
+  ctrl->dt = 0;
+  pid_ctrl_setup(&ctrl->vx, 1.0, 0.0, 0.05);
+  pid_ctrl_setup(&ctrl->vy, 1.0, 0.0, 0.05);
+  pid_ctrl_setup(&ctrl->vz, 10.0, 0.0, 0.0);
+
+  zeros(ctrl->setpoints, 4, 1);
+  zeros(ctrl->outputs, 4, 1);
+}
+
+void mav_vel_ctrl_update(mav_vel_ctrl_t *ctrl,
+                         const real_t setpoints[4],
+                         const real_t actual[4],
+                         const real_t dt,
+                         real_t outputs[4]) {
+  // Check rate
+  ctrl->dt += dt;
+  if (ctrl->dt < 0.001) {
+    // Return previous command
+    outputs[0] = ctrl->outputs[0];
+    outputs[1] = ctrl->outputs[1];
+    outputs[2] = ctrl->outputs[2];
+    outputs[3] = ctrl->outputs[3];
+    return;
+  }
+
+  // Calculate RPY errors relative to quadrotor by incorporating yaw
+  real_t errors_W[3] = {0};
+  errors_W[0] = setpoints[0] - actual[0];
+  errors_W[1] = setpoints[1] - actual[1];
+  errors_W[2] = setpoints[2] - actual[2];
+
+  // errors = C * errors;
+  real_t ypr[3] = {actual[3], 0.0, 0.0};
+  real_t C_WS[3 * 3] = {0};
+  real_t C_SW[3 * 3] = {0};
+  real_t errors[3] = {0};
+  euler321(ypr, C_WS);
+  mat_transpose(C_WS, 3, 3, C_SW);
+  dot(C_SW, 3, 3, errors_W, 3, 1, errors);
+
+  // Roll, pitch, yaw and thrust
+  real_t r = -pid_ctrl_update(&ctrl->vy, errors[1], 0.0, dt);
+  real_t p = pid_ctrl_update(&ctrl->vx, errors[0], 0.0, dt);
+  real_t y = setpoints[3];
+  real_t t = 0.5 + pid_ctrl_update(&ctrl->vz, errors[2], 0.0, dt);
+
+  outputs[0] = clip_value(r, deg2rad(-20.0), deg2rad(20.0));
+  outputs[1] = clip_value(p, deg2rad(-20.0), deg2rad(20.0));
+  outputs[2] = y;
+  outputs[3] = clip_value(t, 0.0, 1.0);
+
+  // // Yaw first if threshold reached
+  // if (fabs(setpoints[3] - actual[3]) > deg2rad(2)) {
+  //   outputs[0] = 0.0;
+  //   outputs[1] = 0.0;
+  // }
+
+  // Keep track of outputs
+  ctrl->outputs[0] = outputs[0];
+  ctrl->outputs[1] = outputs[1];
+  ctrl->outputs[2] = outputs[2];
+  ctrl->outputs[3] = outputs[3];
+  ctrl->dt = 0.0;
+}
+
 void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl) {
   ctrl->dt = 0;
-  pid_ctrl_setup(&ctrl->x, 0.45, 0.0, 0.35);
-  pid_ctrl_setup(&ctrl->y, 0.45, 0.0, 0.35);
-  pid_ctrl_setup(&ctrl->z, 1.0, 0.0, 0.4);
+  pid_ctrl_setup(&ctrl->x, 0.5, 0.0, 0.05);
+  pid_ctrl_setup(&ctrl->y, 0.5, 0.0, 0.05);
+  pid_ctrl_setup(&ctrl->z, 1.0, 0.0, 0.1);
 
   zeros(ctrl->setpoints, 4, 1);
   zeros(ctrl->outputs, 4, 1);
@@ -8123,46 +8214,16 @@ void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
   mat_transpose(C_WS, 3, 3, C_SW);
   dot(C_SW, 3, 3, errors_W, 3, 1, errors);
 
-  // Roll, pitch, yaw and thrust
-  real_t r = -pid_ctrl_update(&ctrl->y, errors[1], 0.0, ctrl->dt);
-  real_t p = pid_ctrl_update(&ctrl->x, errors[0], 0.0, ctrl->dt);
-  real_t y = setpoints[3];
-  real_t t = 0.5 + pid_ctrl_update(&ctrl->z, errors[2], 0.0, ctrl->dt);
+  // Velocity commands
+  real_t vx = pid_ctrl_update(&ctrl->x, errors[0], 0.0, ctrl->dt);
+  real_t vy = pid_ctrl_update(&ctrl->y, errors[1], 0.0, ctrl->dt);
+  real_t vz = pid_ctrl_update(&ctrl->z, errors[2], 0.0, ctrl->dt);
+  real_t yaw = setpoints[3];
 
-  outputs[0] = r;
-  outputs[1] = p;
-  outputs[2] = y;
-  outputs[3] = t;
-
-  // Limit roll, pitch
-  for (int i = 0; i < 2; i++) {
-    if (outputs[i] > deg2rad(20)) {
-      outputs[i] = deg2rad(20);
-    } else if (outputs[i] < deg2rad(-20)) {
-      outputs[i] = deg2rad(-20);
-    }
-  }
-
-  // Limit yaw
-  // while (outputs[2] > deg2rad(360.0)) {
-  //   outputs[2] -= deg2rad(360.0);
-  // }
-  // while (outputs[2] < deg2rad(0.0)) {
-  //   outputs[2] += deg2rad(360.0);
-  // }
-
-  // Limit thrust
-  if (outputs[3] > 1.0) {
-    outputs[3] = 1.0;
-  } else if (outputs[3] < 0.0) {
-    outputs[3] = 0.0;
-  }
-
-  // Yaw first if threshold reached
-  // if (fabs(setpoints[3] - actual[3]) > deg2rad(2)) {
-  //   outputs[0] = 0.0;
-  //   outputs[1] = 0.0;
-  // }
+  outputs[0] = clip_value(vx, -2.5, 2.5);
+  outputs[1] = clip_value(vy, -2.5, 2.5);
+  outputs[2] = clip_value(vz, -2.0, 20.0);
+  outputs[3] = yaw;
 
   // Keep track of outputs
   ctrl->outputs[0] = outputs[0];
@@ -8177,11 +8238,7 @@ mav_waypoints_t *mav_waypoints_malloc() {
 
   wps->num_waypoints = 0;
   wps->waypoints = NULL;
-
-  wps->state = 0;
   wps->index = 0;
-  wps->dt = 0.0;
-
   wps->threshold = 0.1;
 
   return wps;
@@ -8203,6 +8260,10 @@ void mav_waypoints_print(const mav_waypoints_t *wps) {
   }
 }
 
+int mav_waypoints_done(const mav_waypoints_t *wps) {
+  return wps->index == wps->num_waypoints;
+}
+
 void mav_waypoints_add(mav_waypoints_t *wps, real_t wp[4]) {
   const int n = wps->num_waypoints;
   wps->waypoints = REALLOC(wps->waypoints, real_t, (n + 1) * 4);
@@ -8214,7 +8275,7 @@ void mav_waypoints_add(mav_waypoints_t *wps, real_t wp[4]) {
 }
 
 static void mav_waypoints_target(const mav_waypoints_t *wps, real_t wp[4]) {
-  if (wps->index == wps->num_waypoints) {
+  if (mav_waypoints_done(wps) == 1) {
     wp[0] = wps->waypoints[(wps->index - 1) * 4 + 0];
     wp[1] = wps->waypoints[(wps->index - 1) * 4 + 1];
     wp[2] = wps->waypoints[(wps->index - 1) * 4 + 2];
@@ -8248,7 +8309,7 @@ int mav_waypoints_update(mav_waypoints_t *wps,
   assert(wps->index >= 0 && wps->index <= wps->num_waypoints);
 
   // Check if waypoints completed - return last waypoint
-  if (wps->index == wps->num_waypoints) {
+  if (mav_waypoints_done(wps) == 1) {
     mav_waypoints_target(wps, wp);
     return -1;
   }

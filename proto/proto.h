@@ -582,6 +582,7 @@ int streqs(const char *x, const char *y);
 void cumsum(const real_t *x, const size_t n, real_t *s);
 void logspace(const real_t a, const real_t b, const size_t n, real_t *x);
 real_t pythag(const real_t a, const real_t b);
+real_t clip_value(const real_t x, const real_t vmin, const real_t vmax);
 void clip(real_t *x, const size_t n, const real_t vmin, const real_t vmax);
 real_t lerp(const real_t a, const real_t b, const real_t t);
 void lerp3(const real_t a[3], const real_t b[3], const real_t t, real_t x[3]);
@@ -1375,6 +1376,10 @@ void mav_model_setup(mav_model_t *mav,
                      const real_t d,
                      const real_t m,
                      const real_t g);
+void mav_model_attitude(const mav_model_t *mav, real_t rpy[3]);
+void mav_model_angular_velocity(const mav_model_t *mav, real_t pqr[3]);
+void mav_model_position(const mav_model_t *mav, real_t pos[3]);
+void mav_model_velocity(const mav_model_t *mav, real_t vel[3]);
 void mav_model_print_state(const mav_model_t *mav, const real_t time);
 void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt);
 
@@ -1393,6 +1398,28 @@ void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl);
 void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
                          const real_t setpoints[4],
                          const real_t actual[3],
+                         const real_t dt,
+                         real_t outputs[4]);
+
+/** MAV Velocity Controller **/
+typedef struct mav_vel_ctrl_t {
+  real_t dt;
+  pid_ctrl_t vx;
+  pid_ctrl_t vy;
+  pid_ctrl_t vz;
+
+  // real_t vx_limit[2];
+  // real_t vy_limit[2];
+  // real_t vz_limit[2];
+
+  real_t setpoints[4];
+  real_t outputs[4];
+} mav_vel_ctrl_t;
+
+void mav_vel_ctrl_setup(mav_vel_ctrl_t *ctrl);
+void mav_vel_ctrl_update(mav_vel_ctrl_t *ctrl,
+                         const real_t setpoints[4],
+                         const real_t actual[4],
                          const real_t dt,
                          real_t outputs[4]);
 
@@ -1418,44 +1445,18 @@ void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
                          const real_t dt,
                          real_t outputs[4]);
 
-/** MAV Velocity Controller **/
-typedef struct mav_vel_ctrl_t {
-  real_t dt;
-  pid_ctrl_t vx;
-  pid_ctrl_t vy;
-  pid_ctrl_t vz;
-
-  // real_t roll_limit[2];
-  // real_t pitch_limit[2];
-  // real_t hover_throttle;
-
-  real_t setpoints[3];
-  real_t outputs[4];
-} mav_vel_ctrl_t;
-
-void mav_vel_ctrl_setup(mav_vel_ctrl_t *ctrl);
-void mav_vel_ctrl_update(mav_vel_ctrl_t *ctrl,
-                         const real_t setpoints[4],
-                         const real_t actual[4],
-                         const real_t dt,
-                         real_t outputs[4]);
-
 /** MAV Waypoints **/
 typedef struct mav_waypoints_t {
   int num_waypoints;
   real_t *waypoints;
-
-  int state;
   int index;
-  real_t dt;
-
   real_t threshold;
-
 } mav_waypoints_t;
 
 mav_waypoints_t *mav_waypoints_malloc();
 void mav_waypoints_free(mav_waypoints_t *ctrl);
 void mav_waypoints_print(const mav_waypoints_t *wps);
+int mav_waypoints_done(const mav_waypoints_t *wps);
 void mav_waypoints_add(mav_waypoints_t *wps, real_t wp[4]);
 int mav_waypoints_update(mav_waypoints_t *wps,
                          const real_t state[4],

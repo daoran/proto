@@ -129,12 +129,13 @@ void aprilgrid_measurements(const aprilgrid_t *grid,
 int aprilgrid_save(const aprilgrid_t *grid, const char *save_path);
 aprilgrid_t *aprilgrid_load(const char *data_path);
 
-#ifdef __cplusplus
-cv::Mat aprilgrid_draw(const aprilgrid_t *grid,
-                       const cv::Mat &image,
-                       const int marker_size = 2,
-                       const cv::Scalar &color = cv::Scalar{0, 0, 255});
-#endif // __cplusplus
+// #ifdef __cplusplus
+// #include <opencv2/highgui.hpp>
+// cv::Mat aprilgrid_draw(const aprilgrid_t *grid,
+//                        const cv::Mat &image,
+//                        const int marker_size = 2,
+//                        const cv::Scalar &color = cv::Scalar{0, 0, 255});
+// #endif // __cplusplus
 
 // APRILGRID DETECTOR ////////////////////////////////////////////////////////
 
@@ -751,51 +752,51 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
   return grid;
 }
 
-#ifdef __cplusplus
-/**
- * Draw aprilgrid
- */
-cv::Mat aprilgrid_draw(const aprilgrid_t *grid,
-                       const cv::Mat &image,
-                       const int marker_size,
-                       const cv::Scalar &color) {
-  const cv::Scalar text_color(0, 255, 0);
-  const int font = cv::FONT_HERSHEY_PLAIN;
-  const double font_scale = 1.0;
-  const int thickness = 2;
-  cv::Mat image_rgb;
-  cv::cvtColor(image, image_rgb, cv::COLOR_GRAY2BGR);
+// #ifdef __cplusplus
+// /**
+//  * Draw aprilgrid
+//  */
+// cv::Mat aprilgrid_draw(const aprilgrid_t *grid,
+//                        const cv::Mat &image,
+//                        const int marker_size,
+//                        const cv::Scalar &color) {
+//   const cv::Scalar text_color(0, 255, 0);
+//   const int font = cv::FONT_HERSHEY_PLAIN;
+//   const double font_scale = 1.0;
+//   const int thickness = 2;
+//   cv::Mat image_rgb;
+//   cv::cvtColor(image, image_rgb, cv::COLOR_GRAY2BGR);
 
-  const int num_corners = grid->corners_detected;
-  int *tag_ids = MALLOC(int, num_corners);
-  int *corner_indices = MALLOC(int, num_corners);
-  double *kps = MALLOC(double, num_corners * 2);
-  double *pts = MALLOC(double, num_corners * 3);
-  aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
+//   const int num_corners = grid->corners_detected;
+//   int *tag_ids = MALLOC(int, num_corners);
+//   int *corner_indices = MALLOC(int, num_corners);
+//   double *kps = MALLOC(double, num_corners * 2);
+//   double *pts = MALLOC(double, num_corners * 3);
+//   aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
 
-  for (size_t i = 0; i < num_corners; i++) {
-    // Setup
-    const int tag_id = tag_ids[i];
-    const double *kp = &kps[i * 2];
+//   for (size_t i = 0; i < num_corners; i++) {
+//     // Setup
+//     const int tag_id = tag_ids[i];
+//     const double *kp = &kps[i * 2];
 
-    // Draw corners
-    cv::Point2f p(kp[0], kp[1]);
-    cv::circle(image_rgb, p, marker_size, color, -1);
+//     // Draw corners
+//     cv::Point2f p(kp[0], kp[1]);
+//     cv::circle(image_rgb, p, marker_size, color, -1);
 
-    // Label corner
-    cv::Point2f cxy(kp[0], kp[1]);
-    std::string text = std::to_string(tag_id);
-    cv::putText(image_rgb, text, cxy, font, font_scale, text_color, thickness);
-  }
+//     // Label corner
+//     cv::Point2f cxy(kp[0], kp[1]);
+//     std::string text = std::to_string(tag_id);
+//     cv::putText(image_rgb, text, cxy, font, font_scale, text_color, thickness);
+//   }
 
-  free(tag_ids);
-  free(corner_indices);
-  free(kps);
-  free(pts);
+//   free(tag_ids);
+//   free(corner_indices);
+//   free(kps);
+//   free(pts);
 
-  return image_rgb;
-}
-#endif // __cplusplus
+//   return image_rgb;
+// }
+// #endif // __cplusplus
 
 #endif // APRILGRID_IMPLEMENTATION
 

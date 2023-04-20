@@ -355,8 +355,9 @@ dev_euroc() {
 # run_test test_gimbal
 # PROTO-MAV
 # run_test test_mav_att_ctrl
-# run_test test_mav_pos_ctrl
-run_test test_mav_waypoints
+# run_test test_mav_vel_ctrl
+run_test test_mav_pos_ctrl
+# run_test test_mav_waypoints
 # PROTO-SENSOR_FUSION
 # run_test test_schur_complement
 # run_test test_timeline
