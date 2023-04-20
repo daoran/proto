@@ -7914,6 +7914,103 @@ void gimbal_ctrl_update(gimbal_ctrl_t *ctrl,
  * MAV MODEL
  ******************************************************************************/
 
+void mav_model_setup(mav_model_t *mav,
+                     const real_t x[12],
+                     const real_t inertia[3],
+                     const real_t kr,
+                     const real_t kt,
+                     const real_t l,
+                     const real_t d,
+                     const real_t m,
+                     const real_t g) {
+  vec_copy(x, 12, mav->x);            // State
+  vec_copy(inertia, 3, mav->inertia); // Moment of inertia
+  mav->kr = kr;                       // Rotation drag constant
+  mav->kt = kt;                       // Translation drag constant
+  mav->l = l;                         // Arm length
+  mav->d = d;                         // Drag co-efficient
+  mav->m = m;                         // Mass
+  mav->g = g;                         // Gravitational constant
+}
+
+void mav_model_print_state(const mav_model_t *mav, const real_t time) {
+  printf("time: %f, ", time);
+  printf("pos: [%f, %f, %f], ", mav->x[6], mav->x[7], mav->x[8]);
+  printf("att: [%f, %f, %f], ", mav->x[0], mav->x[1], mav->x[2]);
+  printf("vel: [%f, %f, %f], ", mav->x[9], mav->x[10], mav->x[11]);
+  printf("\n");
+}
+
+void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
+  // Map out previous state
+  // -- Attitude
+  const real_t ph = mav->x[0];
+  const real_t th = mav->x[1];
+  const real_t ps = mav->x[2];
+  // -- Angular velocity
+  const real_t p = mav->x[3];
+  const real_t q = mav->x[4];
+  const real_t r = mav->x[5];
+  // -- Velocity
+  const real_t vx = mav->x[9];
+  const real_t vy = mav->x[10];
+  const real_t vz = mav->x[11];
+
+  // Map out constants
+  const real_t Ix = mav->inertia[0];
+  const real_t Iy = mav->inertia[1];
+  const real_t Iz = mav->inertia[2];
+  const real_t kr = mav->kr;
+  const real_t kt = mav->kt;
+  const real_t m = mav->m;
+  const real_t mr = 1.0 / m;
+  const real_t g = mav->g;
+
+  // Convert motor inputs to angular p, q, r and total thrust
+  // clang-format off
+  real_t A[4 * 4] = {
+    1.0,          1.0,     1.0,   1.0,
+    0.0,      -mav->l,     0.0,   mav->l,
+    -mav->l,      0.0,  mav->l,   0.0,
+    -mav->d,   mav->d,  -mav->d,  mav->d
+  };
+  // clang-format on
+
+  // tau = A * u
+  const real_t tauf = A[0] * u[0] + A[1] * u[1] + A[2] * u[2] + A[3] * u[3];
+  const real_t taup = A[4] * u[0] + A[5] * u[1] + A[6] * u[2] + A[7] * u[3];
+  const real_t tauq = A[8] * u[0] + A[9] * u[1] + A[10] * u[2] + A[11] * u[3];
+  const real_t taur = A[12] * u[0] + A[13] * u[1] + A[14] * u[2] + A[15] * u[3];
+
+  // Update state
+  const real_t cph = cos(ph);
+  const real_t sph = sin(ph);
+  const real_t cth = cos(th);
+  const real_t sth = sin(th);
+  const real_t tth = tan(th);
+  const real_t cps = cos(ps);
+  const real_t sps = sin(ps);
+
+  real_t *x = mav->x;
+  // -- Attitude
+  x[0] += (p + q * sph * tth + r * cos(ph) * tth) * dt;
+  x[1] += (q * cph - r * sph) * dt;
+  x[2] += ((1 / cth) * (q * sph + r * cph)) * dt;
+  // s[2] = wrapToPi(s[2]);
+  // -- Angular velocity
+  x[3] += (-((Iz - Iy) / Ix) * q * r - (kr * p / Ix) + (1 / Ix) * taup) * dt;
+  x[4] += (-((Ix - Iz) / Iy) * p * r - (kr * q / Iy) + (1 / Iy) * tauq) * dt;
+  x[5] += (-((Iy - Ix) / Iz) * p * q - (kr * r / Iz) + (1 / Iz) * taur) * dt;
+  // -- Position
+  x[6] += vx * dt;
+  x[7] += vy * dt;
+  x[8] += vz * dt;
+  // -- Linear velocity
+  x[9] += ((-kt * vx / m) + mr * (cph * sth * cps + sph * sps) * tauf) * dt;
+  x[10] += ((-kt * vy / m) + mr * (cph * sth * sps - sph * cps) * tauf) * dt;
+  x[11] += (-(kt * vz / m) + mr * (cph * cth) * tauf - g) * dt;
+}
+
 void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
   ctrl->dt = 0;
   pid_ctrl_setup(&ctrl->roll, 100.0, 0.0, 5.0);
@@ -8075,101 +8172,98 @@ void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
   ctrl->dt = 0.0;
 }
 
-void mav_model_setup(mav_model_t *mav,
-                     const real_t x[12],
-                     const real_t inertia[3],
-                     const real_t kr,
-                     const real_t kt,
-                     const real_t l,
-                     const real_t d,
-                     const real_t m,
-                     const real_t g) {
-  vec_copy(x, 12, mav->x);            // State
-  vec_copy(inertia, 3, mav->inertia); // Moment of inertia
-  mav->kr = kr;                       // Rotation drag constant
-  mav->kt = kt;                       // Translation drag constant
-  mav->l = l;                         // Arm length
-  mav->d = d;                         // Drag co-efficient
-  mav->m = m;                         // Mass
-  mav->g = g;                         // Gravitational constant
+mav_waypoints_t *mav_waypoints_malloc() {
+  mav_waypoints_t *wps = MALLOC(mav_waypoints_t, 1);
+
+  wps->num_waypoints = 0;
+  wps->waypoints = NULL;
+
+  wps->state = 0;
+  wps->index = 0;
+  wps->dt = 0.0;
+
+  wps->threshold = 0.1;
+
+  return wps;
 }
 
-void mav_model_print_state(const mav_model_t *mav, const real_t time) {
-  printf("time: %f, ", time);
-  printf("pos: [%f, %f, %f], ", mav->x[6], mav->x[7], mav->x[8]);
-  printf("att: [%f, %f, %f], ", mav->x[0], mav->x[1], mav->x[2]);
-  printf("vel: [%f, %f, %f], ", mav->x[9], mav->x[10], mav->x[11]);
-  printf("\n");
+void mav_waypoints_free(mav_waypoints_t *wps) {
+  free(wps->waypoints);
+  free(wps);
 }
 
-void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
-  // Map out previous state
-  // -- Attitude
-  const real_t ph = mav->x[0];
-  const real_t th = mav->x[1];
-  const real_t ps = mav->x[2];
-  // -- Angular velocity
-  const real_t p = mav->x[3];
-  const real_t q = mav->x[4];
-  const real_t r = mav->x[5];
-  // -- Velocity
-  const real_t vx = mav->x[9];
-  const real_t vy = mav->x[10];
-  const real_t vz = mav->x[11];
+void mav_waypoints_print(const mav_waypoints_t *wps) {
+  printf("num_waypoints: %d\n", wps->num_waypoints);
+  for (int k = 0; k < wps->num_waypoints; k++) {
+    const real_t x = wps->waypoints[k * 4 + 0];
+    const real_t y = wps->waypoints[k * 4 + 1];
+    const real_t z = wps->waypoints[k * 4 + 2];
+    const real_t yaw = wps->waypoints[k * 4 + 3];
+    printf("[%d]: (%.2f, %.2f, %.2f, %.2f)\n", k, x, y, z, yaw);
+  }
+}
 
-  // Map out constants
-  const real_t Ix = mav->inertia[0];
-  const real_t Iy = mav->inertia[1];
-  const real_t Iz = mav->inertia[2];
-  const real_t kr = mav->kr;
-  const real_t kt = mav->kt;
-  const real_t m = mav->m;
-  const real_t mr = 1.0 / m;
-  const real_t g = mav->g;
+void mav_waypoints_add(mav_waypoints_t *wps, real_t wp[4]) {
+  const int n = wps->num_waypoints;
+  wps->waypoints = REALLOC(wps->waypoints, real_t, (n + 1) * 4);
+  wps->waypoints[n * 4 + 0] = wp[0];
+  wps->waypoints[n * 4 + 1] = wp[1];
+  wps->waypoints[n * 4 + 2] = wp[2];
+  wps->waypoints[n * 4 + 3] = wp[3];
+  wps->num_waypoints++;
+}
 
-  // Convert motor inputs to angular p, q, r and total thrust
-  // clang-format off
-  real_t A[4 * 4] = {
-    1.0,          1.0,     1.0,   1.0,
-    0.0,      -mav->l,     0.0,   mav->l,
-    -mav->l,      0.0,  mav->l,   0.0,
-    -mav->d,   mav->d,  -mav->d,  mav->d
-  };
-  // clang-format on
+static void mav_waypoints_target(const mav_waypoints_t *wps, real_t wp[4]) {
+  if (wps->index == wps->num_waypoints) {
+    wp[0] = wps->waypoints[(wps->index - 1) * 4 + 0];
+    wp[1] = wps->waypoints[(wps->index - 1) * 4 + 1];
+    wp[2] = wps->waypoints[(wps->index - 1) * 4 + 2];
+    wp[3] = wps->waypoints[(wps->index - 1) * 4 + 3];
+    return;
+  }
 
-  // tau = A * u
-  const real_t tauf = A[0] * u[0] + A[1] * u[1] + A[2] * u[2] + A[3] * u[3];
-  const real_t taup = A[4] * u[0] + A[5] * u[1] + A[6] * u[2] + A[7] * u[3];
-  const real_t tauq = A[8] * u[0] + A[9] * u[1] + A[10] * u[2] + A[11] * u[3];
-  const real_t taur = A[12] * u[0] + A[13] * u[1] + A[14] * u[2] + A[15] * u[3];
+  wp[0] = wps->waypoints[wps->index * 4 + 0];
+  wp[1] = wps->waypoints[wps->index * 4 + 1];
+  wp[2] = wps->waypoints[wps->index * 4 + 2];
+  wp[3] = wps->waypoints[wps->index * 4 + 3];
+}
 
-  // Update state
-  const real_t cph = cos(ph);
-  const real_t sph = sin(ph);
-  const real_t cth = cos(th);
-  const real_t sth = sin(th);
-  const real_t tth = tan(th);
-  const real_t cps = cos(ps);
-  const real_t sps = sin(ps);
+static real_t mav_waypoints_dist(const mav_waypoints_t *wps,
+                                 const real_t state[4]) {
+  real_t wp[4] = {0};
+  mav_waypoints_target(wps, wp);
 
-  real_t *x = mav->x;
-  // -- Attitude
-  x[0] += (p + q * sph * tth + r * cos(ph) * tth) * dt;
-  x[1] += (q * cph - r * sph) * dt;
-  x[2] += ((1 / cth) * (q * sph + r * cph)) * dt;
-  // s[2] = wrapToPi(s[2]);
-  // -- Angular velocity
-  x[3] += (-((Iz - Iy) / Ix) * q * r - (kr * p / Ix) + (1 / Ix) * taup) * dt;
-  x[4] += (-((Ix - Iz) / Iy) * p * r - (kr * q / Iy) + (1 / Iy) * tauq) * dt;
-  x[5] += (-((Iy - Ix) / Iz) * p * q - (kr * r / Iz) + (1 / Iz) * taur) * dt;
-  // -- Position
-  x[6] += vx * dt;
-  x[7] += vy * dt;
-  x[8] += vz * dt;
-  // -- Linear velocity
-  x[9] += ((-kt * vx / m) + mr * (cph * sth * cps + sph * sps) * tauf) * dt;
-  x[10] += ((-kt * vy / m) + mr * (cph * sth * sps - sph * cps) * tauf) * dt;
-  x[11] += (-(kt * vz / m) + mr * (cph * cth) * tauf - g) * dt;
+  const real_t dx = state[0] - wp[0];
+  const real_t dy = state[1] - wp[1];
+  const real_t dz = state[2] - wp[2];
+  const real_t dist = sqrt(dx * dx + dy * dy + dz * dz);
+
+  return dist;
+}
+
+int mav_waypoints_update(mav_waypoints_t *wps,
+                         const real_t state[4],
+                         const real_t dt,
+                         real_t wp[4]) {
+  assert(wps->index >= 0 && wps->index <= wps->num_waypoints);
+
+  // Check if waypoints completed - return last waypoint
+  if (wps->index == wps->num_waypoints) {
+    mav_waypoints_target(wps, wp);
+    return -1;
+  }
+
+  // Check if we're close to current waypoint
+  const real_t dist = mav_waypoints_dist(wps, state);
+  if (dist > wps->threshold) {
+    return 0;
+  }
+  wps->index++;
+
+  // Return current waypoint
+  mav_waypoints_target(wps, wp);
+
+  return 1;
 }
 
 /******************************************************************************
