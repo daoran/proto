@@ -1,14 +1,16 @@
 # PATHS
+CUR_DIR := $(shell pwd)
 BLD_DIR := build
 INC_DIR := $(realpath $(PWD))
 DEPS_DIR := $(realpath ../third_party)
 PREFIX := /opt/proto
 
+
 # COMPILER SETTINGS
 BUILD_TYPE := debug
 # BUILD_TYPE := release
-# ADDRESS_SANITIZER := 0
 ADDRESS_SANITIZER := 1
+# ADDRESS_SANITIZER := 1
 CC := clang
 # CC := gcc
 # CC := tcc
@@ -63,6 +65,7 @@ endif
 CFLAGS += \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
+	-fPIC \
 	$(SDL2_CFLAGS) \
 	$(STB_CFLAGS) \
 	$(TIS_CFLAGS) \
@@ -143,17 +146,19 @@ clean:  ## Clean build directory
 
 libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
 
-install: libproto  ## Install libproto
+install: ## Install libproto
+	echo $(MKFILE_PATH)
 	mkdir -p $(PREFIX)
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
-	cp build/libproto.a $(PREFIX)/lib/libproto.a
-	cp aprilgrid.h $(PREFIX)/include/aprilgrid.h
-	cp euroc.h $(PREFIX)/include/euroc.h
-	cp gui.h $(PREFIX)/include/gui.h
-	cp http.h $(PREFIX)/include/http.h
-	cp proto.h $(PREFIX)/include/proto.h
-	cp sbgc.h $(PREFIX)/include/sbgc.h
+	ln -s $(CUR_DIR)/build/libproto.a $(PREFIX)/lib/libproto.a
+	ln -s $(CUR_DIR)/aprilgrid.h $(PREFIX)/include/aprilgrid.h
+	ln -s $(CUR_DIR)/euroc.h $(PREFIX)/include/euroc.h
+	ln -s $(CUR_DIR)/gui.h $(PREFIX)/include/gui.h
+	ln -s $(CUR_DIR)/http.h $(PREFIX)/include/http.h
+	ln -s $(CUR_DIR)/proto.h $(PREFIX)/include/proto.h
+	ln -s $(CUR_DIR)/sbgc.h $(PREFIX)/include/sbgc.h
+	ln -s $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
 
 uninstall: ## Uninstall libproto
 	rm $(PREFIX)/lib/libproto.a
@@ -163,6 +168,7 @@ uninstall: ## Uninstall libproto
 	rm $(PREFIX)/include/http.h
 	rm $(PREFIX)/include/proto.h
 	rm $(PREFIX)/include/sbgc.h
+	rm $(PREFIX)/include/stb_image.h
 
 # -fsanitize=address -static-libasan
 avs: $(BLD_DIR)/libproto.a

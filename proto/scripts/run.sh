@@ -351,9 +351,12 @@ dev_euroc() {
 # memcheck run_test test_load_sim_cam_data
 # PROTO-CONTROL
 # run_test test_pid_ctrl
+# PROTO-GIMBAL
+# run_test test_gimbal
 # PROTO-MAV
 # run_test test_mav_att_ctrl
-run_test test_mav_pos_ctrl
+# run_test test_mav_pos_ctrl
+run_test test_mav_waypoints
 # PROTO-SENSOR_FUSION
 # run_test test_schur_complement
 # run_test test_timeline
