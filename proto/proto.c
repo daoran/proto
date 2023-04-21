@@ -8144,9 +8144,9 @@ void mav_model_telem_update(mav_model_telem_t *telem,
 
   telem->num_events = ns;
   telem->time[idx] = time;
-  telem->roll[idx] = mav->x[0];
-  telem->pitch[idx] = mav->x[1];
-  telem->yaw[idx] = mav->x[2];
+  telem->roll[idx] = rad2deg(mav->x[0]);
+  telem->pitch[idx] = rad2deg(mav->x[1]);
+  telem->yaw[idx] = rad2deg(mav->x[2]);
   telem->wx[idx] = mav->x[3];
   telem->wy[idx] = mav->x[4];
   telem->wz[idx] = mav->x[5];
@@ -8359,8 +8359,13 @@ mav_waypoints_t *mav_waypoints_malloc() {
   wps->num_waypoints = 0;
   wps->waypoints = NULL;
   wps->index = 0;
+
+  wps->wait_mode = 0;
+  wps->wait_time = 0.0;
+
   wps->threshold_dist = 0.1;
   wps->threshold_yaw = 0.1;
+  wps->threshold_wait = 1.0;
 
   return wps;
 }
@@ -8422,6 +8427,18 @@ int mav_waypoints_update(mav_waypoints_t *wps,
     return -1;
   }
 
+  // Check if in wait mode - gap between waypoints
+  if (wps->wait_mode == 1 && (wps->wait_time >= wps->threshold_wait)) {
+    // Go to next waypoint
+    wps->index++;
+    mav_waypoints_target(wps, wp);
+
+    // Reset wait mode
+    wps->wait_mode = 0;
+    wps->wait_time = 0.0;
+    return 0;
+  }
+
   // Check if we're close to current waypoint
   mav_waypoints_target(wps, wp);
   const real_t dx = state[0] - wp[0];
@@ -8429,15 +8446,17 @@ int mav_waypoints_update(mav_waypoints_t *wps,
   const real_t dz = state[2] - wp[2];
   const real_t diff_dist = sqrt(dx * dx + dy * dy + dz * dz);
   const real_t diff_yaw = fabs(state[3] - wp[3]);
-  if (diff_dist > wps->threshold_dist || diff_yaw > wps->threshold_yaw) {
-    return 0;
+  if (diff_dist < wps->threshold_dist && diff_yaw < wps->threshold_yaw) {
+    // Transition to wait mode
+    wps->wait_mode = 1;
+    wps->wait_time += dt;
+  } else {
+    // Reset wait mode
+    wps->wait_mode = 0;
+    wps->wait_time = 0.0;
   }
-  wps->index++;
 
-  // Return next waypoint
-  mav_waypoints_target(wps, wp);
-
-  return 1;
+  return 0;
 }
 
 /******************************************************************************

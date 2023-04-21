@@ -3560,7 +3560,7 @@ int test_mav_waypoints2() {
       {1, -1, 1, 0},
       {-1, -1, 1, 0},
       {-1, 1, 1, 0},
-      {0, 0, 1, 0.5}
+      {-1, 1, 1, 1.0}
   };
   mav_waypoints_t *wps = mav_waypoints_malloc();
   mav_waypoints_add(wps, waypoints[0]);
@@ -3573,7 +3573,7 @@ int test_mav_waypoints2() {
 
   // Simulate
   const real_t dt = 0.001;
-  const real_t t_end = 30.0;
+  const real_t t_end = 40.0;
   real_t t = 0.0;
 
   int idx = 0;

@@ -1470,8 +1470,13 @@ typedef struct mav_waypoints_t {
   int num_waypoints;
   real_t *waypoints;
   int index;
+
+  int wait_mode;
+  real_t wait_time;
+
   real_t threshold_dist;
   real_t threshold_yaw;
+  real_t threshold_wait;
 } mav_waypoints_t;
 
 mav_waypoints_t *mav_waypoints_malloc();
