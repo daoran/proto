@@ -362,7 +362,7 @@ dev_euroc() {
 # run_test test_mav_vel_ctrl
 # run_test test_mav_pos_ctrl
 # run_test test_mav_waypoints
-run_test test_mav_waypoints2
+# run_test test_mav_waypoints2
 # PROTO-SENSOR_FUSION
 # run_test test_schur_complement
 # run_test test_timeline
@@ -411,7 +411,7 @@ run_test test_mav_waypoints2
 # run_test test_calib_gimbal_add_remove_view
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_save
-# run_test test_calib_gimbal_solve
+run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-DATASET
 # run_test test_assoc_pose_data

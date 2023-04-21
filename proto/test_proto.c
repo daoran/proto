@@ -6326,11 +6326,11 @@ int test_calib_gimbal_solve() {
   solver.cost_func = &calib_gimbal_cost;
   solver.linearize_func = &calib_gimbal_linearize_compact;
   solver_solve(&solver, calib_est);
-  calib_gimbal_print(calib_est);
   if (debug) {
+    calib_gimbal_print(calib_est);
     compare_gimbal_calib(calib_gnd, calib_est);
+    PRINT_TOC("solve", solve);
   }
-  PRINT_TOC("solve", solve);
 
   int sv_size = 0;
   int r_size = 0;
