@@ -151,14 +151,14 @@ install: ## Install libproto
 	mkdir -p $(PREFIX)
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
-	ln -s $(CUR_DIR)/build/libproto.a $(PREFIX)/lib/libproto.a
-	ln -s $(CUR_DIR)/aprilgrid.h $(PREFIX)/include/aprilgrid.h
-	ln -s $(CUR_DIR)/euroc.h $(PREFIX)/include/euroc.h
-	ln -s $(CUR_DIR)/gui.h $(PREFIX)/include/gui.h
-	ln -s $(CUR_DIR)/http.h $(PREFIX)/include/http.h
-	ln -s $(CUR_DIR)/proto.h $(PREFIX)/include/proto.h
-	ln -s $(CUR_DIR)/sbgc.h $(PREFIX)/include/sbgc.h
-	ln -s $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
+	ln -sf $(CUR_DIR)/build/libproto.a $(PREFIX)/lib/libproto.a
+	ln -sf $(CUR_DIR)/aprilgrid.h $(PREFIX)/include/aprilgrid.h
+	ln -sf $(CUR_DIR)/euroc.h $(PREFIX)/include/euroc.h
+	ln -sf $(CUR_DIR)/gui.h $(PREFIX)/include/gui.h
+	ln -sf $(CUR_DIR)/http.h $(PREFIX)/include/http.h
+	ln -sf $(CUR_DIR)/proto.h $(PREFIX)/include/proto.h
+	ln -sf $(CUR_DIR)/sbgc.h $(PREFIX)/include/sbgc.h
+	ln -sf $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
 
 uninstall: ## Uninstall libproto
 	rm $(PREFIX)/lib/libproto.a
