@@ -3353,17 +3353,14 @@ int test_mav_att_ctrl() {
   mav_att_ctrl_setup(&mav_att_ctrl);
   mav_pos_ctrl_setup(&mav_pos_ctrl);
 
-  const real_t att_sp[4] = {0.1, 0.2, -0.2, 0.0};
+  const real_t att_sp[4] = {0.1, 0.2, -0.2, 0.0}; // roll, pitch, yaw, thrust
   const real_t dt = 0.001;
   const real_t t_end = 0.5;
   real_t t = 0.0;
 
   int idx = 0;
   const int N = t_end / dt;
-  real_t *time_vals = CALLOC(real_t, N);
-  real_t *roll_vals = CALLOC(real_t, N);
-  real_t *pitch_vals = CALLOC(real_t, N);
-  real_t *yaw_vals = CALLOC(real_t, N);
+  mav_model_telem_t *telem = mav_model_telem_malloc();
 
   while (idx < N) {
     const real_t att_pv[3] = {mav.x[0], mav.x[1], mav.x[2]};
@@ -3371,31 +3368,14 @@ int test_mav_att_ctrl() {
     real_t u[4] = {0};
     mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
     mav_model_update(&mav, u, dt);
-
-    time_vals[idx] = t;
-    roll_vals[idx] = mav.x[0];
-    pitch_vals[idx] = mav.x[1];
-    yaw_vals[idx] = mav.x[2];
+    mav_model_telem_update(telem, &mav, t);
 
     t += dt;
     idx += 1;
   }
 
-  // Plot
-  FILE *gnuplot = gnuplot_init();
-  gnuplot_send(gnuplot, "set title 'Attitude'");
-  gnuplot_send(gnuplot, "set colorsequence classic");
-  gnuplot_send_xy(gnuplot, "$r", time_vals, roll_vals, N);
-  gnuplot_send_xy(gnuplot, "$p", time_vals, pitch_vals, N);
-  gnuplot_send_xy(gnuplot, "$y", time_vals, yaw_vals, N);
-  gnuplot_send(gnuplot, "plot $r with lines, $p with lines, $y with lines");
-
-  // Clean up
-  free(time_vals);
-  free(roll_vals);
-  free(pitch_vals);
-  free(yaw_vals);
-  gnuplot_close(gnuplot);
+  mav_model_telem_plot(telem);
+  mav_model_telem_free(telem);
 
   return 0;
 }
@@ -3409,17 +3389,14 @@ int test_mav_vel_ctrl() {
   mav_att_ctrl_setup(&mav_att_ctrl);
   mav_vel_ctrl_setup(&mav_vel_ctrl);
 
-  const real_t vel_sp[4] = {0.1, 0.2, 0.0, 0.0};
+  const real_t vel_sp[4] = {0.1, 0.2, 0.0, 0.0}; // vx, vy, vz, yaw
   const real_t dt = 0.001;
   const real_t t_end = 10.0;
   real_t t = 0.0;
 
   int idx = 0;
   const int N = t_end / dt;
-  real_t *time_vals = CALLOC(real_t, N);
-  real_t *xvals = CALLOC(real_t, N);
-  real_t *yvals = CALLOC(real_t, N);
-  real_t *zvals = CALLOC(real_t, N);
+  mav_model_telem_t *telem = mav_model_telem_malloc();
 
   while (idx < N) {
     const real_t vel_pv[4] = {mav.x[9], mav.x[10], mav.x[11], mav.x[2]};
@@ -3430,31 +3407,14 @@ int test_mav_vel_ctrl() {
     mav_vel_ctrl_update(&mav_vel_ctrl, vel_sp, vel_pv, dt, att_sp);
     mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
     mav_model_update(&mav, u, dt);
-
-    time_vals[idx] = t;
-    xvals[idx] = mav.x[9];
-    yvals[idx] = mav.x[10];
-    zvals[idx] = mav.x[11];
+    mav_model_telem_update(telem, &mav, t);
 
     t += dt;
     idx += 1;
   }
 
-  // Plot
-  FILE *gnuplot = gnuplot_init();
-  gnuplot_send(gnuplot, "set title 'Velocity'");
-  gnuplot_send(gnuplot, "set colorsequence classic");
-  gnuplot_send_xy(gnuplot, "$x", time_vals, xvals, N);
-  gnuplot_send_xy(gnuplot, "$y", time_vals, yvals, N);
-  gnuplot_send_xy(gnuplot, "$z", time_vals, zvals, N);
-  gnuplot_send(gnuplot, "plot $x with lines, $y with lines, $z with lines");
-
-  // Clean up
-  free(time_vals);
-  free(xvals);
-  free(yvals);
-  free(zvals);
-  gnuplot_close(gnuplot);
+  mav_model_telem_plot(telem);
+  mav_model_telem_free(telem);
 
   return 0;
 }
@@ -3470,20 +3430,14 @@ int test_mav_pos_ctrl() {
   mav_vel_ctrl_setup(&mav_vel_ctrl);
   mav_pos_ctrl_setup(&mav_pos_ctrl);
 
-  const real_t pos_sp[4] = {10.0, 10.0, 5.0, 0.0};
+  const real_t pos_sp[4] = {10.0, 10.0, 5.0, 0.5}; // x, y, z, yaw
   const real_t dt = 0.001;
   const real_t t_end = 10.0;
   real_t t = 0.0;
 
   int idx = 0;
   const int N = t_end / dt;
-  real_t *time_vals = CALLOC(real_t, N);
-  real_t *xvals = CALLOC(real_t, N);
-  real_t *yvals = CALLOC(real_t, N);
-  real_t *zvals = CALLOC(real_t, N);
-  real_t *vxvals = CALLOC(real_t, N);
-  real_t *vyvals = CALLOC(real_t, N);
-  real_t *vzvals = CALLOC(real_t, N);
+  mav_model_telem_t *telem = mav_model_telem_malloc();
 
   while (idx < N) {
     const real_t pos_pv[4] = {mav.x[6], mav.x[7], mav.x[8], mav.x[2]};
@@ -3497,51 +3451,14 @@ int test_mav_pos_ctrl() {
     mav_vel_ctrl_update(&mav_vel_ctrl, vel_sp, vel_pv, dt, att_sp);
     mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
     mav_model_update(&mav, u, dt);
-
-    time_vals[idx] = t;
-    xvals[idx] = mav.x[6];
-    yvals[idx] = mav.x[7];
-    zvals[idx] = mav.x[8];
-    vxvals[idx] = mav.x[9];
-    vyvals[idx] = mav.x[10];
-    vzvals[idx] = mav.x[11];
+    mav_model_telem_update(telem, &mav, t);
 
     t += dt;
     idx += 1;
   }
 
-  // Plot
-  FILE *gnuplot = gnuplot_init();
-  gnuplot_send(gnuplot, "set multiplot layout 2,1");
-  gnuplot_send(gnuplot, "set colorsequence classic");
-  gnuplot_send(gnuplot, "set style line 1 lt 1 pt -1 lw 1");
-  gnuplot_send(gnuplot, "set style line 2 lt 2 pt -1 lw 1");
-  gnuplot_send(gnuplot, "set style line 3 lt 3 pt -1 lw 1");
-  gnuplot_send(gnuplot, "set title 'Displacement'");
-  gnuplot_send(gnuplot, "set xlabel 'Time [s]'");
-  gnuplot_send(gnuplot, "set ylabel 'Displacement [m]'");
-  gnuplot_send_xy(gnuplot, "$x", time_vals, xvals, N);
-  gnuplot_send_xy(gnuplot, "$y", time_vals, yvals, N);
-  gnuplot_send_xy(gnuplot, "$z", time_vals, zvals, N);
-  gnuplot_send(gnuplot,
-               "plot $x with lines ls 1, $y with lines ls 2, $z with lines ls "
-               "3");
-  gnuplot_send(gnuplot, "set title 'Velocity'");
-  gnuplot_send(gnuplot, "set xlabel 'Time [s]'");
-  gnuplot_send(gnuplot, "set ylabel 'Velocity [m/s]'");
-  gnuplot_send_xy(gnuplot, "$vx", time_vals, vxvals, N);
-  gnuplot_send_xy(gnuplot, "$vy", time_vals, vyvals, N);
-  gnuplot_send_xy(gnuplot, "$vz", time_vals, vzvals, N);
-  gnuplot_send(gnuplot,
-               "plot $vx with lines ls 1, $vy with lines ls 2, $vz with lines "
-               "ls 3");
-
-  // Clean up
-  free(time_vals);
-  free(xvals);
-  free(yvals);
-  free(zvals);
-  gnuplot_close(gnuplot);
+  mav_model_telem_plot(telem);
+  mav_model_telem_free(telem);
 
   return 0;
 }

@@ -1383,6 +1383,36 @@ void mav_model_velocity(const mav_model_t *mav, real_t vel[3]);
 void mav_model_print_state(const mav_model_t *mav, const real_t time);
 void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt);
 
+/** MAV Model Telemetry **/
+typedef struct mav_model_telem_t {
+  int num_events;
+  real_t *time;
+
+  real_t *roll;
+  real_t *pitch;
+  real_t *yaw;
+
+  real_t *wx;
+  real_t *wy;
+  real_t *wz;
+
+  real_t *x;
+  real_t *y;
+  real_t *z;
+
+  real_t *vx;
+  real_t *vy;
+  real_t *vz;
+
+} mav_model_telem_t;
+
+mav_model_telem_t *mav_model_telem_malloc();
+void mav_model_telem_free(mav_model_telem_t *telem);
+void mav_model_telem_update(mav_model_telem_t *telem,
+                            const mav_model_t *mav,
+                            const real_t time);
+void mav_model_telem_plot(const mav_model_telem_t *telem);
+
 /** MAV Attitude Controller **/
 typedef struct mav_att_ctrl_t {
   real_t dt;

@@ -8047,11 +8047,123 @@ void mav_model_velocity(const mav_model_t *mav, real_t vel[3]) {
   vel[2] = mav->x[11];
 }
 
+mav_model_telem_t *mav_model_telem_malloc() {
+  mav_model_telem_t *telem = MALLOC(mav_model_telem_t, 1);
+
+  telem->num_events = 0;
+  telem->time = NULL;
+  telem->roll = NULL;
+  telem->pitch = NULL;
+  telem->yaw = NULL;
+  telem->wx = NULL;
+  telem->wy = NULL;
+  telem->wz = NULL;
+  telem->x = NULL;
+  telem->y = NULL;
+  telem->z = NULL;
+  telem->vx = NULL;
+  telem->vy = NULL;
+  telem->vz = NULL;
+
+  return telem;
+}
+
+void mav_model_telem_free(mav_model_telem_t *telem) {
+  free(telem->time);
+  free(telem->roll);
+  free(telem->pitch);
+  free(telem->yaw);
+  free(telem->wx);
+  free(telem->wy);
+  free(telem->wz);
+  free(telem->x);
+  free(telem->y);
+  free(telem->z);
+  free(telem->vx);
+  free(telem->vy);
+  free(telem->vz);
+  free(telem);
+}
+
+void mav_model_telem_update(mav_model_telem_t *telem,
+                            const mav_model_t *mav,
+                            const real_t time) {
+  const int idx = telem->num_events;
+  const int ns = idx + 1;
+
+  telem->time = REALLOC(telem->time, real_t, ns);
+  telem->roll = REALLOC(telem->roll, real_t, ns);
+  telem->pitch = REALLOC(telem->pitch, real_t, ns);
+  telem->yaw = REALLOC(telem->yaw, real_t, ns);
+  telem->wx = REALLOC(telem->wx, real_t, ns);
+  telem->wy = REALLOC(telem->wy, real_t, ns);
+  telem->wz = REALLOC(telem->wz, real_t, ns);
+  telem->x = REALLOC(telem->x, real_t, ns);
+  telem->y = REALLOC(telem->y, real_t, ns);
+  telem->z = REALLOC(telem->z, real_t, ns);
+  telem->vx = REALLOC(telem->vx, real_t, ns);
+  telem->vy = REALLOC(telem->vy, real_t, ns);
+  telem->vz = REALLOC(telem->vz, real_t, ns);
+
+  telem->num_events = ns;
+  telem->time[idx] = time;
+  telem->roll[idx] = mav->x[0];
+  telem->pitch[idx] = mav->x[1];
+  telem->yaw[idx] = mav->x[2];
+  telem->wx[idx] = mav->x[3];
+  telem->wy[idx] = mav->x[4];
+  telem->wz[idx] = mav->x[5];
+  telem->x[idx] = mav->x[6];
+  telem->y[idx] = mav->x[7];
+  telem->z[idx] = mav->x[8];
+  telem->vx[idx] = mav->x[9];
+  telem->vy[idx] = mav->x[10];
+  telem->vz[idx] = mav->x[11];
+}
+
+void mav_model_telem_plot(const mav_model_telem_t *telem) {
+  // Plot
+  FILE *g = gnuplot_init();
+
+  gnuplot_send(g, "set multiplot layout 3,1");
+  gnuplot_send(g, "set colorsequence classic");
+  gnuplot_send(g, "set style line 1 lt 1 pt -1 lw 1");
+  gnuplot_send(g, "set style line 2 lt 2 pt -1 lw 1");
+  gnuplot_send(g, "set style line 3 lt 3 pt -1 lw 1");
+
+  gnuplot_send(g, "set title 'Attitude'");
+  gnuplot_send(g, "set xlabel 'Time [s]'");
+  gnuplot_send(g, "set ylabel 'Attitude [deg]'");
+  gnuplot_send_xy(g, "$roll", telem->time, telem->roll, telem->num_events);
+  gnuplot_send_xy(g, "$pitch", telem->time, telem->pitch, telem->num_events);
+  gnuplot_send_xy(g, "$yaw", telem->time, telem->yaw, telem->num_events);
+  gnuplot_send(g, "plot $roll with lines, $pitch with lines, $yaw with lines");
+
+  gnuplot_send(g, "set title 'Displacement'");
+  gnuplot_send(g, "set xlabel 'Time [s]'");
+  gnuplot_send(g, "set ylabel 'Displacement [m]'");
+  gnuplot_send_xy(g, "$x", telem->time, telem->x, telem->num_events);
+  gnuplot_send_xy(g, "$y", telem->time, telem->y, telem->num_events);
+  gnuplot_send_xy(g, "$z", telem->time, telem->z, telem->num_events);
+  gnuplot_send(g, "plot $x with lines, $y with lines, $z with lines");
+
+  gnuplot_send(g, "set title 'Velocity'");
+  gnuplot_send(g, "set xlabel 'Time [s]'");
+  gnuplot_send(g, "set ylabel 'Velocity [m/s]'");
+  gnuplot_send_xy(g, "$vx", telem->time, telem->vx, telem->num_events);
+  gnuplot_send_xy(g, "$vy", telem->time, telem->vy, telem->num_events);
+  gnuplot_send_xy(g, "$vz", telem->time, telem->vz, telem->num_events);
+  gnuplot_send(g, "plot $vx with lines, $vy with lines, $vz with lines");
+
+  // Clean up
+  gnuplot_close(g);
+}
+
 void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
   ctrl->dt = 0;
   pid_ctrl_setup(&ctrl->roll, 100.0, 0.0, 5.0);
   pid_ctrl_setup(&ctrl->pitch, 100.0, 0.0, 5.0);
-  pid_ctrl_setup(&ctrl->yaw, 100.0, 0.0, 5.0);
+  pid_ctrl_setup(&ctrl->yaw, 10.0, 0.0, 1.0);
 
   zeros(ctrl->setpoints, 4, 1);
   zeros(ctrl->outputs, 4, 1);
@@ -8085,8 +8197,10 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
   error_yaw = deg2rad(error_yaw);
 
   // Roll, pitch, yaw and thrust
-  const real_t r = pid_ctrl_update(&ctrl->roll, setpoints[0], actual[0], ctrl->dt);
-  const real_t p = pid_ctrl_update(&ctrl->pitch, setpoints[1], actual[1], ctrl->dt);
+  const real_t r =
+      pid_ctrl_update(&ctrl->roll, setpoints[0], actual[0], ctrl->dt);
+  const real_t p =
+      pid_ctrl_update(&ctrl->pitch, setpoints[1], actual[1], ctrl->dt);
   const real_t y = pid_ctrl_update(&ctrl->yaw, error_yaw, 0.0, ctrl->dt);
   const real_t t = clip_value(setpoints[3], 0.0, 1.0);
 
