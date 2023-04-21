@@ -7987,10 +7987,12 @@ void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt) {
   // clang-format on
 
   // tau = A * u
-  const real_t tauf = A[0] * u[0] + A[1] * u[1] + A[2] * u[2] + A[3] * u[3];
-  const real_t taup = A[4] * u[0] + A[5] * u[1] + A[6] * u[2] + A[7] * u[3];
-  const real_t tauq = A[8] * u[0] + A[9] * u[1] + A[10] * u[2] + A[11] * u[3];
-  const real_t taur = A[12] * u[0] + A[13] * u[1] + A[14] * u[2] + A[15] * u[3];
+  const real_t mt = 5.0; // Max-thrust
+  const real_t s[4] = {mt * u[0], mt * u[1], mt * u[2], mt * u[3]};
+  const real_t tauf = A[0] * s[0] + A[1] * s[1] + A[2] * s[2] + A[3] * s[3];
+  const real_t taup = A[4] * s[0] + A[5] * s[1] + A[6] * s[2] + A[7] * s[3];
+  const real_t tauq = A[8] * s[0] + A[9] * s[1] + A[10] * s[2] + A[11] * s[3];
+  const real_t taur = A[12] * s[0] + A[13] * s[1] + A[14] * s[2] + A[15] * s[3];
 
   // Update state
   const real_t cph = cos(ph);
@@ -8082,22 +8084,17 @@ void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
   }
   error_yaw = deg2rad(error_yaw);
 
-  // Roll, pitch and yaw
-  real_t r = pid_ctrl_update(&ctrl->roll, setpoints[0], actual[0], ctrl->dt);
-  real_t p = pid_ctrl_update(&ctrl->pitch, setpoints[1], actual[1], ctrl->dt);
-  real_t y = pid_ctrl_update(&ctrl->yaw, error_yaw, 0.0, ctrl->dt);
-
-  // Thrust
-  real_t max_thrust = 5.0;
-  real_t t = max_thrust * setpoints[3];  // Convert relative to true thrust
-  t = (t > max_thrust) ? max_thrust : t; // Limit thrust
-  t = (t < 0) ? 0.0 : t;                 // Limit thrust
+  // Roll, pitch, yaw and thrust
+  const real_t r = pid_ctrl_update(&ctrl->roll, setpoints[0], actual[0], ctrl->dt);
+  const real_t p = pid_ctrl_update(&ctrl->pitch, setpoints[1], actual[1], ctrl->dt);
+  const real_t y = pid_ctrl_update(&ctrl->yaw, error_yaw, 0.0, ctrl->dt);
+  const real_t t = clip_value(setpoints[3], 0.0, 1.0);
 
   // Map roll, pitch, yaw and thrust to motor outputs
-  outputs[0] = clip_value(-p - y + t, 0.0, max_thrust);
-  outputs[1] = clip_value(-r + y + t, 0.0, max_thrust);
-  outputs[2] = clip_value(p - y + t, 0.0, max_thrust);
-  outputs[3] = clip_value(r + y + t, 0.0, max_thrust);
+  outputs[0] = clip_value(-p - y + t, 0.0, 1.0);
+  outputs[1] = clip_value(-r + y + t, 0.0, 1.0);
+  outputs[2] = clip_value(p - y + t, 0.0, 1.0);
+  outputs[3] = clip_value(r + y + t, 0.0, 1.0);
 
   // Keep track of outputs
   ctrl->outputs[0] = outputs[0];
@@ -8222,7 +8219,7 @@ void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
 
   outputs[0] = clip_value(vx, -2.5, 2.5);
   outputs[1] = clip_value(vy, -2.5, 2.5);
-  outputs[2] = clip_value(vz, -2.0, 20.0);
+  outputs[2] = clip_value(vz, -5.0, 5.0);
   outputs[3] = yaw;
 
   // Keep track of outputs

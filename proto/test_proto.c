@@ -3383,12 +3383,12 @@ int test_mav_att_ctrl() {
 
   // Plot
   FILE *gnuplot = gnuplot_init();
-  gnuplot_send(gnuplot, "set title 'Plot 1'");
-  gnuplot_send_xy(gnuplot, "$roll", time_vals, roll_vals, N);
-  gnuplot_send_xy(gnuplot, "$pitch", time_vals, pitch_vals, N);
-  gnuplot_send_xy(gnuplot, "$yaw", time_vals, yaw_vals, N);
-  gnuplot_send(gnuplot,
-               "plot $roll with lines, $pitch with lines, $yaw with lines");
+  gnuplot_send(gnuplot, "set title 'Attitude'");
+  gnuplot_send(gnuplot, "set colorsequence classic");
+  gnuplot_send_xy(gnuplot, "$r", time_vals, roll_vals, N);
+  gnuplot_send_xy(gnuplot, "$p", time_vals, pitch_vals, N);
+  gnuplot_send_xy(gnuplot, "$y", time_vals, yaw_vals, N);
+  gnuplot_send(gnuplot, "plot $r with lines, $p with lines, $y with lines");
 
   // Clean up
   free(time_vals);
@@ -3411,7 +3411,7 @@ int test_mav_vel_ctrl() {
 
   const real_t vel_sp[4] = {0.1, 0.2, 0.0, 0.0};
   const real_t dt = 0.001;
-  const real_t t_end = 2.0;
+  const real_t t_end = 10.0;
   real_t t = 0.0;
 
   int idx = 0;
@@ -3435,9 +3435,6 @@ int test_mav_vel_ctrl() {
     xvals[idx] = mav.x[9];
     yvals[idx] = mav.x[10];
     zvals[idx] = mav.x[11];
-    // xvals[idx] = mav.x[6];
-    // yvals[idx] = mav.x[7];
-    // zvals[idx] = mav.x[8];
 
     t += dt;
     idx += 1;
@@ -3445,7 +3442,8 @@ int test_mav_vel_ctrl() {
 
   // Plot
   FILE *gnuplot = gnuplot_init();
-  gnuplot_send(gnuplot, "set title 'Plot 1'");
+  gnuplot_send(gnuplot, "set title 'Velocity'");
+  gnuplot_send(gnuplot, "set colorsequence classic");
   gnuplot_send_xy(gnuplot, "$x", time_vals, xvals, N);
   gnuplot_send_xy(gnuplot, "$y", time_vals, yvals, N);
   gnuplot_send_xy(gnuplot, "$z", time_vals, zvals, N);
@@ -3472,9 +3470,9 @@ int test_mav_pos_ctrl() {
   mav_vel_ctrl_setup(&mav_vel_ctrl);
   mav_pos_ctrl_setup(&mav_pos_ctrl);
 
-  const real_t pos_sp[4] = {10.0, 10.0, 4.0, 0.0};
+  const real_t pos_sp[4] = {10.0, 10.0, 5.0, 0.0};
   const real_t dt = 0.001;
-  const real_t t_end = 30.0;
+  const real_t t_end = 10.0;
   real_t t = 0.0;
 
   int idx = 0;
@@ -3483,6 +3481,9 @@ int test_mav_pos_ctrl() {
   real_t *xvals = CALLOC(real_t, N);
   real_t *yvals = CALLOC(real_t, N);
   real_t *zvals = CALLOC(real_t, N);
+  real_t *vxvals = CALLOC(real_t, N);
+  real_t *vyvals = CALLOC(real_t, N);
+  real_t *vzvals = CALLOC(real_t, N);
 
   while (idx < N) {
     const real_t pos_pv[4] = {mav.x[6], mav.x[7], mav.x[8], mav.x[2]};
@@ -3501,9 +3502,9 @@ int test_mav_pos_ctrl() {
     xvals[idx] = mav.x[6];
     yvals[idx] = mav.x[7];
     zvals[idx] = mav.x[8];
-    // xvals[idx] = mav.x[9];
-    // yvals[idx] = mav.x[10];
-    // zvals[idx] = mav.x[11];
+    vxvals[idx] = mav.x[9];
+    vyvals[idx] = mav.x[10];
+    vzvals[idx] = mav.x[11];
 
     t += dt;
     idx += 1;
@@ -3511,11 +3512,29 @@ int test_mav_pos_ctrl() {
 
   // Plot
   FILE *gnuplot = gnuplot_init();
-  gnuplot_send(gnuplot, "set title 'Plot 1'");
+  gnuplot_send(gnuplot, "set multiplot layout 2,1");
+  gnuplot_send(gnuplot, "set colorsequence classic");
+  gnuplot_send(gnuplot, "set style line 1 lt 1 pt -1 lw 1");
+  gnuplot_send(gnuplot, "set style line 2 lt 2 pt -1 lw 1");
+  gnuplot_send(gnuplot, "set style line 3 lt 3 pt -1 lw 1");
+  gnuplot_send(gnuplot, "set title 'Displacement'");
+  gnuplot_send(gnuplot, "set xlabel 'Time [s]'");
+  gnuplot_send(gnuplot, "set ylabel 'Displacement [m]'");
   gnuplot_send_xy(gnuplot, "$x", time_vals, xvals, N);
   gnuplot_send_xy(gnuplot, "$y", time_vals, yvals, N);
   gnuplot_send_xy(gnuplot, "$z", time_vals, zvals, N);
-  gnuplot_send(gnuplot, "plot $x with lines, $y with lines, $z with lines");
+  gnuplot_send(gnuplot,
+               "plot $x with lines ls 1, $y with lines ls 2, $z with lines ls "
+               "3");
+  gnuplot_send(gnuplot, "set title 'Velocity'");
+  gnuplot_send(gnuplot, "set xlabel 'Time [s]'");
+  gnuplot_send(gnuplot, "set ylabel 'Velocity [m/s]'");
+  gnuplot_send_xy(gnuplot, "$vx", time_vals, vxvals, N);
+  gnuplot_send_xy(gnuplot, "$vy", time_vals, vyvals, N);
+  gnuplot_send_xy(gnuplot, "$vz", time_vals, vzvals, N);
+  gnuplot_send(gnuplot,
+               "plot $vx with lines ls 1, $vy with lines ls 2, $vz with lines "
+               "ls 3");
 
   // Clean up
   free(time_vals);
