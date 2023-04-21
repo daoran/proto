@@ -977,6 +977,34 @@ int test_rad2deg() {
   return 0;
 }
 
+int test_wrap_180() {
+  MU_ASSERT(fltcmp(wrap_180(181), -179) == 0);
+  MU_ASSERT(fltcmp(wrap_180(90), 90) == 0);
+  MU_ASSERT(fltcmp(wrap_180(-181), 179) == 0);
+  return 0;
+}
+
+int test_wrap_360() {
+  MU_ASSERT(fltcmp(wrap_360(-1), 359) == 0);
+  MU_ASSERT(fltcmp(wrap_360(180), 180) == 0);
+  MU_ASSERT(fltcmp(wrap_360(361), 1) == 0);
+  return 0;
+}
+
+int test_wrap_pi() {
+  MU_ASSERT(fltcmp(wrap_pi(deg2rad(181)), deg2rad(-179)) == 0);
+  MU_ASSERT(fltcmp(wrap_pi(deg2rad(90)), deg2rad(90)) == 0);
+  MU_ASSERT(fltcmp(wrap_pi(deg2rad(-181)), deg2rad(179)) == 0);
+  return 0;
+}
+
+int test_wrap_2pi() {
+  MU_ASSERT(fltcmp(wrap_2pi(deg2rad(-1)), deg2rad(359)) == 0);
+  MU_ASSERT(fltcmp(wrap_2pi(deg2rad(180)), deg2rad(180)) == 0);
+  MU_ASSERT(fltcmp(wrap_2pi(deg2rad(361)), deg2rad(1)) == 0);
+  return 0;
+}
+
 int test_fltcmp() {
   MU_ASSERT(fltcmp(1.0, 1.0) == 0);
   MU_ASSERT(fltcmp(1.0, 1.01) != 0);
@@ -3507,6 +3535,75 @@ int test_mav_waypoints() {
   print_vector("wp", wp, 4);
 
   // Clean up
+  mav_waypoints_free(wps);
+
+  return 0;
+}
+
+int test_mav_waypoints2() {
+  // Setup MAV model
+  mav_model_t mav;
+  test_setup_mav(&mav);
+
+  // Setup MAV controllers
+  mav_att_ctrl_t mav_att_ctrl;
+  mav_vel_ctrl_t mav_vel_ctrl;
+  mav_pos_ctrl_t mav_pos_ctrl;
+  mav_att_ctrl_setup(&mav_att_ctrl);
+  mav_vel_ctrl_setup(&mav_vel_ctrl);
+  mav_pos_ctrl_setup(&mav_pos_ctrl);
+
+  // Setup waypoints
+  real_t waypoints[6][4] = {
+      {0, 0, 1, 0},
+      {1, 1, 1, 0},
+      {1, -1, 1, 0},
+      {-1, -1, 1, 0},
+      {-1, 1, 1, 0},
+      {0, 0, 1, 0.5}
+  };
+  mav_waypoints_t *wps = mav_waypoints_malloc();
+  mav_waypoints_add(wps, waypoints[0]);
+  mav_waypoints_add(wps, waypoints[1]);
+  mav_waypoints_add(wps, waypoints[2]);
+  mav_waypoints_add(wps, waypoints[3]);
+  mav_waypoints_add(wps, waypoints[4]);
+  mav_waypoints_add(wps, waypoints[5]);
+  mav_waypoints_print(wps);
+
+  // Simulate
+  const real_t dt = 0.001;
+  const real_t t_end = 30.0;
+  real_t t = 0.0;
+
+  int idx = 0;
+  const int N = t_end / dt;
+  mav_model_telem_t *telem = mav_model_telem_malloc();
+
+  while (idx < N) {
+    const real_t pos_pv[4] = {mav.x[6], mav.x[7], mav.x[8], mav.x[2]};
+    const real_t vel_pv[4] = {mav.x[9], mav.x[10], mav.x[11], mav.x[2]};
+    const real_t att_pv[3] = {mav.x[0], mav.x[1], mav.x[2]};
+
+    real_t pos_sp[4] = {0};
+    mav_waypoints_update(wps, pos_pv, dt, pos_sp);
+
+    real_t vel_sp[4] = {0};
+    real_t att_sp[4] = {0};
+    real_t u[4] = {0};
+    mav_pos_ctrl_update(&mav_pos_ctrl, pos_sp, pos_pv, dt, vel_sp);
+    mav_vel_ctrl_update(&mav_vel_ctrl, vel_sp, vel_pv, dt, att_sp);
+    mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
+    mav_model_update(&mav, u, dt);
+    mav_model_telem_update(telem, &mav, t);
+
+    t += dt;
+    idx += 1;
+  }
+
+  // Plot and clean up
+  mav_model_telem_plot(telem);
+  mav_model_telem_free(telem);
   mav_waypoints_free(wps);
 
   return 0;
@@ -6768,6 +6865,10 @@ void test_suite() {
   MU_ADD_TEST(test_randf);
   MU_ADD_TEST(test_deg2rad);
   MU_ADD_TEST(test_rad2deg);
+  MU_ADD_TEST(test_wrap_180);
+  MU_ADD_TEST(test_wrap_360);
+  MU_ADD_TEST(test_wrap_pi);
+  MU_ADD_TEST(test_wrap_2pi);
   MU_ADD_TEST(test_fltcmp);
   MU_ADD_TEST(test_fltcmp2);
   MU_ADD_TEST(test_cumsum);
@@ -6881,6 +6982,7 @@ void test_suite() {
   MU_ADD_TEST(test_mav_vel_ctrl);
   MU_ADD_TEST(test_mav_pos_ctrl);
   MU_ADD_TEST(test_mav_waypoints);
+  MU_ADD_TEST(test_mav_waypoints2);
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);

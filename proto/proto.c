@@ -1987,6 +1987,43 @@ real_t rad2deg(const real_t r) {
 }
 
 /**
+ * Wrap angle `d` in degrees to +- 180 degrees.
+ */
+real_t wrap_180(const real_t d) {
+  real_t x = fmod(d + 180, 360);
+  if (x < 0) {
+    x += 360;
+  }
+
+  return x - 180;
+}
+
+/**
+ * Wrap angle `d` in degrees to 0 to 360 degrees.
+ */
+real_t wrap_360(const real_t d) {
+  real_t x = fmod(d, 360);
+  if (x < 0) {
+    x += 360;
+  }
+  return x;
+}
+
+/**
+ * Wrap angle `r` in radians to +- pi radians.
+ */
+real_t wrap_pi(const real_t r) {
+  return deg2rad(wrap_180(rad2deg(r)));
+}
+
+/**
+ * Wrap angle `r` in radians to 0 to 2pi radians.
+ */
+real_t wrap_2pi(const real_t r) {
+  return deg2rad(wrap_360(rad2deg(r)));
+}
+
+/**
  * Compare ints.
  * @returns
  * - 0 if v1 == v2
@@ -8164,57 +8201,43 @@ void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl) {
   pid_ctrl_setup(&ctrl->roll, 100.0, 0.0, 5.0);
   pid_ctrl_setup(&ctrl->pitch, 100.0, 0.0, 5.0);
   pid_ctrl_setup(&ctrl->yaw, 10.0, 0.0, 1.0);
-
-  zeros(ctrl->setpoints, 4, 1);
-  zeros(ctrl->outputs, 4, 1);
+  zeros(ctrl->u, 4, 1);
 }
 
 void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
-                         const real_t setpoints[4],
-                         const real_t actual[3],
+                         const real_t sp[4],
+                         const real_t pv[3],
                          const real_t dt,
-                         real_t outputs[4]) {
+                         real_t u[4]) {
   // Check rate
   ctrl->dt += dt;
   if (ctrl->dt < 0.001) {
     // Return previous command
-    outputs[0] = ctrl->outputs[0];
-    outputs[1] = ctrl->outputs[1];
-    outputs[2] = ctrl->outputs[2];
-    outputs[3] = ctrl->outputs[3];
+    u[0] = ctrl->u[0];
+    u[1] = ctrl->u[1];
+    u[2] = ctrl->u[2];
+    u[3] = ctrl->u[3];
     return;
   }
 
-  // Calculate yaw error
-  real_t actual_yaw = rad2deg(actual[2]);
-  real_t setpoint_yaw = rad2deg(setpoints[2]);
-  real_t error_yaw = setpoint_yaw - actual_yaw;
-  if (error_yaw > 180.0) {
-    error_yaw -= 360.0;
-  } else if (error_yaw < -180.0) {
-    error_yaw += 360.0;
-  }
-  error_yaw = deg2rad(error_yaw);
-
   // Roll, pitch, yaw and thrust
-  const real_t r =
-      pid_ctrl_update(&ctrl->roll, setpoints[0], actual[0], ctrl->dt);
-  const real_t p =
-      pid_ctrl_update(&ctrl->pitch, setpoints[1], actual[1], ctrl->dt);
+  const real_t error_yaw = wrap_pi(sp[2] - pv[2]);
+  const real_t r = pid_ctrl_update(&ctrl->roll, sp[0], pv[0], ctrl->dt);
+  const real_t p = pid_ctrl_update(&ctrl->pitch, sp[1], pv[1], ctrl->dt);
   const real_t y = pid_ctrl_update(&ctrl->yaw, error_yaw, 0.0, ctrl->dt);
-  const real_t t = clip_value(setpoints[3], 0.0, 1.0);
+  const real_t t = clip_value(sp[3], 0.0, 1.0);
 
   // Map roll, pitch, yaw and thrust to motor outputs
-  outputs[0] = clip_value(-p - y + t, 0.0, 1.0);
-  outputs[1] = clip_value(-r + y + t, 0.0, 1.0);
-  outputs[2] = clip_value(p - y + t, 0.0, 1.0);
-  outputs[3] = clip_value(r + y + t, 0.0, 1.0);
+  u[0] = clip_value(-p - y + t, 0.0, 1.0);
+  u[1] = clip_value(-r + y + t, 0.0, 1.0);
+  u[2] = clip_value(p - y + t, 0.0, 1.0);
+  u[3] = clip_value(r + y + t, 0.0, 1.0);
 
-  // Keep track of outputs
-  ctrl->outputs[0] = outputs[0];
-  ctrl->outputs[1] = outputs[1];
-  ctrl->outputs[2] = outputs[2];
-  ctrl->outputs[3] = outputs[3];
+  // Keep track of control action
+  ctrl->u[0] = u[0];
+  ctrl->u[1] = u[1];
+  ctrl->u[2] = u[2];
+  ctrl->u[3] = u[3];
   ctrl->dt = 0.0; // Reset dt
 }
 
@@ -8223,35 +8246,28 @@ void mav_vel_ctrl_setup(mav_vel_ctrl_t *ctrl) {
   pid_ctrl_setup(&ctrl->vx, 1.0, 0.0, 0.05);
   pid_ctrl_setup(&ctrl->vy, 1.0, 0.0, 0.05);
   pid_ctrl_setup(&ctrl->vz, 10.0, 0.0, 0.0);
-
-  zeros(ctrl->setpoints, 4, 1);
-  zeros(ctrl->outputs, 4, 1);
+  zeros(ctrl->u, 4, 1);
 }
 
 void mav_vel_ctrl_update(mav_vel_ctrl_t *ctrl,
-                         const real_t setpoints[4],
-                         const real_t actual[4],
+                         const real_t sp[4],
+                         const real_t pv[4],
                          const real_t dt,
-                         real_t outputs[4]) {
+                         real_t u[4]) {
   // Check rate
   ctrl->dt += dt;
   if (ctrl->dt < 0.001) {
     // Return previous command
-    outputs[0] = ctrl->outputs[0];
-    outputs[1] = ctrl->outputs[1];
-    outputs[2] = ctrl->outputs[2];
-    outputs[3] = ctrl->outputs[3];
+    u[0] = ctrl->u[0];
+    u[1] = ctrl->u[1];
+    u[2] = ctrl->u[2];
+    u[3] = ctrl->u[3];
     return;
   }
 
   // Calculate RPY errors relative to quadrotor by incorporating yaw
-  real_t errors_W[3] = {0};
-  errors_W[0] = setpoints[0] - actual[0];
-  errors_W[1] = setpoints[1] - actual[1];
-  errors_W[2] = setpoints[2] - actual[2];
-
-  // errors = C * errors;
-  real_t ypr[3] = {actual[3], 0.0, 0.0};
+  const real_t errors_W[3] = {sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]};
+  const real_t ypr[3] = {pv[3], 0.0, 0.0};
   real_t C_WS[3 * 3] = {0};
   real_t C_SW[3 * 3] = {0};
   real_t errors[3] = {0};
@@ -8260,28 +8276,28 @@ void mav_vel_ctrl_update(mav_vel_ctrl_t *ctrl,
   dot(C_SW, 3, 3, errors_W, 3, 1, errors);
 
   // Roll, pitch, yaw and thrust
-  real_t r = -pid_ctrl_update(&ctrl->vy, errors[1], 0.0, dt);
-  real_t p = pid_ctrl_update(&ctrl->vx, errors[0], 0.0, dt);
-  real_t y = setpoints[3];
-  real_t t = 0.5 + pid_ctrl_update(&ctrl->vz, errors[2], 0.0, dt);
+  const real_t r = -pid_ctrl_update(&ctrl->vy, errors[1], 0.0, dt);
+  const real_t p = pid_ctrl_update(&ctrl->vx, errors[0], 0.0, dt);
+  const real_t y = sp[3];
+  const real_t t = 0.5 + pid_ctrl_update(&ctrl->vz, errors[2], 0.0, dt);
 
-  outputs[0] = clip_value(r, deg2rad(-20.0), deg2rad(20.0));
-  outputs[1] = clip_value(p, deg2rad(-20.0), deg2rad(20.0));
-  outputs[2] = y;
-  outputs[3] = clip_value(t, 0.0, 1.0);
+  u[0] = clip_value(r, deg2rad(-20.0), deg2rad(20.0));
+  u[1] = clip_value(p, deg2rad(-20.0), deg2rad(20.0));
+  u[2] = y;
+  u[3] = clip_value(t, 0.0, 1.0);
 
   // // Yaw first if threshold reached
-  // if (fabs(setpoints[3] - actual[3]) > deg2rad(2)) {
+  // if (fabs(sp[3] - pv[3]) > deg2rad(2)) {
   //   outputs[0] = 0.0;
   //   outputs[1] = 0.0;
   // }
 
-  // Keep track of outputs
-  ctrl->outputs[0] = outputs[0];
-  ctrl->outputs[1] = outputs[1];
-  ctrl->outputs[2] = outputs[2];
-  ctrl->outputs[3] = outputs[3];
-  ctrl->dt = 0.0;
+  // Keep track of control action
+  ctrl->u[0] = u[0];
+  ctrl->u[1] = u[1];
+  ctrl->u[2] = u[2];
+  ctrl->u[3] = u[3];
+  ctrl->dt = 0.0; // Reset dt
 }
 
 void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl) {
@@ -8289,35 +8305,28 @@ void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl) {
   pid_ctrl_setup(&ctrl->x, 0.5, 0.0, 0.05);
   pid_ctrl_setup(&ctrl->y, 0.5, 0.0, 0.05);
   pid_ctrl_setup(&ctrl->z, 1.0, 0.0, 0.1);
-
-  zeros(ctrl->setpoints, 4, 1);
-  zeros(ctrl->outputs, 4, 1);
+  zeros(ctrl->u, 4, 1);
 }
 
 void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
-                         const real_t setpoints[4],
-                         const real_t actual[4],
+                         const real_t sp[4],
+                         const real_t pv[4],
                          const real_t dt,
-                         real_t outputs[4]) {
+                         real_t u[4]) {
   // Check rate
   ctrl->dt += dt;
   if (ctrl->dt < 0.01) {
     // Return previous command
-    outputs[0] = ctrl->outputs[0];
-    outputs[1] = ctrl->outputs[1];
-    outputs[2] = ctrl->outputs[2];
-    outputs[3] = ctrl->outputs[3];
+    u[0] = ctrl->u[0];
+    u[1] = ctrl->u[1];
+    u[2] = ctrl->u[2];
+    u[3] = ctrl->u[3];
     return;
   }
 
   // Calculate RPY errors relative to quadrotor by incorporating yaw
-  real_t errors_W[3] = {0};
-  errors_W[0] = setpoints[0] - actual[0];
-  errors_W[1] = setpoints[1] - actual[1];
-  errors_W[2] = setpoints[2] - actual[2];
-
-  // errors = C * errors;
-  real_t ypr[3] = {actual[3], 0.0, 0.0};
+  const real_t errors_W[3] = {sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]};
+  const real_t ypr[3] = {pv[3], 0.0, 0.0};
   real_t C_WS[3 * 3] = {0};
   real_t C_SW[3 * 3] = {0};
   real_t errors[3] = {0};
@@ -8326,21 +8335,21 @@ void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
   dot(C_SW, 3, 3, errors_W, 3, 1, errors);
 
   // Velocity commands
-  real_t vx = pid_ctrl_update(&ctrl->x, errors[0], 0.0, ctrl->dt);
-  real_t vy = pid_ctrl_update(&ctrl->y, errors[1], 0.0, ctrl->dt);
-  real_t vz = pid_ctrl_update(&ctrl->z, errors[2], 0.0, ctrl->dt);
-  real_t yaw = setpoints[3];
+  const real_t vx = pid_ctrl_update(&ctrl->x, errors[0], 0.0, ctrl->dt);
+  const real_t vy = pid_ctrl_update(&ctrl->y, errors[1], 0.0, ctrl->dt);
+  const real_t vz = pid_ctrl_update(&ctrl->z, errors[2], 0.0, ctrl->dt);
+  const real_t yaw = sp[3];
 
-  outputs[0] = clip_value(vx, -2.5, 2.5);
-  outputs[1] = clip_value(vy, -2.5, 2.5);
-  outputs[2] = clip_value(vz, -5.0, 5.0);
-  outputs[3] = yaw;
+  u[0] = clip_value(vx, -2.5, 2.5);
+  u[1] = clip_value(vy, -2.5, 2.5);
+  u[2] = clip_value(vz, -5.0, 5.0);
+  u[3] = yaw;
 
-  // Keep track of outputs
-  ctrl->outputs[0] = outputs[0];
-  ctrl->outputs[1] = outputs[1];
-  ctrl->outputs[2] = outputs[2];
-  ctrl->outputs[3] = outputs[3];
+  // Keep track of control action
+  ctrl->u[0] = u[0];
+  ctrl->u[1] = u[1];
+  ctrl->u[2] = u[2];
+  ctrl->u[3] = u[3];
   ctrl->dt = 0.0;
 }
 
@@ -8350,7 +8359,8 @@ mav_waypoints_t *mav_waypoints_malloc() {
   wps->num_waypoints = 0;
   wps->waypoints = NULL;
   wps->index = 0;
-  wps->threshold = 0.1;
+  wps->threshold_dist = 0.1;
+  wps->threshold_yaw = 0.1;
 
   return wps;
 }
@@ -8385,7 +8395,7 @@ void mav_waypoints_add(mav_waypoints_t *wps, real_t wp[4]) {
   wps->num_waypoints++;
 }
 
-static void mav_waypoints_target(const mav_waypoints_t *wps, real_t wp[4]) {
+void mav_waypoints_target(const mav_waypoints_t *wps, real_t wp[4]) {
   if (mav_waypoints_done(wps) == 1) {
     wp[0] = wps->waypoints[(wps->index - 1) * 4 + 0];
     wp[1] = wps->waypoints[(wps->index - 1) * 4 + 1];
@@ -8398,19 +8408,6 @@ static void mav_waypoints_target(const mav_waypoints_t *wps, real_t wp[4]) {
   wp[1] = wps->waypoints[wps->index * 4 + 1];
   wp[2] = wps->waypoints[wps->index * 4 + 2];
   wp[3] = wps->waypoints[wps->index * 4 + 3];
-}
-
-static real_t mav_waypoints_dist(const mav_waypoints_t *wps,
-                                 const real_t state[4]) {
-  real_t wp[4] = {0};
-  mav_waypoints_target(wps, wp);
-
-  const real_t dx = state[0] - wp[0];
-  const real_t dy = state[1] - wp[1];
-  const real_t dz = state[2] - wp[2];
-  const real_t dist = sqrt(dx * dx + dy * dy + dz * dz);
-
-  return dist;
 }
 
 int mav_waypoints_update(mav_waypoints_t *wps,
@@ -8426,13 +8423,18 @@ int mav_waypoints_update(mav_waypoints_t *wps,
   }
 
   // Check if we're close to current waypoint
-  const real_t dist = mav_waypoints_dist(wps, state);
-  if (dist > wps->threshold) {
+  mav_waypoints_target(wps, wp);
+  const real_t dx = state[0] - wp[0];
+  const real_t dy = state[1] - wp[1];
+  const real_t dz = state[2] - wp[2];
+  const real_t diff_dist = sqrt(dx * dx + dy * dy + dz * dz);
+  const real_t diff_yaw = fabs(state[3] - wp[3]);
+  if (diff_dist > wps->threshold_dist || diff_yaw > wps->threshold_yaw) {
     return 0;
   }
   wps->index++;
 
-  // Return current waypoint
+  // Return next waypoint
   mav_waypoints_target(wps, wp);
 
   return 1;

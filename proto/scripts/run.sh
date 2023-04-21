@@ -252,6 +252,10 @@ dev_euroc() {
 # run_test test_randf
 # run_test test_deg2rad
 # run_test test_rad2deg
+# run_test test_wrap_180
+# run_test test_wrap_360
+# run_test test_wrap_pi
+# run_test test_wrap_2pi
 # run_test test_fltcmp
 # run_test test_fltcmp2
 # run_test test_cumsum
@@ -356,8 +360,9 @@ dev_euroc() {
 # PROTO-MAV
 # run_test test_mav_att_ctrl
 # run_test test_mav_vel_ctrl
-run_test test_mav_pos_ctrl
+# run_test test_mav_pos_ctrl
 # run_test test_mav_waypoints
+run_test test_mav_waypoints2
 # PROTO-SENSOR_FUSION
 # run_test test_schur_complement
 # run_test test_timeline
