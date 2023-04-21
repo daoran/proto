@@ -3088,6 +3088,59 @@ int vec_equals(const real_t *x, const real_t *y, const size_t n) {
 }
 
 /**
+ * Get minimal value in vector `x` of length `n`.
+ */
+real_t vec_min(const real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
+  real_t y = x[0];
+  for (size_t i = 1; i < n; i++) {
+    y = (x[i] < y) ? x[i] : y;
+  }
+
+  return y;
+}
+
+/**
+ * Get minimal value in vector `x` of length `n`.
+ */
+real_t vec_max(const real_t *x, const size_t n) {
+  assert(x != NULL);
+  assert(n > 0);
+
+  real_t y = x[0];
+  for (size_t i = 1; i < n; i++) {
+    y = (x[i] > y) ? x[i] : y;
+  }
+
+  return y;
+}
+
+/**
+ * Get minimal, maximum value in vector `x` of length `n` as `vmin`, `vmax` as well as the range `r`.
+ */
+void vec_range(const real_t *x,
+               const size_t n,
+               real_t *vmin,
+               real_t *vmax,
+               real_t *r) {
+  assert(x != NULL);
+  assert(n > 0);
+  assert(vmin != NULL);
+  assert(vmax != NULL);
+  assert(r != NULL);
+
+  *vmin = x[0];
+  *vmax = x[0];
+  for (size_t i = 1; i < n; i++) {
+    *vmin = (x[i] < *vmin) ? x[i] : *vmin;
+    *vmax = (x[i] > *vmax) ? x[i] : *vmax;
+  }
+  *r = vmax - vmin;
+}
+
+/**
  * Load vector.
  *
  * @param vec_path Path to csv containing vector values
@@ -7861,7 +7914,7 @@ real_t pid_ctrl_update(pid_ctrl_t *pid,
                        const real_t dt) {
   // Calculate errors
   real_t error = setpoint - input;
-  pid->error_sum += error;
+  pid->error_sum += error * dt;
 
   // Calculate output
   pid->error_p = pid->k_p * error;
@@ -8162,12 +8215,14 @@ void mav_model_telem_plot(const mav_model_telem_t *telem) {
   // Plot
   FILE *g = gnuplot_init();
 
+  // -- Plot settings
   gnuplot_send(g, "set multiplot layout 3,1");
   gnuplot_send(g, "set colorsequence classic");
   gnuplot_send(g, "set style line 1 lt 1 pt -1 lw 1");
   gnuplot_send(g, "set style line 2 lt 2 pt -1 lw 1");
   gnuplot_send(g, "set style line 3 lt 3 pt -1 lw 1");
 
+  // -- Attitude
   gnuplot_send(g, "set title 'Attitude'");
   gnuplot_send(g, "set xlabel 'Time [s]'");
   gnuplot_send(g, "set ylabel 'Attitude [deg]'");
@@ -8176,6 +8231,7 @@ void mav_model_telem_plot(const mav_model_telem_t *telem) {
   gnuplot_send_xy(g, "$yaw", telem->time, telem->yaw, telem->num_events);
   gnuplot_send(g, "plot $roll with lines, $pitch with lines, $yaw with lines");
 
+  // -- Displacement
   gnuplot_send(g, "set title 'Displacement'");
   gnuplot_send(g, "set xlabel 'Time [s]'");
   gnuplot_send(g, "set ylabel 'Displacement [m]'");
@@ -8184,6 +8240,7 @@ void mav_model_telem_plot(const mav_model_telem_t *telem) {
   gnuplot_send_xy(g, "$z", telem->time, telem->z, telem->num_events);
   gnuplot_send(g, "plot $x with lines, $y with lines, $z with lines");
 
+  // -- Velocity
   gnuplot_send(g, "set title 'Velocity'");
   gnuplot_send(g, "set xlabel 'Time [s]'");
   gnuplot_send(g, "set ylabel 'Velocity [m/s]'");
@@ -8193,6 +8250,27 @@ void mav_model_telem_plot(const mav_model_telem_t *telem) {
   gnuplot_send(g, "plot $vx with lines, $vy with lines, $vz with lines");
 
   // Clean up
+  gnuplot_close(g);
+}
+
+void mav_model_telem_plot_xy(const mav_model_telem_t *telem) {
+  FILE *g = gnuplot_init();
+
+  real_t x_min = vec_min(telem->x, telem->num_events);
+  real_t x_max = vec_max(telem->x, telem->num_events);
+  real_t y_min = vec_min(telem->y, telem->num_events);
+  real_t y_max = vec_max(telem->y, telem->num_events);
+  real_t x_pad = (x_max - x_min) * 0.1;
+  real_t y_pad = (x_max - x_min) * 0.1;
+
+  gnuplot_send(g, "set colorsequence classic");
+  gnuplot_send_xy(g, "$DATA", telem->x, telem->y, telem->num_events);
+  gnuplot_xrange(g, x_min - x_pad, x_max + x_pad);
+  gnuplot_yrange(g, y_min - y_pad, y_max + y_pad);
+  gnuplot_send(g, "set xlabel 'X [m]'");
+  gnuplot_send(g, "set ylabel 'Y [m]'");
+  gnuplot_send(g, "plot $DATA with lines lt 1 lw 2");
+
   gnuplot_close(g);
 }
 
@@ -8365,7 +8443,7 @@ mav_waypoints_t *mav_waypoints_malloc() {
 
   wps->threshold_dist = 0.1;
   wps->threshold_yaw = 0.1;
-  wps->threshold_wait = 1.0;
+  wps->threshold_wait = 2.0;
 
   return wps;
 }
@@ -18876,8 +18954,16 @@ void gnuplot_multiplot(FILE *pipe, const int num_rows, const int num_cols) {
   fprintf(pipe, "set multiplot layout %d, %d\n", num_rows, num_cols);
 }
 
-void gnuplot_send(FILE *pipe, const char *command) {
-  fprintf(pipe, "%s\n", command);
+void gnuplot_send(FILE *pipe, const char *cmd) {
+  fprintf(pipe, "%s\n", cmd);
+}
+
+void gnuplot_xrange(FILE *pipe, const real_t xmin, const real_t xmax) {
+  fprintf(pipe, "set xrange [%f:%f]\n", xmin, xmax);
+}
+
+void gnuplot_yrange(FILE *pipe, const real_t ymin, const real_t ymax) {
+  fprintf(pipe, "set yrange [%f:%f]\n", ymin, ymax);
 }
 
 void gnuplot_send_xy(FILE *pipe,

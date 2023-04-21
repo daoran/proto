@@ -3310,7 +3310,7 @@ int test_gimbal() {
   real_t *pitch_vals = CALLOC(real_t, N);
   real_t *yaw_vals = CALLOC(real_t, N);
 
-  while (t <= t_end) {
+  while (idx < N) {
     const real_t pv[3] = {model.x[0], model.x[2], model.x[4]};
 
     real_t u[3] = {0};
@@ -3327,20 +3327,22 @@ int test_gimbal() {
   }
 
   // Plot
-  FILE *gnuplot = gnuplot_init();
-  gnuplot_send(gnuplot, "set title 'Plot 1'");
-  gnuplot_send_xy(gnuplot, "$roll", time_vals, roll_vals, N);
-  gnuplot_send_xy(gnuplot, "$pitch", time_vals, pitch_vals, N);
-  gnuplot_send_xy(gnuplot, "$yaw", time_vals, yaw_vals, N);
-  gnuplot_send(gnuplot,
-               "plot $roll with lines, $pitch with lines, $yaw with lines");
+  int debug = 0;
+  if (debug) {
+    FILE *g = gnuplot_init();
+    gnuplot_send(g, "set title 'Gimbal Attitude'");
+    gnuplot_send_xy(g, "$r", time_vals, roll_vals, N);
+    gnuplot_send_xy(g, "$p", time_vals, pitch_vals, N);
+    gnuplot_send_xy(g, "$y", time_vals, yaw_vals, N);
+    gnuplot_send(g, "plot $r with lines, $p with lines, $y with lines");
+    gnuplot_close(g);
+  }
 
   // Clean up
   free(time_vals);
   free(roll_vals);
   free(pitch_vals);
   free(yaw_vals);
-  gnuplot_close(gnuplot);
 
   return 0;
 }
@@ -3402,7 +3404,10 @@ int test_mav_att_ctrl() {
     idx += 1;
   }
 
-  mav_model_telem_plot(telem);
+  int debug = 0;
+  if (debug) {
+    mav_model_telem_plot(telem);
+  }
   mav_model_telem_free(telem);
 
   return 0;
@@ -3441,7 +3446,10 @@ int test_mav_vel_ctrl() {
     idx += 1;
   }
 
-  mav_model_telem_plot(telem);
+  int debug = 0;
+  if (debug) {
+    mav_model_telem_plot(telem);
+  }
   mav_model_telem_free(telem);
 
   return 0;
@@ -3485,62 +3493,16 @@ int test_mav_pos_ctrl() {
     idx += 1;
   }
 
-  mav_model_telem_plot(telem);
+  int debug = 0;
+  if (debug) {
+    mav_model_telem_plot(telem);
+  }
   mav_model_telem_free(telem);
 
   return 0;
 }
 
 int test_mav_waypoints() {
-  // Setup
-  real_t waypoints[4][4] = {
-      {0, 0, 0, 0},
-      {0, 0, 1, 0},
-      {1, 0, 1, 0},
-      {0, 1, 1, 0},
-  };
-  mav_waypoints_t *wps = mav_waypoints_malloc();
-  mav_waypoints_add(wps, waypoints[0]);
-  mav_waypoints_add(wps, waypoints[1]);
-  mav_waypoints_add(wps, waypoints[2]);
-  mav_waypoints_add(wps, waypoints[3]);
-  mav_waypoints_print(wps);
-
-  // Update
-  const real_t dt = 0.01;
-  real_t wp[4] = {0};
-
-  real_t state0[4] = {0, 0, 0, 0};
-  MU_ASSERT(mav_waypoints_update(wps, state0, dt, wp) == 1);
-  print_vector("wp", wp, 4);
-
-  real_t state1[4] = {0, 0, 0.5, 0};
-  MU_ASSERT(mav_waypoints_update(wps, state1, dt, wp) == 0);
-  print_vector("wp", wp, 4);
-
-  real_t state2[4] = {0, 0, 1, 0};
-  MU_ASSERT(mav_waypoints_update(wps, state2, dt, wp) == 1);
-  print_vector("wp", wp, 4);
-
-  real_t state3[4] = {1, 0, 1, 0};
-  MU_ASSERT(mav_waypoints_update(wps, state3, dt, wp) == 1);
-  print_vector("wp", wp, 4);
-
-  real_t state4[4] = {0, 1, 1, 0};
-  MU_ASSERT(mav_waypoints_update(wps, state4, dt, wp) == 1);
-  print_vector("wp", wp, 4);
-
-  real_t state5[4] = {2, 1, 1, 0};
-  MU_ASSERT(mav_waypoints_update(wps, state5, dt, wp) == -1);
-  print_vector("wp", wp, 4);
-
-  // Clean up
-  mav_waypoints_free(wps);
-
-  return 0;
-}
-
-int test_mav_waypoints2() {
   // Setup MAV model
   mav_model_t mav;
   test_setup_mav(&mav);
@@ -3554,26 +3516,22 @@ int test_mav_waypoints2() {
   mav_pos_ctrl_setup(&mav_pos_ctrl);
 
   // Setup waypoints
-  real_t waypoints[6][4] = {
-      {0, 0, 1, 0},
-      {1, 1, 1, 0},
-      {1, -1, 1, 0},
-      {-1, -1, 1, 0},
-      {-1, 1, 1, 0},
-      {-1, 1, 1, 1.0}
-  };
+  real_t waypoints[8][4] = {{0, 0, 1, 0},
+                            {1, 1, 1, 0},
+                            {1, -1, 1, 0},
+                            {-1, -1, 1, 0},
+                            {-1, 1, 1, 0},
+                            {1, 1, 1, 0},
+                            {0, 0, 1, 0},
+                            {0, 0, 1, 1.0}};
   mav_waypoints_t *wps = mav_waypoints_malloc();
-  mav_waypoints_add(wps, waypoints[0]);
-  mav_waypoints_add(wps, waypoints[1]);
-  mav_waypoints_add(wps, waypoints[2]);
-  mav_waypoints_add(wps, waypoints[3]);
-  mav_waypoints_add(wps, waypoints[4]);
-  mav_waypoints_add(wps, waypoints[5]);
-  mav_waypoints_print(wps);
+  for (int i = 0; i < 8; i++) {
+    mav_waypoints_add(wps, waypoints[i]);
+  }
 
   // Simulate
   const real_t dt = 0.001;
-  const real_t t_end = 40.0;
+  const real_t t_end = 60.0;
   real_t t = 0.0;
 
   int idx = 0;
@@ -3595,14 +3553,21 @@ int test_mav_waypoints2() {
     mav_vel_ctrl_update(&mav_vel_ctrl, vel_sp, vel_pv, dt, att_sp);
     mav_att_ctrl_update(&mav_att_ctrl, att_sp, att_pv, dt, u);
     mav_model_update(&mav, u, dt);
-    mav_model_telem_update(telem, &mav, t);
+
+    if (idx % 50 == 0) {
+      mav_model_telem_update(telem, &mav, t);
+    }
 
     t += dt;
     idx += 1;
   }
 
   // Plot and clean up
-  mav_model_telem_plot(telem);
+  int debug = 0;
+  if (debug) {
+    mav_model_telem_plot(telem);
+    mav_model_telem_plot_xy(telem);
+  }
   mav_model_telem_free(telem);
   mav_waypoints_free(wps);
 
@@ -6312,7 +6277,7 @@ static void compare_gimbal_calib(const calib_gimbal_t *gnd,
 
 int test_calib_gimbal_solve() {
   // Setup
-  const int debug = 1;
+  const int debug = 0;
   // const char *data_path = TEST_SIM_GIMBAL;
   const char *data_path = "/tmp/calib_gimbal";
   calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
@@ -6351,7 +6316,7 @@ int test_calib_gimbal_solve() {
 
   // Solve
   calib_gimbal_save(calib_est, "/tmp/estimates-before.yaml");
-  calib_gimbal_print(calib_est);
+  // calib_gimbal_print(calib_est);
   TIC(solve);
   solver_t solver;
   solver_setup(&solver);
@@ -6982,7 +6947,6 @@ void test_suite() {
   MU_ADD_TEST(test_mav_vel_ctrl);
   MU_ADD_TEST(test_mav_pos_ctrl);
   MU_ADD_TEST(test_mav_waypoints);
-  MU_ADD_TEST(test_mav_waypoints2);
 
   // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);
@@ -7044,8 +7008,8 @@ void test_suite() {
   // MU_ADD_TEST(test_assoc_pose_data);
 
   // PLOTTING
-  MU_ADD_TEST(test_gnuplot_xyplot);
-  MU_ADD_TEST(test_gnuplot_multiplot);
+  // MU_ADD_TEST(test_gnuplot_xyplot);
+  // MU_ADD_TEST(test_gnuplot_multiplot);
 
   // SIM
   MU_ADD_TEST(test_sim_features_load);

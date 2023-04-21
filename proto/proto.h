@@ -692,6 +692,13 @@ void mat3_sub(const real_t A[3 * 3], const real_t B[3 * 3], real_t C[3 * 3]);
 real_t *vec_malloc(const real_t *x, const size_t n);
 void vec_copy(const real_t *src, const size_t n, real_t *dest);
 int vec_equals(const real_t *x, const real_t *y, const size_t n);
+real_t vec_min(const real_t *x, const size_t n);
+real_t vec_max(const real_t *x, const size_t n);
+void vec_range(const real_t *x,
+               const size_t n,
+               real_t *vmin,
+               real_t *vmax,
+               real_t *r);
 real_t *vec_load(const char *save_path, int *num_rows, int *num_cols);
 void vec_add(const real_t *x, const real_t *y, real_t *z, size_t n);
 void vec_sub(const real_t *x, const real_t *y, real_t *z, size_t n);
@@ -1416,6 +1423,7 @@ void mav_model_telem_update(mav_model_telem_t *telem,
                             const mav_model_t *mav,
                             const real_t time);
 void mav_model_telem_plot(const mav_model_telem_t *telem);
+void mav_model_telem_plot_xy(const mav_model_telem_t *telem);
 
 /** MAV Attitude Controller **/
 typedef struct mav_att_ctrl_t {
@@ -3325,7 +3333,9 @@ int **assoc_pose_data(pose_t *gnd_poses,
 FILE *gnuplot_init();
 void gnuplot_close(FILE *pipe);
 void gnuplot_multiplot(FILE *pipe, const int num_rows, const int num_cols);
-void gnuplot_send(FILE *pipe, const char *command);
+void gnuplot_send(FILE *pipe, const char *cmd);
+void gnuplot_xrange(FILE *pipe, const real_t xmin, const real_t xmax);
+void gnuplot_yrange(FILE *pipe, const real_t ymin, const real_t ymax);
 void gnuplot_send_xy(FILE *pipe,
                      const char *data_name,
                      const real_t *xvals,
