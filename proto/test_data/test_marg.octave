@@ -1,0 +1,39 @@
+H = csvread("/tmp/H.csv");
+b = csvread("/tmp/b.csv");
+
+m = 15;
+r = rows(H) - m;
+
+% H = [Hmm, Hmr,
+%      Hrm, Hrr]
+Hmm = H(1:m, 1:m);
+Hmr = H(1:m, m+1:end);
+Hrm = H(m+1:end, 1:m);
+Hrr = H(m+1:end, m+1:end);
+Hmm_inv = pinv(Hmm);
+
+% b = [b_mm, b_rr]
+bmm = b(1:m);
+brr = b(m+1:end);
+
+% Marginalize
+H_marg = Hrr - Hrm * Hmm_inv * Hmr;
+b_marg = brr - Hrm * Hmm_inv * bmm;
+
+imshow(H)
+colorbar()
+ginput()
+
+% Decompose H_marg into J' J components
+% H_marg = J' * J = V * diag(w) * V'
+% J = diag(w^{0.5}) * V'
+% J_inv = diag(w^-0.5) * V'
+%[V, w] = eig(H_marg);
+
+
+% imagesc(H_marg - V * w * V')
+
+
+% imagesc(H)
+% colorbar()
+% ginput()
