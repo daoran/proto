@@ -370,6 +370,7 @@ dev_euroc() {
 # run_test test_speed_bias
 # run_test test_extrinsics
 # run_test test_camera
+# run_test test_triangulation_batch
 # run_test test_feature
 # run_test test_idf
 # run_test test_features
@@ -392,7 +393,7 @@ dev_euroc() {
 # run_test test_calib_gimbal_factor
 # run_test test_marg
 # run_test test_inertial_odometry
-# run_test test_tsif
+run_test test_tsf
 # run_test test_ceres_example
 # run_test test_invert_block_diagonal
 # run_test test_solver_setup
@@ -403,6 +404,7 @@ dev_euroc() {
 # run_test test_calib_camera_mono_incremental
 # run_test test_calib_camera_stereo
 # run_test test_calib_imucam_batch
+# python3 test_data/test_marg.py
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
 # run_test test_calib_gimbal_add_gimbal_extrinsic
@@ -411,7 +413,7 @@ dev_euroc() {
 # run_test test_calib_gimbal_add_remove_view
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_save
-run_test test_calib_gimbal_solve
+# run_test test_calib_gimbal_solve
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-DATASET
 # run_test test_assoc_pose_data

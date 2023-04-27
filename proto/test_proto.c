@@ -5431,33 +5431,33 @@ int test_tsf() {
                                                               &cam0_params,
                                                               features,
                                                               num_features);
-  sim_camera_data_t *cam1_data = sim_camera_circle_trajectory(&conf,
-                                                              T_SC1,
-                                                              &cam1_params,
-                                                              features,
-                                                              num_features);
+  // sim_camera_data_t *cam1_data = sim_camera_circle_trajectory(&conf,
+  //                                                             T_SC1,
+  //                                                             &cam1_params,
+  //                                                             features,
+  //                                                             num_features);
 
   // Simulate VO
   tsf_t *tsf = tsf_malloc();
   tsf_add_camera(tsf, 0, cam_res, pmodel, dmodel, cam_vec, cam0_ext);
-  tsf_add_camera(tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
+  // tsf_add_camera(tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
 
   for (size_t k = 0; k < cam0_data->num_frames; k++) {
     // printf("k: %ld\n", k);
     const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
-    const sim_camera_frame_t *cam1_frame = cam1_data->frames[k];
+    // const sim_camera_frame_t *cam1_frame = cam1_data->frames[k];
     tsf_add_camera_event(tsf,
                          cam0_frame->ts,
                          cam0_frame->cam_idx,
                          cam0_frame->num_measurements,
                          cam0_frame->feature_ids,
                          cam0_frame->keypoints);
-    tsf_add_camera_event(tsf,
-                         cam1_frame->ts,
-                         cam1_frame->cam_idx,
-                         cam1_frame->num_measurements,
-                         cam1_frame->feature_ids,
-                         cam1_frame->keypoints);
+    // tsf_add_camera_event(tsf,
+    //                      cam1_frame->ts,
+    //                      cam1_frame->cam_idx,
+    //                      cam1_frame->num_measurements,
+    //                      cam1_frame->feature_ids,
+    //                      cam1_frame->keypoints);
     tsf_update(tsf, cam0_frame->ts);
   }
 
@@ -5465,7 +5465,7 @@ int test_tsf() {
   tsf_free(tsf);
   // sim_imu_data_free(imu_data);
   sim_camera_data_free(cam0_data);
-  sim_camera_data_free(cam1_data);
+  // sim_camera_data_free(cam1_data);
 
   return 0;
 }

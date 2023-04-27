@@ -1818,6 +1818,7 @@ typedef struct features_t {
 
 features_t *features_malloc();
 void features_free(features_t *features);
+int features_exists(const features_t *features, const size_t feature_id);
 void features_add_xyzs(features_t *features,
                        const size_t *feature_ids,
                        const real_t *params,
@@ -1828,7 +1829,6 @@ void features_add_idfs(features_t *features,
                        const real_t T_WC[4 * 4],
                        const real_t *keypoints,
                        const size_t num_keypoints);
-int features_exists(const features_t *features, const size_t feature_id);
 void features_get_xyz(const features_t *features,
                       const size_t feature_id,
                       feature_t **feature);
@@ -3301,12 +3301,6 @@ void tsf_frame_set_add(tsf_frame_set_t *fs,
                        const size_t *feature_ids,
                        const real_t *keypoints);
 
-/** TSF Frame Set Hash **/
-typedef struct tsf_frame_set_hash_t {
-  timestamp_t key;
-  tsf_frame_set_t *value;
-} tsf_frame_set_hash_t;
-
 /** Two-State Filter (TSF) **/
 typedef struct tsf_t {
   // Flags
@@ -3334,13 +3328,20 @@ typedef struct tsf_t {
   extrinsic_t *cam_exts;
   tsf_frame_set_t *frame_sets[2];
   features_t *features;
-  // idf_factor_t *idf_factors;
+  idf_factor_t *idf_factors_i;
+  idf_factor_t *idf_factors_j;
+  int num_factors_i;
+  int num_factors_j;
 
   // Variables
   timestamp_t ts_i;
   timestamp_t ts_j;
   pose_t *pose_i;
   pose_t *pose_j;
+  velocity_t *vel_i;
+  velocity_t *vel_j;
+  imu_biases_t *biases_i;
+  imu_biases_t *biases_j;
 } tsf_t;
 
 tsf_t *tsf_malloc();
@@ -3374,6 +3375,7 @@ void tsf_add_camera_event(tsf_t *tsf,
                           const size_t *fids,
                           const real_t *kps);
 
+void tsf_cost(const void *data, real_t *r);
 param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size);
 void tsf_linearize_compact(const void *data,
                            const int sv_size,

@@ -7947,7 +7947,6 @@ int solvepnp(const real_t proj_params[4],
   return 0;
 }
 
-
 /******************************************************************************
  * CONTROL
  ******************************************************************************/
@@ -8695,7 +8694,6 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
 
   return 0;
 }
-
 
 //////////////
 // TIMELINE //
@@ -9949,6 +9947,14 @@ void features_free(features_t *features) {
 }
 
 /**
+ * Check whether feature with `feature_id` exists
+ * @returns 1 for yes, 0 for no
+ */
+int features_exists(const features_t *features, const size_t feature_id) {
+  return features->data[feature_id] != NULL;
+}
+
+/**
  * Add XYZ feature.
  */
 void features_add_xyzs(features_t *features,
@@ -9997,6 +10003,11 @@ void features_add_idfs(features_t *features,
   assert(T_WC != NULL);
   assert(keypoints != NULL);
 
+  // Pre-check
+  if (num_keypoints == 0) {
+    return;
+  }
+
   // Expand features dynamic array if needed
   if (feature_ids[num_keypoints - 1] >= features->feature_capacity) {
     size_t old_size = features->feature_capacity;
@@ -10044,14 +10055,6 @@ void features_add_idfs(features_t *features,
   pos_setup(pos, r_WC);
   features->pos_data[pos_id] = pos;
   features->num_positions++;
-}
-
-/**
- * Check whether feature with `feature_id` exists
- * @returns 1 for yes, 0 for no
- */
-int features_exists(const features_t *features, const size_t feature_id) {
-  return features->data[feature_id] != NULL;
 }
 
 /**
@@ -18868,6 +18871,8 @@ tsf_t *tsf_malloc() {
   tsf->frame_sets[0] = NULL;
   tsf->frame_sets[1] = NULL;
   tsf->features = features_malloc();
+  tsf->idf_factors_i = NULL;
+  tsf->idf_factors_j = NULL;
 
   tsf->ts_i = 0;
   tsf->ts_j = 0;
@@ -18882,16 +18887,22 @@ void tsf_free(tsf_t *tsf) {
   free(tsf->imu_params);
   free(tsf->imu_ext);
   free(tsf->time_delay);
+
   free(tsf->cam_params);
   free(tsf->cam_exts);
   tsf_frame_set_free(tsf->frame_sets[0]);
   tsf_frame_set_free(tsf->frame_sets[1]);
   features_free(tsf->features);
+  free(tsf->idf_factors_i);
+  free(tsf->idf_factors_j);
+
+  free(tsf->pose_i);
+  free(tsf->pose_j);
   free(tsf);
 }
 
 /**
- * Print SF.
+ * Print TSF.
  */
 void tsf_print(const tsf_t *tsf) {
   printf("state: %d\n", tsf->state);
@@ -18908,7 +18919,7 @@ void tsf_print(const tsf_t *tsf) {
 }
 
 /**
- * Add camera to SF.
+ * Add camera to TSF.
  */
 void tsf_add_camera(tsf_t *tsf,
                     const int cam_idx,
@@ -18942,7 +18953,7 @@ void tsf_add_camera(tsf_t *tsf,
 }
 
 /**
- * Add IMU to SF.
+ * Add IMU to TSF.
  */
 void tsf_add_imu(tsf_t *tsf,
                  const real_t imu_rate,
@@ -19032,33 +19043,87 @@ void tsf_add_camera_event(tsf_t *tsf,
 }
 
 /**
- * Form SF parameter order.
+ * Form parameter order.
  */
 param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
   // Setup parameter order
-  // tsf_t *sf = (tsf_t *) data;
+  tsf_t *tsf = (tsf_t *) data;
   param_order_t *hash = NULL;
   int col_idx = 0;
 
-  // // Timestep k - 1
-  // param_order_add(&hash, POSE_PARAM, 0, sf->pose_i.data, &col_idx);
-  // if (sf->num_imus) {
-  //   param_order_add(&hash, VELOCITY_PARAM, 0, sf->vel_i.data,
+  // Add state at timestep k - 1
+  param_order_add(&hash, POSE_PARAM, 0, tsf->pose_i->data, &col_idx);
+  // if (tsf->num_imus) {
+  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsf->vel_i.data,
   //   &col_idx); param_order_add(&hash, IMU_BIASES_PARAM, 0,
-  //   sf->biases_i.data, &col_idx);
+  //   tsf->biases_i.data, &col_idx);
   // }
 
-  // // Timestep k
-  // param_order_add(&hash, POSE_PARAM, 0, sf->pose_j.data, &col_idx);
-  // if (sf->num_imus) {
-  //   param_order_add(&hash, VELOCITY_PARAM, 0, sf->vel_j.data,
+  // Add state at timestep k
+  param_order_add(&hash, POSE_PARAM, 0, tsf->pose_j->data, &col_idx);
+  // if (tsf->num_imus) {
+  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsf->vel_j.data,
   //   &col_idx); param_order_add(&hash, IMU_BIASES_PARAM, 0,
-  //   sf->biases_j.data, &col_idx);
+  //   tsf->biases_j.data, &col_idx);
   // }
+
+  // Add camera extrinsic
+  for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
+    void *data = &tsf->cam_exts[cam_idx].data;
+    const int fix = (tsf->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
+    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
+  }
+
+  // Add camera parameters
+  for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
+    void *data = &tsf->cam_params[cam_idx].data;
+    const int fix = tsf->fix_cam_params;
+    param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
+  }
+
+  // Add features
+  size_t *fids = MALLOC(size_t, tsf->num_factors_i + tsf->num_factors_j);
+  size_t fid_idx = 0;
+  for (int i = 0; i < tsf->num_factors_i; i++) {
+    fids[fid_idx++] = fids[i];
+  }
+  // TODO: Add unique features to the state vector
 
   *sv_size = col_idx;
-  // *r_size = (sf->num_idf_factors * 2) + (sf->num_imus * 15);
+  *r_size = 0;
+  *r_size += tsf->num_factors_i * 2;
+  *r_size += tsf->num_factors_j * 2;
+  *r_size += tsf->num_imus * 15;
   return hash;
+}
+
+/**
+ * Calculate problem cost.
+ */
+void tsf_cost(const void *data, real_t *r) {
+  // Evaluate factors
+  tsf_t *tsf = (tsf_t *) data;
+
+  // -- Evaluate IDF factors
+  int r_idx = 0;
+  for (int i = 0; i < tsf->num_factors_i; i++) {
+    idf_factor_t *factor = &tsf->idf_factors_i[i];
+    idf_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+  for (int i = 0; i < tsf->num_factors_j; i++) {
+    idf_factor_t *factor = &tsf->idf_factors_j[i];
+    idf_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+
+  // // -- Evaluate marginalization factor
+  // if (calib->marg) {
+  //   marg_factor_eval(calib->marg);
+  //   vec_copy(calib->marg->r, calib->marg->r_size, &r[r_idx]);
+  // }
 }
 
 /**
@@ -19087,61 +19152,183 @@ void tsf_linearize_compact(const void *data,
   //                              r_idx);
   // }
 
-  // // -- IDF factors
-  // for (int cam_idx = 0; cam_idx < sf->num_cams; cam_idx++) {
-  //   for (int i = 0; i < sf->num_cams; i++) {
-  //     idf_factor_t *factor = &sf->idf_factors[cam_idx][i];
-  //     SOLVER_EVAL_FACTOR_COMPACT(hash,
-  //                                sv_size,
-  //                                H,
-  //                                g,
-  //                                idf_factor_eval,
-  //                                factor,
-  //                                r,
-  //                                r_idx);
-  //   }
-  // }
+  // -- IDF factors
+  for (int i = 0; i < tsf->num_factors_i; i++) {
+    idf_factor_t *factor = &tsf->idf_factors_i[i];
+    SOLVER_EVAL_FACTOR_COMPACT(hash,
+                               sv_size,
+                               H,
+                               g,
+                               idf_factor_eval,
+                               factor,
+                               r,
+                               r_idx);
+  }
+  for (int i = 0; i < tsf->num_factors_j; i++) {
+    idf_factor_t *factor = &tsf->idf_factors_j[i];
+    SOLVER_EVAL_FACTOR_COMPACT(hash,
+                               sv_size,
+                               H,
+                               g,
+                               idf_factor_eval,
+                               factor,
+                               r,
+                               r_idx);
+  }
 }
 
 /**
  * Update TSF.
  */
 void tsf_update(tsf_t *tsf, const timestamp_t ts) {
+  // Initialize pose i and j
   if (tsf->frame_idx == 0) {
     tsf->pose_i = MALLOC(pose_t, 1);
     const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     pose_setup(tsf->pose_i, ts, pose_data);
   } else {
-
-
-
+    tsf->pose_j = MALLOC(pose_t, 1);
+    pose_setup(tsf->pose_j, ts, tsf->pose_i->data);
   }
 
-  // // Estimate current camera pose
-  // real_t T_WC_k[4 * 4] = {0};
+  // Initialize IDF features
+  if (tsf->frame_idx == 0) {
+    // Add features
+    const int cam_idx = 0;
+    POSE2TF(tsf->pose_i->data, T_WB_k);
+    POSE2TF(tsf->cam_exts[cam_idx].data, T_BCi);
+    TF_CHAIN(T_WCi_k, 2, T_WB_k, T_BCi);
 
-  //features_add_idfs(tsf->features,
-  //                  fids,
-  //                  tsf->cam_params[cam_idx],
-  //                  T_WC_k,
-  //                  kps,
-  //                  n);
+    const camera_params_t *cam = &tsf->cam_params[cam_idx];
+    const tsf_frame_set_t *fs = tsf->frame_sets[0];
+    const tsf_frame_t *f = fs->cam_frames[cam_idx];
+    const size_t *fids = f->feature_ids;
+    const real_t *kps = f->keypoints;
+    const int n = f->num_measurements;
+    features_add_idfs(tsf->features, fids, cam, T_WCi_k, kps, n);
 
-  // // Solve
-  // solver_t solver;
-  // solver_setup(&solver);
-  // solver.max_iter = 1;
-  // solver.param_order_func = &tsf_param_order;
-  // solver.linearize_func = &tsf_linearize_compact;
-  // solver_solve(&solver, sf);
+    // Create IDF factors
+    const timestamp_t ts = tsf->pose_i->ts;
+    const real_t var[2] = {1.0, 1.0};
+    tsf->idf_factors_i = MALLOC(idf_factor_t, n);
+    tsf->num_factors_i = n;
+
+    for (int i = 0; i < n; i++) {
+      const size_t fid = fids[i];
+      const real_t *z = &kps[i * 2];
+
+      pos_t *idf_pos = NULL;
+      feature_t *idf_param = NULL;
+      features_get_idf(tsf->features, fid, &idf_param, &idf_pos);
+
+      idf_factor_setup(&tsf->idf_factors_i[i],
+                       tsf->pose_i,
+                       &tsf->cam_exts[cam_idx],
+                       &tsf->cam_params[cam_idx],
+                       idf_pos,
+                       idf_param,
+                       ts,
+                       cam_idx,
+                       fid,
+                       z,
+                       var);
+    }
+  } else {
+    // Add features
+    const int cam_idx = 0;
+    POSE2TF(tsf->pose_j->data, T_WB_k);
+    POSE2TF(tsf->cam_exts[cam_idx].data, T_BCi);
+    TF_CHAIN(T_WCi_k, 2, T_WB_k, T_BCi);
+
+    const camera_params_t *cam = &tsf->cam_params[cam_idx];
+    const tsf_frame_set_t *fs = tsf->frame_sets[0];
+    const tsf_frame_t *f = fs->cam_frames[cam_idx];
+    const size_t *fids = f->feature_ids;
+    const real_t *kps = f->keypoints;
+    const int n = f->num_measurements;
+
+    size_t *fids_new = MALLOC(size_t, n);
+    real_t *kps_new = MALLOC(real_t, n * 2);
+    int n_new = 0;
+    for (int i = 0; i < n; i++) {
+      if (features_exists(tsf->features, fids[i]) == 0) {
+        fids_new[n_new] = fids[i];
+        kps_new[n_new * 2 + 0] = kps[i * 2 + 0];
+        kps_new[n_new * 2 + 1] = kps[i * 2 + 1];
+        n_new++;
+      }
+    }
+    features_add_idfs(tsf->features, fids_new, cam, T_WCi_k, kps_new, n_new);
+    free(fids_new);
+    free(kps_new);
+
+    // Create IDF factors
+    const timestamp_t ts = tsf->pose_j->ts;
+    const real_t var[2] = {1.0, 1.0};
+    tsf->idf_factors_j = MALLOC(idf_factor_t, n);
+    tsf->num_factors_j = n;
+
+    for (int i = 0; i < n; i++) {
+      const size_t fid = fids[i];
+      const real_t *z = &kps[i * 2];
+
+      pos_t *idf_pos = NULL;
+      feature_t *idf_param = NULL;
+      features_get_idf(tsf->features, fid, &idf_param, &idf_pos);
+
+      idf_factor_setup(&tsf->idf_factors_j[i],
+                       tsf->pose_j,
+                       &tsf->cam_exts[cam_idx],
+                       &tsf->cam_params[cam_idx],
+                       idf_pos,
+                       idf_param,
+                       ts,
+                       cam_idx,
+                       fid,
+                       z,
+                       var);
+    }
+
+    // Solve
+    solver_t solver;
+    solver_setup(&solver);
+    solver.max_iter = 1;
+    solver.cost_func = &tsf_cost;
+    solver.param_order_func = &tsf_param_order;
+    solver.linearize_func = &tsf_linearize_compact;
+    // solver_solve(&solver, tsf);
+
+    // int r_size = 0;
+    // r_size += tsf->num_factors_i * 2;
+    // r_size += tsf->num_factors_j * 2;
+    // real_t *r = MALLOC(real_t, r_size);
+    // tsf_cost(tsf, r);
+    // real_t r_sq = {0};
+    // dot(r, 1, r_size, r, r_size, 1, &r_sq);
+    // printf("cost: %e\n", 0.5 * r_sq);
+    // free(r);
+  }
 
   // Update book-keeping
-  // - Free previous frame data
   // - Move current frame to previous
+  // - Move current factors to previous
+  // - Move current pose to previous
   // - Increament counter
-  tsf_frame_set_free(tsf->frame_sets[0]);
-  tsf->frame_sets[0] = tsf->frame_sets[1];
-  tsf->frame_sets[1] = NULL;
+  if (tsf->frame_idx > 0) {
+    tsf_frame_set_free(tsf->frame_sets[0]);
+    tsf->frame_sets[0] = tsf->frame_sets[1];
+    tsf->frame_sets[1] = NULL;
+
+    free(tsf->idf_factors_i);
+    tsf->idf_factors_i = tsf->idf_factors_j;
+    tsf->num_factors_i = tsf->num_factors_j;
+    tsf->idf_factors_j = NULL;
+    tsf->num_factors_j = 0;
+
+    free(tsf->pose_i);
+    tsf->pose_i = tsf->pose_j;
+    tsf->pose_j = NULL;
+  }
   tsf->frame_idx++;
 }
 
