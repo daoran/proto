@@ -2677,6 +2677,47 @@ void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr);
 void marg_factor_marginalize(marg_factor_t *marg);
 int marg_factor_eval(void *marg_ptr);
 
+//////////////////
+// FACTOR GRAPH //
+//////////////////
+
+typedef struct fgraph_t {
+  // Counters
+  int num_imus;
+  int num_cams;
+
+  // Variables
+  // -- IMUs
+  extrinsic_t *imu_ext;
+  imu_params_t *imu_params;
+  time_delay_t *time_delay;
+  // -- Cameras
+  camera_params_t *cam_params;
+  extrinsic_t *cam_exts;
+
+} fgraph_t;
+
+fgraph_t *fgraph_malloc();
+void fgraph_free(fgraph_t *fg);
+
+void fgraph_add_camera(fgraph_t *fg,
+                       const int cam_idx,
+                       const int cam_res[2],
+                       const char *proj_model,
+                       const char *dist_model,
+                       const real_t *cam_params,
+                       const real_t *cam_ext);
+void fgraph_add_imu(fgraph_t *fg,
+                    const real_t imu_rate,
+                    const real_t sigma_aw,
+                    const real_t sigma_gw,
+                    const real_t sigma_a,
+                    const real_t sigma_g,
+                    const real_t g,
+                    const real_t *imu_ext,
+                    const int fix_imu_ext,
+                    const int fix_time_delay);
+
 ////////////
 // SOLVER //
 ////////////

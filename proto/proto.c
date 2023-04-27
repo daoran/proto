@@ -14249,6 +14249,125 @@ int marg_factor_eval(void *marg_ptr) {
   return 0;
 }
 
+//////////////////
+// FACTOR GRAPH //
+//////////////////
+
+/**
+ * Malloc factor graph.
+ */
+fgraph_t *fgraph_malloc() {
+  fgraph_t *fg = MALLOC(fgraph_t, 1);
+
+  fg->num_imus = 0;
+  fg->num_cams = 0;
+
+  fg->imu_ext = NULL;
+  fg->imu_params = NULL;
+  fg->time_delay = NULL;
+
+  fg->cam_params = NULL;
+  fg->cam_exts = NULL;
+
+  return fg;
+}
+
+/**
+ * Free factor graph.
+ */
+void fgraph_free(fgraph_t *fg) {
+  if (fg == NULL) {
+    return;
+  }
+
+  free(fg->imu_ext);
+  free(fg->imu_params);
+  free(fg->time_delay);
+
+  free(fg->cam_params);
+  free(fg->cam_exts);
+
+  free(fg);
+}
+
+/**
+ * Add camera to factor graph.
+ */
+void fgraph_add_camera(fgraph_t *fg,
+                       const int cam_idx,
+                       const int cam_res[2],
+                       const char *proj_model,
+                       const char *dist_model,
+                       const real_t *cam_params,
+                       const real_t *cam_ext) {
+  assert(fg != NULL);
+  assert(cam_idx <= fg->num_cams);
+  assert(cam_res != NULL);
+  assert(proj_model != NULL);
+  assert(dist_model != NULL);
+  assert(cam_params != NULL);
+  assert(cam_ext != NULL);
+
+  if (cam_idx > (fg->num_cams - 1)) {
+    const int new_size = fg->num_cams + 1;
+    fg->cam_params = REALLOC(fg->cam_params, camera_params_t, new_size);
+    fg->cam_exts = REALLOC(fg->cam_exts, extrinsic_t, new_size);
+  }
+
+  camera_params_setup(&fg->cam_params[cam_idx],
+                      cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_params);
+  extrinsic_setup(&fg->cam_exts[cam_idx], cam_ext);
+  fg->num_cams++;
+}
+
+/**
+ * Add imu to factor graph.
+ */
+void fgraph_add_imu(fgraph_t *fg,
+                    const real_t imu_rate,
+                    const real_t sigma_aw,
+                    const real_t sigma_gw,
+                    const real_t sigma_a,
+                    const real_t sigma_g,
+                    const real_t g,
+                    const real_t *imu_ext,
+                    const int fix_imu_ext,
+                    const int fix_time_delay) {
+  assert(fg != NULL);
+  assert(imu_rate > 0);
+  assert(sigma_aw > 0);
+  assert(sigma_gw > 0);
+  assert(sigma_a > 0);
+  assert(sigma_g > 0);
+  assert(g > 9.0);
+  assert(imu_ext);
+
+  if (fg->imu_params) {
+    LOG_ERROR("Currently only supports 1 IMU!\n");
+    return;
+  }
+
+  fg->imu_params = MALLOC(imu_params_t, 1);
+  fg->imu_params->imu_idx = 0;
+  fg->imu_params->rate = imu_rate;
+  fg->imu_params->sigma_aw = sigma_aw;
+  fg->imu_params->sigma_gw = sigma_gw;
+  fg->imu_params->sigma_a = sigma_a;
+  fg->imu_params->sigma_g = sigma_g;
+  fg->imu_params->g = g;
+
+  fg->imu_ext = MALLOC(extrinsic_t, 1);
+  extrinsic_setup(fg->imu_ext, imu_ext);
+
+  fg->time_delay = MALLOC(time_delay_t, 1);
+  time_delay_setup(fg->time_delay, 0.0);
+  fg->time_delay->fix = fix_time_delay;
+}
+
 ////////////
 // SOLVER //
 ////////////
