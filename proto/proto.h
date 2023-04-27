@@ -1511,10 +1511,11 @@ int mav_waypoints_update(mav_waypoints_t *wps,
 #define VELOCITY_PARAM 6
 #define IMU_BIASES_PARAM 7
 #define FEATURE_PARAM 8
-#define IDF_PARAM 9
-#define JOINT_PARAM 10
-#define CAMERA_PARAM 11
-#define TIME_DELAY_PARAM 12
+#define IDF_BEARING_PARAM 9
+#define IDF_POSITION_PARAM 10
+#define JOINT_PARAM 11
+#define CAMERA_PARAM 12
+#define TIME_DELAY_PARAM 13
 
 ///////////
 // UTILS //
@@ -1908,6 +1909,7 @@ void param_type_string(const int param_type, char *s);
 size_t param_global_size(const int param_type);
 size_t param_local_size(const int param_type);
 void param_order_print(const param_order_t *hash);
+int param_order_exists(param_order_t **hash, real_t *data);
 void param_order_add(param_order_t **hash,
                      const int param_type,
                      const int fix,
@@ -2733,7 +2735,7 @@ void fgraph_add_imu(fgraph_t *fg,
                                    R,                                          \
                                    R_IDX)                                      \
   FACTOR_EVAL(FACTOR_PTR);                                                     \
-  vec_copy(FACTOR_PTR->r, FACTOR_PTR->r_size, &R[r_idx * FACTOR_PTR->r_size]); \
+  vec_copy(FACTOR_PTR->r, FACTOR_PTR->r_size, &R[R_IDX]); \
   R_IDX += FACTOR_PTR->r_size;                                                 \
   solver_fill_hessian(HASH,                                                    \
                       FACTOR_PTR->num_params,                                  \

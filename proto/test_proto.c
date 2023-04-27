@@ -5442,8 +5442,10 @@ int test_tsf() {
   tsf_add_camera(tsf, 0, cam_res, pmodel, dmodel, cam_vec, cam0_ext);
   // tsf_add_camera(tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
 
-  for (size_t k = 0; k < cam0_data->num_frames; k++) {
-    // printf("k: %ld\n", k);
+  // for (size_t k = 0; k < cam0_data->num_frames; k++) {
+  for (size_t k = 0; k < 10; k++) {
+    printf("\n");
+    printf("k: %ld\n", k);
     const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
     // const sim_camera_frame_t *cam1_frame = cam1_data->frames[k];
     tsf_add_camera_event(tsf,

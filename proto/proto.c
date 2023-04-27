@@ -10236,6 +10236,12 @@ void param_type_string(const int param_type, char *s) {
     case FEATURE_PARAM:
       strcpy(s, "FEATURE_PARAM");
       break;
+    case IDF_BEARING_PARAM:
+      strcpy(s, "IDF_BEARING_PARAM");
+      break;
+    case IDF_POSITION_PARAM:
+      strcpy(s, "IDF_POSITION_PARAM");
+      break;
     case JOINT_PARAM:
       strcpy(s, "JOINT_PARAM");
       break;
@@ -10278,7 +10284,7 @@ size_t param_global_size(const int param_type) {
     case FEATURE_PARAM:
       param_size = 3;
       break;
-    case IDF_PARAM:
+    case IDF_BEARING_PARAM:
       param_size = 3;
       break;
     case JOINT_PARAM:
@@ -10325,7 +10331,7 @@ size_t param_local_size(const int param_type) {
     case FEATURE_PARAM:
       param_size = 3;
       break;
-    case IDF_PARAM:
+    case IDF_BEARING_PARAM:
       param_size = 3;
       break;
     case JOINT_PARAM:
@@ -10358,6 +10364,13 @@ void param_order_print(const param_order_t *hash) {
       printf("param[%d]: %s, idx: %d\n", idx, s, col_idx);
     }
   }
+}
+
+/**
+ * Check if param has already been added.
+ */
+int param_order_exists(param_order_t **hash, real_t *data) {
+  return hmgetp_null(*hash, data) != NULL;
 }
 
 /**
@@ -11476,7 +11489,7 @@ void idf_factor_setup(idf_factor_t *factor,
   factor->param_types[1] = EXTRINSIC_PARAM;
   factor->param_types[2] = CAMERA_PARAM;
   factor->param_types[3] = POSITION_PARAM;
-  factor->param_types[4] = IDF_PARAM;
+  factor->param_types[4] = IDF_BEARING_PARAM;
 
   factor->params[0] = factor->pose->data;
   factor->params[1] = factor->extrinsic->data;
@@ -14593,6 +14606,11 @@ void solver_update(solver_t *solver, real_t *dx, int sv_size) {
     real_t *data = solver->hash[i].key;
     int idx = solver->hash[i].idx;
     switch (solver->hash[i].type) {
+      case POSITION_PARAM:
+        for (int i = 0; i < 3; i++) {
+          data[i] += dx[idx + i];
+        }
+        break;
       case POSE_PARAM:
       case FIDUCIAL_PARAM:
       case EXTRINSIC_PARAM:
@@ -14609,6 +14627,11 @@ void solver_update(solver_t *solver, real_t *dx, int sv_size) {
         }
         break;
       case FEATURE_PARAM:
+        for (int i = 0; i < 3; i++) {
+          data[i] += dx[idx + i];
+        }
+        break;
+      case IDF_BEARING_PARAM:
         for (int i = 0; i < 3; i++) {
           data[i] += dx[idx + i];
         }
@@ -14641,6 +14664,7 @@ real_t **solver_step(solver_t *solver, const real_t lambda_k, void *data) {
     zeros(solver->H, solver->sv_size, solver->sv_size);
     zeros(solver->g, solver->sv_size, 1);
     zeros(solver->r, solver->r_size, 1);
+
     solver->linearize_func(data,
                            solver->sv_size,
                            solver->hash,
@@ -19161,6 +19185,39 @@ void tsf_add_camera_event(tsf_t *tsf,
   tsf_frame_set_add(fs, ts, cam_idx, n, fids, kps);
 }
 
+static size_t *tsf_unique_feature_ids(tsf_t *tsf, size_t *n) {
+  size_t *fids_unique = MALLOC(size_t, tsf->num_factors_i + tsf->num_factors_j);
+  size_t fid_idx = 0;
+
+  // Load unique feature ids with feature ids from the previous step
+  for (int i = 0; i < tsf->num_factors_i; i++) {
+    fids_unique[fid_idx++] = tsf->idf_factors_i[i].feature_id;
+  }
+
+  // Loop feature ids in the current step and add only untracked feature ids
+  for (int j = 0; j < tsf->num_factors_j; j++) {
+    size_t fid = tsf->idf_factors_j[j].feature_id;
+
+    int found = 0;
+    for (int i = 0; i < fid_idx; i++) {
+      if (fids_unique[i] == fid) {
+        found = 1;
+        break;
+      } else if (fids_unique[i] > fid) {
+        found = 0;
+        break;
+      }
+    }
+
+    if (found == 0) {
+      fids_unique[fid_idx++] = fid;
+    }
+  }
+
+  *n = fid_idx;
+  return fids_unique;
+}
+
 /**
  * Form parameter order.
  */
@@ -19172,19 +19229,17 @@ param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
 
   // Add state at timestep k - 1
   param_order_add(&hash, POSE_PARAM, 0, tsf->pose_i->data, &col_idx);
-  // if (tsf->num_imus) {
-  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsf->vel_i.data,
-  //   &col_idx); param_order_add(&hash, IMU_BIASES_PARAM, 0,
-  //   tsf->biases_i.data, &col_idx);
-  // }
+  if (tsf->num_imus) {
+    param_order_add(&hash, VELOCITY_PARAM, 0, tsf->vel_i->data, &col_idx);
+    param_order_add(&hash, IMU_BIASES_PARAM, 0, tsf->biases_i->data, &col_idx);
+  }
 
   // Add state at timestep k
   param_order_add(&hash, POSE_PARAM, 0, tsf->pose_j->data, &col_idx);
-  // if (tsf->num_imus) {
-  //   param_order_add(&hash, VELOCITY_PARAM, 0, tsf->vel_j.data,
-  //   &col_idx); param_order_add(&hash, IMU_BIASES_PARAM, 0,
-  //   tsf->biases_j.data, &col_idx);
-  // }
+  if (tsf->num_imus) {
+    param_order_add(&hash, VELOCITY_PARAM, 0, tsf->vel_j->data, &col_idx);
+    param_order_add(&hash, IMU_BIASES_PARAM, 0, tsf->biases_j->data, &col_idx);
+  }
 
   // Add camera extrinsic
   for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
@@ -19201,18 +19256,32 @@ param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
   }
 
   // Add features
-  size_t *fids = MALLOC(size_t, tsf->num_factors_i + tsf->num_factors_j);
-  size_t fid_idx = 0;
-  for (int i = 0; i < tsf->num_factors_i; i++) {
-    fids[fid_idx++] = fids[i];
-  }
-  // TODO: Add unique features to the state vector
+  size_t n = 0;
+  size_t *fids = tsf_unique_feature_ids(tsf, &n);
+  for (size_t i = 0; i < n; i++) {
+    feature_t *idf_param = NULL;
+    pos_t *idf_pos = NULL;
+    features_get_idf(tsf->features, fids[i], &idf_param, &idf_pos);
 
+    // const int fix = idf_param->fix;
+    param_order_add(&hash, IDF_BEARING_PARAM, 0, idf_param->data, &col_idx);
+
+    if (param_order_exists(&hash, idf_pos->data) == 0) {
+      param_order_add(&hash, POSITION_PARAM, 0, idf_pos->data, &col_idx);
+    }
+  }
+  // param_order_print(hash);
+
+  // Update
   *sv_size = col_idx;
   *r_size = 0;
   *r_size += tsf->num_factors_i * 2;
   *r_size += tsf->num_factors_j * 2;
   *r_size += tsf->num_imus * 15;
+
+  // Clean up
+  free(fids);
+
   return hash;
 }
 
@@ -19231,8 +19300,8 @@ void tsf_cost(const void *data, real_t *r) {
     vec_copy(factor->r, factor->r_size, &r[r_idx]);
     r_idx += factor->r_size;
   }
-  for (int i = 0; i < tsf->num_factors_j; i++) {
-    idf_factor_t *factor = &tsf->idf_factors_j[i];
+  for (int j = 0; j < tsf->num_factors_j; j++) {
+    idf_factor_t *factor = &tsf->idf_factors_j[j];
     idf_factor_eval(factor);
     vec_copy(factor->r, factor->r_size, &r[r_idx]);
     r_idx += factor->r_size;
@@ -19274,25 +19343,35 @@ void tsf_linearize_compact(const void *data,
   // -- IDF factors
   for (int i = 0; i < tsf->num_factors_i; i++) {
     idf_factor_t *factor = &tsf->idf_factors_i[i];
-    SOLVER_EVAL_FACTOR_COMPACT(hash,
-                               sv_size,
-                               H,
-                               g,
-                               idf_factor_eval,
-                               factor,
-                               r,
-                               r_idx);
+    idf_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+
+    solver_fill_hessian(hash,
+                        factor->num_params,
+                        factor->params,
+                        factor->jacs,
+                        factor->r,
+                        factor->r_size,
+                        sv_size,
+                        H,
+                        g);
+    r_idx += factor->r_size;
   }
-  for (int i = 0; i < tsf->num_factors_j; i++) {
-    idf_factor_t *factor = &tsf->idf_factors_j[i];
-    SOLVER_EVAL_FACTOR_COMPACT(hash,
-                               sv_size,
-                               H,
-                               g,
-                               idf_factor_eval,
-                               factor,
-                               r,
-                               r_idx);
+  for (int j = 0; j < tsf->num_factors_j; j++) {
+    idf_factor_t *factor = &tsf->idf_factors_j[j];
+    idf_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+
+    solver_fill_hessian(hash,
+                        factor->num_params,
+                        factor->params,
+                        factor->jacs,
+                        factor->r,
+                        factor->r_size,
+                        sv_size,
+                        H,
+                        g);
+    r_idx += factor->r_size;
   }
 }
 
@@ -19360,7 +19439,7 @@ void tsf_update(tsf_t *tsf, const timestamp_t ts) {
     TF_CHAIN(T_WCi_k, 2, T_WB_k, T_BCi);
 
     const camera_params_t *cam = &tsf->cam_params[cam_idx];
-    const tsf_frame_set_t *fs = tsf->frame_sets[0];
+    const tsf_frame_set_t *fs = tsf->frame_sets[1];
     const tsf_frame_t *f = fs->cam_frames[cam_idx];
     const size_t *fids = f->feature_ids;
     const real_t *kps = f->keypoints;
@@ -19411,11 +19490,12 @@ void tsf_update(tsf_t *tsf, const timestamp_t ts) {
     // Solve
     solver_t solver;
     solver_setup(&solver);
-    solver.max_iter = 1;
+    solver.verbose = 1;
+    solver.max_iter = 5;
     solver.cost_func = &tsf_cost;
     solver.param_order_func = &tsf_param_order;
     solver.linearize_func = &tsf_linearize_compact;
-    // solver_solve(&solver, tsf);
+    solver_solve(&solver, tsf);
 
     // int r_size = 0;
     // r_size += tsf->num_factors_i * 2;
