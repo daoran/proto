@@ -606,6 +606,7 @@ void print_matrix(const char *prefix,
                   const size_t n);
 void print_vector(const char *prefix, const real_t *v, const size_t n);
 void vec2str(const real_t *v, const int n, char *s);
+void vec2csv(const real_t *v, const int n, char *s);
 
 void eye(real_t *A, const size_t m, const size_t n);
 void ones(real_t *A, const size_t m, const size_t n);
@@ -1173,37 +1174,6 @@ image_t *image_load(const char *file_path);
 void image_print_properties(const image_t *img);
 void image_free(image_t *img);
 
-//////////////
-// GEOMETRY //
-//////////////
-
-void linear_triangulation(const real_t P_i[3 * 4],
-                          const real_t P_j[3 * 4],
-                          const real_t z_i[2],
-                          const real_t z_j[2],
-                          real_t p[3]);
-
-int homography_find(const real_t *pts_i,
-                    const real_t *pts_j,
-                    const int num_points,
-                    real_t H[3 * 3]);
-
-int homography_pose(const real_t *proj_params,
-                    const real_t *img_pts,
-                    const real_t *obj_pts,
-                    const int N,
-                    real_t T_CF[4 * 4]);
-
-int p3p_kneip(const real_t features[3][3],
-              const real_t points[3][3],
-              real_t solutions[4][4 * 4]);
-
-int solvepnp(const real_t proj_params[4],
-             const real_t *img_pts,
-             const real_t *obj_pts,
-             const int N,
-             real_t T_CO[4 * 4]);
-
 ////////////
 // RADTAN //
 ////////////
@@ -1304,6 +1274,37 @@ void pinhole_equi4_project_jacobian(const real_t params[8],
 void pinhole_equi4_params_jacobian(const real_t params[8],
                                    const real_t p_C[3],
                                    real_t J[2 * 8]);
+
+//////////////
+// GEOMETRY //
+//////////////
+
+void linear_triangulation(const real_t P_i[3 * 4],
+                          const real_t P_j[3 * 4],
+                          const real_t z_i[2],
+                          const real_t z_j[2],
+                          real_t p[3]);
+
+int homography_find(const real_t *pts_i,
+                    const real_t *pts_j,
+                    const int num_points,
+                    real_t H[3 * 3]);
+
+int homography_pose(const real_t *proj_params,
+                    const real_t *img_pts,
+                    const real_t *obj_pts,
+                    const int N,
+                    real_t T_CF[4 * 4]);
+
+int p3p_kneip(const real_t features[3][3],
+              const real_t points[3][3],
+              real_t solutions[4][4 * 4]);
+
+int solvepnp(const real_t proj_params[4],
+             const real_t *img_pts,
+             const real_t *obj_pts,
+             const int N,
+             real_t T_CO[4 * 4]);
 
 /******************************************************************************
  * CONTROL
@@ -1526,6 +1527,7 @@ int schur_complement(const real_t *H,
                      const int r,
                      real_t *H_marg,
                      real_t *b_marg);
+
 int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
 
 //////////////
@@ -1615,6 +1617,7 @@ typedef struct pos_t {
 
 void pos_setup(pos_t *pos, const real_t *data);
 void pos_copy(const pos_t *src, pos_t *dst);
+void pos_fprint(const char *prefix, const pos_t *pos, FILE *f);
 void pos_print(const char *prefix, const pos_t *pos);
 
 //////////////
@@ -1628,6 +1631,7 @@ typedef struct rot_t {
 } rot_t;
 
 void rot_setup(rot_t *rot, const real_t *data);
+void rot_fprint(const char *prefix, const rot_t *rot, FILE *f);
 void rot_print(const char *prefix, const rot_t *rot);
 
 //////////
@@ -1643,6 +1647,7 @@ typedef struct pose_t {
 
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_copy(const pose_t *src, pose_t *dst);
+void pose_fprint(const char *prefix, const pose_t *pose, FILE *f);
 void pose_print(const char *prefix, const pose_t *pose);
 
 ///////////////
@@ -1657,6 +1662,7 @@ typedef struct extrinsic_t {
 
 void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
 void extrinsic_copy(const extrinsic_t *src, extrinsic_t *dst);
+void extrinsic_fprint(const char *prefix, const extrinsic_t *exts, FILE *f);
 void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 
 //////////////
@@ -1671,6 +1677,7 @@ typedef struct fiducial_t {
 
 void fiducial_setup(fiducial_t *fiducial, const real_t *param);
 void fiducial_copy(const fiducial_t *src, fiducial_t *dst);
+void fiducial_fprint(const char *prefix, const fiducial_t *exts, FILE *f);
 void fiducial_print(const char *prefix, const fiducial_t *exts);
 
 ///////////////////////
@@ -1699,6 +1706,7 @@ void camera_params_setup(camera_params_t *camera,
                          const char *dist_model,
                          const real_t *data);
 void camera_params_copy(const camera_params_t *src, camera_params_t *dst);
+void camera_params_fprint(const camera_params_t *cam, FILE *f);
 void camera_params_print(const camera_params_t *camera);
 void camera_project(const camera_params_t *camera,
                     const real_t p_C[3],
@@ -1715,6 +1723,16 @@ int solvepnp_camera(const camera_params_t *cam_params,
                     const real_t *obj_pts,
                     const int N,
                     real_t T_CO[4 * 4]);
+void triangulate_batch(const camera_params_t *cam_i,
+                       const camera_params_t *cam_j,
+                       const real_t T_CiCj[4 * 4],
+                       const real_t *kps_i,
+                       const real_t *kps_j,
+                       const int n,
+                       real_t *points,
+                       int *status);
+
+
 
 //////////////
 // VELOCITY //
@@ -1761,6 +1779,7 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 #define FEATURES_CAPACITY_INITIAL 10000
 #define FEATURES_CAPACITY_GROWTH_FACTOR 2
 
+/** Feature **/
 typedef struct feature_t {
   int marginalize;
   int fix;
@@ -1776,6 +1795,17 @@ typedef struct feature_t {
   size_t pos_id;
 } feature_t;
 
+void feature_setup(feature_t *f, const size_t feature_id, const real_t *data);
+void feature_print(const feature_t *feature);
+void idf_setup(feature_t *f,
+               const size_t feature_id,
+               const size_t pos_id,
+               const camera_params_t *cam_params,
+               const real_t C_WC[3 * 3],
+               const real_t z[2]);
+void idf_point(const feature_t *f, const real_t r_WC[3], real_t p_W[3]);
+
+/** Features **/
 typedef struct features_t {
   feature_t **data;
   size_t num_features;
@@ -1785,17 +1815,6 @@ typedef struct features_t {
   size_t num_positions;
   size_t position_capacity;
 } features_t;
-
-void feature_setup(feature_t *f, const size_t feature_id, const real_t *data);
-void feature_print(const feature_t *feature);
-
-void idf_setup(feature_t *f,
-               const size_t feature_id,
-               const size_t pos_id,
-               const camera_params_t *cam_params,
-               const real_t C_WC[3 * 3],
-               const real_t z[2]);
-void idf_point(const feature_t *f, const real_t r_WC[3], real_t p_W[3]);
 
 features_t *features_malloc();
 void features_free(features_t *features);
@@ -1888,6 +1907,7 @@ void param_order_free(param_order_t *hash);
 void param_type_string(const int param_type, char *s);
 size_t param_global_size(const int param_type);
 size_t param_local_size(const int param_type);
+void param_order_print(const param_order_t *hash);
 void param_order_add(param_order_t **hash,
                      const int param_type,
                      const int fix,
@@ -2727,6 +2747,7 @@ typedef struct solver_t {
 } solver_t;
 
 void solver_setup(solver_t *solver);
+void solver_print_param_order(const solver_t *solver);
 real_t solver_cost(const solver_t *solver, const void *data);
 void solver_fill_jacobian(param_order_t *hash,
                           int num_params,
@@ -2932,6 +2953,8 @@ typedef struct calib_imucam_t {
   // Settings
   int fix_fiducial;
   int fix_poses;
+  int fix_velocities;
+  int fix_biases;
   int fix_cam_params;
   int fix_cam_exts;
   int fix_time_delay;
@@ -3049,12 +3072,7 @@ void calib_imucam_linearize_compact(const void *data,
                                     real_t *H,
                                     real_t *g,
                                     real_t *r);
-void calib_imucam_linsolve(const void *data,
-                           const int sv_size,
-                           param_order_t *hash,
-                           real_t *H,
-                           real_t *g,
-                           real_t *dx);
+void calib_imucam_save_estimates(calib_imucam_t *calib);
 void calib_imucam_solve(calib_imucam_t *calib);
 
 ////////////////////////
@@ -3239,80 +3257,131 @@ void inertial_odometry_linearize_compact(const void *data,
                                          real_t *g,
                                          real_t *r);
 
-//////////////////////////////////////
-// TWO STATE IMPLICIT FILTER (TSIF) //
-//////////////////////////////////////
+////////////////////////
+// TWO-VIEW ESTIMATOR //
+////////////////////////
 
-#define TSIF_MAX_CAMS 2
-#define TSIF_MAX_IDFS 1000
+////////////////////////////
+// TWO-STATE FILTER (TSF) //
+////////////////////////////
 
-#define TSIF_INIT_MODE 1
-#define TSIF_EST_MODE 2
+#define TSF_INIT_FRAME_I 1
+#define TSF_INIT_FRAME_J 2
+#define TSF_EST_MODE 3
 
-typedef struct tsif_frame_t {
+/** TSF Frame **/
+typedef struct tsf_frame_t {
+  timestamp_t ts;
+  int cam_idx;
+  size_t *feature_ids;
+  real_t *keypoints;
+  int num_measurements;
+} tsf_frame_t;
+
+tsf_frame_t *tsf_frame_malloc(const timestamp_t ts,
+                              const int cam_idx,
+                              const size_t num_features,
+                              const size_t *feature_ids,
+                              const real_t *keypoints);
+void tsf_frame_free(tsf_frame_t *f);
+
+/** TSF Frame Set **/
+typedef struct tsf_frame_set_t {
+  timestamp_t ts;
+  tsf_frame_t **cam_frames;
+  int num_cams;
+} tsf_frame_set_t;
+
+tsf_frame_set_t *tsf_frame_set_malloc(const timestamp_t ts, const int num_cams);
+void tsf_frame_set_free(tsf_frame_set_t *fs);
+void tsf_frame_set_add(tsf_frame_set_t *fs,
+                       const timestamp_t ts,
+                       const int cam_idx,
+                       const size_t num_features,
+                       const size_t *feature_ids,
+                       const real_t *keypoints);
+
+/** TSF Frame Set Hash **/
+typedef struct tsf_frame_set_hash_t {
   timestamp_t key;
-  pose_t pose;
-} tsif_frame_t;
+  tsf_frame_set_t *value;
+} tsf_frame_set_hash_t;
 
-typedef struct tsif_t {
+/** Two-State Filter (TSF) **/
+typedef struct tsf_t {
+  // Flags
   int state;
+  int num_imus;
+  int num_cams;
+  int imu_started;
+  size_t frame_idx;
+
+  // Settings
+  int fix_cam_params;
+  int fix_cam_exts;
+  int fix_imu_ext;
+  int fix_time_delay;
 
   // IMU
-  imu_params_t imu_params;
+  imu_params_t *imu_params;
+  imu_buf_t imu_buf;
+  extrinsic_t *imu_ext;
+  time_delay_t *time_delay;
   imu_factor_t imu_factor;
-  int has_imu;
 
   // Vision
-  camera_params_t cam_params[TSIF_MAX_CAMS];
-  extrinsic_t cam_exts[TSIF_MAX_CAMS];
-  int num_cams;
-
-  tsif_frame_t frame_i;
-  tsif_frame_t frame_j;
-
-  // idf_factor_t idf_factors[TSIF_MAX_CAMS][TSIF_MAX_IDFS];
-  // int num_idf_factors[TSIF_MAX_CAMS];
+  camera_params_t *cam_params;
+  extrinsic_t *cam_exts;
+  tsf_frame_set_t *frame_sets[2];
+  features_t *features;
+  // idf_factor_t *idf_factors;
 
   // Variables
   timestamp_t ts_i;
   timestamp_t ts_j;
+  pose_t *pose_i;
+  pose_t *pose_j;
+} tsf_t;
 
-  // pose_t pose_i;
-  // pose_t pose_j;
-  // velocity_t vel_i;
-  // velocity_t vel_j;
-  // imu_biases_t biases_i;
-  // imu_biases_t biases_j;
-} tsif_t;
+tsf_t *tsf_malloc();
+void tsf_free(tsf_t *tsf);
+void tsf_print(const tsf_t *tsif);
 
-void tsif_setup(tsif_t *tsif);
-void tsif_print(const tsif_t *tsif);
-void tsif_add_camera(tsif_t *tsif,
-                     const int cam_idx,
-                     const int cam_res[2],
-                     const char *proj_model,
-                     const char *dist_model,
-                     const real_t cam_vec[8],
-                     const real_t T_BC[4 * 4]);
-void tsif_add_imu(tsif_t *tsif,
-                  const real_t rate,
-                  const real_t sigma_aw,
-                  const real_t sigma_gw,
-                  const real_t sigma_a,
-                  const real_t sigma_g,
-                  const real_t g);
-param_order_t *tsif_param_order(const void *data, int *sv_size, int *r_size);
-void tsif_linearize_compact(const void *data,
-                            const int sv_size,
-                            param_order_t *hash,
-                            real_t *H,
-                            real_t *g,
-                            real_t *r);
-void tsif_update(tsif_t *tsif,
-                 const timestamp_t ts,
-                 const size_t *num_features,
-                 const size_t **feature_ids,
-                 const real_t **keypoints);
+void tsf_add_camera(tsf_t *tsif,
+                    const int cam_idx,
+                    const int cam_res[2],
+                    const char *proj_model,
+                    const char *dist_model,
+                    const real_t *cam_params,
+                    const real_t *cam_ext);
+void tsf_add_imu(tsf_t *tsf,
+                 const real_t imu_rate,
+                 const real_t sigma_aw,
+                 const real_t sigma_gw,
+                 const real_t sigma_a,
+                 const real_t sigma_g,
+                 const real_t g,
+                 const real_t *imu_ext);
+
+void tsf_add_imu_event(tsf_t *tsf,
+                       const timestamp_t ts,
+                       const real_t acc[3],
+                       const real_t gyr[3]);
+void tsf_add_camera_event(tsf_t *tsf,
+                          const timestamp_t ts,
+                          const int cam_idx,
+                          const size_t n,
+                          const size_t *fids,
+                          const real_t *kps);
+
+param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size);
+void tsf_linearize_compact(const void *data,
+                           const int sv_size,
+                           param_order_t *hash,
+                           real_t *H,
+                           real_t *g,
+                           real_t *r);
+void tsf_update(tsf_t *tsf, const timestamp_t ts);
 
 /******************************************************************************
  * DATASET
@@ -3391,6 +3460,13 @@ sim_imu_data_t *sim_imu_circle_trajectory(const int imu_rate,
 // SIM CAMERA DATA //
 /////////////////////
 
+/** Simulation Utils **/
+void sim_create_features(const real_t origin[3],
+                         const real_t dim[3],
+                         const int num_features,
+                         real_t *features);
+
+/** Sim Camera Frame **/
 typedef struct sim_camera_frame_t {
   timestamp_t ts;
   int cam_idx;
@@ -3398,15 +3474,6 @@ typedef struct sim_camera_frame_t {
   real_t *keypoints;
   int num_measurements;
 } sim_camera_frame_t;
-
-typedef struct sim_camera_data_t {
-  int cam_idx;
-  sim_camera_frame_t **frames;
-  int num_frames;
-
-  timestamp_t *timestamps;
-  real_t *poses;
-} sim_camera_data_t;
 
 void sim_camera_frame_setup(sim_camera_frame_t *frame,
                             const timestamp_t ts,
@@ -3420,21 +3487,33 @@ void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame_data,
 sim_camera_frame_t *sim_camera_frame_load(const char *csv_path);
 void sim_camera_frame_print(const sim_camera_frame_t *frame_data);
 
+/** Sim Camera Data **/
+typedef struct sim_camera_data_t {
+  int cam_idx;
+  sim_camera_frame_t **frames;
+  int num_frames;
+
+  timestamp_t *timestamps;
+  real_t *poses;
+} sim_camera_data_t;
+
 void sim_camera_data_setup(sim_camera_data_t *data);
 sim_camera_data_t *sim_camerea_data_malloc();
 void sim_camera_data_free(sim_camera_data_t *cam_data);
 sim_camera_data_t *sim_camera_data_load(const char *dir_path);
 
-void sim_create_features(const real_t origin[3],
-                         const real_t dim[3],
-                         const int num_features,
-                         real_t *features);
+/** Sim Circle Trajectory **/
+typedef struct sim_circle_t {
+  real_t cam_rate;
+  real_t circle_r;
+  real_t circle_v;
+  real_t theta_init;
+  real_t yaw_init;
+} sim_circle_t;
+
+void sim_circle_defaults(sim_circle_t *conf);
 sim_camera_data_t *
-sim_camera_circle_trajectory(const real_t cam_rate,
-                             const real_t circle_r,
-                             const real_t circle_v,
-                             const real_t theta_init,
-                             const real_t yaw_init,
+sim_camera_circle_trajectory(const sim_circle_t *conf,
                              const real_t T_BC[4 * 4],
                              const camera_params_t *cam_params,
                              const real_t *features,

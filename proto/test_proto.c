@@ -2288,372 +2288,6 @@ int test_image_free() {
   return 0;
 }
 
-int test_linear_triangulation() {
-  // Setup camera
-  const int image_width = 640;
-  const int image_height = 480;
-  const real_t fov = 120.0;
-  const real_t fx = pinhole_focal(image_width, fov);
-  const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
-  const real_t proj_params[4] = {fx, fy, cx, cy};
-  real_t K[3 * 3];
-  pinhole_K(proj_params, K);
-
-  // Setup camera pose T_WC0
-  const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
-  real_t T_WC0[4 * 4] = {0};
-  tf_euler_set(T_WC0, ypr_WC0);
-  tf_trans_set(T_WC0, r_WC0);
-
-  // Setup camera pose T_WC1
-  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-  const real_t r_WC1[3] = {0.1, 0.1, 0.0};
-  real_t T_WC1[4 * 4] = {0};
-  tf_euler_set(T_WC1, euler_WC1);
-  tf_trans_set(T_WC1, r_WC1);
-
-  // Setup projection matrices
-  real_t P0[3 * 4] = {0};
-  real_t P1[3 * 4] = {0};
-  pinhole_projection_matrix(proj_params, T_WC0, P0);
-  pinhole_projection_matrix(proj_params, T_WC1, P1);
-
-  // Setup 3D and 2D correspondance points
-  int num_tests = 100;
-  for (int i = 0; i < num_tests; i++) {
-    const real_t p_W[3] = {5.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
-
-    real_t T_C0W[4 * 4] = {0};
-    real_t T_C1W[4 * 4] = {0};
-    tf_inv(T_WC0, T_C0W);
-    tf_inv(T_WC1, T_C1W);
-
-    real_t p_C0[3] = {0};
-    real_t p_C1[3] = {0};
-    tf_point(T_C0W, p_W, p_C0);
-    tf_point(T_C1W, p_W, p_C1);
-
-    real_t z0[2] = {0};
-    real_t z1[2] = {0};
-    pinhole_project(proj_params, p_C0, z0);
-    pinhole_project(proj_params, p_C1, z1);
-
-    // Test
-    real_t p_W_est[3] = {0};
-    linear_triangulation(P0, P1, z0, z1, p_W_est);
-
-    // Assert
-    real_t diff[3] = {0};
-    vec_sub(p_W, p_W_est, diff, 3);
-    const real_t norm = vec_norm(diff, 3);
-    // print_vector("p_W [gnd]", p_W, 3);
-    // print_vector("p_W [est]", p_W_est, 3);
-    MU_ASSERT(norm < 1e-4);
-  }
-
-  return 0;
-}
-
-int test_homography_find() {
-  // Setup camera
-  const int image_width = 640;
-  const int image_height = 480;
-  const real_t fov = 120.0;
-  const real_t fx = pinhole_focal(image_width, fov);
-  const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
-  const real_t proj_params[4] = {fx, fy, cx, cy};
-  real_t K[3 * 3];
-  pinhole_K(proj_params, K);
-
-  // Setup camera pose T_WC0
-  const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
-  real_t T_WC0[4 * 4] = {0};
-  tf_euler_set(T_WC0, ypr_WC0);
-  tf_trans_set(T_WC0, r_WC0);
-
-  // Setup camera pose T_WC1
-  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0 + 0.3};
-  const real_t r_WC1[3] = {0.0, -0.3, 0.0};
-  real_t T_WC1[4 * 4] = {0};
-  tf_euler_set(T_WC1, euler_WC1);
-  tf_trans_set(T_WC1, r_WC1);
-
-  // Setup 3D and 2D correspondance points
-  int num_points = 20;
-  real_t *pts_i = MALLOC(real_t, num_points * 2);
-  real_t *pts_j = MALLOC(real_t, num_points * 2);
-  for (int i = 0; i < num_points; i++) {
-    const real_t p_W[3] = {3.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
-
-    real_t T_C0W[4 * 4] = {0};
-    real_t T_C1W[4 * 4] = {0};
-    tf_inv(T_WC0, T_C0W);
-    tf_inv(T_WC1, T_C1W);
-
-    real_t p_C0[3] = {0};
-    real_t p_C1[3] = {0};
-    tf_point(T_C0W, p_W, p_C0);
-    tf_point(T_C1W, p_W, p_C1);
-
-    real_t z0[2] = {0};
-    real_t z1[2] = {0};
-    pinhole_project(proj_params, p_C0, z0);
-    pinhole_project(proj_params, p_C1, z1);
-    real_t pt_i[2] = {(z0[0] - cx) / fx, (z0[1] - cy) / fy};
-    real_t pt_j[2] = {(z1[0] - cx) / fx, (z1[1] - cy) / fy};
-
-    pts_i[i * 2 + 0] = pt_i[0];
-    pts_i[i * 2 + 1] = pt_i[1];
-    pts_j[i * 2 + 0] = pt_j[0];
-    pts_j[i * 2 + 1] = pt_j[1];
-  }
-
-  real_t H[3 * 3] = {0};
-  int retval = homography_find(pts_i, pts_j, num_points, H);
-  MU_ASSERT(retval == 0);
-
-  for (int i = 0; i < num_points; i++) {
-    const real_t p0[3] = {pts_i[i * 2 + 0], pts_i[i * 2 + 1], 1.0};
-    const real_t p1[3] = {pts_j[i * 2 + 0], pts_j[i * 2 + 1], 1.0};
-
-    real_t p1_est[3] = {0};
-    dot(H, 3, 3, p0, 3, 1, p1_est);
-    p1_est[0] /= p1_est[2];
-    p1_est[1] /= p1_est[2];
-    p1_est[2] /= p1_est[2];
-
-    const real_t dx = p1[0] - p1_est[0];
-    const real_t dy = p1[1] - p1_est[1];
-    const real_t dz = p1[2] - p1_est[2];
-    const real_t diff = sqrt(dx * dx + dy * dy + dz * dz);
-    if (diff >= 1e-3) {
-      print_vector("p1_gnd", p1, 3);
-      print_vector("p1_est", p1_est, 3);
-      printf("\n");
-    }
-    MU_ASSERT(diff < 1e-3);
-  }
-
-  // Clean up
-  free(pts_i);
-  free(pts_j);
-
-  return 0;
-}
-
-int test_homography_pose() {
-  // Setup camera
-  const int image_width = 640;
-  const int image_height = 480;
-  const real_t fov = 120.0;
-  const real_t fx = pinhole_focal(image_width, fov);
-  const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
-  const real_t proj_params[4] = {fx, fy, cx, cy};
-
-  // Setup camera pose T_WC
-  const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-  const real_t r_WC[3] = {0.0, 0.0, 0.0};
-  real_t T_WC[4 * 4] = {0};
-  tf_euler_set(T_WC, ypr_WC);
-  tf_trans_set(T_WC, r_WC);
-
-  // Calibration target pose T_WF
-  const int num_rows = 4;
-  const int num_cols = 4;
-  const real_t tag_size = 0.1;
-  const real_t target_x = ((num_cols - 1) * tag_size) / 2.0;
-  const real_t target_y = -((num_rows - 1) * tag_size) / 2.0;
-  const real_t ypr_WF[3] = {-M_PI / 2, 0.0, M_PI / 2};
-  const real_t r_WF[3] = {0.5, target_x, target_y};
-  TF_ER(ypr_WF, r_WF, T_WF);
-
-  // Setup 3D and 2D correspondance points
-  const int N = num_rows * num_cols;
-  real_t *world_pts = MALLOC(real_t, N * 3);
-  real_t *obj_pts = MALLOC(real_t, N * 3);
-  real_t *img_pts = MALLOC(real_t, N * 2);
-
-  int idx = 0;
-  for (int i = 0; i < num_rows; i++) {
-    for (int j = 0; j < num_cols; j++) {
-      const real_t p_F[3] = {i * tag_size, j * tag_size, 0.0};
-      TF_POINT(T_WF, p_F, p_W);
-      TF_INV(T_WC, T_CW);
-      TF_POINT(T_CW, p_W, p_C);
-
-      real_t z[2] = {0};
-      pinhole_project(proj_params, p_C, z);
-
-      obj_pts[idx * 3 + 0] = p_F[0];
-      obj_pts[idx * 3 + 1] = p_F[1];
-      obj_pts[idx * 3 + 2] = p_F[2];
-
-      world_pts[idx * 3 + 0] = p_W[0];
-      world_pts[idx * 3 + 1] = p_W[1];
-      world_pts[idx * 3 + 2] = p_W[2];
-
-      img_pts[idx * 2 + 0] = z[0];
-      img_pts[idx * 2 + 1] = z[1];
-
-      idx++;
-    }
-  }
-
-  // Find homography pose
-  real_t T_CF_est[4 * 4] = {0};
-  int retval = homography_pose(proj_params, img_pts, obj_pts, N, T_CF_est);
-  MU_ASSERT(retval == 0);
-
-  TF_INV(T_WC, T_CW);
-  TF_CHAIN(T_CF_gnd, 2, T_CW, T_WF);
-  // print_matrix("T_CF_gnd", T_CF_gnd, 4, 4);
-  // print_matrix("T_CF_est", T_CF_est, 4, 4);
-
-  // Cleanup
-  free(obj_pts);
-  free(world_pts);
-  free(img_pts);
-
-  return 0;
-}
-
-// int test_p3p_kneip() {
-//   // Setup camera
-//   const int image_width = 640;
-//   const int image_height = 480;
-//   const real_t fov = 120.0;
-//   const real_t fx = pinhole_focal(image_width, fov);
-//   const real_t fy = pinhole_focal(image_width, fov);
-//   const real_t cx = image_width / 2;
-//   const real_t cy = image_height / 2;
-//   const real_t proj_params[4] = {fx, fy, cx, cy};
-//   real_t K[3 * 3];
-//   pinhole_K(proj_params, K);
-
-//   // Setup camera pose T_WC
-//   const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-//   const real_t r_WC[3] = {0.0, 0.0, 0.0};
-//   real_t T_WC[4 * 4] = {0};
-//   tf_euler_set(T_WC, ypr_WC);
-//   tf_trans_set(T_WC, r_WC);
-//   TF_INV(T_WC, T_CW);
-
-//   // Setup points
-//   real_t features[4][3] = {{1.0, -0.1, 0.1},
-//                            {1.0, 0.1, 0.1},
-//                            {1.0, 0.1, -0.1},
-//                            {1.0, -0.1, -0.1}};
-//   real_t points[4][3] = {0};
-//   tf_point(T_CW, features[0], points[0]);
-//   tf_point(T_CW, features[1], points[1]);
-//   tf_point(T_CW, features[2], points[2]);
-
-//   real_t solutions[4][4 * 4];
-//   p3p_kneip(features, points, solutions);
-//   // printf("retval: %d\n", retval);
-
-//   return 0;
-// }
-
-int test_solvepnp() {
-  // Setup camera
-  const int image_width = 640;
-  const int image_height = 480;
-  const real_t fov = 120.0;
-  const real_t fx = pinhole_focal(image_width, fov);
-  const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
-  const real_t proj_params[4] = {fx, fy, cx, cy};
-
-  // Setup camera pose T_WC
-  const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
-  const real_t r_WC[3] = {0.0, 0.0, 0.0};
-  real_t T_WC[4 * 4] = {0};
-  tf_euler_set(T_WC, ypr_WC);
-  tf_trans_set(T_WC, r_WC);
-
-  // Calibration target pose T_WF
-  const int num_rows = 4;
-  const int num_cols = 4;
-  const real_t tag_size = 0.1;
-  const real_t target_x = ((num_cols - 1) * tag_size) / 2.0;
-  const real_t target_y = -((num_rows - 1) * tag_size) / 2.0;
-  const real_t ypr_WF[3] = {-M_PI / 2, 0.0, M_PI / 2};
-  const real_t r_WF[3] = {0.5, target_x, target_y};
-  TF_ER(ypr_WF, r_WF, T_WF);
-
-  // Setup 3D and 2D correspondance points
-  const int N = num_rows * num_cols;
-  real_t *world_pts = MALLOC(real_t, N * 3);
-  real_t *obj_pts = MALLOC(real_t, N * 3);
-  real_t *img_pts = MALLOC(real_t, N * 2);
-
-  int idx = 0;
-  for (int i = 0; i < num_rows; i++) {
-    for (int j = 0; j < num_cols; j++) {
-      const real_t p_F[3] = {i * tag_size, j * tag_size, 0.0};
-      TF_POINT(T_WF, p_F, p_W);
-      TF_INV(T_WC, T_CW);
-      TF_POINT(T_CW, p_W, p_C);
-
-      real_t z[2] = {0};
-      pinhole_project(proj_params, p_C, z);
-
-      obj_pts[idx * 3 + 0] = p_F[0];
-      obj_pts[idx * 3 + 1] = p_F[1];
-      obj_pts[idx * 3 + 2] = p_F[2];
-
-      world_pts[idx * 3 + 0] = p_W[0];
-      world_pts[idx * 3 + 1] = p_W[1];
-      world_pts[idx * 3 + 2] = p_W[2];
-
-      img_pts[idx * 2 + 0] = z[0];
-      img_pts[idx * 2 + 1] = z[1];
-
-      idx++;
-    }
-  }
-
-  // Find homography pose
-  real_t T_CF_est[4 * 4] = {0};
-  // struct timespec t_start = tic();
-  int retval = solvepnp(proj_params, img_pts, obj_pts, N, T_CF_est);
-  MU_ASSERT(retval == 0);
-  // printf("time: %f\n", toc(&t_start));
-
-  TF_INV(T_WC, T_CW);
-  TF_CHAIN(T_CF_gnd, 2, T_CW, T_WF);
-
-  real_t dr[3] = {0};
-  real_t dr_norm = {0};
-  real_t dtheta = 0;
-  tf_diff2(T_CF_gnd, T_CF_est, dr, &dtheta);
-  dr_norm = vec_norm(dr, 3);
-
-  // printf("dr: %f, dtheta: %f\n", dr_norm, dtheta);
-  MU_ASSERT(dr_norm < 1e-5);
-  MU_ASSERT(dtheta < 1e-5);
-
-  // print_matrix("T_CF_gnd", T_CF_gnd, 4, 4);
-  // print_matrix("T_CF_est", T_CF_est, 4, 4);
-
-  // Cleanup
-  free(obj_pts);
-  free(world_pts);
-  free(img_pts);
-
-  return 0;
-}
-
 int test_radtan4_distort() {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
@@ -3255,6 +2889,372 @@ int test_pinhole_equi4_params_jacobian() {
   /* print_matrix("J_numdiff", J_numdiff, 2, 8); */
   /* print_matrix("J_params", J_params, 2, 8); */
   MU_ASSERT(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
+
+  return 0;
+}
+
+int test_linear_triangulation() {
+  // Setup camera
+  const int image_width = 640;
+  const int image_height = 480;
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+  real_t K[3 * 3];
+  pinhole_K(proj_params, K);
+
+  // Setup camera pose T_WC0
+  const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
+  real_t T_WC0[4 * 4] = {0};
+  tf_euler_set(T_WC0, ypr_WC0);
+  tf_trans_set(T_WC0, r_WC0);
+
+  // Setup camera pose T_WC1
+  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC1[3] = {0.1, 0.1, 0.0};
+  real_t T_WC1[4 * 4] = {0};
+  tf_euler_set(T_WC1, euler_WC1);
+  tf_trans_set(T_WC1, r_WC1);
+
+  // Setup projection matrices
+  real_t P0[3 * 4] = {0};
+  real_t P1[3 * 4] = {0};
+  pinhole_projection_matrix(proj_params, T_WC0, P0);
+  pinhole_projection_matrix(proj_params, T_WC1, P1);
+
+  // Setup 3D and 2D correspondance points
+  int num_tests = 100;
+  for (int i = 0; i < num_tests; i++) {
+    const real_t p_W[3] = {5.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
+
+    real_t T_C0W[4 * 4] = {0};
+    real_t T_C1W[4 * 4] = {0};
+    tf_inv(T_WC0, T_C0W);
+    tf_inv(T_WC1, T_C1W);
+
+    real_t p_C0[3] = {0};
+    real_t p_C1[3] = {0};
+    tf_point(T_C0W, p_W, p_C0);
+    tf_point(T_C1W, p_W, p_C1);
+
+    real_t z0[2] = {0};
+    real_t z1[2] = {0};
+    pinhole_project(proj_params, p_C0, z0);
+    pinhole_project(proj_params, p_C1, z1);
+
+    // Test
+    real_t p_W_est[3] = {0};
+    linear_triangulation(P0, P1, z0, z1, p_W_est);
+
+    // Assert
+    real_t diff[3] = {0};
+    vec_sub(p_W, p_W_est, diff, 3);
+    const real_t norm = vec_norm(diff, 3);
+    // print_vector("p_W [gnd]", p_W, 3);
+    // print_vector("p_W [est]", p_W_est, 3);
+    MU_ASSERT(norm < 1e-4);
+  }
+
+  return 0;
+}
+
+int test_homography_find() {
+  // Setup camera
+  const int image_width = 640;
+  const int image_height = 480;
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+  real_t K[3 * 3];
+  pinhole_K(proj_params, K);
+
+  // Setup camera pose T_WC0
+  const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
+  real_t T_WC0[4 * 4] = {0};
+  tf_euler_set(T_WC0, ypr_WC0);
+  tf_trans_set(T_WC0, r_WC0);
+
+  // Setup camera pose T_WC1
+  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0 + 0.3};
+  const real_t r_WC1[3] = {0.0, -0.3, 0.0};
+  real_t T_WC1[4 * 4] = {0};
+  tf_euler_set(T_WC1, euler_WC1);
+  tf_trans_set(T_WC1, r_WC1);
+
+  // Setup 3D and 2D correspondance points
+  int num_points = 20;
+  real_t *pts_i = MALLOC(real_t, num_points * 2);
+  real_t *pts_j = MALLOC(real_t, num_points * 2);
+  for (int i = 0; i < num_points; i++) {
+    const real_t p_W[3] = {3.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
+
+    real_t T_C0W[4 * 4] = {0};
+    real_t T_C1W[4 * 4] = {0};
+    tf_inv(T_WC0, T_C0W);
+    tf_inv(T_WC1, T_C1W);
+
+    real_t p_C0[3] = {0};
+    real_t p_C1[3] = {0};
+    tf_point(T_C0W, p_W, p_C0);
+    tf_point(T_C1W, p_W, p_C1);
+
+    real_t z0[2] = {0};
+    real_t z1[2] = {0};
+    pinhole_project(proj_params, p_C0, z0);
+    pinhole_project(proj_params, p_C1, z1);
+    real_t pt_i[2] = {(z0[0] - cx) / fx, (z0[1] - cy) / fy};
+    real_t pt_j[2] = {(z1[0] - cx) / fx, (z1[1] - cy) / fy};
+
+    pts_i[i * 2 + 0] = pt_i[0];
+    pts_i[i * 2 + 1] = pt_i[1];
+    pts_j[i * 2 + 0] = pt_j[0];
+    pts_j[i * 2 + 1] = pt_j[1];
+  }
+
+  real_t H[3 * 3] = {0};
+  int retval = homography_find(pts_i, pts_j, num_points, H);
+  MU_ASSERT(retval == 0);
+
+  for (int i = 0; i < num_points; i++) {
+    const real_t p0[3] = {pts_i[i * 2 + 0], pts_i[i * 2 + 1], 1.0};
+    const real_t p1[3] = {pts_j[i * 2 + 0], pts_j[i * 2 + 1], 1.0};
+
+    real_t p1_est[3] = {0};
+    dot(H, 3, 3, p0, 3, 1, p1_est);
+    p1_est[0] /= p1_est[2];
+    p1_est[1] /= p1_est[2];
+    p1_est[2] /= p1_est[2];
+
+    const real_t dx = p1[0] - p1_est[0];
+    const real_t dy = p1[1] - p1_est[1];
+    const real_t dz = p1[2] - p1_est[2];
+    const real_t diff = sqrt(dx * dx + dy * dy + dz * dz);
+    if (diff >= 1e-3) {
+      print_vector("p1_gnd", p1, 3);
+      print_vector("p1_est", p1_est, 3);
+      printf("\n");
+    }
+    MU_ASSERT(diff < 1e-3);
+  }
+
+  // Clean up
+  free(pts_i);
+  free(pts_j);
+
+  return 0;
+}
+
+int test_homography_pose() {
+  // Setup camera
+  const int image_width = 640;
+  const int image_height = 480;
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+
+  // Setup camera pose T_WC
+  const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC[3] = {0.0, 0.0, 0.0};
+  real_t T_WC[4 * 4] = {0};
+  tf_euler_set(T_WC, ypr_WC);
+  tf_trans_set(T_WC, r_WC);
+
+  // Calibration target pose T_WF
+  const int num_rows = 4;
+  const int num_cols = 4;
+  const real_t tag_size = 0.1;
+  const real_t target_x = ((num_cols - 1) * tag_size) / 2.0;
+  const real_t target_y = -((num_rows - 1) * tag_size) / 2.0;
+  const real_t ypr_WF[3] = {-M_PI / 2, 0.0, M_PI / 2};
+  const real_t r_WF[3] = {0.5, target_x, target_y};
+  TF_ER(ypr_WF, r_WF, T_WF);
+
+  // Setup 3D and 2D correspondance points
+  const int N = num_rows * num_cols;
+  real_t *world_pts = MALLOC(real_t, N * 3);
+  real_t *obj_pts = MALLOC(real_t, N * 3);
+  real_t *img_pts = MALLOC(real_t, N * 2);
+
+  int idx = 0;
+  for (int i = 0; i < num_rows; i++) {
+    for (int j = 0; j < num_cols; j++) {
+      const real_t p_F[3] = {i * tag_size, j * tag_size, 0.0};
+      TF_POINT(T_WF, p_F, p_W);
+      TF_INV(T_WC, T_CW);
+      TF_POINT(T_CW, p_W, p_C);
+
+      real_t z[2] = {0};
+      pinhole_project(proj_params, p_C, z);
+
+      obj_pts[idx * 3 + 0] = p_F[0];
+      obj_pts[idx * 3 + 1] = p_F[1];
+      obj_pts[idx * 3 + 2] = p_F[2];
+
+      world_pts[idx * 3 + 0] = p_W[0];
+      world_pts[idx * 3 + 1] = p_W[1];
+      world_pts[idx * 3 + 2] = p_W[2];
+
+      img_pts[idx * 2 + 0] = z[0];
+      img_pts[idx * 2 + 1] = z[1];
+
+      idx++;
+    }
+  }
+
+  // Find homography pose
+  real_t T_CF_est[4 * 4] = {0};
+  int retval = homography_pose(proj_params, img_pts, obj_pts, N, T_CF_est);
+  MU_ASSERT(retval == 0);
+
+  TF_INV(T_WC, T_CW);
+  TF_CHAIN(T_CF_gnd, 2, T_CW, T_WF);
+  // print_matrix("T_CF_gnd", T_CF_gnd, 4, 4);
+  // print_matrix("T_CF_est", T_CF_est, 4, 4);
+
+  // Cleanup
+  free(obj_pts);
+  free(world_pts);
+  free(img_pts);
+
+  return 0;
+}
+
+// int test_p3p_kneip() {
+//   // Setup camera
+//   const int image_width = 640;
+//   const int image_height = 480;
+//   const real_t fov = 120.0;
+//   const real_t fx = pinhole_focal(image_width, fov);
+//   const real_t fy = pinhole_focal(image_width, fov);
+//   const real_t cx = image_width / 2;
+//   const real_t cy = image_height / 2;
+//   const real_t proj_params[4] = {fx, fy, cx, cy};
+//   real_t K[3 * 3];
+//   pinhole_K(proj_params, K);
+
+//   // Setup camera pose T_WC
+//   const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+//   const real_t r_WC[3] = {0.0, 0.0, 0.0};
+//   real_t T_WC[4 * 4] = {0};
+//   tf_euler_set(T_WC, ypr_WC);
+//   tf_trans_set(T_WC, r_WC);
+//   TF_INV(T_WC, T_CW);
+
+//   // Setup points
+//   real_t features[4][3] = {{1.0, -0.1, 0.1},
+//                            {1.0, 0.1, 0.1},
+//                            {1.0, 0.1, -0.1},
+//                            {1.0, -0.1, -0.1}};
+//   real_t points[4][3] = {0};
+//   tf_point(T_CW, features[0], points[0]);
+//   tf_point(T_CW, features[1], points[1]);
+//   tf_point(T_CW, features[2], points[2]);
+
+//   real_t solutions[4][4 * 4];
+//   p3p_kneip(features, points, solutions);
+//   // printf("retval: %d\n", retval);
+
+//   return 0;
+// }
+
+int test_solvepnp() {
+  // Setup camera
+  const int image_width = 640;
+  const int image_height = 480;
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+
+  // Setup camera pose T_WC
+  const real_t ypr_WC[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC[3] = {0.0, 0.0, 0.0};
+  real_t T_WC[4 * 4] = {0};
+  tf_euler_set(T_WC, ypr_WC);
+  tf_trans_set(T_WC, r_WC);
+
+  // Calibration target pose T_WF
+  const int num_rows = 4;
+  const int num_cols = 4;
+  const real_t tag_size = 0.1;
+  const real_t target_x = ((num_cols - 1) * tag_size) / 2.0;
+  const real_t target_y = -((num_rows - 1) * tag_size) / 2.0;
+  const real_t ypr_WF[3] = {-M_PI / 2, 0.0, M_PI / 2};
+  const real_t r_WF[3] = {0.5, target_x, target_y};
+  TF_ER(ypr_WF, r_WF, T_WF);
+
+  // Setup 3D and 2D correspondance points
+  const int N = num_rows * num_cols;
+  real_t *world_pts = MALLOC(real_t, N * 3);
+  real_t *obj_pts = MALLOC(real_t, N * 3);
+  real_t *img_pts = MALLOC(real_t, N * 2);
+
+  int idx = 0;
+  for (int i = 0; i < num_rows; i++) {
+    for (int j = 0; j < num_cols; j++) {
+      const real_t p_F[3] = {i * tag_size, j * tag_size, 0.0};
+      TF_POINT(T_WF, p_F, p_W);
+      TF_INV(T_WC, T_CW);
+      TF_POINT(T_CW, p_W, p_C);
+
+      real_t z[2] = {0};
+      pinhole_project(proj_params, p_C, z);
+
+      obj_pts[idx * 3 + 0] = p_F[0];
+      obj_pts[idx * 3 + 1] = p_F[1];
+      obj_pts[idx * 3 + 2] = p_F[2];
+
+      world_pts[idx * 3 + 0] = p_W[0];
+      world_pts[idx * 3 + 1] = p_W[1];
+      world_pts[idx * 3 + 2] = p_W[2];
+
+      img_pts[idx * 2 + 0] = z[0];
+      img_pts[idx * 2 + 1] = z[1];
+
+      idx++;
+    }
+  }
+
+  // Find homography pose
+  real_t T_CF_est[4 * 4] = {0};
+  // struct timespec t_start = tic();
+  int retval = solvepnp(proj_params, img_pts, obj_pts, N, T_CF_est);
+  MU_ASSERT(retval == 0);
+  // printf("time: %f\n", toc(&t_start));
+
+  TF_INV(T_WC, T_CW);
+  TF_CHAIN(T_CF_gnd, 2, T_CW, T_WF);
+
+  real_t dr[3] = {0};
+  real_t dr_norm = {0};
+  real_t dtheta = 0;
+  tf_diff2(T_CF_gnd, T_CF_est, dr, &dtheta);
+  dr_norm = vec_norm(dr, 3);
+
+  // printf("dr: %f, dtheta: %f\n", dr_norm, dtheta);
+  MU_ASSERT(dr_norm < 1e-5);
+  MU_ASSERT(dtheta < 1e-5);
+
+  // print_matrix("T_CF_gnd", T_CF_gnd, 4, 4);
+  // print_matrix("T_CF_est", T_CF_est, 4, 4);
+
+  // Cleanup
+  free(obj_pts);
+  free(world_pts);
+  free(img_pts);
 
   return 0;
 }
@@ -3916,6 +3916,113 @@ int test_camera_params() {
   const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
   camera_params_setup(&camera, cam_idx, cam_res, proj_model, dist_model, data);
   // camera_params_print(&camera);
+
+  return 0;
+}
+
+int test_triangulation_batch() {
+  // Setup camera
+  const int image_width = 640;
+  const int image_height = 480;
+  const int cam_res[2] = {image_width, image_height};
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  const real_t fov = 120.0;
+  const real_t fx = pinhole_focal(image_width, fov);
+  const real_t fy = pinhole_focal(image_width, fov);
+  const real_t cx = image_width / 2;
+  const real_t cy = image_height / 2;
+  const real_t proj_params[4] = {fx, fy, cx, cy};
+  const real_t data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  camera_params_t cam_i;
+  camera_params_t cam_j;
+  camera_params_setup(&cam_i, 0, cam_res, pmodel, dmodel, data);
+  camera_params_setup(&cam_j, 1, cam_res, pmodel, dmodel, data);
+
+  // Setup camera pose T_WC0
+  const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC0[3] = {0.0, 0.0, 0.0};
+  real_t T_WC0[4 * 4] = {0};
+  tf_euler_set(T_WC0, ypr_WC0);
+  tf_trans_set(T_WC0, r_WC0);
+
+  // Setup camera pose T_WC1
+  const real_t euler_WC1[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
+  const real_t r_WC1[3] = {0.1, 0.1, 0.0};
+  real_t T_WC1[4 * 4] = {0};
+  tf_euler_set(T_WC1, euler_WC1);
+  tf_trans_set(T_WC1, r_WC1);
+
+  // Setup camera extrinsics T_CiCj
+  TF_INV(T_WC0, T_C0W);
+  TF_CHAIN(T_CiCj, 2, T_C0W, T_WC1);
+
+  // Setup 3D and 2D correspondance points
+  int N = 10;
+  real_t *kps_i = MALLOC(real_t, N * 2);
+  real_t *kps_j = MALLOC(real_t, N * 2);
+  real_t *points_gnd = MALLOC(real_t, N * 3);
+  real_t *points_est = MALLOC(real_t, N * 3);
+  int *status = MALLOC(int, N);
+
+  for (int i = 0; i < N; i++) {
+    const real_t p_W[3] = {5.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
+
+    real_t T_C0W[4 * 4] = {0};
+    real_t T_C1W[4 * 4] = {0};
+    tf_inv(T_WC0, T_C0W);
+    tf_inv(T_WC1, T_C1W);
+
+    real_t p_C0[3] = {0};
+    real_t p_C1[3] = {0};
+    tf_point(T_C0W, p_W, p_C0);
+    tf_point(T_C1W, p_W, p_C1);
+
+    real_t z0[2] = {0};
+    real_t z1[2] = {0};
+    pinhole_project(proj_params, p_C0, z0);
+    pinhole_project(proj_params, p_C1, z1);
+
+    kps_i[i * 2 + 0] = z0[0];
+    kps_i[i * 2 + 1] = z0[1];
+
+    kps_j[i * 2 + 0] = z1[0];
+    kps_j[i * 2 + 1] = z1[1];
+
+    points_gnd[i * 3 + 0] = p_C0[0];
+    points_gnd[i * 3 + 1] = p_C0[1];
+    points_gnd[i * 3 + 2] = p_C0[2];
+  }
+
+  // Test triangulate batch
+  triangulate_batch(&cam_i,
+                    &cam_j,
+                    T_CiCj,
+                    kps_i,
+                    kps_j,
+                    N,
+                    points_est,
+                    status);
+  for (int i = 0; i < N; i++) {
+    const real_t *p_gnd = points_gnd + i * 3;
+    const real_t *p_est = points_est + i * 3;
+    const real_t dx = p_gnd[0] - p_est[0];
+    const real_t dy = p_gnd[1] - p_est[1];
+    const real_t dz = p_gnd[2] - p_est[2];
+    const real_t diff = sqrt(dx * dx  + dy * dy + dz * dz);
+
+    MU_ASSERT(diff < 0.01);
+    // printf("gnd: (%.2f, %.2f, %.2f), ", p_gnd[0], p_gnd[1], p_gnd[2]);
+    // printf("est: (%.2f, %.2f, %.2f), ", p_est[0], p_est[1], p_est[2]);
+    // printf("diff: %.2e\n", diff);
+  }
+
+  // Clean up
+  free(kps_i);
+  free(kps_j);
+  free(points_gnd);
+  free(points_est);
+  free(status);
 
   return 0;
 }
@@ -5281,7 +5388,7 @@ int test_inertial_odometry() {
   return 0;
 }
 
-int test_tsif() {
+int test_tsf() {
   // Simulate features
   const real_t origin[3] = {0.0, 0.0, 0.0};
   const real_t dim[3] = {5.0, 5.0, 5.0};
@@ -5290,7 +5397,6 @@ int test_tsif() {
   sim_create_features(origin, dim, num_features, features);
 
   // Camera configuration
-  const int cam_idx = 0;
   const int cam_res[2] = {640, 480};
   const real_t fov = 90.0;
   const real_t fx = pinhole_focal(cam_res[0], fov);
@@ -5298,68 +5404,68 @@ int test_tsif() {
   const real_t cx = cam_res[0] / 2.0;
   const real_t cy = cam_res[1] / 2.0;
   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  camera_params_t cam_params;
-  camera_params_setup(&cam_params,
-                      cam_idx,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      cam_vec);
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  camera_params_t cam0_params;
+  camera_params_t cam1_params;
+  camera_params_setup(&cam0_params, 0, cam_res, pmodel, dmodel, cam_vec);
+  camera_params_setup(&cam1_params, 1, cam_res, pmodel, dmodel, cam_vec);
 
-  // IMU-Camera extrinsic
-  const real_t imucam_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
-  const real_t imucam_r[3] = {0.0, 0.0, 0.0};
-  TF_ER(imucam_ypr, imucam_r, T_SC);
-  TF_VECTOR(T_SC, imucam_data);
-  extrinsic_t imucam_ext;
-  extrinsic_setup(&imucam_ext, imucam_data);
+  // IMU-Camera0 extrinsic
+  const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const real_t cam0_ext_r[3] = {0.05, 0.0, 0.0};
+  const real_t cam1_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const real_t cam1_ext_r[3] = {-0.05, 0.0, 0.0};
+  TF_ER(cam0_ext_ypr, cam0_ext_r, T_SC0);
+  TF_ER(cam1_ext_ypr, cam1_ext_r, T_SC1);
+  TF_VECTOR(T_SC0, cam0_ext);
+  TF_VECTOR(T_SC1, cam1_ext);
 
   // Simulate data
   const real_t imu_rate = 200.0;
-  const real_t cam_rate = 10.0;
-  const real_t r = 5.0;
-  const real_t v = 1.0;
-  const real_t th0 = M_PI;
-  const real_t y0 = M_PI / 2.0;
-  sim_imu_data_t *imu_data = sim_imu_circle_trajectory(imu_rate, r, v, th0, y0);
-  sim_camera_data_t *cam_data = sim_camera_circle_trajectory(cam_rate,
-                                                             r,
-                                                             v,
-                                                             th0,
-                                                             y0,
-                                                             T_SC,
-                                                             &cam_params,
-                                                             features,
-                                                             num_features);
+  sim_circle_t conf;
+  sim_circle_defaults(&conf);
+  // sim_imu_data_t *imu_data = sim_imu_circle_trajectory(imu_rate, r, v, th0, y0);
+  sim_camera_data_t *cam0_data = sim_camera_circle_trajectory(&conf,
+                                                              T_SC0,
+                                                              &cam0_params,
+                                                              features,
+                                                              num_features);
+  sim_camera_data_t *cam1_data = sim_camera_circle_trajectory(&conf,
+                                                              T_SC1,
+                                                              &cam1_params,
+                                                              features,
+                                                              num_features);
 
   // Simulate VO
-  tsif_t tsif;
-  tsif_setup(&tsif);
-  tsif_add_camera(&tsif,
-                  cam_idx,
-                  cam_res,
-                  proj_model,
-                  dist_model,
-                  cam_vec,
-                  T_SC);
+  tsf_t *tsf = tsf_malloc();
+  tsf_add_camera(tsf, 0, cam_res, pmodel, dmodel, cam_vec, cam0_ext);
+  tsf_add_camera(tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
 
-  // for (size_t k = 0; k < cam_data->num_frames; k++) {
-  for (size_t k = 0; k < 1; k++) {
-    const sim_camera_frame_t *frame = cam_data->frames[k];
-    const timestamp_t ts = frame->ts;
-    const size_t num_features[1] = {frame->num_measurements};
-    const size_t *feature_ids[1] = {frame->feature_ids};
-    const real_t *keypoints[1] = {frame->keypoints};
-    // sim_camera_frame_print(frame);
-
-    tsif_update(&tsif, ts, num_features, feature_ids, keypoints);
+  for (size_t k = 0; k < cam0_data->num_frames; k++) {
+    // printf("k: %ld\n", k);
+    const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
+    const sim_camera_frame_t *cam1_frame = cam1_data->frames[k];
+    tsf_add_camera_event(tsf,
+                         cam0_frame->ts,
+                         cam0_frame->cam_idx,
+                         cam0_frame->num_measurements,
+                         cam0_frame->feature_ids,
+                         cam0_frame->keypoints);
+    tsf_add_camera_event(tsf,
+                         cam1_frame->ts,
+                         cam1_frame->cam_idx,
+                         cam1_frame->num_measurements,
+                         cam1_frame->feature_ids,
+                         cam1_frame->keypoints);
+    tsf_update(tsf, cam0_frame->ts);
   }
 
   // Clean up
-  sim_imu_data_free(imu_data);
-  sim_camera_data_free(cam_data);
+  tsf_free(tsf);
+  // sim_imu_data_free(imu_data);
+  sim_camera_data_free(cam0_data);
+  sim_camera_data_free(cam1_data);
 
   return 0;
 }
@@ -5652,7 +5758,7 @@ int test_calib_camera_mono_incremental() {
                           cam_ext);
 
   // Incremental solve
-  int window_size = 5;
+  int window_size = 2;
   int cam_idx = 0;
   int num_files = 0;
   char **files = list_files(data_path, &num_files);
@@ -5688,12 +5794,12 @@ int test_calib_camera_mono_incremental() {
     }
     calib_camera_solve(calib);
 
-    if (calib->num_views) {
-      real_t entropy = 0.0f;
-      if (calib_camera_shannon_entropy(calib, &entropy) == 0) {
-        // printf("entropy: %f\n", entropy);
-      }
-    }
+    // if (calib->num_views) {
+    //   real_t entropy = 0.0f;
+    //   if (calib_camera_shannon_entropy(calib, &entropy) == 0) {
+    //     printf("entropy: %f\n", entropy);
+    //   }
+    // }
 
     // Clean up
     free(tag_ids);
@@ -5865,14 +5971,14 @@ int test_calib_imucam_batch() {
     {1.099270e-01, -2.450375e-04, 7.188873e-04,
      9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03}
   };
-  // const real_t T_SC0[4 * 4] = {
-  //   0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
-  //   0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
-  //   -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
-  //   0.0, 0.0, 0.0, 1.0
-  // };
-  // TF_VECTOR(T_SC0, imu_ext);
-  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  const real_t T_SC0[4 * 4] = {
+    0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+    0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+    -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+    0.0, 0.0, 0.0, 1.0
+  };
+  TF_VECTOR(T_SC0, imu_ext);
+  // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   const int imu_rate = 200;
   const real_t sigma_a = 0.08;
   const real_t sigma_g = 0.004;
@@ -5907,9 +6013,9 @@ int test_calib_imucam_batch() {
 
   // Incremental solve
   char *data_dir = "/data/proto/imu_april/";
-  int num_cams = 2;
+  int num_cams = 1;
   int num_imus = 1;
-  int window_size = 10;
+  int window_size = 5;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
   for (int k = 0; k < timeline->timeline_length; k++) {
@@ -5937,14 +6043,16 @@ int test_calib_imucam_batch() {
     }
 
     // Trigger update
+    TIC(start);
     if (calib_imucam_update(calib) == 0) {
-      // calib->max_iter = 20;
-      // calib->verbose = 0;
-      // calib_imucam_solve(calib);
-
       // // Incremental solve
       // if (calib->num_views >= window_size) {
+      //   calib->max_iter = 5;
+      //   calib->verbose = 0;
+      //   calib_imucam_solve(calib);
+
       //   // calib_imucam_marginalize(calib);
+      //   // break;
 
       //   real_t reproj_rmse = 0.0;
       //   real_t reproj_mean = 0.0;
@@ -5968,12 +6076,15 @@ int test_calib_imucam_batch() {
       //   printf("rmse reproj error: %f\n", reproj_rmse);
       //   printf("\n");
       // }
+      // PRINT_TOC("time", start);
     }
 
-    // if (calib->num_views > 200) {
+    // if (calib->num_views >= 500) {
     //   break;
     // }
   }
+
+  // calib_imucam_save_estimates(calib);
 
   // Solve
   calib->max_iter = 20;
@@ -6508,6 +6619,7 @@ int test_assoc_pose_data() {
   // Load estimate poses
   int num_est_poses = 0;
   pose_t *est_poses = load_poses(est_data_path, &num_est_poses);
+  printf("num_est_poses: %d\n", num_est_poses);
 
   // Associate data
   size_t num_matches = 0;
@@ -6910,11 +7022,6 @@ void test_suite() {
   MU_ADD_TEST(test_image_load);
   MU_ADD_TEST(test_image_print_properties);
   MU_ADD_TEST(test_image_free);
-  MU_ADD_TEST(test_linear_triangulation);
-  MU_ADD_TEST(test_homography_find);
-  MU_ADD_TEST(test_homography_pose);
-  // MU_ADD_TEST(test_p3p_kneip);
-  MU_ADD_TEST(test_solvepnp);
   MU_ADD_TEST(test_radtan4_distort);
   MU_ADD_TEST(test_radtan4_undistort);
   MU_ADD_TEST(test_radtan4_point_jacobian);
@@ -6935,6 +7042,11 @@ void test_suite() {
   MU_ADD_TEST(test_pinhole_equi4_project);
   MU_ADD_TEST(test_pinhole_equi4_project_jacobian);
   MU_ADD_TEST(test_pinhole_equi4_params_jacobian);
+  MU_ADD_TEST(test_linear_triangulation);
+  MU_ADD_TEST(test_homography_find);
+  MU_ADD_TEST(test_homography_pose);
+  // MU_ADD_TEST(test_p3p_kneip);
+  MU_ADD_TEST(test_solvepnp);
 
   // CONTROL
   MU_ADD_TEST(test_pid_ctrl);
@@ -6961,6 +7073,7 @@ void test_suite() {
   MU_ADD_TEST(test_time_delay);
   MU_ADD_TEST(test_joint);
   MU_ADD_TEST(test_camera_params);
+  MU_ADD_TEST(test_triangulation_batch);
   MU_ADD_TEST(test_pose_factor);
   MU_ADD_TEST(test_ba_factor);
   MU_ADD_TEST(test_camera_factor);
@@ -6979,7 +7092,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_marg);
   MU_ADD_TEST(test_inertial_odometry);
-  MU_ADD_TEST(test_tsif);
+  MU_ADD_TEST(test_tsf);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
@@ -6989,7 +7102,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_mono_batch);
   MU_ADD_TEST(test_calib_camera_mono_incremental);
   MU_ADD_TEST(test_calib_camera_stereo);
-  // MU_ADD_TEST(test_calib_imucam_batch);
+  MU_ADD_TEST(test_calib_imucam_batch);
   // MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
@@ -7005,7 +7118,7 @@ void test_suite() {
 #endif // USE_CERES
 
   // DATASET
-  // MU_ADD_TEST(test_assoc_pose_data);
+  MU_ADD_TEST(test_assoc_pose_data);
 
   // PLOTTING
   // MU_ADD_TEST(test_gnuplot_xyplot);
