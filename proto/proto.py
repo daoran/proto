@@ -1504,6 +1504,15 @@ def quat_mul(p, q):
   return quat_lmul(p, q)
 
 
+def quat_rot(q, x):
+  """ Rotate vector x of size 3 by Quaternion q """
+  # y = q * p * q_conj
+  q_conj = np.array([q[0], -q[1], -q[2], -q[3]])
+  p = np.array([0.0, x[0], x[1], x[2]])
+  p_new = quat_mul(quat_mul(q, p), q_conj)
+  return np.array([p[1], p[2], p[3]])
+
+
 def quat_omega(w):
   """ Quaternion omega matrix """
   Omega = np.zeros((4, 4))
@@ -5059,6 +5068,19 @@ class ImuFactorData:
   g: np.array
   Dt: float
 
+@dataclass
+class ImuFactorData2:
+  """ IMU Factor2 data """
+  state_F: np.array
+  state_P: np.array
+  dr: np.array
+  dv: np.array
+  dq: np.array
+  ba: np.array
+  bg: np.array
+  g: np.array
+  Dt: float
+
 
 class ImuFactor(Factor):
   """ Imu Factor """
@@ -5249,6 +5271,276 @@ class ImuFactor(Factor):
 
     # -- Jacobian w.r.t. sb j
     J3[3:6, 0:3] = C_i.T  # dv w.r.t v_j
+    J3 = sqrt_info @ J3
+
+    return (r, [J0, J1, J2, J3])
+
+class ImuFactor2(Factor):
+  """ Imu Factor2 """
+  def __init__(self, pids, imu_params, imu_buf, sb_i):
+    assert len(pids) == 4
+    self.imu_params = imu_params
+    self.imu_buf = imu_buf
+
+    data = self.propagate(imu_buf, imu_params, sb_i)
+    Factor.__init__(self, "ImuFactor", pids, None, data.state_P, 15)
+
+    self.state_F = data.state_F
+    self.state_P = data.state_P
+    self.dr = data.dr
+    self.dv = data.dv
+    self.dq = data.dq
+    self.ba = data.ba
+    self.bg = data.bg
+    self.g = data.g
+    self.Dt = data.Dt
+
+  @staticmethod
+  def propagate(imu_buf, imu_params, sb_i):
+    """ Propagate imu measurements """
+    # Setup
+    Dt = 0.0
+    g = imu_params.g
+    state_F = eye(15)  # State jacobian
+    state_P = zeros((15, 15))  # State covariance
+
+    # Noise matrix Q
+    Q = zeros((18, 18))
+    Q[0:3, 0:3] = imu_params.noise_acc**2 * eye(3)
+    Q[3:6, 3:6] = imu_params.noise_gyr**2 * eye(3)
+    Q[6:9, 6:9] = imu_params.noise_acc**2 * eye(3)
+    Q[9:12, 9:12] = imu_params.noise_gyr**2 * eye(3)
+    Q[12:15, 12:15] = imu_params.noise_ba**2 * eye(3)
+    Q[15:18, 15:18] = imu_params.noise_ba**2 * eye(3)
+
+    # Pre-integrate relative position, velocity, rotation and biases
+    dr = np.array([0.0, 0.0, 0.0])  # Relative position
+    dv = np.array([0.0, 0.0, 0.0])  # Relative velocity
+    dq = np.array([1.0, 0.0, 0.0, 0.0]) # Relative rotation
+    ba = sb_i.param[3:6]  # Accel biase at i
+    bg = sb_i.param[6:9]  # Gyro biase at i
+
+    # Pre-integrate imu measuremenets
+    for k in range(len(imu_buf.ts) - 1):
+      # Timestep
+      ts_i = imu_buf.ts[k]
+      ts_j = imu_buf.ts[k + 1]
+      dt = ts2sec(ts_j - ts_i)
+      dt_sq = dt * dt
+
+      # Setup
+      dq_i = dq
+      dr_i = dr
+      dv_i = dv
+      ba_i = ba
+      bg_i = bg
+
+      # Gyroscope measurement
+      w = 0.5 * (imu_buf.gyr[k] + imu_buf.gyr[k + 1]) - bg_i
+      dq_perturb = np.array([1.0, w[0] * dt / 2, w[1] * dt / 2, w[2] * dt / 2])
+
+      # Accelerometer measurement
+      acc_i = quat_rot(dq_i, imu_buf.acc[k] - ba_i)
+      acc_j = quat_rot(quat_mul(dq_i, dq_perturb), (imu_buf.acc[k + 1] - ba_i))
+      a = 0.5 * (acc_i + acc_j)
+
+      # Propagate IMU state using mid-point method
+      dq_j = quat_mul(dq_i, dq_perturb)
+      dr_j = dr_i + dv_i * dt + 0.5 * a * dt_sq
+      dv_j = dv_i + a * dt
+      ba_j = ba_i
+      bg_j = bg_i
+
+      # Continuous time transition matrix F
+      gyr_x = 0.5 * (imu_buf.gyr[k] + imu_buf.gyr[k + 1]) - bg_i
+      acc_i_x = hat(imu_buf.acc[k] - ba_i)
+      acc_j_x = hat(imu_buf.acc[k + 1] - ba_i)
+      dC_i = quat2rot(dq_i)
+      dC_j = quat2rot(dq_j)
+
+      # -- F row block 1
+      F11 = eye(3)
+      F12 = -0.25 * dC_i @ acc_i_x * dt_sq
+      F12 += -0.25 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt)* dt_sq
+      F13 = eye(3) * dt
+      F14 = -0.25 * (dC_i + dC_j) * dt_sq
+      F15 = 0.25 * -dC_j @ acc_j_x * dt_sq * -dt
+      # -- F row block 2
+      F22 = eye(3) - gyr_x * dt
+      F25 = -eye(3) * dt
+      # -- F row block 3
+      F32 = -0.5 * dC_i @ acc_i_x * dt
+      F32 += -0.5 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt)* dt
+      F33 = eye(3)
+      F34 = -0.5 * (dC_i + dC_j) * dt
+      F35 = 0.5 * -dC_j @ acc_j_x * dt * -dt
+      # -- F row block 4
+      F44 = eye(3)
+      # -- F row block 5
+      F55 = eye(3)
+
+      F = zeros((15, 15))
+      F[0:3, 0:3] = F11
+      F[0:3, 3:6] = F12
+      F[0:3, 6:9] = F13
+      F[0:3, 9:12] = F14
+      F[0:3, 12:15] = F15
+      F[3:6, 3:6] = F22
+      F[3:6, 9:12] = F25
+      F[6:9, 3:6] = F32
+      F[6:9, 6:9] = F33
+      F[6:9, 9:12] = F34
+      F[6:9, 12:15] = F35
+      F[9:12, 9:12] = F44
+      F[12:15, 12:15] = F55
+
+
+      # Continuous time input jacobian G
+      G11 = 0.25 * dC_i * dt_sq
+      G12 = 0.25 * -dC_j @ acc_i_x * dt_sq * 0.5 * dt
+      G13 = 0.25 * dC_j @ acc_i_x * dt_sq
+      G14 = 0.25 * -dC_j @ acc_i_x * dt_sq * 0.5 * dt
+      G22 = eye(3) * dt
+      G24 = eye(3) * dt
+      G31 = 0.5 * dC_i * dt
+      G32 = 0.5 * -dC_j @ acc_i_x * dt * 0.5 * dt
+      G33 = 0.5 * dC_j * dt
+      G34 = 0.5 * -dC_j @ acc_i_x * dt * 0.5 * dt
+      G45 = eye(3) * dt
+      G56 = eye(3) * dt
+
+      G = zeros((15, 18))
+      G[0:3, 0:3] = G11
+      G[0:3, 3:6] = G12
+      G[0:3, 6:9] = G13
+      G[0:3, 9:12] = G14
+      G[3:6, 3:6] = G22
+      G[3:6, 9:12] = G24
+      G[6:9, 0:3] = G31
+      G[6:9, 3:6] = G32
+      G[6:9, 6:9] = G33
+      G[6:9, 9:12] = G34
+      G[9:12, 12:15] = G45
+      G[12:15, 15:18] = G56
+
+      # Map results
+      dq = dq_j
+      dr = dr_j
+      dv = dv_j
+      ba = ba_j
+      bg = bg_j
+
+      # Update
+      state_F = F @ state_F
+      state_P = F @ state_P @ F.T + G @ Q @ G.T
+      Dt += dt
+
+    state_P = (state_P + state_P.T) / 2.0
+    return ImuFactorData2(state_F, state_P, dr, dv, dq, ba, bg, g, Dt)
+
+  def eval(self, params, **kwargs):
+    """ Evaluate IMU factor """
+    assert len(params) == 4
+    assert len(params[0]) == 7
+    assert len(params[1]) == 9
+    assert len(params[2]) == 7
+    assert len(params[3]) == 9
+
+    # Map params
+    pose_i, sb_i, pose_j, sb_j = params
+
+    # Timestep i
+    T_i = pose2tf(pose_i)
+    r_i = tf_trans(T_i)
+    C_i = tf_rot(T_i)
+    q_i = tf_quat(T_i)
+    v_i = sb_i[0:3]
+    ba_i = sb_i[3:6]
+    bg_i = sb_i[6:9]
+
+    # Timestep j
+    T_j = pose2tf(pose_j)
+    r_j = tf_trans(T_j)
+    C_j = tf_rot(T_j)
+    q_j = tf_quat(T_j)
+    v_j = sb_j[0:3]
+    ba_j = sb_j[3:6]
+    bg_j = sb_j[6:9]
+
+    # Correct the relative position, velocity and orientation
+    # -- Extract jacobians from error-state jacobian
+    dr_dba = self.state_F[0:3, 9:12]
+    dr_dbg = self.state_F[0:3, 12:15]
+    dv_dba = self.state_F[3:6, 9:12]
+    dv_dbg = self.state_F[3:6, 12:15]
+    dq_dbg = self.state_F[6:9, 12:15]
+    dba = ba_i - self.ba
+    dbg = bg_i - self.bg
+
+    # -- Correct the relative position, velocity and rotation
+    dr = self.dr + dr_dba @ dba + dr_dbg @ dbg
+    dv = self.dv + dv_dba @ dba + dv_dbg @ dbg
+    dq = quat_mul(self.dq, quat_delta(dq_dbg @ dbg))
+
+    # Form residuals
+    sqrt_info = self.sqrt_info
+    g = self.g
+    Dt = self.Dt
+    Dt_sq = Dt * Dt
+
+    dr_meas = (C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)))
+    dv_meas = (C_i.T @ ((v_j - v_i) + (g * Dt)))
+
+    err_pos = dr_meas - dr
+    err_vel = dv_meas - dv
+    err_rot = (2.0 * quat_mul(quat_inv(dq), quat_mul(quat_inv(q_i), q_j)))[1:4]
+    err_ba = ba_j - ba_i
+    err_bg = bg_j - bg_i
+    r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
+
+    if kwargs.get('only_residuals', False):
+      return r
+
+    # Form jacobians
+    J0 = zeros((15, 6))  # residuals w.r.t pose i
+    J1 = zeros((15, 9))  # residuals w.r.t speed and biase i
+    J2 = zeros((15, 6))  # residuals w.r.t pose j
+    J3 = zeros((15, 9))  # residuals w.r.t speed and biase j
+
+    # -- Jacobian w.r.t. pose i
+    # yapf: disable
+    J0[0:3, 0:3] = -C_i.T  # dr w.r.t r_i
+    J0[0:3, 3:6] = hat(dr_meas)  # dr w.r.t C_i
+    J0[3:6, 3:6] = hat(dv_meas)  # dv w.r.t C_i
+    J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
+    J0 = sqrt_info @ J0
+    # yapf: enable
+
+    # -- Jacobian w.r.t. speed and biases i
+    # yapf: disable
+    J1[0:3, 0:3] = -C_i.T * Dt  # dr w.r.t v_i
+    J1[0:3, 3:6] = -dr_dba  # dr w.r.t ba
+    J1[0:3, 6:9] = -dr_dbg  # dr w.r.t bg
+    J1[3:6, 0:3] = -C_i.T  # dv w.r.t v_i
+    J1[3:6, 3:6] = -dv_dba  # dv w.r.t ba
+    J1[3:6, 6:9] = -dv_dbg  # dv w.r.t bg
+    J1[6:9, 6:9] = -quat_left(rot2quat(C_j.T @ C_i @ quat2rot(self.dq)))[1:4, 1:4] @ dq_dbg  # dtheta w.r.t C_i
+    J1[9:12, 3:6] = -eye(3)
+    J1[12:15, 6:9] = -eye(3)
+    J1 = sqrt_info @ J1
+    # yapf: enable
+
+    # -- Jacobian w.r.t. pose j
+    # yapf: disable
+    J2[0:3, 0:3] = C_i.T  # dr w.r.t r_j
+    J2[6:9, 3:6] = quat_left(rot2quat(quat2rot(dq).T @ C_i.T @ C_j))[1:4, 1:4]  # dtheta w.r.t C_j
+    J2 = sqrt_info @ J2
+    # yapf: enable
+
+    # -- Jacobian w.r.t. sb j
+    J3[3:6, 0:3] = C_i.T  # dv w.r.t v_j
+    J3[9:12, 3:6] = eye(3)
+    J3[12:15, 6:9] = eye(3)
     J3 = sqrt_info @ J3
 
     return (r, [J0, J1, J2, J3])
@@ -10635,9 +10927,143 @@ class TestFactors(unittest.TestCase):
     # np.savetxt("/tmp/J.csv", jacs[1][:, 3:], delimiter=",")
 
     factor.sqrt_info = np.eye(15)
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i"))
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
-    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j", threshold=1e-3))
-    # self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j", threshold=1e-3))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
+    # yapf: enable
+
+  def test_imu_factor2_propagate(self):
+    """ Test IMU factor propagate """
+    # Sim imu data
+    circle_r = 1.0
+    circle_v = 0.1
+    sim_data = SimData(circle_r, circle_v, sim_cams=False)
+    imu_data = sim_data.imu0_data
+
+    # Setup imu parameters
+    noise_acc = 0.08  # accelerometer measurement noise stddev.
+    noise_gyr = 0.004  # gyroscope measurement noise stddev.
+    noise_ba = 0.00004  # accelerometer bias random work noise stddev.
+    noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
+    imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
+
+    # Setup imu buffer
+    start_idx = 0
+    end_idx = 10
+    # end_idx = len(imu_data.timestamps) - 1
+    imu_buf = imu_data.form_imu_buffer(start_idx, end_idx)
+
+    # Pose i
+    ts_i = imu_buf.ts[start_idx]
+    T_WS_i = imu_data.poses[ts_i]
+
+    # Speed and bias i
+    ts_i = imu_buf.ts[start_idx]
+    vel_i = imu_data.vel[ts_i]
+    ba_i = np.array([0.0, 0.0, 0.0])
+    bg_i = np.array([0.0, 0.0, 0.0])
+    sb_i = speed_biases_setup(ts_i, vel_i, bg_i, ba_i)
+
+    # Propagate imu measurements
+    data = ImuFactor2.propagate(imu_buf, imu_params, sb_i)
+    np.savetxt("/tmp/state_F.csv", data.state_F, delimiter=",")
+    np.savetxt("/tmp/state_P.csv", data.state_P, delimiter=",")
+
+    # Check propagation
+    ts_j = imu_data.timestamps[end_idx - 1]
+    T_WS_j_est = T_WS_i @ tf(data.dq, data.dr)
+    C_WS_j_est = tf_rot(T_WS_j_est)
+    T_WS_j_gnd = imu_data.poses[ts_j]
+    C_WS_j_gnd = tf_rot(T_WS_j_gnd)
+    # -- Position
+    trans_diff = norm(tf_trans(T_WS_j_gnd) - tf_trans(T_WS_j_est))
+    self.assertTrue(trans_diff < 0.05)
+    # -- Rotation
+    dC = C_WS_j_gnd.T * C_WS_j_est
+    dq = quat_normalize(rot2quat(dC))
+    dC = quat2rot(dq)
+    rpy_diff = rad2deg(acos((trace(dC) - 1.0) / 2.0))
+    self.assertTrue(rpy_diff < 1.0)
+
+  def test_imu_factor2(self):
+    """ Test IMU factor 2 """
+    # Simulate imu data
+    circle_r = 1.0
+    circle_v = 0.1
+    sim_data = SimData(circle_r, circle_v, sim_cams=False)
+    imu_data = sim_data.imu0_data
+
+    # Setup imu parameters
+    noise_acc = 0.08  # accelerometer measurement noise stddev.
+    noise_gyr = 0.004  # gyroscope measurement noise stddev.
+    noise_ba = 0.00004  # accelerometer bias random work noise stddev.
+    noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
+    imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
+
+    # Setup imu buffer
+    start_idx = 0
+    end_idx = 20
+    imu_buf = imu_data.form_imu_buffer(start_idx, end_idx)
+
+    # Pose i
+    ts_i = imu_buf.ts[start_idx]
+    T_WS_i = imu_data.poses[ts_i]
+    pose_i = pose_setup(ts_i, T_WS_i)
+
+    # Pose j
+    ts_j = imu_buf.ts[end_idx - 1]
+    T_WS_j = imu_data.poses[ts_j]
+    pose_j = pose_setup(ts_j, T_WS_j)
+
+    # Speed and bias i
+    vel_i = imu_data.vel[ts_i]
+    ba_i = np.array([0.0, 0.0, 0.0])
+    bg_i = np.array([0.0, 0.0, 0.0])
+    sb_i = speed_biases_setup(ts_i, vel_i, ba_i, bg_i)
+
+    # Speed and bias j
+    vel_j = imu_data.vel[ts_j]
+    ba_j = np.array([0.0, 0.0, 0.0])
+    bg_j = np.array([0.0, 0.0, 0.0])
+    sb_j = speed_biases_setup(ts_j, vel_j, ba_j, bg_j)
+
+    # Setup IMU factor
+    param_ids = [0, 1, 2, 3]
+    fvars = [pose_i, sb_i, pose_j, sb_j]
+    factor = ImuFactor2(param_ids, imu_params, imu_buf, sb_i)
+
+    # Print
+    # params = [sv.param for sv in fvars]
+    # r, _ = factor.eval(params)
+    # print(f"pose_i: {np.round(pose_i.param, 4)}")
+    # print(f"pose_j: {np.round(pose_j.param, 4)}")
+    # print(f"dr: {factor.dr}")
+    # print(f"dv: {factor.dv}")
+    # print(f"dq: {rot2quat(factor.dC)}")
+    # print(f"Dt: {factor.Dt}")
+    # print(f"r: {r}")
+
+    # Save matrix F, P and Q
+    # np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
+    # np.savetxt("/tmp/P.csv", factor.state_P, delimiter=",")
+    # np.savetxt("/tmp/sqrt_info.csv", factor.sqrt_info, delimiter=",")
+
+    # Test jacobians
+    # yapf: disable
+    # self.assertTrue(factor)
+    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
+
+    # factor.sqrt_info = np.eye(15)
+    # params = [sv.param for sv in fvars]
+    # r, jacs = factor.eval(params)
+    # np.savetxt("/tmp/J.csv", jacs[1][:, 3:], delimiter=",")
+
+    factor.sqrt_info = np.eye(15)
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_pose_i"))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j"))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
     # yapf: enable
 
   def test_marg_factor(self):
