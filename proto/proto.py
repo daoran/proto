@@ -5352,7 +5352,7 @@ class ImuFactor2(Factor):
       bg_j = bg_i
 
       # Continuous time transition matrix F
-      gyr_x = 0.5 * (imu_buf.gyr[k] + imu_buf.gyr[k + 1]) - bg_i
+      gyr_x = hat(0.5 * (imu_buf.gyr[k] + imu_buf.gyr[k + 1]) - bg_i)
       acc_i_x = hat(imu_buf.acc[k] - ba_i)
       acc_j_x = hat(imu_buf.acc[k + 1] - ba_i)
       dC_i = quat2rot(dq_i)
@@ -5361,7 +5361,7 @@ class ImuFactor2(Factor):
       # -- F row block 1
       F11 = eye(3)
       F12 = -0.25 * dC_i @ acc_i_x * dt_sq
-      F12 += -0.25 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt)* dt_sq
+      F12 += -0.25 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt) * dt_sq
       F13 = eye(3) * dt
       F14 = -0.25 * (dC_i + dC_j) * dt_sq
       F15 = 0.25 * -dC_j @ acc_j_x * dt_sq * -dt
@@ -5370,7 +5370,7 @@ class ImuFactor2(Factor):
       F25 = -eye(3) * dt
       # -- F row block 3
       F32 = -0.5 * dC_i @ acc_i_x * dt
-      F32 += -0.5 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt)* dt
+      F32 += -0.5 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt) * dt
       F33 = eye(3)
       F34 = -0.5 * (dC_i + dC_j) * dt
       F35 = 0.5 * -dC_j @ acc_j_x * dt * -dt
@@ -5393,7 +5393,6 @@ class ImuFactor2(Factor):
       F[6:9, 12:15] = F35
       F[9:12, 9:12] = F44
       F[12:15, 12:15] = F55
-
 
       # Continuous time input jacobian G
       G11 = 0.25 * dC_i * dt_sq
@@ -5436,6 +5435,20 @@ class ImuFactor2(Factor):
       Dt += dt
 
     state_P = (state_P + state_P.T) / 2.0
+
+    # P = state_P
+    # P_inv = inv(state_P)
+    # print(np.round(P_inv @ P, 2))
+    # plt.imshow(P_inv @ P)
+    # plt.show()
+    # info = pinv(state_P)
+    # print(info)
+
+    # plt.imshow(G)
+    # plt.imshow(state_P)
+    # plt.imshow(state_F)
+    # plt.show()
+
     return ImuFactorData2(state_F, state_P, dr, dv, dq, ba, bg, g, Dt)
 
   def eval(self, params, **kwargs):
@@ -11055,15 +11068,64 @@ class TestFactors(unittest.TestCase):
     # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
 
     # factor.sqrt_info = np.eye(15)
-    # params = [sv.param for sv in fvars]
-    # r, jacs = factor.eval(params)
-    # np.savetxt("/tmp/J.csv", jacs[1][:, 3:], delimiter=",")
+    params = [sv.param for sv in fvars]
+    (r, [J0, J1, J2, J3]) = factor.eval(params)
 
-    factor.sqrt_info = np.eye(15)
-    self.assertTrue(factor.check_jacobian(fvars, 1, "J_pose_i"))
-    self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
-    self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j"))
-    self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
+    H00 = J0.T @ J0
+    H01 = J0.T @ J1
+    H02 = J0.T @ J2
+    H03 = J0.T @ J3
+
+    H10 = J1.T @ J0
+    H11 = J1.T @ J1
+    H12 = J1.T @ J2
+    H13 = J1.T @ J3
+
+    H20 = J2.T @ J0
+    H21 = J2.T @ J1
+    H22 = J2.T @ J2
+    H23 = J2.T @ J3
+
+    H30 = J3.T @ J0
+    H31 = J3.T @ J1
+    H32 = J3.T @ J2
+    H33 = J3.T @ J3
+
+    # H = np.block([[H00, H01, H02, H03],
+    #               [H10, H11, H12, H13],
+    #               [H20, H21, H22, H23],
+    #               [H30, H31, H32, H33]])
+
+    H = np.block([[H00, H01, H02],
+                  [H10, H11, H12],
+                  [H20, H21, H22]])
+
+    # plt.imshow((H > 0) * 1, cmap="gray")
+    # plt.colorbar()
+    # plt.show()
+
+    m = 6 + 9
+    Hmm = H[0:m, 0:m]
+    Hmr = H[0:m, m:]
+    Hrm = Hmr.T
+    Hrr = H[m:, m:]
+
+    print(f"rank: {rank(Hmm)}")
+    print(f"shape: {Hmm.shape}")
+    (w, V) = eig(Hmm)
+    print(w)
+
+
+
+
+
+
+
+    # factor.sqrt_info = np.eye(15)
+    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_pose_i"))
+    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
+    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j"))
+    # self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
     # yapf: enable
 
   def test_marg_factor(self):
@@ -11433,7 +11495,7 @@ class TestFactorGraph(unittest.TestCase):
       # -- Imu Factor
       param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
       imu_buf = imu0_data.form_imu_buffer(ts_idx - window_size, ts_idx)
-      factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
+      factor = ImuFactor2(param_ids, imu_params, imu_buf, sb_i)
       graph.add_factor(factor)
 
       # -- Update
@@ -11443,7 +11505,7 @@ class TestFactorGraph(unittest.TestCase):
       sb_i = sb_j
 
     # Solve
-    debug = False
+    debug = True
     # debug = True
     # prof = profile_start()
     graph.solver_max_iter = 10

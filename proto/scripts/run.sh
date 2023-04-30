@@ -54,6 +54,8 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto.py TestFactors.test_imu_factor_propagate
 # python3 proto.py TestFactors.test_imu_factor
+# python3 proto.py TestFactors.test_imu_factor2_propagate
+python3 proto.py TestFactors.test_imu_factor2
 # python3 proto.py TestFactors.test_marg_factor
 # python3 proto.py TestFactorGraph
 # python3 proto.py TestFactorGraph.test_factor_graph_solve_vo
@@ -392,8 +394,9 @@ dev_euroc() {
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
 # run_test test_marg
-# run_test test_inertial_odometry
-run_test test_tsf
+# run_test test_inertial_odometry_batch
+# run_test test_inertial_odometry_windowed
+# run_test test_tsf
 # run_test test_ceres_example
 # run_test test_invert_block_diagonal
 # run_test test_solver_setup

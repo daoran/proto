@@ -10391,6 +10391,83 @@ void param_order_add(param_order_t **hash,
   }
 }
 
+/** Add position parameter **/
+void param_order_add_position(param_order_t **h, pos_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, POSITION_PARAM, fix, data, c);
+}
+
+/** Add rotation parameter **/
+void param_order_add_rotation(param_order_t **h, rot_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, ROTATION_PARAM, fix, data, c);
+}
+
+/** Add pose parameter **/
+void param_order_add_pose(param_order_t **h, pose_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, POSE_PARAM, fix, data, c);
+}
+
+/** Add extrinsic parameter **/
+void param_order_add_extrinsic(param_order_t **h, extrinsic_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, EXTRINSIC_PARAM, fix, data, c);
+}
+
+/** Add fiducial parameter **/
+void param_order_add_fiducial(param_order_t **h, fiducial_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, FIDUCIAL_PARAM, fix, data, c);
+}
+
+/** Add velocity parameter **/
+void param_order_add_velocity(param_order_t **h, velocity_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, VELOCITY_PARAM, fix, data, c);
+}
+
+/** Add IMU biases parameter **/
+void param_order_add_imu_biases(param_order_t **h, imu_biases_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, IMU_BIASES_PARAM, fix, data, c);
+}
+
+/** Add feature parameter **/
+void param_order_add_feature(param_order_t **h, feature_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, FEATURE_PARAM, fix, data, c);
+}
+
+/** Add joint parameter **/
+void param_order_add_joint(param_order_t **h, joint_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, JOINT_PARAM, fix, data, c);
+}
+
+/** Add camera parameter **/
+void param_order_add_camera(param_order_t **h, camera_params_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, CAMERA_PARAM, fix, data, c);
+}
+
+/** Add time delay parameter **/
+void param_order_add_time_delay(param_order_t **h, time_delay_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, TIME_DELAY_PARAM, fix, data, c);
+}
+
 ////////////
 // FACTOR //
 ////////////
@@ -11768,61 +11845,89 @@ void imu_initial_attitude(const imu_buf_t *imu_buf, real_t q_WS[4]) {
 /**
  * Propagate IMU measurement
  */
-void imu_factor_propagate_step(real_t r[3],
-                               real_t v[3],
-                               real_t q[4],
-                               real_t ba[3],
-                               real_t bg[3],
-                               const real_t a[3],
-                               const real_t w[3],
+void imu_factor_propagate_step(imu_factor_t *factor,
+                               const real_t a_i[3],
+                               const real_t w_i[3],
+                               const real_t a_j[3],
+                               const real_t w_j[3],
                                const real_t dt) {
-  // Compensate accelerometer and gyroscope measurements
-  const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
-  const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
+  // Setup
+  const real_t dt_sq = dt * dt;
+  const real_t *r_i = factor->dr;
+  const real_t *v_i = factor->dv;
+  const real_t *q_i = factor->dq;
+  const real_t *ba_i = factor->ba;
+  const real_t *bg_i = factor->bg;
+  vec_copy(factor->dr, 3, factor->r_i);
+  vec_copy(factor->dv, 3, factor->v_i);
+  vec_copy(factor->dq, 4, factor->q_i);
+  vec_copy(factor->ba, 3, factor->ba_i);
+  vec_copy(factor->bg, 3, factor->bg_i);
+
+  // Gyroscope measurement
+  const real_t wx = 0.5 * (w_i[0] + w_j[0]) - bg_i[0];
+  const real_t wy = 0.5 * (w_i[1] + w_j[1]) - bg_i[1];
+  const real_t wz = 0.5 * (w_i[2] + w_j[2]) - bg_i[2];
+  const real_t dq[4] = {1.0, 0.5 * wx * dt, 0.5 * wy * dt, 0.5 * wz * dt};
+
+  // Update orientation
+  real_t q_j[4] = {0};
+  quat_mul(q_i, dq, q_j);
+  quat_normalize(q_j);
+
+  // Accelerometer measurement
+  const real_t a_ii[3] = {a_i[0] - ba_i[0], a_i[1] - ba_i[1], a_i[2] - ba_i[2]};
+  const real_t a_jj[3] = {a_j[0] - ba_i[0], a_j[1] - ba_i[1], a_j[2] - ba_i[2]};
+  real_t acc_i[3] = {0};
+  real_t acc_j[3] = {0};
+  quat_transform(q_i, a_ii, acc_i);
+  quat_transform(q_j, a_jj, acc_j);
+  real_t a[3] = {0};
+  a[0] = 0.5 * (acc_i[0] + acc_j[0]);
+  a[1] = 0.5 * (acc_i[1] + acc_j[1]);
+  a[2] = 0.5 * (acc_i[2] + acc_j[2]);
 
   // Update position:
-  // dr = dr + (dv * dt) + (0.5 * dC * a_t * dt_sq);
-  real_t acc_dint[3] = {0};
-  real_t C[3 * 3] = {0};
-  quat2rot(q, C);
-  dot(C, 3, 3, a_t, 3, 1, acc_dint);
-  r[0] += (v[0] * dt) + (0.5 * acc_dint[0] * dt * dt);
-  r[1] += (v[1] * dt) + (0.5 * acc_dint[1] * dt * dt);
-  r[2] += (v[2] * dt) + (0.5 * acc_dint[2] * dt * dt);
+  // r_j = r_i + (v_i * dt) + (0.5 * a * dt_sq)
+  real_t r_j[3] = {0};
+  r_j[0] = r_i[0] + (v_i[0] * dt) + (0.5 * a[0] * dt_sq);
+  r_j[1] = r_i[1] + (v_i[1] * dt) + (0.5 * a[1] * dt_sq);
+  r_j[2] = r_i[2] + (v_i[2] * dt) + (0.5 * a[2] * dt_sq);
 
-  // Update velocity
-  // dv = dv + dC * a_t * dt;
-  real_t dv[3] = {0};
-  real_t acc_int[3] = {a_t[0] * dt, a_t[1] * dt, a_t[2] * dt};
-  dot(C, 3, 3, acc_int, 3, 1, dv);
-  v[0] += dv[0];
-  v[1] += dv[1];
-  v[2] += dv[2];
+  // Update velocity:
+  // v_j = v_i + a * dt
+  real_t v_j[3] = {0};
+  v_j[0] = v_i[0] + a[0] * dt;
+  v_j[1] = v_i[1] + a[1] * dt;
+  v_j[2] = v_i[2] + a[2] * dt;
 
-  // Update rotation
-  // quat_update_dt(q, w_t, dt);
-  // quat_normalize(q);
-  const real_t phi[3] = {w_t[0] * dt, w_t[1] * dt, w_t[2] * dt};
-  real_t phi_SO3[3 * 3] = {0};
-  real_t dC[3 * 3] = {0};
-  lie_Exp(phi, phi_SO3);
-  dot(C, 3, 3, phi_SO3, 3, 3, dC);
+  // Update biases
+  // ba_j = ba_i;
+  // bg_j = bg_i;
+  real_t ba_j[3] = {0};
+  real_t bg_j[3] = {0};
+  vec_copy(ba_i, 3, ba_j);
+  vec_copy(bg_i, 3, bg_j);
 
-  rot2quat(dC, q);
-  quat_normalize(q);
+  // Write outputs
+  vec_copy(r_j, 3, factor->r_j);
+  vec_copy(v_j, 3, factor->v_j);
+  vec_copy(q_j, 4, factor->q_j);
+  vec_copy(ba_j, 3, factor->ba_j);
+  vec_copy(bg_j, 3, factor->bg_j);
 
-  // Update accelerometer biases
-  // ba = ba;
-
-  // Update gyroscope biases
-  // bg = bg;
+  vec_copy(r_j, 3, factor->dr);
+  vec_copy(v_j, 3, factor->dv);
+  vec_copy(q_j, 4, factor->dq);
+  vec_copy(ba_j, 3, factor->ba);
+  vec_copy(bg_j, 3, factor->bg);
 }
 
 /**
  * Form IMU Noise Matrix Q
  */
 static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
-                                     real_t Q[12 * 12]) {
+                                     real_t Q[18 * 18]) {
   assert(imu_params != NULL);
   assert(Q != NULL);
 
@@ -11831,118 +11936,347 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
   const real_t sigma_ba_sq = imu_params->sigma_aw * imu_params->sigma_aw;
   const real_t sigma_bg_sq = imu_params->sigma_gw * imu_params->sigma_gw;
 
-  zeros(Q, 12, 12);
-  Q[0] = sigma_a_sq;
-  Q[13] = sigma_a_sq;
-  Q[26] = sigma_a_sq;
-  Q[39] = sigma_g_sq;
-  Q[52] = sigma_g_sq;
-  Q[65] = sigma_g_sq;
-  Q[78] = sigma_ba_sq;
-  Q[91] = sigma_ba_sq;
-  Q[104] = sigma_ba_sq;
-  Q[117] = sigma_bg_sq;
-  Q[130] = sigma_bg_sq;
-  Q[143] = sigma_bg_sq;
+  real_t q[18] = {0};
+  q[0] = sigma_a_sq;
+  q[1] = sigma_a_sq;
+  q[2] = sigma_a_sq;
+
+  q[3] = sigma_g_sq;
+  q[4] = sigma_g_sq;
+  q[5] = sigma_g_sq;
+
+  q[5] = sigma_a_sq;
+  q[6] = sigma_a_sq;
+  q[7] = sigma_a_sq;
+
+  q[8] = sigma_g_sq;
+  q[9] = sigma_g_sq;
+  q[10] = sigma_g_sq;
+
+  q[11] = sigma_ba_sq;
+  q[12] = sigma_ba_sq;
+  q[13] = sigma_ba_sq;
+
+  q[14] = sigma_bg_sq;
+  q[15] = sigma_bg_sq;
+  q[16] = sigma_bg_sq;
+
+  zeros(Q, 18, 18);
+  mat_diag_set(Q, 18, 18, q);
 }
 
 /**
  * Form IMU Transition Matrix F
  */
-static void imu_factor_form_F_matrix(const real_t dq[4],
-                                     const real_t ba[3],
-                                     const real_t bg[3],
-                                     const real_t a[3],
-                                     const real_t w[3],
+static void imu_factor_form_F_matrix(const imu_factor_t *factor,
+                                     const real_t a_i[3],
+                                     const real_t w_i[3],
+                                     const real_t a_j[3],
+                                     const real_t w_j[3],
                                      const real_t dt,
-                                     real_t I_F_dt[15 * 15]) {
-  // Convert quaternion to rotation matrix
-  real_t dC[3 * 3] = {0};
-  quat2rot(dq, dC);
+                                     real_t F_dt[15 * 15]) {
+  // Setup
+  const real_t dt_sq = dt * dt;
+  const real_t *q_i = factor->q_i;
+  const real_t *q_j = factor->q_j;
+  const real_t *ba_i = factor->ba_i;
+  const real_t *bg_i = factor->bg_i;
 
-  // Compensate accelerometer and gyroscope measurements
-  const real_t a_t[3] = {a[0] - ba[0], a[1] - ba[1], a[2] - ba[2]};
-  const real_t w_t[3] = {w[0] - bg[0], w[1] - bg[1], w[2] - bg[2]};
+  // gyr_x = hat(0.5 * (imu_buf.gyr[k] + imu_buf.gyr[k + 1]) - bg_i)
+  real_t gyr[3] = {0};
+  real_t gyr_x[3 * 3] = {0};
+  gyr[0] = 0.5 * (w_i[0] + w_j[0]) - bg_i[0];
+  gyr[1] = 0.5 * (w_i[1] + w_j[1]) - bg_i[1];
+  gyr[2] = 0.5 * (w_i[2] + w_j[2]) - bg_i[2];
+  hat(gyr, gyr_x);
 
-  // Form continuous time transition matrix F
-  // -- Initialize memory for F
-  zeros(I_F_dt, 15, 15);
-  // -- F[0:3, 3:6] = eye(3);
-  I_F_dt[3] = 1.0;
-  I_F_dt[19] = 1.0;
-  I_F_dt[35] = 1.0;
-  // -- F[4:6, 7:9] = -dC * hat(a_t);
-  real_t F1[3 * 3] = {0};
-  real_t ndC[3 * 3] = {0};
-  real_t a_t_x[3 * 3] = {0};
-  mat_copy(dC, 3, 3, ndC);
-  mat_scale(ndC, 3, 3, -1);
-  hat(a_t, a_t_x);
-  dot(ndC, 3, 3, a_t_x, 3, 3, F1);
-  mat_block_set(I_F_dt, 15, 3, 5, 6, 8, F1);
-  // -- F[4:6, 10:12] = -dC;
-  mat_block_set(I_F_dt, 15, 3, 5, 9, 11, ndC);
-  // -- F[7:9, 7:9] = -hat(w_t);
-  real_t F3[3 * 3] = {0};
-  F3[1] = w_t[2];
-  F3[2] = -w_t[1];
-  F3[3] = -w_t[2];
-  F3[5] = w_t[0];
-  F3[6] = w_t[1];
-  F3[7] = -w_t[0];
-  mat_block_set(I_F_dt, 15, 6, 8, 6, 8, F3);
-  // -- F[7:9, 13:15] = -eye(3);
-  real_t F4[3 * 3] = {-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0};
-  mat_block_set(I_F_dt, 15, 6, 8, 12, 14, F4);
+  // acc_i_x = hat(imu_buf.acc[k] - ba_i)
+  // acc_j_x = hat(imu_buf.acc[k + 1] - ba_i)
+  real_t acc_i[3] = {a_i[0] - ba_i[0], a_i[1] - ba_i[1], a_i[2] - ba_i[2]};
+  real_t acc_j[3] = {a_j[0] - ba_i[0], a_j[1] - ba_i[1], a_j[2] - ba_i[2]};
+  real_t acc_i_x[3 * 3] = {0};
+  real_t acc_j_x[3 * 3] = {0};
+  hat(acc_i, acc_i_x);
+  hat(acc_j, acc_j_x);
 
-  // Discretize continuous time transition matrix
-  // I_F_dt = eye(15) + F * dt;
-  for (int idx = 0; idx < (15 * 15); idx++) {
-    if (idx == 0 || idx % 16 == 0) {
-      I_F_dt[idx] = 1.0 + I_F_dt[idx] * dt;
-    } else {
-      I_F_dt[idx] = I_F_dt[idx] * dt;
-    }
+  // dC_i = quat2rot(q_i)
+  // dC_j = quat2rot(q_j)
+  real_t dC_i[3 * 3] = {0};
+  real_t dC_j[3 * 3] = {0};
+  quat2rot(q_i, dC_i);
+  quat2rot(q_j, dC_j);
+
+  // (dC_i + dC_j)
+  real_t dCi_dCj[3 * 3] = {0};
+  mat_add(dC_i, dC_j, dCi_dCj, 3, 3);
+
+  // dC_i @ acc_i_x
+  real_t dCi_acc_i_x[3 * 3] = {0};
+  dot(dC_i, 3, 3, acc_i_x, 3, 3, dCi_acc_i_x);
+
+  // dC_j @ acc_j_x
+  real_t dCj_acc_j_x[3 * 3] = {0};
+  dot(dC_j, 3, 3, acc_j_x, 3, 3, dCj_acc_j_x);
+
+  // (eye(3) - gyr_x * dt)
+  real_t I_m_gyr_x_dt[3 * 3] = {0};
+  I_m_gyr_x_dt[0] = 1.0 - gyr_x[0] * dt;
+  I_m_gyr_x_dt[1] = gyr_x[1] * dt;
+  I_m_gyr_x_dt[2] = gyr_x[2] * dt;
+  I_m_gyr_x_dt[3] = gyr_x[3] * dt;
+  I_m_gyr_x_dt[4] = 1.0 - gyr_x[4] * dt;
+  I_m_gyr_x_dt[5] = gyr_x[5] * dt;
+  I_m_gyr_x_dt[6] = gyr_x[6] * dt;
+  I_m_gyr_x_dt[7] = gyr_x[7] * dt;
+  I_m_gyr_x_dt[8] = 1.0 - gyr_x[8] * dt;
+
+  // -- F11 = eye(3)
+  real_t F11[3 * 3] = {0};
+  eye(F11, 3, 3);
+
+  // -- F12 = -0.25 * dC_i @ acc_i_x * dt_sq
+  // -- F12 += -0.25 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt) * dt_sq
+  real_t F12_A[3 * 3] = {0};
+  mat_copy(dCi_acc_i_x, 3, 3, F12_A);
+  mat_scale(F12_A, 3, 3, -0.25);
+  mat_scale(F12_A, 3, 3, dt_sq);
+
+  real_t F12_B[3 * 3] = {0};
+  mat_copy(dCj_acc_j_x, 3, 3, F12_B);
+  mat_scale(F12_B, 3, 3, -0.25);
+
+  real_t F12_C[3 * 3] = {0};
+  mat_copy(I_m_gyr_x_dt, 3, 3, F12_C);
+  mat_scale(I_m_gyr_x_dt, 3, 3, dt_sq);
+
+  real_t F12_D[3 * 3] = {0};
+  dot(F12_B, 3, 3, F12_C, 3, 3, F12_D);
+
+  real_t F12[3 * 3] = {0};
+  mat_add(F12_A, F12_D, F12, 3, 3);
+
+  // -- F13 = eye(3) * dt
+  real_t F13[3 * 3] = {0};
+  eye(F13, 3, 3);
+  mat_scale(F13, 3, 3, dt);
+
+  // -- F14 = -0.25 * (dC_i + dC_j) * dt_sq
+  real_t F14[3 * 3] = {0};
+  mat_copy(dCi_dCj, 3, 3, F14);
+  mat_scale(F14, 3, 3, -0.25);
+  mat_scale(F14, 3, 3, dt_sq);
+
+  // -- F15 = 0.25 * -dC_j @ acc_j_x * dt_sq * -dt
+  real_t F15[3 * 3] = {0};
+  mat_copy(dCj_acc_j_x, 3, 3, F15);
+  mat_scale(F15, 3, 3, -1.0);
+  mat_scale(F15, 3, 3, 0.25);
+  mat_scale(F15, 3, 3, dt_sq);
+  mat_scale(F15, 3, 3, -dt);
+
+  // -- F22 = eye(3) - gyr_x * dt
+  real_t F22[3 * 3] = {0};
+  mat_copy(I_m_gyr_x_dt, 3, 3, F22);
+
+  // -- F25 = -eye(3) * dt
+  real_t F25[3 * 3] = {0};
+  F25[0] = -dt;
+  F25[4] = -dt;
+  F25[8] = -dt;
+
+  // -- F32 = -0.5 * dC_i @ acc_i_x * dt
+  // -- F32 += -0.5 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt)* dt
+  real_t F32_A[3 * 3] = {0};
+  mat_copy(dCi_acc_i_x, 3, 3, F32_A);
+  for (int i = 0; i < 9; i++) {
+    F32_A[i] = -0.5 * F32_A[i] * dt;
   }
+
+  real_t F32_B[3 * 3] = {0};
+  dot(dCj_acc_j_x, 3, 3, I_m_gyr_x_dt, 3, 3, F32_B);
+  for (int i = 0; i < 9; i++) {
+    F32_B[i] = -0.5 * F32_B[i] * dt;
+  }
+
+  real_t F32[3 * 3] = {0};
+  mat_add(F32_A, F32_B, F32, 3, 3);
+
+  // -- F33 = eye(3)
+  real_t F33[3 * 3] = {0};
+  F33[0] = 1.0;
+  F33[4] = 1.0;
+  F33[8] = 1.0;
+
+  // -- F34 = -0.5 * (dC_i + dC_j) * dt
+  real_t F34[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    F34[i] = -0.5 * dCi_dCj[i] * dt;
+  }
+
+  // -- F35 = 0.5 * -dC_j @ acc_j_x * dt * -dt
+  real_t F35[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    F35[i] = 0.5 * -1.0 * dCj_acc_j_x[i] * dt * -dt;
+  }
+
+  // -- F44 = eye(3)
+  real_t F44[3 * 3] = {0};
+  F44[0] = 1.0;
+  F44[4] = 1.0;
+  F44[8] = 1.0;
+
+  // -- F55 = eye(3)
+  real_t F55[3 * 3] = {0};
+  F55[0] = 1.0;
+  F55[4] = 1.0;
+  F55[8] = 1.0;
+
+  // Fill matrix F
+  zeros(F_dt, 15, 15);
+
+  // -- Row block 1
+  mat_block_set(F_dt, 15, 0, 2, 0, 2, F11);
+  mat_block_set(F_dt, 15, 0, 2, 3, 5, F12);
+  // mat_block_set(F_dt, 15, 0, 2, 6, 8, F13);
+  // mat_block_set(F_dt, 15, 0, 2, 9, 11, F14);
+  // mat_block_set(F_dt, 15, 0, 2, 12, 14, F15);
+
+  // // -- Row block 2
+  // mat_block_set(F_dt, 15, 3, 5, 3, 5, F22);
+  // mat_block_set(F_dt, 15, 3, 5, 12, 14, F25);
+
+  // // -- Row block 3
+  // mat_block_set(F_dt, 15, 6, 8, 3, 5, F32);
+  // mat_block_set(F_dt, 15, 6, 8, 6, 8, F33);
+  // mat_block_set(F_dt, 15, 6, 8, 9, 11, F34);
+  // mat_block_set(F_dt, 15, 6, 8, 12, 14, F35);
+
+  // // -- Row block 4
+  // mat_block_set(F_dt, 15, 9, 11, 9, 11, F44);
+
+  // // -- Row block 5
+  // mat_block_set(F_dt, 15, 12, 14, 12, 14, F55);
 }
 
 /**
  * Form IMU Input Matrix G
  */
-static void imu_factor_form_G_matrix(const real_t dq[4],
+static void imu_factor_form_G_matrix(const imu_factor_t *factor,
+                                     const real_t a_i[3],
+                                     const real_t a_j[3],
                                      const real_t dt,
-                                     real_t G_dt[15 * 12]) {
-  // Setup
-  real_t dC[3 * 3] = {0};
-  quat2rot(dq, dC);
-  zeros(G_dt, 15, 12);
+                                     real_t G_dt[15 * 18]) {
 
-  real_t neg_eye[3 * 3] = {0};
-  real_t pos_eye[3 * 3] = {0};
-  for (int idx = 0; idx < 9; idx += 4) {
-    neg_eye[idx] = -1.0;
-    pos_eye[idx] = 1.0;
+  // dt_sq = dt * dt
+  const real_t dt_sq = dt * dt;
+
+  // dC_i = quat2rot(q_i)
+  // dC_j = quat2rot(q_j)
+  real_t dC_i[3 * 3] = {0};
+  real_t dC_j[3 * 3] = {0};
+  quat2rot(factor->q_i, dC_i);
+  quat2rot(factor->q_j, dC_j);
+
+  // acc_i_x = hat(imu_buf.acc[k] - ba_i)
+  // acc_j_x = hat(imu_buf.acc[k + 1] - ba_i)
+  const real_t *ba_i = factor->ba_i;
+  real_t acc_i[3] = {a_i[0] - ba_i[0], a_i[1] - ba_i[1], a_i[2] - ba_i[2]};
+  real_t acc_j[3] = {a_j[0] - ba_i[0], a_j[1] - ba_i[1], a_j[2] - ba_i[2]};
+  real_t acc_i_x[3 * 3] = {0};
+  real_t acc_j_x[3 * 3] = {0};
+  hat(acc_i, acc_i_x);
+  hat(acc_j, acc_j_x);
+
+  // dC_j @ acc_i_x
+  real_t dC_j_acc_i_x[3 * 3] = {0};
+  dot(dC_j, 3, 3, acc_i_x, 3, 3, dC_j_acc_i_x);
+
+  // G11 = 0.25 * dC_i * dt_sq
+  real_t G11[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    G11[i] = 0.25 * dC_i[i] * dt_sq;
   }
 
-  // Form continuous input matrix G
-  // -- G[4:6, 1:3] = -dC;
-  real_t G0[3 * 3] = {0};
-  for (int idx = 0; idx < 9; idx++) {
-    G0[idx] = -1.0 * dC[idx];
+  // G12 = 0.25 * -dC_j @ acc_i_x * dt_sq * 0.5 * dt
+  real_t G12[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    G12[i] = 0.25 * -dC_j_acc_i_x[i] * dt_sq * 0.5 * dt;
   }
-  mat_block_set(G_dt, 12, 3, 5, 0, 2, G0);
-  // -- G[7:9, 4:6] = -eye(3);
-  mat_block_set(G_dt, 12, 6, 8, 3, 5, neg_eye);
-  // -- G[10:12, 7:9] = eye(3);
-  mat_block_set(G_dt, 12, 9, 11, 6, 8, pos_eye);
-  // -- G[13:15, 10:12] = eye(3);
-  mat_block_set(G_dt, 12, 12, 14, 9, 11, pos_eye);
 
-  // Discretize G
-  // G_dt = G * dt;
-  for (int idx = 0; idx < (15 * 12); idx++) {
-    G_dt[idx] = G_dt[idx] * dt;
+  // G13 = 0.25 * dC_j @ acc_i_x * dt_sq
+  real_t G13[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    G13[i] = 0.25 * dC_j_acc_i_x[i] * dt_sq;
   }
+
+  // G14 = 0.25 * -dC_j @ acc_i_x * dt_sq * 0.5 * dt
+  real_t G14[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    G14[i] = 0.25 * -dC_j_acc_i_x[i] * dt_sq * 0.5 * dt;
+  }
+
+  // G22 = eye(3) * dt
+  real_t G22[3 * 3] = {0};
+  G22[0] = dt;
+  G22[4] = dt;
+  G22[8] = dt;
+
+  // G24 = eye(3) * dt
+  real_t G24[3 * 3] = {0};
+  G24[0] = dt;
+  G24[4] = dt;
+  G24[8] = dt;
+
+  // G31 = 0.5 * dC_i * dt
+  real_t G31[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    G31[i] = 0.5 * dC_i[i] * dt;
+  }
+
+  // G32 = 0.5 * -dC_j @ acc_i_x * dt * 0.5 * dt
+  real_t G32[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    G32[i] = 0.5 * -dC_j_acc_i_x[i] * dt * 0.5 * dt;
+  }
+
+  // G33 = 0.5 * dC_j * dt
+  real_t G33[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    G33[i] = 0.5 * dC_j[i] * dt;
+  }
+
+  // G34 = 0.5 * -dC_j @ acc_i_x * dt * 0.5 * dt
+  real_t G34[3 * 3] = {0};
+  for (int i = 0; i < 9; i++) {
+    G34[i] = 0.5 * -dC_j_acc_i_x[i] * dt * 0.5 * dt;
+  }
+
+  // G45 = eye(3) * dt
+  real_t G45[3 * 3] = {0};
+  G45[0] = dt;
+  G45[4] = dt;
+  G45[8] = dt;
+
+  // G56 = eye(3) * dt
+  real_t G56[3 * 3] = {0};
+  G56[0] = dt;
+  G56[4] = dt;
+  G56[8] = dt;
+
+  // Fill matrix G
+  zeros(G_dt, 15, 18);
+  mat_block_set(G_dt, 18, 0, 2, 0, 2, G11);
+  mat_block_set(G_dt, 18, 0, 2, 3, 5, G12);
+  mat_block_set(G_dt, 18, 0, 2, 6, 8, G13);
+  mat_block_set(G_dt, 18, 0, 2, 9, 11, G14);
+  mat_block_set(G_dt, 18, 3, 5, 3, 5, G22);
+  mat_block_set(G_dt, 18, 3, 5, 9, 11, G24);
+  mat_block_set(G_dt, 18, 6, 8, 0, 2, G31);
+  mat_block_set(G_dt, 18, 6, 8, 3, 5, G32);
+  mat_block_set(G_dt, 18, 6, 8, 6, 8, G33);
+  mat_block_set(G_dt, 18, 6, 8, 9, 11, G34);
+  mat_block_set(G_dt, 18, 9, 11, 12, 14, G45);
+  mat_block_set(G_dt, 18, 12, 14, 15, 17, G56);
 }
 
 /**
@@ -12014,57 +12348,50 @@ void imu_factor_setup(imu_factor_t *factor,
   // The covariance can be square-rooted to form the square-root information
   // matrix used by the non-linear least squares algorithm to weigh the
   // parameters
-  real_t dt = 0.0;
-  for (int k = 0; k < (imu_buf->size - 1); k++) {
-    if (k + 1 < imu_buf->size) {
-      const timestamp_t ts_i = imu_buf->ts[k];
-      const timestamp_t ts_j = imu_buf->ts[k + 1];
-      dt = ts2sec(ts_j - ts_i);
-    }
-    const real_t *a = imu_buf->acc[k];
-    const real_t *w = imu_buf->gyr[k];
+  for (int k = 1; k < imu_buf->size; k++) {
+    const timestamp_t ts_i = imu_buf->ts[k - 1];
+    const timestamp_t ts_j = imu_buf->ts[k];
+    const real_t dt = ts2sec(ts_j - ts_i);
+    const real_t *a_i = imu_buf->acc[k - 1];
+    const real_t *w_i = imu_buf->gyr[k - 1];
+    const real_t *a_j = imu_buf->acc[k];
+    const real_t *w_j = imu_buf->gyr[k];
 
     // Propagate
-    imu_factor_propagate_step(factor->dr,
-                              factor->dv,
-                              factor->dq,
-                              factor->ba,
-                              factor->bg,
-                              a,
-                              w,
-                              dt);
+    imu_factor_propagate_step(factor, a_i, w_i, a_j, w_j, dt);
 
     // Form transition Matrix F
-    real_t I_F_dt[15 * 15] = {0};
-    imu_factor_form_F_matrix(factor->dq,
-                             factor->ba,
-                             factor->bg,
-                             a,
-                             w,
-                             dt,
-                             I_F_dt);
+    real_t F_dt[15 * 15] = {0};
+    imu_factor_form_F_matrix(factor, a_i, w_i, a_j, w_j, dt, F_dt);
 
     // Input Jacobian G
-    real_t G_dt[15 * 12] = {0};
-    imu_factor_form_G_matrix(factor->dq, dt, G_dt);
+    real_t G_dt[15 * 18] = {0};
+    imu_factor_form_G_matrix(factor, a_i, a_j, dt, G_dt);
 
     // Update state matrix F
-    // F = I_F_dt * F;
-    real_t F_prev[15 * 15] = {0};
-    mat_copy(factor->F, 15, 15, F_prev);
-    dot(I_F_dt, 15, 15, F_prev, 15, 15, factor->F);
+    // F = F_dt * F;
+    real_t state_F[15 * 15] = {0};
+    mat_copy(factor->F, 15, 15, state_F);
+    dot(F_dt, 15, 15, state_F, 15, 15, factor->F);
 
     // Update covariance matrix P
-    // P = I_F_dt * P * I_F_dt' + G_dt * Q * G_dt';
+    // P = F * P * F' + G * Q * G';
     real_t A[15 * 15] = {0};
     real_t B[15 * 15] = {0};
-    dot_XAXt(I_F_dt, 15, 15, factor->P, 15, 15, A);
-    dot_XAXt(G_dt, 15, 12, factor->Q, 12, 12, B);
+    dot_XAXt(F_dt, 15, 15, factor->P, 15, 15, A);
+    dot_XAXt(G_dt, 15, 18, factor->Q, 18, 18, B);
     mat_add(A, B, factor->P, 15, 15);
 
     // Update overall dt
     factor->Dt += dt;
   }
+
+  mat_save("/tmp/F.csv", factor->F, 15, 15);
+  // mat_save("/tmp/G.csv", G_dt, 15, 18);
+  // mat_save("/tmp/Q.csv", factor->Q, 18, 18);
+  // mat_save("/tmp/P.csv", factor->P, 15, 15);
+  exit(0);
+
 
   // Covariance
   enforce_spd(factor->P, 15, 15);
@@ -12076,9 +12403,9 @@ void imu_factor_setup(imu_factor_t *factor,
 
   pinv(factor->covar, 15, 15, info);
   assert(check_inv(info, factor->covar, 15) == 0);
-  zeros(factor->sqrt_info, 15, 15);
-  chol(info, 15, sqrt_info);
-  mat_transpose(sqrt_info, 15, 15, factor->sqrt_info);
+  // zeros(factor->sqrt_info, 15, 15);
+  // chol(info, 15, sqrt_info);
+  // mat_transpose(sqrt_info, 15, 15, factor->sqrt_info);
 
   // Residuals
   factor->r_size = 15;
@@ -13996,7 +14323,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
                         b);
   }
 
-  param_order_print(marg->hash);
+  // param_order_print(marg->hash);
   MARG_H(marg, ba_factor_t, marg->ba_factors, H, b, ls);
   MARG_H(marg, camera_factor_t, marg->camera_factors, H, b, ls);
   MARG_H(marg, idf_factor_t, marg->idf_factors, H, b, ls);
@@ -14005,6 +14332,9 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
   marg->H = H;
   marg->b = b;
+
+  mat_save("/tmp/H.csv", marg->H, ls, ls);
+  mat_save("/tmp/b.csv", marg->b, ls, 1);
 }
 
 /**
@@ -15585,23 +15915,20 @@ param_order_t *calib_camera_param_order(const void *data,
 
   // -- Add body poses
   for (int i = 0; i < hmlen(calib->poses); i++) {
-    void *data = calib->poses[i].value->data;
-    const int fix = calib->fix_poses || calib->poses[i].value->marginalize;
-    param_order_add(&hash, POSE_PARAM, fix, data, &col_idx);
-  }
-  // -- Add camera extrinsic
-  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-    void *data = &calib->cam_exts[cam_idx].data;
-    const int fix = (calib->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
-    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
-  }
-  // -- Add camera parameters
-  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-    void *data = &calib->cam_params[cam_idx].data;
-    const int fix = calib->fix_cam_params;
-    param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
+    param_order_add_pose(&hash, calib->poses[i].value, &col_idx);
   }
 
+  // -- Add camera extrinsic
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    param_order_add_extrinsic(&hash, &calib->cam_exts[cam_idx], &col_idx);
+  }
+
+  // -- Add camera parameters
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    param_order_add_camera(&hash, &calib->cam_params[cam_idx], &col_idx);
+  }
+
+  // Set state-vector and residual size
   *sv_size = col_idx;
   *r_size = (calib->num_factors * 2);
   if (calib->marg) {
@@ -16798,53 +17125,39 @@ param_order_t *calib_imucam_param_order(const void *data,
 
   // -- Add poses
   for (int i = 0; i < hmlen(calib->poses); i++) {
-    void *data = calib->poses[i].value->data;
-    const int fix = calib->fix_poses || calib->poses[i].value->marginalize;
-    param_order_add(&hash, POSE_PARAM, fix, data, &col_idx);
-  }
-  // -- Add velocities
-  for (int i = 0; i < hmlen(calib->velocities); i++) {
-    void *data = calib->velocities[i].value->data;
-    const int fix = calib->velocities[i].value->marginalize;
-    param_order_add(&hash, VELOCITY_PARAM, fix, data, &col_idx);
-  }
-  // -- Add biases
-  for (int i = 0; i < hmlen(calib->biases); i++) {
-    void *data = calib->biases[i].value->data;
-    const int fix = calib->biases[i].value->marginalize;
-    param_order_add(&hash, IMU_BIASES_PARAM, fix, data, &col_idx);
-  }
-  // -- Add fiducial
-  {
-    void *data = calib->fiducial->data;
-    const int fix = calib->fix_fiducial || calib->fiducial->marginalize;
-    param_order_add(&hash, FIDUCIAL_PARAM, fix, data, &col_idx);
-  }
-  // -- Add camera extrinsic
-  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-    void *data = &calib->cam_exts[cam_idx].data;
-    const int fix = (calib->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
-    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
-  }
-  // -- Add IMU-camera extrinsic
-  {
-    void *data = &calib->imu_ext->data;
-    const int fix = calib->imu_ext->marginalize;
-    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
-  }
-  // -- Add camera parameters
-  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-    void *data = &calib->cam_params[cam_idx].data;
-    const int fix = calib->fix_cam_params;
-    param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
-  }
-  // -- Add time delay
-  {
-    void *data = calib->time_delay->data;
-    const int fix = calib->fix_time_delay || calib->time_delay->marginalize;
-    param_order_add(&hash, TIME_DELAY_PARAM, fix, data, &col_idx);
+    param_order_add_pose(&hash, calib->poses[i].value, &col_idx);
   }
 
+  // -- Add velocities
+  for (int i = 0; i < hmlen(calib->velocities); i++) {
+    param_order_add_velocity(&hash, calib->velocities[i].value, &col_idx);
+  }
+
+  // -- Add biases
+  for (int i = 0; i < hmlen(calib->biases); i++) {
+    param_order_add_imu_biases(&hash, calib->biases[i].value, &col_idx);
+  }
+
+  // -- Add fiducial
+  param_order_add_fiducial(&hash, calib->fiducial, &col_idx);
+
+  // -- Add camera extrinsic
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    param_order_add_extrinsic(&hash, &calib->cam_exts[cam_idx], &col_idx);
+  }
+
+  // -- Add IMU-camera extrinsic
+  param_order_add_extrinsic(&hash, calib->imu_ext, &col_idx);
+
+  // -- Add camera parameters
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    param_order_add_camera(&hash, &calib->cam_params[cam_idx], &col_idx);
+  }
+
+  // -- Add time delay
+  param_order_add_time_delay(&hash, calib->time_delay, &col_idx);
+
+  // Set state-vector and residual size
   *sv_size = col_idx;
   *r_size = (calib->num_vision_factors * 2) + (calib->num_imu_factors * 15);
   if (calib->marg) {
@@ -18771,6 +19084,23 @@ void calib_gimbal_linearize_compact(const void *data,
 ///////////////////////
 
 /**
+ * Malloc inertial odometry.
+ */
+inertial_odometry_t *inertial_odometry_malloc() {
+  inertial_odometry_t *io = MALLOC(inertial_odometry_t, 1);
+
+  io->num_factors = 0;
+  io->factors = NULL;
+  io->marg = NULL;
+
+  io->poses = NULL;
+  io->vels = NULL;
+  io->biases = NULL;
+
+  return io;
+}
+
+/**
  * Free inertial odometry.
  */
 void inertial_odometry_free(inertial_odometry_t *odom) {
@@ -18826,29 +19156,9 @@ param_order_t *inertial_odometry_param_order(const void *data,
   int col_idx = 0;
 
   for (int k = 0; k <= odom->num_factors; k++) {
-    // Pose
-    {
-      pose_t *pose_k = &odom->poses[k];
-      param_order_t val = {&pose_k->data, col_idx, POSE_PARAM, 0};
-      hmputs(hash, val);
-      col_idx += param_local_size(POSE_PARAM);
-    }
-
-    // Velocity
-    {
-      velocity_t *vel_k = &odom->vels[k];
-      param_order_t val = {&vel_k->data, col_idx, VELOCITY_PARAM, 0};
-      hmputs(hash, val);
-      col_idx += param_local_size(VELOCITY_PARAM);
-    }
-
-    // Biases
-    {
-      imu_biases_t *biase_k = &odom->biases[k];
-      param_order_t val = {&biase_k->data, col_idx, IMU_BIASES_PARAM, 0};
-      hmputs(hash, val);
-      col_idx += param_local_size(IMU_BIASES_PARAM);
-    }
+    param_order_add_pose(&hash, &odom->poses[k], &col_idx);
+    param_order_add_velocity(&hash, &odom->vels[k], &col_idx);
+    param_order_add_imu_biases(&hash, &odom->biases[k], &col_idx);
   }
 
   *sv_size = col_idx;
@@ -18993,32 +19303,49 @@ void tsf_frame_set_add(tsf_frame_set_t *fs,
 tsf_t *tsf_malloc() {
   tsf_t *tsf = MALLOC(tsf_t, 1);
 
+  // Flags
   tsf->state = TSF_INIT_FRAME_I;
   tsf->num_imus = 0;
   tsf->num_cams = 0;
   tsf->imu_started = 0;
   tsf->frame_idx = 0;
 
+  // Settings
   tsf->fix_cam_params = 0;
   tsf->fix_cam_exts = 0;
   tsf->fix_imu_ext = 0;
   tsf->fix_time_delay = 0;
 
+  // IMU
   tsf->imu_params = NULL;
   imu_buf_setup(&tsf->imu_buf);
   tsf->imu_ext = NULL;
   tsf->time_delay = NULL;
 
+  // Vision
   tsf->cam_params = NULL;
   tsf->cam_exts = NULL;
   tsf->frame_sets[0] = NULL;
   tsf->frame_sets[1] = NULL;
   tsf->features = features_malloc();
+
+  // Factors
+  tsf->num_factors_i = 0;
+  tsf->num_factors_j = 0;
   tsf->idf_factors_i = NULL;
   tsf->idf_factors_j = NULL;
+  tsf->imu_factor = NULL;
+  tsf->marg = NULL;
 
+  // State
   tsf->ts_i = 0;
   tsf->ts_j = 0;
+  tsf->pose_i = NULL;
+  tsf->pose_j = NULL;
+  tsf->vel_i = NULL;
+  tsf->vel_j = NULL;
+  tsf->biases_i = NULL;
+  tsf->biases_j = NULL;
 
   return tsf;
 }
@@ -19027,20 +19354,32 @@ tsf_t *tsf_malloc() {
  * Free TSF.
  */
 void tsf_free(tsf_t *tsf) {
+  // IMU
   free(tsf->imu_params);
   free(tsf->imu_ext);
   free(tsf->time_delay);
 
+  // VISION
   free(tsf->cam_params);
   free(tsf->cam_exts);
   tsf_frame_set_free(tsf->frame_sets[0]);
   tsf_frame_set_free(tsf->frame_sets[1]);
   features_free(tsf->features);
+
+  // FACTORS
   free(tsf->idf_factors_i);
   free(tsf->idf_factors_j);
+  free(tsf->imu_factor);
+  marg_factor_free(tsf->marg);
 
+  // STATE
   free(tsf->pose_i);
   free(tsf->pose_j);
+  free(tsf->vel_i);
+  free(tsf->vel_j);
+  free(tsf->biases_i);
+  free(tsf->biases_j);
+
   free(tsf);
 }
 
@@ -19228,31 +19567,27 @@ param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
   int col_idx = 0;
 
   // Add state at timestep k - 1
-  param_order_add(&hash, POSE_PARAM, 0, tsf->pose_i->data, &col_idx);
+  param_order_add_pose(&hash, tsf->pose_i, &col_idx);
   if (tsf->num_imus) {
-    param_order_add(&hash, VELOCITY_PARAM, 0, tsf->vel_i->data, &col_idx);
-    param_order_add(&hash, IMU_BIASES_PARAM, 0, tsf->biases_i->data, &col_idx);
+    param_order_add_velocity(&hash, tsf->vel_i, &col_idx);
+    param_order_add_imu_biases(&hash, tsf->biases_i, &col_idx);
   }
 
   // Add state at timestep k
-  param_order_add(&hash, POSE_PARAM, 0, tsf->pose_j->data, &col_idx);
+  param_order_add_pose(&hash, tsf->pose_j, &col_idx);
   if (tsf->num_imus) {
-    param_order_add(&hash, VELOCITY_PARAM, 0, tsf->vel_j->data, &col_idx);
-    param_order_add(&hash, IMU_BIASES_PARAM, 0, tsf->biases_j->data, &col_idx);
+    param_order_add_velocity(&hash, tsf->vel_j, &col_idx);
+    param_order_add_imu_biases(&hash, tsf->biases_j, &col_idx);
   }
 
   // Add camera extrinsic
   for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
-    void *data = &tsf->cam_exts[cam_idx].data;
-    const int fix = (tsf->fix_cam_exts || (cam_idx == 0) ? 1 : 0);
-    param_order_add(&hash, EXTRINSIC_PARAM, fix, data, &col_idx);
+    param_order_add_extrinsic(&hash, &tsf->cam_exts[cam_idx], &col_idx);
   }
 
   // Add camera parameters
   for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
-    void *data = &tsf->cam_params[cam_idx].data;
-    const int fix = tsf->fix_cam_params;
-    param_order_add(&hash, CAMERA_PARAM, fix, data, &col_idx);
+    param_order_add_camera(&hash, &tsf->cam_params[cam_idx], &col_idx);
   }
 
   // Add features
@@ -19263,21 +19598,21 @@ param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
     pos_t *idf_pos = NULL;
     features_get_idf(tsf->features, fids[i], &idf_param, &idf_pos);
 
-    // const int fix = idf_param->fix;
     param_order_add(&hash, IDF_BEARING_PARAM, 0, idf_param->data, &col_idx);
-
     if (param_order_exists(&hash, idf_pos->data) == 0) {
       param_order_add(&hash, POSITION_PARAM, 0, idf_pos->data, &col_idx);
     }
   }
-  // param_order_print(hash);
 
-  // Update
+  // Set state-vector and residual size
   *sv_size = col_idx;
   *r_size = 0;
   *r_size += tsf->num_factors_i * 2;
   *r_size += tsf->num_factors_j * 2;
   *r_size += tsf->num_imus * 15;
+  if (tsf->marg) {
+    *r_size += tsf->marg->r_size;
+  }
 
   // Clean up
   free(fids);
@@ -19291,9 +19626,9 @@ param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
 void tsf_cost(const void *data, real_t *r) {
   // Evaluate factors
   tsf_t *tsf = (tsf_t *) data;
+  int r_idx = 0;
 
   // -- Evaluate IDF factors
-  int r_idx = 0;
   for (int i = 0; i < tsf->num_factors_i; i++) {
     idf_factor_t *factor = &tsf->idf_factors_i[i];
     idf_factor_eval(factor);
@@ -19307,11 +19642,60 @@ void tsf_cost(const void *data, real_t *r) {
     r_idx += factor->r_size;
   }
 
-  // // -- Evaluate marginalization factor
-  // if (calib->marg) {
-  //   marg_factor_eval(calib->marg);
-  //   vec_copy(calib->marg->r, calib->marg->r_size, &r[r_idx]);
-  // }
+  // -- Evaluate marginalization factor
+  if (tsf->marg) {
+    marg_factor_eval(tsf->marg);
+    vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
+  }
+}
+
+/**
+ * TSF reprojection errors.
+ */
+void tsf_reproj_errors(const tsf_t *tsf,
+                       real_t *reproj_rmse,
+                       real_t *reproj_mean,
+                       real_t *reproj_median) {
+  // Setup
+  const int N = (tsf->num_factors_i + tsf->num_factors_j);
+  const int r_size = N * 2;
+  int r_idx = 0;
+  real_t *r = CALLOC(real_t, r_size);
+  for (int i = 0; i < tsf->num_factors_i; i++) {
+    idf_factor_t *factor = &tsf->idf_factors_i[i];
+    idf_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+  for (int j = 0; j < tsf->num_factors_j; j++) {
+    idf_factor_t *factor = &tsf->idf_factors_j[j];
+    idf_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+
+  // Calculate reprojection errors
+  real_t *errors = CALLOC(real_t, N);
+  for (int i = 0; i < N; i++) {
+    const real_t x = r[i * 2 + 0];
+    const real_t y = r[i * 2 + 1];
+    errors[i] = sqrt(x * x + y * y);
+  }
+
+  // Calculate RMSE
+  real_t sum = 0.0;
+  real_t sse = 0.0;
+  for (int i = 0; i < N; i++) {
+    sum += errors[i];
+    sse += errors[i] * errors[i];
+  }
+  *reproj_rmse = sqrt(sse / N);
+  *reproj_mean = sum / N;
+  *reproj_median = median(errors, N);
+
+  // Clean up
+  free(errors);
+  free(r);
 }
 
 /**
@@ -19373,78 +19757,59 @@ void tsf_linearize_compact(const void *data,
                         g);
     r_idx += factor->r_size;
   }
+
+  // -- Marginalization factor
+  if (tsf->marg) {
+    marg_factor_eval(tsf->marg);
+    vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
+
+    solver_fill_hessian(hash,
+                        tsf->marg->num_params,
+                        tsf->marg->params,
+                        tsf->marg->jacs,
+                        tsf->marg->r,
+                        tsf->marg->r_size,
+                        sv_size,
+                        H,
+                        g);
+  }
 }
 
-/**
- * Update TSF.
- */
-void tsf_update(tsf_t *tsf, const timestamp_t ts) {
-  // Initialize pose i and j
+static int tsf_process_data(tsf_t *tsf) {
+  // Map out frame data
+  const int cam_idx = 0;
+  const int fs_idx = (tsf->frame_idx == 0) ? 0 : 1;
+  const camera_params_t *cam = &tsf->cam_params[cam_idx];
+  const tsf_frame_set_t *fs = tsf->frame_sets[fs_idx];
+  const tsf_frame_t *f = fs->cam_frames[cam_idx];
+  const timestamp_t ts = fs->ts;
+  const int n = f->num_measurements;
+  const size_t *fids = f->feature_ids;
+  const real_t *kps = f->keypoints;
+
+  // Initialize pose at k
+  pose_t *pose_k = NULL;
   if (tsf->frame_idx == 0) {
-    tsf->pose_i = MALLOC(pose_t, 1);
+    pose_k = MALLOC(pose_t, 1);
     const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-    pose_setup(tsf->pose_i, ts, pose_data);
+    pose_setup(pose_k, ts, pose_data);
+    tsf->pose_i = pose_k;
   } else {
-    tsf->pose_j = MALLOC(pose_t, 1);
-    pose_setup(tsf->pose_j, ts, tsf->pose_i->data);
+    pose_k = MALLOC(pose_t, 1);
+    pose_setup(pose_k, ts, tsf->pose_i->data);
+    tsf->pose_j = pose_k;
   }
 
-  // Initialize IDF features
-  if (tsf->frame_idx == 0) {
-    // Add features
-    const int cam_idx = 0;
-    POSE2TF(tsf->pose_i->data, T_WB_k);
-    POSE2TF(tsf->cam_exts[cam_idx].data, T_BCi);
-    TF_CHAIN(T_WCi_k, 2, T_WB_k, T_BCi);
+  // Form camera pose T_WCi at k
+  POSE2TF(pose_k->data, T_WB_k);
+  POSE2TF(tsf->cam_exts[cam_idx].data, T_BCi);
+  TF_CHAIN(T_WCi_k, 2, T_WB_k, T_BCi);
 
-    const camera_params_t *cam = &tsf->cam_params[cam_idx];
-    const tsf_frame_set_t *fs = tsf->frame_sets[0];
-    const tsf_frame_t *f = fs->cam_frames[cam_idx];
-    const size_t *fids = f->feature_ids;
-    const real_t *kps = f->keypoints;
-    const int n = f->num_measurements;
+  // Add new features
+  if (fs_idx == 0) {
     features_add_idfs(tsf->features, fids, cam, T_WCi_k, kps, n);
 
-    // Create IDF factors
-    const timestamp_t ts = tsf->pose_i->ts;
-    const real_t var[2] = {1.0, 1.0};
-    tsf->idf_factors_i = MALLOC(idf_factor_t, n);
-    tsf->num_factors_i = n;
-
-    for (int i = 0; i < n; i++) {
-      const size_t fid = fids[i];
-      const real_t *z = &kps[i * 2];
-
-      pos_t *idf_pos = NULL;
-      feature_t *idf_param = NULL;
-      features_get_idf(tsf->features, fid, &idf_param, &idf_pos);
-
-      idf_factor_setup(&tsf->idf_factors_i[i],
-                       tsf->pose_i,
-                       &tsf->cam_exts[cam_idx],
-                       &tsf->cam_params[cam_idx],
-                       idf_pos,
-                       idf_param,
-                       ts,
-                       cam_idx,
-                       fid,
-                       z,
-                       var);
-    }
   } else {
-    // Add features
-    const int cam_idx = 0;
-    POSE2TF(tsf->pose_j->data, T_WB_k);
-    POSE2TF(tsf->cam_exts[cam_idx].data, T_BCi);
-    TF_CHAIN(T_WCi_k, 2, T_WB_k, T_BCi);
-
-    const camera_params_t *cam = &tsf->cam_params[cam_idx];
-    const tsf_frame_set_t *fs = tsf->frame_sets[1];
-    const tsf_frame_t *f = fs->cam_frames[cam_idx];
-    const size_t *fids = f->feature_ids;
-    const real_t *kps = f->keypoints;
-    const int n = f->num_measurements;
-
     size_t *fids_new = MALLOC(size_t, n);
     real_t *kps_new = MALLOC(real_t, n * 2);
     int n_new = 0;
@@ -19459,75 +19824,137 @@ void tsf_update(tsf_t *tsf, const timestamp_t ts) {
     features_add_idfs(tsf->features, fids_new, cam, T_WCi_k, kps_new, n_new);
     free(fids_new);
     free(kps_new);
-
-    // Create IDF factors
-    const timestamp_t ts = tsf->pose_j->ts;
-    const real_t var[2] = {1.0, 1.0};
-    tsf->idf_factors_j = MALLOC(idf_factor_t, n);
-    tsf->num_factors_j = n;
-
-    for (int i = 0; i < n; i++) {
-      const size_t fid = fids[i];
-      const real_t *z = &kps[i * 2];
-
-      pos_t *idf_pos = NULL;
-      feature_t *idf_param = NULL;
-      features_get_idf(tsf->features, fid, &idf_param, &idf_pos);
-
-      idf_factor_setup(&tsf->idf_factors_j[i],
-                       tsf->pose_j,
-                       &tsf->cam_exts[cam_idx],
-                       &tsf->cam_params[cam_idx],
-                       idf_pos,
-                       idf_param,
-                       ts,
-                       cam_idx,
-                       fid,
-                       z,
-                       var);
-    }
-
-    // Solve
-    solver_t solver;
-    solver_setup(&solver);
-    solver.verbose = 1;
-    solver.max_iter = 5;
-    solver.cost_func = &tsf_cost;
-    solver.param_order_func = &tsf_param_order;
-    solver.linearize_func = &tsf_linearize_compact;
-    solver_solve(&solver, tsf);
-
-    // int r_size = 0;
-    // r_size += tsf->num_factors_i * 2;
-    // r_size += tsf->num_factors_j * 2;
-    // real_t *r = MALLOC(real_t, r_size);
-    // tsf_cost(tsf, r);
-    // real_t r_sq = {0};
-    // dot(r, 1, r_size, r, r_size, 1, &r_sq);
-    // printf("cost: %e\n", 0.5 * r_sq);
-    // free(r);
   }
+
+  // Create IDF factors
+  const real_t var[2] = {1.0, 1.0};
+  idf_factor_t *factors = MALLOC(idf_factor_t, n);
+
+  for (int i = 0; i < n; i++) {
+    // Get IDF
+    const size_t fid = fids[i];
+    const real_t *z = &kps[i * 2];
+    pos_t *idf_pos = NULL;
+    feature_t *idf_param = NULL;
+    features_get_idf(tsf->features, fid, &idf_param, &idf_pos);
+
+    // Form IDF factor
+    idf_factor_setup(&factors[i],
+                     pose_k,
+                     &tsf->cam_exts[cam_idx],
+                     &tsf->cam_params[cam_idx],
+                     idf_pos,
+                     idf_param,
+                     pose_k->ts,
+                     cam_idx,
+                     fid,
+                     z,
+                     var);
+  }
+
+  if (tsf->frame_idx == 0) {
+    tsf->idf_factors_i = factors;
+    tsf->num_factors_i = n;
+  } else {
+    tsf->idf_factors_j = factors;
+    tsf->num_factors_j = n;
+  }
+
+  return n;
+}
+
+static void tsf_solve(tsf_t *tsf) {
+  assert(tsf != NULL);
+
+  // Pre-check
+  if (tsf->frame_idx == 0) {
+    return;
+  }
+
+  // Solve
+  solver_t solver;
+  solver_setup(&solver);
+  solver.verbose = 1;
+  solver.max_iter = 5;
+  solver.cost_func = &tsf_cost;
+  solver.param_order_func = &tsf_param_order;
+  solver.linearize_func = &tsf_linearize_compact;
+  solver_solve(&solver, tsf);
+
+  // Print reprojection errors
+  // real_t reproj_rmse = 0.0;
+  // real_t reproj_mean = 0.0;
+  // real_t reproj_median = 0.0;
+  // tsf_reproj_errors(tsf, &reproj_rmse, &reproj_mean, &reproj_median);
+  // printf("reproj_error:\n");
+  // printf("  rmse: %.2f\n", reproj_rmse);
+  // printf("  mean: %.2f\n", reproj_mean);
+  // printf("  median: %.2f\n", reproj_median);
+  // printf("\n");
+}
+
+static void tsf_marginalize(tsf_t *tsf) {
+  assert(tsf != NULL);
+
+  // Pre-check
+  if (tsf->frame_idx == 0) {
+    return;
+  }
+
+  // Setup
+  marg_factor_t *marg = marg_factor_malloc();
+
+  // Mark variables to be marginalized
+  tsf->pose_i->marginalize = 1;
+
+  // Add factors to be marginalized
+  for (int i = 0; i < tsf->num_factors_i; i++) {
+    marg_factor_add(marg, IDF_FACTOR, &tsf->idf_factors_i[i]);
+  }
+  if (tsf->marg) {
+    marg_factor_add(marg, MARG_FACTOR, tsf->marg);
+  }
+
+  // Marginalize
+  marg_factor_marginalize(marg);
+
+  // Free previous and set new marginalization factor
+  marg_factor_free(tsf->marg);
+  tsf->marg = marg;
+}
+
+/**
+ * Update TSF.
+ */
+void tsf_update(tsf_t *tsf, const timestamp_t ts) {
+  tsf_process_data(tsf);
+  tsf_solve(tsf);
+  tsf_marginalize(tsf);
 
   // Update book-keeping
   // - Move current frame to previous
   // - Move current factors to previous
   // - Move current pose to previous
-  // - Increament counter
   if (tsf->frame_idx > 0) {
+    // Frameset
     tsf_frame_set_free(tsf->frame_sets[0]);
     tsf->frame_sets[0] = tsf->frame_sets[1];
     tsf->frame_sets[1] = NULL;
 
+    // Factors
     free(tsf->idf_factors_i);
     tsf->idf_factors_i = tsf->idf_factors_j;
     tsf->num_factors_i = tsf->num_factors_j;
     tsf->idf_factors_j = NULL;
     tsf->num_factors_j = 0;
 
+    // Poses
     free(tsf->pose_i);
     tsf->pose_i = tsf->pose_j;
     tsf->pose_j = NULL;
   }
+
+  // Increment frame index
   tsf->frame_idx++;
 }
 

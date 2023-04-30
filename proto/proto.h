@@ -1733,8 +1733,6 @@ void triangulate_batch(const camera_params_t *cam_i,
                        real_t *points,
                        int *status);
 
-
-
 //////////////
 // VELOCITY //
 //////////////
@@ -1915,6 +1913,17 @@ void param_order_add(param_order_t **hash,
                      const int fix,
                      real_t *data,
                      int *col_idx);
+void param_order_add_position(param_order_t **h, pos_t *p, int *c);
+void param_order_add_rotation(param_order_t **h, rot_t *p, int *c);
+void param_order_add_pose(param_order_t **h, pose_t *p, int *c);
+void param_order_add_extrinsic(param_order_t **h, extrinsic_t *p, int *c);
+void param_order_add_fiducial(param_order_t **h, fiducial_t *p, int *c);
+void param_order_add_velocity(param_order_t **h, velocity_t *p, int *c);
+void param_order_add_imu_biases(param_order_t **h, imu_biases_t *p, int *c);
+void param_order_add_feature(param_order_t **h, feature_t *p, int *c);
+void param_order_add_joint(param_order_t **h, joint_t *p, int *c);
+void param_order_add_camera(param_order_t **h, camera_params_t *p, int *c);
+void param_order_add_time_delay(param_order_t **h, time_delay_t *p, int *c);
 
 ////////////
 // FACTOR //
@@ -2163,6 +2172,20 @@ typedef struct imu_buf_t {
   int size;
 } imu_buf_t;
 
+// typedef struct imu_preintegrate_t {
+//   real_t r_i[3];
+//   real_t v_i[3];
+//   real_t q_i[4];
+//   real_t ba_i[3];
+//   real_t bg_i[3];
+
+//   real_t r_j[3];
+//   real_t v_j[3];
+//   real_t q_j[4];
+//   real_t ba_j[3];
+//   real_t bg_j[3];
+// } imu_preintegrate_t;
+
 typedef struct imu_factor_t {
   // IMU buffer and parameters
   imu_buf_t imu_buf;
@@ -2185,12 +2208,25 @@ typedef struct imu_factor_t {
   real_t Dt;         // Time difference between pose_i and pose_j in seconds
   real_t F[15 * 15]; // State jacobian
   real_t P[15 * 15]; // State covariance
-  real_t Q[12 * 12]; // Noise matrix
+  real_t Q[18 * 18]; // Noise matrix
   real_t dr[3];      // Relative position
   real_t dv[3];      // Relative velocity
   real_t dq[4];      // Relative rotation
   real_t ba[3];      // Accel biase
   real_t bg[3];      // Gyro biase
+
+  // Preintegration step variables
+  real_t r_i[3];
+  real_t v_i[3];
+  real_t q_i[4];
+  real_t ba_i[3];
+  real_t bg_i[3];
+
+  real_t r_j[3];
+  real_t v_j[3];
+  real_t q_j[4];
+  real_t ba_j[3];
+  real_t bg_j[3];
 
   // Covariance and square-root info
   real_t covar[15 * 15];
@@ -2230,13 +2266,11 @@ void imu_propagate(const real_t pose_k[7],
                    real_t pose_kp1[7],
                    real_t vel_kp1[3]);
 void imu_initial_attitude(const imu_buf_t *imu_buf, real_t q_WS[4]);
-void imu_factor_propagate_step(real_t r[3],
-                               real_t v[3],
-                               real_t q[4],
-                               real_t ba[3],
-                               real_t bg[3],
-                               const real_t a[3],
-                               const real_t w[3],
+void imu_factor_propagate_step(imu_factor_t *factor,
+                               const real_t a_i[3],
+                               const real_t w_i[3],
+                               const real_t a_j[3],
+                               const real_t w_j[3],
                                const real_t dt);
 void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
@@ -2735,7 +2769,7 @@ void fgraph_add_imu(fgraph_t *fg,
                                    R,                                          \
                                    R_IDX)                                      \
   FACTOR_EVAL(FACTOR_PTR);                                                     \
-  vec_copy(FACTOR_PTR->r, FACTOR_PTR->r_size, &R[R_IDX]); \
+  vec_copy(FACTOR_PTR->r, FACTOR_PTR->r_size, &R[R_IDX]);                      \
   R_IDX += FACTOR_PTR->r_size;                                                 \
   solver_fill_hessian(HASH,                                                    \
                       FACTOR_PTR->num_params,                                  \
@@ -3279,6 +3313,7 @@ typedef struct inertial_odometry_t {
   // Factors
   int num_factors;
   imu_factor_t *factors;
+  marg_factor_t *marg;
 
   // Variables
   pose_t *poses;
@@ -3286,6 +3321,7 @@ typedef struct inertial_odometry_t {
   imu_biases_t *biases;
 } inertial_odometry_t;
 
+inertial_odometry_t *inertial_odometry_malloc();
 void inertial_odometry_free(inertial_odometry_t *odom);
 void inertial_odometry_save(const inertial_odometry_t *odom,
                             const char *save_path);
@@ -3364,19 +3400,22 @@ typedef struct tsf_t {
   imu_buf_t imu_buf;
   extrinsic_t *imu_ext;
   time_delay_t *time_delay;
-  imu_factor_t imu_factor;
 
   // Vision
   camera_params_t *cam_params;
   extrinsic_t *cam_exts;
   tsf_frame_set_t *frame_sets[2];
   features_t *features;
-  idf_factor_t *idf_factors_i;
-  idf_factor_t *idf_factors_j;
+
+  // Factors
   int num_factors_i;
   int num_factors_j;
+  idf_factor_t *idf_factors_i;
+  idf_factor_t *idf_factors_j;
+  imu_factor_t *imu_factor;
+  marg_factor_t *marg;
 
-  // Variables
+  // State
   timestamp_t ts_i;
   timestamp_t ts_j;
   pose_t *pose_i;
@@ -3419,6 +3458,10 @@ void tsf_add_camera_event(tsf_t *tsf,
                           const real_t *kps);
 
 void tsf_cost(const void *data, real_t *r);
+void tsf_errors(const tsf_t *tsf,
+                real_t *reproj_rmse,
+                real_t *reproj_mean,
+                real_t *reproj_median);
 param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size);
 void tsf_linearize_compact(const void *data,
                            const int sv_size,
