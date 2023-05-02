@@ -5311,7 +5311,7 @@ class ImuFactor2(Factor):
     Q[6:9, 6:9] = imu_params.noise_acc**2 * eye(3)
     Q[9:12, 9:12] = imu_params.noise_gyr**2 * eye(3)
     Q[12:15, 12:15] = imu_params.noise_ba**2 * eye(3)
-    Q[15:18, 15:18] = imu_params.noise_ba**2 * eye(3)
+    Q[15:18, 15:18] = imu_params.noise_bg**2 * eye(3)
 
     # Pre-integrate relative position, velocity, rotation and biases
     dr = np.array([0.0, 0.0, 0.0])  # Relative position
@@ -5386,7 +5386,7 @@ class ImuFactor2(Factor):
       F[0:3, 9:12] = F14
       F[0:3, 12:15] = F15
       F[3:6, 3:6] = F22
-      F[3:6, 9:12] = F25
+      F[3:6, 12:15] = F25
       F[6:9, 3:6] = F32
       F[6:9, 6:9] = F33
       F[6:9, 9:12] = F34
@@ -5421,6 +5421,7 @@ class ImuFactor2(Factor):
       G[6:9, 9:12] = G34
       G[9:12, 12:15] = G45
       G[12:15, 15:18] = G56
+      # np.savetxt("/tmp/state_G.csv", G, delimiter=",")
 
       # Map results
       dq = dq_j
@@ -5430,8 +5431,14 @@ class ImuFactor2(Factor):
       bg = bg_j
 
       # Update
+      np.savetxt("/tmp/A_.csv", F @ state_P @ F.T, delimiter=",")
+      np.savetxt("/tmp/B_.csv", G @ Q @ G.T, delimiter=",")
+      np.savetxt("/tmp/state_Q.csv", Q, delimiter=",")
+      np.savetxt("/tmp/state_G.csv", G, delimiter=",")
+
       state_F = F @ state_F
       state_P = F @ state_P @ F.T + G @ Q @ G.T
+      break
       Dt += dt
 
     state_P = (state_P + state_P.T) / 2.0
@@ -10847,8 +10854,8 @@ class TestFactors(unittest.TestCase):
 
     # Propagate imu measurements
     data = ImuFactor.propagate(imu_buf, imu_params, sb_i)
-    np.savetxt("/tmp/state_F.csv", data.state_F, delimiter=",")
-    np.savetxt("/tmp/state_P.csv", data.state_P, delimiter=",")
+    # np.savetxt("/tmp/state_F.csv", data.state_F, delimiter=",")
+    # np.savetxt("/tmp/state_P.csv", data.state_P, delimiter=",")
 
     # Check propagation
     ts_j = imu_data.timestamps[end_idx - 1]

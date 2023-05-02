@@ -55,7 +55,7 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_imu_factor_propagate
 # python3 proto.py TestFactors.test_imu_factor
 # python3 proto.py TestFactors.test_imu_factor2_propagate
-python3 proto.py TestFactors.test_imu_factor2
+# python3 proto.py TestFactors.test_imu_factor2
 # python3 proto.py TestFactors.test_marg_factor
 # python3 proto.py TestFactorGraph
 # python3 proto.py TestFactorGraph.test_factor_graph_solve_vo
@@ -388,7 +388,7 @@ dev_euroc() {
 # run_test test_imu_propagate
 # run_test test_imu_initial_attitude
 # run_test test_imu_factor_propagate_step
-# run_test test_imu_factor
+run_test test_imu_factor
 # run_test test_joint_angle_factor
 # run_test test_calib_camera_factor
 # run_test test_calib_imucam_factor

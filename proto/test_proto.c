@@ -4307,11 +4307,11 @@ typedef struct imu_test_data_t {
   real_t **imu_gyr;
 } imu_test_data_t;
 
-static int setup_imu_test_data(imu_test_data_t *test_data) {
+static int setup_imu_test_data(imu_test_data_t *test_data,
+                               const real_t circle_r,
+                               const real_t circle_v) {
   // Circle trajectory configurations
   const real_t imu_rate = 200.0;
-  const real_t circle_r = 5.0;
-  const real_t circle_v = 1.0;
   const real_t circle_dist = 2.0 * M_PI * circle_r;
   const real_t time_taken = circle_dist / circle_v;
   const real_t w = -2.0 * M_PI * (1.0 / time_taken);
@@ -4410,7 +4410,7 @@ static void free_imu_test_data(imu_test_data_t *test_data) {
 int test_imu_propagate() {
   // Setup test data
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data);
+  setup_imu_test_data(&test_data, 5.0, 1.0);
 
   // Setup IMU buffer
   const int n = 100;
@@ -4457,7 +4457,7 @@ int test_imu_propagate() {
 int test_imu_initial_attitude() {
   // Setup test data
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data);
+  setup_imu_test_data(&test_data, 5.0, 1.0);
 
   // Setup IMU buffer
   const int n = 1;
@@ -4485,7 +4485,7 @@ int test_imu_initial_attitude() {
 // int test_imu_factor_propagate_step() {
 //   // Setup test data
 //   imu_test_data_t test_data;
-//   setup_imu_test_data(&test_data);
+//   setup_imu_test_data(&test_data, 5.0, 1.0);
 
 //   // Setup IMU buffer
 //   const int n = 50;
@@ -4563,16 +4563,20 @@ int test_imu_initial_attitude() {
 int test_imu_factor() {
   // Setup test data
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data);
+  setup_imu_test_data(&test_data, 1.0, 0.1);
 
   // Setup IMU buffer
   imu_buf_t imu_buf;
   imu_buf_setup(&imu_buf);
-  for (int k = 0; k < 20; k++) {
+  for (int k = 0; k < 10; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
     imu_buf_add(&imu_buf, ts, acc, gyr);
+
+    // printf("acc: %f, %f, %f  ", acc[0], acc[1], acc[2]);
+    // printf("gyr: %f, %f, %f  ", gyr[0], gyr[1], gyr[2]);
+    // printf("\n");
   }
 
   // Setup IMU factor
@@ -4581,11 +4585,11 @@ int test_imu_factor() {
   const timestamp_t ts_i = test_data.timestamps[idx_i];
   const timestamp_t ts_j = test_data.timestamps[idx_j];
   const real_t *v_i = test_data.velocities[idx_i];
-  const real_t ba_i[3] = {0, 0, 0};
-  const real_t bg_i[3] = {0, 0, 0};
+  const real_t ba_i[3] = {0.1, 0.1, 0.1};
+  const real_t bg_i[3] = {0.1, 0.1, 0.1};
   const real_t *v_j = test_data.velocities[idx_j];
-  const real_t ba_j[3] = {0, 0, 0};
-  const real_t bg_j[3] = {0, 0, 0};
+  const real_t ba_j[3] = {0.1, 0.1, 0.1};
+  const real_t bg_j[3] = {0.1, 0.1, 0.1};
   pose_t pose_i;
   pose_t pose_j;
   velocity_t vel_i;
@@ -4619,15 +4623,37 @@ int test_imu_factor() {
                    &vel_j,
                    &biases_j);
 
-  // print_vector("pose_i [gnd]", pose_i.data, 7);
-  // print_vector("pose_j [gnd]", pose_j.data, 7);
-  // print_vector("vel_i [gnd]", vel_i.data, 3);
-  // print_vector("vel_j [gnd]", vel_j.data, 3);
-  // print_vector("biases_i [gnd]", biases_i.data, 3);
-  // print_vector("biases_j [gnd]", biases_j.data, 3);
-  // print_vector("dr [est]", factor.dr, 3);
-  // print_vector("dq [est]", factor.dq, 4);
+  // const char *cmd = "\
+// F = csvread('/tmp/F.csv'); \
+// state_F = csvread('/tmp/state_F.csv'); \
+// subplot(121); \
+// imagesc(F); \
+// axis 'equal'; \
+// subplot(122); \
+// imagesc(state_F); \
+// axis 'equal'; \
+// ginput();\
+// ";
+  // char syscmd[9046] = {0};
+  // sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
+  // system(syscmd);
 
+  // const char *cmd = "\
+// P = csvread('/tmp/P.csv'); \
+// state_P = csvread('/tmp/state_P.csv'); \
+// subplot(121); \
+// imagesc(P); \
+// axis 'equal'; \
+// colorbar(); \
+// subplot(122); \
+// imagesc(P - state_P); \
+// colorbar(); \
+// axis 'equal'; \
+// ginput();\
+// ";
+  // char syscmd[9046] = {0};
+  // sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
+  // system(syscmd);
 
   MU_ASSERT(factor.pose_i == &pose_i);
   MU_ASSERT(factor.vel_i == &vel_i);
@@ -4636,19 +4662,19 @@ int test_imu_factor() {
   MU_ASSERT(factor.vel_j == &vel_j);
   MU_ASSERT(factor.biases_j == &biases_j);
 
-  // // Evaluate IMU factor
-  // imu_factor_eval(&factor);
+  // Evaluate IMU factor
+  imu_factor_eval(&factor);
 
-  // // Check Jacobians
-  // const double tol = 1e-4;
-  // const double step_size = 1e-8;
-  // eye(factor.sqrt_info, 15, 15);
-  // CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, 1e-3, 0);
-  // CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
-  // CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 0);
-  // CHECK_FACTOR_J(3, factor, imu_factor_eval, step_size, 1e-3, 0);
-  // CHECK_FACTOR_J(4, factor, imu_factor_eval, step_size, tol, 0);
-  // CHECK_FACTOR_J(5, factor, imu_factor_eval, step_size, tol, 0);
+  // Check Jacobians
+  const double tol = 1e-4;
+  const double step_size = 1e-8;
+  eye(factor.sqrt_info, 15, 15);
+  CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(3, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(4, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(5, factor, imu_factor_eval, step_size, tol, 0);
 
   // Clean up
   free_imu_test_data(&test_data);
@@ -5322,7 +5348,7 @@ int test_marg() {
 int test_inertial_odometry_batch() {
   // Setup test data
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data);
+  setup_imu_test_data(&test_data, 5.0, 1.0);
 
   // Inertial Odometry
   const int num_partitions = test_data.num_measurements / 20.0;
@@ -5425,7 +5451,7 @@ int test_inertial_odometry_batch() {
 int test_inertial_odometry_windowed() {
   // Setup test data
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data);
+  setup_imu_test_data(&test_data, 5.0, 1.0);
 
   // Inertial Odometry
   const int num_partitions = test_data.num_measurements / 20.0;
@@ -6198,12 +6224,10 @@ int test_calib_imucam_batch() {
     if (calib_imucam_update(calib) == 0) {
       // // Incremental solve
       // if (calib->num_views >= window_size) {
-      //   calib->max_iter = 5;
-      //   calib->verbose = 0;
+      //   calib->max_iter = 10;
+      //   calib->verbose = 1;
       //   calib_imucam_solve(calib);
-
-      //   // calib_imucam_marginalize(calib);
-      //   // break;
+      //   calib_imucam_marginalize(calib);
 
       //   real_t reproj_rmse = 0.0;
       //   real_t reproj_mean = 0.0;
@@ -6230,15 +6254,15 @@ int test_calib_imucam_batch() {
       // PRINT_TOC("time", start);
     }
 
-    if (calib->num_views >= 500) {
-      break;
-    }
+    // if (calib->num_views >= 500) {
+    //   break;
+    // }
   }
 
   // calib_imucam_save_estimates(calib);
 
   // Solve
-  calib->max_iter = 20;
+  calib->max_iter = 30;
   calib->verbose = 1;
   calib_imucam_solve(calib);
 

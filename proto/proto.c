@@ -11945,21 +11945,21 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
   q[4] = sigma_g_sq;
   q[5] = sigma_g_sq;
 
-  q[5] = sigma_a_sq;
   q[6] = sigma_a_sq;
   q[7] = sigma_a_sq;
+  q[8] = sigma_a_sq;
 
-  q[8] = sigma_g_sq;
   q[9] = sigma_g_sq;
   q[10] = sigma_g_sq;
+  q[11] = sigma_g_sq;
 
-  q[11] = sigma_ba_sq;
   q[12] = sigma_ba_sq;
   q[13] = sigma_ba_sq;
+  q[14] = sigma_ba_sq;
 
-  q[14] = sigma_bg_sq;
   q[15] = sigma_bg_sq;
   q[16] = sigma_bg_sq;
+  q[17] = sigma_bg_sq;
 
   zeros(Q, 18, 18);
   mat_diag_set(Q, 18, 18, q);
@@ -11968,13 +11968,13 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
 /**
  * Form IMU Transition Matrix F
  */
-static void imu_factor_form_F_matrix(const imu_factor_t *factor,
-                                     const real_t a_i[3],
-                                     const real_t w_i[3],
-                                     const real_t a_j[3],
-                                     const real_t w_j[3],
-                                     const real_t dt,
-                                     real_t F_dt[15 * 15]) {
+void imu_factor_form_F_matrix(const imu_factor_t *factor,
+                              const real_t a_i[3],
+                              const real_t w_i[3],
+                              const real_t a_j[3],
+                              const real_t w_j[3],
+                              const real_t dt,
+                              real_t F_dt[15 * 15]) {
   // Setup
   const real_t dt_sq = dt * dt;
   const real_t *q_i = factor->q_i;
@@ -12021,13 +12021,15 @@ static void imu_factor_form_F_matrix(const imu_factor_t *factor,
   // (eye(3) - gyr_x * dt)
   real_t I_m_gyr_x_dt[3 * 3] = {0};
   I_m_gyr_x_dt[0] = 1.0 - gyr_x[0] * dt;
-  I_m_gyr_x_dt[1] = gyr_x[1] * dt;
-  I_m_gyr_x_dt[2] = gyr_x[2] * dt;
-  I_m_gyr_x_dt[3] = gyr_x[3] * dt;
+  I_m_gyr_x_dt[1] = 0.0 - gyr_x[1] * dt;
+  I_m_gyr_x_dt[2] = 0.0 - gyr_x[2] * dt;
+
+  I_m_gyr_x_dt[3] = 0.0 - gyr_x[3] * dt;
   I_m_gyr_x_dt[4] = 1.0 - gyr_x[4] * dt;
-  I_m_gyr_x_dt[5] = gyr_x[5] * dt;
-  I_m_gyr_x_dt[6] = gyr_x[6] * dt;
-  I_m_gyr_x_dt[7] = gyr_x[7] * dt;
+  I_m_gyr_x_dt[5] = 0.0 - gyr_x[5] * dt;
+
+  I_m_gyr_x_dt[6] = 0.0 - gyr_x[6] * dt;
+  I_m_gyr_x_dt[7] = 0.0 - gyr_x[7] * dt;
   I_m_gyr_x_dt[8] = 1.0 - gyr_x[8] * dt;
 
   // -- F11 = eye(3)
@@ -12047,7 +12049,7 @@ static void imu_factor_form_F_matrix(const imu_factor_t *factor,
 
   real_t F12_C[3 * 3] = {0};
   mat_copy(I_m_gyr_x_dt, 3, 3, F12_C);
-  mat_scale(I_m_gyr_x_dt, 3, 3, dt_sq);
+  mat_scale(F12_C, 3, 3, dt_sq);
 
   real_t F12_D[3 * 3] = {0};
   dot(F12_B, 3, 3, F12_C, 3, 3, F12_D);
@@ -12137,35 +12139,35 @@ static void imu_factor_form_F_matrix(const imu_factor_t *factor,
   // -- Row block 1
   mat_block_set(F_dt, 15, 0, 2, 0, 2, F11);
   mat_block_set(F_dt, 15, 0, 2, 3, 5, F12);
-  // mat_block_set(F_dt, 15, 0, 2, 6, 8, F13);
-  // mat_block_set(F_dt, 15, 0, 2, 9, 11, F14);
-  // mat_block_set(F_dt, 15, 0, 2, 12, 14, F15);
+  mat_block_set(F_dt, 15, 0, 2, 6, 8, F13);
+  mat_block_set(F_dt, 15, 0, 2, 9, 11, F14);
+  mat_block_set(F_dt, 15, 0, 2, 12, 14, F15);
 
-  // // -- Row block 2
-  // mat_block_set(F_dt, 15, 3, 5, 3, 5, F22);
-  // mat_block_set(F_dt, 15, 3, 5, 12, 14, F25);
+  // -- Row block 2
+  mat_block_set(F_dt, 15, 3, 5, 3, 5, F22);
+  mat_block_set(F_dt, 15, 3, 5, 12, 14, F25);
 
-  // // -- Row block 3
-  // mat_block_set(F_dt, 15, 6, 8, 3, 5, F32);
-  // mat_block_set(F_dt, 15, 6, 8, 6, 8, F33);
-  // mat_block_set(F_dt, 15, 6, 8, 9, 11, F34);
-  // mat_block_set(F_dt, 15, 6, 8, 12, 14, F35);
+  // -- Row block 3
+  mat_block_set(F_dt, 15, 6, 8, 3, 5, F32);
+  mat_block_set(F_dt, 15, 6, 8, 6, 8, F33);
+  mat_block_set(F_dt, 15, 6, 8, 9, 11, F34);
+  mat_block_set(F_dt, 15, 6, 8, 12, 14, F35);
 
-  // // -- Row block 4
-  // mat_block_set(F_dt, 15, 9, 11, 9, 11, F44);
+  // -- Row block 4
+  mat_block_set(F_dt, 15, 9, 11, 9, 11, F44);
 
-  // // -- Row block 5
-  // mat_block_set(F_dt, 15, 12, 14, 12, 14, F55);
+  // -- Row block 5
+  mat_block_set(F_dt, 15, 12, 14, 12, 14, F55);
 }
 
 /**
  * Form IMU Input Matrix G
  */
-static void imu_factor_form_G_matrix(const imu_factor_t *factor,
-                                     const real_t a_i[3],
-                                     const real_t a_j[3],
-                                     const real_t dt,
-                                     real_t G_dt[15 * 18]) {
+void imu_factor_form_G_matrix(const imu_factor_t *factor,
+                              const real_t a_i[3],
+                              const real_t a_j[3],
+                              const real_t dt,
+                              real_t G_dt[15 * 18]) {
 
   // dt_sq = dt * dt
   const real_t dt_sq = dt * dt;
@@ -12187,9 +12189,9 @@ static void imu_factor_form_G_matrix(const imu_factor_t *factor,
   hat(acc_i, acc_i_x);
   hat(acc_j, acc_j_x);
 
-  // dC_j @ acc_i_x
-  real_t dC_j_acc_i_x[3 * 3] = {0};
-  dot(dC_j, 3, 3, acc_i_x, 3, 3, dC_j_acc_i_x);
+  // dC_j @ acc_j_x
+  real_t dC_j_acc_j_x[3 * 3] = {0};
+  dot(dC_j, 3, 3, acc_j_x, 3, 3, dC_j_acc_j_x);
 
   // G11 = 0.25 * dC_i * dt_sq
   real_t G11[3 * 3] = {0};
@@ -12197,22 +12199,22 @@ static void imu_factor_form_G_matrix(const imu_factor_t *factor,
     G11[i] = 0.25 * dC_i[i] * dt_sq;
   }
 
-  // G12 = 0.25 * -dC_j @ acc_i_x * dt_sq * 0.5 * dt
+  // G12 = 0.25 * -dC_j @ acc_j_x * dt_sq * 0.5 * dt
   real_t G12[3 * 3] = {0};
   for (int i = 0; i < 9; i++) {
-    G12[i] = 0.25 * -dC_j_acc_i_x[i] * dt_sq * 0.5 * dt;
+    G12[i] = 0.25 * -dC_j_acc_j_x[i] * dt_sq * 0.5 * dt;
   }
 
-  // G13 = 0.25 * dC_j @ acc_i_x * dt_sq
+  // G13 = 0.25 * dC_j @ acc_j_x * dt_sq
   real_t G13[3 * 3] = {0};
   for (int i = 0; i < 9; i++) {
-    G13[i] = 0.25 * dC_j_acc_i_x[i] * dt_sq;
+    G13[i] = 0.25 * dC_j_acc_j_x[i] * dt_sq;
   }
 
-  // G14 = 0.25 * -dC_j @ acc_i_x * dt_sq * 0.5 * dt
+  // G14 = 0.25 * -dC_j @ acc_j_x * dt_sq * 0.5 * dt
   real_t G14[3 * 3] = {0};
   for (int i = 0; i < 9; i++) {
-    G14[i] = 0.25 * -dC_j_acc_i_x[i] * dt_sq * 0.5 * dt;
+    G14[i] = 0.25 * -dC_j_acc_j_x[i] * dt_sq * 0.5 * dt;
   }
 
   // G22 = eye(3) * dt
@@ -12233,10 +12235,10 @@ static void imu_factor_form_G_matrix(const imu_factor_t *factor,
     G31[i] = 0.5 * dC_i[i] * dt;
   }
 
-  // G32 = 0.5 * -dC_j @ acc_i_x * dt * 0.5 * dt
+  // G32 = 0.5 * -dC_j @ acc_j_x * dt * 0.5 * dt
   real_t G32[3 * 3] = {0};
   for (int i = 0; i < 9; i++) {
-    G32[i] = 0.5 * -dC_j_acc_i_x[i] * dt * 0.5 * dt;
+    G32[i] = 0.5 * -dC_j_acc_j_x[i] * dt * 0.5 * dt;
   }
 
   // G33 = 0.5 * dC_j * dt
@@ -12245,10 +12247,10 @@ static void imu_factor_form_G_matrix(const imu_factor_t *factor,
     G33[i] = 0.5 * dC_j[i] * dt;
   }
 
-  // G34 = 0.5 * -dC_j @ acc_i_x * dt * 0.5 * dt
+  // G34 = 0.5 * -dC_j @ acc_j_x * dt * 0.5 * dt
   real_t G34[3 * 3] = {0};
   for (int i = 0; i < 9; i++) {
-    G34[i] = 0.5 * -dC_j_acc_i_x[i] * dt * 0.5 * dt;
+    G34[i] = 0.5 * -dC_j_acc_j_x[i] * dt * 0.5 * dt;
   }
 
   // G45 = eye(3) * dt
@@ -12351,7 +12353,7 @@ void imu_factor_setup(imu_factor_t *factor,
   for (int k = 1; k < imu_buf->size; k++) {
     const timestamp_t ts_i = imu_buf->ts[k - 1];
     const timestamp_t ts_j = imu_buf->ts[k];
-    const real_t dt = ts2sec(ts_j - ts_i);
+    const real_t dt = ts2sec(ts_j) - ts2sec(ts_i);
     const real_t *a_i = imu_buf->acc[k - 1];
     const real_t *w_i = imu_buf->gyr[k - 1];
     const real_t *a_j = imu_buf->acc[k];
@@ -12386,13 +12388,6 @@ void imu_factor_setup(imu_factor_t *factor,
     factor->Dt += dt;
   }
 
-  mat_save("/tmp/F.csv", factor->F, 15, 15);
-  // mat_save("/tmp/G.csv", G_dt, 15, 18);
-  // mat_save("/tmp/Q.csv", factor->Q, 18, 18);
-  // mat_save("/tmp/P.csv", factor->P, 15, 15);
-  exit(0);
-
-
   // Covariance
   enforce_spd(factor->P, 15, 15);
   mat_copy(factor->P, 15, 15, factor->covar);
@@ -12403,9 +12398,9 @@ void imu_factor_setup(imu_factor_t *factor,
 
   pinv(factor->covar, 15, 15, info);
   assert(check_inv(info, factor->covar, 15) == 0);
-  // zeros(factor->sqrt_info, 15, 15);
-  // chol(info, 15, sqrt_info);
-  // mat_transpose(sqrt_info, 15, 15, factor->sqrt_info);
+  zeros(factor->sqrt_info, 15, 15);
+  chol(info, 15, sqrt_info);
+  mat_transpose(sqrt_info, 15, 15, factor->sqrt_info);
 
   // Residuals
   factor->r_size = 15;
@@ -12432,6 +12427,213 @@ void imu_factor_reset(imu_factor_t *factor) {
   zeros(factor->bg, 3, 1); // Gyro bias
 }
 
+static void imu_factor_pose_i_jac(imu_factor_t *factor,
+                                  const real_t dr_est[3],
+                                  const real_t dv_est[3],
+                                  const real_t dq[4]) {
+  // Setup
+  real_t q_i[4] = {0};
+  real_t q_j[4] = {0};
+  real_t C_i[3 * 3] = {0};
+  real_t C_j[3 * 3] = {0};
+  real_t C_it[3 * 3] = {0};
+  real_t C_jt[3 * 3] = {0};
+
+  pose_get_quat(factor->pose_i->data, q_i);
+  pose_get_quat(factor->pose_j->data, q_j);
+  quat2rot(q_i, C_i);
+  quat2rot(q_j, C_j);
+  mat_transpose(C_i, 3, 3, C_it);
+  mat_transpose(C_j, 3, 3, C_jt);
+
+  // Jacobian w.r.t pose_i
+  real_t J_pose_i[15 * 6] = {0};
+
+  // -- Jacobian w.r.t. r_i
+  real_t drij_dri[3 * 3] = {0};
+
+  for (int idx = 0; idx < 9; idx++) {
+    drij_dri[idx] = -1.0 * C_it[idx];
+  }
+  mat_block_set(J_pose_i, 6, 0, 2, 0, 2, drij_dri);
+
+  // -- Jacobian w.r.t. q_i
+  HAT(dr_est, drij_dCi);
+  HAT(dv_est, dvij_dCi);
+
+  // -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]
+  real_t dtheta_dCi[3 * 3] = {0};
+  {
+    DOT(C_jt, 3, 3, C_i, 3, 3, C_ji);
+    ROT2QUAT(C_ji, q_ji);
+
+    real_t Left[4 * 4] = {0};
+    real_t Right[4 * 4] = {0};
+    quat_left(q_ji, Left);
+    quat_right(dq, Right);
+    DOT(Left, 4, 4, Right, 4, 4, LR);
+
+    mat_block_get(LR, 4, 1, 3, 1, 3, dtheta_dCi);
+    mat_scale(dtheta_dCi, 3, 3, -1.0);
+  }
+
+  mat_block_set(J_pose_i, 6, 0, 2, 3, 5, drij_dCi);
+  mat_block_set(J_pose_i, 6, 3, 5, 3, 5, dvij_dCi);
+  mat_block_set(J_pose_i, 6, 6, 8, 3, 5, dtheta_dCi);
+
+  // -- Multiply with sqrt_info
+  dot(factor->sqrt_info, 15, 15, J_pose_i, 15, 6, factor->jacs[0]);
+}
+
+void imu_factor_velocity_i_jac(imu_factor_t *factor) {
+  real_t q_i[4] = {0};
+  real_t C_i[3 * 3] = {0};
+  real_t C_it[3 * 3] = {0};
+  real_t drij_dvi[3 * 3] = {0};
+  real_t dvij_dvi[3 * 3] = {0};
+
+  pose_get_quat(factor->pose_i->data, q_i);
+  quat2rot(q_i, C_i);
+  mat_transpose(C_i, 3, 3, C_it);
+
+  for (int idx = 0; idx < 9; idx++) {
+    drij_dvi[idx] = -1.0 * C_it[idx] * factor->Dt;
+    dvij_dvi[idx] = -1.0 * C_it[idx];
+  }
+
+  real_t J_vel_i[15 * 3] = {0};
+  mat_block_set(J_vel_i, 3, 0, 2, 0, 2, drij_dvi);
+  mat_block_set(J_vel_i, 3, 3, 5, 0, 2, dvij_dvi);
+  dot(factor->sqrt_info, 15, 15, J_vel_i, 15, 3, factor->jacs[1]);
+}
+
+void imu_factor_biases_i_jac(imu_factor_t *factor,
+                             const real_t dq_dbg[3],
+                             const real_t dr_dba[3],
+                             const real_t dv_dba[3],
+                             const real_t dr_dbg[3],
+                             const real_t dv_dbg[3]) {
+  real_t q_i[4] = {0};
+  real_t q_j[4] = {0};
+  pose_get_quat(factor->pose_i->data, q_i);
+  pose_get_quat(factor->pose_j->data, q_j);
+
+  QUAT2ROT(factor->dq, dC);
+  QUAT2ROT(q_i, C_i);
+  QUAT2ROT(q_j, C_j);
+
+  MAT_TRANSPOSE(dC, 3, 3, dCt);
+  MAT_TRANSPOSE(C_j, 3, 3, C_jt);
+  DOT(C_jt, 3, 3, C_i, 3, 3, C_ji);
+  DOT(C_ji, 3, 3, dC, 3, 3, C_ji_dC);
+  ROT2QUAT(C_ji_dC, qji_dC);
+
+  real_t left_xyz[3 * 3] = {0};
+  quat_left_xyz(qji_dC, left_xyz);
+
+  // Jacobian w.r.t IMU biases
+  real_t J_biases_i[15 * 6] = {0};
+  real_t mI3[3 * 3] = {0};
+  mI3[0] = -1.0;
+  mI3[4] = -1.0;
+  mI3[8] = -1.0;
+
+  // -- Jacobian w.r.t ba_i
+  real_t drij_dbai[3 * 3] = {0};
+  real_t dvij_dbai[3 * 3] = {0};
+  for (int idx = 0; idx < 9; idx++) {
+    drij_dbai[idx] = -1.0 * dr_dba[idx];
+    dvij_dbai[idx] = -1.0 * dv_dba[idx];
+  }
+  mat_block_set(J_biases_i, 6, 0, 2, 0, 2, drij_dbai);
+  mat_block_set(J_biases_i, 6, 3, 5, 0, 2, dvij_dbai);
+
+  // -- Jacobian w.r.t bg_i
+  real_t drij_dbgi[3 * 3] = {0};
+  real_t dvij_dbgi[3 * 3] = {0};
+  for (int idx = 0; idx < 9; idx++) {
+    drij_dbgi[idx] = -1.0 * dr_dbg[idx];
+    dvij_dbgi[idx] = -1.0 * dv_dbg[idx];
+  }
+
+  real_t dtheta_dbgi[3 * 3] = {0};
+  dot(left_xyz, 3, 3, dq_dbg, 3, 3, dtheta_dbgi);
+  for (int i = 0; i < 9; i++) {
+    dtheta_dbgi[i] *= -1.0;
+  }
+
+  mat_block_set(J_biases_i, 6, 0, 2, 3, 5, drij_dbgi);
+  mat_block_set(J_biases_i, 6, 3, 5, 3, 5, dvij_dbgi);
+  mat_block_set(J_biases_i, 6, 6, 8, 3, 5, dtheta_dbgi);
+  mat_block_set(J_biases_i, 6, 9, 11, 0, 2, mI3);
+  mat_block_set(J_biases_i, 6, 12, 14, 3, 5, mI3);
+
+  // -- Multiply with sqrt info
+  dot(factor->sqrt_info, 15, 15, J_biases_i, 15, 6, factor->jacs[2]);
+}
+
+void imu_factor_pose_j_jac(imu_factor_t *factor, const real_t dq[4]) {
+  // Setup
+  real_t q_i[4] = {0};
+  real_t q_j[4] = {0};
+  real_t C_i[3 * 3] = {0};
+  real_t C_j[3 * 3] = {0};
+  real_t C_it[3 * 3] = {0};
+
+  pose_get_quat(factor->pose_i->data, q_i);
+  pose_get_quat(factor->pose_j->data, q_j);
+  quat2rot(q_i, C_i);
+  quat2rot(q_j, C_j);
+  mat_transpose(C_i, 3, 3, C_it);
+
+  // Jacobian w.r.t. pose_j
+  real_t J_pose_j[15 * 6] = {0};
+
+  // -- Jacobian w.r.t. r_j
+  real_t drij_drj[3 * 3] = {0};
+  mat_copy(C_it, 3, 3, drij_drj);
+  mat_block_set(J_pose_j, 6, 0, 2, 0, 2, drij_drj);
+
+  // -- Jacobian w.r.t. q_j
+  // quat_left_xyz(rot2quat(dC.T @ C_i.T @ C_j))
+  QUAT2ROT(dq, dC);
+  MAT_TRANSPOSE(dC, 3, 3, dCt);
+  DOT3(dCt, 3, 3, C_it, 3, 3, C_j, 3, 3, dCt_C_it_C_j);
+  ROT2QUAT(dCt_C_it_C_j, dqij_dqj);
+
+  real_t dtheta_dqj[3 * 3] = {0};
+  quat_left_xyz(dqij_dqj, dtheta_dqj);
+
+  mat_block_set(J_pose_j, 6, 6, 8, 3, 5, dtheta_dqj);
+  dot(factor->sqrt_info, 15, 15, J_pose_j, 15, 6, factor->jacs[3]);
+}
+
+void imu_factor_velocity_j_jac(imu_factor_t *factor) {
+  real_t q_i[4] = {0};
+  real_t C_i[3 * 3] = {0};
+  real_t C_it[3 * 3] = {0};
+
+  pose_get_quat(factor->pose_i->data, q_i);
+  quat2rot(q_i, C_i);
+  mat_transpose(C_i, 3, 3, C_it);
+
+  real_t dv_dvj[3 * 3] = {0};
+  mat_copy(C_it, 3, 3, dv_dvj);
+  real_t J_vel_j[15 * 3] = {0};
+  mat_block_set(J_vel_j, 3, 3, 5, 0, 2, dv_dvj);
+  dot(factor->sqrt_info, 15, 15, J_vel_j, 15, 3, factor->jacs[4]);
+}
+
+void imu_factor_biases_j_jac(imu_factor_t *factor) {
+  real_t J_biases_j[15 * 6] = {0};
+  real_t I3[3 * 3] = {0};
+  eye(I3, 3, 3);
+  mat_block_set(J_biases_j, 6, 9, 11, 0, 2, I3);
+  mat_block_set(J_biases_j, 6, 12, 14, 3, 5, I3);
+  dot(factor->sqrt_info, 15, 15, J_biases_j, 15, 6, factor->jacs[5]);
+}
+
+
 /**
  * Evaluate IMU factor
  * @returns `0` for success, `-1` for failure
@@ -12456,6 +12658,8 @@ int imu_factor_eval(void *factor_ptr) {
   real_t r_j[3] = {0};
   real_t q_j[4] = {0};
   real_t v_j[3] = {0};
+  real_t ba_j[3] = {0};
+  real_t bg_j[3] = {0};
 
   pose_get_trans(factor->pose_i->data, r_i);
   pose_get_quat(factor->pose_i->data, q_i);
@@ -12466,6 +12670,8 @@ int imu_factor_eval(void *factor_ptr) {
   pose_get_trans(factor->pose_j->data, r_j);
   pose_get_quat(factor->pose_j->data, q_j);
   vec_copy(factor->vel_j->data, 3, v_j);
+  imu_biases_get_accel_bias(factor->biases_j, ba_j);
+  imu_biases_get_gyro_bias(factor->biases_j, bg_j);
 
   // Correct the relative position, velocity and rotation
   // -- Extract Jacobians from error-state jacobian
@@ -12494,10 +12700,8 @@ int imu_factor_eval(void *factor_ptr) {
   // dr = dr + dr_dba * dba + dr_dbg * dbg
   real_t dr[3] = {0};
   {
-    real_t ba_correction[3] = {0};
-    real_t bg_correction[3] = {0};
-    dot(dr_dba, 3, 3, dba, 3, 1, ba_correction);
-    dot(dr_dbg, 3, 3, dbg, 3, 1, bg_correction);
+    DOT(dr_dba, 3, 3, dba, 3, 1, ba_correction);
+    DOT(dr_dbg, 3, 3, dbg, 3, 1, bg_correction);
     dr[0] = factor->dr[0] + ba_correction[0] + bg_correction[0];
     dr[1] = factor->dr[1] + ba_correction[1] + bg_correction[1];
     dr[2] = factor->dr[2] + ba_correction[2] + bg_correction[2];
@@ -12506,10 +12710,8 @@ int imu_factor_eval(void *factor_ptr) {
   // dv = dv + dv_dba * dba + dv_dbg * dbg
   real_t dv[3] = {0};
   {
-    real_t ba_correction[3] = {0};
-    real_t bg_correction[3] = {0};
-    dot(dv_dba, 3, 3, dba, 3, 1, ba_correction);
-    dot(dv_dbg, 3, 3, dbg, 3, 1, bg_correction);
+    DOT(dv_dba, 3, 3, dba, 3, 1, ba_correction);
+    DOT(dv_dbg, 3, 3, dbg, 3, 1, bg_correction);
     dv[0] = factor->dv[0] + ba_correction[0] + bg_correction[0];
     dv[1] = factor->dv[1] + ba_correction[1] + bg_correction[1];
     dv[2] = factor->dv[2] + ba_correction[2] + bg_correction[2];
@@ -12535,10 +12737,8 @@ int imu_factor_eval(void *factor_ptr) {
   const real_t g_W[3] = {0.0, 0.0, 9.81};
   const real_t Dt = factor->Dt;
   const real_t Dt_sq = Dt * Dt;
-  real_t C_i[3 * 3] = {0};
-  real_t C_it[3 * 3] = {0};
-  quat2rot(q_i, C_i);
-  mat_transpose(C_i, 3, 3, C_it);
+  QUAT2ROT(q_i, C_i);
+  MAT_TRANSPOSE(C_i, 3, 3, C_it);
 
   // dr_est = C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g_W * Dt_sq))
   real_t dr_est[3] = {0};
@@ -12593,11 +12793,11 @@ int imu_factor_eval(void *factor_ptr) {
     err_rot[2] = 2.0 * err_quat[3];
   }
 
-  // err_ba = [0.0, 0.0, 0.0]
-  real_t err_ba[3] = {0.0, 0.0, 0.0};
+  // err_ba = ba_j - ba_i
+  real_t err_ba[3] = {ba_j[0] - ba_i[0], ba_j[1] - ba_i[1], ba_j[2] - ba_i[2]};
 
-  // err_bg = [0.0, 0.0, 0.0]
-  real_t err_bg[3] = {0.0, 0.0, 0.0};
+  // err_bg = bg_j - bg_i
+  real_t err_bg[3] = {bg_j[0] - bg_i[0], bg_j[1] - bg_i[1], bg_j[2] - bg_i[2]};
 
   // Residual vector
   // r = sqrt_info * [err_pos; err_vel; err_rot; err_ba; err_bg]
@@ -12627,122 +12827,12 @@ int imu_factor_eval(void *factor_ptr) {
   }
 
   // Form Jacobians
-  // -- Setup
-  real_t dC[3 * 3] = {0};
-  real_t C_j[3 * 3] = {0};
-  real_t C_jt[3 * 3] = {0};
-  real_t C_ji[3 * 3] = {0};
-  real_t C_ji_dC[3 * 3] = {0};
-  real_t qji_dC[4] = {0};
-  real_t left_xyz[3 * 3] = {0};
-  quat2rot(factor->dq, dC);
-  quat2rot(q_j, C_j);
-  mat_transpose(C_j, 3, 3, C_jt);
-  dot(C_jt, 3, 3, C_i, 3, 3, C_ji);
-  dot(C_ji, 3, 3, dC, 3, 3, C_ji_dC);
-  rot2quat(C_ji_dC, qji_dC);
-  quat_left_xyz(qji_dC, left_xyz);
-
-  // -- Jacobian w.r.t pose_i
-  real_t J_pose_i[15 * 6] = {0};
-  zeros(J_pose_i, 15, 6);
-  // ---- Jacobian w.r.t. r_i
-  real_t drij_dri[3 * 3] = {0};
-  for (int idx = 0; idx < 9; idx++) {
-    drij_dri[idx] = -1.0 * C_it[idx];
-  }
-  mat_block_set(J_pose_i, 6, 0, 2, 0, 2, drij_dri);
-  // -- Jacobian w.r.t. q_i
-  real_t drij_dCi[3 * 3] = {0};
-  real_t dvij_dCi[3 * 3] = {0};
-  hat(dr_est, drij_dCi);
-  hat(dv_est, dvij_dCi);
-
-  // -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]
-  real_t dtheta_dCi[3 * 3] = {0};
-  {
-    real_t q_ji[4] = {0};
-    real_t Left[4 * 4] = {0};
-    real_t Right[4 * 4] = {0};
-    rot2quat(C_ji, q_ji);
-    quat_left(q_ji, Left);
-    quat_right(dq, Right);
-    DOT(Left, 4, 4, Right, 4, 4, LR);
-    mat_block_get(LR, 4, 1, 3, 1, 3, dtheta_dCi);
-    mat_scale(dtheta_dCi, 3, 3, -1.0);
-  }
-
-  mat_block_set(J_pose_i, 6, 0, 2, 3, 5, drij_dCi);
-  mat_block_set(J_pose_i, 6, 3, 5, 3, 5, dvij_dCi);
-  mat_block_set(J_pose_i, 6, 6, 8, 3, 5, dtheta_dCi);
-  // -- Multiply with sqrt_info
-  dot(factor->sqrt_info, 15, 15, J_pose_i, 15, 6, factor->jacs[0]);
-
-  // -- Jacobian w.r.t. v_i
-  real_t drij_dvi[3 * 3] = {0};
-  real_t dvij_dvi[3 * 3] = {0};
-  for (int idx = 0; idx < 9; idx++) {
-    drij_dvi[idx] = -1.0 * C_it[idx] * factor->Dt;
-    dvij_dvi[idx] = -1.0 * C_it[idx];
-  }
-  real_t J_vel_i[15 * 3] = {0};
-  mat_block_set(J_vel_i, 3, 0, 2, 0, 2, drij_dvi);
-  mat_block_set(J_vel_i, 3, 3, 5, 0, 2, dvij_dvi);
-  dot(factor->sqrt_info, 15, 15, J_vel_i, 15, 3, factor->jacs[1]);
-
-  // Jacobian w.r.t IMU biases
-  real_t J_biases_i[15 * 6] = {0};
-  // ---- Jacobian w.r.t ba_i
-  real_t drij_dbai[3 * 3] = {0};
-  real_t dvij_dbai[3 * 3] = {0};
-  for (int idx = 0; idx < 9; idx++) {
-    drij_dbai[idx] = -1.0 * dr_dba[idx];
-    dvij_dbai[idx] = -1.0 * dv_dba[idx];
-  }
-  mat_block_set(J_biases_i, 6, 0, 2, 0, 2, drij_dbai);
-  mat_block_set(J_biases_i, 6, 3, 5, 0, 2, dvij_dbai);
-
-  // -- Jacobian w.r.t bg_i
-  real_t drij_dbgi[3 * 3] = {0};
-  real_t dvij_dbgi[3 * 3] = {0};
-  for (int idx = 0; idx < 9; idx++) {
-    drij_dbgi[idx] = -1.0 * dr_dbg[idx];
-    dvij_dbgi[idx] = -1.0 * dv_dbg[idx];
-  }
-
-  real_t dtheta_dbgi[3 * 3] = {0};
-  dot(left_xyz, 3, 3, dq_dbg, 3, 3, dtheta_dbgi);
-  for (int i = 0; i < 9; i++) {
-    dtheta_dbgi[i] *= -1.0;
-  }
-
-  mat_block_set(J_biases_i, 6, 0, 2, 3, 5, drij_dbgi);
-  mat_block_set(J_biases_i, 6, 3, 5, 3, 5, dvij_dbgi);
-  mat_block_set(J_biases_i, 6, 6, 8, 3, 5, dtheta_dbgi);
-  // -- Multiply with sqrt info
-  dot(factor->sqrt_info, 15, 15, J_biases_i, 15, 6, factor->jacs[2]);
-
-  // -- Jacobian w.r.t. pose_j
-  real_t J_pose_j[15 * 6] = {0};
-  // ---- Jacobian w.r.t. r_j
-  real_t drij_drj[3 * 3] = {0};
-  mat_copy(C_it, 3, 3, drij_drj);
-  mat_block_set(J_pose_j, 6, 0, 2, 0, 2, drij_drj);
-  // ---- Jacobian w.r.t. q_j
-  real_t dtheta_dqj[3 * 3] = {0};
-  quat_left_xyz(qji_dC, dtheta_dqj);
-  mat_block_set(J_pose_j, 6, 6, 8, 3, 5, dtheta_dqj);
-  dot(factor->sqrt_info, 15, 15, J_pose_j, 15, 6, factor->jacs[3]);
-
-  // -- Jacobian w.r.t. v_j
-  real_t dv_dvj[3 * 3] = {0};
-  mat_copy(C_it, 3, 3, dv_dvj);
-  real_t J_vel_j[15 * 3] = {0};
-  mat_block_set(J_vel_j, 3, 3, 5, 0, 2, dv_dvj);
-  dot(factor->sqrt_info, 15, 15, J_vel_j, 15, 3, factor->jacs[4]);
-
-  // -- Jacobian w.r.t. imu biases j
-  zeros(factor->jacs[5], 15, 6);
+  imu_factor_pose_i_jac(factor, dr_est, dv_est, dq);
+  imu_factor_velocity_i_jac(factor);
+  imu_factor_biases_i_jac(factor, dq_dbg, dr_dba, dv_dba, dr_dbg, dv_dbg);
+  imu_factor_pose_j_jac(factor, dq);
+  imu_factor_velocity_j_jac(factor);
+  imu_factor_biases_j_jac(factor);
 
   return 0;
 }

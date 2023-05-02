@@ -1055,6 +1055,14 @@ real_t suitesparse_chol_solve(cholmod_common *c,
   real_t T[4 * 4] = {0};                                                       \
   tf_chain2(N, __VA_ARGS__, T);
 
+#define ROT2QUAT(C, Q)                                                         \
+  real_t Q[4] = {0};                                                           \
+  rot2quat(C, Q);
+
+#define QUAT2ROT(Q, C)                                                         \
+  real_t C[3 * 3] = {0};                                                       \
+  quat2rot(Q, C);
+
 // clang-format off
 #define TF_IDENTITY(T)                                                         \
   real_t T[4 * 4] = {                                                          \
@@ -2272,6 +2280,18 @@ void imu_factor_propagate_step(imu_factor_t *factor,
                                const real_t a_j[3],
                                const real_t w_j[3],
                                const real_t dt);
+void imu_factor_form_F_matrix(const imu_factor_t *factor,
+                              const real_t a_i[3],
+                              const real_t w_i[3],
+                              const real_t a_j[3],
+                              const real_t w_j[3],
+                              const real_t dt,
+                              real_t F_dt[15 * 15]);
+void imu_factor_form_G_matrix(const imu_factor_t *factor,
+                              const real_t a_i[3],
+                              const real_t a_j[3],
+                              const real_t dt,
+                              real_t G_dt[15 * 18]);
 void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
                       imu_buf_t *imu_buf,
