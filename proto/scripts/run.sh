@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+ctags proto.c proto.h test_proto.c
+
 run_gdb() {
   gdb \
     -ex=run \
@@ -168,7 +170,8 @@ cd ~/projects/proto/proto \
 }
 
 dev_aprilgrid() {
-  cd ~/projects/proto/proto && make test_aprilgrid && ./build/test_aprilgrid
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_aprilgrid && ./build/test_aprilgrid" C-m
   exit
 }
 
@@ -371,6 +374,8 @@ dev_euroc() {
 # run_test test_pose
 # run_test test_speed_bias
 # run_test test_extrinsics
+# run_test test_fiducial
+# run_test test_fiducial_buffer
 # run_test test_camera
 # run_test test_triangulation_batch
 # run_test test_feature
@@ -387,15 +392,13 @@ dev_euroc() {
 # run_test test_imu_buf_print
 # run_test test_imu_propagate
 # run_test test_imu_initial_attitude
-# run_test test_imu_factor_propagate_step
-run_test test_imu_factor
+# run_test test_imu_factor
 # run_test test_joint_angle_factor
 # run_test test_calib_camera_factor
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
 # run_test test_marg
 # run_test test_inertial_odometry_batch
-# run_test test_inertial_odometry_windowed
 # run_test test_tsf
 # run_test test_ceres_example
 # run_test test_invert_block_diagonal
@@ -404,8 +407,15 @@ run_test test_imu_factor
 # run_test test_solver_eval
 # run_test test_camchain
 # run_test test_calib_camera_mono_batch
+# run_test test_calib_camera_mono_ceres
 # run_test test_calib_camera_mono_incremental
-# run_test test_calib_camera_stereo
+# run_test test_calib_camera_stereo_batch
+# run_test test_calib_camera_stereo_ceres
+# run_test test_calib_imucam_add_imu
+# run_test test_calib_imucam_add_camera
+# run_test test_calib_imucam_add_imu_event
+# run_test test_calib_imucam_add_fiducial_event
+run_test test_calib_imucam_update
 # run_test test_calib_imucam_batch
 # python3 test_data/test_marg.py
 # run_test test_calib_gimbal_copy

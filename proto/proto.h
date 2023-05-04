@@ -12,7 +12,7 @@ extern "C" {
 #define USE_CBLAS
 #define USE_LAPACK
 #define USE_SUITESPARSE
-// #define USE_CERES
+#define USE_CERES
 #define USE_STB
 // #define USE_GUI
 #define USE_APRILGRID
@@ -301,10 +301,8 @@ STATUS file_copy(const char *src, const char *dest);
 
 #if PRECISION == 1
 typedef float real_t;
-// typedef float complex real_complex_t;
 #elif PRECISION == 2
 typedef double real_t;
-// typedef double complex real_complex_t;
 #else
 #error "Floating Point Precision not defined!"
 #endif
@@ -1678,6 +1676,7 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 // FIDUCIAL //
 //////////////
 
+/** Fiducial **/
 typedef struct fiducial_t {
   int marginalize;
   int fix;
@@ -1688,6 +1687,25 @@ void fiducial_setup(fiducial_t *fiducial, const real_t *param);
 void fiducial_copy(const fiducial_t *src, fiducial_t *dst);
 void fiducial_fprint(const char *prefix, const fiducial_t *exts, FILE *f);
 void fiducial_print(const char *prefix, const fiducial_t *exts);
+
+/** Fiducial Buffer **/
+typedef struct fiducial_buffer_t {
+  fiducial_event_t **data;
+  int size;
+  int capacity;
+} fiducial_buffer_t;
+
+fiducial_buffer_t *fiducial_buffer_malloc();
+void fiducial_buffer_clear(fiducial_buffer_t *buf);
+void fiducial_buffer_free(fiducial_buffer_t *buf);
+void fiducial_buffer_add(fiducial_buffer_t *buf,
+                         const timestamp_t ts,
+                         const int cam_idx,
+                         const int num_corners,
+                         const int *tag_ids,
+                         const int *corner_indices,
+                         const real_t *object_points,
+                         const real_t *keypoints);
 
 ///////////////////////
 // CAMERA-PARAMETERS //
@@ -2160,8 +2178,7 @@ int idf_factor_eval(void *factor_ptr);
 // IMU FACTOR //
 ////////////////
 
-#define IMU_BUF_MAX_SIZE 1000
-
+/** IMU Parameters **/
 typedef struct imu_params_t {
   int imu_idx;
   real_t rate;
@@ -2173,30 +2190,29 @@ typedef struct imu_params_t {
   real_t g;
 } imu_params_t;
 
-typedef struct imu_buf_t {
-  timestamp_t ts[IMU_BUF_MAX_SIZE];
-  real_t acc[IMU_BUF_MAX_SIZE][3];
-  real_t gyr[IMU_BUF_MAX_SIZE][3];
+/** IMU Buffer **/
+#define IMU_BUFFER_MAX_SIZE 1000
+
+typedef struct imu_buffer_t {
+  timestamp_t ts[IMU_BUFFER_MAX_SIZE];
+  real_t acc[IMU_BUFFER_MAX_SIZE][3];
+  real_t gyr[IMU_BUFFER_MAX_SIZE][3];
   int size;
-} imu_buf_t;
+} imu_buffer_t;
 
-// typedef struct imu_preintegrate_t {
-//   real_t r_i[3];
-//   real_t v_i[3];
-//   real_t q_i[4];
-//   real_t ba_i[3];
-//   real_t bg_i[3];
+void imu_buffer_setup(imu_buffer_t *imu_buf);
+void imu_buffer_add(imu_buffer_t *imu_buf,
+                    const timestamp_t ts,
+                    const real_t acc[3],
+                    const real_t gyr[3]);
+void imu_buffer_clear(imu_buffer_t *imu_buf);
+void imu_buffer_copy(const imu_buffer_t *from, imu_buffer_t *to);
+void imu_buffer_print(const imu_buffer_t *imu_buf);
 
-//   real_t r_j[3];
-//   real_t v_j[3];
-//   real_t q_j[4];
-//   real_t ba_j[3];
-//   real_t bg_j[3];
-// } imu_preintegrate_t;
-
+/** IMU Factor **/
 typedef struct imu_factor_t {
   // IMU buffer and parameters
-  imu_buf_t imu_buf;
+  imu_buffer_t imu_buf;
   imu_params_t *imu_params;
 
   // Parameters
@@ -2254,26 +2270,18 @@ typedef struct imu_factor_t {
   real_t J_biases_j[15 * 6];
 } imu_factor_t;
 
+/** IMU Factor Hash **/
 typedef struct imu_factor_hash_t {
   timestamp_t key;
   imu_factor_t *value;
 } imu_factor_hash_t;
 
-void imu_buf_setup(imu_buf_t *imu_buf);
-void imu_buf_add(imu_buf_t *imu_buf,
-                 const timestamp_t ts,
-                 const real_t acc[3],
-                 const real_t gyr[3]);
-void imu_buf_clear(imu_buf_t *imu_buf);
-void imu_buf_copy(const imu_buf_t *from, imu_buf_t *to);
-void imu_buf_print(const imu_buf_t *imu_buf);
-
 void imu_propagate(const real_t pose_k[7],
                    const real_t vel_k[3],
-                   const imu_buf_t *imu_buf,
+                   const imu_buffer_t *imu_buf,
                    real_t pose_kp1[7],
                    real_t vel_kp1[3]);
-void imu_initial_attitude(const imu_buf_t *imu_buf, real_t q_WS[4]);
+void imu_initial_attitude(const imu_buffer_t *imu_buf, real_t q_WS[4]);
 void imu_factor_propagate_step(imu_factor_t *factor,
                                const real_t a_i[3],
                                const real_t w_i[3],
@@ -2294,7 +2302,7 @@ void imu_factor_form_G_matrix(const imu_factor_t *factor,
                               real_t G_dt[15 * 18]);
 void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
-                      imu_buf_t *imu_buf,
+                      imu_buffer_t *imu_buf,
                       pose_t *pose_i,
                       velocity_t *v_i,
                       imu_biases_t *biases_i,
@@ -2304,6 +2312,10 @@ void imu_factor_setup(imu_factor_t *factor,
 void imu_factor_reset(imu_factor_t *factor);
 int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
 int imu_factor_eval(void *factor_ptr);
+int imu_factor_ceres_eval(void *factor_ptr,
+                          real_t **params,
+                          real_t *r_out,
+                          real_t **J_out);
 
 ////////////////////////
 // JOINT-ANGLE FACTOR //
@@ -2376,6 +2388,10 @@ void calib_camera_factor_setup(calib_camera_factor_t *factor,
                                const real_t z[2],
                                const real_t var[2]);
 int calib_camera_factor_eval(void *factor_ptr);
+int calib_camera_factor_ceres_eval(void *factor_ptr,
+                                   real_t **params,
+                                   real_t *r_out,
+                                   real_t **J_out);
 
 /////////////////////////
 // CALIB-IMUCAM FACTOR //
@@ -2430,6 +2446,10 @@ void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
                                const real_t v[2],
                                const real_t var[2]);
 int calib_imucam_factor_eval(void *factor_ptr);
+int calib_imucam_factor_ceres_eval(void *factor_ptr,
+                                   real_t **params,
+                                   real_t *r_out,
+                                   real_t **J_out);
 
 /////////////////////////
 // CALIB-GIMBAL FACTOR //
@@ -3022,6 +3042,7 @@ void calib_camera_solve(calib_camera_t *calib);
 // CAMERA-IMU CALIBRATION //
 ////////////////////////////
 
+/** IMU-camera calibration view **/
 typedef struct calib_imucam_view_t {
   timestamp_t ts;
   int cam_idx;
@@ -3035,77 +3056,11 @@ typedef struct calib_imucam_view_t {
   calib_imucam_factor_t *factors;
 } calib_imucam_view_t;
 
+/** IMU-camera Viewset **/
 typedef struct calib_imucam_viewset_t {
   timestamp_t key;
   calib_imucam_view_t **value;
 } calib_imucam_viewset_t;
-
-typedef struct fiducial_buf_t {
-  fiducial_event_t **data;
-  int size;
-  int capacity;
-} fiducial_buf_t;
-
-typedef struct calib_imucam_t {
-  // Settings
-  int fix_fiducial;
-  int fix_poses;
-  int fix_velocities;
-  int fix_biases;
-  int fix_cam_params;
-  int fix_cam_exts;
-  int fix_time_delay;
-  int verbose;
-  int max_iter;
-
-  // Flags
-  int imu_ok;
-  int cams_ok;
-  int imu_started;
-  int state_initialized;
-
-  // Counters
-  int num_cams;
-  int num_views;
-  int num_states;
-  int num_vision_factors;
-  int num_imu_factors;
-
-  // Variables
-  timestamp_t *timestamps;
-
-  pose_hash_t *poses;
-  velocity_hash_t *velocities;
-  imu_biases_hash_t *biases;
-
-  fiducial_t *fiducial;
-  extrinsic_t *cam_exts;
-  extrinsic_t *imu_ext;
-  camera_params_t *cam_params;
-  time_delay_t *time_delay;
-  imu_params_t *imu_params;
-
-  // Buffer
-  fiducial_buf_t *fiducial_buf;
-  imu_buf_t imu_buf;
-
-  // Factors
-  calib_imucam_viewset_t *view_sets;
-  imu_factor_hash_t *imu_factors;
-  marg_factor_t *marg;
-} calib_imucam_t;
-
-fiducial_buf_t *fiducial_buf_malloc();
-void fiducial_buf_clear(fiducial_buf_t *buf);
-void fiducial_buf_free(fiducial_buf_t *buf);
-void fiducial_buf_add(fiducial_buf_t *buf,
-                      const timestamp_t ts,
-                      const int cam_idx,
-                      const int num_corners,
-                      const int *tag_ids,
-                      const int *corner_indices,
-                      const real_t *object_points,
-                      const real_t *keypoints);
 
 calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
                                               const int cam_idx,
@@ -3122,6 +3077,56 @@ calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
                                               camera_params_t *cam_params,
                                               time_delay_t *time_delay);
 void calib_imucam_view_free(calib_imucam_view_t *view);
+
+/** IMU-camera Calibrator **/
+typedef struct calib_imucam_t {
+  // Settings
+  int fix_fiducial;
+  int fix_poses;
+  int fix_velocities;
+  int fix_biases;
+  int fix_cam_params;
+  int fix_cam_exts;
+  int fix_time_delay;
+  int verbose;
+  int max_iter;
+
+  // Flags
+  int imu_ok;
+  int cams_ok;
+  int state_initialized;
+
+  // Counters
+  int num_imus;
+  int num_cams;
+  int num_views;
+  int num_states;
+  int num_vision_factors;
+  int num_imu_factors;
+
+  // Variables
+  // -- State parameters
+  timestamp_t *timestamps;
+  pose_hash_t *poses;
+  velocity_hash_t *velocities;
+  imu_biases_hash_t *biases;
+  fiducial_t *fiducial;
+  // -- Calibration parameters
+  extrinsic_t *cam_exts;
+  extrinsic_t *imu_ext;
+  camera_params_t *cam_params;
+  time_delay_t *time_delay;
+  imu_params_t *imu_params;
+
+  // Buffer
+  fiducial_buffer_t *fiducial_buffer;
+  imu_buffer_t imu_buf;
+
+  // Factors
+  calib_imucam_viewset_t *view_sets;
+  imu_factor_hash_t *imu_factors;
+  marg_factor_t *marg;
+} calib_imucam_t;
 
 calib_imucam_t *calib_imucam_malloc();
 void calib_imucam_free(calib_imucam_t *calib);
@@ -3417,7 +3422,7 @@ typedef struct tsf_t {
 
   // IMU
   imu_params_t *imu_params;
-  imu_buf_t imu_buf;
+  imu_buffer_t imu_buf;
   extrinsic_t *imu_ext;
   time_delay_t *time_delay;
 

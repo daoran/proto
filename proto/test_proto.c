@@ -1,5 +1,6 @@
 #include "proto.h"
 #include "munit.h"
+#include "stb_ds.h"
 
 /* TEST PARAMS */
 #define TEST_DATA_PATH "./test_data/"
@@ -3692,6 +3693,48 @@ int test_extrinsics() {
   return 0;
 }
 
+int test_fiducial() {
+  fiducial_t fiducial;
+
+  real_t data[7] = {1.0, 2.0, 3.0, 1.0, 0.1, 0.2, 0.3};
+  fiducial_setup(&fiducial, data);
+
+  MU_ASSERT(fltcmp(fiducial.data[0], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(fiducial.data[1], 2.0) == 0.0);
+  MU_ASSERT(fltcmp(fiducial.data[2], 3.0) == 0.0);
+  MU_ASSERT(fltcmp(fiducial.data[3], 1.0) == 0.0);
+  MU_ASSERT(fltcmp(fiducial.data[4], 0.1) == 0.0);
+  MU_ASSERT(fltcmp(fiducial.data[5], 0.2) == 0.0);
+  MU_ASSERT(fltcmp(fiducial.data[6], 0.3) == 0.0);
+
+  return 0;
+}
+
+int test_fiducial_buffer() {
+  const timestamp_t ts = 0;
+  const int cam_idx = 1;
+  const int n = 2;
+  const int tag_ids[2] = {1, 2};
+  const int corner_idxs[2] = {1, 2};
+  const real_t pts[2 * 3] = {0.0, 0.0, 0.0, 1.0, 1.0, 1.0};
+  const real_t kps[2 * 2] = {0.0, 0.0, 1.0, 1.0};
+
+  fiducial_buffer_t *buf = fiducial_buffer_malloc();
+  fiducial_buffer_add(buf, ts, cam_idx, n, tag_ids, corner_idxs, pts, kps);
+
+  MU_ASSERT(buf->data[0]->ts == ts);
+  MU_ASSERT(buf->data[0]->cam_idx == cam_idx);
+  MU_ASSERT(buf->data[0]->num_corners == n);
+  MU_ASSERT(vec_equals(buf->data[0]->object_points, pts, n * 3) == 1);
+  MU_ASSERT(vec_equals(buf->data[0]->keypoints, kps, n * 2) == 1);
+  MU_ASSERT(buf->size == 1);
+  MU_ASSERT(buf->capacity > 1);
+
+  fiducial_buffer_free(buf);
+
+  return 0;
+}
+
 int test_imu_biases() {
   timestamp_t ts = 1;
   imu_biases_t biases;
@@ -4223,21 +4266,21 @@ int test_idf_factor() {
   return 0;
 }
 
-int test_imu_buf_setup() {
-  imu_buf_t imu_buf;
-  imu_buf_setup(&imu_buf);
+int test_imu_buffer_setup() {
+  imu_buffer_t imu_buf;
+  imu_buffer_setup(&imu_buf);
 
   return 0;
 }
 
-int test_imu_buf_add() {
-  imu_buf_t imu_buf;
-  imu_buf_setup(&imu_buf);
+int test_imu_buffer_add() {
+  imu_buffer_t imu_buf;
+  imu_buffer_setup(&imu_buf);
 
   timestamp_t ts = 0;
   real_t acc[3] = {1.0, 2.0, 3.0};
   real_t gyr[3] = {1.0, 2.0, 3.0};
-  imu_buf_add(&imu_buf, ts, acc, gyr);
+  imu_buffer_add(&imu_buf, ts, acc, gyr);
 
   MU_ASSERT(imu_buf.size == 1);
   MU_ASSERT(imu_buf.ts[0] == ts);
@@ -4251,15 +4294,15 @@ int test_imu_buf_add() {
   return 0;
 }
 
-int test_imu_buf_clear() {
-  imu_buf_t imu_buf;
-  imu_buf_setup(&imu_buf);
+int test_imu_buffer_clear() {
+  imu_buffer_t imu_buf;
+  imu_buffer_setup(&imu_buf);
 
   timestamp_t ts = 0;
   real_t acc[3] = {1.0, 2.0, 3.0};
   real_t gyr[3] = {1.0, 2.0, 3.0};
-  imu_buf_add(&imu_buf, ts, acc, gyr);
-  imu_buf_clear(&imu_buf);
+  imu_buffer_add(&imu_buf, ts, acc, gyr);
+  imu_buffer_clear(&imu_buf);
 
   MU_ASSERT(imu_buf.size == 0);
   MU_ASSERT(imu_buf.ts[0] == 0);
@@ -4273,18 +4316,18 @@ int test_imu_buf_clear() {
   return 0;
 }
 
-int test_imu_buf_copy() {
-  imu_buf_t imu_buf;
-  imu_buf_setup(&imu_buf);
+int test_imu_buffer_copy() {
+  imu_buffer_t imu_buf;
+  imu_buffer_setup(&imu_buf);
 
   timestamp_t ts = 0;
   real_t acc[3] = {1.0, 2.0, 3.0};
   real_t gyr[3] = {1.0, 2.0, 3.0};
-  imu_buf_add(&imu_buf, ts, acc, gyr);
+  imu_buffer_add(&imu_buf, ts, acc, gyr);
 
-  imu_buf_t imu_buf2;
-  imu_buf_setup(&imu_buf2);
-  imu_buf_copy(&imu_buf, &imu_buf2);
+  imu_buffer_t imu_buf2;
+  imu_buffer_setup(&imu_buf2);
+  imu_buffer_copy(&imu_buf, &imu_buf2);
 
   MU_ASSERT(imu_buf2.size == 1);
   MU_ASSERT(imu_buf2.ts[0] == ts);
@@ -4414,13 +4457,13 @@ int test_imu_propagate() {
 
   // Setup IMU buffer
   const int n = 100;
-  imu_buf_t imu_buf;
-  imu_buf_setup(&imu_buf);
+  imu_buffer_t imu_buf;
+  imu_buffer_setup(&imu_buf);
   for (int k = 0; k < n; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
-    imu_buf_add(&imu_buf, ts, acc, gyr);
+    imu_buffer_add(&imu_buf, ts, acc, gyr);
   }
 
   // Test imu propagate
@@ -4461,13 +4504,13 @@ int test_imu_initial_attitude() {
 
   // Setup IMU buffer
   const int n = 1;
-  imu_buf_t imu_buf;
-  imu_buf_setup(&imu_buf);
+  imu_buffer_t imu_buf;
+  imu_buffer_setup(&imu_buf);
   for (int k = 0; k < n; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
-    imu_buf_add(&imu_buf, ts, acc, gyr);
+    imu_buffer_add(&imu_buf, ts, acc, gyr);
   }
 
   // Test imu initial attitude
@@ -4482,101 +4525,19 @@ int test_imu_initial_attitude() {
   return 0;
 }
 
-// int test_imu_factor_propagate_step() {
-//   // Setup test data
-//   imu_test_data_t test_data;
-//   setup_imu_test_data(&test_data, 5.0, 1.0);
-
-//   // Setup IMU buffer
-//   const int n = 50;
-//   imu_buf_t imu_buf;
-//   imu_buf_setup(&imu_buf);
-//   for (int k = 0; k < n; k++) {
-//     const timestamp_t ts = test_data.timestamps[k];
-//     const real_t *acc = test_data.imu_acc[k];
-//     const real_t *gyr = test_data.imu_gyr[k];
-//     imu_buf_add(&imu_buf, ts, acc, gyr);
-//   }
-
-//   // Setup state
-//   real_t pose_i[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-//   real_t r[3] = {0.0, 0.0, 0.0};
-//   real_t v[3] = {0.0, 0.0, 0.0};
-//   real_t q[4] = {1.0, 0.0, 0.0, 0.0};
-//   real_t ba[3] = {0};
-//   real_t bg[3] = {0};
-
-//   vec_copy(test_data.poses[0], 7, pose_i);
-//   vec_copy(pose_i, 3, r);
-//   vec_copy(pose_i + 3, 4, q);
-//   vec_copy(test_data.velocities[0], 3, v);
-
-//   // Integrate imu measuremenets
-//   for (int k = 1; k < imu_buf.size; k++) {
-//     const real_t dt = ts2sec(imu_buf.ts[k]) - ts2sec(imu_buf.ts[k - 1]);
-//     const real_t *a_i = imu_buf.acc[k - 1];
-//     const real_t *w_i = imu_buf.gyr[k - 1];
-//     const real_t *a_j = imu_buf.acc[k];
-//     const real_t *w_j = imu_buf.gyr[k];
-
-//     const real_t r_i[3] = {r[0], r[1], r[2]};
-//     const real_t v_i[3] = {v[0], v[1], v[2]};
-//     const real_t q_i[4] = {q[0], q[1], q[2], q[3]};
-//     const real_t ba_i[3] = {ba[0], ba[1], ba[2]};
-//     const real_t bg_i[3] = {bg[0], bg[1], bg[2]};
-
-//     // imu_factor_propagate_step(r_i,
-//     //                           v_i,
-//     //                           q_i,
-//     //                           ba_i,
-//     //                           bg_i,
-//     //                           a_i,
-//     //                           w_i,
-//     //                           a_j,
-//     //                           w_j,
-//     //                           dt,
-//     //                           r,
-//     //                           v,
-//     //                           q,
-//     //                           ba,
-//     //                           bg);
-//   }
-
-//   const real_t pose_j_est[7] = {r[0], r[1], r[2], q[0], q[1], q[2], q[3]};
-//   TF(test_data.poses[n], T_WS_j_gnd);
-//   TF_VECTOR(T_WS_j_gnd, pose_j_gnd);
-
-//   real_t dr[3] = {0};
-//   real_t dtheta = 0.0;
-//   pose_diff2(pose_j_gnd, pose_j_est, dr, &dtheta);
-//   // print_vector("pose_j [gnd]", pose_j_gnd, 7);
-//   // print_vector("pose_j [est]", pose_j_est, 7);
-//   // printf("dtheta: %f\n", dtheta);
-//   MU_ASSERT(fltcmp(dtheta, 0.0) == 0);
-
-//   // Clean up
-//   free_imu_test_data(&test_data);
-
-//   return 0;
-// }
-
 int test_imu_factor() {
   // Setup test data
   imu_test_data_t test_data;
   setup_imu_test_data(&test_data, 1.0, 0.1);
 
   // Setup IMU buffer
-  imu_buf_t imu_buf;
-  imu_buf_setup(&imu_buf);
+  imu_buffer_t imu_buf;
+  imu_buffer_setup(&imu_buf);
   for (int k = 0; k < 10; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
-    imu_buf_add(&imu_buf, ts, acc, gyr);
-
-    // printf("acc: %f, %f, %f  ", acc[0], acc[1], acc[2]);
-    // printf("gyr: %f, %f, %f  ", gyr[0], gyr[1], gyr[2]);
-    // printf("\n");
+    imu_buffer_add(&imu_buf, ts, acc, gyr);
   }
 
   // Setup IMU factor
@@ -4622,21 +4583,6 @@ int test_imu_factor() {
                    &pose_j,
                    &vel_j,
                    &biases_j);
-
-  // const char *cmd = "\
-// F = csvread('/tmp/F.csv'); \
-// state_F = csvread('/tmp/state_F.csv'); \
-// subplot(121); \
-// imagesc(F); \
-// axis 'equal'; \
-// subplot(122); \
-// imagesc(state_F); \
-// axis 'equal'; \
-// ginput();\
-// ";
-  // char syscmd[9046] = {0};
-  // sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
-  // system(syscmd);
 
   // const char *cmd = "\
 // P = csvread('/tmp/P.csv'); \
@@ -5382,13 +5328,13 @@ int test_inertial_odometry_batch() {
     const int ke = PMIN((i + 1) * N - 1, test_data.num_measurements - 1);
 
     // Setup imu buffer
-    imu_buf_t imu_buf;
-    imu_buf_setup(&imu_buf);
+    imu_buffer_t imu_buf;
+    imu_buffer_setup(&imu_buf);
     for (size_t k = 0; k < N; k++) {
       const timestamp_t ts = test_data.timestamps[ks + k];
       const real_t *acc = test_data.imu_acc[ks + k];
       const real_t *gyr = test_data.imu_gyr[ks + k];
-      imu_buf_add(&imu_buf, ts, acc, gyr);
+      imu_buffer_add(&imu_buf, ts, acc, gyr);
     }
 
     // Setup parameters
@@ -5421,6 +5367,9 @@ int test_inertial_odometry_batch() {
     odom->poses[k].data[0] += randf(-1.0, 1.0);
     odom->poses[k].data[1] += randf(-1.0, 1.0);
     odom->poses[k].data[2] += randf(-1.0, 1.0);
+    quat_perturb(odom->poses[k].data + 3, 0, randf(-1e-1, 1e-1));
+    quat_perturb(odom->poses[k].data + 3, 1, randf(-1e-1, 1e-1));
+    quat_perturb(odom->poses[k].data + 3, 2, randf(-1e-1, 1e-1));
 
     odom->vels[k].data[0] += randf(-1.0, 1.0);
     odom->vels[k].data[1] += randf(-1.0, 1.0);
@@ -5431,7 +5380,7 @@ int test_inertial_odometry_batch() {
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 0;
+  solver.verbose = 1;
   solver.param_order_func = &inertial_odometry_param_order;
   solver.cost_func = &inertial_odometry_cost;
   solver.linearize_func = &inertial_odometry_linearize_compact;
@@ -5441,120 +5390,14 @@ int test_inertial_odometry_batch() {
   solver_solve(&solver, odom);
   inertial_odometry_save(odom, "/tmp/imu_odom-est.csv");
 
-  // Clean up
-  inertial_odometry_free(odom);
-  free_imu_test_data(&test_data);
-
-  return 0;
-}
-
-int test_inertial_odometry_windowed() {
-  // Setup test data
-  imu_test_data_t test_data;
-  setup_imu_test_data(&test_data, 5.0, 1.0);
-
-  // Inertial Odometry
-  const int num_partitions = test_data.num_measurements / 20.0;
-  const size_t N = test_data.num_measurements / (real_t) num_partitions;
-  inertial_odometry_t *odom = MALLOC(inertial_odometry_t, 1);
-  // -- IMU params
-  odom->imu_params.imu_idx = 0;
-  odom->imu_params.rate = 200.0;
-  odom->imu_params.sigma_a = 0.08;
-  odom->imu_params.sigma_g = 0.004;
-  odom->imu_params.sigma_aw = 0.00004;
-  odom->imu_params.sigma_gw = 2.0e-6;
-  odom->imu_params.g = 9.81;
-  // -- Variables
-  odom->num_factors = 0;
-  odom->factors = MALLOC(imu_factor_t, num_partitions);
-  odom->poses = MALLOC(pose_t, num_partitions + 1);
-  odom->vels = MALLOC(velocity_t, num_partitions + 1);
-  odom->biases = MALLOC(imu_biases_t, num_partitions + 1);
-
-  const timestamp_t ts_i = test_data.timestamps[0];
-  const real_t *v_i = test_data.velocities[0];
-  const real_t ba_i[3] = {0, 0, 0};
-  const real_t bg_i[3] = {0, 0, 0};
-  pose_setup(&odom->poses[0], ts_i, test_data.poses[0]);
-  velocity_setup(&odom->vels[0], ts_i, v_i);
-  imu_biases_setup(&odom->biases[0], ts_i, ba_i, bg_i);
-
+  // Marginalize
   marg_factor_t *marg = marg_factor_malloc();
-
-  for (int i = 1; i < num_partitions; i++) {
-    const int ks = i * N;
-    const int ke = PMIN((i + 1) * N - 1, test_data.num_measurements - 1);
-
-    // Setup imu buffer
-    imu_buf_t imu_buf;
-    imu_buf_setup(&imu_buf);
-    for (size_t k = 0; k < N; k++) {
-      const timestamp_t ts = test_data.timestamps[ks + k];
-      const real_t *acc = test_data.imu_acc[ks + k];
-      const real_t *gyr = test_data.imu_gyr[ks + k];
-      imu_buf_add(&imu_buf, ts, acc, gyr);
-    }
-
-    // Setup parameters
-    const timestamp_t ts_j = test_data.timestamps[ke];
-    const real_t *v_j = test_data.velocities[ke];
-    const real_t ba_j[3] = {0, 0, 0};
-    const real_t bg_j[3] = {0, 0, 0};
-    pose_setup(&odom->poses[i], ts_j, test_data.poses[ke]);
-    velocity_setup(&odom->vels[i], ts_j, v_j);
-    imu_biases_setup(&odom->biases[i], ts_j, ba_j, bg_j);
-
-    // Setup IMU factor
-    imu_factor_setup(&odom->factors[i - 1],
-                     &odom->imu_params,
-                     &imu_buf,
-                     &odom->poses[i - 1],
-                     &odom->vels[i - 1],
-                     &odom->biases[i - 1],
-                     &odom->poses[i],
-                     &odom->vels[i],
-                     &odom->biases[i]);
-    imu_factor_eval(&odom->factors[i - 1]);
-    odom->num_factors++;
-
-    odom->poses[i - 1].marginalize = 1;
-    odom->vels[i - 1].marginalize = 1;
-    odom->biases[i - 1].marginalize = 1;
-    marg_factor_add(marg, IMU_FACTOR, &odom->factors[i - 1]);
-
-    break;
-  }
+  odom->poses[0].marginalize = 1;
+  odom->vels[0].marginalize = 1;
+  odom->biases[0].marginalize = 1;
+  marg_factor_add(marg, IMU_FACTOR, &odom->factors[0]);
   marg_factor_marginalize(marg);
   marg_factor_free(marg);
-
-  // Save ground truth
-  inertial_odometry_save(odom, "/tmp/imu_odom-gnd.csv");
-
-  // Perturb ground truth
-  for (int k = 0; k <= odom->num_factors; k++) {
-    odom->poses[k].data[0] += randf(-1.0, 1.0);
-    odom->poses[k].data[1] += randf(-1.0, 1.0);
-    odom->poses[k].data[2] += randf(-1.0, 1.0);
-
-    odom->vels[k].data[0] += randf(-1.0, 1.0);
-    odom->vels[k].data[1] += randf(-1.0, 1.0);
-    odom->vels[k].data[2] += randf(-1.0, 1.0);
-  }
-  inertial_odometry_save(odom, "/tmp/imu_odom-init.csv");
-
-  // Solve
-  solver_t solver;
-  solver_setup(&solver);
-  solver.verbose = 0;
-  solver.param_order_func = &inertial_odometry_param_order;
-  solver.cost_func = &inertial_odometry_cost;
-  solver.linearize_func = &inertial_odometry_linearize_compact;
-
-  // printf("num_measurements: %ld\n", test_data.num_measurements);
-  // printf("num_factors: %d\n", odom->num_factors);
-  solver_solve(&solver, odom);
-  inertial_odometry_save(odom, "/tmp/imu_odom-est.csv");
 
   // Clean up
   inertial_odometry_free(odom);
@@ -5617,8 +5460,9 @@ int test_tsf() {
   tsf_add_camera(tsf, 0, cam_res, pmodel, dmodel, cam_vec, cam0_ext);
   // tsf_add_camera(tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
 
-  // for (size_t k = 0; k < cam0_data->num_frames; k++) {
-  for (size_t k = 0; k < 10; k++) {
+  for (size_t k = 0; k < cam0_data->num_frames; k++) {
+    // for (size_t k = 0; k < 10; k++) {
+    TIC(tsf_loop);
     printf("\n");
     printf("k: %ld\n", k);
     const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
@@ -5636,6 +5480,7 @@ int test_tsf() {
     //                      cam1_frame->feature_ids,
     //                      cam1_frame->keypoints);
     tsf_update(tsf, cam0_frame->ts);
+    PRINT_TOC("tsf_loop", tsf_loop);
   }
 
   // Clean up
@@ -5895,7 +5740,8 @@ int test_calib_camera_mono_batch() {
 
   // Setup camera calibration problem
   calib_camera_t *calib = calib_camera_malloc();
-  calib->verbose = false;
+  calib->verbose = 1;
+  calib->max_iter = 30;
   calib_camera_add_camera(calib,
                           0,
                           cam_res,
@@ -5912,7 +5758,7 @@ int test_calib_camera_mono_batch() {
   return 0;
 }
 
-int test_calib_camera_mono_incremental() {
+int test_calib_camera_mono_ceres() {
   const char *data_path = TEST_CAM_APRIL "/cam0";
 
   // Initialize camera intrinsics
@@ -5925,7 +5771,7 @@ int test_calib_camera_mono_incremental() {
 
   // Setup camera calibration problem
   calib_camera_t *calib = calib_camera_malloc();
-  calib->verbose = false;
+  calib->verbose = 0;
   calib_camera_add_camera(calib,
                           0,
                           cam_res,
@@ -5934,6 +5780,77 @@ int test_calib_camera_mono_incremental() {
                           cam_params,
                           cam_ext);
 
+  // Batch solve
+  calib_camera_add_data(calib, 0, data_path);
+
+  // Setup solver
+  ceres_init();
+  ceres_problem_t *problem = ceres_create_problem();
+  ceres_local_parameterization_t *pose_pm =
+      ceres_create_pose_local_parameterization();
+
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      const timestamp_t ts = calib->timestamps[view_idx];
+      calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
+      if (view == NULL) {
+        continue;
+      }
+
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_camera_factor_t *factor = &view->factors[factor_idx];
+        real_t **param_ptrs = factor->params;
+        int num_residuals = 2;
+        int num_params = 3;
+        int param_sizes[3] = {
+            7, // Pose
+            7, // Camera extrinsic
+            8, // Camera parameters
+        };
+        ceres_problem_add_residual_block(problem,
+                                         &calib_camera_factor_ceres_eval,
+                                         factor,
+                                         NULL,
+                                         NULL,
+                                         num_residuals,
+                                         num_params,
+                                         param_sizes,
+                                         param_ptrs);
+
+        ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
+        ceres_set_parameterization(problem, param_ptrs[1], pose_pm);
+      } // For each calib factor
+    }   // For each cameras
+  }     // For each views
+
+  // Solve
+  ceres_solve(problem, 20);
+  calib_camera_print(calib);
+
+
+  // Clean up
+  calib_camera_free(calib);
+  ceres_free_problem(problem);
+
+  return 0;
+}
+
+int test_calib_camera_mono_incremental() {
+  const char *data_path = TEST_CAM_APRIL "/cam0";
+
+  // Initialize camera intrinsics
+  const int res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  const real_t cam_vec[8] =
+      {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
+
+  // Setup camera calibration problem
+  calib_camera_t *calib = calib_camera_malloc();
+  calib->verbose = 0;
+  calib_camera_add_camera(calib, 0, res, pm, dm, cam_vec, cam_ext);
+
   // Incremental solve
   int window_size = 2;
   int cam_idx = 0;
@@ -5941,6 +5858,7 @@ int test_calib_camera_mono_incremental() {
   char **files = list_files(data_path, &num_files);
 
   calib->verbose = 0;
+  TIC(calib_camera_loop);
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
     // Load aprilgrid
     aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
@@ -5986,6 +5904,9 @@ int test_calib_camera_mono_incremental() {
     aprilgrid_free(grid);
   }
   // calib_camera_print(calib);
+  const real_t time_taken = TOC(calib_camera_loop);
+  const real_t rate_hz = num_files / time_taken;
+  printf("%d frames in %.2f [s] or %.2f Hz\n", num_files, time_taken, rate_hz);
 
   // Clean up
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
@@ -5997,13 +5918,13 @@ int test_calib_camera_mono_incremental() {
   return 0;
 }
 
-int test_calib_camera_stereo() {
+int test_calib_camera_stereo_batch() {
   // Initialize camera intrinsics
   int num_cams = 2;
   char *data_dir = TEST_CAM_APRIL "/cam%d";
   const int cam_res[2] = {752, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
   const real_t focal = pinhole_focal(cam_res[0], 90.0);
   const real_t cx = cam_res[0] / 2.0;
   const real_t cy = cam_res[1] / 2.0;
@@ -6012,30 +5933,20 @@ int test_calib_camera_stereo() {
                       {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0}};
 
   camera_params_t cam_params[2];
-  camera_params_setup(&cam_params[0],
-                      0,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      cam[0]);
-  camera_params_setup(&cam_params[1],
-                      1,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      cam[1]);
+  camera_params_setup(&cam_params[0], 0, cam_res, pmodel, dmodel, cam[0]);
+  camera_params_setup(&cam_params[1], 1, cam_res, pmodel, dmodel, cam[1]);
 
   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
     char data_path[1024] = {0};
     sprintf(data_path, data_dir, cam_idx);
 
     calib_camera_t *cam_calib = calib_camera_malloc();
-    cam_calib->verbose = false;
+    cam_calib->verbose = 0;
     calib_camera_add_camera(cam_calib,
                             0,
                             cam_res,
-                            proj_model,
-                            dist_model,
+                            pmodel,
+                            dmodel,
                             cam[cam_idx],
                             cam_ext);
     calib_camera_add_data(cam_calib, 0, data_path);
@@ -6107,19 +6018,20 @@ int test_calib_camera_stereo() {
   TF_VECTOR(T_CiCj, cam1_ext);
 
   calib_camera_t *stereo_calib = calib_camera_malloc();
-  stereo_calib->verbose = false;
+  stereo_calib->verbose = 1;
+  stereo_calib->max_iter = 50;
   calib_camera_add_camera(stereo_calib,
                           0,
                           cam_res,
-                          proj_model,
-                          dist_model,
+                          pmodel,
+                          dmodel,
                           cam_params[0].data,
                           cam0_ext);
   calib_camera_add_camera(stereo_calib,
                           1,
                           cam_res,
-                          proj_model,
-                          dist_model,
+                          pmodel,
+                          dmodel,
                           cam_params[1].data,
                           cam1_ext);
   for (int cam_idx = 0; cam_idx < stereo_calib->num_cams; cam_idx++) {
@@ -6128,7 +6040,457 @@ int test_calib_camera_stereo() {
     calib_camera_add_data(stereo_calib, cam_idx, data_path);
   }
   calib_camera_solve(stereo_calib);
+  calib_camera_print(stereo_calib);
   calib_camera_free(stereo_calib);
+
+  return 0;
+}
+
+int test_calib_camera_stereo_ceres() {
+  // Initialize camera intrinsics
+  int num_cams = 2;
+  char *data_dir = TEST_CAM_APRIL "/cam%d";
+  const int cam_res[2] = {752, 480};
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  const real_t focal = pinhole_focal(cam_res[0], 90.0);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  real_t cam[2][8] = {{focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0},
+                      {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0}};
+  camera_params_t cam_params[2];
+  camera_params_setup(&cam_params[0], 0, cam_res, pmodel, dmodel, cam[0]);
+  camera_params_setup(&cam_params[1], 1, cam_res, pmodel, dmodel, cam[1]);
+
+  // Initialize camera extrinsics
+  camchain_t *camchain = camchain_malloc(num_cams);
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    char data_path[1024] = {0};
+    sprintf(data_path, data_dir, cam_idx);
+
+    // Get camera data
+    int num_files = 0;
+    char **files = list_files(data_path, &num_files);
+
+    // Exit if no calibration data
+    if (num_files == 0) {
+      for (int view_idx = 0; view_idx < num_files; view_idx++) {
+        free(files[view_idx]);
+      }
+      free(files);
+      return -1;
+    }
+
+    for (int view_idx = 0; view_idx < num_files; view_idx++) {
+      // Load aprilgrid
+      aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
+      if (grid->corners_detected == 0) {
+        free(files[view_idx]);
+        aprilgrid_free(grid);
+        continue;
+      }
+
+      // Get aprilgrid measurements
+      const timestamp_t ts = grid->timestamp;
+      const int n = grid->corners_detected;
+      int *tag_ids = MALLOC(int, n);
+      int *corner_indices = MALLOC(int, n);
+      real_t *kps = MALLOC(real_t, n * 2);
+      real_t *pts = MALLOC(real_t, n * 3);
+      aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
+
+      // Estimate relative pose T_CiF and add to camchain
+      real_t T_CiF[4 * 4] = {0};
+      if (solvepnp_camera(&cam_params[cam_idx], kps, pts, n, T_CiF) == 0) {
+        camchain_add_pose(camchain, cam_idx, ts, T_CiF);
+      }
+
+      // Clean up
+      free(tag_ids);
+      free(corner_indices);
+      free(kps);
+      free(pts);
+      aprilgrid_free(grid);
+      free(files[view_idx]);
+    }
+    free(files);
+  }
+  camchain_adjacency(camchain);
+  real_t T_CiCj[4 * 4] = {0};
+  camchain_find(camchain, 0, 1, T_CiCj);
+  camchain_free(camchain);
+
+  // Setup Camera calibrator
+  const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  TF_VECTOR(T_CiCj, cam1_ext);
+
+  calib_camera_t *calib = calib_camera_malloc();
+  calib->verbose = 0;
+  calib_camera_add_camera(calib,
+                          0,
+                          cam_res,
+                          pmodel,
+                          dmodel,
+                          cam_params[0].data,
+                          cam0_ext);
+  calib_camera_add_camera(calib,
+                          1,
+                          cam_res,
+                          pmodel,
+                          dmodel,
+                          cam_params[1].data,
+                          cam1_ext);
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    char data_path[1024] = {0};
+    sprintf(data_path, data_dir, cam_idx);
+    calib_camera_add_data(calib, cam_idx, data_path);
+  }
+  // calib_camera_solve(calib);
+
+
+  // Setup solver
+  ceres_init();
+  ceres_problem_t *problem = ceres_create_problem();
+  ceres_local_parameterization_t *pose_pm =
+      ceres_create_pose_local_parameterization();
+
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      const timestamp_t ts = calib->timestamps[view_idx];
+      calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
+      if (view == NULL) {
+        continue;
+      }
+
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_camera_factor_t *factor = &view->factors[factor_idx];
+        real_t **param_ptrs = factor->params;
+        int num_residuals = 2;
+        int num_params = 3;
+        int param_sizes[3] = {
+            7, // Pose
+            7, // Camera extrinsic
+            8, // Camera parameters
+        };
+        ceres_problem_add_residual_block(problem,
+                                         &calib_camera_factor_ceres_eval,
+                                         factor,
+                                         NULL,
+                                         NULL,
+                                         num_residuals,
+                                         num_params,
+                                         param_sizes,
+                                         param_ptrs);
+
+        ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
+        ceres_set_parameterization(problem, param_ptrs[1], pose_pm);
+      } // For each calib factor
+    }   // For each cameras
+  }     // For each views
+
+  // Solve
+  ceres_solve(problem, 20);
+  calib_camera_print(calib);
+
+
+  // Clean up
+  calib_camera_free(calib);
+  ceres_free_problem(problem);
+
+  return 0;
+}
+
+int test_calib_imucam_add_imu() {
+  // Setup
+  const int imu_rate = 200;
+  const real_t n_a = 0.08;
+  const real_t n_g = 0.004;
+  const real_t n_aw = 0.00004;
+  const real_t n_gw = 2.0e-6;
+  const real_t g = 9.81;
+  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+
+  calib_imucam_t *calib = calib_imucam_malloc();
+  calib_imucam_add_imu(calib, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext);
+
+  // Assert
+  MU_ASSERT(calib->imu_params->rate == imu_rate);
+  MU_ASSERT(fltcmp(calib->imu_params->sigma_aw, n_aw) == 0);
+  MU_ASSERT(fltcmp(calib->imu_params->sigma_gw, n_gw) == 0);
+  MU_ASSERT(fltcmp(calib->imu_params->sigma_a, n_a) == 0);
+  MU_ASSERT(fltcmp(calib->imu_params->sigma_g, n_g) == 0);
+  MU_ASSERT(fltcmp(calib->imu_params->g, g) == 0);
+  MU_ASSERT(vec_equals(calib->imu_ext->data, imu_ext, 7) == 1);
+  MU_ASSERT(calib->num_imus == 1);
+
+  // Clean up
+  calib_imucam_free(calib);
+
+  return 0;
+}
+
+int test_calib_imucam_add_camera() {
+  // Setup
+  const int res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam_vec[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+
+  calib_imucam_t *calib = calib_imucam_malloc();
+  calib_imucam_add_camera(calib, 0, res, pm, dm, cam_vec, cam_ext);
+
+  // Assert
+  MU_ASSERT(calib->cam_params[0].resolution[0] == 752);
+  MU_ASSERT(calib->cam_params[0].resolution[1] == 480);
+  MU_ASSERT(strcmp(calib->cam_params[0].proj_model, pm) == 0);
+  MU_ASSERT(strcmp(calib->cam_params[0].dist_model, dm) == 0);
+  MU_ASSERT(vec_equals(calib->cam_params[0].data, cam_vec, 8) == 1);
+  MU_ASSERT(vec_equals(calib->cam_exts[0].data, cam_ext, 7) == 1);
+
+  // Clean up
+  calib_imucam_free(calib);
+
+  return 0;
+}
+
+int test_calib_imucam_add_imu_event() {
+  // Setup
+  calib_imucam_t *calib = calib_imucam_malloc();
+
+  // -- Add imu
+  const int imu_rate = 200;
+  const real_t n_a = 0.08;
+  const real_t n_g = 0.004;
+  const real_t n_aw = 0.00004;
+  const real_t n_gw = 2.0e-6;
+  const real_t g = 9.81;
+  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  calib_imucam_add_imu(calib, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext);
+  MU_ASSERT(calib->imu_ok == 0);
+  MU_ASSERT(calib->num_imus == 1);
+
+  // -- Add imu event
+  const timestamp_t ts = 1;
+  const real_t acc[3] = {1.0, 2.0, 3.0};
+  const real_t gyr[3] = {4.0, 5.0, 6.0};
+  calib_imucam_add_imu_event(calib, ts, acc, gyr);
+
+  // Assert
+  MU_ASSERT(calib->imu_buf.size == 1);
+  MU_ASSERT(calib->imu_buf.ts[0] == ts);
+  MU_ASSERT(vec_equals(calib->imu_buf.acc[0], acc, 3) == 1);
+  MU_ASSERT(vec_equals(calib->imu_buf.gyr[0], gyr, 3) == 1);
+  MU_ASSERT(calib->imu_ok == 1);
+
+  // Clean up
+  calib_imucam_free(calib);
+
+  return 0;
+}
+
+int test_calib_imucam_add_fiducial_event() {
+  // Setup
+  calib_imucam_t *calib = calib_imucam_malloc();
+  // -- Add Imu
+  const int imu_rate = 200;
+  const real_t n_a = 0.08;
+  const real_t n_g = 0.004;
+  const real_t n_aw = 0.00004;
+  const real_t n_gw = 2.0e-6;
+  const real_t g = 9.81;
+  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  calib_imucam_add_imu(calib, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext);
+  calib->imu_ok = 1;
+  // -- Add camera
+  const int res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam_vec[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  calib_imucam_add_camera(calib, 0, res, pm, dm, cam_vec, cam_ext);
+
+  // Add fiducial event
+  const timestamp_t ts = 1;
+  const int cam_idx = 1;
+  const int n = 2;
+  const int tag_ids[2] = {1, 2};
+  const int corner_idxs[2] = {1, 2};
+  const real_t pts[2 * 3] = {0.0, 0.0, 0.0, 1.0, 1.0, 1.0};
+  const real_t kps[2 * 2] = {0.0, 0.0, 1.0, 1.0};
+  calib_imucam_add_fiducial_event(calib,
+                                  ts,
+                                  cam_idx,
+                                  n,
+                                  tag_ids,
+                                  corner_idxs,
+                                  pts,
+                                  kps);
+
+  // Assert
+  const fiducial_buffer_t *buf = calib->fiducial_buffer;
+  MU_ASSERT(buf->data[0]->ts == ts);
+  MU_ASSERT(buf->data[0]->cam_idx == cam_idx);
+  MU_ASSERT(buf->data[0]->num_corners == n);
+  MU_ASSERT(vec_equals(buf->data[0]->object_points, pts, n * 3) == 1);
+  MU_ASSERT(vec_equals(buf->data[0]->keypoints, kps, n * 2) == 1);
+  MU_ASSERT(buf->size == 1);
+  MU_ASSERT(buf->capacity > 1);
+
+  // Clean up
+  calib_imucam_free(calib);
+
+  return 0;
+}
+
+int test_calib_imucam_update() {
+  // Setup
+  calib_imucam_t *calib = calib_imucam_malloc();
+  // -- Add Imu
+  const int imu_rate = 200;
+  const real_t n_a = 0.08;
+  const real_t n_g = 0.004;
+  const real_t n_aw = 0.00004;
+  const real_t n_gw = 2.0e-6;
+  const real_t g = 9.81;
+  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  calib_imucam_add_imu(calib, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext);
+  calib->imu_ok = 1;
+  // -- Add camera
+  const int res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam_vec[8] = {
+      458.654,
+      457.296,
+      367.215,
+      248.375,
+      -0.28340811,
+      0.07395907,
+      0.00019359,
+      1.76187114e-05,
+  };
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  calib_imucam_add_camera(calib, 0, res, pm, dm, cam_vec, cam_ext);
+
+  // Test update
+  char *data_dir = "/data/proto/imu_april/";
+  int num_cams = 1;
+  int num_imus = 1;
+  timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
+
+  for (int k = 0; k < timeline->timeline_length; k++) {
+  // for (int k = 0; k < 10; k++) {
+    // Extract timeline events. Add either imu or fiducial event
+    for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+      timeline_event_t *event = timeline->timeline_events[k][i];
+      const timestamp_t ts = event->ts;
+
+      if (event->type == IMU_EVENT) {
+        const imu_event_t *data = &event->data.imu;
+        calib_imucam_add_imu_event(calib, ts, data->acc, data->gyr);
+
+      } else if (event->type == FIDUCIAL_EVENT) {
+        const fiducial_event_t *data = &event->data.fiducial;
+        const int cam_idx = data->cam_idx;
+        calib_imucam_add_fiducial_event(calib,
+                                        ts,
+                                        cam_idx,
+                                        data->num_corners,
+                                        data->tag_ids,
+                                        data->corner_indices,
+                                        data->object_points,
+                                        data->keypoints);
+      }
+    }
+
+    // Trigger update
+    calib_imucam_update(calib);
+  }
+
+  // Setup ceres-solver
+  ceres_init();
+  ceres_problem_t *problem = ceres_create_problem();
+  ceres_local_parameterization_t *pose_pm =
+      ceres_create_pose_local_parameterization();
+
+  for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      const timestamp_t ts = calib->timestamps[view_idx];
+      calib_imucam_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
+      if (view == NULL) {
+        continue;
+      }
+
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_imucam_factor_t *factor = &view->factors[factor_idx];
+        real_t **param_ptrs = factor->params;
+        int num_residuals = 2;
+        int num_params = 6;
+        int param_sizes[6] = {
+            7, // Fiducial extrinsic
+            7, // Imu pose
+            7, // Imu extrinsic
+            7, // Camera extrinsic
+            8, // Camera parameters
+            1, // Time delay
+        };
+        ceres_problem_add_residual_block(problem,
+                                         &calib_imucam_factor_ceres_eval,
+                                         factor,
+                                         NULL,
+                                         NULL,
+                                         num_residuals,
+                                         num_params,
+                                         param_sizes,
+                                         param_ptrs);
+
+        ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
+        ceres_set_parameterization(problem, param_ptrs[1], pose_pm);
+        ceres_set_parameterization(problem, param_ptrs[2], pose_pm);
+        ceres_set_parameterization(problem, param_ptrs[3], pose_pm);
+      }
+    }
+  }
+
+  for (int k = 0; k < hmlen(calib->imu_factors); k++) {
+    imu_factor_t *factor = calib->imu_factors[k].value;
+    real_t **param_ptrs = factor->params;
+    int num_residuals = 15;
+    int num_params = 6;
+    int param_sizes[6] = {
+        7, // Pose i
+        3, // Vel i
+        6, // IMU biases i
+        7, // Pose j
+        3, // Vel j
+        6, // IMU biases j
+    };
+    ceres_problem_add_residual_block(problem,
+                                     &imu_factor_ceres_eval,
+                                     factor,
+                                     NULL,
+                                     NULL,
+                                     num_residuals,
+                                     num_params,
+                                     param_sizes,
+                                     param_ptrs);
+    ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
+    ceres_set_parameterization(problem, param_ptrs[3], pose_pm);
+  }
+  ceres_set_parameter_constant(problem, calib->cam_params[0].data);
+  ceres_set_parameter_constant(problem, calib->cam_exts[0].data);
+  ceres_set_parameter_constant(problem, calib->time_delay->data);
+
+  // Solve
+  ceres_solve(problem, 30);
+  calib_imucam_print(calib);
+
+  // Clean up
+  calib_imucam_free(calib);
+  timeline_free(timeline);
+  ceres_free_problem(problem);
 
   return 0;
 }
@@ -6136,10 +6498,10 @@ int test_calib_camera_stereo() {
 int test_calib_imucam_batch() {
   // clang-format off
   // int num_cams = 2;
-  const int cam_res[2] = {752, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_params[2][8] = {
+  const int res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam_vec[2][8] = {
     {458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05},
     {457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.555e-05}
   };
@@ -6157,42 +6519,23 @@ int test_calib_imucam_batch() {
   TF_VECTOR(T_SC0, imu_ext);
   // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   const int imu_rate = 200;
-  const real_t sigma_a = 0.08;
-  const real_t sigma_g = 0.004;
-  const real_t sigma_aw = 0.00004;
-  const real_t sigma_gw = 2.0e-6;
+  const real_t n_a = 0.08;
+  const real_t n_g = 0.004;
+  const real_t n_aw = 0.00004;
+  const real_t n_gw = 2.0e-6;
   const real_t g = 9.81;
   // clang-format on
 
   calib_imucam_t *calib = calib_imucam_malloc();
-  calib_imucam_add_imu(calib,
-                       imu_rate,
-                       sigma_a,
-                       sigma_g,
-                       sigma_aw,
-                       sigma_gw,
-                       g,
-                       imu_ext);
-  calib_imucam_add_camera(calib,
-                          0,
-                          cam_res,
-                          proj_model,
-                          dist_model,
-                          cam_params[0],
-                          cam_exts[0]);
-  calib_imucam_add_camera(calib,
-                          1,
-                          cam_res,
-                          proj_model,
-                          dist_model,
-                          cam_params[1],
-                          cam_exts[1]);
+  calib_imucam_add_imu(calib, imu_rate, n_a, n_g, n_aw, n_gw, g, imu_ext);
+  calib_imucam_add_camera(calib, 0, res, pm, dm, cam_vec[0], cam_exts[0]);
+  calib_imucam_add_camera(calib, 1, res, pm, dm, cam_vec[1], cam_exts[1]);
 
   // Incremental solve
   char *data_dir = "/data/proto/imu_april/";
   int num_cams = 1;
   int num_imus = 1;
-  int window_size = 5;
+  int window_size = 20;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
   for (int k = 0; k < timeline->timeline_length; k++) {
@@ -6224,16 +6567,20 @@ int test_calib_imucam_batch() {
     if (calib_imucam_update(calib) == 0) {
       // // Incremental solve
       // if (calib->num_views >= window_size) {
-      //   calib->max_iter = 10;
-      //   calib->verbose = 1;
+      //   calib->max_iter = 20;
+      //   calib->verbose = 0;
       //   calib_imucam_solve(calib);
-      //   calib_imucam_marginalize(calib);
+      //   // calib_imucam_marginalize(calib);
+      //   // k = timeline->timeline_length;
 
       //   real_t reproj_rmse = 0.0;
       //   real_t reproj_mean = 0.0;
       //   real_t reproj_median = 0.0;
       //   if (calib->num_views) {
-      //     calib_imucam_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+      //     calib_imucam_errors(calib,
+      //                         &reproj_rmse,
+      //                         &reproj_mean,
+      //                         &reproj_median);
       //   }
 
       //   char cam0_str[100] = {0};
@@ -6254,7 +6601,7 @@ int test_calib_imucam_batch() {
       // PRINT_TOC("time", start);
     }
 
-    // if (calib->num_views >= 500) {
+    // if (calib->num_views >= 200) {
     //   break;
     // }
   }
@@ -6849,8 +7196,8 @@ int test_gnuplot_xyplot() {
   // First dataset
   {
     int num_points = 5;
-    double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
-    double yvals[5] = {5.0, 3.0, 1.0, 3.0, 5.0};
+    real_t xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    real_t yvals[5] = {5.0, 3.0, 1.0, 3.0, 5.0};
     gnuplot_send(gnuplot, "set title 'Plot 1'");
     gnuplot_send_xy(gnuplot, "$DATA1", xvals, yvals, num_points);
   }
@@ -6858,8 +7205,8 @@ int test_gnuplot_xyplot() {
   // Second dataset
   {
     int num_points = 5;
-    double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
-    double yvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    real_t xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    real_t yvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
     gnuplot_send_xy(gnuplot, "$DATA2", xvals, yvals, num_points);
   }
 
@@ -6884,8 +7231,8 @@ int test_gnuplot_multiplot() {
   // First plot
   {
     int num_points = 5;
-    double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
-    double yvals[5] = {5.0, 3.0, 1.0, 3.0, 5.0};
+    real_t xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    real_t yvals[5] = {5.0, 3.0, 1.0, 3.0, 5.0};
     gnuplot_send(gnuplot, "set title 'Plot 1'");
     gnuplot_send_xy(gnuplot, "$DATA1", xvals, yvals, num_points);
     gnuplot_send(gnuplot, "plot $DATA1 title 'data1' with lines lt 1");
@@ -6894,8 +7241,8 @@ int test_gnuplot_multiplot() {
   // Second plot
   {
     int num_points = 5;
-    double xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
-    double yvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    real_t xvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+    real_t yvals[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
     gnuplot_send(gnuplot, "set title 'Plot 2'");
     gnuplot_send_xy(gnuplot, "$DATA2", xvals, yvals, num_points);
     gnuplot_send(gnuplot, "plot $DATA2 title 'data1' with lines lt 2");
@@ -7240,6 +7587,8 @@ void test_suite() {
   MU_ADD_TEST(test_timeline);
   MU_ADD_TEST(test_pose);
   MU_ADD_TEST(test_extrinsics);
+  MU_ADD_TEST(test_fiducial);
+  MU_ADD_TEST(test_fiducial_buffer);
   MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
   MU_ADD_TEST(test_features);
@@ -7253,13 +7602,12 @@ void test_suite() {
   MU_ADD_TEST(test_ba_factor);
   MU_ADD_TEST(test_camera_factor);
   MU_ADD_TEST(test_idf_factor);
-  MU_ADD_TEST(test_imu_buf_setup);
-  MU_ADD_TEST(test_imu_buf_add);
-  MU_ADD_TEST(test_imu_buf_clear);
-  MU_ADD_TEST(test_imu_buf_copy);
+  MU_ADD_TEST(test_imu_buffer_setup);
+  MU_ADD_TEST(test_imu_buffer_add);
+  MU_ADD_TEST(test_imu_buffer_clear);
+  MU_ADD_TEST(test_imu_buffer_copy);
   MU_ADD_TEST(test_imu_propagate);
   MU_ADD_TEST(test_imu_initial_attitude);
-  // MU_ADD_TEST(test_imu_factor_propagate_step);
   MU_ADD_TEST(test_imu_factor);
   MU_ADD_TEST(test_joint_factor);
   MU_ADD_TEST(test_calib_camera_factor);
@@ -7267,7 +7615,6 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_marg);
   MU_ADD_TEST(test_inertial_odometry_batch);
-  MU_ADD_TEST(test_inertial_odometry_windowed);
   MU_ADD_TEST(test_tsf);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
@@ -7276,8 +7623,15 @@ void test_suite() {
   // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_camchain);
   MU_ADD_TEST(test_calib_camera_mono_batch);
+  MU_ADD_TEST(test_calib_camera_mono_ceres);
   MU_ADD_TEST(test_calib_camera_mono_incremental);
-  MU_ADD_TEST(test_calib_camera_stereo);
+  MU_ADD_TEST(test_calib_camera_stereo_batch);
+  MU_ADD_TEST(test_calib_camera_stereo_ceres);
+  MU_ADD_TEST(test_calib_imucam_add_imu);
+  MU_ADD_TEST(test_calib_imucam_add_camera);
+  MU_ADD_TEST(test_calib_imucam_add_imu_event);
+  MU_ADD_TEST(test_calib_imucam_add_fiducial_event);
+  MU_ADD_TEST(test_calib_imucam_update);
   MU_ADD_TEST(test_calib_imucam_batch);
   // MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);

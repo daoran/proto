@@ -8,10 +8,10 @@
 #include <stb_ds.h>
 #endif
 
-// #ifdef USE_APRILGRID
-// #define APRILGRID_IMPLEMENTATION
-// #include "aprilgrid.h"
-// #endif
+#ifdef USE_APRILGRID
+#define APRILGRID_IMPLEMENTATION
+#include "aprilgrid.h"
+#endif
 
 // #ifdef USE_SBGC
 // #define SBGC_IMPLEMENTATION
@@ -3716,6 +3716,20 @@ int check_jacobian(const char *jac_name,
 #ifdef USE_LAPACK
 
 // LAPACK fortran prototypes
+extern void sgesdd_(char *jobz,
+                    int *m,
+                    int *n,
+                    float *a,
+                    int *lda,
+                    float *s,
+                    float *u,
+                    int *ldu,
+                    float *vt,
+                    int *ldvt,
+                    float *work,
+                    int *lwork,
+                    int *iwork,
+                    int *info);
 extern void dgesdd_(char *jobz,
                     int *m,
                     int *n,
@@ -3748,12 +3762,20 @@ int __lapack_svd(real_t *A, int m, int n, real_t *s, real_t *U, real_t *Vt) {
   int num_sv = (m < n) ? m : n;
   int *iwork = MALLOC(int, 8 * num_sv);
 
+#if PRECISION == 1
+  sgesdd_("A", &m, &n, At, &lda, s, U, &m, Vt, &n, work, &lwork, iwork, &info);
+#else
   dgesdd_("A", &m, &n, At, &lda, s, U, &m, Vt, &n, work, &lwork, iwork, &info);
+#endif
   lwork = work_size;
   work = MALLOC(real_t, lwork);
 
   // Compute SVD
+#if PRECISION == 1
+  sgesdd_("A", &m, &n, At, &lda, s, U, &m, Vt, &n, work, &lwork, iwork, &info);
+#else
   dgesdd_("A", &m, &n, At, &lda, s, U, &m, Vt, &n, work, &lwork, iwork, &info);
+#endif
   if (info > 0) {
     LOG_ERROR("Failed to compute svd!\n");
   }
@@ -4421,12 +4443,20 @@ void __lapack_qr(real_t *A, int m, int n, real_t *R) {
   real_t *work = &work_size;
   real_t *tau = MALLOC(real_t, (m < n) ? m : n);
 
+#if PRECISION == 1
+  sgeqrf_(&m, &n, At, &lda, tau, work, &lwork, &info);
+#else
   dgeqrf_(&m, &n, At, &lda, tau, work, &lwork, &info);
+#endif
   lwork = work_size;
   work = MALLOC(real_t, lwork);
 
   // Compute QR
+#if PRECISION == 1
+  sgeqrf_(&m, &n, At, &lda, tau, work, &lwork, &info);
+#else
   dgeqrf_(&m, &n, At, &lda, tau, work, &lwork, &info);
+#endif
   // mat_transpose(At, m, n, R);
 
   // Transpose result and zero lower triangular
@@ -6060,6 +6090,7 @@ void quat_delta(const real_t dalpha[3], real_t dq[4]) {
   dq[1] = vector[0];
   dq[2] = vector[1];
   dq[3] = vector[2];
+  quat_normalize(dq);
 }
 
 /**
@@ -6069,6 +6100,7 @@ void quat_update(real_t q[4], const real_t dalpha[3]) {
   const real_t dq[4] = {1.0, 0.5 * dalpha[0], 0.5 * dalpha[1], 0.5 * dalpha[2]};
   real_t q_new[4] = {0};
   quat_mul(q, dq, q_new);
+  quat_normalize(q_new);
   q[0] = q_new[0];
   q[1] = q_new[1];
   q[2] = q_new[2];
@@ -9488,6 +9520,82 @@ void fiducial_print(const char *prefix, const fiducial_t *fiducial) {
   fiducial_fprint(prefix, fiducial, stdout);
 }
 
+/**
+ * Malloc fiducial buffer.
+ */
+fiducial_buffer_t *fiducial_buffer_malloc() {
+  fiducial_buffer_t *buf = MALLOC(fiducial_buffer_t, 1);
+  buf->data = CALLOC(fiducial_event_t *, 10);
+  buf->size = 0;
+  buf->capacity = 10;
+  return buf;
+}
+
+/**
+ * Clear fiducial buffer.
+ */
+void fiducial_buffer_clear(fiducial_buffer_t *buf) {
+  for (int i = 0; i < buf->size; i++) {
+    free(buf->data[i]->tag_ids);
+    free(buf->data[i]->corner_indices);
+    free(buf->data[i]->object_points);
+    free(buf->data[i]->keypoints);
+    free(buf->data[i]);
+    buf->data[i] = NULL;
+  }
+  buf->size = 0;
+}
+
+/**
+ * Free fiducial buffer.
+ */
+void fiducial_buffer_free(fiducial_buffer_t *buf) {
+  fiducial_buffer_clear(buf);
+  free(buf->data);
+  free(buf);
+}
+
+/**
+ * Add fiducial data to buffer.
+ */
+void fiducial_buffer_add(fiducial_buffer_t *buf,
+                         const timestamp_t ts,
+                         const int cam_idx,
+                         const int num_corners,
+                         const int *tag_ids,
+                         const int *corner_indices,
+                         const real_t *object_points,
+                         const real_t *keypoints) {
+  // Pre-check
+  if (buf->size == 10) {
+    FATAL("Fiducial buffer is full!\n");
+  }
+
+  // Add to buffer
+  int idx = buf->size;
+
+  buf->data[idx] = MALLOC(fiducial_event_t, 1);
+  buf->data[idx]->ts = ts;
+  buf->data[idx]->cam_idx = cam_idx;
+  buf->data[idx]->num_corners = num_corners;
+
+  buf->data[idx]->tag_ids = CALLOC(int, num_corners);
+  buf->data[idx]->corner_indices = CALLOC(int, num_corners);
+  buf->data[idx]->object_points = CALLOC(real_t, num_corners * 3);
+  buf->data[idx]->keypoints = CALLOC(real_t, num_corners * 2);
+  for (int i = 0; i < num_corners; i++) {
+    buf->data[idx]->tag_ids[i] = tag_ids[i];
+    buf->data[idx]->corner_indices[i] = corner_indices[i];
+    buf->data[idx]->object_points[i * 3 + 0] = object_points[i * 3 + 0];
+    buf->data[idx]->object_points[i * 3 + 1] = object_points[i * 3 + 1];
+    buf->data[idx]->object_points[i * 3 + 2] = object_points[i * 3 + 2];
+    buf->data[idx]->keypoints[i * 2 + 0] = keypoints[i * 2 + 0];
+    buf->data[idx]->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
+  }
+
+  buf->size++;
+}
+
 ///////////////////////
 // CAMERA-PARAMETERS //
 ///////////////////////
@@ -11648,8 +11756,8 @@ int idf_factor_eval(void *factor_ptr) {
 /**
  * Setup IMU buffer
  */
-void imu_buf_setup(imu_buf_t *imu_buf) {
-  for (int k = 0; k < IMU_BUF_MAX_SIZE; k++) {
+void imu_buffer_setup(imu_buffer_t *imu_buf) {
+  for (int k = 0; k < IMU_BUFFER_MAX_SIZE; k++) {
     imu_buf->ts[k] = 0.0;
 
     imu_buf->acc[k][0] = 0.0;
@@ -11667,7 +11775,7 @@ void imu_buf_setup(imu_buf_t *imu_buf) {
 /**
  * Print IMU buffer
  */
-void imu_buf_print(const imu_buf_t *imu_buf) {
+void imu_buffer_print(const imu_buffer_t *imu_buf) {
   for (int k = 0; k < imu_buf->size; k++) {
     const real_t *acc = imu_buf->acc[k];
     const real_t *gyr = imu_buf->gyr[k];
@@ -11682,11 +11790,11 @@ void imu_buf_print(const imu_buf_t *imu_buf) {
 /**
  * Add measurement to IMU buffer
  */
-void imu_buf_add(imu_buf_t *imu_buf,
-                 const timestamp_t ts,
-                 const real_t acc[3],
-                 const real_t gyr[3]) {
-  assert(imu_buf->size < IMU_BUF_MAX_SIZE);
+void imu_buffer_add(imu_buffer_t *imu_buf,
+                    const timestamp_t ts,
+                    const real_t acc[3],
+                    const real_t gyr[3]) {
+  assert(imu_buf->size < IMU_BUFFER_MAX_SIZE);
   const int k = imu_buf->size;
   imu_buf->ts[k] = ts;
   imu_buf->acc[k][0] = acc[0];
@@ -11701,7 +11809,7 @@ void imu_buf_add(imu_buf_t *imu_buf,
 /**
  * Clear IMU buffer
  */
-void imu_buf_clear(imu_buf_t *imu_buf) {
+void imu_buffer_clear(imu_buffer_t *imu_buf) {
   for (int k = 0; k < imu_buf->size; k++) {
     timestamp_t *ts = &imu_buf->ts[k];
     real_t *acc = imu_buf->acc[k];
@@ -11723,7 +11831,7 @@ void imu_buf_clear(imu_buf_t *imu_buf) {
 /**
  * Copy IMU buffer
  */
-void imu_buf_copy(const imu_buf_t *src, imu_buf_t *dst) {
+void imu_buffer_copy(const imu_buffer_t *src, imu_buffer_t *dst) {
   dst->size = 0;
   for (int k = 0; k < src->size; k++) {
     dst->ts[k] = src->ts[k];
@@ -11744,7 +11852,7 @@ void imu_buf_copy(const imu_buf_t *src, imu_buf_t *dst) {
  */
 void imu_propagate(const real_t pose_k[7],
                    const real_t vel_k[3],
-                   const imu_buf_t *imu_buf,
+                   const imu_buffer_t *imu_buf,
                    real_t pose_kp1[7],
                    real_t vel_kp1[3]) {
   // Initialize state
@@ -11809,7 +11917,7 @@ void imu_propagate(const real_t pose_k[7],
 /**
  * Initialize roll and pitch with accelerometer measurements.
  */
-void imu_initial_attitude(const imu_buf_t *imu_buf, real_t q_WS[4]) {
+void imu_initial_attitude(const imu_buffer_t *imu_buf, real_t q_WS[4]) {
   // Get average accelerometer measurements
   real_t ax = 0.0;
   real_t ay = 0.0;
@@ -12286,7 +12394,7 @@ void imu_factor_form_G_matrix(const imu_factor_t *factor,
  */
 void imu_factor_setup(imu_factor_t *factor,
                       imu_params_t *imu_params,
-                      imu_buf_t *imu_buf,
+                      imu_buffer_t *imu_buf,
                       pose_t *pose_i,
                       velocity_t *vel_i,
                       imu_biases_t *biases_i,
@@ -12295,7 +12403,7 @@ void imu_factor_setup(imu_factor_t *factor,
                       imu_biases_t *biases_j) {
   // IMU buffer and parameters
   factor->imu_params = imu_params;
-  imu_buf_copy(imu_buf, &factor->imu_buf);
+  imu_buffer_copy(imu_buf, &factor->imu_buf);
 
   // Parameters
   factor->num_params = 6;
@@ -12633,7 +12741,6 @@ void imu_factor_biases_j_jac(imu_factor_t *factor) {
   dot(factor->sqrt_info, 15, 15, J_biases_j, 15, 6, factor->jacs[5]);
 }
 
-
 /**
  * Evaluate IMU factor
  * @returns `0` for success, `-1` for failure
@@ -12835,6 +12942,18 @@ int imu_factor_eval(void *factor_ptr) {
   imu_factor_biases_j_jac(factor);
 
   return 0;
+}
+
+int imu_factor_ceres_eval(void *factor_ptr,
+                          real_t **params,
+                          real_t *r_out,
+                          real_t **J_out) {
+  CERES_FACTOR_EVAL(imu_factor,
+                    ((imu_factor_t *) factor_ptr),
+                    imu_factor_eval,
+                    params,
+                    r_out,
+                    J_out);
 }
 
 ////////////////////////
@@ -13143,6 +13262,18 @@ int calib_camera_factor_eval(void *factor_ptr) {
   dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, factor->jacs[2]);
 
   return 0;
+}
+
+int calib_camera_factor_ceres_eval(void *factor_ptr,
+                                   real_t **params,
+                                   real_t *r_out,
+                                   real_t **J_out) {
+  CERES_FACTOR_EVAL(calib_camera_factor,
+                    ((calib_camera_factor_t *) factor_ptr),
+                    calib_camera_factor_eval,
+                    params,
+                    r_out,
+                    J_out);
 }
 
 /////////////////////////
@@ -13464,6 +13595,18 @@ int calib_imucam_factor_eval(void *factor_ptr) {
   dot(sqrt_info, 2, 2, J_time_delay, 2, 1, factor->jacs[5]);
 
   return 0;
+}
+
+int calib_imucam_factor_ceres_eval(void *factor_ptr,
+                                   real_t **params,
+                                   real_t *r_out,
+                                   real_t **J_out) {
+  CERES_FACTOR_EVAL(calib_imucam_factor,
+                    ((calib_imucam_factor_t *) factor_ptr),
+                    calib_imucam_factor_eval,
+                    params,
+                    r_out,
+                    J_out);
 }
 
 /////////////////////////
@@ -14422,9 +14565,10 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
   marg->H = H;
   marg->b = b;
+  // param_order_print(marg->hash);
 
-  mat_save("/tmp/H.csv", marg->H, ls, ls);
-  mat_save("/tmp/b.csv", marg->b, ls, 1);
+  // mat_save("/tmp/H.csv", marg->H, ls, ls);
+  // mat_save("/tmp/b.csv", marg->b, ls, 1);
 }
 
 /**
@@ -14445,15 +14589,15 @@ static void marg_factor_schur_complement(marg_factor_t *marg) {
   marg->H_marg = H_marg;
   marg->b_marg = b_marg;
 
-  // // Enforce symmetry: H_marg = 0.5 * (H_marg + H_marg')
+  // Enforce symmetry: H_marg = 0.5 * (H_marg + H_marg')
   // if (marg->cond_hessian) {
   //   enforce_spd(marg->H_marg, r, r);
   // }
 
-  // mat_save("/tmp/H.csv", marg->H, ls, ls);
-  // mat_save("/tmp/b.csv", marg->b, ls, 1);
-  // mat_save("/tmp/H_marg.csv", marg->H_marg, r, r);
-  // mat_save("/tmp/b_marg.csv", marg->b_marg, r, 1);
+  mat_save("/tmp/H.csv", marg->H, ls, ls);
+  mat_save("/tmp/b.csv", marg->b, ls, 1);
+  mat_save("/tmp/H_marg.csv", marg->H_marg, r, r);
+  mat_save("/tmp/b_marg.csv", marg->b_marg, r, 1);
 }
 
 /**
@@ -14477,6 +14621,11 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
   real_t *W_sqrt = CALLOC(real_t, r * r);
   real_t *W_inv_sqrt = CALLOC(real_t, r * r);
   // mat_save("/tmp/H.csv", marg->H_marg, r, r);
+
+  // for (int i = 0; i < r; i++) {
+  //   marg->H_marg[i * r + i] += 1;
+  // }
+  // print_matrix("H_marg", marg->H_marg, r, r);
 
   // -- Eigen decomposition
   if (eig_sym(marg->H_marg, r, r, V, w) != 0) {
@@ -14508,6 +14657,7 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
   dot(W_inv_sqrt, r, r, Vt, r, r, J_inv);
   mat_scale(J_inv, r, r, -1.0);
   marg->eigen_decomp_ok = 1;
+  // print_vector("w", w, r);
 
   // Check J' * J == H_marg
   if (marg->debug) {
@@ -14518,10 +14668,11 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
 
     real_t diff = 0.0;
     for (int i = 0; i < (r * r); i++) {
-      diff += fabs(H_[i] - marg->H_marg[i]);
+      diff += pow(H_[i] - marg->H_marg[i], 2);
     }
+    diff = sqrt(diff);
 
-    if (diff > 1e-4) {
+    if (diff > 1e-2) {
       marg->eigen_decomp_ok = 0;
       LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
       LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
@@ -14531,9 +14682,9 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
     free(H_);
   }
 
-  // // Check J_inv * J == eye
+  // Check J_inv * J == eye
   // if (marg->debug) {
-  //   if (check_inv(*J_inv, *J, r) != 0) {
+  //   if (check_inv(J, J_inv, r) != 0) {
   //     marg->eigen_decomp_ok = 0;
   //     LOG_WARN("inv(J) * J != eye\n");
   //   }
@@ -15162,7 +15313,7 @@ int solver_solve(solver_t *solver, void *data) {
   solver->dx = CALLOC(real_t, sv_size);
   real_t J_km1 = solver_cost(solver, data);
   if (solver->verbose) {
-    printf("iter 0: lambda_k: %.2e, J: %.2e\n", solver->lambda, J_km1);
+    printf("iter 0: lambda_k: %.2e, J: %.4e\n", solver->lambda, J_km1);
   }
 
   // Start cholmod workspace
@@ -15195,11 +15346,12 @@ int solver_solve(solver_t *solver, void *data) {
       solver_params_restore(solver, x_copy);
       solver->linearize = 0;
     }
+    lambda_k = clip_value(lambda_k, 1e-8, 1e8);
     solver_params_free(solver, x_copy);
 
     // Display
     if (solver->verbose) {
-      printf("iter %d: lambda_k: %.2e, J: %.2e, dJ: %.2e, norm(dx): %.2e\n",
+      printf("iter %d: lambda_k: %.2e, J: %.4e, dJ: %.2e, norm(dx): %.2e\n",
              iter + 1,
              lambda_k,
              J_km1,
@@ -15704,6 +15856,10 @@ void calib_camera_add_camera(calib_camera_t *calib,
                       dist_model,
                       cam_params);
   extrinsic_setup(&calib->cam_exts[cam_idx], cam_ext);
+  if (cam_idx == 0) {
+    calib->cam_exts[0].fix = 1;
+  }
+
   calib->num_cams++;
   calib->cams_ok = 1;
 }
@@ -16208,6 +16364,10 @@ void calib_camera_linsolve(const void *data,
 
   // Solve reduced system: D_bar * dx_r = b1_bar
   real_t *dx_r = MALLOC(real_t, r * 1);
+  // Hack: precondition D_bar so linear-solver doesn't complain
+  for (int i = 0; i < r; i++) {
+    D_bar[i * r + i] += 1e-4;
+  }
   chol_solve(D_bar, b1_bar, dx_r, r);
 
   // Back-subsitute
@@ -16261,7 +16421,7 @@ void calib_camera_solve(calib_camera_t *calib) {
   solver.cost_func = &calib_camera_cost;
   solver.param_order_func = &calib_camera_param_order;
   solver.linearize_func = &calib_camera_linearize_compact;
-  solver.linsolve_func = &calib_camera_linsolve;
+  // solver.linsolve_func = &calib_camera_linsolve;
   solver_solve(&solver, calib);
 
   if (calib->verbose) {
@@ -16272,70 +16432,6 @@ void calib_camera_solve(calib_camera_t *calib) {
 ///////////////////////////////
 // CALIB IMU-CAM CALIBRATION //
 ///////////////////////////////
-
-fiducial_buf_t *fiducial_buf_malloc() {
-  fiducial_buf_t *buf = MALLOC(fiducial_buf_t, 1);
-  buf->data = CALLOC(fiducial_event_t *, 10);
-  buf->size = 0;
-  buf->capacity = 10;
-  return buf;
-}
-
-void fiducial_buf_clear(fiducial_buf_t *buf) {
-  for (int i = 0; i < buf->size; i++) {
-    free(buf->data[i]->tag_ids);
-    free(buf->data[i]->corner_indices);
-    free(buf->data[i]->object_points);
-    free(buf->data[i]->keypoints);
-    free(buf->data[i]);
-    buf->data[i] = NULL;
-  }
-  buf->size = 0;
-}
-
-void fiducial_buf_free(fiducial_buf_t *buf) {
-  fiducial_buf_clear(buf);
-  free(buf->data);
-  free(buf);
-}
-
-void fiducial_buf_add(fiducial_buf_t *buf,
-                      const timestamp_t ts,
-                      const int cam_idx,
-                      const int num_corners,
-                      const int *tag_ids,
-                      const int *corner_indices,
-                      const real_t *object_points,
-                      const real_t *keypoints) {
-  // Pre-check
-  if (buf->size == 10) {
-    FATAL("Fiducial buffer is full!\n");
-  }
-
-  // Add to buffer
-  int idx = buf->size;
-
-  buf->data[idx] = MALLOC(fiducial_event_t, 1);
-  buf->data[idx]->ts = ts;
-  buf->data[idx]->cam_idx = cam_idx;
-  buf->data[idx]->num_corners = num_corners;
-
-  buf->data[idx]->tag_ids = CALLOC(int, num_corners);
-  buf->data[idx]->corner_indices = CALLOC(int, num_corners);
-  buf->data[idx]->object_points = CALLOC(real_t, num_corners * 3);
-  buf->data[idx]->keypoints = CALLOC(real_t, num_corners * 2);
-  for (int i = 0; i < num_corners; i++) {
-    buf->data[idx]->tag_ids[i] = tag_ids[i];
-    buf->data[idx]->corner_indices[i] = corner_indices[i];
-    buf->data[idx]->object_points[i * 3 + 0] = object_points[i * 3 + 0];
-    buf->data[idx]->object_points[i * 3 + 1] = object_points[i * 3 + 1];
-    buf->data[idx]->object_points[i * 3 + 2] = object_points[i * 3 + 2];
-    buf->data[idx]->keypoints[i * 2 + 0] = keypoints[i * 2 + 0];
-    buf->data[idx]->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
-  }
-
-  buf->size++;
-}
 
 calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
                                               const int cam_idx,
@@ -16454,10 +16550,10 @@ calib_imucam_t *calib_imucam_malloc() {
   // Flags
   calib->imu_ok = 0;
   calib->cams_ok = 0;
-  calib->imu_started = 0;
   calib->state_initialized = 0;
 
   // Counters
+  calib->num_imus = 0;
   calib->num_cams = 0;
   calib->num_views = 0;
   calib->num_states = 0;
@@ -16471,14 +16567,16 @@ calib_imucam_t *calib_imucam_malloc() {
   calib->biases = NULL;
   calib->fiducial = NULL;
   calib->cam_exts = NULL;
+  calib->imu_ext = NULL;
   calib->cam_params = NULL;
+  calib->time_delay = NULL;
   calib->imu_params = NULL;
   hmdefault(calib->poses, NULL);
   hmdefault(calib->velocities, NULL);
 
   // Buffers
-  calib->fiducial_buf = fiducial_buf_malloc();
-  imu_buf_setup(&calib->imu_buf);
+  calib->fiducial_buffer = fiducial_buffer_malloc();
+  imu_buffer_setup(&calib->imu_buf);
 
   // Factors
   calib->view_sets = NULL;
@@ -16504,7 +16602,7 @@ void calib_imucam_free(calib_imucam_t *calib) {
   free(calib->imu_params);
 
   // Fiducial buffer
-  fiducial_buf_free(calib->fiducial_buf);
+  fiducial_buffer_free(calib->fiducial_buffer);
 
   // View sets
   if (calib->num_views) {
@@ -16676,6 +16774,8 @@ void calib_imucam_add_imu(calib_imucam_t *calib,
   calib->time_delay = MALLOC(time_delay_t, 1);
   time_delay_setup(calib->time_delay, 0.0);
   calib->time_delay->fix = calib->fix_time_delay;
+
+  calib->num_imus++;
 }
 
 /**
@@ -16710,7 +16810,11 @@ void calib_imucam_add_camera(calib_imucam_t *calib,
                       cam_params);
   extrinsic_setup(&calib->cam_exts[cam_idx], cam_ext);
   calib->cam_params[cam_idx].fix = calib->fix_cam_params;
-  calib->cam_exts[cam_idx].fix = calib->fix_cam_exts;
+  if (cam_idx == 0) {
+    calib->cam_exts[0].fix = true;
+  } else {
+    calib->cam_exts[cam_idx].fix = calib->fix_cam_exts;
+  }
   calib->num_cams++;
   calib->cams_ok = 1;
 }
@@ -16719,8 +16823,8 @@ void calib_imucam_add_camera(calib_imucam_t *calib,
 static int calib_imucam_estimate_relative_pose(calib_imucam_t *calib,
                                                int *cam_idx,
                                                real_t T_CiF[4 * 4]) {
-  for (int i = 0; i < calib->fiducial_buf->size; i++) {
-    const fiducial_event_t *data = calib->fiducial_buf->data[i];
+  for (int i = 0; i < calib->fiducial_buffer->size; i++) {
+    const fiducial_event_t *data = calib->fiducial_buffer->data[i];
     const int status = solvepnp_camera(&calib->cam_params[data->cam_idx],
                                        data->keypoints,
                                        data->object_points,
@@ -16856,9 +16960,10 @@ void calib_imucam_add_imu_event(calib_imucam_t *calib,
   assert(ts > 0);
   assert(acc != NULL);
   assert(gyr != NULL);
+  assert(calib->num_imus > 0);
 
-  imu_buf_add(&calib->imu_buf, ts, acc, gyr);
-  calib->imu_started = 1;
+  imu_buffer_add(&calib->imu_buf, ts, acc, gyr);
+  calib->imu_ok = 1;
 }
 
 /**
@@ -16878,19 +16983,19 @@ void calib_imucam_add_fiducial_event(calib_imucam_t *calib,
   assert(cam_idx >= 0);
 
   // Pre-check
-  if (num_corners == 0 || calib->imu_started == 0) {
+  if (num_corners == 0 || calib->imu_ok == 0) {
     return;
   }
 
   // Add to buffer
-  fiducial_buf_add(calib->fiducial_buf,
-                   ts,
-                   cam_idx,
-                   num_corners,
-                   tag_ids,
-                   corner_indices,
-                   object_points,
-                   keypoints);
+  fiducial_buffer_add(calib->fiducial_buffer,
+                      ts,
+                      cam_idx,
+                      num_corners,
+                      tag_ids,
+                      corner_indices,
+                      object_points,
+                      keypoints);
 }
 
 /**
@@ -16966,18 +17071,18 @@ void calib_imucam_marginalize(calib_imucam_t *calib) {
 /** Check update conditions. **/
 static int calib_imucam_update_precheck(calib_imucam_t *calib) {
   // Check fiducial buffers empty?
-  if (calib->fiducial_buf->size == 0) {
+  if (calib->fiducial_buffer->size == 0) {
     return -1;
   }
 
   // Check timestamps are same
   timestamp_t ts = 0;
-  for (int i = 0; i < calib->fiducial_buf->size; i++) {
+  for (int i = 0; i < calib->fiducial_buffer->size; i++) {
     if (i == 0) {
-      ts = calib->fiducial_buf->data[i]->ts;
+      ts = calib->fiducial_buffer->data[i]->ts;
     }
 
-    if (ts != calib->fiducial_buf->data[i]->ts) {
+    if (ts != calib->fiducial_buffer->data[i]->ts) {
       return -2;
     }
   }
@@ -17058,9 +17163,9 @@ int calib_imucam_update(calib_imucam_t *calib) {
   calib_imucam_add_state(calib, ts);
 
   // Add vision factors
-  for (int i = 0; i < calib->fiducial_buf->size; i++) {
+  for (int i = 0; i < calib->fiducial_buffer->size; i++) {
     // Fiducial data
-    const fiducial_event_t *data = calib->fiducial_buf->data[i];
+    const fiducial_event_t *data = calib->fiducial_buffer->data[i];
 
     // Calculate keypoint optical flow velocity
     real_t *optflows = calib_imucam_optflow(calib, data);
@@ -17135,8 +17240,8 @@ int calib_imucam_update(calib_imucam_t *calib) {
   }
 
   // Clear buffers
-  imu_buf_clear(&calib->imu_buf);
-  fiducial_buf_clear(calib->fiducial_buf);
+  imu_buffer_clear(&calib->imu_buf);
+  fiducial_buffer_clear(calib->fiducial_buffer);
 
   // Solve incrementally
   // if (calib->num_views >= 10) {
@@ -19408,7 +19513,7 @@ tsf_t *tsf_malloc() {
 
   // IMU
   tsf->imu_params = NULL;
-  imu_buf_setup(&tsf->imu_buf);
+  imu_buffer_setup(&tsf->imu_buf);
   tsf->imu_ext = NULL;
   tsf->time_delay = NULL;
 
@@ -19581,7 +19686,7 @@ void tsf_add_imu_event(tsf_t *tsf,
   assert(acc != NULL);
   assert(gyr != NULL);
 
-  imu_buf_add(&tsf->imu_buf, ts, acc, gyr);
+  imu_buffer_add(&tsf->imu_buf, ts, acc, gyr);
   tsf->imu_started = 1;
 }
 
@@ -20019,7 +20124,7 @@ static void tsf_marginalize(tsf_t *tsf) {
 void tsf_update(tsf_t *tsf, const timestamp_t ts) {
   tsf_process_data(tsf);
   tsf_solve(tsf);
-  tsf_marginalize(tsf);
+  // tsf_marginalize(tsf);
 
   // Update book-keeping
   // - Move current frame to previous

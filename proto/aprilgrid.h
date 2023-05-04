@@ -23,18 +23,16 @@ extern "C" {
 #define timestamp_t int64_t
 #endif
 
-#ifndef real_t
-#define real_t double
-#else
+#ifndef PRECISION
+#define PRECISION 2
+#endif
+
 #if PRECISION == 1
 typedef float real_t;
-// typedef float complex real_complex_t;
 #elif PRECISION == 2
 typedef double real_t;
-// typedef double complex real_complex_t;
 #else
 #error "Floating Point Precision not defined!"
-#endif
 #endif
 
 // MACROS
@@ -661,7 +659,11 @@ aprilgrid_t *aprilgrid_load(const char *data_path) {
   aprilgrid_parse_line(fp, "corners_detected", "int", &corners_detected);
   aprilgrid_parse_skip_line(fp);
 
+#if PRECISION == 1
+  const char *scan_format = "%d,%d,%f,%f,%f,%f,%f";
+#else
   const char *scan_format = "%d,%d,%lf,%lf,%lf,%lf,%lf";
+#endif
   for (int i = 0; i < corners_detected; i++) {
     // Parse data line
     int tag_id = 0;
@@ -749,10 +751,16 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
   for (int i = 0; i < zarray_size(dets); i++) {
     apriltag_detection_t *det;
     zarray_get(dets, i, &det);
-    aprilgrid_add_corner(grid, det->id, 0, det->p[0]);
-    aprilgrid_add_corner(grid, det->id, 1, det->p[1]);
-    aprilgrid_add_corner(grid, det->id, 2, det->p[2]);
-    aprilgrid_add_corner(grid, det->id, 3, det->p[3]);
+
+    const real_t p0[2] = {det->p[0][0], det->p[0][1]};
+    const real_t p1[2] = {det->p[1][0], det->p[1][1]};
+    const real_t p2[2] = {det->p[2][0], det->p[2][1]};
+    const real_t p3[2] = {det->p[3][0], det->p[3][1]};
+
+    aprilgrid_add_corner(grid, det->id, 0, p0);
+    aprilgrid_add_corner(grid, det->id, 1, p1);
+    aprilgrid_add_corner(grid, det->id, 2, p2);
+    aprilgrid_add_corner(grid, det->id, 3, p3);
     // num_corners += 4;
   }
   apriltag_detections_destroy(dets);

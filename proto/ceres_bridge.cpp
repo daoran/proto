@@ -141,6 +141,24 @@ static void quat_mul(const double p[4], const double q[4], double r[4]) {
 }
 
 /**
+ * Return Quaternion norm
+ */
+static double quat_norm(const double q[4]) {
+  return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+}
+
+/**
+ * Normalize Quaternion
+ */
+static void quat_normalize(double q[4]) {
+  const double n = quat_norm(q);
+  q[0] = q[0] / n;
+  q[1] = q[1] / n;
+  q[2] = q[2] / n;
+  q[3] = q[3] / n;
+}
+
+/**
  * Pose local parameterization
  */
 class PoseLocalParameterization : public ceres::LocalParameterization {
@@ -154,6 +172,7 @@ class PoseLocalParameterization : public ceres::LocalParameterization {
     double dq[4] = {0};
     quat_delta(dx + 3, dq);
     quat_mul(x + 3, dq, x_plus_dx + 3);
+    quat_normalize(x_plus_dx + 3);
 
     return true;
   }

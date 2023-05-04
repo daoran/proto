@@ -51,7 +51,7 @@ CFLAGS :=
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += -g -Wall -Wpedantic -fopenmp
 else
-	CFLAGS += -g -O3 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG -fopenmp
+	CFLAGS += -g -O2 -march=native -mtune=native -Wall -Wpedantic -DNDEBUG -fopenmp
 endif
 
 ifeq ($(ADDRESS_SANITIZER), 1)
@@ -103,7 +103,7 @@ LIBPROTO_OBJS := \
 	$(BLD_DIR)/euroc.o \
 	$(BLD_DIR)/sbgc.o \
 	$(BLD_DIR)/tis.o \
-	#$(BLD_DIR)/ceres_bridge.o
+	$(BLD_DIR)/ceres_bridge.o
 
 TESTS := \
 	test_proto \
@@ -127,7 +127,7 @@ $(BLD_DIR)/%.o: %.c %.h Makefile
 
 $(BLD_DIR)/ceres_bridge.o: ceres_bridge.cpp Makefile
 	@echo "CXX [ceres_bridge.c]"
-	@g++ -Wall -O3 -c ceres_bridge.cpp -o $(BLD_DIR)/ceres_bridge.o
+	@g++ -Wall -O3 -c ceres_bridge.cpp -o $(BLD_DIR)/ceres_bridge.o -I/usr/include/eigen3
 
 $(BLD_DIR)/libproto.a: $(LIBPROTO_OBJS)
 	@echo "AR [libproto.a]"
