@@ -12393,8 +12393,8 @@ void imu_factor_form_G_matrix(const imu_factor_t *factor,
  * IMU Factor setup
  */
 void imu_factor_setup(imu_factor_t *factor,
-                      imu_params_t *imu_params,
-                      imu_buffer_t *imu_buf,
+                      const imu_params_t *imu_params,
+                      const imu_buffer_t *imu_buf,
                       pose_t *pose_i,
                       velocity_t *vel_i,
                       imu_biases_t *biases_i,
@@ -14843,26 +14843,11 @@ int marg_factor_eval(void *marg_ptr) {
 fgraph_t *fgraph_malloc() {
   fgraph_t *fg = MALLOC(fgraph_t, 1);
 
-  // Counters
-  fg->num_imus = 0;
-  fg->num_cams = 0;
-
-  // IMUs
-  fg->imu_ext = NULL;
-  fg->imu_params = NULL;
-  fg->time_delay = NULL;
-
-  // Cameras
-  fg->cam_params = NULL;
-  fg->cam_exts = NULL;
-
-  // Factors
-  fg->ba_factor_hash = NULL;
-  fg->camera_factor_hash = NULL;
-  fg->idf_factor_hash = NULL;
-  fg->imu_factor_hash = NULL;
-  fg->calib_camera_factor_hash = NULL;
-  fg->calib_imucam_factor_hash = NULL;
+  fg->num_params = 0;
+  fg->num_factors = 0;
+  fg->params = NULL;
+  fg->factors = NULL;
+  fg->marg = NULL;
 
   return fg;
 }
@@ -14875,113 +14860,268 @@ void fgraph_free(fgraph_t *fg) {
     return;
   }
 
-  // IMUs
-  free(fg->imu_ext);
-  free(fg->imu_params);
-  free(fg->time_delay);
+  for (int i = 0; i < hmlen(fg->params); i++) {
+    free(fg->params[i].param_ptr);
+    fg->params[i].param_ptr = NULL;
+  }
+  hmfree(fg->params);
 
-  // Cameras
-  free(fg->cam_params);
-  free(fg->cam_exts);
+  for (int i = 0; i < hmlen(fg->factors); i++) {
+    free(fg->factors[i].factor_ptr);
+    fg->factors[i].factor_ptr = NULL;
+  }
+  hmfree(fg->factors);
 
-  // Factors
-  hmfree(fg->ba_factor_hash);
-  hmfree(fg->camera_factor_hash);
-  hmfree(fg->imu_factor_hash);
-  hmfree(fg->calib_camera_factor_hash);
-  hmfree(fg->calib_imucam_factor_hash);
-
-  // Clean up
+  free(fg->marg);
   free(fg);
 }
 
 /**
- * Add imu to factor graph.
+ * Add parameter to factor graph.
  */
-void fgraph_add_imu(fgraph_t *fg,
-                    const real_t imu_rate,
-                    const real_t sigma_aw,
-                    const real_t sigma_gw,
-                    const real_t sigma_a,
-                    const real_t sigma_g,
-                    const real_t g,
-                    const real_t *imu_ext,
-                    const int fix_imu_ext,
-                    const int fix_time_delay) {
-  assert(fg != NULL);
-  assert(imu_rate > 0);
-  assert(sigma_aw > 0);
-  assert(sigma_gw > 0);
-  assert(sigma_a > 0);
-  assert(sigma_g > 0);
-  assert(g > 9.0);
-  assert(imu_ext);
+int fgraph_add_param(fgraph_t *fg, const int param_type, void *param_ptr) {
+  // Get new param id
+  const int pid = fg->num_params;
 
-  if (fg->imu_params) {
-    LOG_ERROR("Currently only supports 1 IMU!\n");
-    return;
-  }
+  // Add parameter
+  param_hash_t kv = {pid, param_type, param_ptr};
+  hmputs(fg->params, kv);
 
-  // IMU parameters
-  fg->imu_params = MALLOC(imu_params_t, 1);
-  fg->imu_params->imu_idx = 0;
-  fg->imu_params->rate = imu_rate;
-  fg->imu_params->sigma_aw = sigma_aw;
-  fg->imu_params->sigma_gw = sigma_gw;
-  fg->imu_params->sigma_a = sigma_a;
-  fg->imu_params->sigma_g = sigma_g;
-  fg->imu_params->g = g;
+  // Update
+  fg->num_params++;
 
-  // IMU extrinsic
-  fg->imu_ext = MALLOC(extrinsic_t, 1);
-  extrinsic_setup(fg->imu_ext, imu_ext);
+  return pid;
+}
 
-  // Time-delay
-  fg->time_delay = MALLOC(time_delay_t, 1);
-  time_delay_setup(fg->time_delay, 0.0);
-  fg->time_delay->fix = fix_time_delay;
+/**
+ * Add factor to factor graph.
+ */
+int fgraph_add_factor(fgraph_t *fg, const int factor_type, void *factor_ptr) {
+  // Get new param id
+  const int fid = fg->num_factors;
 
-  // Number of IMUs
-  fg->num_imus = 1;
+  // Add factor
+  factor_hash_t kv = {fid, factor_type, factor_ptr};
+  hmputs(fg->factors, kv);
+
+  // Update num factors
+  fg->num_factors++;
+
+  return fid;
 }
 
 /**
  * Add camera to factor graph.
  */
-void fgraph_add_camera(fgraph_t *fg,
-                       const int cam_idx,
-                       const int cam_res[2],
-                       const char *proj_model,
-                       const char *dist_model,
-                       const real_t *cam_params,
-                       const real_t *cam_ext) {
+int fgraph_add_camera_params(fgraph_t *fg,
+                             const int cam_idx,
+                             const int cam_res[2],
+                             const char *proj_model,
+                             const char *dist_model,
+                             const real_t *cam_params,
+                             const int fix) {
   assert(fg != NULL);
-  assert(cam_idx <= fg->num_cams);
+  assert(cam_idx >= 0);
   assert(cam_res != NULL);
   assert(proj_model != NULL);
   assert(dist_model != NULL);
   assert(cam_params != NULL);
-  assert(cam_ext != NULL);
-
-  // Malloc
-  if (cam_idx > (fg->num_cams - 1)) {
-    const int new_size = fg->num_cams + 1;
-    fg->cam_params = REALLOC(fg->cam_params, camera_params_t, new_size);
-    fg->cam_exts = REALLOC(fg->cam_exts, extrinsic_t, new_size);
-  }
 
   // Camera parameters
-  camera_params_setup(&fg->cam_params[cam_idx],
+  camera_params_t *param = MALLOC(camera_params_t, 1);
+  camera_params_setup(param,
                       cam_idx,
                       cam_res,
                       proj_model,
                       dist_model,
                       cam_params);
-  // Camera extrinsic
-  extrinsic_setup(&fg->cam_exts[cam_idx], cam_ext);
 
-  // Number of cameras
-  fg->num_cams++;
+  // Add to graph
+  return fgraph_add_param(fg, CAMERA_PARAM, param);
+}
+
+/**
+ * Add time delay parameter to factor graph.
+ */
+int fgraph_add_time_delay(fgraph_t *fg, const real_t td, const int fix) {
+  time_delay_t *param = MALLOC(time_delay_t, 1);
+  time_delay_setup(param, td);
+  param->fix = fix;
+  return fgraph_add_param(fg, TIME_DELAY_PARAM, param);
+}
+
+/**
+ * Add extrinsic parameter to factor graph.
+ */
+int fgraph_add_extrinsic(fgraph_t *fg, const real_t ext[7], const int fix) {
+  extrinsic_t *param = MALLOC(extrinsic_t, 1);
+  extrinsic_setup(param, ext);
+  param->fix = fix;
+  return fgraph_add_param(fg, EXTRINSIC_PARAM, param);
+}
+
+/**
+ * Add BA factor to factor graph.
+ */
+int fgraph_add_ba_factor(fgraph_t *fg,
+                         const int param_ids[3],
+                         const real_t z[2],
+                         const real_t var[2]) {
+  pose_t *pose = hmgets(fg->params, param_ids[0]).param_ptr;
+  feature_t *feature = hmgets(fg->params, param_ids[1]).param_ptr;
+  camera_params_t *camera_params = hmgets(fg->params, param_ids[2]).param_ptr;
+
+  ba_factor_t *factor_ptr = MALLOC(ba_factor_t, 1);
+  ba_factor_setup(factor_ptr, pose, feature, camera_params, z, var);
+
+  return fgraph_add_factor(fg, BA_FACTOR, factor_ptr);
+}
+
+/**
+ * Add camera factor to factor graph.
+ */
+int fgraph_add_camera_factor(fgraph_t *fg,
+                             const int param_ids[4],
+                             const real_t z[2],
+                             const real_t var[2]) {
+  pose_t *pose = hmgets(fg->params, param_ids[0]).param_ptr;
+  feature_t *feature = hmgets(fg->params, param_ids[1]).param_ptr;
+  extrinsic_t *extrinsic = hmgets(fg->params, param_ids[2]).param_ptr;
+  camera_params_t *camera = hmgets(fg->params, param_ids[3]).param_ptr;
+
+  camera_factor_t *factor_ptr = MALLOC(camera_factor_t, 1);
+  camera_factor_setup(factor_ptr, pose, extrinsic, feature, camera, z, var);
+
+  return fgraph_add_factor(fg, CAMERA_FACTOR, factor_ptr);
+}
+
+/**
+ * Add IDF factor to factor graph.
+ */
+int fgraph_add_idf_factor(fgraph_t *fg,
+                          const int param_ids[5],
+                          const timestamp_t ts,
+                          const int cam_idx,
+                          const size_t feature_id,
+                          const real_t z[2],
+                          const real_t var[2]) {
+  pose_t *pose = hmgets(fg->params, param_ids[0]).param_ptr;
+  extrinsic_t *extrinsic = hmgets(fg->params, param_ids[1]).param_ptr;
+  camera_params_t *camera = hmgets(fg->params, param_ids[2]).param_ptr;
+  pos_t *idf_pos = hmgets(fg->params, param_ids[3]).param_ptr;
+  feature_t *idf_param = hmgets(fg->params, param_ids[4]).param_ptr;
+
+  idf_factor_t *factor_ptr = MALLOC(idf_factor_t, 1);
+  idf_factor_setup(factor_ptr,
+                   pose,
+                   extrinsic,
+                   camera,
+                   idf_pos,
+                   idf_param,
+                   ts,
+                   cam_idx,
+                   feature_id,
+                   z,
+                   var);
+
+  return fgraph_add_factor(fg, IDF_FACTOR, factor_ptr);
+}
+
+/**
+ * Add imu factor to factor graph.
+ */
+int fgraph_add_imu_factor(fgraph_t *fg,
+                          const int imu_idx,
+                          const int param_ids[6],
+                          const imu_params_t *imu_params,
+                          const imu_buffer_t *imu_buf) {
+  pose_t *pose_i = hmgets(fg->params, param_ids[0]).param_ptr;
+  velocity_t *v_i = hmgets(fg->params, param_ids[1]).param_ptr;
+  imu_biases_t *biases_i = hmgets(fg->params, param_ids[2]).param_ptr;
+  pose_t *pose_j = hmgets(fg->params, param_ids[3]).param_ptr;
+  velocity_t *v_j = hmgets(fg->params, param_ids[4]).param_ptr;
+  imu_biases_t *biases_j = hmgets(fg->params, param_ids[5]).param_ptr;
+
+  imu_factor_t *factor_ptr = MALLOC(imu_factor_t, 1);
+  imu_factor_setup(factor_ptr,
+                   imu_params,
+                   imu_buf,
+                   pose_i,
+                   v_i,
+                   biases_i,
+                   pose_j,
+                   v_j,
+                   biases_j);
+
+  return fgraph_add_factor(fg, IMU_FACTOR, factor_ptr);
+}
+
+/**
+ * Add camera calibration factor to factor graph.
+ */
+int fgraph_add_calib_camera_factor(fgraph_t *fg,
+                                   const int param_ids[3],
+                                   const int cam_idx,
+                                   const int tag_id,
+                                   const int corner_idx,
+                                   const real_t p_FFi[3],
+                                   const real_t z[2],
+                                   const real_t var[2]) {
+  pose_t *pose = hmgets(fg->params, param_ids[0]).param_ptr;
+  extrinsic_t *cam_ext = hmgets(fg->params, param_ids[1]).param_ptr;
+  camera_params_t *cam_params = hmgets(fg->params, param_ids[2]).param_ptr;
+
+  calib_camera_factor_t *factor_ptr = MALLOC(calib_camera_factor_t, 1);
+  calib_camera_factor_setup(factor_ptr,
+                            pose,
+                            cam_ext,
+                            cam_params,
+                            cam_idx,
+                            tag_id,
+                            corner_idx,
+                            p_FFi,
+                            z,
+                            var);
+
+  return fgraph_add_factor(fg, CALIB_CAMERA_FACTOR, factor_ptr);
+}
+
+/**
+ * Add imu-camera calibration factor to factor graph.
+ */
+int fgraph_add_calib_imucam_factor(fgraph_t *fg,
+                                   const int param_ids[6],
+                                   const int cam_idx,
+                                   const int tag_id,
+                                   const int corner_idx,
+                                   const real_t p_FFi[3],
+                                   const real_t z[2],
+                                   const real_t v[2],
+                                   const real_t var[2]) {
+  fiducial_t *fiducial = hmgets(fg->params, param_ids[0]).param_ptr;
+  pose_t *pose = hmgets(fg->params, param_ids[1]).param_ptr;
+  extrinsic_t *imu_ext = hmgets(fg->params, param_ids[2]).param_ptr;
+  extrinsic_t *cam_ext = hmgets(fg->params, param_ids[3]).param_ptr;
+  camera_params_t *cam_params = hmgets(fg->params, param_ids[4]).param_ptr;
+  time_delay_t *time_delay = hmgets(fg->params, param_ids[5]).param_ptr;
+
+  calib_imucam_factor_t *factor_ptr = MALLOC(calib_imucam_factor_t, 1);
+  calib_imucam_factor_setup(factor_ptr,
+                            fiducial,
+                            pose,
+                            imu_ext,
+                            cam_ext,
+                            cam_params,
+                            time_delay,
+                            cam_idx,
+                            tag_id,
+                            corner_idx,
+                            p_FFi,
+                            z,
+                            v,
+                            var);
+
+  return fgraph_add_factor(fg, CALIB_IMUCAM_FACTOR, factor_ptr);
 }
 
 ////////////

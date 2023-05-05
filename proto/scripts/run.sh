@@ -402,8 +402,9 @@ dev_euroc() {
 # run_test test_tsf
 # run_test test_ceres_example
 # run_test test_invert_block_diagonal
-run_test test_fgraph_add_imu
-# run_test test_fgraph_add_camera
+# run_test test_fgraph_add_camera_params
+# run_test test_fgraph_add_time_delay
+# run_test test_fgraph_add_extrinsic
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval

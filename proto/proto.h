@@ -1903,8 +1903,6 @@ void joint_print(const char *prefix, const joint_t *joint);
 // PARAMETERS //
 ////////////////
 
-typedef int64_t param_id_t;
-
 #define PARAM_HASH(PARAM_TYPE, HASH_NAME, KEY_TYPE)                            \
   typedef struct HASH_NAME {                                                   \
     KEY_TYPE key;                                                              \
@@ -1956,8 +1954,6 @@ void param_order_add_time_delay(param_order_t **h, time_delay_t *p, int *c);
 ////////////
 // FACTOR //
 ////////////
-
-typedef int64_t factor_id_t;
 
 #define FACTOR_EVAL_PTR                                                        \
   int (*factor_eval)(const void *factor,                                       \
@@ -2215,9 +2211,9 @@ void imu_buffer_print(const imu_buffer_t *imu_buf);
 
 /** IMU Factor **/
 typedef struct imu_factor_t {
-  // IMU buffer and parameters
+  // IMU parameters and buffer
+  const imu_params_t *imu_params;
   imu_buffer_t imu_buf;
-  imu_params_t *imu_params;
 
   // Parameters
   int num_params;
@@ -2299,8 +2295,8 @@ void imu_factor_form_G_matrix(const imu_factor_t *factor,
                               const real_t dt,
                               real_t G_dt[15 * 18]);
 void imu_factor_setup(imu_factor_t *factor,
-                      imu_params_t *imu_params,
-                      imu_buffer_t *imu_buf,
+                      const imu_params_t *imu_params,
+                      const imu_buffer_t *imu_buf,
                       pose_t *pose_i,
                       velocity_t *v_i,
                       imu_biases_t *biases_i,
@@ -2852,95 +2848,78 @@ int solver_solve(solver_t *solver, void *data);
 // FACTOR GRAPH //
 //////////////////
 
-#define FACTOR_HASH(PARAM_TYPE, HASH_NAME)                                     \
-  typedef struct HASH_NAME {                                                   \
-    factor_id_t key;                                                           \
-    PARAM_TYPE *value;                                                         \
-  } HASH_NAME;
+typedef struct param_hash_t {
+  int64_t key;
+  int param_type;
+  void *param_ptr;
+} param_hash_t;
 
-FACTOR_HASH(ba_factor_t, ba_factor_hash_t)
-FACTOR_HASH(camera_factor_t, camera_factor_hash_t)
-FACTOR_HASH(idf_factor_t, idf_factor_hash_t)
-FACTOR_HASH(imu_factor_t, imu_factor_hash_t)
-FACTOR_HASH(calib_camera_factor_t, calib_camera_factor_hash_t)
-FACTOR_HASH(calib_imucam_factor_t, calib_imucam_factor_hash_t)
+typedef struct factor_hash_t {
+  int64_t key;
+  int factor_type;
+  void *factor_ptr;
+} factor_hash_t;
 
 typedef struct fgraph_t {
-  // Counters
-  int num_imus;
-  int num_cams;
-
-  // Variables
-  // -- IMUs
-  extrinsic_t *imu_ext;
-  imu_params_t *imu_params;
-  time_delay_t *time_delay;
-  // -- Cameras
-  camera_params_t *cam_params;
-  extrinsic_t *cam_exts;
-
-  // Factors
-  ba_factor_hash_t *ba_factor_hash;
-  camera_factor_hash_t *camera_factor_hash;
-  idf_factor_hash_t *idf_factor_hash;
-  imu_factor_hash_t *imu_factor_hash;
-  calib_camera_factor_hash_t *calib_camera_factor_hash;
-  calib_imucam_factor_hash_t *calib_imucam_factor_hash;
+  int num_params;
+  int num_factors;
+  param_hash_t *params;
+  factor_hash_t *factors;
+  marg_factor_t *marg;
 } fgraph_t;
 
 fgraph_t *fgraph_malloc();
 void fgraph_free(fgraph_t *fg);
+int fgraph_add_param(fgraph_t *fg, const int param_type, void *param_ptr);
+int fgraph_add_factor(fgraph_t *fg, const int factor_type, void *factor_ptr);
 
-void fgraph_add_imu(fgraph_t *fg,
-                    const real_t imu_rate,
-                    const real_t sigma_aw,
-                    const real_t sigma_gw,
-                    const real_t sigma_a,
-                    const real_t sigma_g,
-                    const real_t g,
-                    const real_t *imu_ext,
-                    const int fix_imu_ext,
-                    const int fix_time_delay);
-void fgraph_add_camera(fgraph_t *fg,
-                       const int cam_idx,
-                       const int cam_res[2],
-                       const char *proj_model,
-                       const char *dist_model,
-                       const real_t *cam_params,
-                       const real_t *cam_ext);
+int fgraph_add_camera_params(fgraph_t *fg,
+                             const int cam_idx,
+                             const int cam_res[2],
+                             const char *proj_model,
+                             const char *dist_model,
+                             const real_t *cam_params,
+                             const int fix);
+int fgraph_add_time_delay(fgraph_t *fg, const real_t td, const int fix);
+int fgraph_add_extrinsic(fgraph_t *fg, const real_t ext[7], const int fix);
 
-factor_id_t fgraph_add_ba_factor(fgraph_t *fg,
-                                 const param_id_t param_ids[3],
-                                 const real_t z[2],
-                                 const real_t var[2]);
-factor_id_t fgraph_add_camera_factor(fgraph_t *fg,
-                                     const param_id_t param_ids[4],
-                                     const real_t z[2],
-                                     const real_t var[2]);
-factor_id_t fgraph_add_idf_factor(fgraph_t *fg,
-                                  const param_id_t param_ids[5],
-                                  const timestamp_t ts,
-                                  const int cam_idx,
-                                  const size_t feature_id,
-                                  const real_t z[2],
-                                  const real_t var[2]);
-factor_id_t fgraph_add_calib_camera_factor(fgraph_t *fg,
-                                           const param_id_t param_ids[3],
-                                           const int cam_idx,
-                                           const int tag_id,
-                                           const int corner_idx,
-                                           const real_t p_FFi[3],
-                                           const real_t z[2],
-                                           const real_t var[2]);
-factor_id_t fgraph_add_calib_imucam_factor(fgraph_t *fg,
-                                           const param_id_t param_ids[6],
-                                           const int cam_idx,
-                                           const int tag_id,
-                                           const int corner_idx,
-                                           const real_t p_FFi[3],
-                                           const real_t z[2],
-                                           const real_t v[2],
-                                           const real_t var[2]);
+int fgraph_add_ba_factor(fgraph_t *fg,
+                         const int param_ids[3],
+                         const real_t z[2],
+                         const real_t var[2]);
+int fgraph_add_camera_factor(fgraph_t *fg,
+                             const int param_ids[4],
+                             const real_t z[2],
+                             const real_t var[2]);
+int fgraph_add_idf_factor(fgraph_t *fg,
+                          const int param_ids[5],
+                          const timestamp_t ts,
+                          const int cam_idx,
+                          const size_t feature_id,
+                          const real_t z[2],
+                          const real_t var[2]);
+int fgraph_add_imu_factor(fgraph_t *fg,
+                          const int imu_idx,
+                          const int param_ids[6],
+                          const imu_params_t *imu_params,
+                          const imu_buffer_t *imu_buf);
+int fgraph_add_calib_camera_factor(fgraph_t *fg,
+                                   const int param_ids[3],
+                                   const int cam_idx,
+                                   const int tag_id,
+                                   const int corner_idx,
+                                   const real_t p_FFi[3],
+                                   const real_t z[2],
+                                   const real_t var[2]);
+int fgraph_add_calib_imucam_factor(fgraph_t *fg,
+                                   const int param_ids[6],
+                                   const int cam_idx,
+                                   const int tag_id,
+                                   const int corner_idx,
+                                   const real_t p_FFi[3],
+                                   const real_t z[2],
+                                   const real_t v[2],
+                                   const real_t var[2]);
 
 /////////////////////
 // IMU CALIBRATION //
