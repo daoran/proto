@@ -414,7 +414,7 @@ dev_euroc() {
 # run_test test_calib_camera_mono_incremental
 # run_test test_calib_camera_stereo_batch
 # run_test test_calib_camera_stereo_ceres
-# run_test test_calib_imucam_add_imu
+run_test test_calib_imucam_add_imu
 # run_test test_calib_imucam_add_camera
 # run_test test_calib_imucam_add_imu_event
 # run_test test_calib_imucam_add_fiducial_event
