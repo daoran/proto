@@ -1903,6 +1903,8 @@ void joint_print(const char *prefix, const joint_t *joint);
 // PARAMETERS //
 ////////////////
 
+typedef int64_t param_id_t;
+
 #define PARAM_HASH(PARAM_TYPE, HASH_NAME, KEY_TYPE)                            \
   typedef struct HASH_NAME {                                                   \
     KEY_TYPE key;                                                              \
@@ -1954,6 +1956,8 @@ void param_order_add_time_delay(param_order_t **h, time_delay_t *p, int *c);
 ////////////
 // FACTOR //
 ////////////
+
+typedef int64_t factor_id_t;
 
 #define FACTOR_EVAL_PTR                                                        \
   int (*factor_eval)(const void *factor,                                       \
@@ -2269,12 +2273,6 @@ typedef struct imu_factor_t {
   real_t J_vel_j[15 * 3];
   real_t J_biases_j[15 * 6];
 } imu_factor_t;
-
-/** IMU Factor Hash **/
-typedef struct imu_factor_hash_t {
-  timestamp_t key;
-  imu_factor_t *value;
-} imu_factor_hash_t;
 
 void imu_propagate(const real_t pose_k[7],
                    const real_t vel_k[3],
@@ -2753,47 +2751,6 @@ void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr);
 void marg_factor_marginalize(marg_factor_t *marg);
 int marg_factor_eval(void *marg_ptr);
 
-//////////////////
-// FACTOR GRAPH //
-//////////////////
-
-typedef struct fgraph_t {
-  // Counters
-  int num_imus;
-  int num_cams;
-
-  // Variables
-  // -- IMUs
-  extrinsic_t *imu_ext;
-  imu_params_t *imu_params;
-  time_delay_t *time_delay;
-  // -- Cameras
-  camera_params_t *cam_params;
-  extrinsic_t *cam_exts;
-
-} fgraph_t;
-
-fgraph_t *fgraph_malloc();
-void fgraph_free(fgraph_t *fg);
-
-void fgraph_add_camera(fgraph_t *fg,
-                       const int cam_idx,
-                       const int cam_res[2],
-                       const char *proj_model,
-                       const char *dist_model,
-                       const real_t *cam_params,
-                       const real_t *cam_ext);
-void fgraph_add_imu(fgraph_t *fg,
-                    const real_t imu_rate,
-                    const real_t sigma_aw,
-                    const real_t sigma_gw,
-                    const real_t sigma_a,
-                    const real_t sigma_g,
-                    const real_t g,
-                    const real_t *imu_ext,
-                    const int fix_imu_ext,
-                    const int fix_time_delay);
-
 ////////////
 // SOLVER //
 ////////////
@@ -2890,6 +2847,100 @@ void solver_params_restore(solver_t *solver, real_t **x);
 void solver_params_free(const solver_t *solver, real_t **x);
 void solver_update(solver_t *solver, real_t *dx, int sv_size);
 int solver_solve(solver_t *solver, void *data);
+
+//////////////////
+// FACTOR GRAPH //
+//////////////////
+
+#define FACTOR_HASH(PARAM_TYPE, HASH_NAME)                                     \
+  typedef struct HASH_NAME {                                                   \
+    factor_id_t key;                                                           \
+    PARAM_TYPE *value;                                                         \
+  } HASH_NAME;
+
+FACTOR_HASH(ba_factor_t, ba_factor_hash_t)
+FACTOR_HASH(camera_factor_t, camera_factor_hash_t)
+FACTOR_HASH(idf_factor_t, idf_factor_hash_t)
+FACTOR_HASH(imu_factor_t, imu_factor_hash_t)
+FACTOR_HASH(calib_camera_factor_t, calib_camera_factor_hash_t)
+FACTOR_HASH(calib_imucam_factor_t, calib_imucam_factor_hash_t)
+
+typedef struct fgraph_t {
+  // Counters
+  int num_imus;
+  int num_cams;
+
+  // Variables
+  // -- IMUs
+  extrinsic_t *imu_ext;
+  imu_params_t *imu_params;
+  time_delay_t *time_delay;
+  // -- Cameras
+  camera_params_t *cam_params;
+  extrinsic_t *cam_exts;
+
+  // Factors
+  ba_factor_hash_t *ba_factor_hash;
+  camera_factor_hash_t *camera_factor_hash;
+  idf_factor_hash_t *idf_factor_hash;
+  imu_factor_hash_t *imu_factor_hash;
+  calib_camera_factor_hash_t *calib_camera_factor_hash;
+  calib_imucam_factor_hash_t *calib_imucam_factor_hash;
+} fgraph_t;
+
+fgraph_t *fgraph_malloc();
+void fgraph_free(fgraph_t *fg);
+
+void fgraph_add_imu(fgraph_t *fg,
+                    const real_t imu_rate,
+                    const real_t sigma_aw,
+                    const real_t sigma_gw,
+                    const real_t sigma_a,
+                    const real_t sigma_g,
+                    const real_t g,
+                    const real_t *imu_ext,
+                    const int fix_imu_ext,
+                    const int fix_time_delay);
+void fgraph_add_camera(fgraph_t *fg,
+                       const int cam_idx,
+                       const int cam_res[2],
+                       const char *proj_model,
+                       const char *dist_model,
+                       const real_t *cam_params,
+                       const real_t *cam_ext);
+
+factor_id_t fgraph_add_ba_factor(fgraph_t *fg,
+                                 const param_id_t param_ids[3],
+                                 const real_t z[2],
+                                 const real_t var[2]);
+factor_id_t fgraph_add_camera_factor(fgraph_t *fg,
+                                     const param_id_t param_ids[4],
+                                     const real_t z[2],
+                                     const real_t var[2]);
+factor_id_t fgraph_add_idf_factor(fgraph_t *fg,
+                                  const param_id_t param_ids[5],
+                                  const timestamp_t ts,
+                                  const int cam_idx,
+                                  const size_t feature_id,
+                                  const real_t z[2],
+                                  const real_t var[2]);
+factor_id_t fgraph_add_calib_camera_factor(fgraph_t *fg,
+                                           const param_id_t param_ids[3],
+                                           const int cam_idx,
+                                           const int tag_id,
+                                           const int corner_idx,
+                                           const real_t p_FFi[3],
+                                           const real_t z[2],
+                                           const real_t var[2]);
+factor_id_t fgraph_add_calib_imucam_factor(fgraph_t *fg,
+                                           const param_id_t param_ids[6],
+                                           const int cam_idx,
+                                           const int tag_id,
+                                           const int corner_idx,
+                                           const real_t p_FFi[3],
+                                           const real_t z[2],
+                                           const real_t v[2],
+                                           const real_t var[2]);
 
 /////////////////////
 // IMU CALIBRATION //
@@ -3078,6 +3129,12 @@ calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
                                               time_delay_t *time_delay);
 void calib_imucam_view_free(calib_imucam_view_t *view);
 
+/** IMU Factor Hash **/
+typedef struct calib_imu_factor_hash_t {
+  timestamp_t key;
+  imu_factor_t *value;
+} calib_imu_factor_hash_t;
+
 /** IMU-camera Calibrator **/
 typedef struct calib_imucam_t {
   // Settings
@@ -3124,7 +3181,7 @@ typedef struct calib_imucam_t {
 
   // Factors
   calib_imucam_viewset_t *view_sets;
-  imu_factor_hash_t *imu_factors;
+  calib_imu_factor_hash_t *imu_factors;
   marg_factor_t *marg;
 } calib_imucam_t;
 

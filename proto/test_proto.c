@@ -5593,6 +5593,62 @@ int test_solver_setup() {
   return 0;
 }
 
+int test_fgraph_add_imu() {
+  // Setup
+  fgraph_t *graph = fgraph_malloc();
+
+  // Add IMU
+  const int imu_rate = 200;
+  const real_t n_a = 0.08;
+  const real_t n_g = 0.004;
+  const real_t n_aw = 0.00004;
+  const real_t n_gw = 2.0e-6;
+  const real_t g = 9.81;
+  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  fgraph_add_imu(graph, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext, 0, 0);
+
+  // Assert
+  MU_ASSERT(graph->imu_params->rate == imu_rate);
+  MU_ASSERT(fltcmp(graph->imu_params->sigma_aw, n_aw) == 0);
+  MU_ASSERT(fltcmp(graph->imu_params->sigma_gw, n_gw) == 0);
+  MU_ASSERT(fltcmp(graph->imu_params->sigma_a, n_a) == 0);
+  MU_ASSERT(fltcmp(graph->imu_params->sigma_g, n_g) == 0);
+  MU_ASSERT(fltcmp(graph->imu_params->g, g) == 0);
+  MU_ASSERT(vec_equals(graph->imu_ext->data, imu_ext, 7) == 1);
+  MU_ASSERT(graph->num_imus == 1);
+
+  // Clean up
+  fgraph_free(graph);
+
+  return 0;
+}
+
+int test_fgraph_add_camera() {
+  // Setup
+  fgraph_t *fg = fgraph_malloc();
+
+  // Add camera
+  const int res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam_vec[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  fgraph_add_camera(fg, 0, res, pm, dm, cam_vec, cam_ext);
+
+  // Assert
+  MU_ASSERT(fg->cam_params[0].resolution[0] == 752);
+  MU_ASSERT(fg->cam_params[0].resolution[1] == 480);
+  MU_ASSERT(strcmp(fg->cam_params[0].proj_model, pm) == 0);
+  MU_ASSERT(strcmp(fg->cam_params[0].dist_model, dm) == 0);
+  MU_ASSERT(vec_equals(fg->cam_params[0].data, cam_vec, 8) == 1);
+  MU_ASSERT(vec_equals(fg->cam_exts[0].data, cam_ext, 7) == 1);
+
+  // Clean up
+  fgraph_free(fg);
+
+  return 0;
+}
+
 typedef struct cam_view_t {
   pose_t pose;
   ba_factor_t factors[1000];
@@ -5826,7 +5882,6 @@ int test_calib_camera_mono_ceres() {
   // Solve
   ceres_solve(problem, 20);
   calib_camera_print(calib);
-
 
   // Clean up
   calib_camera_free(calib);
@@ -6148,7 +6203,6 @@ int test_calib_camera_stereo_ceres() {
   }
   // calib_camera_solve(calib);
 
-
   // Setup solver
   ceres_init();
   ceres_problem_t *problem = ceres_create_problem();
@@ -6192,7 +6246,6 @@ int test_calib_camera_stereo_ceres() {
   // Solve
   ceres_solve(problem, 20);
   calib_camera_print(calib);
-
 
   // Clean up
   calib_camera_free(calib);
@@ -6381,7 +6434,7 @@ int test_calib_imucam_update() {
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
   for (int k = 0; k < timeline->timeline_length; k++) {
-  // for (int k = 0; k < 10; k++) {
+    // for (int k = 0; k < 10; k++) {
     // Extract timeline events. Add either imu or fiducial event
     for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
       timeline_event_t *event = timeline->timeline_events[k][i];
@@ -7619,6 +7672,8 @@ void test_suite() {
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
+  MU_ADD_TEST(test_fgraph_add_imu);
+  MU_ADD_TEST(test_fgraph_add_camera);
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_camchain);

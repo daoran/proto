@@ -14843,15 +14843,26 @@ int marg_factor_eval(void *marg_ptr) {
 fgraph_t *fgraph_malloc() {
   fgraph_t *fg = MALLOC(fgraph_t, 1);
 
+  // Counters
   fg->num_imus = 0;
   fg->num_cams = 0;
 
+  // IMUs
   fg->imu_ext = NULL;
   fg->imu_params = NULL;
   fg->time_delay = NULL;
 
+  // Cameras
   fg->cam_params = NULL;
   fg->cam_exts = NULL;
+
+  // Factors
+  fg->ba_factor_hash = NULL;
+  fg->camera_factor_hash = NULL;
+  fg->idf_factor_hash = NULL;
+  fg->imu_factor_hash = NULL;
+  fg->calib_camera_factor_hash = NULL;
+  fg->calib_imucam_factor_hash = NULL;
 
   return fg;
 }
@@ -14864,48 +14875,24 @@ void fgraph_free(fgraph_t *fg) {
     return;
   }
 
+  // IMUs
   free(fg->imu_ext);
   free(fg->imu_params);
   free(fg->time_delay);
 
+  // Cameras
   free(fg->cam_params);
   free(fg->cam_exts);
 
+  // Factors
+  hmfree(fg->ba_factor_hash);
+  hmfree(fg->camera_factor_hash);
+  hmfree(fg->imu_factor_hash);
+  hmfree(fg->calib_camera_factor_hash);
+  hmfree(fg->calib_imucam_factor_hash);
+
+  // Clean up
   free(fg);
-}
-
-/**
- * Add camera to factor graph.
- */
-void fgraph_add_camera(fgraph_t *fg,
-                       const int cam_idx,
-                       const int cam_res[2],
-                       const char *proj_model,
-                       const char *dist_model,
-                       const real_t *cam_params,
-                       const real_t *cam_ext) {
-  assert(fg != NULL);
-  assert(cam_idx <= fg->num_cams);
-  assert(cam_res != NULL);
-  assert(proj_model != NULL);
-  assert(dist_model != NULL);
-  assert(cam_params != NULL);
-  assert(cam_ext != NULL);
-
-  if (cam_idx > (fg->num_cams - 1)) {
-    const int new_size = fg->num_cams + 1;
-    fg->cam_params = REALLOC(fg->cam_params, camera_params_t, new_size);
-    fg->cam_exts = REALLOC(fg->cam_exts, extrinsic_t, new_size);
-  }
-
-  camera_params_setup(&fg->cam_params[cam_idx],
-                      cam_idx,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      cam_params);
-  extrinsic_setup(&fg->cam_exts[cam_idx], cam_ext);
-  fg->num_cams++;
 }
 
 /**
@@ -14935,6 +14922,7 @@ void fgraph_add_imu(fgraph_t *fg,
     return;
   }
 
+  // IMU parameters
   fg->imu_params = MALLOC(imu_params_t, 1);
   fg->imu_params->imu_idx = 0;
   fg->imu_params->rate = imu_rate;
@@ -14944,12 +14932,56 @@ void fgraph_add_imu(fgraph_t *fg,
   fg->imu_params->sigma_g = sigma_g;
   fg->imu_params->g = g;
 
+  // IMU extrinsic
   fg->imu_ext = MALLOC(extrinsic_t, 1);
   extrinsic_setup(fg->imu_ext, imu_ext);
 
+  // Time-delay
   fg->time_delay = MALLOC(time_delay_t, 1);
   time_delay_setup(fg->time_delay, 0.0);
   fg->time_delay->fix = fix_time_delay;
+
+  // Number of IMUs
+  fg->num_imus = 1;
+}
+
+/**
+ * Add camera to factor graph.
+ */
+void fgraph_add_camera(fgraph_t *fg,
+                       const int cam_idx,
+                       const int cam_res[2],
+                       const char *proj_model,
+                       const char *dist_model,
+                       const real_t *cam_params,
+                       const real_t *cam_ext) {
+  assert(fg != NULL);
+  assert(cam_idx <= fg->num_cams);
+  assert(cam_res != NULL);
+  assert(proj_model != NULL);
+  assert(dist_model != NULL);
+  assert(cam_params != NULL);
+  assert(cam_ext != NULL);
+
+  // Malloc
+  if (cam_idx > (fg->num_cams - 1)) {
+    const int new_size = fg->num_cams + 1;
+    fg->cam_params = REALLOC(fg->cam_params, camera_params_t, new_size);
+    fg->cam_exts = REALLOC(fg->cam_exts, extrinsic_t, new_size);
+  }
+
+  // Camera parameters
+  camera_params_setup(&fg->cam_params[cam_idx],
+                      cam_idx,
+                      cam_res,
+                      proj_model,
+                      dist_model,
+                      cam_params);
+  // Camera extrinsic
+  extrinsic_setup(&fg->cam_exts[cam_idx], cam_ext);
+
+  // Number of cameras
+  fg->num_cams++;
 }
 
 ////////////
