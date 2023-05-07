@@ -6259,6 +6259,66 @@ int test_calib_camera_stereo_ceres() {
   return 0;
 }
 
+int test_calib_imucam_view() {
+  // Setup
+  fgraph_t *fg = fgraph_malloc();
+  // -- Add fiducial
+  const real_t fiducial_data[7] = {0, 1, 2, 3, 4, 5, 6};
+  const int fiducial_id = fgraph_add_fiducial(fg, fiducial_data, 0);
+  // -- Add pose
+  const real_t pose_data[7] = {0, 1, 2, 3, 4, 5, 6};
+  const int pose_id = fgraph_add_pose(fg, 0, pose_data, 0);
+  // -- Add imu extrinsic
+  const int imu_idx = 0;
+  const real_t imu_ext_data[7] = {0, 1, 2, 3, 4, 5, 6};
+  const int imu_ext_id = fgraph_add_imu_ext(fg, imu_idx, imu_ext_data, 0);
+  // -- Add camera extrinsic
+  const int cam_idx = 0;
+  const real_t cam_ext_data[7] = {0, 1, 2, 3, 4, 5, 6};
+  const int cam_ext_id = fgraph_add_cam_ext(fg, cam_idx, cam_ext_data, 0);
+  // -- Add camera
+  const int res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
+  const int cam_id = fgraph_add_camera_params(fg, 0, res, pm, dm, cam, 0);
+  // -- Add time_delay
+  const int time_delay_id = fgraph_add_time_delay(fg, 0.1, 0);
+
+  // Create calib imucam view
+  const timestamp_t ts = 0;
+  const int num_corners = 2;
+  const int tag_ids[2] = {0, 1};
+  const int corner_idxs[2] = {0, 1};
+  const real_t pts[2 * 3] = {0.0, 0.0, 0.0, 1.0, 1.0, 1.0};
+  const real_t kps[2 * 2] = {0.0, 0.0, 1.0, 1.0};
+  const real_t optflows[2 * 2] = {0.0, 0.0, 0.0, 0.0};
+  const int param_ids[6] = {
+      fiducial_id,
+      pose_id,
+      imu_ext_id,
+      cam_ext_id,
+      cam_id,
+      time_delay_id,
+  };
+  calib_imucam_view_t *view = calib_imucam_view_malloc(ts,
+                                                       cam_idx,
+                                                       num_corners,
+                                                       tag_ids,
+                                                       corner_idxs,
+                                                       pts,
+                                                       kps,
+                                                       optflows,
+                                                       param_ids,
+                                                       fg);
+
+  // Clean up
+  calib_imucam_view_free(view);
+  fgraph_free(fg);
+
+  return 0;
+}
+
 int test_calib_imucam_add_imu() {
   // Setup
   const int imu_rate = 200;
@@ -7690,6 +7750,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_mono_incremental);
   MU_ADD_TEST(test_calib_camera_stereo_batch);
   MU_ADD_TEST(test_calib_camera_stereo_ceres);
+  MU_ADD_TEST(test_calib_imucam_view);
   MU_ADD_TEST(test_calib_imucam_add_imu);
   MU_ADD_TEST(test_calib_imucam_add_camera);
   MU_ADD_TEST(test_calib_imucam_add_imu_event);

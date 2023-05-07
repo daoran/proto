@@ -17364,8 +17364,7 @@ static int calib_imucam_update_precheck(calib_imucam_t *calib) {
 
 static real_t *calib_imucam_optflow(calib_imucam_t *calib,
                                     const fiducial_event_t *fiducial) {
-  real_t *optflows = CALLOC(real_t, fiducial->num_corners * 2);
-  return optflows;
+  // real_t *optflows = CALLOC(real_t, fiducial->num_corners * 2);
   // if (arrlen(calib->timestamps) < 2) {
   //   return optflows;
   // }
@@ -17413,6 +17412,7 @@ static real_t *calib_imucam_optflow(calib_imucam_t *calib,
   // }
 
   // return optflows;
+  return NULL;
 }
 
 /**
@@ -17434,12 +17434,19 @@ int calib_imucam_update(calib_imucam_t *calib) {
   calib_imucam_add_state(calib, ts, &pose_id, &vel_id, &biases_id);
 
   // Add vision factors
+  const int pids[6] = {calib->graph->fiducial_id,
+                       pose_id,
+                       calib->imu_exts,
+                       calib->cam_exts,
+                       calib->cam_params,
+                       calib->time_delay};
+
   for (int i = 0; i < calib->fiducial_buffer->size; i++) {
     // Fiducial data
     const fiducial_event_t *data = calib->fiducial_buffer->data[i];
 
     // Calculate keypoint optical flow velocity
-    real_t *optflows = calib_imucam_optflow(calib, data);
+    // real_t *optflows = calib_imucam_optflow(calib, data);
 
     // Form new view
     calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
@@ -17453,13 +17460,6 @@ int calib_imucam_update(calib_imucam_t *calib) {
     }
 
     // Add view
-    const int pids[6] = {calib->fiducial_id,
-                         pose_id,
-                         calib->imu_ext_id,
-                         calib->cam_ext_ids[data->cam_idx],
-                         calib->cam_param_ids[data->cam_idx],
-                         calib->time_delay_id};
-
     calib_imucam_view_t *view =
         calib_imucam_view_malloc(ts,
                                  data->cam_idx,
@@ -17469,47 +17469,53 @@ int calib_imucam_update(calib_imucam_t *calib) {
                                  data->object_points,
                                  data->keypoints,
                                  optflows,
-                                 pids,
-                                 calib->graph);
+                                 calib->fiducial,
+                                 hmgets(calib->poses, ts).value,
+                                 calib->imu_ext,
+                                 &calib->cam_exts[data->cam_idx],
+                                 &calib->cam_params[data->cam_idx],
+                                 calib->time_delay);
 
     // Clean up
-    free(optflows);
-    cam_views[data->cam_idx] = view;
-    calib->num_vision_factors += data->num_corners;
+    // free(optflows);
+    // cam_views[data->cam_idx] = view;
+    // calib->num_vision_factors += data->num_corners;
   }
 
-  // Add imu factor
-  if (calib->num_views >= 2) {
-    // Pose, velocity and biases at k
-    // const timestamp_t ts_km1 = calib->timestamps[arrlen(calib->timestamps) - 2];
-    // pose_t *pose_km1 = hmgets(calib->poses, ts_km1).value;
-    // velocity_t *vel_km1 = hmgets(calib->velocities, ts_km1).value;
-    // imu_biases_t *biases_km1 = hmgets(calib->biases, ts_km1).value;
-    // assert(pose_km1 != NULL);
-    // assert(vel_km1 != NULL);
-    // assert(biases_km1 != NULL);
+  // // Add imu factor
+  // if (calib->num_views >= 2) {
+  //   // Pose, velocity and biases at k
+  //   const timestamp_t ts_km1 = calib->timestamps[arrlen(calib->timestamps) - 2];
+  //   pose_t *pose_km1 = hmgets(calib->poses, ts_km1).value;
+  //   velocity_t *vel_km1 = hmgets(calib->velocities, ts_km1).value;
+  //   imu_biases_t *biases_km1 = hmgets(calib->biases, ts_km1).value;
+  //   assert(pose_km1 != NULL);
+  //   assert(vel_km1 != NULL);
+  //   assert(biases_km1 != NULL);
 
-    // Pose, velocity and biases at km1
-    // const timestamp_t ts_k = calib->timestamps[arrlen(calib->timestamps) - 1];
-    // pose_t *pose_k = hmgets(calib->poses, ts_k).value;
-    // velocity_t *vel_k = hmgets(calib->velocities, ts_k).value;
-    // imu_biases_t *biases_k = hmgets(calib->biases, ts_k).value;
-    // assert(pose_k != NULL);
-    // assert(vel_k != NULL);
-    // assert(biases_k != NULL);
+  //   // Pose, velocity and biases at km1
+  //   const timestamp_t ts_k = calib->timestamps[arrlen(calib->timestamps) - 1];
+  //   pose_t *pose_k = hmgets(calib->poses, ts_k).value;
+  //   velocity_t *vel_k = hmgets(calib->velocities, ts_k).value;
+  //   imu_biases_t *biases_k = hmgets(calib->biases, ts_k).value;
+  //   assert(pose_k != NULL);
+  //   assert(vel_k != NULL);
+  //   assert(biases_k != NULL);
 
-    // Form IMU factor
-    // imu_factor_setup(factor,
-    //                  calib->imu_params,
-    //                  &calib->imu_buf,
-    //                  pose_km1,
-    //                  vel_km1,
-    //                  biases_km1,
-    //                  pose_k,
-    //                  vel_k,
-    //                  biases_k);
-    // calib->num_imu_factors++;
-  }
+  //   // Form IMU factor
+  //   imu_factor_t *factor = MALLOC(imu_factor_t, 1);
+  //   imu_factor_setup(factor,
+  //                    calib->imu_params,
+  //                    &calib->imu_buf,
+  //                    pose_km1,
+  //                    vel_km1,
+  //                    biases_km1,
+  //                    pose_k,
+  //                    vel_k,
+  //                    biases_k);
+  //   hmput(calib->imu_factors, ts_km1, factor);
+  //   calib->num_imu_factors++;
+  // }
 
   // // Clear buffers
   // imu_buffer_clear(&calib->imu_buf);

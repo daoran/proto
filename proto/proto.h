@@ -1909,23 +1909,23 @@ typedef struct param_hash_t {
   void *param_ptr;
 } param_hash_t;
 
-#define PARAM_HASH(PARAM_TYPE, HASH_NAME, KEY_TYPE)                            \
+#define PARAM_HASH(HASH_NAME, KEY_TYPE, VALUE_TYPE)                            \
   typedef struct HASH_NAME {                                                   \
     KEY_TYPE key;                                                              \
-    PARAM_TYPE *value;                                                         \
+    VALUE_TYPE *value;                                                         \
   } HASH_NAME;
 
-PARAM_HASH(pos_t, pos_hash_t, timestamp_t)
-PARAM_HASH(rot_t, rot_hash_t, timestamp_t)
-PARAM_HASH(pose_t, pose_hash_t, timestamp_t)
-PARAM_HASH(velocity_t, velocity_hash_t, timestamp_t)
-PARAM_HASH(imu_biases_t, imu_biases_hash_t, timestamp_t)
-PARAM_HASH(feature_t, feature_hash_t, size_t)
-PARAM_HASH(joint_t, joint_hash_t, size_t)
-PARAM_HASH(extrinsic_t, extrinsic_hash_t, size_t)
-PARAM_HASH(fiducial_t, fiducial_hash_t, size_t)
-PARAM_HASH(camera_params_t, camera_params_hash_t, size_t)
-PARAM_HASH(time_delay_t, time_delay_hash_t, size_t)
+PARAM_HASH(pos_hash_t, timestamp_t, pos_t)
+PARAM_HASH(rot_hash_t, timestamp_t, rot_t)
+PARAM_HASH(pose_hash_t, timestamp_t, pose_t)
+PARAM_HASH(velocity_hash_t, timestamp_t, velocity_t)
+PARAM_HASH(imu_biases_hash_t, timestamp_t, imu_biases_t)
+PARAM_HASH(feature_hash_t, size_t, feature_t)
+PARAM_HASH(joint_hash_t, size_t, joint_t)
+PARAM_HASH(extrinsic_hash_t, size_t, extrinsic_t)
+PARAM_HASH(fiducial_hash_t, size_t, fiducial_t)
+PARAM_HASH(camera_params_hash_t, size_t, camera_params_t)
+PARAM_HASH(time_delay_hash_t, size_t, time_delay_t)
 
 typedef struct param_order_t {
   void *key;
@@ -3110,16 +3110,21 @@ void calib_camera_solve(calib_camera_t *calib);
 
 /** IMU-camera calibration view **/
 typedef struct calib_imucam_view_t {
+  // Properties
   timestamp_t ts;
   int cam_idx;
   int num_corners;
 
-  int *tag_ids;
-  int *corner_indices;
-  real_t *object_points;
-  real_t *keypoints;
+  // Parameters
+  int fiducial_id;
+  int pose_id;
+  int imu_ext_id;
+  int cam_ext_id;
+  int cam_params_id;
+  int time_delay_id;
 
-  calib_imucam_factor_t *factors;
+  // Factors
+  int *factor_ids;
 } calib_imucam_view_t;
 
 /** IMU-camera Viewset **/
@@ -3136,12 +3141,8 @@ calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
                                               const real_t *object_points,
                                               const real_t *keypoints,
                                               const real_t *optflows,
-                                              fiducial_t *fiducial,
-                                              pose_t *pose,
-                                              extrinsic_t *imu_ext,
-                                              extrinsic_t *cam_ext,
-                                              camera_params_t *cam_params,
-                                              time_delay_t *time_delay);
+                                              const int param_ids[6],
+                                              fgraph_t *fg);
 void calib_imucam_view_free(calib_imucam_view_t *view);
 
 /** IMU Factor Hash **/
@@ -3202,10 +3203,8 @@ typedef struct calib_imucam_t {
   fiducial_buffer_t *fiducial_buffer;
   imu_buffer_t imu_buf;
 
-  // // Factors
-  // calib_imucam_viewset_t *view_sets;
-  // calib_imu_factor_hash_t *imu_factors;
-  // marg_factor_t *marg;
+  // Factors
+  calib_imucam_viewset_t *view_sets;
 } calib_imucam_t;
 
 calib_imucam_t *calib_imucam_malloc();
