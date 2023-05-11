@@ -9556,6 +9556,17 @@ void fiducial_buffer_free(fiducial_buffer_t *buf) {
 }
 
 /**
+ * Obtain total number of corners in fiducial buffer.
+ */
+int fiducial_buffer_total_corners(const fiducial_buffer_t *buf) {
+  int total_corners = 0;
+  for (int i = 0; i < buf->size; i++) {
+    total_corners += buf->data[i]->num_corners;
+  }
+  return total_corners;
+}
+
+/**
  * Add fiducial data to buffer.
  */
 void fiducial_buffer_add(fiducial_buffer_t *buf,
@@ -14850,10 +14861,19 @@ fgraph_t *fgraph_malloc() {
   fg->marg = NULL;
 
   fg->poses = NULL;
+  fg->velocities = NULL;
+  fg->imu_biases = NULL;
   fg->cam_params = NULL;
   fg->cam_exts = NULL;
   fg->imu_exts = NULL;
   fg->fiducial = NULL;
+
+  fg->ba_factors = NULL;
+  fg->camera_factors = NULL;
+  fg->idf_factors = NULL;
+  fg->imu_factors = NULL;
+  fg->calib_camera_factors = NULL;
+  fg->calib_imucam_factors = NULL;
 
   return fg;
 }
@@ -14878,12 +14898,22 @@ void fgraph_free(fgraph_t *fg) {
   }
   hmfree(fg->factors);
 
+  free(fg->marg);
+
   hmfree(fg->poses);
+  hmfree(fg->velocities);
+  hmfree(fg->imu_biases);
   hmfree(fg->cam_params);
   hmfree(fg->cam_exts);
   hmfree(fg->imu_exts);
 
-  free(fg->marg);
+  hmfree(fg->ba_factors);
+  hmfree(fg->camera_factors);
+  hmfree(fg->idf_factors);
+  hmfree(fg->imu_factors);
+  hmfree(fg->calib_camera_factors);
+  hmfree(fg->calib_imucam_factors);
+
   free(fg);
 }
 
@@ -14983,8 +15013,10 @@ int fgraph_add_pose(fgraph_t *fg,
   pose_t *param = MALLOC(pose_t, 1);
   pose_setup(param, ts, data);
   param->fix = fix;
+
   pose_hash_t kv = {ts, param};
   hmputs(fg->poses, kv);
+
   return fgraph_add_param(fg, POSE_PARAM, param);
 }
 
@@ -15043,6 +15075,10 @@ int fgraph_add_velocity(fgraph_t *fg,
   velocity_t *param = MALLOC(velocity_t, 1);
   velocity_setup(param, ts, data);
   param->fix = fix;
+
+  velocity_hash_t kv = {ts, param};
+  hmputs(fg->velocities, kv);
+
   return fgraph_add_param(fg, VELOCITY_PARAM, param);
 }
 
@@ -15057,6 +15093,10 @@ int fgraph_add_imu_biases(fgraph_t *fg,
   imu_biases_t *param = MALLOC(imu_biases_t, 1);
   imu_biases_setup(param, ts, ba, bg);
   param->fix = fix;
+
+  imu_biases_hash_t kv = {ts, param};
+  hmputs(fg->imu_biases, kv);
+
   return fgraph_add_param(fg, IMU_BIASES_PARAM, param);
 }
 
@@ -15068,6 +15108,7 @@ int fgraph_add_time_delay(fgraph_t *fg, const real_t data, const int fix) {
   time_delay_setup(param, data);
   param->fix = fix;
   fg->time_delay = param;
+
   return fgraph_add_param(fg, TIME_DELAY_PARAM, param);
 }
 
@@ -15098,8 +15139,12 @@ int fgraph_add_ba_factor(fgraph_t *fg,
 
   ba_factor_t *factor_ptr = MALLOC(ba_factor_t, 1);
   ba_factor_setup(factor_ptr, pose, feature, camera_params, z, var);
+  const int fid = fgraph_add_factor(fg, BA_FACTOR, factor_ptr);
 
-  return fgraph_add_factor(fg, BA_FACTOR, factor_ptr);
+  ba_factor_hash_t kv = {fid, factor_ptr};
+  hmputs(fg->ba_factors, kv);
+
+  return fid;
 }
 
 /**
@@ -15116,8 +15161,12 @@ int fgraph_add_camera_factor(fgraph_t *fg,
 
   camera_factor_t *factor_ptr = MALLOC(camera_factor_t, 1);
   camera_factor_setup(factor_ptr, pose, extrinsic, feature, camera, z, var);
+  const int fid = fgraph_add_factor(fg, CAMERA_FACTOR, factor_ptr);
 
-  return fgraph_add_factor(fg, CAMERA_FACTOR, factor_ptr);
+  camera_factor_hash_t kv = {fid, factor_ptr};
+  hmputs(fg->camera_factors, kv);
+
+  return fid;
 }
 
 /**
@@ -15148,8 +15197,12 @@ int fgraph_add_idf_factor(fgraph_t *fg,
                    feature_id,
                    z,
                    var);
+  const int fid = fgraph_add_factor(fg, IDF_FACTOR, factor_ptr);
 
-  return fgraph_add_factor(fg, IDF_FACTOR, factor_ptr);
+  idf_factor_hash_t kv = {fid, factor_ptr};
+  hmputs(fg->idf_factors, kv);
+
+  return fid;
 }
 
 /**
@@ -15177,8 +15230,12 @@ int fgraph_add_imu_factor(fgraph_t *fg,
                    pose_j,
                    v_j,
                    biases_j);
+  const int fid = fgraph_add_factor(fg, IMU_FACTOR, factor_ptr);
 
-  return fgraph_add_factor(fg, IMU_FACTOR, factor_ptr);
+  imu_factor_hash_t kv = {fid, factor_ptr};
+  hmputs(fg->imu_factors, kv);
+
+  return fid;
 }
 
 /**
@@ -15207,8 +15264,12 @@ int fgraph_add_calib_camera_factor(fgraph_t *fg,
                             p_FFi,
                             z,
                             var);
+  const int fid = fgraph_add_factor(fg, CALIB_CAMERA_FACTOR, factor_ptr);
 
-  return fgraph_add_factor(fg, CALIB_CAMERA_FACTOR, factor_ptr);
+  calib_camera_factor_hash_t kv = {fid, factor_ptr};
+  hmputs(fg->calib_camera_factors, kv);
+
+  return fid;
 }
 
 /**
@@ -15245,8 +15306,12 @@ int fgraph_add_calib_imucam_factor(fgraph_t *fg,
                             z,
                             v,
                             var);
+  const int fid = fgraph_add_factor(fg, CALIB_IMUCAM_FACTOR, factor_ptr);
 
-  return fgraph_add_factor(fg, CALIB_IMUCAM_FACTOR, factor_ptr);
+  calib_imucam_factor_hash_t kv = {fid, factor_ptr};
+  hmputs(fg->calib_imucam_factors, kv);
+
+  return fid;
 }
 
 ////////////
@@ -16728,67 +16793,6 @@ void calib_camera_solve(calib_camera_t *calib) {
 // CALIB IMU-CAM CALIBRATION //
 ///////////////////////////////
 
-calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
-                                              const int cam_idx,
-                                              const int num_corners,
-                                              const int *tag_ids,
-                                              const int *corner_indices,
-                                              const real_t *object_points,
-                                              const real_t *keypoints,
-                                              const real_t *optflows,
-                                              const int param_ids[6],
-                                              fgraph_t *fg) {
-  calib_imucam_view_t *view = MALLOC(calib_imucam_view_t, 1);
-
-  // Properties
-  view->ts = ts;
-  view->cam_idx = cam_idx;
-  view->num_corners = num_corners;
-
-  // Parameters
-  view->fiducial_id = param_ids[0];
-  view->pose_id = param_ids[1];
-  view->imu_ext_id = param_ids[2];
-  view->cam_ext_id = param_ids[3];
-  view->cam_params_id = param_ids[4];
-  view->time_delay_id = param_ids[5];
-
-  // Factors
-  const real_t var[2] = {1.0, 1.0};
-  view->factor_ids = MALLOC(int, num_corners);
-
-  for (int i = 0; i < view->num_corners; i++) {
-    const int tag_id = tag_ids[i];
-    const int corner_idx = corner_indices[i];
-    const real_t *p_FFi = &object_points[i * 3];
-    const real_t *z = &keypoints[i * 2];
-    const real_t *v = &optflows[i * 2];
-    const int fid = fgraph_add_calib_imucam_factor(fg,
-                                                   param_ids,
-                                                   cam_idx,
-                                                   tag_id,
-                                                   corner_idx,
-                                                   p_FFi,
-                                                   z,
-                                                   v,
-                                                   var);
-    view->factor_ids[i] = fid;
-  }
-
-  return view;
-}
-
-/**
- * Free imu-cam calibration view.
- */
-void calib_imucam_view_free(calib_imucam_view_t *view) {
-  if (view == NULL) {
-    return;
-  }
-  free(view->factor_ids);
-  free(view);
-}
-
 /**
  * Malloc imu-cam calibration problem.
  */
@@ -16815,39 +16819,26 @@ calib_imucam_t *calib_imucam_malloc() {
   calib->num_imus = 0;
   calib->num_cams = 0;
   calib->num_views = 0;
-  calib->num_states = 0;
   calib->num_vision_factors = 0;
   calib->num_imu_factors = 0;
 
   // Data
   calib->graph = fgraph_malloc();
+  calib->imu_ext_id = -1;
+  calib->time_delay_id = -1;
+  calib->cam_param_ids = NULL;
+  calib->cam_ext_ids = NULL;
+  calib->fiducial_id = -1;
 
   // Variables
   calib->timestamps = NULL;
-  // calib->poses = NULL;
-  // calib->velocities = NULL;
-  // calib->biases = NULL;
-  // calib->fiducial = NULL;
-  // calib->cam_exts = NULL;
-  // calib->imu_ext = NULL;
-  // calib->cam_params = NULL;
-  // calib->time_delay = NULL;
-  // calib->imu_params = NULL;
-  // hmdefault(calib->poses, NULL);
-  // hmdefault(calib->velocities, NULL);
 
   // Buffers
   calib->fiducial_buffer = fiducial_buffer_malloc();
   imu_buffer_setup(&calib->imu_buf);
 
-  // // Factors
-  // calib->view_sets = NULL;
-  // hmdefault(calib->view_sets, NULL);
-
-  // calib->imu_factors = NULL;
-  // hmdefault(calib->imu_factors, NULL);
-
-  // calib->marg = NULL;
+  // Factors
+  calib->views = NULL;
 
   return calib;
 }
@@ -16858,62 +16849,28 @@ calib_imucam_t *calib_imucam_malloc() {
 void calib_imucam_free(calib_imucam_t *calib) {
   // Data
   fgraph_free(calib->graph);
-  // free(calib->fiducial);
-  // free(calib->cam_exts);
-  // free(calib->imu_ext);
-  // free(calib->cam_params);
-  // free(calib->time_delay);
-  // free(calib->imu_params);
+  free(calib->cam_param_ids);
+  free(calib->cam_ext_ids);
 
   // Fiducial buffer
   fiducial_buffer_free(calib->fiducial_buffer);
 
   // // View sets
-  // if (calib->num_views) {
-  //   for (int i = 0; i < arrlen(calib->timestamps); i++) {
-  //     const timestamp_t ts = calib->timestamps[i];
-  //     calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
-  //     if (cam_views == NULL) {
-  //       continue;
-  //     }
-
-  //     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-  //       calib_imucam_view_free(cam_views[cam_idx]);
-  //     }
-  //     free(cam_views);
-  //   }
-  // }
-  // hmfree(calib->view_sets);
-
-  // // IMU factors
-  // for (int i = 0; i < hmlen(calib->imu_factors); i++) {
-  //   free(calib->imu_factors[i].value);
-  // }
-  // hmfree(calib->imu_factors);
+  if (calib->num_views) {
+    for (int k = 0; k < arrlen(calib->timestamps); k++) {
+      const timestamp_t ts = calib->timestamps[k];
+      calib_imucam_view_t *view = &hmgets(calib->views, ts);
+      if (view) {
+        free(view->cam_ext_ids);
+        free(view->cam_param_ids);
+        free(view->factor_ids);
+      }
+    }
+  }
+  hmfree(calib->views);
 
   // Timestamps
   arrfree(calib->timestamps);
-
-  // // Poses
-  // for (int i = 0; i < hmlen(calib->poses); i++) {
-  //   free(calib->poses[i].value);
-  // }
-  // hmfree(calib->poses);
-
-  // // Velocities
-  // for (int i = 0; i < hmlen(calib->velocities); i++) {
-  //   free(calib->velocities[i].value);
-  // }
-  // hmfree(calib->velocities);
-
-  // // Biases
-  // for (int i = 0; i < hmlen(calib->biases); i++) {
-  //   free(calib->biases[i].value);
-  // }
-  // hmfree(calib->biases);
-
-  // // Free previous marg_factor_t
-  // marg_factor_free(calib->marg);
 
   free(calib);
 }
@@ -16925,9 +16882,9 @@ void calib_imucam_print(calib_imucam_t *calib) {
   real_t reproj_rmse = 0.0;
   real_t reproj_mean = 0.0;
   real_t reproj_median = 0.0;
-  // if (calib->num_views) {
-  //   calib_imucam_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
-  // }
+  if (calib->num_views) {
+    calib_imucam_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  }
 
   printf("settings:\n");
   printf("  fix_fiducial: %d\n", calib->fix_fiducial);
@@ -16940,8 +16897,6 @@ void calib_imucam_print(calib_imucam_t *calib) {
   printf("statistics:\n");
   printf("  num_cams: %d\n", calib->num_cams);
   printf("  num_views: %d\n", calib->num_views);
-  printf("  num_vision_factors: %d\n", calib->num_vision_factors);
-  printf("  num_imu_factors: %d\n", calib->num_imu_factors);
   printf("\n");
 
   printf("reproj_errors:\n");
@@ -17211,9 +17166,6 @@ static void calib_imucam_add_state(calib_imucam_t *calib,
   if (calib->graph->fiducial == NULL) {
     calib_imucam_initialize_fiducial(calib, ts);
   }
-
-  // Update
-  calib->num_states++;
 }
 
 /**
@@ -17433,151 +17385,172 @@ int calib_imucam_update(calib_imucam_t *calib) {
   int biases_id = 0;
   calib_imucam_add_state(calib, ts, &pose_id, &vel_id, &biases_id);
 
-  // Add vision factors
+  // Add view
+  calib_imucam_view_t view;
+  // -- Key
+  view.key = ts;
+  // -- Parameters
+  // ---- State
+  view.pose_id = pose_id;
+  view.vel_id = vel_id;
+  view.biases_id = biases_id;
+  // ---- Fiducial
+  view.fiducial_id = calib->fiducial_id;
+  // ---- IMU
+  view.imu_ext_id = calib->imu_ext_id;
+  // ---- Cameras
+  view.cam_ext_ids = CALLOC(int, calib->num_cams);
+  view.cam_param_ids = CALLOC(int, calib->num_cams);
+  ARRAY_COPY(calib->cam_ext_ids, calib->num_cams, view.cam_ext_ids);
+  ARRAY_COPY(calib->cam_param_ids, calib->num_cams, view.cam_param_ids);
+  // Time delay
+  view.time_delay_id = calib->time_delay_id;
+  // Factors
+  view.num_factors = fiducial_buffer_total_corners(calib->fiducial_buffer);
+  view.factor_ids = CALLOC(int, view.num_factors);
+
+  int factor_idx = 0;
   for (int i = 0; i < calib->fiducial_buffer->size; i++) {
     // Fiducial data
     const fiducial_event_t *data = calib->fiducial_buffer->data[i];
 
     // Calculate keypoint optical flow velocity
-    real_t *optflows = calib_imucam_optflow(calib, data);
+    // real_t *optflows = calib_imucam_optflow(calib, data);
 
-    // Form new view
-    calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
-    if (cam_views == NULL) {
-      cam_views = CALLOC(calib_imucam_view_t **, calib->num_cams);
-      for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-        cam_views[cam_idx] = NULL;
-      }
-      hmput(calib->view_sets, ts, cam_views);
-      calib->num_views++;
+    // Form vision factors
+    const real_t var[2] = {1.0, 1.0};
+    const int pids[6] = {view.fiducial_id,
+                         view.pose_id,
+                         view.imu_ext_id,
+                         view.cam_ext_ids[data->cam_idx],
+                         view.cam_param_ids[data->cam_idx],
+                         view.time_delay_id};
+
+    for (int j = 0; j < data->num_corners; j++) {
+      const int tag_id = data->tag_ids[j];
+      const int corner_idx = data->corner_indices[j];
+      const real_t *p_FFi = &data->object_points[j * 3];
+      const real_t *z = &data->keypoints[j * 2];
+      const real_t v[2] = {0.0, 0.0};
+
+      int fid = fgraph_add_calib_imucam_factor(calib->graph,
+                                               pids,
+                                               data->cam_idx,
+                                               tag_id,
+                                               corner_idx,
+                                               p_FFi,
+                                               z,
+                                               v,
+                                               var);
+      view.factor_ids[factor_idx] = fid;
+      factor_idx++;
+      calib->num_vision_factors++;
     }
 
-    // Add view
-    const int pids[6] = {calib->fiducial_id,
-                         pose_id,
-                         calib->imu_ext_id,
-                         calib->cam_ext_ids[data->cam_idx],
-                         calib->cam_param_ids[data->cam_idx],
-                         calib->time_delay_id};
-
-    calib_imucam_view_t *view =
-        calib_imucam_view_malloc(ts,
-                                 data->cam_idx,
-                                 data->num_corners,
-                                 data->tag_ids,
-                                 data->corner_indices,
-                                 data->object_points,
-                                 data->keypoints,
-                                 optflows,
-                                 pids,
-                                 calib->graph);
-
     // Clean up
-    free(optflows);
-    cam_views[data->cam_idx] = view;
-    calib->num_vision_factors += data->num_corners;
+    // free(optflows);
   }
+  hmputs(calib->views, view);
 
   // Add imu factor
   if (calib->num_views >= 2) {
     // Pose, velocity and biases at k
-    // const timestamp_t ts_km1 = calib->timestamps[arrlen(calib->timestamps) - 2];
-    // pose_t *pose_km1 = hmgets(calib->poses, ts_km1).value;
-    // velocity_t *vel_km1 = hmgets(calib->velocities, ts_km1).value;
-    // imu_biases_t *biases_km1 = hmgets(calib->biases, ts_km1).value;
-    // assert(pose_km1 != NULL);
-    // assert(vel_km1 != NULL);
-    // assert(biases_km1 != NULL);
+    const size_t idx_km1 = arrlen(calib->timestamps) - 2;
+    const timestamp_t ts_km1 = calib->timestamps[idx_km1];
+    calib_imucam_view_t *view_km1 = &hmgets(calib->views, ts_km1);
+    const int pose_km1_id = view_km1->pose_id;
+    const int vel_km1_id = view_km1->vel_id;
+    const int biases_km1_id = view_km1->biases_id;
 
     // Pose, velocity and biases at km1
-    // const timestamp_t ts_k = calib->timestamps[arrlen(calib->timestamps) - 1];
-    // pose_t *pose_k = hmgets(calib->poses, ts_k).value;
-    // velocity_t *vel_k = hmgets(calib->velocities, ts_k).value;
-    // imu_biases_t *biases_k = hmgets(calib->biases, ts_k).value;
-    // assert(pose_k != NULL);
-    // assert(vel_k != NULL);
-    // assert(biases_k != NULL);
+    const size_t idx_k = arrlen(calib->timestamps) - 1;
+    const timestamp_t ts_k = calib->timestamps[idx_k];
+    calib_imucam_view_t *view_k = &hmgets(calib->views, ts_k);
+    const int pose_k_id = view_k->pose_id;
+    const int vel_k_id = view_k->vel_id;
+    const int biases_k_id = view_k->biases_id;
 
     // Form IMU factor
-    // imu_factor_setup(factor,
-    //                  calib->imu_params,
-    //                  &calib->imu_buf,
-    //                  pose_km1,
-    //                  vel_km1,
-    //                  biases_km1,
-    //                  pose_k,
-    //                  vel_k,
-    //                  biases_k);
-    // calib->num_imu_factors++;
+    const int imu_idx = 0;
+    const int param_ids[6] = {pose_km1_id,
+                              vel_km1_id,
+                              biases_km1_id,
+                              pose_k_id,
+                              vel_k_id,
+                              biases_k_id};
+    const int fid = fgraph_add_imu_factor(calib->graph,
+                                          imu_idx,
+                                          param_ids,
+                                          &calib->imu_params,
+                                          &calib->imu_buf);
+    view.imu_factor_id = fid;
+    calib->num_imu_factors++;
+
+    // Clear IMU buffer
+    imu_buffer_clear(&calib->imu_buf);
   }
 
-  // // Clear buffers
-  // imu_buffer_clear(&calib->imu_buf);
-  // fiducial_buffer_clear(calib->fiducial_buffer);
-
-  // Solve incrementally
-  // if (calib->num_views >= 10) {
-  //   calib->max_iter = 4;
-  //   calib_imucam_solve(calib);
-  // }
+  // Clear buffers
+  fiducial_buffer_clear(calib->fiducial_buffer);
+  calib->num_views++;
 
   return 0;
 }
 
-// /**
-//  * IMU-camera calibration reprojection errors.
-//  */
-// void calib_imucam_errors(calib_imucam_t *calib,
-//                          real_t *reproj_rmse,
-//                          real_t *reproj_mean,
-//                          real_t *reproj_median) {
-//   // Setup
-//   const int N = calib->num_vision_factors;
-//   const int r_size = N * 2;
-//   real_t *r = CALLOC(real_t, r_size);
+/**
+ * IMU-camera calibration reprojection errors.
+ */
+void calib_imucam_errors(calib_imucam_t *calib,
+                         real_t *reproj_rmse,
+                         real_t *reproj_mean,
+                         real_t *reproj_median) {
+  // Setup
+  const int N = calib->num_vision_factors;
+  const int r_size = N * 2;
+  real_t *r = CALLOC(real_t, r_size);
 
-//   // Evaluate residuals
-//   int r_idx = 0;
-//   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
-//     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-//       const timestamp_t ts = calib->timestamps[view_idx];
-//       calib_imucam_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
-//       if (view == NULL) {
-//         continue;
-//       }
+  // Evaluate residuals
+  int r_idx = 0;
+  for (int k = 0; k < arrlen(calib->timestamps); k++) {
+    const timestamp_t ts = calib->timestamps[k];
+    calib_imucam_view_t *view = &hmgets(calib->views, ts);
+    if (view == NULL) {
+      continue;
+    }
 
-//       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
-//         calib_imucam_factor_t *factor = &view->factors[factor_idx];
-//         calib_imucam_factor_eval(factor);
-//         vec_copy(factor->r, factor->r_size, &r[r_idx]);
-//         r_idx += factor->r_size;
-//       } // For each calib factor
-//     }   // For each cameras
-//   }     // For each views
+    for (int factor_idx = 0; factor_idx < view->num_factors; factor_idx++) {
+      const int fid = view->factor_ids[factor_idx];
+      calib_imucam_factor_t *factor =
+          hmgets(calib->graph->calib_imucam_factors, fid).value;
+      calib_imucam_factor_eval(factor);
+      vec_copy(factor->r, factor->r_size, &r[r_idx]);
+      r_idx += factor->r_size;
+    }
+  }
 
-//   // Calculate reprojection errors
-//   real_t *errors = CALLOC(real_t, N);
-//   for (int i = 0; i < N; i++) {
-//     const real_t x = r[i * 2 + 0];
-//     const real_t y = r[i * 2 + 1];
-//     errors[i] = sqrt(x * x + y * y);
-//   }
+  // Calculate reprojection errors
+  real_t *errors = CALLOC(real_t, N);
+  for (int i = 0; i < N; i++) {
+    const real_t x = r[i * 2 + 0];
+    const real_t y = r[i * 2 + 1];
+    errors[i] = sqrt(x * x + y * y);
+  }
 
-//   // Calculate RMSE
-//   real_t sum = 0.0;
-//   real_t sse = 0.0;
-//   for (int i = 0; i < N; i++) {
-//     sum += errors[i];
-//     sse += errors[i] * errors[i];
-//   }
-//   *reproj_rmse = sqrt(sse / N);
-//   *reproj_mean = sum / N;
-//   *reproj_median = median(errors, N);
+  // Calculate RMSE
+  real_t sum = 0.0;
+  real_t sse = 0.0;
+  for (int i = 0; i < N; i++) {
+    sum += errors[i];
+    sse += errors[i] * errors[i];
+  }
+  *reproj_rmse = sqrt(sse / N);
+  *reproj_mean = sum / N;
+  *reproj_median = median(errors, N);
 
-//   // Clean up
-//   free(errors);
-//   free(r);
-// }
+  // Clean up
+  free(errors);
+  free(r);
+}
 
 // /**
 //  * IMU-camera calibration parameter order.
