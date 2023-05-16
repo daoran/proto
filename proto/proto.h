@@ -249,7 +249,7 @@ extern "C" {
 /**
  * Array copy
  */
-#define ARRAY_COPY(SRC, N, DST)                                          \
+#define ARRAY_COPY(SRC, N, DST)                                                \
   for (int i = 0; i < N; i++) {                                                \
     DST[i] = SRC[i];                                                           \
   }
@@ -2303,13 +2303,16 @@ void imu_factor_propagate_step(imu_factor_t *factor,
                                const real_t a_j[3],
                                const real_t w_j[3],
                                const real_t dt);
-void imu_factor_form_F_matrix(const imu_factor_t *factor,
-                              const real_t a_i[3],
-                              const real_t w_i[3],
-                              const real_t a_j[3],
-                              const real_t w_j[3],
-                              const real_t dt,
-                              real_t F_dt[15 * 15]);
+void imu_factor_F_matrix(const real_t q_i[4],
+                         const real_t q_j[4],
+                         const real_t ba_i[3],
+                         const real_t bg_i[3],
+                         const real_t a_i[3],
+                         const real_t w_i[3],
+                         const real_t a_j[3],
+                         const real_t w_j[3],
+                         const real_t dt,
+                         real_t F_dt[15 * 15]);
 void imu_factor_form_G_matrix(const imu_factor_t *factor,
                               const real_t a_i[3],
                               const real_t a_j[3],

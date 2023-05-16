@@ -4525,6 +4525,74 @@ int test_imu_initial_attitude() {
   return 0;
 }
 
+int test_imu_factor_form_F_matrix() {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data, 1.0, 0.1);
+
+  // Setup IMU buffer
+  imu_buffer_t imu_buf;
+  imu_buffer_setup(&imu_buf);
+  for (int k = 0; k < 10; k++) {
+    const timestamp_t ts = test_data.timestamps[k];
+    const real_t *acc = test_data.imu_acc[k];
+    const real_t *gyr = test_data.imu_gyr[k];
+    imu_buffer_add(&imu_buf, ts, acc, gyr);
+  }
+
+  // Setup IMU factor
+  const int idx_i = 0;
+  const int idx_j = 1;
+  const timestamp_t ts_i = test_data.timestamps[idx_i];
+  const timestamp_t ts_j = test_data.timestamps[idx_j];
+  const real_t *v_i = test_data.velocities[idx_i];
+  const real_t ba_i[3] = {0.1, 0.1, 0.1};
+  const real_t bg_i[3] = {0.1, 0.1, 0.1};
+  const real_t *v_j = test_data.velocities[idx_j];
+  const real_t ba_j[3] = {0.1, 0.1, 0.1};
+  const real_t bg_j[3] = {0.1, 0.1, 0.1};
+  pose_t pose_i;
+  pose_t pose_j;
+  velocity_t vel_i;
+  velocity_t vel_j;
+  imu_biases_t biases_i;
+  imu_biases_t biases_j;
+  pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
+  pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
+  velocity_setup(&vel_i, ts_i, v_i);
+  velocity_setup(&vel_j, ts_j, v_j);
+  imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
+  imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
+
+  imu_params_t imu_params;
+  imu_params.imu_idx = 0;
+  imu_params.rate = 200.0;
+  imu_params.sigma_a = 0.08;
+  imu_params.sigma_g = 0.004;
+  imu_params.sigma_aw = 0.00004;
+  imu_params.sigma_gw = 2.0e-6;
+  imu_params.g = 9.81;
+
+  // Test form F Matrix
+  const int k = idx_j;
+  const real_t *r_i = pose_i.data;
+  const real_t *r_j = pose_i.data;
+  const real_t *q_i = pose_i.data + 3;
+  const real_t *q_j = pose_j.data + 3;
+  const real_t dt = ts2sec(ts_j) - ts2sec(ts_i);
+  const real_t *a_i = imu_buf.acc[k - 1];
+  const real_t *w_i = imu_buf.gyr[k - 1];
+  const real_t *a_j = imu_buf.acc[k];
+  const real_t *w_j = imu_buf.gyr[k];
+  real_t F_dt[15 * 15] = {0};
+  imu_factor_F_matrix(q_i, q_j, ba_i, bg_i, a_i, w_i, a_j, w_j, dt, F_dt);
+
+  // Clean up
+  free_imu_test_data(&test_data);
+
+  return 0;
+}
+
 int test_imu_factor() {
   // Setup test data
   imu_test_data_t test_data;
@@ -7739,6 +7807,7 @@ void test_suite() {
   MU_ADD_TEST(test_imu_buffer_copy);
   MU_ADD_TEST(test_imu_propagate);
   MU_ADD_TEST(test_imu_initial_attitude);
+  MU_ADD_TEST(test_imu_factor_form_F_matrix);
   MU_ADD_TEST(test_imu_factor);
   MU_ADD_TEST(test_joint_factor);
   MU_ADD_TEST(test_calib_camera_factor);

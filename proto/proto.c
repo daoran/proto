@@ -12084,22 +12084,135 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
   mat_diag_set(Q, 18, 18, q);
 }
 
+// F11 = eye(3)
+#define IMU_FACTOR_F11()                                                       \
+  real_t F11[3 * 3] = {0};                                                     \
+  eye(F11, 3, 3);
+
+// F12 = -0.25 * dC_i @ acc_i_x * dt_sq
+// F12 += -0.25 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt) * dt_sq
+#define IMU_FACTOR_F12(dCi_acc_i_x, dCj_acc_j_x, I_m_gyr_x_dt, dt_sq)          \
+  real_t F12_A[3 * 3] = {0};                                                   \
+  mat_copy(dCi_acc_i_x, 3, 3, F12_A);                                          \
+  mat_scale(F12_A, 3, 3, -0.25);                                               \
+  mat_scale(F12_A, 3, 3, dt_sq);                                               \
+                                                                               \
+  real_t F12_B[3 * 3] = {0};                                                   \
+  mat_copy(dCj_acc_j_x, 3, 3, F12_B);                                          \
+  mat_scale(F12_B, 3, 3, -0.25);                                               \
+                                                                               \
+  real_t F12_C[3 * 3] = {0};                                                   \
+  mat_copy(I_m_gyr_x_dt, 3, 3, F12_C);                                         \
+  mat_scale(F12_C, 3, 3, dt_sq);                                               \
+                                                                               \
+  real_t F12_D[3 * 3] = {0};                                                   \
+  dot(F12_B, 3, 3, F12_C, 3, 3, F12_D);                                        \
+                                                                               \
+  real_t F12[3 * 3] = {0};                                                     \
+  mat_add(F12_A, F12_D, F12, 3, 3);
+
+// F13 = eye(3) * dt
+#define IMU_FACTOR_F13(dt)                                                     \
+  real_t F13[3 * 3] = {0};                                                     \
+  eye(F13, 3, 3);                                                              \
+  mat_scale(F13, 3, 3, dt);
+
+// F14 = -0.25 * (dC_i + dC_j) * dt_sq
+#define IMU_FACTOR_F14(dCi_dCj, dt_sq)                                         \
+  real_t F14[3 * 3] = {0};                                                     \
+  mat_copy(dCi_dCj, 3, 3, F14);                                                \
+  mat_scale(F14, 3, 3, -0.25);                                                 \
+  mat_scale(F14, 3, 3, dt_sq);
+
+// F15 = 0.25 * -dC_j @ acc_j_x * dt_sq * -dt
+#define IMU_FACTOR_F15(dCj_acc_j_x, dt, dt_sq)                                 \
+  real_t F15[3 * 3] = {0};                                                     \
+  mat_copy(dCj_acc_j_x, 3, 3, F15);                                            \
+  mat_scale(F15, 3, 3, -1.0);                                                  \
+  mat_scale(F15, 3, 3, 0.25);                                                  \
+  mat_scale(F15, 3, 3, dt_sq);                                                 \
+  mat_scale(F15, 3, 3, -dt);
+
+// F22 = eye(3) - gyr_x * dt
+#define IMU_FACTOR_F22(I_m_gyr_x_dt)                                           \
+  real_t F22[3 * 3] = {0};                                                     \
+  mat_copy(I_m_gyr_x_dt, 3, 3, F22);
+
+// F25 = -eye(3) * dt
+#define IMU_FACTOR_F25(dt)                                                     \
+  real_t F25[3 * 3] = {0};                                                     \
+  F25[0] = -dt;                                                                \
+  F25[4] = -dt;                                                                \
+  F25[8] = -dt;
+
+// F32 = -0.5 * dC_i @ acc_i_x * dt
+// F32 += -0.5 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt)* dt
+#define IMU_FACTOR_F32(dC_i, dC_j, acc_i_x, acc_j_x, gyr_x, dt)                \
+  real_t F32_A[3 * 3] = {0};                                                   \
+  mat_copy(dCi_acc_i_x, 3, 3, F32_A);                                          \
+  for (int i = 0; i < 9; i++) {                                                \
+    F32_A[i] = -0.5 * F32_A[i] * dt;                                           \
+  }                                                                            \
+                                                                               \
+  real_t F32_B[3 * 3] = {0};                                                   \
+  dot(dCj_acc_j_x, 3, 3, I_m_gyr_x_dt, 3, 3, F32_B);                           \
+  for (int i = 0; i < 9; i++) {                                                \
+    F32_B[i] = -0.5 * F32_B[i] * dt;                                           \
+  }                                                                            \
+                                                                               \
+  real_t F32[3 * 3] = {0};                                                     \
+  mat_add(F32_A, F32_B, F32, 3, 3);
+
+// F33 = eye(3)
+#define IMU_FACTOR_F33()                                                       \
+  real_t F33[3 * 3] = {0};                                                     \
+  F33[0] = 1.0;                                                                \
+  F33[4] = 1.0;                                                                \
+  F33[8] = 1.0;
+
+// F34 = -0.5 * (dC_i + dC_j) * dt
+#define IMU_FACTOR_F34(dC_i, dC_j, dt)                                         \
+  real_t F34[3 * 3] = {0};                                                     \
+  for (int i = 0; i < 9; i++) {                                                \
+    F34[i] = -0.5 * dCi_dCj[i] * dt;                                           \
+  }
+
+// F35 = 0.5 * -dC_j @ acc_j_x * dt * -dt
+#define IMU_FACTOR_F35(dCj_acc_j_x, dt)                                        \
+  real_t F35[3 * 3] = {0};                                                     \
+  for (int i = 0; i < 9; i++) {                                                \
+    F35[i] = 0.5 * -1.0 * dCj_acc_j_x[i] * dt * -dt;                           \
+  }
+
+// F44 = eye(3)
+#define IMU_FACTOR_F44()                                                       \
+  real_t F44[3 * 3] = {0};                                                     \
+  F44[0] = 1.0;                                                                \
+  F44[4] = 1.0;                                                                \
+  F44[8] = 1.0;
+
+// F55 = eye(3)
+#define IMU_FACTOR_F55()                                                       \
+  real_t F55[3 * 3] = {0};                                                     \
+  F55[0] = 1.0;                                                                \
+  F55[4] = 1.0;                                                                \
+  F55[8] = 1.0;
+
 /**
  * Form IMU Transition Matrix F
  */
-void imu_factor_form_F_matrix(const imu_factor_t *factor,
-                              const real_t a_i[3],
-                              const real_t w_i[3],
-                              const real_t a_j[3],
-                              const real_t w_j[3],
-                              const real_t dt,
-                              real_t F_dt[15 * 15]) {
+void imu_factor_F_matrix(const real_t q_i[4],
+                         const real_t q_j[4],
+                         const real_t ba_i[3],
+                         const real_t bg_i[3],
+                         const real_t a_i[3],
+                         const real_t w_i[3],
+                         const real_t a_j[3],
+                         const real_t w_j[3],
+                         const real_t dt,
+                         real_t F_dt[15 * 15]) {
   // Setup
   const real_t dt_sq = dt * dt;
-  const real_t *q_i = factor->q_i;
-  const real_t *q_j = factor->q_j;
-  const real_t *ba_i = factor->ba_i;
-  const real_t *bg_i = factor->bg_i;
 
   // gyr_x = hat(0.5 * (imu_buf.gyr[k] + imu_buf.gyr[k + 1]) - bg_i)
   real_t gyr[3] = {0};
@@ -12151,106 +12264,19 @@ void imu_factor_form_F_matrix(const imu_factor_t *factor,
   I_m_gyr_x_dt[7] = 0.0 - gyr_x[7] * dt;
   I_m_gyr_x_dt[8] = 1.0 - gyr_x[8] * dt;
 
-  // -- F11 = eye(3)
-  real_t F11[3 * 3] = {0};
-  eye(F11, 3, 3);
-
-  // -- F12 = -0.25 * dC_i @ acc_i_x * dt_sq
-  // -- F12 += -0.25 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt) * dt_sq
-  real_t F12_A[3 * 3] = {0};
-  mat_copy(dCi_acc_i_x, 3, 3, F12_A);
-  mat_scale(F12_A, 3, 3, -0.25);
-  mat_scale(F12_A, 3, 3, dt_sq);
-
-  real_t F12_B[3 * 3] = {0};
-  mat_copy(dCj_acc_j_x, 3, 3, F12_B);
-  mat_scale(F12_B, 3, 3, -0.25);
-
-  real_t F12_C[3 * 3] = {0};
-  mat_copy(I_m_gyr_x_dt, 3, 3, F12_C);
-  mat_scale(F12_C, 3, 3, dt_sq);
-
-  real_t F12_D[3 * 3] = {0};
-  dot(F12_B, 3, 3, F12_C, 3, 3, F12_D);
-
-  real_t F12[3 * 3] = {0};
-  mat_add(F12_A, F12_D, F12, 3, 3);
-
-  // -- F13 = eye(3) * dt
-  real_t F13[3 * 3] = {0};
-  eye(F13, 3, 3);
-  mat_scale(F13, 3, 3, dt);
-
-  // -- F14 = -0.25 * (dC_i + dC_j) * dt_sq
-  real_t F14[3 * 3] = {0};
-  mat_copy(dCi_dCj, 3, 3, F14);
-  mat_scale(F14, 3, 3, -0.25);
-  mat_scale(F14, 3, 3, dt_sq);
-
-  // -- F15 = 0.25 * -dC_j @ acc_j_x * dt_sq * -dt
-  real_t F15[3 * 3] = {0};
-  mat_copy(dCj_acc_j_x, 3, 3, F15);
-  mat_scale(F15, 3, 3, -1.0);
-  mat_scale(F15, 3, 3, 0.25);
-  mat_scale(F15, 3, 3, dt_sq);
-  mat_scale(F15, 3, 3, -dt);
-
-  // -- F22 = eye(3) - gyr_x * dt
-  real_t F22[3 * 3] = {0};
-  mat_copy(I_m_gyr_x_dt, 3, 3, F22);
-
-  // -- F25 = -eye(3) * dt
-  real_t F25[3 * 3] = {0};
-  F25[0] = -dt;
-  F25[4] = -dt;
-  F25[8] = -dt;
-
-  // -- F32 = -0.5 * dC_i @ acc_i_x * dt
-  // -- F32 += -0.5 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt)* dt
-  real_t F32_A[3 * 3] = {0};
-  mat_copy(dCi_acc_i_x, 3, 3, F32_A);
-  for (int i = 0; i < 9; i++) {
-    F32_A[i] = -0.5 * F32_A[i] * dt;
-  }
-
-  real_t F32_B[3 * 3] = {0};
-  dot(dCj_acc_j_x, 3, 3, I_m_gyr_x_dt, 3, 3, F32_B);
-  for (int i = 0; i < 9; i++) {
-    F32_B[i] = -0.5 * F32_B[i] * dt;
-  }
-
-  real_t F32[3 * 3] = {0};
-  mat_add(F32_A, F32_B, F32, 3, 3);
-
-  // -- F33 = eye(3)
-  real_t F33[3 * 3] = {0};
-  F33[0] = 1.0;
-  F33[4] = 1.0;
-  F33[8] = 1.0;
-
-  // -- F34 = -0.5 * (dC_i + dC_j) * dt
-  real_t F34[3 * 3] = {0};
-  for (int i = 0; i < 9; i++) {
-    F34[i] = -0.5 * dCi_dCj[i] * dt;
-  }
-
-  // -- F35 = 0.5 * -dC_j @ acc_j_x * dt * -dt
-  real_t F35[3 * 3] = {0};
-  for (int i = 0; i < 9; i++) {
-    F35[i] = 0.5 * -1.0 * dCj_acc_j_x[i] * dt * -dt;
-  }
-
-  // -- F44 = eye(3)
-  real_t F44[3 * 3] = {0};
-  F44[0] = 1.0;
-  F44[4] = 1.0;
-  F44[8] = 1.0;
-
-  // -- F55 = eye(3)
-  real_t F55[3 * 3] = {0};
-  F55[0] = 1.0;
-  F55[4] = 1.0;
-  F55[8] = 1.0;
+  IMU_FACTOR_F11();
+  IMU_FACTOR_F12(dCi_acc_i_x, dCj_acc_j_x, I_m_gyr_x_dt, dt_sq);
+  IMU_FACTOR_F13(dt);
+  IMU_FACTOR_F14(dCi_dCj, dt_sq);
+  IMU_FACTOR_F15(dCj_acc_j_x, dt, dt_sq);
+  IMU_FACTOR_F22(I_m_gyr_x_dt);
+  IMU_FACTOR_F25(dt);
+  IMU_FACTOR_F32(dC_i, dC_j, acc_i_x, acc_j_x, gyr_x, dt);
+  IMU_FACTOR_F33();
+  IMU_FACTOR_F34(dC_i, dC_j, dt);
+  IMU_FACTOR_F35(dCj_acc_j_x, dt);
+  IMU_FACTOR_F44();
+  IMU_FACTOR_F55();
 
   // Fill matrix F
   zeros(F_dt, 15, 15);
@@ -12482,8 +12508,12 @@ void imu_factor_setup(imu_factor_t *factor,
     imu_factor_propagate_step(factor, a_i, w_i, a_j, w_j, dt);
 
     // Form transition Matrix F
+    const real_t *q_i = factor->q_i;
+    const real_t *q_j = factor->q_j;
+    const real_t *ba_i = factor->ba_i;
+    const real_t *bg_i = factor->bg_i;
     real_t F_dt[15 * 15] = {0};
-    imu_factor_form_F_matrix(factor, a_i, w_i, a_j, w_j, dt, F_dt);
+    imu_factor_F_matrix(q_i, q_j, ba_i, bg_i, a_i, w_i, a_j, w_j, dt, F_dt);
 
     // Input Jacobian G
     real_t G_dt[15 * 18] = {0};
