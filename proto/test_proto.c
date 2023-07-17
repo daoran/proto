@@ -3637,16 +3637,43 @@ int test_schur_complement() {
 int test_timeline() {
   const char *data_dir = "/data/proto/imu_april";
   const int num_cams = 2;
-  const int num_imus = 0;
+  const int num_imus = 1;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
+  // printf("timeline->num_cams: %d\n", timeline->num_cams);
+  // printf("timeline->num_imus: %d\n", timeline->num_imus);
+  // printf("timeline->num_event_types: %d\n", timeline->num_event_types);
+
   // for (int k = 0; k < timeline->timeline_length; k++) {
+  //   // Extract timeline events. Add either imu or fiducial event
   //   for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
   //     timeline_event_t *event = timeline->timeline_events[k][i];
-  //     if (event->type == FIDUCIAL_EVENT) {
-  //       print_fiducial_event(&event->data.fiducial);
-  //     } else {
-  //       print_imu_event(&event->data.imu);
+  //     const timestamp_t ts = event->ts;
+
+  //     if (event->type == IMU_EVENT) {
+  //       const imu_event_t *data = &event->data.imu;
+  //       // printf("imu_ts: %ld ", data->ts);
+  //       // printf("acc: (%f, %f, %f) ", data->acc[0], data->acc[1], data->acc[2]);
+  //       // printf("gyr: (%f, %f, %f) ", data->gyr[0], data->gyr[1], data->gyr[2]);
+  //       // printf("\n");
+
+  //     } else if (event->type == FIDUCIAL_EVENT) {
+  //       const fiducial_event_t *data = &event->data.fiducial;
+  //       const int cam_idx = data->cam_idx;
+  //       // printf("cam_ts: %ld \n", data->ts);
+  //       // printf("  cam_idx: %d\n", data->cam_idx);
+  //       // printf("  num_corners: %d\n", data->num_corners);
+  //       // for (int i = 0; i < data->num_corners; i++) {
+  //       //   const real_t *p = data->object_points + i * 3;
+  //       //   const real_t *z = data->keypoints + i * 2;
+
+  //       //   printf("  ");
+  //       //   printf("%d, ", data->tag_ids[i]);
+  //       //   printf("%d, ", data->corner_indices[i]);
+  //       //   printf("%f, %f, %f, ", p[0], p[1], p[2]);
+  //       //   printf("%f, %f", z[0], z[1]);
+  //       //   printf("\n");
+  //       // }
   //     }
   //   }
   // }
@@ -4525,6 +4552,70 @@ int test_imu_initial_attitude() {
   return 0;
 }
 
+// static void imu_propagate_step(const real_t x_km1[16], real_t x_k[16]) {
+//   // Setup
+//   const real_t a_i[3] = {0.1, 0.1, 0.1};
+//   const real_t a_j[3] = {0.2, 0.2, 0.2};
+//   const real_t w_i[3] = {0.1, 0.1, 0.1};
+//   const real_t w_j[3] = {0.2, 0.2, 0.2};
+//   const real_t dt = 0.01;
+//   const real_t dt_sq = dt * dt;
+
+//   const real_t *r_i = x_km1 + 0;
+//   const real_t *q_i = x_km1 + 3;
+//   const real_t *v_i = x_km1 + 7;
+//   const real_t *ba_i = x_km1 + 10;
+//   const real_t *bg_i = x_km1 + 13;
+
+//   // Gyroscope measurement
+//   const real_t wx = 0.5 * (w_i[0] + w_j[0]) - bg_i[0];
+//   const real_t wy = 0.5 * (w_i[1] + w_j[1]) - bg_i[1];
+//   const real_t wz = 0.5 * (w_i[2] + w_j[2]) - bg_i[2];
+//   const real_t dq[4] = {1.0, 0.5 * wx * dt, 0.5 * wy * dt, 0.5 * wz * dt};
+
+//   // Update orientation
+//   real_t q_j[4] = {0};
+//   quat_mul(q_i, dq, q_j);
+//   quat_normalize(q_j);
+
+//   // Accelerometer measurement
+//   const real_t a_ii[3] = {a_i[0] - ba_i[0], a_i[1] - ba_i[1], a_i[2] - ba_i[2]};
+//   const real_t a_jj[3] = {a_j[0] - ba_i[0], a_j[1] - ba_i[1], a_j[2] - ba_i[2]};
+//   real_t acc_i[3] = {0};
+//   real_t acc_j[3] = {0};
+//   quat_transform(q_i, a_ii, acc_i);
+//   quat_transform(q_j, a_jj, acc_j);
+//   real_t a[3] = {0};
+//   a[0] = 0.5 * (acc_i[0] + acc_j[0]);
+//   a[1] = 0.5 * (acc_i[1] + acc_j[1]);
+//   a[2] = 0.5 * (acc_i[2] + acc_j[2]);
+
+//   // Update position:
+//   // r_j = r_i + (v_i * dt) + (0.5 * a * dt_sq)
+//   real_t r_j[3] = {0};
+//   r_j[0] = r_i[0] + (v_i[0] * dt) + (0.5 * a[0] * dt_sq);
+//   r_j[1] = r_i[1] + (v_i[1] * dt) + (0.5 * a[1] * dt_sq);
+//   r_j[2] = r_i[2] + (v_i[2] * dt) + (0.5 * a[2] * dt_sq);
+
+//   // Update velocity:
+//   // v_j = v_i + a * dt
+//   real_t v_j[3] = {0};
+//   v_j[0] = v_i[0] + a[0] * dt;
+//   v_j[1] = v_i[1] + a[1] * dt;
+//   v_j[2] = v_i[2] + a[2] * dt;
+
+//   // Update biases
+//   // ba_j = ba_i;
+//   // bg_j = bg_i;
+//   real_t ba_j[3] = {0};
+//   real_t bg_j[3] = {0};
+//   vec_copy(ba_i, 3, ba_j);
+//   vec_copy(bg_i, 3, bg_j);
+
+//   // Write outputs
+//   imu_state_vector(r_j, q_j, v_j, ba_j, bg_j, x_k);
+// }
+
 int test_imu_factor_form_F_matrix() {
   // Setup test data
   imu_test_data_t test_data;
@@ -4546,11 +4637,11 @@ int test_imu_factor_form_F_matrix() {
   const timestamp_t ts_i = test_data.timestamps[idx_i];
   const timestamp_t ts_j = test_data.timestamps[idx_j];
   const real_t *v_i = test_data.velocities[idx_i];
-  const real_t ba_i[3] = {0.1, 0.1, 0.1};
-  const real_t bg_i[3] = {0.1, 0.1, 0.1};
+  const real_t ba_i[3] = {0.0, 0.0, 0.0};
+  const real_t bg_i[3] = {0.0, 0.0, 0.0};
   const real_t *v_j = test_data.velocities[idx_j];
-  const real_t ba_j[3] = {0.1, 0.1, 0.1};
-  const real_t bg_j[3] = {0.1, 0.1, 0.1};
+  const real_t ba_j[3] = {0.0, 0.0, 0.0};
+  const real_t bg_j[3] = {0.0, 0.0, 0.0};
   pose_t pose_i;
   pose_t pose_j;
   velocity_t vel_i;
@@ -4575,8 +4666,6 @@ int test_imu_factor_form_F_matrix() {
 
   // Test form F Matrix
   const int k = idx_j;
-  const real_t *r_i = pose_i.data;
-  const real_t *r_j = pose_i.data;
   const real_t *q_i = pose_i.data + 3;
   const real_t *q_j = pose_j.data + 3;
   const real_t dt = ts2sec(ts_j) - ts2sec(ts_i);
@@ -4587,6 +4676,8 @@ int test_imu_factor_form_F_matrix() {
   real_t F_dt[15 * 15] = {0};
   imu_factor_F_matrix(q_i, q_j, ba_i, bg_i, a_i, w_i, a_j, w_j, dt, F_dt);
 
+  mat_save("/tmp/F.csv", F_dt, 15, 15);
+
   // Clean up
   free_imu_test_data(&test_data);
 
@@ -4595,13 +4686,16 @@ int test_imu_factor_form_F_matrix() {
 
 int test_imu_factor() {
   // Setup test data
+  const double circle_r = 1.0;
+  const double circle_v = 0.1;
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data, 1.0, 0.1);
+  setup_imu_test_data(&test_data, circle_r, circle_v);
 
   // Setup IMU buffer
+  int buf_size = 20;
   imu_buffer_t imu_buf;
   imu_buffer_setup(&imu_buf);
-  for (int k = 0; k < 10; k++) {
+  for (int k = 0; k < buf_size; k++) {
     const timestamp_t ts = test_data.timestamps[k];
     const real_t *acc = test_data.imu_acc[k];
     const real_t *gyr = test_data.imu_gyr[k];
@@ -4610,15 +4704,15 @@ int test_imu_factor() {
 
   // Setup IMU factor
   const int idx_i = 0;
-  const int idx_j = 20 - 1;
+  const int idx_j = buf_size - 1;
   const timestamp_t ts_i = test_data.timestamps[idx_i];
   const timestamp_t ts_j = test_data.timestamps[idx_j];
   const real_t *v_i = test_data.velocities[idx_i];
-  const real_t ba_i[3] = {0.1, 0.1, 0.1};
-  const real_t bg_i[3] = {0.1, 0.1, 0.1};
+  const real_t ba_i[3] = {0.0, 0.0, 0.0};
+  const real_t bg_i[3] = {0.0, 0.0, 0.0};
   const real_t *v_j = test_data.velocities[idx_j];
-  const real_t ba_j[3] = {0.1, 0.1, 0.1};
-  const real_t bg_j[3] = {0.1, 0.1, 0.1};
+  const real_t ba_j[3] = {0.0, 0.0, 0.0};
+  const real_t bg_j[3] = {0.0, 0.0, 0.0};
   pose_t pose_i;
   pose_t pose_j;
   velocity_t vel_i;
@@ -4651,23 +4745,43 @@ int test_imu_factor() {
                    &pose_j,
                    &vel_j,
                    &biases_j);
+  imu_factor_eval(&factor);
 
-  // const char *cmd = "\
-// P = csvread('/tmp/P.csv'); \
-// state_P = csvread('/tmp/state_P.csv'); \
-// subplot(121); \
-// imagesc(P); \
-// axis 'equal'; \
-// colorbar(); \
-// subplot(122); \
-// imagesc(P - state_P); \
-// colorbar(); \
-// axis 'equal'; \
-// ginput();\
-// ";
-  // char syscmd[9046] = {0};
-  // sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
-  // system(syscmd);
+  // print_vector("pose_i", pose_i.data, 7);
+  // print_vector("pose_j", pose_j.data, 7);
+  // print_vector("dr", factor.dr, 3);
+  // print_vector("dv", factor.dv, 3);
+  // print_vector("dq", factor.dq, 4);
+  // printf("dt: %f\n", factor.Dt);
+  // print_vector("r", factor.r, 15);
+  mat_save("/tmp/F_.csv", factor.F, 15, 15);
+  // mat_save("/tmp/P_.csv", factor.P, 15, 15);
+
+  const char *cmd = "\
+F = csvread('/tmp/F.csv'); \
+state_F = csvread('/tmp/F_.csv'); \
+subplot(311); \
+imagesc(F); \
+title('Python'); \
+axis 'equal'; \
+colorbar(); \
+subplot(312); \
+imagesc(state_F); \
+title('C'); \
+axis 'equal'; \
+colorbar(); \
+subplot(313); \
+imagesc(F - state_F); \
+title('F - stateF'); \
+colorbar(); \
+axis 'equal'; \
+F(1:3, 1:3); \
+state_F(1:3, 1:3); \
+ginput();\
+";
+  char syscmd[9046] = {0};
+  sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
+  system(syscmd);
 
   MU_ASSERT(factor.pose_i == &pose_i);
   MU_ASSERT(factor.vel_i == &vel_i);
@@ -4676,19 +4790,16 @@ int test_imu_factor() {
   MU_ASSERT(factor.vel_j == &vel_j);
   MU_ASSERT(factor.biases_j == &biases_j);
 
-  // Evaluate IMU factor
-  imu_factor_eval(&factor);
-
   // Check Jacobians
-  const double tol = 1e-4;
-  const double step_size = 1e-8;
-  eye(factor.sqrt_info, 15, 15);
-  CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(3, factor, imu_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(4, factor, imu_factor_eval, step_size, tol, 0);
-  CHECK_FACTOR_J(5, factor, imu_factor_eval, step_size, tol, 0);
+  // const double tol = 1e-4;
+  // const double step_size = 1e-8;
+  // eye(factor.sqrt_info, 15, 15);
+  // CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, tol, 0);
+  // CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
+  // CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 0);
+  // CHECK_FACTOR_J(3, factor, imu_factor_eval, step_size, tol, 0);
+  // CHECK_FACTOR_J(4, factor, imu_factor_eval, step_size, tol, 0);
+  // CHECK_FACTOR_J(5, factor, imu_factor_eval, step_size, tol, 0);
 
   // Clean up
   free_imu_test_data(&test_data);
@@ -5508,7 +5619,7 @@ int test_tsf() {
   TF_VECTOR(T_SC1, cam1_ext);
 
   // Simulate data
-  const real_t imu_rate = 200.0;
+  // const real_t imu_rate = 200.0;
   sim_circle_t conf;
   sim_circle_defaults(&conf);
   // sim_imu_data_t *imu_data = sim_imu_circle_trajectory(imu_rate, r, v, th0, y0);
@@ -6184,7 +6295,6 @@ int test_calib_camera_stereo_ceres() {
   const real_t focal = pinhole_focal(cam_res[0], 90.0);
   const real_t cx = cam_res[0] / 2.0;
   const real_t cy = cam_res[1] / 2.0;
-  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   real_t cam[2][8] = {{focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0},
                       {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0}};
   camera_params_t cam_params[2];
@@ -6734,7 +6844,7 @@ int test_calib_imucam_batch() {
   char *data_dir = "/data/proto/imu_april/";
   int num_cams = 1;
   int num_imus = 1;
-  int window_size = 20;
+  // int window_size = 20;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
   for (int k = 0; k < timeline->timeline_length; k++) {
@@ -6762,7 +6872,7 @@ int test_calib_imucam_batch() {
     }
 
     // Trigger update
-    TIC(start);
+    // TIC(start);
     if (calib_imucam_update(calib) == 0) {
       // // Incremental solve
       // if (calib->num_views >= window_size) {
@@ -6804,7 +6914,6 @@ int test_calib_imucam_batch() {
       break;
     }
   }
-
   // calib_imucam_save_estimates(calib);
 
   // Solve

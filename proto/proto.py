@@ -5431,14 +5431,13 @@ class ImuFactor2(Factor):
       bg = bg_j
 
       # Update
-      np.savetxt("/tmp/A_.csv", F @ state_P @ F.T, delimiter=",")
-      np.savetxt("/tmp/B_.csv", G @ Q @ G.T, delimiter=",")
-      np.savetxt("/tmp/state_Q.csv", Q, delimiter=",")
-      np.savetxt("/tmp/state_G.csv", G, delimiter=",")
+      # np.savetxt("/tmp/A_.csv", F @ state_P @ F.T, delimiter=",")
+      # np.savetxt("/tmp/B_.csv", G @ Q @ G.T, delimiter=",")
+      # np.savetxt("/tmp/state_Q.csv", Q, delimiter=",")
+      # np.savetxt("/tmp/state_G.csv", G, delimiter=",")
 
       state_F = F @ state_F
       state_P = F @ state_P @ F.T + G @ Q @ G.T
-      break
       Dt += dt
 
     state_P = (state_P + state_P.T) / 2.0
@@ -10953,6 +10952,59 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
     # yapf: enable
 
+  def test_imu_propagation_jacobians(self):
+    """ Test IMU Propagation Jacobians """
+    # -- Setup
+    dt = 0.001
+    I3 = np.eye(3)
+
+    # -- State
+    p = np.array([0.0, 0.0, 0.0])
+    v = np.array([0.1, 0.2, 0.3])
+    q = euler2quat(0.1, 0.2, 0.3)
+    a_b = np.array([0.1, 0.2, 0.3])
+    w_b = np.array([0.1, 0.2, 0.3])
+    C = np.eye(3)
+    g = np.array([0.0, 0.0, -10.0])
+
+    # -- Input
+    a_m = np.array([0.1, 0.2, 10.0])
+    w_m = np.array([0.1, 0.2, 0.3])
+
+    # -- Nominal state kinematics
+    # p = p + v * dt + 0.5 * C * (a_m - a_b) + g) * dt**2
+    # v = v + C * (a_m - a_b) + g) * dt
+    # q = q * (w_m - w_b) * dt
+    # a_b = 0
+    # w_b = 0
+    p_kp1 = p + v * dt + 0.5 * C @ ((a_m - a_b) + g) * dt**2
+    v_kp1 = v + C @ ((a_m - a_b) + g) * dt
+    q_kp1 = quat_mul(q, quat_delta((w_m - w_b) * dt))
+
+    # -- Error state kinematics
+    # dp = dp + dv * dt
+    # dv = dv + (-C * hat(a_m - a_b) * dtheta - C * da_b + dg) * dt
+    # dtheta = C.T{w_m - w_b) * dt} * dtheta - dw_b * dt
+    # da_b = a_w
+    # dw_b = w_w
+
+    # -- Transition matrix F
+    F = np.zeros((15, 15))
+    # -- Row block 1
+    F[0:3, 0:3] = I3
+    F[0:3, 3:6] = I3 * dt
+    # -- Row block 2
+    F[3:6, 3:6] = I3
+    F[3:6, 6:9] = -C @ (a_m - a_b) * dt
+    F[3:6, 9:12] = -C * dt
+    # -- Row block 3
+    F[6:9, 6:9] = I3 - hat(w_m - w_b) * dt
+    F[6:9, 12:15] = -I3 * dt
+    # -- Row block 4
+    F[9:12, 9:12] = I3
+    # -- Row block 5
+    F[12:15, 12:15] = I3
+
   def test_imu_factor2_propagate(self):
     """ Test IMU factor propagate """
     # Sim imu data
@@ -10970,8 +11022,7 @@ class TestFactors(unittest.TestCase):
 
     # Setup imu buffer
     start_idx = 0
-    end_idx = 10
-    # end_idx = len(imu_data.timestamps) - 1
+    end_idx = 2
     imu_buf = imu_data.form_imu_buffer(start_idx, end_idx)
 
     # Pose i
@@ -11054,79 +11105,72 @@ class TestFactors(unittest.TestCase):
     factor = ImuFactor2(param_ids, imu_params, imu_buf, sb_i)
 
     # Print
-    # params = [sv.param for sv in fvars]
-    # r, _ = factor.eval(params)
+    params = [sv.param for sv in fvars]
+    r, _ = factor.eval(params)
     # print(f"pose_i: {np.round(pose_i.param, 4)}")
     # print(f"pose_j: {np.round(pose_j.param, 4)}")
     # print(f"dr: {factor.dr}")
     # print(f"dv: {factor.dv}")
-    # print(f"dq: {rot2quat(factor.dC)}")
+    # print(f"dq: {factor.dq}")
     # print(f"Dt: {factor.Dt}")
-    # print(f"r: {r}")
+    print(f"r: {r}")
 
     # Save matrix F, P and Q
-    # np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
+    np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
     # np.savetxt("/tmp/P.csv", factor.state_P, delimiter=",")
     # np.savetxt("/tmp/sqrt_info.csv", factor.sqrt_info, delimiter=",")
 
     # Test jacobians
-    # yapf: disable
-    # self.assertTrue(factor)
-    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
+    self.assertTrue(factor)
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
 
     # factor.sqrt_info = np.eye(15)
-    params = [sv.param for sv in fvars]
-    (r, [J0, J1, J2, J3]) = factor.eval(params)
+    # params = [sv.param for sv in fvars]
+    # (r, [J0, J1, J2, J3]) = factor.eval(params)
 
-    H00 = J0.T @ J0
-    H01 = J0.T @ J1
-    H02 = J0.T @ J2
-    H03 = J0.T @ J3
+    # H00 = J0.T @ J0
+    # H01 = J0.T @ J1
+    # H02 = J0.T @ J2
+    # H03 = J0.T @ J3
 
-    H10 = J1.T @ J0
-    H11 = J1.T @ J1
-    H12 = J1.T @ J2
-    H13 = J1.T @ J3
+    # H10 = J1.T @ J0
+    # H11 = J1.T @ J1
+    # H12 = J1.T @ J2
+    # H13 = J1.T @ J3
 
-    H20 = J2.T @ J0
-    H21 = J2.T @ J1
-    H22 = J2.T @ J2
-    H23 = J2.T @ J3
+    # H20 = J2.T @ J0
+    # H21 = J2.T @ J1
+    # H22 = J2.T @ J2
+    # H23 = J2.T @ J3
 
-    H30 = J3.T @ J0
-    H31 = J3.T @ J1
-    H32 = J3.T @ J2
-    H33 = J3.T @ J3
+    # H30 = J3.T @ J0
+    # H31 = J3.T @ J1
+    # H32 = J3.T @ J2
+    # H33 = J3.T @ J3
 
     # H = np.block([[H00, H01, H02, H03],
     #               [H10, H11, H12, H13],
     #               [H20, H21, H22, H23],
     #               [H30, H31, H32, H33]])
 
-    H = np.block([[H00, H01, H02],
-                  [H10, H11, H12],
-                  [H20, H21, H22]])
+    # H = np.block([[H00, H01, H02],
+    #               [H10, H11, H12],
+    #               [H20, H21, H22]])
 
     # plt.imshow((H > 0) * 1, cmap="gray")
     # plt.colorbar()
     # plt.show()
 
-    m = 6 + 9
-    Hmm = H[0:m, 0:m]
-    Hmr = H[0:m, m:]
-    Hrm = Hmr.T
-    Hrr = H[m:, m:]
+    # m = 6 + 9
+    # Hmm = H[0:m, 0:m]
+    # Hmr = H[0:m, m:]
+    # Hrm = Hmr.T
+    # Hrr = H[m:, m:]
 
-    print(f"rank: {rank(Hmm)}")
-    print(f"shape: {Hmm.shape}")
-    (w, V) = eig(Hmm)
-    print(w)
-
-
-
-
-
-
+    # print(f"rank: {rank(Hmm)}")
+    # print(f"shape: {Hmm.shape}")
+    # (w, V) = eig(Hmm)
+    # print(w)
 
     # factor.sqrt_info = np.eye(15)
     # self.assertTrue(factor.check_jacobian(fvars, 1, "J_pose_i"))

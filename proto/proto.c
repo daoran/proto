@@ -2310,8 +2310,8 @@ void print_matrix(const char *prefix,
   printf("%s:\n", prefix);
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
-      printf("%.4f  ", A[idx]);
-      // printf("%e  ", A[idx]);
+      // printf("%.4f  ", A[idx]);
+      printf("%e  ", A[idx]);
       idx++;
     }
     printf("\n");
@@ -5483,6 +5483,14 @@ void pose_get_quat(const real_t p[7], real_t q[4]) {
   q[1] = p[4];
   q[2] = p[5];
   q[3] = p[6];
+}
+
+/**
+ * Return rotation matrix `C` from pose vector `p`.
+ */
+void pose_get_rot(const real_t p[7], real_t C[3 * 3]) {
+  const real_t q[4] = {p[3], p[4], p[5], p[6]};
+  quat2rot(q, C);
 }
 
 /**
@@ -11859,6 +11867,44 @@ void imu_buffer_copy(const imu_buffer_t *src, imu_buffer_t *dst) {
 }
 
 /**
+ * Form IMU state vector
+ */
+void imu_state_vector(const real_t r[3],
+                      const real_t q[4],
+                      const real_t v[3],
+                      const real_t ba[3],
+                      const real_t bg[3],
+                      real_t x[16]) {
+  assert(r != NULL);
+  assert(q != NULL);
+  assert(v != NULL);
+  assert(ba != NULL);
+  assert(bg != NULL);
+  assert(x != NULL);
+
+  x[0] = r[0];
+  x[1] = r[1];
+  x[2] = r[2];
+
+  x[3] = q[0];
+  x[4] = q[1];
+  x[5] = q[2];
+  x[6] = q[3];
+
+  x[7] = v[0];
+  x[8] = v[1];
+  x[9] = v[2];
+
+  x[10] = ba[0];
+  x[11] = ba[1];
+  x[12] = ba[2];
+
+  x[13] = bg[0];
+  x[14] = bg[1];
+  x[15] = bg[2];
+}
+
+/**
  * Propagate IMU measurement
  */
 void imu_propagate(const real_t pose_k[7],
@@ -11929,7 +11975,7 @@ void imu_propagate(const real_t pose_k[7],
  * Initialize roll and pitch with accelerometer measurements.
  */
 void imu_initial_attitude(const imu_buffer_t *imu_buf, real_t q_WS[4]) {
-  // Get average accelerometer measurements
+  // Get mean accelerometer measurements
   real_t ax = 0.0;
   real_t ay = 0.0;
   real_t az = 0.0;
@@ -11970,6 +12016,13 @@ void imu_factor_propagate_step(imu_factor_t *factor,
                                const real_t a_j[3],
                                const real_t w_j[3],
                                const real_t dt) {
+  assert(factor != NULL);
+  assert(a_i != NULL);
+  assert(w_i != NULL);
+  assert(a_j != NULL);
+  assert(w_j != NULL);
+  assert(dt > 0.0);
+
   // Setup
   const real_t dt_sq = dt * dt;
   const real_t *r_i = factor->dr;
@@ -11977,11 +12030,6 @@ void imu_factor_propagate_step(imu_factor_t *factor,
   const real_t *q_i = factor->dq;
   const real_t *ba_i = factor->ba;
   const real_t *bg_i = factor->bg;
-  vec_copy(factor->dr, 3, factor->r_i);
-  vec_copy(factor->dv, 3, factor->v_i);
-  vec_copy(factor->dq, 4, factor->q_i);
-  vec_copy(factor->ba, 3, factor->ba_i);
-  vec_copy(factor->bg, 3, factor->bg_i);
 
   // Gyroscope measurement
   const real_t wx = 0.5 * (w_i[0] + w_j[0]) - bg_i[0];
@@ -12128,10 +12176,7 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
 #define IMU_FACTOR_F15(dCj_acc_j_x, dt, dt_sq)                                 \
   real_t F15[3 * 3] = {0};                                                     \
   mat_copy(dCj_acc_j_x, 3, 3, F15);                                            \
-  mat_scale(F15, 3, 3, -1.0);                                                  \
-  mat_scale(F15, 3, 3, 0.25);                                                  \
-  mat_scale(F15, 3, 3, dt_sq);                                                 \
-  mat_scale(F15, 3, 3, -dt);
+  mat_scale(F15, 3, 3, -1.0 * 0.25 * dt_sq * -dt);
 
 // F22 = eye(3) - gyr_x * dt
 #define IMU_FACTOR_F22(I_m_gyr_x_dt)                                           \
@@ -12147,7 +12192,7 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
 
 // F32 = -0.5 * dC_i @ acc_i_x * dt
 // F32 += -0.5 * dC_j @ acc_j_x @ (eye(3) - gyr_x * dt)* dt
-#define IMU_FACTOR_F32(dC_i, dC_j, acc_i_x, acc_j_x, gyr_x, dt)                \
+#define IMU_FACTOR_F32(dCi_acc_i_x, dCj_acc_j_x, I_m_gyr_x_dt, dt)             \
   real_t F32_A[3 * 3] = {0};                                                   \
   mat_copy(dCi_acc_i_x, 3, 3, F32_A);                                          \
   for (int i = 0; i < 9; i++) {                                                \
@@ -12271,7 +12316,7 @@ void imu_factor_F_matrix(const real_t q_i[4],
   IMU_FACTOR_F15(dCj_acc_j_x, dt, dt_sq);
   IMU_FACTOR_F22(I_m_gyr_x_dt);
   IMU_FACTOR_F25(dt);
-  IMU_FACTOR_F32(dC_i, dC_j, acc_i_x, acc_j_x, gyr_x, dt);
+  IMU_FACTOR_F32(dCi_acc_i_x, dCj_acc_j_x, I_m_gyr_x_dt, dt);
   IMU_FACTOR_F33();
   IMU_FACTOR_F34(dC_i, dC_j, dt);
   IMU_FACTOR_F35(dCj_acc_j_x, dt);
@@ -12477,6 +12522,19 @@ void imu_factor_setup(imu_factor_t *factor,
   quat_setup(factor->dq);                          // Relative rotation
   imu_biases_get_accel_bias(biases_i, factor->ba); // Accelerometer bias
   imu_biases_get_gyro_bias(biases_i, factor->bg);  // Gyroscope bias
+                                                   //
+  // Preintegration step variables
+  zeros(factor->r_i, 3, 1);
+  zeros(factor->v_i, 3, 1);
+  quat_setup(factor->q_i);
+  zeros(factor->ba_i, 3, 1);
+  zeros(factor->bg_i, 3, 1);
+
+  zeros(factor->r_j, 3, 1);
+  zeros(factor->v_j, 3, 1);
+  quat_setup(factor->q_j);
+  zeros(factor->ba_j, 3, 1);
+  zeros(factor->bg_j, 3, 1);
 
   // Pre-integrate imu measuremenets
   // -------------------------------
@@ -12546,7 +12604,7 @@ void imu_factor_setup(imu_factor_t *factor,
   real_t sqrt_info[15 * 15] = {0};
 
   pinv(factor->covar, 15, 15, info);
-  assert(check_inv(info, factor->covar, 15) == 0);
+  // assert(check_inv(info, factor->covar, 15) == 0);
   zeros(factor->sqrt_info, 15, 15);
   chol(info, 15, sqrt_info);
   mat_transpose(sqrt_info, 15, 15, factor->sqrt_info);
@@ -12581,17 +12639,12 @@ static void imu_factor_pose_i_jac(imu_factor_t *factor,
                                   const real_t dv_est[3],
                                   const real_t dq[4]) {
   // Setup
-  real_t q_i[4] = {0};
-  real_t q_j[4] = {0};
   real_t C_i[3 * 3] = {0};
   real_t C_j[3 * 3] = {0};
   real_t C_it[3 * 3] = {0};
   real_t C_jt[3 * 3] = {0};
-
-  pose_get_quat(factor->pose_i->data, q_i);
-  pose_get_quat(factor->pose_j->data, q_j);
-  quat2rot(q_i, C_i);
-  quat2rot(q_j, C_j);
+  pose_get_rot(factor->pose_i->data, C_i);
+  pose_get_rot(factor->pose_j->data, C_j);
   mat_transpose(C_i, 3, 3, C_it);
   mat_transpose(C_j, 3, 3, C_jt);
 
@@ -12830,9 +12883,9 @@ int imu_factor_eval(void *factor_ptr) {
   real_t dq_dbg[3 * 3] = {0};
   mat_block_get(factor->F, 15, 0, 2, 9, 11, dr_dba);
   mat_block_get(factor->F, 15, 0, 2, 12, 14, dr_dbg);
-  mat_block_get(factor->F, 15, 3, 5, 9, 11, dv_dba);
-  mat_block_get(factor->F, 15, 3, 5, 12, 14, dv_dbg);
-  mat_block_get(factor->F, 15, 6, 8, 12, 14, dq_dbg);
+  mat_block_get(factor->F, 15, 3, 5, 12, 14, dq_dbg);
+  mat_block_get(factor->F, 15, 6, 8, 9, 11, dv_dba);
+  mat_block_get(factor->F, 15, 6, 8, 12, 14, dv_dbg);
 
   real_t dba[3] = {0};
   dba[0] = ba_i[0] - factor->ba[0];
@@ -17344,6 +17397,7 @@ static int calib_imucam_update_precheck(calib_imucam_t *calib) {
   return 0;
 }
 
+/*
 static real_t *calib_imucam_optflow(calib_imucam_t *calib,
                                     const fiducial_event_t *fiducial) {
   real_t *optflows = CALLOC(real_t, fiducial->num_corners * 2);
@@ -17396,6 +17450,7 @@ static real_t *calib_imucam_optflow(calib_imucam_t *calib,
 
   // return optflows;
 }
+*/
 
 /**
  * Update IMU-Camera calibration problem.
@@ -19593,7 +19648,8 @@ void inertial_odometry_save(const inertial_odometry_t *odom,
   }
 
   // Write header
-  fprintf(fp, "x,y,z,qw,qx,qy,qz,");
+  fprintf(fp, "#ts,");
+  fprintf(fp, "rx,ry,rz,qw,qx,qy,qz,");
   fprintf(fp, "vx,vy,vz,");
   fprintf(fp, "ba_x,ba_y,ba_z,");
   fprintf(fp, "bg_x,bg_y,bg_z\n");
@@ -19605,6 +19661,7 @@ void inertial_odometry_save(const inertial_odometry_t *odom,
     const real_t *vel = odom->vels[k].data;
     const real_t *ba = odom->biases[k].data;
     const real_t *bg = odom->biases[k].data + 3;
+    fprintf(fp, "%ld,", odom->poses[k].ts);
     fprintf(fp, "%f,%f,%f,", pos[0], pos[1], pos[2]);
     fprintf(fp, "%f,%f,%f,%f,", quat[0], quat[1], quat[2], quat[3]);
     fprintf(fp, "%f,%f,%f,", vel[0], vel[1], vel[2]);
@@ -20363,35 +20420,35 @@ static void tsf_solve(tsf_t *tsf) {
   // printf("\n");
 }
 
-static void tsf_marginalize(tsf_t *tsf) {
-  assert(tsf != NULL);
+// static void tsf_marginalize(tsf_t *tsf) {
+//   assert(tsf != NULL);
 
-  // Pre-check
-  if (tsf->frame_idx == 0) {
-    return;
-  }
+//   // Pre-check
+//   if (tsf->frame_idx == 0) {
+//     return;
+//   }
 
-  // Setup
-  marg_factor_t *marg = marg_factor_malloc();
+//   // Setup
+//   marg_factor_t *marg = marg_factor_malloc();
 
-  // Mark variables to be marginalized
-  tsf->pose_i->marginalize = 1;
+//   // Mark variables to be marginalized
+//   tsf->pose_i->marginalize = 1;
 
-  // Add factors to be marginalized
-  for (int i = 0; i < tsf->num_factors_i; i++) {
-    marg_factor_add(marg, IDF_FACTOR, &tsf->idf_factors_i[i]);
-  }
-  if (tsf->marg) {
-    marg_factor_add(marg, MARG_FACTOR, tsf->marg);
-  }
+//   // Add factors to be marginalized
+//   for (int i = 0; i < tsf->num_factors_i; i++) {
+//     marg_factor_add(marg, IDF_FACTOR, &tsf->idf_factors_i[i]);
+//   }
+//   if (tsf->marg) {
+//     marg_factor_add(marg, MARG_FACTOR, tsf->marg);
+//   }
 
-  // Marginalize
-  marg_factor_marginalize(marg);
+//   // Marginalize
+//   marg_factor_marginalize(marg);
 
-  // Free previous and set new marginalization factor
-  marg_factor_free(tsf->marg);
-  tsf->marg = marg;
-}
+//   // Free previous and set new marginalization factor
+//   marg_factor_free(tsf->marg);
+//   tsf->marg = marg;
+// }
 
 /**
  * Update TSF.

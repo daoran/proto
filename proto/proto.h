@@ -1121,6 +1121,7 @@ void tf_diff2(const real_t Ti[4 * 4],
               real_t *dtheta);
 void pose_get_trans(const real_t pose[7], real_t r[3]);
 void pose_get_quat(const real_t pose[7], real_t q[4]);
+void pose_get_rot(const real_t p[7], real_t C[3 * 3]);
 void pose_diff(const real_t pose0[7], const real_t pose1[7], real_t diff[6]);
 void pose_diff2(const real_t pose0[7],
                 const real_t pose1[7],
@@ -2291,6 +2292,12 @@ typedef struct imu_factor_t {
   real_t J_biases_j[15 * 6];
 } imu_factor_t;
 
+void imu_state_vector(const real_t r[3],
+                      const real_t q[4],
+                      const real_t v[3],
+                      const real_t ba[3],
+                      const real_t bg[3],
+                      real_t x[16]);
 void imu_propagate(const real_t pose_k[7],
                    const real_t vel_k[3],
                    const imu_buffer_t *imu_buf,
