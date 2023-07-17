@@ -1627,6 +1627,12 @@ def tf_quat(T):
   return rot2quat(tf_rot(T))
 
 
+def tf_euler(T):
+  """ Return Euler angles from 4x4 homogeneous transform """
+  assert T.shape == (4, 4)
+  return rot2euler(tf_rot(T))
+
+
 def tf2pose(T):
   """ Form pose vector """
   rx, ry, rz = tf_trans(T)

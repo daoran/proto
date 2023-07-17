@@ -5563,9 +5563,6 @@ int test_inertial_odometry_batch() {
   solver.param_order_func = &inertial_odometry_param_order;
   solver.cost_func = &inertial_odometry_cost;
   solver.linearize_func = &inertial_odometry_linearize_compact;
-
-  // printf("num_measurements: %ld\n", test_data.num_measurements);
-  // printf("num_factors: %d\n", odom->num_factors);
   solver_solve(&solver, odom);
   inertial_odometry_save(odom, "/tmp/imu_odom-est.csv");
 

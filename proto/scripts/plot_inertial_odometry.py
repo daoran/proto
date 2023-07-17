@@ -61,8 +61,12 @@ def load_data(csv_path):
 
 
 def extract_translations(poses):
-  """ Extract translations """
+  """Extract Translations"""
   return np.array([tf_trans(pose) for pose in poses])
+
+def extract_euler(poses):
+  """Extract Euler angles"""
+  return np.array([tf_euler(pose) for pose in poses])
 
 
 if __name__ == "__main__":
@@ -73,10 +77,18 @@ if __name__ == "__main__":
   init_data = load_data(init_csv)
   est_data = load_data(est_csv)
 
+  t0 = gnd_data["timestamps"][0]
+  time = [(t - t0) * 1e-9 for t in gnd_data["timestamps"]]
+
   pos_gnd = extract_translations(gnd_data["poses"])
   pos_init = extract_translations(init_data["poses"])
   pos_est = extract_translations(est_data["poses"])
 
+  euler_gnd = extract_euler(gnd_data["poses"])
+  euler_init = extract_euler(init_data["poses"])
+  euler_est = extract_euler(est_data["poses"])
+
+  plt.subplot(4, 1, 1)
   plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'r-', label="Ground Truth")
   plt.plot(pos_init[:, 0], pos_init[:, 1], 'b-', label="Initial")
   plt.plot(pos_est[:, 0], pos_est[:, 1], 'g-', label="Estimated")
@@ -84,4 +96,32 @@ if __name__ == "__main__":
   plt.ylabel("Displacement [m]")
   plt.legend(loc=0)
   plt.axis("equal")
+
+  plt.subplot(4, 1, 2)
+  plt.plot(time, rad2deg(euler_gnd[:, 0]), 'r-', label="Ground Truth")
+  plt.plot(time, rad2deg(euler_init[:, 0]), 'b-', label="Initial")
+  plt.plot(time, rad2deg(euler_est[:, 0]), 'g-', label="Estimated")
+  plt.xlabel("Time [s]")
+  plt.ylabel("Angle [deg]")
+  plt.xlim([0, time[-1]])
+  plt.legend(loc=0)
+
+  plt.subplot(4, 1, 3)
+  plt.plot(time, rad2deg(euler_gnd[:, 1]), 'r-', label="Ground Truth")
+  plt.plot(time, rad2deg(euler_init[:, 1]), 'b-', label="Initial")
+  plt.plot(time, rad2deg(euler_est[:, 1]), 'g-', label="Estimated")
+  plt.xlabel("Time [s]")
+  plt.ylabel("Angle [deg]")
+  plt.xlim([0, time[-1]])
+  plt.legend(loc=0)
+
+  plt.subplot(4, 1, 4)
+  plt.plot(time, rad2deg(euler_gnd[:, 2]), 'r-', label="Ground Truth")
+  plt.plot(time, rad2deg(euler_init[:, 2]), 'b-', label="Initial")
+  plt.plot(time, rad2deg(euler_est[:, 2]), 'g-', label="Estimated")
+  plt.xlabel("Time [s]")
+  plt.ylabel("Angle [deg]")
+  plt.xlim([0, time[-1]])
+  plt.legend(loc=0)
+
   plt.show()
