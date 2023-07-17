@@ -2,6 +2,7 @@
 set -e
 
 ctags proto.c proto.h test_proto.c
+# ctags proto.py
 
 run_gdb() {
   gdb \
@@ -56,6 +57,7 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_imu_buffer_with_interpolation
 # python3 proto.py TestFactors.test_imu_factor_propagate
 # python3 proto.py TestFactors.test_imu_factor
+# python3 proto.py TestFactors.test_imu_propagation_jacobians
 # python3 proto.py TestFactors.test_imu_factor2_propagate
 # python3 proto.py TestFactors.test_imu_factor2
 # python3 proto.py TestFactors.test_marg_factor
@@ -134,15 +136,18 @@ run_all_tests() {
 }
 
 run_test() {
-  tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "\
+  # TARGET=0.left
+  TARGET="dev"
+  tmux send-keys -t $TARGET -R C-l C-m
+  tmux send-keys -t $TARGET -R "\
     cd ~/projects/proto/proto \
       && clear \
       && time make test_proto -j \
-      && ./build/test_proto --target $1 \
-      # && python3 scripts/plot_gimbal_calib.py
+      && ./build/test_proto --target $1
+    python3 scripts/plot_inertial_odometry.py
   " C-m C-m
   exit
+  # python3 proto.py TestFactors.test_imu_factor2
 }
 
 dev_sbgc() {
@@ -392,13 +397,14 @@ dev_euroc() {
 # run_test test_imu_buf_print
 # run_test test_imu_propagate
 # run_test test_imu_initial_attitude
+# run_test test_imu_factor_form_F_matrix
 # run_test test_imu_factor
 # run_test test_joint_angle_factor
 # run_test test_calib_camera_factor
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
 # run_test test_marg
-# run_test test_inertial_odometry_batch
+run_test test_inertial_odometry_batch
 # run_test test_tsf
 # run_test test_ceres_example
 # run_test test_invert_block_diagonal
@@ -419,7 +425,7 @@ dev_euroc() {
 # run_test test_calib_imucam_add_camera
 # run_test test_calib_imucam_add_imu_event
 # run_test test_calib_imucam_add_fiducial_event
-run_test test_calib_imucam_update
+# run_test test_calib_imucam_update
 # run_test test_calib_imucam_batch
 # python3 test_data/test_marg.py
 # run_test test_calib_gimbal_copy
