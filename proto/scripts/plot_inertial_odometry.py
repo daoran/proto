@@ -55,9 +55,9 @@ def load_data(csv_path):
 
   return {"timestamps": timestamps,
           "poses": pose_data,
-          "velocities": vel_data,
-          "accel_biases": ba_data,
-          "gyro_biases": bg_data}
+          "velocities": np.array(vel_data),
+          "accel_biases": np.array(ba_data),
+          "gyro_biases": np.array(bg_data)}
 
 
 def extract_translations(poses):
@@ -88,40 +88,81 @@ if __name__ == "__main__":
   euler_init = extract_euler(init_data["poses"])
   euler_est = extract_euler(est_data["poses"])
 
-  plt.subplot(4, 1, 1)
+  # TOP-DOWN PLOT
+  plt.figure()
   plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'r-', label="Ground Truth")
-  plt.plot(pos_init[:, 0], pos_init[:, 1], 'b-', label="Initial")
+  plt.plot(pos_init[:, 0], pos_init[:, 1], 'b-', label="Initial", alpha=0.2)
   plt.plot(pos_est[:, 0], pos_est[:, 1], 'g-', label="Estimated")
   plt.xlabel("Displacement [m]")
   plt.ylabel("Displacement [m]")
   plt.legend(loc=0)
+  plt.title("Top-Down XY Plot")
   plt.axis("equal")
 
-  plt.subplot(4, 1, 2)
-  plt.plot(time, rad2deg(euler_gnd[:, 0]), 'r-', label="Ground Truth")
-  plt.plot(time, rad2deg(euler_init[:, 0]), 'b-', label="Initial")
-  plt.plot(time, rad2deg(euler_est[:, 0]), 'g-', label="Estimated")
+  # VELOCITY PLOT
+  plt.figure()
+  plt.tight_layout()
+  plt.subplot(3, 1, 1)
+  plt.plot(time, gnd_data["velocities"][:, 0], 'r-', label="Ground Truth")
+  plt.plot(time, init_data["velocities"][:, 0], 'b-', label="Initial", alpha=0.2)
+  plt.plot(time, est_data["velocities"][:, 0], 'g-', label="Estimated")
+  plt.xlabel("Time [s]")
+  plt.ylabel("Velocities [m/s]")
+  plt.xlim([0, time[-1]])
+  plt.title("Velocities")
+  plt.legend(loc=0)
+
+  plt.subplot(3, 1, 2)
+  plt.plot(time, gnd_data["velocities"][:, 1], 'r-', label="Ground Truth")
+  plt.plot(time, init_data["velocities"][:, 1], 'b-', label="Initial", alpha=0.2)
+  plt.plot(time, est_data["velocities"][:, 1], 'g-', label="Estimated")
+  plt.xlabel("Time [s]")
+  plt.ylabel("Velocities [m/s]")
+  plt.xlim([0, time[-1]])
+  plt.title("Velocities")
+  plt.legend(loc=0)
+
+  plt.subplot(3, 1, 3)
+  plt.plot(time, gnd_data["velocities"][:, 2], 'r-', label="Ground Truth")
+  plt.plot(time, init_data["velocities"][:, 2], 'b-', label="Initial", alpha=0.2)
+  plt.plot(time, est_data["velocities"][:, 2], 'g-', label="Estimated")
+  plt.xlabel("Time [s]")
+  plt.ylabel("Velocities [m/s]")
+  plt.xlim([0, time[-1]])
+  plt.title("Velocities")
+  plt.legend(loc=0)
+  plt.tight_layout()
+
+  # ATTITUDE PLOT
+  plt.figure()
+  plt.tight_layout()
+  plt.subplot(3, 1, 1)
+  plt.plot(time, rad2deg(euler_gnd[:, 2]), 'r-', label="Ground Truth")
+  plt.plot(time, rad2deg(euler_init[:, 2]), 'b-', label="Initial", alpha=0.2)
+  plt.plot(time, rad2deg(euler_est[:, 2]), 'g-', label="Estimated")
   plt.xlabel("Time [s]")
   plt.ylabel("Angle [deg]")
   plt.xlim([0, time[-1]])
+  plt.title("Attitude")
   plt.legend(loc=0)
 
-  plt.subplot(4, 1, 3)
+  plt.subplot(3, 1, 2)
   plt.plot(time, rad2deg(euler_gnd[:, 1]), 'r-', label="Ground Truth")
-  plt.plot(time, rad2deg(euler_init[:, 1]), 'b-', label="Initial")
+  plt.plot(time, rad2deg(euler_init[:, 1]), 'b-', label="Initial", alpha=0.2)
   plt.plot(time, rad2deg(euler_est[:, 1]), 'g-', label="Estimated")
   plt.xlabel("Time [s]")
   plt.ylabel("Angle [deg]")
   plt.xlim([0, time[-1]])
   plt.legend(loc=0)
 
-  plt.subplot(4, 1, 4)
-  plt.plot(time, rad2deg(euler_gnd[:, 2]), 'r-', label="Ground Truth")
-  plt.plot(time, rad2deg(euler_init[:, 2]), 'b-', label="Initial")
-  plt.plot(time, rad2deg(euler_est[:, 2]), 'g-', label="Estimated")
+  plt.subplot(3, 1, 3)
+  plt.plot(time, rad2deg(euler_gnd[:, 0]), 'r-', label="Ground Truth")
+  plt.plot(time, rad2deg(euler_init[:, 0]), 'b-', label="Initial", alpha=0.2)
+  plt.plot(time, rad2deg(euler_est[:, 0]), 'g-', label="Estimated")
   plt.xlabel("Time [s]")
   plt.ylabel("Angle [deg]")
   plt.xlim([0, time[-1]])
   plt.legend(loc=0)
+  plt.tight_layout()
 
   plt.show()
