@@ -174,8 +174,10 @@ uninstall: ## Uninstall libproto
 avs: $(BLD_DIR)/libproto.a
 	@g++ \
 		-std=c++17 \
+		-fsanitize=address -static-libasan \
 		-fopenmp \
 		-I$(DEPS_DIR)/include \
+		-I./ \
 		$(shell pkg-config opencv4 --cflags) \
 		avs.cpp \
 		-o $(BLD_DIR)/avs \

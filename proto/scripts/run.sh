@@ -191,7 +191,7 @@ dev_euroc() {
 # dev_aprilgrid
 # dev_euroc
 # python3 scripts/plot_gimbal_calib.py
-python3 scripts/plot_inertial_odometry.py
+# python3 scripts/plot_inertial_odometry.py
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
@@ -404,7 +404,9 @@ python3 scripts/plot_inertial_odometry.py
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
 # run_test test_marg
-run_test test_inertial_odometry_batch
+run_test test_visual_odometry_batch
+# run_test test_inertial_odometry_batch
+# python3 scripts/marg_sandbox.py
 # run_test test_tsf
 # run_test test_ceres_example
 # run_test test_invert_block_diagonal
@@ -448,6 +450,7 @@ run_test test_inertial_odometry_batch
 # run_test test_sim_imu_data_load
 # run_test test_sim_camera_frame_load
 # run_test test_sim_camera_data_load
+# run_test test_sim_camera_circle_trajectory
 # run_test test_sim_gimbal_malloc_free
 # run_test test_sim_gimbal_view
 # run_test test_sim_gimbal_solve

@@ -475,7 +475,7 @@ module tool_mav_arm_holes(dev_mode=0) {
 
 // Main
 // print();
-// mav_assembly();
+mav_assembly();
 
 // Develop
 // translate([mav_peg_inner_w / 2 + mav_motor_mount_d / 2, 0, 15])
@@ -484,7 +484,7 @@ module tool_mav_arm_holes(dev_mode=0) {
 // mav_arm(arm_w, arm_l);
 // mav_arm_peg(mav_peg_inner_w, mav_peg_outer_w);
 // mav_arm_supports(mav_peg_inner_w, 0);
-mav_arm_supports(mav_peg_inner_w, 1);
+// mav_arm_supports(mav_peg_inner_w, 1);
 // mav_frame(mav_frame_standoff_w, mav_frame_standoff_h,
 //           mav_frame_support_w, mav_frame_support_h,
 //           mav_peg_inner_w);

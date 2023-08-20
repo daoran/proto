@@ -4158,8 +4158,8 @@ class Factor:
     _, jacs = self.eval(params)
     return jacs[var_idx]
 
-  def check_jacobian(self, fvars, var_idx, jac_name, **kwargs):
-    """ Check factor Jacobian """
+  def get_numerical_jacobian(self, fvars, var_idx, **kwargs):
+    """ Get numerical jacobian """
     # Step size and threshold
     h = kwargs.get('step_size', 1e-8)
     threshold = kwargs.get('threshold', 1e-4)
@@ -4167,7 +4167,7 @@ class Factor:
 
     # Calculate baseline
     params = [sv.param for sv in fvars]
-    r, jacs = self.eval(params)
+    r, _ = self.eval(params)
 
     # Numerical diff
     J_fdiff = zeros((len(r), fvars[var_idx].min_dims))
@@ -4185,7 +4185,18 @@ class Factor:
       # Central finite difference
       J_fdiff[:, i] = (r_fwd - r_bwd) / h
 
+    return J_fdiff
+
+  def check_jacobian(self, fvars, var_idx, jac_name, **kwargs):
+    """ Check factor Jacobian """
+    threshold = kwargs.get('threshold', 1e-4)
+    verbose = kwargs.get('verbose', False)
+
+    J_fdiff = self.get_numerical_jacobian(fvars, var_idx, **kwargs)
+    params = [sv.param for sv in fvars]
+    r, jacs = self.eval(params)
     J = jacs[var_idx]
+
     return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
 
   def __hash__(self):
@@ -5427,7 +5438,6 @@ class ImuFactor2(Factor):
       G[6:9, 9:12] = G34
       G[9:12, 12:15] = G45
       G[12:15, 15:18] = G56
-      # np.savetxt("/tmp/state_G.csv", G, delimiter=",")
 
       # Map results
       dq = dq_j
@@ -5437,29 +5447,12 @@ class ImuFactor2(Factor):
       bg = bg_j
 
       # Update
-      # np.savetxt("/tmp/A_.csv", F @ state_P @ F.T, delimiter=",")
-      # np.savetxt("/tmp/B_.csv", G @ Q @ G.T, delimiter=",")
-      # np.savetxt("/tmp/state_Q.csv", Q, delimiter=",")
-      # np.savetxt("/tmp/state_G.csv", G, delimiter=",")
-
       state_F = F @ state_F
       state_P = F @ state_P @ F.T + G @ Q @ G.T
       Dt += dt
 
+    # Enforce semi-positive-definite
     state_P = (state_P + state_P.T) / 2.0
-
-    # P = state_P
-    # P_inv = inv(state_P)
-    # print(np.round(P_inv @ P, 2))
-    # plt.imshow(P_inv @ P)
-    # plt.show()
-    # info = pinv(state_P)
-    # print(info)
-
-    # plt.imshow(G)
-    # plt.imshow(state_P)
-    # plt.imshow(state_F)
-    # plt.show()
 
     return ImuFactorData2(state_F, state_P, dr, dv, dq, ba, bg, g, Dt)
 
@@ -5939,11 +5932,6 @@ class Solver:
         re = idx_i + size_i
         g[rs:re] += (-J_i.T @ r)
 
-    # print(f"rank: {np.linalg.matrix_rank(H)}")
-    # print(f"H.shape: {H.shape}")
-    # print(f"eig(H): {np.linalg.eigh(H)}")
-    # exit(0)
-
     return (H, g, param_idxs)
 
   def _linearize2(self, params):
@@ -6036,9 +6024,12 @@ class Solver:
     # dx = pinv(H) @ g
 
     # Cholesky decomposition
-    # print(f"np.linalg.det(H): {np.linalg.det(H)}", flush=True)
-    c, low = scipy.linalg.cho_factor(H_damped)
-    dx = scipy.linalg.cho_solve((c, low), g)
+    dx = None
+    try:
+        c, low = scipy.linalg.cho_factor(H_damped)
+        dx = scipy.linalg.cho_solve((c, low), g)
+    except:
+        dx = np.zeros((H_damped.shape[0],))
 
     # SVD
     # dx = solve_svd(H_damped, g)
@@ -6199,6 +6190,29 @@ class FactorGraph:
       factor_params = [self.params[pid] for pid in factor.param_ids]
       solver.add(factor, factor_params)
     solver.solve(verbose)
+
+    params_k = copy.deepcopy(solver.params)
+    (H, g, param_idxs) = solver._linearize(params_k)
+
+    m = 6
+    Hmm = H[0:m, 0:m]
+    Hmr = H[0:m, m:]
+    Hrm = H[m:, 0:m]
+    Hrr = H[m:, m:]
+    assert rank(Hmm) == Hmm.shape[0]
+    Hmm_inv = np.linalg.inv(Hmm)
+    H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+    w, V = np.linalg.eigh(0.5 * (H_marg + H_marg.T))
+
+    w[w < 0.0] = 0.0
+    J = np.diag(np.sqrt(w)) @ V.T
+    diff = norm(H_marg - J.T @ J)
+    print(f"diff: {diff}")
+    # plt.imshow(diff)
+    # plt.colorbar()
+    # plt.show()
+
+
 
 
 # FEATURE TRACKING #############################################################
@@ -10480,6 +10494,40 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
 
+    # Test marginalization
+    params = [sv.param for sv in fvars]
+    (r, [J0, J1, J2, J3]) = factor.eval(params)
+
+    H00 = J0.T @ J0
+    H01 = J0.T @ J1
+    H02 = J0.T @ J2
+    H03 = J0.T @ J3
+
+    H10 = J1.T @ J0
+    H11 = J1.T @ J1
+    H12 = J1.T @ J2
+    H13 = J1.T @ J3
+
+    H20 = J2.T @ J0
+    H21 = J2.T @ J1
+    H22 = J2.T @ J2
+    H23 = J2.T @ J3
+
+    H30 = J3.T @ J0
+    H31 = J3.T @ J1
+    H32 = J3.T @ J2
+    H33 = J3.T @ J3
+
+    H = np.block([[H00, H01, H02, H03],
+                  [H10, H11, H12, H13],
+                  [H20, H21, H22, H23],
+                  [H30, H31, H32, H33]])
+
+    print(f"rank: {rank(H)}")
+    print(f"shape: {H.shape}")
+    (w, V) = eig(H)
+    print(w)
+
   def test_camera_factor(self):
     """ Test camera factor """
     # Setup camera pose T_WB
@@ -10925,6 +10973,10 @@ class TestFactors(unittest.TestCase):
     fvars = [pose_i, sb_i, pose_j, sb_j]
     factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
 
+    factor.sqrt_info = np.eye(15)
+    params = [sv.param for sv in fvars]
+    (r, [J0, J1, J2, J3]) = factor.eval(params)
+
     # Print
     # params = [sv.param for sv in fvars]
     # r, _ = factor.eval(params)
@@ -11066,8 +11118,8 @@ class TestFactors(unittest.TestCase):
   def test_imu_factor2(self):
     """ Test IMU factor 2 """
     # Simulate imu data
-    circle_r = 1.0
-    circle_v = 0.1
+    circle_r = 5.0
+    circle_v = 1.0
     sim_data = SimData(circle_r, circle_v, sim_cams=False)
     imu_data = sim_data.imu0_data
 
@@ -11119,71 +11171,133 @@ class TestFactors(unittest.TestCase):
     # print(f"dv: {factor.dv}")
     # print(f"dq: {factor.dq}")
     # print(f"Dt: {factor.Dt}")
-    print(f"r: {r}")
+    # print(f"r: {r}")
 
     # Save matrix F, P and Q
-    np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
+    # np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
     # np.savetxt("/tmp/P.csv", factor.state_P, delimiter=",")
     # np.savetxt("/tmp/sqrt_info.csv", factor.sqrt_info, delimiter=",")
 
     # Test jacobians
-    self.assertTrue(factor)
-    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
+    # self.assertTrue(factor)
+    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
 
     # factor.sqrt_info = np.eye(15)
     # params = [sv.param for sv in fvars]
     # (r, [J0, J1, J2, J3]) = factor.eval(params)
 
-    # H00 = J0.T @ J0
-    # H01 = J0.T @ J1
-    # H02 = J0.T @ J2
-    # H03 = J0.T @ J3
+    # J = np.block([J0, J1, J2, J3])
+    # H = J.T @ J
+    # np.savetxt("/tmp/H.csv", H, delimiter=",")
 
-    # H10 = J1.T @ J0
-    # H11 = J1.T @ J1
-    # H12 = J1.T @ J2
-    # H13 = J1.T @ J3
+    # m = 15
+    # eps = 1e-8
+    # H_mm = H[:m, :m]
 
-    # H20 = J2.T @ J0
-    # H21 = J2.T @ J1
-    # H22 = J2.T @ J2
-    # H23 = J2.T @ J3
+    # # Invert H_mm matrix sub-block via Eigen-decomposition
+    # H_mm = 0.5 * (H_mm + H_mm.T)  # Enforce symmetry
+    # w, V = eig(H_mm)
+    # w_inv = np.zeros(w.shape)
 
-    # H30 = J3.T @ J0
-    # H31 = J3.T @ J1
-    # H32 = J3.T @ J2
-    # H33 = J3.T @ J3
+    # for idx, w_i in enumerate(w):
+    #   if w_i > eps:
+    #     w_inv[idx] = 1.0 / w_i
+    #   else:
+    #     w[idx] = 0.0
+    #     w_inv[idx] = 0.0
 
-    # H = np.block([[H00, H01, H02, H03],
-    #               [H10, H11, H12, H13],
-    #               [H20, H21, H22, H23],
-    #               [H30, H31, H32, H33]])
+    # Lambda_inv = np.diag(w_inv)
+    # H_mm_inv = V @ Lambda_inv @ V.T
 
-    # H = np.block([[H00, H01, H02],
-    #               [H10, H11, H12],
-    #               [H20, H21, H22]])
-
-    # plt.imshow((H > 0) * 1, cmap="gray")
-    # plt.colorbar()
-    # plt.show()
+    # # Check inverse
+    # check_inverse = True
+    # if check_inverse:
+    #   inv_norm = np.linalg.norm((H_mm @ H_mm_inv) - np.eye(H_mm.shape[0]))
+    #   if inv_norm > 1e-8:
+    #     print("Hmmm... inverse check failed in MargFactor!")
 
     # m = 6 + 9
     # Hmm = H[0:m, 0:m]
     # Hmr = H[0:m, m:]
-    # Hrm = Hmr.T
+    # Hrm = H[m:, 0:m]
     # Hrr = H[m:, m:]
 
-    # print(f"rank: {rank(Hmm)}")
-    # print(f"shape: {Hmm.shape}")
-    # (w, V) = eig(Hmm)
-    # print(w)
+    # assert rank(Hmm) == Hmm.shape[0]
+    # Hmm = 0.5 * (Hmm + Hmm.T)
+    # (w, V) = np.linalg.eig(Hmm)
+    # W_inv = np.diag(1.0 / w)
+    # Hmm_inv = V @ W_inv @ V.T
+    # H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
 
-    # factor.sqrt_info = np.eye(15)
-    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_pose_i"))
-    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
-    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j"))
-    # self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
+    # # J = diag(w^0.5) * V'
+    # # J_inv = diag(w^-0.5) * V'
+    # w, V = np.linalg.eig(H_marg)
+    # w[w < 0] = 0.0
+    # # w_inv = np.linalg.inv(w)
+    # # S_inv_sqrt = np.diag(np.sqrt(w_inv))
+    # J = np.diag(w**0.5) @ V.T
+    # # # J_inv = S_inv_sqrt @ V.T
+    # # # H_marg_ = J.T @ J
+    # # # H_marg_ = V @ np.diag(w) @ V.T
+    # diff = norm(H_marg - J.T @ J)
+    # print(f"norm(H_marg - J.T @ J): {diff}")
+    # plt.imshow(H_marg - J.T @ J)
+    # plt.colorbar()
+    # plt.show()
+
+    factor.sqrt_info = np.eye(15)
+    self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i"))
+    self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j"))
+    self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
     # yapf: enable
+
+    # params = [sv.param for sv in fvars]
+    # (r, [J0, J1, J2, J3]) = factor.eval(params)
+    # np.set_printoptions(threshold=np.inf)
+    # np.set_printoptions(linewidth=np.inf)
+    # print(f"param0: {params[0]}")
+    # print(f"param1: {params[1]}")
+    # print(f"param2: {params[2]}")
+    # print(f"param3: {params[3]}")
+    # print(f"J0: {np.round(J0, 2)}")
+    # print(f"J1: {J1}")
+    # print(f"J2: {J2}")
+
+    H = np.genfromtxt("/tmp/H.csv", delimiter=",")
+    H_marg_ = np.genfromtxt("/tmp/H_marg.csv", delimiter=",")
+
+    m = 15
+    Hmm = H[0:m, 0:m]
+    Hmr = H[0:m, m:]
+    Hrm = H[m:, 0:m]
+    Hrr = H[m:, m:]
+    assert rank(Hmm) == Hmm.shape[0]
+    Hmm = 0.5 * (Hmm + Hmm.T)
+    (w, V) = np.linalg.eig(Hmm)
+    w[w < 0] = 0.0
+    W_inv = np.diag(1.0 / w)
+    Hmm_inv = V @ W_inv @ V.T
+    H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+
+    # plt.subplot(211)
+    # plt.imshow(H_marg_)
+    # plt.colorbar()
+    # plt.subplot(212)
+    # plt.imshow(H_marg)
+    # plt.colorbar()
+    # plt.show()
+
+    # diff = norm(H_marg - H_marg_)
+    # print(f"norm(H_marg - H_marg_): {diff}")
+
+    # J = diag(w^0.5) * V'
+    # H_marg = 0.5 * (H_marg + H_marg.T)
+    # w, V = np.linalg.eig(H_marg)
+    # w[w < 0] = 0.0
+    # J = np.diag(w**0.5) @ V.T
+    # diff = norm(H_marg - J.T @ J)
+    # print(f"norm(H_marg - J.T @ J): {diff}")
 
   def test_marg_factor(self):
     """ Test MargFactor """
@@ -11457,8 +11571,8 @@ class TestFactorGraph(unittest.TestCase):
         graph.add_factor(BAFactor(cam0_geom, param_ids, z))
 
     # Solve
-    debug = True
-    # debug = False
+    # debug = True
+    debug = False
     # prof = profile_start()
     graph.solve(debug)
     # profile_stop(prof)
@@ -11529,10 +11643,10 @@ class TestFactorGraph(unittest.TestCase):
       # -- Pose j
       ts_j = imu0_data.timestamps[ts_idx]
       T_WS_j = imu0_data.poses[ts_j]
-      # # ---- Pertrub pose j
-      # trans_rand = np.random.rand(3)
-      # rvec_rand = np.random.rand(3) * 0.01
-      # T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
+      # ---- Pertrub pose j
+      trans_rand = np.random.rand(3)
+      rvec_rand = np.random.rand(3) * 0.01
+      T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
       # ---- Add to factor graph
       pose_j = pose_setup(ts_j, T_WS_j)
       pose_j_id = graph.add_param(pose_j)
@@ -11586,36 +11700,41 @@ class TestFactorGraph(unittest.TestCase):
       bg_est = np.array([sb.param[6:9] for sb in sb_est])
 
       plt.figure()
-      plt.subplot(411)
       plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
       plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")
 
-      plt.subplot(412)
+      plt.figure()
+      plt.subplot(311)
       plt.plot(sb_time, vel_est[:, 0], 'r-')
+      plt.xlabel("Time [s]")
+      plt.ylabel("Velocity [ms^-1]")
+      plt.subplot(312)
       plt.plot(sb_time, vel_est[:, 1], 'g-')
+      plt.xlabel("Time [s]")
+      plt.ylabel("Velocity [ms^-1]")
+      plt.subplot(313)
       plt.plot(sb_time, vel_est[:, 2], 'b-')
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
 
-      plt.subplot(413)
-      plt.plot(sb_time, ba_est[:, 0], 'r-')
-      plt.plot(sb_time, ba_est[:, 1], 'g-')
-      plt.plot(sb_time, ba_est[:, 2], 'b-')
-      plt.xlabel("Time [s]")
-      plt.ylabel("Accelerometer Bias [m s^-2]")
+      # plt.plot(sb_time, ba_est[:, 0], 'r-')
+      # plt.plot(sb_time, ba_est[:, 1], 'g-')
+      # plt.plot(sb_time, ba_est[:, 2], 'b-')
+      # plt.xlabel("Time [s]")
+      # plt.ylabel("Accelerometer Bias [m s^-2]")
 
-      plt.subplot(414)
-      plt.plot(sb_time, bg_est[:, 0], 'r-')
-      plt.plot(sb_time, bg_est[:, 1], 'g-')
-      plt.plot(sb_time, bg_est[:, 2], 'b-')
-      plt.xlabel("Time [s]")
-      plt.ylabel("Gyroscope Bias [rad s^-1]")
+      # plt.subplot(414)
+      # plt.plot(sb_time, bg_est[:, 0], 'r-')
+      # plt.plot(sb_time, bg_est[:, 1], 'g-')
+      # plt.plot(sb_time, bg_est[:, 2], 'b-')
+      # plt.xlabel("Time [s]")
+      # plt.ylabel("Gyroscope Bias [rad s^-1]")
 
       plt.show()
 
-  @unittest.skip("")
+  # @unittest.skip("")
   def test_factor_graph_solve_vio(self):
     """ Test solving a visual inertial odometry problem """
     # Imu params
@@ -11676,8 +11795,8 @@ class TestFactorGraph(unittest.TestCase):
           T_WC_gnd = cam_data.poses[ts_k]
           T_WB_gnd = T_WC_gnd @ T_CB_gnd
           # ---- Perturb camera pose
-          trans_rand = np.random.rand(3) * 0.0
-          rvec_rand = np.random.rand(3) * 0.01
+          trans_rand = np.random.rand(3) * 0.5
+          rvec_rand = np.random.rand(3) * 0.5
           T_perturb = np.block([*trans_rand, *rvec_rand])
           T_WB_init = tf_update(T_WB_gnd, T_perturb)
           # T_WB_init = T_WB_gnd
@@ -11710,12 +11829,13 @@ class TestFactorGraph(unittest.TestCase):
             sb_j_id = sbs[-1].param_id
             param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
 
-            # print(f"ts_k: {ts_k}")
-            # print(f"imu.ts[-1]: {imu_data.ts[-1]}")
             if ts_k <= imu_data.ts[-1]:
               imu_buf = imu_data.extract(ts_km1, ts_k)
               graph.add_factor(
-                  ImuFactor(param_ids, imu_params, imu_buf, sbs[-2]))
+                  ImuFactor2(param_ids, imu_params, imu_buf, sbs[-2]))
+
+      if len(poses) > 20:
+        break
 
     # Solve
     debug = True

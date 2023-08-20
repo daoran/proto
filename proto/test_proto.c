@@ -5470,6 +5470,91 @@ int test_marg() {
   return 0;
 }
 
+int test_visual_odometry_batch() {
+  // Simulate features
+  const real_t origin[3] = {0.0, 0.0, 0.0};
+  const real_t dim[3] = {5.0, 5.0, 5.0};
+  const int num_features = 1000;
+  real_t features[3 * 1000] = {0};
+  sim_create_features(origin, dim, num_features, features);
+
+  // Camera configuration
+  const int res[2] = {640, 480};
+  const real_t fov = 90.0;
+  const real_t fx = pinhole_focal(res[0], fov);
+  const real_t fy = pinhole_focal(res[0], fov);
+  const real_t cx = res[0] / 2.0;
+  const real_t cy = res[1] / 2.0;
+  const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  camera_params_t cam0_params;
+  camera_params_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
+
+  // IMU-Camera0 extrinsic
+  const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const real_t cam0_ext_r[3] = {0.05, 0.0, 0.0};
+  TF_ER(cam0_ext_ypr, cam0_ext_r, T_BC0);
+  TF_VECTOR(T_BC0, cam0_ext);
+  TF_INV(T_BC0, T_C0B);
+
+  // Simulate data
+  sim_circle_t conf;
+  sim_circle_defaults(&conf);
+  sim_camera_data_t *cam0_data = sim_camera_circle_trajectory(&conf,
+                                                              T_BC0,
+                                                              &cam0_params,
+                                                              features,
+                                                              num_features);
+  // Setup factor graph
+  fgraph_t *fg = fgraph_malloc();
+  // -- Add features
+  for (int feature_id = 0; feature_id < num_features; feature_id++) {
+    fgraph_add_feature(fg, feature_id, features + feature_id * 3, 0);
+  }
+  // -- Add camera
+  const int cam0_id = fgraph_add_camera(fg, 0, res, pmodel, dmodel, cam_vec, 0);
+  const int cam0_ext_id = fgraph_add_cam_ext(fg, 0, cam0_ext, 0);
+
+  for (size_t k = 0; k < cam0_data->num_frames; k++) {
+    const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
+
+    // Add pose
+    const real_t *cam0_pose = &cam0_data->poses[k * 7];
+    TF(cam0_pose, T_WC0);
+    TF_CHAIN(T_WB, 2, T_WC0, T_C0B);
+    TF_VECTOR(T_WB, body_pose);
+    pose_random_perturb(body_pose, 0.1, 0.1);
+    const int pose_id = fgraph_add_pose(fg, k, body_pose, 0);
+
+    // Add camera factors
+    for (int i = 0; i < cam0_frame->num_measurements; i++) {
+      const int feature_id = cam0_frame->feature_ids[i];
+      const real_t *kp = cam0_frame->keypoints + i * 2;
+      const int param_ids[4] = {pose_id, cam0_ext_id, feature_id, cam0_id};
+      const real_t var[2] = {1.0, 1.0};
+      fgraph_add_camera_factor(fg, param_ids, kp, var);
+    }
+  }
+
+  // Solve
+  solver_t solver;
+  solver_setup(&solver);
+
+  solver.verbose = 1;
+  solver.max_iter = 5;
+  solver.cost_func = &fgraph_cost;
+  solver.param_order_func = &fgraph_param_order;
+  solver.linearize_func = &fgraph_linearize_compact;
+  solver_solve(&solver, fg);
+
+  // Clean up
+  sim_camera_data_free(cam0_data);
+  fgraph_free(fg);
+
+  return 0;
+}
+
 int test_inertial_odometry_batch() {
   // Setup test data
   imu_test_data_t test_data;
@@ -5574,6 +5659,16 @@ int test_inertial_odometry_batch() {
   marg_factor_add(marg, IMU_FACTOR, &odom->factors[0]);
   marg_factor_marginalize(marg);
   marg_factor_free(marg);
+
+  // print_vector("param0", imu_factor->params[0], 7);
+  // print_vector("param1", imu_factor->params[1], 3);
+  // print_vector("param2", imu_factor->params[2], 6);
+  // print_vector("param3", imu_factor->params[3], 7);
+  // print_vector("param4", imu_factor->params[4], 3);
+  // print_vector("param5", imu_factor->params[5], 6);
+  // print_matrix("J0", imu_factor->jacs[0], 15, 6);
+  // print_matrix("J1", imu_factor->jacs[1], 15, 3);
+  // print_matrix("J2", imu_factor->jacs[1], 15, 6);
 
   // Clean up
   inertial_odometry_free(odom);
@@ -5769,7 +5864,7 @@ int test_solver_setup() {
   return 0;
 }
 
-int test_fgraph_add_camera_params() {
+int test_fgraph_add_camera() {
   // Setup
   fgraph_t *fg = fgraph_malloc();
 
@@ -5778,7 +5873,7 @@ int test_fgraph_add_camera_params() {
   const char *pm = "pinhole";
   const char *dm = "radtan4";
   const real_t cam_params[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
-  const int pid = fgraph_add_camera_params(fg, 0, res, pm, dm, cam_params, 0);
+  const int pid = fgraph_add_camera(fg, 0, res, pm, dm, cam_params, 0);
 
   // Assert
   const camera_params_t *cam = hmgets(fg->params, pid).param_ptr;
@@ -6456,7 +6551,7 @@ int test_calib_camera_stereo_ceres() {
 //   const char *pm = "pinhole";
 //   const char *dm = "radtan4";
 //   const real_t cam[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
-//   const int cam_id = fgraph_add_camera_params(fg, 0, res, pm, dm, cam, 0);
+//   const int cam_id = fgraph_add_camera(fg, 0, res, pm, dm, cam, 0);
 //   // -- Add time_delay
 //   const int time_delay_id = fgraph_add_time_delay(fg, 0.1, 0);
 
@@ -7231,11 +7326,11 @@ int test_calib_gimbal_solve() {
 
     // Perturb
     real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    // pose_vector_update(calib_est->fiducial_ext.data, dx);
-    // pose_vector_update(calib_est->cam_exts[0].data, dx);
-    // pose_vector_update(calib_est->cam_exts[1].data, dx);
+    // pose_update(calib_est->fiducial_ext.data, dx);
+    // pose_update(calib_est->cam_exts[0].data, dx);
+    // pose_update(calib_est->cam_exts[1].data, dx);
     for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
-      pose_vector_update(calib_est->links[link_idx].data, dx);
+      pose_update(calib_est->links[link_idx].data, dx);
     }
     // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
     //   for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
@@ -7317,11 +7412,11 @@ int test_calib_gimbal_ceres_solve() {
 
     // Perturb
     // real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    // pose_vector_update(calib_est->fiducial_ext.data, dx);
-    // pose_vector_update(calib_est->cam_exts[0].data, dx);
-    // pose_vector_update(calib_est->cam_exts[1].data, dx);
+    // pose_update(calib_est->fiducial_ext.data, dx);
+    // pose_update(calib_est->cam_exts[0].data, dx);
+    // pose_update(calib_est->cam_exts[1].data, dx);
     // for (int link_idx = 0; link_idx < 2; link_idx++) {
-    //   pose_vector_update(calib_est->links[link_idx].data, dx);
+    //   pose_update(calib_est->links[link_idx].data, dx);
     // }
     for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
       for (int joint_idx = 0; joint_idx < 3; joint_idx++) {
@@ -7601,6 +7696,70 @@ int test_sim_camera_data_load() {
   const char *dir_path = TEST_SIM_DATA "/cam0";
   sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
   sim_camera_data_free(cam_data);
+  return 0;
+}
+
+int test_sim_camera_circle_trajectory() {
+  // Simulate features
+  const real_t origin[3] = {0.0, 0.0, 0.0};
+  const real_t dim[3] = {5.0, 5.0, 5.0};
+  const int num_features = 1000;
+  real_t features[3 * 1000] = {0};
+  sim_create_features(origin, dim, num_features, features);
+
+  // Camera
+  const int cam_res[2] = {640, 480};
+  const real_t fov = 90.0;
+  const real_t fx = pinhole_focal(cam_res[0], fov);
+  const real_t fy = pinhole_focal(cam_res[0], fov);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  camera_params_t cam_params;
+  camera_params_setup(&cam_params, 0, cam_res, pmodel, dmodel, cam_vec);
+
+  // Camera Extrinsic T_BC0
+  const real_t cam_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const real_t cam_ext_r[3] = {0.05, 0.0, 0.0};
+  TF_ER(cam_ext_ypr, cam_ext_r, T_BC0);
+  TF_VECTOR(T_BC0, cam_ext);
+
+  // Simulate camera trajectory
+  sim_circle_t conf;
+  sim_circle_defaults(&conf);
+  sim_camera_data_t *cam_data = sim_camera_circle_trajectory(&conf,
+                                                             T_BC0,
+                                                             &cam_params,
+                                                             features,
+                                                             num_features);
+  // ASSERT
+  for (size_t k = 0; k < cam_data->num_frames; k++) {
+    const sim_camera_frame_t *cam_frame = cam_data->frames[k];
+    const real_t *cam_pose = &cam_data->poses[k * 7];
+
+    for (int i = 0; i < cam_frame->num_measurements; i++) {
+      const size_t feature_id = cam_frame->feature_ids[i];
+      const real_t *p_W = &features[feature_id * 3];
+      const real_t *z = &cam_frame->keypoints[i * 2];
+
+      TF(cam_pose, T_WC0);
+      TF_INV(T_WC0, T_C0W);
+      TF_POINT(T_C0W, p_W, p_C0);
+
+      real_t zhat[2] = {0};
+      pinhole_radtan4_project(cam_vec, p_C0, zhat);
+
+      const real_t r[2] = {zhat[0] - z[0], zhat[1] - z[1]};
+      MU_ASSERT(fltcmp(r[0], 0.0) == 0);
+      MU_ASSERT(fltcmp(r[1], 0.0) == 0);
+    }
+  }
+
+  // Clean up
+  sim_camera_data_free(cam_data);
+
   return 0;
 }
 
@@ -7920,12 +8079,13 @@ void test_suite() {
   MU_ADD_TEST(test_calib_imucam_factor);
   MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_marg);
+  MU_ADD_TEST(test_visual_odometry_batch);
   MU_ADD_TEST(test_inertial_odometry_batch);
   MU_ADD_TEST(test_tsf);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
-  MU_ADD_TEST(test_fgraph_add_camera_params);
+  MU_ADD_TEST(test_fgraph_add_camera);
   MU_ADD_TEST(test_fgraph_add_time_delay);
   MU_ADD_TEST(test_fgraph_add_cam_ext);
   MU_ADD_TEST(test_solver_setup);
@@ -7969,6 +8129,7 @@ void test_suite() {
   MU_ADD_TEST(test_sim_imu_data_load);
   MU_ADD_TEST(test_sim_camera_frame_load);
   MU_ADD_TEST(test_sim_camera_data_load);
+  MU_ADD_TEST(test_sim_camera_circle_trajectory);
   MU_ADD_TEST(test_sim_gimbal_malloc_free);
   MU_ADD_TEST(test_sim_gimbal_view);
   // MU_ADD_TEST(test_sim_gimbal_solve);

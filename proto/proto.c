@@ -1971,6 +1971,15 @@ float randf(const float a, const float b) {
 }
 
 /**
+ * Generate random vector of size n where each element is between a and b.
+ */
+void randvec(const real_t a, const real_t b, const size_t n, real_t *v) {
+  for (size_t i = 0; i < n; i++) {
+    v[i] = randf(a, b);
+  }
+}
+
+/**
  * Degrees to radians.
  * @returns Radians
  */
@@ -4638,8 +4647,13 @@ int eig_inv(real_t *A, const int m, const int n, const int c, real_t *A_inv) {
   real_t *w = MALLOC(real_t, m);
 
   eig_sym(A, m, m, V, w);
+  const real_t tol = 1e-12;
   for (int i = 0; i < m; i++) {
-    w[i] = 1.0 / w[i];
+    if (w[i] > tol) {
+      w[i] = 1.0 / w[i];
+    } else {
+      w[i] = 0.0;
+    }
   }
   mat_diag_set(Lambda_inv, m, m, w);
   mat_transpose(V, m, m, Vt);
@@ -5563,7 +5577,7 @@ void pose_diff2(const real_t pose0[7],
 /**
  * Update pose vector `pose` with update vector `dx`
  */
-void pose_vector_update(real_t pose[7], const real_t dx[6]) {
+void pose_update(real_t pose[7], const real_t dx[6]) {
   // Update translation
   pose[0] += dx[0];
   pose[1] += dx[1];
@@ -5581,9 +5595,26 @@ void pose_vector_update(real_t pose[7], const real_t dx[6]) {
 }
 
 /**
+ * Perturb pose vector `pose` randomly.
+ */
+void pose_random_perturb(real_t pose[7],
+                         const real_t dtrans,
+                         const real_t drot) {
+  // Perturb pose position
+  pose[0] += randf(-dtrans, dtrans);
+  pose[1] += randf(-dtrans, dtrans);
+  pose[2] += randf(-dtrans, dtrans);
+
+  // Pertrub pose rotation
+  real_t dalpha[3] = {0};
+  randvec(-drot, drot, 3, dalpha);
+  quat_update(pose + 3, dalpha);
+}
+
+/**
  * Print pose vector
  */
-void print_pose_vector(const char *prefix, const real_t pose[7]) {
+void print_pose(const char *prefix, const real_t pose[7]) {
   if (prefix) {
     printf("%s: ", prefix);
   }
@@ -7877,7 +7908,7 @@ static void _solvepnp_update(const real_t *param_k,
   param_kp1[4] = param_k[4];
   param_kp1[5] = param_k[5];
   param_kp1[6] = param_k[6];
-  pose_vector_update(param_kp1, dx);
+  pose_update(param_kp1, dx);
 }
 
 /**
@@ -9731,6 +9762,7 @@ void camera_project(const camera_params_t *camera,
                     const real_t p_C[3],
                     real_t z[2]) {
   assert(camera != NULL);
+  assert(camera->proj_func != NULL);
   assert(p_C != NULL);
   assert(z != NULL);
   camera->proj_func(camera->data, p_C, z);
@@ -11350,14 +11382,11 @@ int camera_factor_eval(void *factor_ptr) {
   const real_t *cam_params = factor->params[3];
 
   // Form camera pose
-  real_t T_WCi[4 * 4] = {0};
-  real_t T_CiW[4 * 4] = {0};
-  dot(T_WB, 4, 4, T_BCi, 4, 4, T_WCi);
-  tf_inv(T_WCi, T_CiW);
+  TF_CHAIN(T_WCi, 2, T_WB, T_BCi);
+  TF_INV(T_WCi, T_CiW);
 
   // Transform feature from world to camera frame
-  real_t p_Ci[3] = {0};
-  tf_point(T_CiW, p_W, p_Ci);
+  TF_POINT(T_CiW, p_W, p_Ci);
 
   // Calculate residuals
   // -- Project point from world to image plane
@@ -14659,7 +14688,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
   marg->H = H;
   marg->b = b;
-  // param_order_print(marg->hash);
+  param_order_print(marg->hash);
 
   // mat_save("/tmp/H.csv", marg->H, ls, ls);
   // mat_save("/tmp/b.csv", marg->b, ls, 1);
@@ -14688,10 +14717,13 @@ static void marg_factor_schur_complement(marg_factor_t *marg) {
   //   enforce_spd(marg->H_marg, r, r);
   // }
 
+  printf("m: %d\n", m);
+  printf("r: %d\n", r);
   mat_save("/tmp/H.csv", marg->H, ls, ls);
   mat_save("/tmp/b.csv", marg->b, ls, 1);
   mat_save("/tmp/H_marg.csv", marg->H_marg, r, r);
   mat_save("/tmp/b_marg.csv", marg->b_marg, r, 1);
+  // exit(0);
 }
 
 /**
@@ -14714,12 +14746,6 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
   real_t *w = CALLOC(real_t, r);
   real_t *W_sqrt = CALLOC(real_t, r * r);
   real_t *W_inv_sqrt = CALLOC(real_t, r * r);
-  // mat_save("/tmp/H.csv", marg->H_marg, r, r);
-
-  // for (int i = 0; i < r; i++) {
-  //   marg->H_marg[i * r + i] += 1;
-  // }
-  // print_matrix("H_marg", marg->H_marg, r, r);
 
   // -- Eigen decomposition
   if (eig_sym(marg->H_marg, r, r, V, w) != 0) {
@@ -14743,15 +14769,14 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
       W_sqrt[(i * r) + i] = sqrt(w[i]);
       W_inv_sqrt[(i * r) + i] = sqrt(1.0 / w[i]);
     } else {
-      W_sqrt[(i * r) + i] = tol;
-      W_inv_sqrt[(i * r) + i] = tol;
+      W_sqrt[(i * r) + i] = 0.0;
+      W_inv_sqrt[(i * r) + i] = 0.0;
     }
   }
   dot(W_sqrt, r, r, Vt, r, r, J);
   dot(W_inv_sqrt, r, r, Vt, r, r, J_inv);
   mat_scale(J_inv, r, r, -1.0);
   marg->eigen_decomp_ok = 1;
-  // print_vector("w", w, r);
 
   // Check J' * J == H_marg
   if (marg->debug) {
@@ -14945,10 +14970,12 @@ fgraph_t *fgraph_malloc() {
 
   fg->poses = NULL;
   fg->velocities = NULL;
+  fg->features = NULL;
   fg->imu_biases = NULL;
   fg->cam_params = NULL;
   fg->cam_exts = NULL;
   fg->imu_exts = NULL;
+  fg->time_delay = NULL;
   fg->fiducial = NULL;
 
   fg->ba_factors = NULL;
@@ -14985,6 +15012,7 @@ void fgraph_free(fgraph_t *fg) {
 
   hmfree(fg->poses);
   hmfree(fg->velocities);
+  hmfree(fg->features);
   hmfree(fg->imu_biases);
   hmfree(fg->cam_params);
   hmfree(fg->cam_exts);
@@ -15037,13 +15065,13 @@ int fgraph_add_factor(fgraph_t *fg, const int factor_type, void *factor_ptr) {
 /**
  * Add camera to factor graph.
  */
-int fgraph_add_camera_params(fgraph_t *fg,
-                             const int cam_idx,
-                             const int cam_res[2],
-                             const char *proj_model,
-                             const char *dist_model,
-                             const real_t *cam_params,
-                             const int fix) {
+int fgraph_add_camera(fgraph_t *fg,
+                      const int cam_idx,
+                      const int cam_res[2],
+                      const char *proj_model,
+                      const char *dist_model,
+                      const real_t *cam_params,
+                      const int fix) {
   assert(fg != NULL);
   assert(cam_idx >= 0);
   assert(cam_res != NULL);
@@ -15166,6 +15194,23 @@ int fgraph_add_velocity(fgraph_t *fg,
 }
 
 /**
+ * Add feature parameter to factor graph.
+ */
+int fgraph_add_feature(fgraph_t *fg,
+                       const size_t feature_id,
+                       const real_t data[3],
+                       const int fix) {
+  feature_t *param = MALLOC(feature_t, 1);
+  feature_setup(param, feature_id, data);
+  param->fix = fix;
+
+  feature_hash_t kv = {feature_id, param};
+  hmputs(fg->features, kv);
+
+  return fgraph_add_param(fg, FEATURE_PARAM, param);
+}
+
+/**
  * Add IMU biases to factor graph.
  */
 int fgraph_add_imu_biases(fgraph_t *fg,
@@ -15238,13 +15283,22 @@ int fgraph_add_camera_factor(fgraph_t *fg,
                              const real_t z[2],
                              const real_t var[2]) {
   pose_t *pose = hmgets(fg->params, param_ids[0]).param_ptr;
-  feature_t *feature = hmgets(fg->params, param_ids[1]).param_ptr;
-  extrinsic_t *extrinsic = hmgets(fg->params, param_ids[2]).param_ptr;
+  extrinsic_t *extrinsic = hmgets(fg->params, param_ids[1]).param_ptr;
+  feature_t *feature = hmgets(fg->params, param_ids[2]).param_ptr;
   camera_params_t *camera = hmgets(fg->params, param_ids[3]).param_ptr;
+
+  // print_vector("pose", pose->data, 7);
+  // print_vector("extrinsic", extrinsic->data, 7);
+  // print_vector("feature", feature->data, 3);
+  // print_vector("camera", camera->data, 8);
 
   camera_factor_t *factor_ptr = MALLOC(camera_factor_t, 1);
   camera_factor_setup(factor_ptr, pose, extrinsic, feature, camera, z, var);
+  camera_factor_eval(factor_ptr);
+  // print_vector("factor->z", factor_ptr->z, 2);
+  // print_vector("factor->r", factor_ptr->r, 2);
   const int fid = fgraph_add_factor(fg, CAMERA_FACTOR, factor_ptr);
+  // exit(0);
 
   camera_factor_hash_t kv = {fid, factor_ptr};
   hmputs(fg->camera_factors, kv);
@@ -15395,6 +15449,158 @@ int fgraph_add_calib_imucam_factor(fgraph_t *fg,
   hmputs(fg->calib_imucam_factors, kv);
 
   return fid;
+}
+
+/**
+ * Factor graph cost
+ */
+void fgraph_cost(const void *data, real_t *r) {
+  // Evaluate factors
+  fgraph_t *fg = (fgraph_t *) data;
+  int r_idx = 0;
+
+  // -- Evaluate BA factors
+  for (int i = 0; i < hmlen(fg->ba_factors); i++) {
+    ba_factor_t *factor = fg->ba_factors[i].value;
+    ba_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+
+  // -- Evaluate Camera factors
+  for (int i = 0; i < hmlen(fg->camera_factors); i++) {
+    camera_factor_t *factor = fg->camera_factors[i].value;
+    camera_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+
+  // -- Evaluate IDF factors
+  for (int i = 0; i < hmlen(fg->idf_factors); i++) {
+    idf_factor_t *factor = fg->idf_factors[i].value;
+    idf_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+
+  // -- Evaluate IMU factors
+  for (int i = 0; i < hmlen(fg->imu_factors); i++) {
+    imu_factor_t *factor = fg->imu_factors[i].value;
+    imu_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+
+  // -- Evaluate calib camera factors
+  for (int i = 0; i < hmlen(fg->calib_camera_factors); i++) {
+    calib_camera_factor_t *factor = fg->calib_camera_factors[i].value;
+    calib_camera_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+
+  // -- Evaluate calib imucam factors
+  for (int i = 0; i < hmlen(fg->calib_imucam_factors); i++) {
+    calib_imucam_factor_t *factor = fg->calib_imucam_factors[i].value;
+    calib_imucam_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
+}
+
+/**
+ * Factor graph parameter order.
+ */
+param_order_t *fgraph_param_order(const void *data, int *sv_size, int *r_size) {
+  // Setup parameter order
+  fgraph_t *fgraph = (fgraph_t *) data;
+  param_order_t *hash = NULL;
+  int col_idx = 0;
+
+  // -- Add poses
+  for (int i = 0; i < hmlen(fgraph->poses); i++) {
+    param_order_add_pose(&hash, fgraph->poses[i].value, &col_idx);
+  }
+
+  // -- Add velocities
+  for (int i = 0; i < hmlen(fgraph->velocities); i++) {
+    param_order_add_velocity(&hash, fgraph->velocities[i].value, &col_idx);
+  }
+
+  // -- Add features
+  for (int i = 0; i < hmlen(fgraph->features); i++) {
+    param_order_add_feature(&hash, fgraph->features[i].value, &col_idx);
+  }
+
+  // -- Add imu_biases
+  for (int i = 0; i < hmlen(fgraph->imu_biases); i++) {
+    param_order_add_imu_biases(&hash, fgraph->imu_biases[i].value, &col_idx);
+  }
+
+  // -- Add camera parameters
+  for (int cam_idx = 0; cam_idx < hmlen(fgraph->cam_params); cam_idx++) {
+    param_order_add_camera(&hash, fgraph->cam_params[cam_idx].value, &col_idx);
+  }
+
+  // -- Add camera extrinsic
+  for (int cam_idx = 0; cam_idx < hmlen(fgraph->cam_exts); cam_idx++) {
+    param_order_add_extrinsic(&hash, fgraph->cam_exts[cam_idx].value, &col_idx);
+  }
+
+  // -- Add IMU extrinsic
+  for (int imu_idx = 0; imu_idx < hmlen(fgraph->imu_exts); imu_idx++) {
+    param_order_add_extrinsic(&hash, fgraph->imu_exts[imu_idx].value, &col_idx);
+  }
+
+  // -- Add time delay
+  if (fgraph->time_delay) {
+    param_order_add_time_delay(&hash, fgraph->time_delay, &col_idx);
+  }
+
+  // -- Add fiducial
+  if (fgraph->fiducial) {
+    param_order_add_fiducial(&hash, fgraph->fiducial, &col_idx);
+  }
+
+  // Set state-vector and residual size
+  *sv_size = col_idx;
+  *r_size = hmlen(fgraph->ba_factors) * 2;
+  *r_size += hmlen(fgraph->camera_factors) * 2;
+  *r_size += hmlen(fgraph->idf_factors) * 2;
+  *r_size += hmlen(fgraph->imu_factors) * 15;
+  *r_size += hmlen(fgraph->calib_camera_factors) * 2;
+  *r_size += hmlen(fgraph->calib_imucam_factors) * 2;
+  if (fgraph->marg) {
+    *r_size += fgraph->marg->r_size;
+  }
+
+  return hash;
+}
+
+/**
+ * Linearize factor graph problem.
+ */
+void fgraph_linearize_compact(const void *data,
+                              const int sv_size,
+                              param_order_t *hash,
+                              real_t *H,
+                              real_t *g,
+                              real_t *r) {
+  // Evaluate factors
+  fgraph_t *fg = (fgraph_t *) data;
+  int r_idx = 0;
+
+  FGRAPH_HESSIAN(ba_factor_t, fg->ba_factors, ba_factor_eval, hash);
+  FGRAPH_HESSIAN(camera_factor_t, fg->camera_factors, camera_factor_eval, hash);
+  FGRAPH_HESSIAN(idf_factor_t, fg->idf_factors, idf_factor_eval, hash);
+  FGRAPH_HESSIAN(calib_camera_factor_t,
+                 fg->calib_camera_factors,
+                 calib_camera_factor_eval,
+                 hash);
+  FGRAPH_HESSIAN(calib_imucam_factor_t,
+                 fg->calib_imucam_factors,
+                 calib_imucam_factor_eval,
+                 hash);
 }
 
 ////////////
@@ -15630,7 +15836,7 @@ void solver_update(solver_t *solver, real_t *dx, int sv_size) {
       case POSE_PARAM:
       case FIDUCIAL_PARAM:
       case EXTRINSIC_PARAM:
-        pose_vector_update(data, dx + idx);
+        pose_update(data, dx + idx);
         break;
       case VELOCITY_PARAM:
         for (int i = 0; i < 3; i++) {
@@ -15806,8 +16012,10 @@ int solver_solve(solver_t *solver, void *data) {
 
     // Termination criteria
     if (solver->linearize && fabs(dJ) < fabs(-1e-10)) {
+      printf("dJ < -1e-10\n");
       break;
     } else if (solver->linearize && dx_norm < 1e-10) {
+      printf("dx_norm < 1e-10\n");
       break;
     }
   }
@@ -17109,14 +17317,13 @@ void calib_imucam_add_camera(calib_imucam_t *calib,
     calib->cam_ext_ids = REALLOC(calib->cam_ext_ids, int, new_size);
   }
 
-  calib->cam_param_ids[cam_idx] =
-      fgraph_add_camera_params(calib->graph,
-                               cam_idx,
-                               cam_res,
-                               proj_model,
-                               dist_model,
-                               cam_params,
-                               calib->fix_cam_params);
+  calib->cam_param_ids[cam_idx] = fgraph_add_camera(calib->graph,
+                                                    cam_idx,
+                                                    cam_res,
+                                                    proj_model,
+                                                    dist_model,
+                                                    cam_params,
+                                                    calib->fix_cam_params);
 
   calib->cam_ext_ids[cam_idx] =
       fgraph_add_cam_ext(calib->graph,
@@ -17649,7 +17856,8 @@ void calib_imucam_errors(calib_imucam_t *calib,
 //   int col_idx = 0;
 
 //   // -- Add poses
-//   for (int i = 0; i < hmlen(calib->poses); i++) {
+//   for (int i = 0; i < hmlen(calib->views); i++) {
+//     calib->views[i].value
 //     param_order_add_pose(&hash, calib->poses[i].value, &col_idx);
 //   }
 
@@ -21101,7 +21309,7 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
  */
 void sim_camera_frame_print(const sim_camera_frame_t *frame_data) {
   printf("ts: %ld\n", frame_data->ts);
-  printf("num_frames: %d\n", frame_data->num_measurements);
+  printf("num_measurements: %d\n", frame_data->num_measurements);
   for (int i = 0; i < frame_data->num_measurements; i++) {
     const int feature_id = frame_data->feature_ids[i];
     const real_t *kp = frame_data->keypoints + i * 2;
@@ -21306,7 +21514,7 @@ sim_camera_circle_trajectory(const sim_circle_t *conf,
     sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, cam_idx);
     for (size_t feature_id = 0; feature_id < num_features; feature_id++) {
       // Check point is infront of camera
-      const real_t *p_W = features + feature_id * 3;
+      const real_t *p_W = &features[feature_id * 3];
       TF_POINT(T_CW, p_W, p_C);
       if (p_C[2] < 0) {
         continue;

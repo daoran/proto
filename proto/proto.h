@@ -576,6 +576,7 @@ STATUS tcp_client_loop(tcp_client_t *client);
 #define SIGN2(a, b) ((b) > 0.0 ? fabs(a) : -fabs(a))
 
 float randf(float a, float b);
+void randvec(const real_t a, const real_t b, const size_t n, real_t *v);
 real_t deg2rad(const real_t d);
 real_t rad2deg(const real_t r);
 real_t wrap_180(const real_t d);
@@ -1127,8 +1128,11 @@ void pose_diff2(const real_t pose0[7],
                 const real_t pose1[7],
                 real_t dr[3],
                 real_t *dangle);
-void pose_vector_update(real_t pose[7], const real_t dx[6]);
-void print_pose_vector(const char *prefix, const real_t pose[7]);
+void pose_update(real_t pose[7], const real_t dx[6]);
+void pose_random_perturb(real_t pose[7],
+                         const real_t dtrans,
+                         const real_t drot);
+void print_pose(const char *prefix, const real_t pose[7]);
 void vecs2rot(const real_t acc[3], const real_t g[3], real_t *C);
 void rvec2rot(const real_t *rvec, const real_t eps, real_t *R);
 void euler321(const real_t ypr[3], real_t C[3 * 3]);
@@ -2892,6 +2896,23 @@ FACTOR_HASH(imu_factor_hash_t, int, imu_factor_t)
 FACTOR_HASH(calib_camera_factor_hash_t, int, calib_camera_factor_t)
 FACTOR_HASH(calib_imucam_factor_hash_t, int, calib_imucam_factor_t)
 
+#define FGRAPH_HESSIAN(FACTOR_TYPE, FACTORS, FACTOR_EVAL, PARAMS_HASH)         \
+  for (int factor_idx = 0; factor_idx < hmlen(FACTORS); factor_idx++) {        \
+    FACTOR_TYPE *factor = FACTORS[factor_idx].value;                           \
+    FACTOR_EVAL(factor);                                                       \
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);                            \
+    solver_fill_hessian(PARAMS_HASH,                                           \
+                        factor->num_params,                                    \
+                        factor->params,                                        \
+                        factor->jacs,                                          \
+                        factor->r,                                             \
+                        factor->r_size,                                        \
+                        sv_size,                                               \
+                        H,                                                     \
+                        g);                                                    \
+    r_idx += factor->r_size;                                                   \
+  }
+
 typedef struct fgraph_t {
   int num_params;
   int num_factors;
@@ -2902,6 +2923,7 @@ typedef struct fgraph_t {
 
   pose_hash_t *poses;
   velocity_hash_t *velocities;
+  feature_hash_t *features;
   imu_biases_hash_t *imu_biases;
   camera_params_hash_t *cam_params;
   extrinsic_hash_t *cam_exts;
@@ -2922,13 +2944,13 @@ void fgraph_free(fgraph_t *fg);
 int fgraph_add_param(fgraph_t *fg, const int param_type, void *param_ptr);
 int fgraph_add_factor(fgraph_t *fg, const int factor_type, void *factor_ptr);
 
-int fgraph_add_camera_params(fgraph_t *fg,
-                             const int cam_idx,
-                             const int cam_res[2],
-                             const char *proj_model,
-                             const char *dist_model,
-                             const real_t *cam_params,
-                             const int fix);
+int fgraph_add_camera(fgraph_t *fg,
+                      const int cam_idx,
+                      const int cam_res[2],
+                      const char *proj_model,
+                      const char *dist_model,
+                      const real_t *cam_params,
+                      const int fix);
 int fgraph_add_pos(fgraph_t *fg, const real_t data[3], const int fix);
 int fgraph_add_rot(fgraph_t *fg, const real_t data[4], const int fix);
 int fgraph_add_pose(fgraph_t *fg,
@@ -2953,7 +2975,10 @@ int fgraph_add_imu_biases(fgraph_t *fg,
                           const real_t ba[3],
                           const real_t bg[3],
                           const int fix);
-int fgraph_add_feature(fgraph_t *fg, const real_t data[3], const int fix);
+int fgraph_add_feature(fgraph_t *fg,
+                       const size_t feature_id,
+                       const real_t data[3],
+                       const int fix);
 int fgraph_add_time_delay(fgraph_t *fg, const real_t data, const int fix);
 int fgraph_add_joint(fgraph_t *fg,
                      const timestamp_t ts,
@@ -2998,6 +3023,14 @@ int fgraph_add_calib_imucam_factor(fgraph_t *fg,
                                    const real_t z[2],
                                    const real_t v[2],
                                    const real_t var[2]);
+void fgraph_cost(const void *data, real_t *r);
+param_order_t *fgraph_param_order(const void *data, int *sv_size, int *r_size);
+void fgraph_linearize_compact(const void *data,
+                              const int sv_size,
+                              param_order_t *hash,
+                              real_t *H,
+                              real_t *g,
+                              real_t *r);
 
 /////////////////////
 // IMU CALIBRATION //
