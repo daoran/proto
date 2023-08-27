@@ -5397,6 +5397,7 @@ class ImuFactor2(Factor):
       F55 = eye(3)
 
       F = zeros((15, 15))
+
       F[0:3, 0:3] = F11
       F[0:3, 3:6] = F12
       F[0:3, 6:9] = F13
@@ -5489,9 +5490,9 @@ class ImuFactor2(Factor):
     # -- Extract jacobians from error-state jacobian
     dr_dba = self.state_F[0:3, 9:12]
     dr_dbg = self.state_F[0:3, 12:15]
-    dv_dba = self.state_F[3:6, 9:12]
-    dv_dbg = self.state_F[3:6, 12:15]
-    dq_dbg = self.state_F[6:9, 12:15]
+    dq_dbg = self.state_F[3:6, 12:15]
+    dv_dba = self.state_F[6:9, 9:12]
+    dv_dbg = self.state_F[6:9, 12:15]
     dba = ba_i - self.ba
     dbg = bg_i - self.bg
 
@@ -11620,6 +11621,7 @@ class TestFactorGraph(unittest.TestCase):
 
     poses_init = []
     poses_est = []
+    poses_gnd = []
     sb_est = []
     graph = FactorGraph()
 
@@ -11630,6 +11632,7 @@ class TestFactorGraph(unittest.TestCase):
     pose_i_id = graph.add_param(pose_i)
     poses_init.append(T_WS_i)
     poses_est.append(pose_i_id)
+    poses_gnd.append(T_WS_i)
 
     # -- Speed and biases i
     vel_i = imu0_data.vel[ts_i]
@@ -11642,11 +11645,11 @@ class TestFactorGraph(unittest.TestCase):
     for ts_idx in range(start_idx + window_size, end_idx, window_size):
       # -- Pose j
       ts_j = imu0_data.timestamps[ts_idx]
-      T_WS_j = imu0_data.poses[ts_j]
+      T_WS_j_gnd = imu0_data.poses[ts_j]
       # ---- Pertrub pose j
       trans_rand = np.random.rand(3)
       rvec_rand = np.random.rand(3) * 0.01
-      T_WS_j = tf_update(T_WS_j, np.block([*trans_rand, *rvec_rand]))
+      T_WS_j = tf_update(T_WS_j_gnd, np.block([*trans_rand, *rvec_rand]))
       # ---- Add to factor graph
       pose_j = pose_setup(ts_j, T_WS_j)
       pose_j_id = graph.add_param(pose_j)
@@ -11661,6 +11664,7 @@ class TestFactorGraph(unittest.TestCase):
       # ---- Keep track of initial and estimate pose
       poses_init.append(T_WS_j)
       poses_est.append(pose_j_id)
+      poses_gnd.append(T_WS_j_gnd)
       sb_est.append(sb_j_id)
 
       # -- Imu Factor
@@ -11685,6 +11689,7 @@ class TestFactorGraph(unittest.TestCase):
 
     if debug:
       pos_init = np.array([tf_trans(T) for T in poses_init])
+      pos_gnd = np.array([tf_trans(T) for T in poses_gnd])
 
       pos_est = []
       for pose_pid in poses_est:
@@ -11700,7 +11705,8 @@ class TestFactorGraph(unittest.TestCase):
       bg_est = np.array([sb.param[6:9] for sb in sb_est])
 
       plt.figure()
-      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-')
+      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-', alpha=0.2)
+      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'k--')
       plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")

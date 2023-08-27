@@ -406,6 +406,7 @@ dev_euroc() {
 # run_test test_marg
 run_test test_visual_odometry_batch
 # run_test test_inertial_odometry_batch
+# run_test test_visual_inertial_odometry_batch
 # python3 scripts/marg_sandbox.py
 # run_test test_tsf
 # run_test test_ceres_example
