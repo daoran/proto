@@ -3182,31 +3182,29 @@ void calib_camera_solve(calib_camera_t *calib);
 // CAMERA-IMU CALIBRATION //
 ////////////////////////////
 
-/** IMU-camera calibration view **/
 typedef struct calib_imucam_view_t {
-  // Key
-  timestamp_t key;
+  timestamp_t ts;
+  int view_idx;
+  int cam_idx;
+  int num_corners;
 
-  // Parameters
-  // -- State
-  int pose_id;
-  int vel_id;
-  int biases_id;
-  // -- Fiducial
-  int fiducial_id;
-  // -- IMU
-  int imu_ext_id;
-  // -- Cameras
-  int *cam_ext_ids;
-  int *cam_param_ids;
-  // -- Time delay
-  int time_delay_id;
+  int *tag_ids;
+  int *corner_indices;
+  real_t *object_points;
+  real_t *keypoints;
 
-  // Factors
-  int num_factors;
-  int *factor_ids;
-  int imu_factor_id;
+  calib_imucam_factor_t *cam_factors;
 } calib_imucam_view_t;
+
+typedef struct calib_imucam_viewset_t {
+  timestamp_t key;
+  calib_imucam_view_t **value;
+} calib_imucam_viewset_t;
+
+typedef struct imu_factor_hash_t {
+  int64_t key;
+  imu_factor_t *value;
+} imu_factor_hash_t;
 
 /** IMU-camera Calibrator **/
 typedef struct calib_imucam_t {
@@ -3230,28 +3228,45 @@ typedef struct calib_imucam_t {
   int num_imus;
   int num_cams;
   int num_views;
-  int num_vision_factors;
+  int num_cam_factors;
   int num_imu_factors;
-
-  // Data
-  // fgraph_t *graph;
-  imu_params_t imu_params;
-  int imu_ext_id;
-  int time_delay_id;
-  int *cam_param_ids;
-  int *cam_ext_ids;
-  int fiducial_id;
 
   // Variables
   timestamp_t *timestamps;
+  pose_hash_t *poses;
+  velocity_hash_t *velocities;
+  imu_biases_hash_t *imu_biases;
+  fiducial_t *fiducial;
+  extrinsic_t *cam_exts;
+  camera_params_t *cam_params;
+  extrinsic_t *imu_ext;
+  time_delay_t *time_delay;
 
-  // Buffers
+  // Data
   fiducial_buffer_t *fiducial_buffer;
+  imu_params_t imu_params;
   imu_buffer_t imu_buf;
 
   // Views
-  calib_imucam_view_t *views;
+  calib_imucam_viewset_t *view_sets;
+  imu_factor_hash_t *imu_factors;
 } calib_imucam_t;
+
+calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
+                                              const int view_idx,
+                                              const int cam_idx,
+                                              const int num_corners,
+                                              const int *tag_ids,
+                                              const int *corner_indices,
+                                              const real_t *object_points,
+                                              const real_t *keypoints,
+                                              fiducial_t *fiducial,
+                                              pose_t *imu_pose,
+                                              extrinsic_t *imu_ext,
+                                              extrinsic_t *cam_ext,
+                                              camera_params_t *cam_params,
+                                              time_delay_t *time_delay);
+void calib_imucam_view_free(calib_imucam_view_t *view);
 
 calib_imucam_t *calib_imucam_malloc();
 void calib_imucam_free(calib_imucam_t *calib);

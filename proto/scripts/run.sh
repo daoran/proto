@@ -404,7 +404,7 @@ dev_euroc() {
 # run_test test_calib_imucam_factor
 # run_test test_calib_gimbal_factor
 # run_test test_marg
-run_test test_visual_odometry_batch
+# run_test test_visual_odometry_batch
 # run_test test_inertial_odometry_batch
 # run_test test_visual_inertial_odometry_batch
 # python3 scripts/marg_sandbox.py
@@ -427,7 +427,7 @@ run_test test_visual_odometry_batch
 # run_test test_calib_imucam_add_imu
 # run_test test_calib_imucam_add_camera
 # run_test test_calib_imucam_add_imu_event
-# run_test test_calib_imucam_add_fiducial_event
+run_test test_calib_imucam_add_fiducial_event
 # run_test test_calib_imucam_update
 # run_test test_calib_imucam_batch
 # python3 test_data/test_marg.py
