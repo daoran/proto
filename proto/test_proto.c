@@ -6934,6 +6934,7 @@ int test_calib_imucam_update() {
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
   for (int k = 0; k < timeline->timeline_length; k++) {
+  // for (int k = 0; k < 10; k++) {
     // Extract timeline events. Add either imu or fiducial event
     for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
       timeline_event_t *event = timeline->timeline_events[k][i];
@@ -6970,93 +6971,93 @@ int test_calib_imucam_update() {
   ceres_local_parameterization_t *pose_pm =
       ceres_create_pose_local_parameterization();
 
-  // for (int k = 0; k < arrlen(calib->timestamps); k++) {
-  //   const timestamp_t ts = calib->timestamps[k];
-  //   calib_imucam_view_t *view = &hmgets(calib->views, ts);
-  //   if (view == NULL) {
-  //     continue;
-  //   }
+  for (int k = 0; k < arrlen(calib->timestamps); k++) {
+    for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+      const timestamp_t ts = calib->timestamps[k];
+      calib_imucam_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
+      if (view == NULL) {
+        continue;
+      }
 
-  //   for (int factor_idx = 0; factor_idx < view->num_factors; factor_idx++) {
-  //     const int fid = view->factor_ids[factor_idx];
-  //     calib_imucam_factor_t *factor =
-  //         hmgets(calib->graph->calib_imucam_factors, fid).value;
-  //     real_t **param_ptrs = factor->params;
-  //     int num_residuals = 2;
-  //     int num_params = 6;
-  //     int param_sizes[6] = {
-  //         7, // Fiducial extrinsic
-  //         7, // Imu pose
-  //         7, // Imu extrinsic
-  //         7, // Camera extrinsic
-  //         8, // Camera parameters
-  //         1, // Time delay
-  //     };
-  //     ceres_problem_add_residual_block(problem,
-  //                                      &calib_imucam_factor_ceres_eval,
-  //                                      factor,
-  //                                      NULL,
-  //                                      NULL,
-  //                                      num_residuals,
-  //                                      num_params,
-  //                                      param_sizes,
-  //                                      param_ptrs);
+      for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+        calib_imucam_factor_t *factor = &view->cam_factors[factor_idx];
+        real_t **param_ptrs = factor->params;
+        int num_residuals = 2;
+        int num_params = 6;
+        int param_sizes[6] = {
+            7, // Fiducial extrinsic
+            7, // Imu pose
+            7, // Imu extrinsic
+            7, // Camera extrinsic
+            8, // Camera parameters
+            1, // Time delay
+        };
+        ceres_problem_add_residual_block(problem,
+                                         &calib_imucam_factor_ceres_eval,
+                                         factor,
+                                         NULL,
+                                         NULL,
+                                         num_residuals,
+                                         num_params,
+                                         param_sizes,
+                                         param_ptrs);
 
-  //     ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
-  //     ceres_set_parameterization(problem, param_ptrs[1], pose_pm);
-  //     ceres_set_parameterization(problem, param_ptrs[2], pose_pm);
-  //     ceres_set_parameterization(problem, param_ptrs[3], pose_pm);
-  //   }
-  // }
+        ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
+        ceres_set_parameterization(problem, param_ptrs[1], pose_pm);
+        ceres_set_parameterization(problem, param_ptrs[2], pose_pm);
+        ceres_set_parameterization(problem, param_ptrs[3], pose_pm);
+      }
+    }
+  }
 
-  // for (int k = 0; k < hmlen(calib->graph->imu_factors); k++) {
-  //   imu_factor_t *factor = calib->graph->imu_factors[k].value;
-  //   real_t **param_ptrs = factor->params;
-  //   int num_residuals = 15;
-  //   int num_params = 6;
-  //   int param_sizes[6] = {
-  //       7, // Pose i
-  //       3, // Vel i
-  //       6, // IMU biases i
-  //       7, // Pose j
-  //       3, // Vel j
-  //       6, // IMU biases j
-  //   };
-  //   ceres_problem_add_residual_block(problem,
-  //                                    &imu_factor_ceres_eval,
-  //                                    factor,
-  //                                    NULL,
-  //                                    NULL,
-  //                                    num_residuals,
-  //                                    num_params,
-  //                                    param_sizes,
-  //                                    param_ptrs);
-  //   ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
-  //   ceres_set_parameterization(problem, param_ptrs[3], pose_pm);
-  // }
+  for (int k = 0; k < hmlen(calib->imu_factors); k++) {
+    imu_factor_t *factor = calib->imu_factors[k].value;
+    real_t **param_ptrs = factor->params;
+    int num_residuals = 15;
+    int num_params = 6;
+    int param_sizes[6] = {
+        7, // Pose i
+        3, // Vel i
+        6, // IMU biases i
+        7, // Pose j
+        3, // Vel j
+        6, // IMU biases j
+    };
+    ceres_problem_add_residual_block(problem,
+                                     &imu_factor_ceres_eval,
+                                     factor,
+                                     NULL,
+                                     NULL,
+                                     num_residuals,
+                                     num_params,
+                                     param_sizes,
+                                     param_ptrs);
+    ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
+    ceres_set_parameterization(problem, param_ptrs[3], pose_pm);
+  }
 
-  // {
-  //   camera_params_t *cam_params = hmgets(calib->graph->cam_params, 0).value;
-  //   ceres_set_parameter_constant(problem, cam_params->data);
-  // }
-  // {
-  //   extrinsic_t *cam_ext = hmgets(calib->graph->cam_exts, 0).value;
-  //   ceres_set_parameter_constant(problem, cam_ext->data);
-  // }
+  {
+    camera_params_t *cam_params = &calib->cam_params[0];
+    ceres_set_parameter_constant(problem, cam_params->data);
+  }
+  {
+    extrinsic_t *cam_ext = &calib->cam_exts[0];
+    ceres_set_parameter_constant(problem, cam_ext->data);
+  }
 
-  // {
-  //   time_delay_t *time_delay = calib->graph->time_delay;
-  //   ceres_set_parameter_constant(problem, time_delay->data);
-  // }
+  {
+    time_delay_t *time_delay = calib->time_delay;
+    ceres_set_parameter_constant(problem, time_delay->data);
+  }
 
-  // // Solve
-  // ceres_solve(problem, 30);
-  // calib_imucam_print(calib);
+  // Solve
+  ceres_solve(problem, 30);
+  calib_imucam_print(calib);
 
   // Clean up
-  calib_imucam_free(calib);
   timeline_free(timeline);
-  // ceres_free_problem(problem);
+  calib_imucam_free(calib);
+  ceres_free_problem(problem);
 
   return 0;
 }

@@ -11855,6 +11855,14 @@ void imu_buffer_add(imu_buffer_t *imu_buf,
 }
 
 /**
+ * Return last timestamp in IMU buffer
+ */
+timestamp_t imu_buffer_last_timestamp(const imu_buffer_t *imu_buf) {
+  assert(imu_buf != NULL);
+  return imu_buf->ts[imu_buf->size - 1];
+}
+
+/**
  * Clear IMU buffer
  */
 void imu_buffer_clear(imu_buffer_t *imu_buf) {
@@ -17246,17 +17254,31 @@ void calib_imucam_free(calib_imucam_t *calib) {
     }
   }
   hmfree(calib->view_sets);
-  for (int i = 0; i < arrlen(calib->imu_factors); i++) {
-    imu_factor_t *factor = calib->imu_factors[i].value;
-    free(factor);
+
+  // IMU factors
+  for (int i = 0; i < hmlen(calib->imu_factors); i++) {
+    free(calib->imu_factors[i].value);
   }
   hmfree(calib->imu_factors);
 
   // Timestamps
   arrfree(calib->timestamps);
+  // -- Poses
+  for (int k = 0; k < hmlen(calib->poses); k++) {
+    free(calib->poses[k].value);
+  }
   hmfree(calib->poses);
+  // -- Velocities
+  for (int k = 0; k < hmlen(calib->velocities); k++) {
+    free(calib->velocities[k].value);
+  }
   hmfree(calib->velocities);
+  // -- IMU biases
+  for (int k = 0; k < hmlen(calib->imu_biases); k++) {
+    free(calib->imu_biases[k].value);
+  }
   hmfree(calib->imu_biases);
+  // -- Others
   free(calib->fiducial);
   free(calib->cam_exts);
   free(calib->cam_params);
@@ -17486,10 +17508,7 @@ static void calib_imucam_initialize_fiducial(calib_imucam_t *calib,
 
 /** Add state. **/
 static void calib_imucam_add_state(calib_imucam_t *calib,
-                                   const timestamp_t ts,
-                                   pose_t *imu_pose,
-                                   velocity_t *vel,
-                                   imu_biases_t *imu_biases) {
+                                   const timestamp_t ts) {
   // Check timestamp does not already exists
   if (hmgets(calib->poses, ts).value != NULL) {
     return;
@@ -17517,6 +17536,7 @@ static void calib_imucam_add_state(calib_imucam_t *calib,
     real_t T_CiF[4 * 4] = {0};
     int status = calib_imucam_estimate_relative_pose(calib, &cam_idx, T_CiF);
     if (status != 0) {
+      printf("Failed to estimate relative pose!\n");
       return;
     }
 
@@ -17547,15 +17567,15 @@ static void calib_imucam_add_state(calib_imucam_t *calib,
 
   // Add state
   // -- Pose
-  imu_pose = MALLOC(pose_t, 1);
+  pose_t *imu_pose = MALLOC(pose_t, 1);
   pose_setup(imu_pose, ts, pose_k);
   hmput(calib->poses, ts, imu_pose);
   // -- Velocity
-  vel = MALLOC(velocity_t, 1);
+  velocity_t *vel = MALLOC(velocity_t, 1);
   velocity_setup(vel, ts, vel_k);
   hmput(calib->velocities, ts, vel);
   // -- IMU biases
-  imu_biases = MALLOC(imu_biases_t, 1);
+  imu_biases_t *imu_biases = MALLOC(imu_biases_t, 1);
   imu_biases_setup(imu_biases, ts, ba_k, bg_k);
   hmput(calib->imu_biases, ts, imu_biases);
 
@@ -17577,6 +17597,10 @@ void calib_imucam_add_imu_event(calib_imucam_t *calib,
   assert(acc != NULL);
   assert(gyr != NULL);
   assert(calib->num_imus > 0);
+
+  printf("add imu event:      %ld, ", ts);
+  printf("acc: (%f, %f, %f), ", acc[0], acc[1], acc[2]);
+  printf("gyr: (%f, %f, %f)\n", gyr[0], gyr[1], gyr[2]);
 
   imu_buffer_add(&calib->imu_buf, ts, acc, gyr);
   calib->imu_ok = 1;
@@ -17602,6 +17626,8 @@ void calib_imucam_add_fiducial_event(calib_imucam_t *calib,
   if (num_corners == 0 || calib->imu_ok == 0) {
     return;
   }
+
+  printf("add fiducial event: %ld\n", ts);
 
   // Add to buffer
   fiducial_buffer_add(calib->fiducial_buffer,
@@ -17691,6 +17717,11 @@ static int calib_imucam_update_precheck(calib_imucam_t *calib) {
     return -1;
   }
 
+  // Check imu buffer empty?
+  if (calib->imu_buf.size == 0) {
+    return -1;
+  }
+
   // Check timestamps are same
   timestamp_t ts = 0;
   for (int i = 0; i < calib->fiducial_buffer->size; i++) {
@@ -17704,7 +17735,7 @@ static int calib_imucam_update_precheck(calib_imucam_t *calib) {
   }
 
   // Check IMU timestamp is after fiducial data
-  if (ts > calib->imu_buf.ts[calib->imu_buf.size - 1]) {
+  if (ts > imu_buffer_last_timestamp(&calib->imu_buf)) {
     return -3;
   }
 
@@ -17778,11 +17809,8 @@ int calib_imucam_update(calib_imucam_t *calib) {
   }
 
   // Add state
-  const timestamp_t ts = calib->imu_buf.ts[calib->imu_buf.size - 1];
-  pose_t *imu_pose = NULL;
-  velocity_t *vel = NULL;
-  imu_biases_t *imu_biases = NULL;
-  calib_imucam_add_state(calib, ts, imu_pose, vel, imu_biases);
+  const timestamp_t ts = imu_buffer_last_timestamp(&calib->imu_buf);
+  calib_imucam_add_state(calib, ts);
 
   // Form new view
   calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
@@ -17800,6 +17828,8 @@ int calib_imucam_update(calib_imucam_t *calib) {
     const fiducial_event_t *data = calib->fiducial_buffer->data[i];
     const int cam_idx = data->cam_idx;
     const int view_idx = calib->num_views;
+    pose_t *imu_pose = hmgets(calib->poses, ts).value;
+
     calib_imucam_view_t *view =
         calib_imucam_view_malloc(ts,
                                  view_idx,
@@ -17836,6 +17866,8 @@ int calib_imucam_update(calib_imucam_t *calib) {
     velocity_t *vel_k = hmgets(calib->velocities, ts_k).value;
     imu_biases_t *imu_biases_k = hmgets(calib->imu_biases, ts_k).value;
 
+    printf("ts_km1: %ld, ts_k: %ld\n", ts_km1, ts_k);
+
     // Form IMU factor
     imu_factor_t *imu_factor = MALLOC(imu_factor_t, 1);
     imu_factor_setup(imu_factor,
@@ -17847,6 +17879,7 @@ int calib_imucam_update(calib_imucam_t *calib) {
                      pose_k,
                      vel_k,
                      imu_biases_k);
+    hmput(calib->imu_factors, ts, imu_factor);
     calib->num_imu_factors++;
 
     // Clear IMU buffer

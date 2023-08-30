@@ -2231,6 +2231,7 @@ void imu_buffer_add(imu_buffer_t *imu_buf,
                     const timestamp_t ts,
                     const real_t acc[3],
                     const real_t gyr[3]);
+timestamp_t imu_buffer_last_timestamp(const imu_buffer_t *imu_buf);
 void imu_buffer_clear(imu_buffer_t *imu_buf);
 void imu_buffer_copy(const imu_buffer_t *from, imu_buffer_t *to);
 void imu_buffer_print(const imu_buffer_t *imu_buf);
