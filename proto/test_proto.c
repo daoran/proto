@@ -6908,13 +6908,14 @@ int test_calib_imucam_update() {
   const real_t n_gw = 2.0e-6;
   const real_t g = 9.81;
   const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 0.70710678, 0.0, 0.0, 0.70710678};
   calib_imucam_add_imu(calib, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext);
   calib->imu_ok = 1;
-  // -- Add camera
-  const int res[2] = {752, 480};
+  // -- Add cam0
+  const int cam0_res[2] = {752, 480};
   const char *pm = "pinhole";
   const char *dm = "radtan4";
-  const real_t cam_vec[8] = {
+  const real_t cam0_vec[8] = {
       458.654,
       457.296,
       367.215,
@@ -6924,8 +6925,30 @@ int test_calib_imucam_update() {
       0.00019359,
       1.76187114e-05,
   };
-  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  calib_imucam_add_camera(calib, 0, res, pm, dm, cam_vec, cam_ext);
+  const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  calib_imucam_add_camera(calib, 0, cam0_res, pm, dm, cam0_vec, cam0_ext);
+  // -- Add cam1
+  const int cam1_res[2] = {752, 480};
+  const real_t cam1_vec[8] = {
+      457.587,
+      456.134,
+      379.999,
+      255.238,
+      -0.28368365,
+      0.07451284,
+      -0.00010473,
+      -3.55590700e-05,
+  };
+  const real_t cam1_ext[7] = {
+      0.11007414,
+      -0.00015661,
+      0.00088938,
+      9.99974496e-01,
+      7.04530576e-03,
+      -1.79854893e-04,
+      1.15733025e-03,
+  };
+  calib_imucam_add_camera(calib, 1, cam1_res, pm, dm, cam1_vec, cam1_ext);
 
   // Test update
   char *data_dir = "/data/proto/imu_april/";
@@ -6934,7 +6957,6 @@ int test_calib_imucam_update() {
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
   for (int k = 0; k < timeline->timeline_length; k++) {
-  // for (int k = 0; k < 10; k++) {
     // Extract timeline events. Add either imu or fiducial event
     for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
       timeline_event_t *event = timeline->timeline_events[k][i];
@@ -6963,6 +6985,227 @@ int test_calib_imucam_update() {
     // if (calib->num_views == 200) {
     //   break;
     // }
+  }
+
+  return 0;
+}
+
+int test_calib_imucam_batch() {
+  // clang-format off
+  // int num_cams = 2;
+  const int res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam_vec[2][8] = {
+    {458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05},
+    {457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.555e-05}
+  };
+  const real_t cam_exts[2][7] = {
+    {0, 0, 0, 1, 0, 0, 0},
+    {1.099270e-01, -2.450375e-04, 7.188873e-04,
+     9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03}
+  };
+  const real_t T_SC0[4 * 4] = {
+    0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+    0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+    -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+    0.0, 0.0, 0.0, 1.0
+  };
+  TF_VECTOR(T_SC0, imu_ext);
+  // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  const int imu_rate = 200;
+  const real_t n_a = 0.08;
+  const real_t n_g = 0.004;
+  const real_t n_aw = 0.00004;
+  const real_t n_gw = 2.0e-6;
+  const real_t g = 9.81;
+  // clang-format on
+
+  calib_imucam_t *calib = calib_imucam_malloc();
+  calib_imucam_add_imu(calib, imu_rate, n_a, n_g, n_aw, n_gw, g, imu_ext);
+  calib_imucam_add_camera(calib, 0, res, pm, dm, cam_vec[0], cam_exts[0]);
+  calib_imucam_add_camera(calib, 1, res, pm, dm, cam_vec[1], cam_exts[1]);
+
+  // Incremental solve
+  char *data_dir = "/data/proto/imu_april/";
+  int num_cams = 1;
+  int num_imus = 1;
+  // int window_size = 20;
+  timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
+
+  for (int k = 0; k < timeline->timeline_length; k++) {
+    // Extract timeline events
+    for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+      timeline_event_t *event = timeline->timeline_events[k][i];
+      const timestamp_t ts = event->ts;
+
+      if (event->type == IMU_EVENT) {
+        const imu_event_t *data = &event->data.imu;
+        calib_imucam_add_imu_event(calib, ts, data->acc, data->gyr);
+
+      } else if (event->type == FIDUCIAL_EVENT) {
+        const fiducial_event_t *data = &event->data.fiducial;
+        const int cam_idx = data->cam_idx;
+        calib_imucam_add_fiducial_event(calib,
+                                        ts,
+                                        cam_idx,
+                                        data->num_corners,
+                                        data->tag_ids,
+                                        data->corner_indices,
+                                        data->object_points,
+                                        data->keypoints);
+      }
+    }
+
+    // Trigger update
+    // TIC(start);
+    if (calib_imucam_update(calib) == 0) {
+      // // Incremental solve
+      // if (calib->num_views >= window_size) {
+      //   calib->max_iter = 20;
+      //   calib->verbose = 0;
+      //   calib_imucam_solve(calib);
+      //   // calib_imucam_marginalize(calib);
+      //   // k = timeline->timeline_length;
+
+      //   real_t reproj_rmse = 0.0;
+      //   real_t reproj_mean = 0.0;
+      //   real_t reproj_median = 0.0;
+      //   if (calib->num_views) {
+      //     calib_imucam_errors(calib,
+      //                         &reproj_rmse,
+      //                         &reproj_mean,
+      //                         &reproj_median);
+      //   }
+
+      //   char cam0_str[100] = {0};
+      //   char cam1_str[100] = {0};
+      //   char cam_ext_str[100] = {0};
+      //   char imu_ext_str[100] = {0};
+      //   vec2str(calib->cam_params[0].data, 8, cam0_str);
+      //   vec2str(calib->cam_params[1].data, 8, cam1_str);
+      //   vec2str(calib->cam_exts[1].data, 7, cam_ext_str);
+      //   vec2str(calib->imu_ext->data, 7, imu_ext_str);
+      //   printf("cam0:    %s\n", cam0_str);
+      //   printf("cam1:    %s\n", cam1_str);
+      //   printf("cam ext: %s\n", cam_ext_str);
+      //   printf("imu ext: %s\n", imu_ext_str);
+      //   printf("rmse reproj error: %f\n", reproj_rmse);
+      //   printf("\n");
+      // }
+      // PRINT_TOC("time", start);
+    }
+
+    if (calib->num_views >= 200) {
+      break;
+    }
+  }
+  // calib_imucam_save_estimates(calib);
+
+  // Solve
+  // calib->max_iter = 30;
+  // calib->verbose = 1;
+  // calib_imucam_solve(calib);
+
+  // Clean up
+  calib_imucam_free(calib);
+  timeline_free(timeline);
+
+  return 0;
+}
+
+int test_calib_imucam_batch_ceres() {
+  // Setup
+  calib_imucam_t *calib = calib_imucam_malloc();
+  // -- Add Imu
+  const int imu_rate = 200;
+  const real_t n_a = 0.08;
+  const real_t n_g = 0.004;
+  const real_t n_aw = 0.00004;
+  const real_t n_gw = 2.0e-6;
+  const real_t g = 9.81;
+  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 0.70710678, 0.0, 0.0, 0.70710678};
+  // const real_t T_SC0[4 * 4] = {
+  //   0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+  //   0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+  //   -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+  //   0.0, 0.0, 0.0, 1.0
+  // };
+  // TF_VECTOR(T_SC0, imu_ext);
+  calib_imucam_add_imu(calib, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext);
+  calib->imu_ok = 1;
+  // -- Add cam0
+  const int cam0_res[2] = {752, 480};
+  const char *pm = "pinhole";
+  const char *dm = "radtan4";
+  const real_t cam0_vec[8] = {
+      458.654,
+      457.296,
+      367.215,
+      248.375,
+      -0.28340811,
+      0.07395907,
+      0.00019359,
+      1.76187114e-05,
+  };
+  const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  calib_imucam_add_camera(calib, 0, cam0_res, pm, dm, cam0_vec, cam0_ext);
+  // -- Add cam1
+  const int cam1_res[2] = {752, 480};
+  const real_t cam1_vec[8] = {
+      457.587,
+      456.134,
+      379.999,
+      255.238,
+      -0.28368365,
+      0.07451284,
+      -0.00010473,
+      -3.55590700e-05,
+  };
+  const real_t cam1_ext[7] = {
+      0.11007414,
+      -0.00015661,
+      0.00088938,
+      9.99974496e-01,
+      7.04530576e-03,
+      -1.79854893e-04,
+      1.15733025e-03,
+  };
+  calib_imucam_add_camera(calib, 1, cam1_res, pm, dm, cam1_vec, cam1_ext);
+
+  // Test update
+  char *data_dir = "/data/proto/imu_april/";
+  int num_cams = 2;
+  int num_imus = 1;
+  timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
+
+  for (int k = 0; k < timeline->timeline_length; k++) {
+    // Extract timeline events. Add either imu or fiducial event
+    for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+      timeline_event_t *event = timeline->timeline_events[k][i];
+      const timestamp_t ts = event->ts;
+
+      if (event->type == IMU_EVENT) {
+        const imu_event_t *data = &event->data.imu;
+        calib_imucam_add_imu_event(calib, ts, data->acc, data->gyr);
+
+      } else if (event->type == FIDUCIAL_EVENT) {
+        const fiducial_event_t *data = &event->data.fiducial;
+        const int cam_idx = data->cam_idx;
+        calib_imucam_add_fiducial_event(calib,
+                                        ts,
+                                        cam_idx,
+                                        data->num_corners,
+                                        data->tag_ids,
+                                        data->corner_indices,
+                                        data->object_points,
+                                        data->keypoints);
+      }
+    }
+
+    // Trigger update
+    calib_imucam_update(calib);
   }
 
   // Setup ceres-solver
@@ -7037,12 +7280,16 @@ int test_calib_imucam_update() {
   }
 
   {
-    camera_params_t *cam_params = &calib->cam_params[0];
-    ceres_set_parameter_constant(problem, cam_params->data);
+    camera_params_t *cam0_params = &calib->cam_params[0];
+    camera_params_t *cam1_params = &calib->cam_params[1];
+    ceres_set_parameter_constant(problem, cam0_params->data);
+    ceres_set_parameter_constant(problem, cam1_params->data);
   }
   {
-    extrinsic_t *cam_ext = &calib->cam_exts[0];
-    ceres_set_parameter_constant(problem, cam_ext->data);
+    extrinsic_t *cam0_ext = &calib->cam_exts[0];
+    extrinsic_t *cam1_ext = &calib->cam_exts[1];
+    ceres_set_parameter_constant(problem, cam0_ext->data);
+    ceres_set_parameter_constant(problem, cam1_ext->data);
   }
 
   {
@@ -7051,7 +7298,7 @@ int test_calib_imucam_update() {
   }
 
   // Solve
-  ceres_solve(problem, 30);
+  ceres_solve(problem, 100);
   calib_imucam_print(calib);
 
   // Clean up
@@ -7061,130 +7308,6 @@ int test_calib_imucam_update() {
 
   return 0;
 }
-
-// int test_calib_imucam_batch() {
-//   // clang-format off
-//   // int num_cams = 2;
-//   const int res[2] = {752, 480};
-//   const char *pm = "pinhole";
-//   const char *dm = "radtan4";
-//   const real_t cam_vec[2][8] = {
-//     {458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05},
-//     {457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.555e-05}
-//   };
-//   const real_t cam_exts[2][7] = {
-//     {0, 0, 0, 1, 0, 0, 0},
-//     {1.099270e-01, -2.450375e-04, 7.188873e-04,
-//      9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03}
-//   };
-//   const real_t T_SC0[4 * 4] = {
-//     0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
-//     0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
-//     -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
-//     0.0, 0.0, 0.0, 1.0
-//   };
-//   TF_VECTOR(T_SC0, imu_ext);
-//   // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-//   const int imu_rate = 200;
-//   const real_t n_a = 0.08;
-//   const real_t n_g = 0.004;
-//   const real_t n_aw = 0.00004;
-//   const real_t n_gw = 2.0e-6;
-//   const real_t g = 9.81;
-//   // clang-format on
-
-//   calib_imucam_t *calib = calib_imucam_malloc();
-//   calib_imucam_add_imu(calib, imu_rate, n_a, n_g, n_aw, n_gw, g, imu_ext);
-//   calib_imucam_add_camera(calib, 0, res, pm, dm, cam_vec[0], cam_exts[0]);
-//   calib_imucam_add_camera(calib, 1, res, pm, dm, cam_vec[1], cam_exts[1]);
-
-//   // Incremental solve
-//   char *data_dir = "/data/proto/imu_april/";
-//   int num_cams = 1;
-//   int num_imus = 1;
-//   // int window_size = 20;
-//   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
-
-//   for (int k = 0; k < timeline->timeline_length; k++) {
-//     // Extract timeline events
-//     for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
-//       timeline_event_t *event = timeline->timeline_events[k][i];
-//       const timestamp_t ts = event->ts;
-
-//       if (event->type == IMU_EVENT) {
-//         const imu_event_t *data = &event->data.imu;
-//         calib_imucam_add_imu_event(calib, ts, data->acc, data->gyr);
-
-//       } else if (event->type == FIDUCIAL_EVENT) {
-//         const fiducial_event_t *data = &event->data.fiducial;
-//         const int cam_idx = data->cam_idx;
-//         calib_imucam_add_fiducial_event(calib,
-//                                         ts,
-//                                         cam_idx,
-//                                         data->num_corners,
-//                                         data->tag_ids,
-//                                         data->corner_indices,
-//                                         data->object_points,
-//                                         data->keypoints);
-//       }
-//     }
-
-//     // Trigger update
-//     // TIC(start);
-//     if (calib_imucam_update(calib) == 0) {
-//       // // Incremental solve
-//       // if (calib->num_views >= window_size) {
-//       //   calib->max_iter = 20;
-//       //   calib->verbose = 0;
-//       //   calib_imucam_solve(calib);
-//       //   // calib_imucam_marginalize(calib);
-//       //   // k = timeline->timeline_length;
-
-//       //   real_t reproj_rmse = 0.0;
-//       //   real_t reproj_mean = 0.0;
-//       //   real_t reproj_median = 0.0;
-//       //   if (calib->num_views) {
-//       //     calib_imucam_errors(calib,
-//       //                         &reproj_rmse,
-//       //                         &reproj_mean,
-//       //                         &reproj_median);
-//       //   }
-
-//       //   char cam0_str[100] = {0};
-//       //   char cam1_str[100] = {0};
-//       //   char cam_ext_str[100] = {0};
-//       //   char imu_ext_str[100] = {0};
-//       //   vec2str(calib->cam_params[0].data, 8, cam0_str);
-//       //   vec2str(calib->cam_params[1].data, 8, cam1_str);
-//       //   vec2str(calib->cam_exts[1].data, 7, cam_ext_str);
-//       //   vec2str(calib->imu_ext->data, 7, imu_ext_str);
-//       //   printf("cam0:    %s\n", cam0_str);
-//       //   printf("cam1:    %s\n", cam1_str);
-//       //   printf("cam ext: %s\n", cam_ext_str);
-//       //   printf("imu ext: %s\n", imu_ext_str);
-//       //   printf("rmse reproj error: %f\n", reproj_rmse);
-//       //   printf("\n");
-//       // }
-//       // PRINT_TOC("time", start);
-//     }
-
-//     if (calib->num_views >= 200) {
-//       break;
-//     }
-//   }
-//   // calib_imucam_save_estimates(calib);
-
-//   // Solve
-//   // calib->max_iter = 30;
-//   // calib->verbose = 1;
-//   // calib_imucam_solve(calib);
-
-//   // Clean up
-//   calib_imucam_free(calib);
-//   timeline_free(timeline);
-
-//   return 0;
-// }
 
 int test_calib_gimbal_copy() {
   const char *data_path = TEST_SIM_GIMBAL;
@@ -8263,13 +8386,14 @@ void test_suite() {
   MU_ADD_TEST(test_calib_camera_mono_incremental);
   MU_ADD_TEST(test_calib_camera_stereo_batch);
   MU_ADD_TEST(test_calib_camera_stereo_ceres);
-  // MU_ADD_TEST(test_calib_imucam_view);
+  MU_ADD_TEST(test_calib_imucam_view);
   MU_ADD_TEST(test_calib_imucam_add_imu);
   MU_ADD_TEST(test_calib_imucam_add_camera);
   MU_ADD_TEST(test_calib_imucam_add_imu_event);
   MU_ADD_TEST(test_calib_imucam_add_fiducial_event);
   MU_ADD_TEST(test_calib_imucam_update);
-  // MU_ADD_TEST(test_calib_imucam_batch);
+  MU_ADD_TEST(test_calib_imucam_batch);
+  MU_ADD_TEST(test_calib_imucam_batch_ceres);
   // MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);

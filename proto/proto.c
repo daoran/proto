@@ -12530,7 +12530,6 @@ void imu_factor_setup(imu_factor_t *factor,
   factor->pose_i = pose_i;
   factor->vel_i = vel_i;
   factor->biases_i = biases_i;
-
   factor->pose_j = pose_j;
   factor->vel_j = vel_j;
   factor->biases_j = biases_j;
@@ -12599,6 +12598,12 @@ void imu_factor_setup(imu_factor_t *factor,
     const real_t *a_j = imu_buf->acc[k];
     const real_t *w_j = imu_buf->gyr[k];
 
+    if (ts_i < pose_i->ts) {
+      continue;
+    } else if (ts_j > pose_j->ts) {
+      break;
+    }
+
     // Propagate
     imu_factor_propagate_step(factor, a_i, w_i, a_j, w_j, dt);
 
@@ -12641,7 +12646,7 @@ void imu_factor_setup(imu_factor_t *factor,
   real_t sqrt_info[15 * 15] = {0};
 
   pinv(factor->covar, 15, 15, info);
-  // assert(check_inv(info, factor->covar, 15) == 0);
+  assert(check_inv(info, factor->covar, 15) == 0);
   zeros(factor->sqrt_info, 15, 15);
   chol(info, 15, sqrt_info);
   mat_transpose(sqrt_info, 15, 15, factor->sqrt_info);
@@ -12920,9 +12925,9 @@ int imu_factor_eval(void *factor_ptr) {
   real_t dq_dbg[3 * 3] = {0};
   mat_block_get(factor->F, 15, 0, 2, 9, 11, dr_dba);
   mat_block_get(factor->F, 15, 0, 2, 12, 14, dr_dbg);
-  mat_block_get(factor->F, 15, 3, 5, 12, 14, dq_dbg);
-  mat_block_get(factor->F, 15, 6, 8, 9, 11, dv_dba);
-  mat_block_get(factor->F, 15, 6, 8, 12, 14, dv_dbg);
+  mat_block_get(factor->F, 15, 3, 5, 9, 11, dv_dba);
+  mat_block_get(factor->F, 15, 3, 5, 12, 14, dv_dbg);
+  mat_block_get(factor->F, 15, 6, 8, 12, 14, dq_dbg);
 
   real_t dba[3] = {0};
   dba[0] = ba_i[0] - factor->ba[0];
@@ -17229,6 +17234,7 @@ calib_imucam_t *calib_imucam_malloc() {
 
   // Factors
   calib->view_sets = NULL;
+  calib->imu_factors = NULL;
   hmdefault(calib->view_sets, NULL);
   hmdefault(calib->imu_factors, NULL);
 
@@ -17598,9 +17604,9 @@ void calib_imucam_add_imu_event(calib_imucam_t *calib,
   assert(gyr != NULL);
   assert(calib->num_imus > 0);
 
-  printf("add imu event:      %ld, ", ts);
-  printf("acc: (%f, %f, %f), ", acc[0], acc[1], acc[2]);
-  printf("gyr: (%f, %f, %f)\n", gyr[0], gyr[1], gyr[2]);
+  // printf("add imu event:      %ld, ", ts);
+  // printf("acc: (%f, %f, %f), ", acc[0], acc[1], acc[2]);
+  // printf("gyr: (%f, %f, %f)\n", gyr[0], gyr[1], gyr[2]);
 
   imu_buffer_add(&calib->imu_buf, ts, acc, gyr);
   calib->imu_ok = 1;
@@ -17627,7 +17633,7 @@ void calib_imucam_add_fiducial_event(calib_imucam_t *calib,
     return;
   }
 
-  printf("add fiducial event: %ld\n", ts);
+  // printf("add fiducial event: %ld\n", ts);
 
   // Add to buffer
   fiducial_buffer_add(calib->fiducial_buffer,
@@ -17866,7 +17872,7 @@ int calib_imucam_update(calib_imucam_t *calib) {
     velocity_t *vel_k = hmgets(calib->velocities, ts_k).value;
     imu_biases_t *imu_biases_k = hmgets(calib->imu_biases, ts_k).value;
 
-    printf("ts_km1: %ld, ts_k: %ld\n", ts_km1, ts_k);
+    // printf("ts_km1: %ld, ts_k: %ld\n", ts_km1, ts_k);
 
     // Form IMU factor
     imu_factor_t *imu_factor = MALLOC(imu_factor_t, 1);

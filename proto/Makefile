@@ -7,10 +7,10 @@ PREFIX := /opt/proto
 
 
 # COMPILER SETTINGS
-BUILD_TYPE := debug
-ADDRESS_SANITIZER := 1
-# BUILD_TYPE := release
-# ADDRESS_SANITIZER := 0
+# BUILD_TYPE := debug
+# ADDRESS_SANITIZER := 1
+BUILD_TYPE := release
+ADDRESS_SANITIZER := 0
 CC := clang
 # CC := gcc
 # CC := tcc
