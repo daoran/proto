@@ -6694,65 +6694,84 @@ int test_calib_camera_stereo_ceres() {
   return 0;
 }
 
-// int test_calib_imucam_view() {
-//   // Setup
-//   fgraph_t *fg = fgraph_malloc();
-//   // -- Add fiducial
-//   const real_t fiducial_data[7] = {0, 1, 2, 3, 4, 5, 6};
-//   const int fiducial_id = fgraph_add_fiducial(fg, fiducial_data, 0);
-//   // -- Add pose
-//   const real_t pose_data[7] = {0, 1, 2, 3, 4, 5, 6};
-//   const int pose_id = fgraph_add_pose(fg, 0, pose_data, 0);
-//   // -- Add imu extrinsic
-//   const int imu_idx = 0;
-//   const real_t imu_ext_data[7] = {0, 1, 2, 3, 4, 5, 6};
-//   const int imu_ext_id = fgraph_add_imu_ext(fg, imu_idx, imu_ext_data, 0);
-//   // -- Add camera extrinsic
-//   const int cam_idx = 0;
-//   const real_t cam_ext_data[7] = {0, 1, 2, 3, 4, 5, 6};
-//   const int cam_ext_id = fgraph_add_cam_ext(fg, cam_idx, cam_ext_data, 0);
-//   // -- Add camera
-//   const int res[2] = {752, 480};
-//   const char *pm = "pinhole";
-//   const char *dm = "radtan4";
-//   const real_t cam[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
-//   const int cam_id = fgraph_add_camera(fg, 0, res, pm, dm, cam, 0);
-//   // -- Add time_delay
-//   const int time_delay_id = fgraph_add_time_delay(fg, 0.1, 0);
+int test_calib_imucam_view() {
+  // Setup Camera
+  const int cam_res[2] = {752, 480};
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  const real_t cam_vec[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
+  const real_t cam_ext_vec[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
 
-//   // Create calib imucam view
-//   const timestamp_t ts = 0;
-//   const int num_corners = 2;
-//   const int tag_ids[2] = {0, 1};
-//   const int corner_idxs[2] = {0, 1};
-//   const real_t pts[2 * 3] = {0.0, 0.0, 0.0, 1.0, 1.0, 1.0};
-//   const real_t kps[2 * 2] = {0.0, 0.0, 1.0, 1.0};
-//   const real_t optflows[2 * 2] = {0.0, 0.0, 0.0, 0.0};
-//   const int param_ids[6] = {
-//       fiducial_id,
-//       pose_id,
-//       imu_ext_id,
-//       cam_ext_id,
-//       cam_id,
-//       time_delay_id,
-//   };
-//   // calib_imucam_view_t *view = calib_imucam_view_malloc(ts,
-//   //                                                      cam_idx,
-//   //                                                      num_corners,
-//   //                                                      tag_ids,
-//   //                                                      corner_idxs,
-//   //                                                      pts,
-//   //                                                      kps,
-//   //                                                      optflows,
-//   //                                                      param_ids,
-//   //                                                      fg);
+  camera_params_t camera_params;
+  extrinsic_t camera_extrinsic;
+  camera_params_setup(&camera_params, 0, cam_res, pmodel, dmodel, cam_vec);
+  extrinsic_setup(&camera_extrinsic, cam_ext_vec);
 
-//   // Clean up
-//   calib_imucam_view_free(view);
-//   fgraph_free(fg);
+  // Fiducial
+  fiducial_t fiducial;
+  const real_t fiducial_vec[7] = {1.0, 0.0, 0.0, 0.5, -0.5, 0.5, -0.5};
+  fiducial_setup(&fiducial, fiducial_vec);
 
-//   return 0;
-// }
+  // IMU pose
+  const timestamp_t ts = 0;
+  const real_t pose_vec[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  pose_t imu_pose;
+  pose_setup(&imu_pose, ts, pose_vec);
+
+  // IMU extrinsic
+  const real_t imu_ext_vec[7] = {0.0, 0.0, 0.0, 0.5, -0.5, 0.5, -0.5};
+  extrinsic_t imu_extrinsic;
+  extrinsic_setup(&imu_extrinsic, imu_ext_vec);
+
+  // Time delay
+  time_delay_t time_delay;
+  time_delay_setup(&time_delay, 0.0);
+
+  // Create calib imucam view
+  const int view_idx = 0;
+  const int cam_idx = 0;
+  const int num_corners = 1;
+  const int tag_ids[1] = {0};
+  const int corner_indices[1] = {0};
+  const real_t object_points[3] = {
+      0.0,
+      0.0,
+      0.0,
+  };
+
+  const real_t p_F[3] = {object_points[0], object_points[1], object_points[2]};
+  TF(fiducial_vec, T_WF);
+  TF(pose_vec, T_WS);
+  TF(imu_ext_vec, T_BS);
+  TF(cam_ext_vec, T_BC0);
+  TF_INV(T_WS, T_SW);
+  TF_INV(T_BC0, T_C0B);
+  TF_CHAIN(T_C0F, 2, T_C0B, T_BS, T_SW, T_WF);
+  TF_POINT(T_C0F, p_F, p_C0);
+
+  real_t keypoints[2] = {0};
+  pinhole_radtan4_project(cam_vec, p_C0, keypoints);
+
+  calib_imucam_view_t *view = calib_imucam_view_malloc(ts,
+                                                       view_idx,
+                                                       cam_idx,
+                                                       num_corners,
+                                                       tag_ids,
+                                                       corner_indices,
+                                                       object_points,
+                                                       keypoints,
+                                                       &fiducial,
+                                                       &imu_pose,
+                                                       &imu_extrinsic,
+                                                       &camera_extrinsic,
+                                                       &camera_params,
+                                                       &time_delay);
+
+  // Clean up
+  calib_imucam_view_free(view);
+
+  return 0;
+}
 
 int test_calib_imucam_add_imu() {
   // Setup

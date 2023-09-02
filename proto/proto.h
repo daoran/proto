@@ -1062,6 +1062,14 @@ real_t suitesparse_chol_solve(cholmod_common *c,
   real_t T[4 * 4] = {0};                                                       \
   tf_chain2(N, __VA_ARGS__, T);
 
+#define EULER321(YPR, C)                                                       \
+  real_t C[3 * 3] = {0};                                                       \
+  euler321(YPR, C);
+
+#define EULER2QUAT(YPR, Q)                                                     \
+  real_t Q[4] = {0};                                                           \
+  euler2quat(YPR, Q);
+
 #define ROT2QUAT(C, Q)                                                         \
   real_t Q[4] = {0};                                                           \
   rot2quat(C, Q);
