@@ -2251,17 +2251,28 @@ typedef struct imu_factor_t {
   imu_buffer_t imu_buf;
 
   // Parameters
-  int num_params;
-
   pose_t *pose_i;
   velocity_t *vel_i;
   imu_biases_t *biases_i;
   pose_t *pose_j;
   velocity_t *vel_j;
   imu_biases_t *biases_j;
-
+  int num_params;
   real_t *params[6];
   int param_types[6];
+
+  // Residuals
+  int r_size;
+  real_t r[15];
+
+  // Jacobians
+  real_t *jacs[6];
+  real_t J_pose_i[15 * 6];
+  real_t J_vel_i[15 * 3];
+  real_t J_biases_i[15 * 6];
+  real_t J_pose_j[15 * 6];
+  real_t J_vel_j[15 * 3];
+  real_t J_biases_j[15 * 6];
 
   // Preintegration variables
   real_t Dt;         // Time difference between pose_i and pose_j in seconds
@@ -2273,6 +2284,8 @@ typedef struct imu_factor_t {
   real_t dq[4];      // Relative rotation
   real_t ba[3];      // Accel biase
   real_t bg[3];      // Gyro biase
+  real_t ba_ref[3];
+  real_t bg_ref[3];
 
   // Preintegration step variables
   real_t r_i[3];
@@ -2290,19 +2303,6 @@ typedef struct imu_factor_t {
   // Covariance and square-root info
   real_t covar[15 * 15];
   real_t sqrt_info[15 * 15];
-
-  // Residuals
-  int r_size;
-  real_t r[15];
-
-  // Jacobians
-  real_t *jacs[6];
-  real_t J_pose_i[15 * 6];
-  real_t J_vel_i[15 * 3];
-  real_t J_biases_i[15 * 6];
-  real_t J_pose_j[15 * 6];
-  real_t J_vel_j[15 * 3];
-  real_t J_biases_j[15 * 6];
 } imu_factor_t;
 
 void imu_state_vector(const real_t r[3],
@@ -2348,6 +2348,7 @@ void imu_factor_setup(imu_factor_t *factor,
                       velocity_t *v_j,
                       imu_biases_t *biases_j);
 void imu_factor_reset(imu_factor_t *factor);
+void imu_factor_preintegrate(imu_factor_t *factor);
 int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
 int imu_factor_eval(void *factor_ptr);
 int imu_factor_ceres_eval(void *factor_ptr,

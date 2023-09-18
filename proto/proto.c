@@ -12525,8 +12525,6 @@ void imu_factor_setup(imu_factor_t *factor,
   imu_buffer_copy(imu_buf, &factor->imu_buf);
 
   // Parameters
-  factor->num_params = 6;
-
   factor->pose_i = pose_i;
   factor->vel_i = vel_i;
   factor->biases_i = biases_i;
@@ -12534,13 +12532,13 @@ void imu_factor_setup(imu_factor_t *factor,
   factor->vel_j = vel_j;
   factor->biases_j = biases_j;
 
+  factor->num_params = 6;
   factor->params[0] = factor->pose_i->data;
   factor->params[1] = factor->vel_i->data;
   factor->params[2] = factor->biases_i->data;
   factor->params[3] = factor->pose_j->data;
   factor->params[4] = factor->vel_j->data;
   factor->params[5] = factor->biases_j->data;
-
   factor->param_types[0] = POSE_PARAM;
   factor->param_types[1] = VELOCITY_PARAM;
   factor->param_types[2] = IMU_BIASES_PARAM;
@@ -12548,17 +12546,49 @@ void imu_factor_setup(imu_factor_t *factor,
   factor->param_types[4] = VELOCITY_PARAM;
   factor->param_types[5] = IMU_BIASES_PARAM;
 
+  // Residuals
+  factor->r_size = 15;
+
+  // Jacobians
+  factor->jacs[0] = factor->J_pose_i;
+  factor->jacs[1] = factor->J_vel_i;
+  factor->jacs[2] = factor->J_biases_i;
+  factor->jacs[3] = factor->J_pose_j;
+  factor->jacs[4] = factor->J_vel_j;
+  factor->jacs[5] = factor->J_biases_j;
+
+  // Preintegrate
+  imu_factor_preintegrate(factor);
+}
+
+/**
+ * Reset IMU Factor
+ */
+void imu_factor_reset(imu_factor_t *factor) {
+  // Residuals
+  zeros(factor->r, 15, 1);
+
+  // Jacobians
+  zeros(factor->J_pose_i, 15, 6);
+  zeros(factor->J_vel_i, 15, 3);
+  zeros(factor->J_biases_i, 15, 6);
+  zeros(factor->J_pose_j, 15, 6);
+  zeros(factor->J_vel_j, 15, 3);
+  zeros(factor->J_biases_j, 15, 6);
+
   // Pre-integration variables
   factor->Dt = 0.0;
-  eye(factor->F, 15, 15);                          // State jacobian
-  zeros(factor->P, 15, 15);                        // State covariance
-  imu_factor_form_Q_matrix(imu_params, factor->Q); // Noise matrix
-  zeros(factor->dr, 3, 1);                         // Relative position
-  zeros(factor->dv, 3, 1);                         // Relative velocity
-  quat_setup(factor->dq);                          // Relative rotation
-  imu_biases_get_accel_bias(biases_i, factor->ba); // Accelerometer bias
-  imu_biases_get_gyro_bias(biases_i, factor->bg);  // Gyroscope bias
-                                                   //
+  eye(factor->F, 15, 15);                                  // State jacobian
+  zeros(factor->P, 15, 15);                                // State covariance
+  imu_factor_form_Q_matrix(factor->imu_params, factor->Q); // Noise matrix
+  zeros(factor->dr, 3, 1);                                 // Relative position
+  zeros(factor->dv, 3, 1);                                 // Relative velocity
+  quat_setup(factor->dq);                                  // Relative rotation
+  imu_biases_get_accel_bias(factor->biases_i, factor->ba); // Accelerometer bias
+  imu_biases_get_gyro_bias(factor->biases_i, factor->bg);  // Gyroscope bias
+  zeros(factor->ba_ref, 3, 1);
+  zeros(factor->bg_ref, 3, 1);
+
   // Preintegration step variables
   zeros(factor->r_i, 3, 1);
   zeros(factor->v_i, 3, 1);
@@ -12571,6 +12601,11 @@ void imu_factor_setup(imu_factor_t *factor,
   quat_setup(factor->q_j);
   zeros(factor->ba_j, 3, 1);
   zeros(factor->bg_j, 3, 1);
+}
+
+void imu_factor_preintegrate(imu_factor_t *factor) {
+  // Reset variables
+  imu_factor_reset(factor);
 
   // Pre-integrate imu measuremenets
   // -------------------------------
@@ -12589,18 +12624,18 @@ void imu_factor_setup(imu_factor_t *factor,
   // The covariance can be square-rooted to form the square-root information
   // matrix used by the non-linear least squares algorithm to weigh the
   // parameters
-  for (int k = 1; k < imu_buf->size; k++) {
-    const timestamp_t ts_i = imu_buf->ts[k - 1];
-    const timestamp_t ts_j = imu_buf->ts[k];
+  for (int k = 1; k < factor->imu_buf.size; k++) {
+    const timestamp_t ts_i = factor->imu_buf.ts[k - 1];
+    const timestamp_t ts_j = factor->imu_buf.ts[k];
     const real_t dt = ts2sec(ts_j) - ts2sec(ts_i);
-    const real_t *a_i = imu_buf->acc[k - 1];
-    const real_t *w_i = imu_buf->gyr[k - 1];
-    const real_t *a_j = imu_buf->acc[k];
-    const real_t *w_j = imu_buf->gyr[k];
+    const real_t *a_i = factor->imu_buf.acc[k - 1];
+    const real_t *w_i = factor->imu_buf.gyr[k - 1];
+    const real_t *a_j = factor->imu_buf.acc[k];
+    const real_t *w_j = factor->imu_buf.gyr[k];
 
-    if (ts_i < pose_i->ts) {
+    if (ts_i < factor->pose_i->ts) {
       continue;
-    } else if (ts_j > pose_j->ts) {
+    } else if (ts_j > factor->pose_j->ts) {
       break;
     }
 
@@ -12637,6 +12672,10 @@ void imu_factor_setup(imu_factor_t *factor,
     factor->Dt += dt;
   }
 
+  // Keep track of linearized accel / gyro biases
+  vec3_copy(factor->biases_i->data + 0, factor->ba_ref);
+  vec3_copy(factor->biases_i->data + 3, factor->bg_ref);
+
   // Covariance
   enforce_spd(factor->P, 15, 15);
   mat_copy(factor->P, 15, 15, factor->covar);
@@ -12650,30 +12689,6 @@ void imu_factor_setup(imu_factor_t *factor,
   zeros(factor->sqrt_info, 15, 15);
   chol(info, 15, sqrt_info);
   mat_transpose(sqrt_info, 15, 15, factor->sqrt_info);
-
-  // Residuals
-  factor->r_size = 15;
-  zeros(factor->r, 15, 1);
-
-  // Jacobians
-  factor->jacs[0] = factor->J_pose_i;
-  factor->jacs[1] = factor->J_vel_i;
-  factor->jacs[2] = factor->J_biases_i;
-  factor->jacs[3] = factor->J_pose_j;
-  factor->jacs[4] = factor->J_vel_j;
-  factor->jacs[5] = factor->J_biases_j;
-}
-
-/**
- * Reset IMU Factor
- */
-void imu_factor_reset(imu_factor_t *factor) {
-  zeros(factor->r, 15, 1); // Residuals
-  zeros(factor->dr, 3, 1); // Relative position
-  zeros(factor->dv, 3, 1); // Relative velocity
-  quat_setup(factor->dq);  // Relative rotation
-  zeros(factor->ba, 3, 1); // Accel bias
-  zeros(factor->bg, 3, 1); // Gyro bias
 }
 
 static void imu_factor_pose_i_jac(imu_factor_t *factor,
@@ -17453,10 +17468,12 @@ void calib_imucam_add_camera(calib_imucam_t *calib,
                       dist_model,
                       cam_params);
   extrinsic_setup(&calib->cam_exts[cam_idx], cam_ext);
-  if (cam_idx == 0) {
-    calib->cam_exts[0].fix = 1;
-  }
 
+  // Fix both camera intrinsics and extrinsics
+  calib->cam_params[cam_idx].fix = 1;
+  calib->cam_exts[cam_idx].fix = 1;
+
+  // Update book keeping
   calib->num_cams++;
   calib->cams_ok = 1;
 }
@@ -17894,7 +17911,6 @@ int calib_imucam_update(calib_imucam_t *calib) {
 
   // Clear buffers
   fiducial_buffer_clear(calib->fiducial_buffer);
-  calib->num_views++;
 
   return 0;
 }

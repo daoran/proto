@@ -429,8 +429,8 @@ dev_euroc() {
 # run_test test_calib_imucam_add_imu_event
 # run_test test_calib_imucam_add_fiducial_event
 # run_test test_calib_imucam_update
-run_test test_calib_imucam_batch
-# run_test test_calib_imucam_batch_ceres
+# run_test test_calib_imucam_batch
+run_test test_calib_imucam_batch_ceres
 # python3 test_data/test_marg.py
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial

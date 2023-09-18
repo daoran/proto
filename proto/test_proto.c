@@ -3640,45 +3640,54 @@ int test_timeline() {
   const int num_imus = 1;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
 
-  // printf("timeline->num_cams: %d\n", timeline->num_cams);
-  // printf("timeline->num_imus: %d\n", timeline->num_imus);
-  // printf("timeline->num_event_types: %d\n", timeline->num_event_types);
+  printf("timeline->num_cams: %d\n", timeline->num_cams);
+  printf("timeline->num_imus: %d\n", timeline->num_imus);
+  printf("timeline->num_event_types: %d\n", timeline->num_event_types);
 
-  // for (int k = 0; k < timeline->timeline_length; k++) {
-  //   // Extract timeline events. Add either imu or fiducial event
-  //   for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
-  //     timeline_event_t *event = timeline->timeline_events[k][i];
-  //     const timestamp_t ts = event->ts;
+  FILE *imu_file = fopen("/tmp/imu.csv", "w");
 
-  //     if (event->type == IMU_EVENT) {
-  //       const imu_event_t *data = &event->data.imu;
-  //       // printf("imu_ts: %ld ", data->ts);
-  //       // printf("acc: (%f, %f, %f) ", data->acc[0], data->acc[1], data->acc[2]);
-  //       // printf("gyr: (%f, %f, %f) ", data->gyr[0], data->gyr[1], data->gyr[2]);
-  //       // printf("\n");
+  for (int k = 0; k < timeline->timeline_length; k++) {
+    // Extract timeline events. Add either imu or fiducial event
+    for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+      timeline_event_t *event = timeline->timeline_events[k][i];
+      const timestamp_t ts = event->ts;
 
-  //     } else if (event->type == FIDUCIAL_EVENT) {
-  //       const fiducial_event_t *data = &event->data.fiducial;
-  //       const int cam_idx = data->cam_idx;
-  //       // printf("cam_ts: %ld \n", data->ts);
-  //       // printf("  cam_idx: %d\n", data->cam_idx);
-  //       // printf("  num_corners: %d\n", data->num_corners);
-  //       // for (int i = 0; i < data->num_corners; i++) {
-  //       //   const real_t *p = data->object_points + i * 3;
-  //       //   const real_t *z = data->keypoints + i * 2;
+      if (event->type == IMU_EVENT) {
+        const imu_event_t *data = &event->data.imu;
+        // printf("imu_ts: %ld ", data->ts);
+        // printf("acc: (%f, %f, %f) ", data->acc[0], data->acc[1], data->acc[2]);
+        // printf("gyr: (%f, %f, %f) ", data->gyr[0], data->gyr[1], data->gyr[2]);
+        // printf("\n");
 
-  //       //   printf("  ");
-  //       //   printf("%d, ", data->tag_ids[i]);
-  //       //   printf("%d, ", data->corner_indices[i]);
-  //       //   printf("%f, %f, %f, ", p[0], p[1], p[2]);
-  //       //   printf("%f, %f", z[0], z[1]);
-  //       //   printf("\n");
-  //       // }
-  //     }
-  //   }
-  // }
+        fprintf(imu_file, "%ld,", data->ts);
+        fprintf(imu_file, "%lf,%lf,%lf,", data->gyr[0], data->gyr[1], data->gyr[2]);
+        fprintf(imu_file, "%lf,%lf,%lf", data->acc[0], data->acc[1], data->acc[2]);
+        fprintf(imu_file, "\n");
 
+      } else if (event->type == FIDUCIAL_EVENT) {
+        const fiducial_event_t *data = &event->data.fiducial;
+        const int cam_idx = data->cam_idx;
+        // printf("cam_ts: %ld \n", data->ts);
+        // printf("  cam_idx: %d\n", data->cam_idx);
+        // printf("  num_corners: %d\n", data->num_corners);
+        // for (int i = 0; i < data->num_corners; i++) {
+        //   const real_t *p = data->object_points + i * 3;
+        //   const real_t *z = data->keypoints + i * 2;
+
+        //   printf("  ");
+        //   printf("%d, ", data->tag_ids[i]);
+        //   printf("%d, ", data->corner_indices[i]);
+        //   printf("%f, %f, %f, ", p[0], p[1], p[2]);
+        //   printf("%f, %f", z[0], z[1]);
+        //   printf("\n");
+        // }
+      }
+    }
+  }
+
+  // Clean up
   timeline_free(timeline);
+  fclose(imu_file);
 
   return 0;
 }
@@ -6739,6 +6748,7 @@ int test_calib_imucam_view() {
       0.0,
   };
 
+  // -- Transform fiducial point from fiducial frame to camera frame
   const real_t p_F[3] = {object_points[0], object_points[1], object_points[2]};
   TF(fiducial_vec, T_WF);
   TF(pose_vec, T_WS);
@@ -6749,9 +6759,11 @@ int test_calib_imucam_view() {
   TF_CHAIN(T_C0F, 2, T_C0B, T_BS, T_SW, T_WF);
   TF_POINT(T_C0F, p_F, p_C0);
 
+  // -- Project keypoint
   real_t keypoints[2] = {0};
   pinhole_radtan4_project(cam_vec, p_C0, keypoints);
 
+  // -- Create view
   calib_imucam_view_t *view = calib_imucam_view_malloc(ts,
                                                        view_idx,
                                                        cam_idx,
@@ -7021,8 +7033,8 @@ int test_calib_imucam_batch() {
   };
   const real_t cam_exts[2][7] = {
     {0, 0, 0, 1, 0, 0, 0},
-    {1.099270e-01, -2.450375e-04, 7.188873e-04,
-     9.945179e-01, 7.146897e-03, -2.338048e-03, 1.233282e-03}
+    {0.11007414, -0.00015661, 0.00088938,
+     9.99974496e-01, 7.04530576e-03, -1.79854893e-04, 1.15733025e-03}
   };
   const real_t T_SC0[4 * 4] = {
     0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
@@ -7047,7 +7059,7 @@ int test_calib_imucam_batch() {
 
   // Incremental solve
   char *data_dir = "/data/proto/imu_april/";
-  int num_cams = 1;
+  int num_cams = 2;
   int num_imus = 1;
   // int window_size = 20;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
@@ -7115,14 +7127,18 @@ int test_calib_imucam_batch() {
       // PRINT_TOC("time", start);
     }
 
-    if (calib->num_views >= 200) {
-      break;
-    }
+    // if (calib->num_views >= 1000) {
+    //   break;
+    // }
   }
   // calib_imucam_save_estimates(calib);
 
   // Solve
-  // calib->max_iter = 30;
+  int num_factors = 0;
+  num_factors += calib->num_cam_factors;
+  num_factors += calib->num_imu_factors;
+  printf("num_factors: %d\n", num_factors);
+  // calib->max_iter = 10;
   // calib->verbose = 1;
   // calib_imucam_solve(calib);
 
@@ -7143,15 +7159,15 @@ int test_calib_imucam_batch_ceres() {
   const real_t n_aw = 0.00004;
   const real_t n_gw = 2.0e-6;
   const real_t g = 9.81;
-  const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 0.70710678, 0.0, 0.0, 0.70710678};
-  // const real_t T_SC0[4 * 4] = {
-  //   0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
-  //   0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
-  //   -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
-  //   0.0, 0.0, 0.0, 1.0
-  // };
-  // TF_VECTOR(T_SC0, imu_ext);
+  const real_t T_SC0[4 * 4] = {
+    0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+    0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+    -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+    0.0, 0.0, 0.0, 1.0
+  };
+  TF_VECTOR(T_SC0, imu_ext);
   calib_imucam_add_imu(calib, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext);
   calib->imu_ok = 1;
   // -- Add cam0
@@ -7232,6 +7248,7 @@ int test_calib_imucam_batch_ceres() {
   ceres_problem_t *problem = ceres_create_problem();
   ceres_local_parameterization_t *pose_pm =
       ceres_create_pose_local_parameterization();
+  int num_factors = 0;
 
   for (int k = 0; k < arrlen(calib->timestamps); k++) {
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
@@ -7263,6 +7280,7 @@ int test_calib_imucam_batch_ceres() {
                                          num_params,
                                          param_sizes,
                                          param_ptrs);
+        num_factors++;
 
         ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
         ceres_set_parameterization(problem, param_ptrs[1], pose_pm);
@@ -7294,6 +7312,7 @@ int test_calib_imucam_batch_ceres() {
                                      num_params,
                                      param_sizes,
                                      param_ptrs);
+    num_factors++;
     ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
     ceres_set_parameterization(problem, param_ptrs[3], pose_pm);
   }
@@ -7319,6 +7338,7 @@ int test_calib_imucam_batch_ceres() {
   // Solve
   ceres_solve(problem, 100);
   calib_imucam_print(calib);
+  // printf("num_factors: %d\n", num_factors);
 
   // Clean up
   timeline_free(timeline);
