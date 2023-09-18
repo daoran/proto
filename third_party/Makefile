@@ -121,3 +121,14 @@ build_dbow2:
 		  .. \
 	  && make \
 		&& make install
+
+build_fbow:
+	@cd "$(SRC_PATH)/fbow" \
+	  && mkdir -p build \
+	  && cd build || return \
+	  && cmake \
+		  -DCMAKE_BUILD_TYPE=Release \
+		  -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		  .. \
+	  && make \
+		&& make install
