@@ -6038,67 +6038,6 @@ int test_solver_setup() {
   return 0;
 }
 
-// int test_fgraph_add_camera() {
-//   // Setup
-//   fgraph_t *fg = fgraph_malloc();
-
-//   // Add camera
-//   const int res[2] = {752, 480};
-//   const char *pm = "pinhole";
-//   const char *dm = "radtan4";
-//   const real_t cam_params[8] = {458.0, 457.0, 367.0, 248.0, 0.0, 0.0, 0.0, 0.0};
-//   const int pid = fgraph_add_camera(fg, 0, res, pm, dm, cam_params, 0);
-
-//   // Assert
-//   const camera_params_t *cam = hmgets(fg->params, pid).param_ptr;
-//   MU_ASSERT(cam->resolution[0] == 752);
-//   MU_ASSERT(cam->resolution[1] == 480);
-//   MU_ASSERT(strcmp(cam->proj_model, pm) == 0);
-//   MU_ASSERT(strcmp(cam->dist_model, dm) == 0);
-//   MU_ASSERT(vec_equals(cam->data, cam_params, 8) == 1);
-
-//   // Clean up
-//   fgraph_free(fg);
-
-//   return 0;
-// }
-
-// int test_fgraph_add_time_delay() {
-//   // Setup
-//   fgraph_t *fg = fgraph_malloc();
-
-//   // Add param
-//   const int pid = fgraph_add_time_delay(fg, 0.1, 0);
-
-//   // Assert
-//   const time_delay_t *param = hmgets(fg->params, pid).param_ptr;
-//   MU_ASSERT(fltcmp(param->data[0], 0.1) == 0);
-
-//   // Clean up
-//   fgraph_free(fg);
-
-//   return 0;
-// }
-
-// int test_fgraph_add_cam_ext() {
-//   // Setup
-//   fgraph_t *fg = fgraph_malloc();
-
-//   // Add param
-//   const int cam_idx = 0;
-//   const real_t data[7] = {0, 1, 2, 3, 4, 5, 6};
-//   const int pid = fgraph_add_cam_ext(fg, cam_idx, data, 0);
-
-//   // Assert
-//   const extrinsic_t *param = hmgets(fg->params, pid).param_ptr;
-//   MU_ASSERT(vec_equals(param->data, data, 7) == 1);
-
-//   // Clean up
-//   fgraph_free(fg);
-
-//   return 0;
-// }
-
 typedef struct cam_view_t {
   pose_t pose;
   ba_factor_t factors[1000];
@@ -8414,9 +8353,6 @@ void test_suite() {
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
-  // MU_ADD_TEST(test_fgraph_add_camera);
-  // MU_ADD_TEST(test_fgraph_add_time_delay);
-  // MU_ADD_TEST(test_fgraph_add_cam_ext);
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_camchain);
