@@ -18,6 +18,7 @@ proto_mav/fcu/fcu-backups
 
 # Docs
 docs/build/doctrees
+docs/_build
 
 # Dependencies
 third_party/bin
