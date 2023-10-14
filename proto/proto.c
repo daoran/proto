@@ -4647,13 +4647,8 @@ int eig_inv(real_t *A, const int m, const int n, const int c, real_t *A_inv) {
   real_t *w = MALLOC(real_t, m);
 
   eig_sym(A, m, m, V, w);
-  const real_t tol = 1e-12;
   for (int i = 0; i < m; i++) {
-    if (w[i] > tol) {
-      w[i] = 1.0 / w[i];
-    } else {
-      w[i] = 0.0;
-    }
+    w[i] = 1.0 / w[i];
   }
   mat_diag_set(Lambda_inv, m, m, w);
   mat_transpose(V, m, m, Vt);
