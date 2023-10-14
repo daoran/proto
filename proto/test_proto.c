@@ -1640,7 +1640,8 @@ int test_pinv() {
   // Invert matrix A using SVD
   real_t A_inv[4 * 4] = {0};
   pinv(A, m, n, A_inv);
-  // printf("time taken: [%fs]\n", toc(&t));
+  // print_matrix("A", A, m, n);
+  // print_matrix("A_inv", A_inv, m, n);
 
   // Inverse check: A * A_inv = eye
   MU_ASSERT(check_inv(A, A_inv, 4) == 0);
@@ -1827,13 +1828,8 @@ int test_eig_inv() {
   // clang-format on
 
   // Invert matrix A using SVD
-  // struct timespec t = tic();
   real_t A_inv[5 * 5] = {0};
   eig_inv(A, m, n, 1, A_inv);
-
-  // DOT(A, 5, 5, A_inv, 5, 5, check);
-  // print_matrix("check", check, 5, 5);
-  // printf("time taken: [%fs]\n", toc(&t));
 
   // Inverse check: A * A_inv = eye
   MU_ASSERT(check_inv(A, A_inv, 5) == 0);
@@ -4684,7 +4680,6 @@ int test_imu_factor_form_F_matrix() {
   const real_t *w_j = imu_buf.gyr[k];
   real_t F_dt[15 * 15] = {0};
   imu_factor_F_matrix(q_i, q_j, ba_i, bg_i, a_i, w_i, a_j, w_j, dt, F_dt);
-
   mat_save("/tmp/F.csv", F_dt, 15, 15);
 
   // Clean up
@@ -4766,31 +4761,31 @@ int test_imu_factor() {
   mat_save("/tmp/F_.csv", factor.F, 15, 15);
   // mat_save("/tmp/P_.csv", factor.P, 15, 15);
 
-  const char *cmd = "\
-F = csvread('/tmp/F.csv'); \
-state_F = csvread('/tmp/F_.csv'); \
-subplot(311); \
-imagesc(F); \
-title('Python'); \
-axis 'equal'; \
-colorbar(); \
-subplot(312); \
-imagesc(state_F); \
-title('C'); \
-axis 'equal'; \
-colorbar(); \
-subplot(313); \
-imagesc(F - state_F); \
-title('F - stateF'); \
-colorbar(); \
-axis 'equal'; \
-F(1:3, 1:3); \
-state_F(1:3, 1:3); \
-ginput();\
-";
-  char syscmd[9046] = {0};
-  sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
-  system(syscmd);
+  // const char *cmd = "\
+// F = csvread('/tmp/F.csv'); \
+// state_F = csvread('/tmp/F_.csv'); \
+// subplot(311); \
+// imagesc(F); \
+// title('Python'); \
+// axis 'equal'; \
+// colorbar(); \
+// subplot(312); \
+// imagesc(state_F); \
+// title('C'); \
+// axis 'equal'; \
+// colorbar(); \
+// subplot(313); \
+// imagesc(F - state_F); \
+// title('F - stateF'); \
+// colorbar(); \
+// axis 'equal'; \
+// F(1:3, 1:3); \
+// state_F(1:3, 1:3); \
+// ginput();\
+// ";
+  // char syscmd[9046] = {0};
+  // sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
+  // system(syscmd);
 
   MU_ASSERT(factor.pose_i == &pose_i);
   MU_ASSERT(factor.vel_i == &vel_i);
