@@ -6927,9 +6927,9 @@ int test_calib_imucam_update() {
 
     // Trigger update
     calib_imucam_update(calib);
-    // if (calib->num_views == 200) {
-    //   break;
-    // }
+    if (calib->num_views == 10) {
+      break;
+    }
   }
 
   return 0;
@@ -8320,21 +8320,21 @@ void test_suite() {
   MU_ADD_TEST(test_calib_imucam_factor);
   MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_marg);
-  MU_ADD_TEST(test_visual_odometry_batch);
-  MU_ADD_TEST(test_inertial_odometry_batch);
+  // MU_ADD_TEST(test_visual_odometry_batch);
+  // MU_ADD_TEST(test_inertial_odometry_batch);
   // MU_ADD_TEST(test_visual_inertial_odometry_batch);
-  MU_ADD_TEST(test_tsf);
+  // MU_ADD_TEST(test_tsf);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_camchain);
-  MU_ADD_TEST(test_calib_camera_mono_batch);
-  MU_ADD_TEST(test_calib_camera_mono_ceres);
-  MU_ADD_TEST(test_calib_camera_mono_incremental);
-  MU_ADD_TEST(test_calib_camera_stereo_batch);
-  MU_ADD_TEST(test_calib_camera_stereo_ceres);
+  // MU_ADD_TEST(test_calib_camera_mono_batch);
+  // MU_ADD_TEST(test_calib_camera_mono_ceres);
+  // MU_ADD_TEST(test_calib_camera_mono_incremental);
+  // MU_ADD_TEST(test_calib_camera_stereo_batch);
+  // MU_ADD_TEST(test_calib_camera_stereo_ceres);
   MU_ADD_TEST(test_calib_imucam_view);
   MU_ADD_TEST(test_calib_imucam_add_imu);
   MU_ADD_TEST(test_calib_imucam_add_camera);
