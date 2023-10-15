@@ -275,14 +275,18 @@ void ceres_set_parameter_constant(ceres_problem_t *c_problem, double *values) {
   problem->SetParameterBlockConstant(values);
 }
 
-void ceres_solve(ceres_problem_t *c_problem, const int max_iter) {
+void ceres_solve(ceres_problem_t *c_problem,
+                 const int max_iter,
+                 const int verbose) {
   auto *problem = reinterpret_cast<ceres::Problem *>(c_problem);
   ceres::Solver::Options options;
   options.max_num_iterations = max_iter;
-  options.minimizer_progress_to_stdout = true;
-  // options.check_gradients = true;
+  options.minimizer_progress_to_stdout = verbose;
 
   ceres::Solver::Summary summary;
   ceres::Solve(options, problem, &summary);
-  std::cout << summary.FullReport() << "\n";
+
+  if (verbose) {
+    std::cout << summary.FullReport() << std::endl;
+  }
 }

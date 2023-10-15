@@ -5997,7 +5997,7 @@ int test_ceres_example() {
                                      parameter_pointers);
   }
 
-  ceres_solve(problem, 10);
+  ceres_solve(problem, 10, 0);
   ceres_free_problem(problem);
   // printf("Initial m: 0.0, c: 0.0\n");
   // printf("Final m: %g, c: %g\n", m, c);
@@ -6244,7 +6244,7 @@ int test_calib_camera_mono_ceres() {
   }     // For each views
 
   // Solve
-  ceres_solve(problem, 20);
+  ceres_solve(problem, 20, 0);
   // calib_camera_print(calib);
 
   // Clean up
@@ -6607,7 +6607,7 @@ int test_calib_camera_stereo_ceres() {
   }     // For each views
 
   // Solve
-  ceres_solve(problem, 20);
+  ceres_solve(problem, 20, 0);
   // calib_camera_print(calib);
 
   // Clean up
@@ -7249,7 +7249,7 @@ int test_calib_imucam_batch_ceres() {
   }
 
   // Solve
-  ceres_solve(problem, 100);
+  ceres_solve(problem, 100, 0);
   calib_imucam_print(calib);
   // printf("num_factors: %d\n", num_factors);
 
@@ -7749,7 +7749,7 @@ int test_calib_gimbal_ceres_solve() {
   ceres_set_parameterization(problem, calib_est->cam_exts[0].data, pose_pm);
   ceres_set_parameterization(problem, calib_est->cam_exts[1].data, pose_pm);
   TIC(solve);
-  ceres_solve(problem, 10);
+  ceres_solve(problem, 10, 0);
   PRINT_TOC("solve", solve);
 
   // Compare ground-truth vs estimates

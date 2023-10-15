@@ -69,7 +69,7 @@ void ceres_set_parameter_constant(ceres_problem_t *c_problem, double *values);
 /**
  * Solve ceres::Problem
  */
-void ceres_solve(ceres_problem_t *problem, const int max_iter);
+void ceres_solve(ceres_problem_t *problem, const int max_iter, const int verbose);
 
 #ifdef __cplusplus
 } // extern "C"
