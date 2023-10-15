@@ -34,7 +34,6 @@ static char *test_target_name = NULL;
 #define MU_ENABLE_PRINT 0
 #endif
 
-
 /* TERMINAL COLORS */
 #if MU_ENABLE_TERM_COLORS == 1
 #define MU_RED "\x1B[1;31m"
@@ -47,7 +46,6 @@ static char *test_target_name = NULL;
 #define MU_WHT
 #define MU_NRM
 #endif
-
 
 #define MU_PRINT(...)                                                          \
   do {                                                                         \
@@ -145,7 +143,6 @@ void streams_restore(const int stdout_fd,
  */
 void mu_print_log(const char *log_path) {
   // Open log file
-  printf("%s\n", log_path);
   FILE *log_file = fopen(log_path, "rb");
   if (log_file == NULL) {
     return;
@@ -163,7 +160,7 @@ void mu_print_log(const char *log_path) {
     printf("Failed to read log file [%s]\n", log_path);
     exit(-1);
   }
-  printf("%s\n\n", buf);
+  printf("%s\n", buf);
   fflush(stdout);
   fclose(log_file);
 }
@@ -218,18 +215,25 @@ void mu_run_test(const char *test_name,
 
   // Keep track of test results
   if (test_retval == 0) {
-    printf(".");
+    if (redirect) {
+      printf(".");
+    } else {
+      printf("-> [%s] " MU_GRN "OK!\n" MU_NRM, test_name);
+    }
     fflush(stdout);
     nb_passed++;
+
     if (redirect && keep_logs == 0) {
       remove(log_path);
     }
+
   } else {
-    printf("\n[%s] " MU_RED "FAILED!\n" MU_NRM, test_name);
+    printf("\n" MU_RED "[%s] FAILED!\n" MU_NRM, test_name);
     fflush(stdout);
     mu_print_log(log_path);
     nb_failed++;
   }
+
   nb_tests++;
 }
 

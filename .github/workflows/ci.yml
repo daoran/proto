@@ -12,8 +12,5 @@ jobs:
     - name: Build libproto
       run: make build
 
-    - name: Build tests
-      run: make tests
-
-    - name: Run tests
-      run: make run_test_proto
+    - name: Run CI tests
+      run: make ci

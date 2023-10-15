@@ -3646,7 +3646,7 @@ int test_timeline() {
     // Extract timeline events. Add either imu or fiducial event
     for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
       timeline_event_t *event = timeline->timeline_events[k][i];
-      const timestamp_t ts = event->ts;
+      // const timestamp_t ts = event->ts;
 
       if (event->type == IMU_EVENT) {
         const imu_event_t *data = &event->data.imu;
@@ -3656,13 +3656,21 @@ int test_timeline() {
         // printf("\n");
 
         fprintf(imu_file, "%ld,", data->ts);
-        fprintf(imu_file, "%lf,%lf,%lf,", data->gyr[0], data->gyr[1], data->gyr[2]);
-        fprintf(imu_file, "%lf,%lf,%lf", data->acc[0], data->acc[1], data->acc[2]);
+        fprintf(imu_file,
+                "%lf,%lf,%lf,",
+                data->gyr[0],
+                data->gyr[1],
+                data->gyr[2]);
+        fprintf(imu_file,
+                "%lf,%lf,%lf",
+                data->acc[0],
+                data->acc[1],
+                data->acc[2]);
         fprintf(imu_file, "\n");
 
       } else if (event->type == FIDUCIAL_EVENT) {
-        const fiducial_event_t *data = &event->data.fiducial;
-        const int cam_idx = data->cam_idx;
+        // const fiducial_event_t *data = &event->data.fiducial;
+        // const int cam_idx = data->cam_idx;
         // printf("cam_ts: %ld \n", data->ts);
         // printf("  cam_idx: %d\n", data->cam_idx);
         // printf("  num_corners: %d\n", data->num_corners);
@@ -6278,7 +6286,7 @@ int test_calib_camera_mono_incremental() {
   char **files = list_files(data_path, &num_files);
 
   calib->verbose = 0;
-  TIC(calib_camera_loop);
+  // TIC(calib_camera_loop);
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
     // Load aprilgrid
     aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
@@ -6324,8 +6332,8 @@ int test_calib_camera_mono_incremental() {
     aprilgrid_free(grid);
   }
   // calib_camera_print(calib);
-  const real_t time_taken = TOC(calib_camera_loop);
-  const real_t rate_hz = num_files / time_taken;
+  // const real_t time_taken = TOC(calib_camera_loop);
+  // const real_t rate_hz = num_files / time_taken;
   // printf("%d frames in %.2f [s] or %.2f Hz\n", num_files, time_taken, rate_hz);
 
   // Clean up
@@ -6938,7 +6946,6 @@ int test_calib_imucam_update() {
 
 int test_calib_imucam_batch() {
   // clang-format off
-  // int num_cams = 2;
   const int res[2] = {752, 480};
   const char *pm = "pinhole";
   const char *dm = "radtan4";
@@ -6958,7 +6965,6 @@ int test_calib_imucam_batch() {
     0.0, 0.0, 0.0, 1.0
   };
   TF_VECTOR(T_SC0, imu_ext);
-  // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   const int imu_rate = 200;
   const real_t n_a = 0.08;
   const real_t n_g = 0.004;
@@ -7041,20 +7047,13 @@ int test_calib_imucam_batch() {
       // }
       // PRINT_TOC("time", start);
     }
-
-    if (calib->num_views >= 100) {
-      break;
-    }
   }
-  // calib_imucam_save_estimates(calib);
 
   // Solve
-  int num_factors = 0;
-  num_factors += calib->num_cam_factors;
-  num_factors += calib->num_imu_factors;
-  // calib->max_iter = 10;
-  calib->verbose = 0;
+  calib->max_iter = 10;
+  calib->verbose = 1;
   calib_imucam_solve(calib);
+  MU_ASSERT((calib->num_cam_factors + calib->num_imu_factors) > 0);
 
   // Clean up
   calib_imucam_free(calib);
@@ -7075,12 +7074,22 @@ int test_calib_imucam_batch_ceres() {
   const real_t g = 9.81;
   // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   // const real_t imu_ext[7] = {0.0, 0.0, 0.0, 0.70710678, 0.0, 0.0, 0.70710678};
-  const real_t T_SC0[4 * 4] = {
-    0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
-    0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
-    -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
-    0.0, 0.0, 0.0, 1.0
-  };
+  const real_t T_SC0[4 * 4] = {0.0148655429818,
+                               -0.999880929698,
+                               0.00414029679422,
+                               -0.0216401454975,
+                               0.999557249008,
+                               0.0149672133247,
+                               0.025715529948,
+                               -0.064676986768,
+                               -0.0257744366974,
+                               0.00375618835797,
+                               0.999660727178,
+                               0.00981073058949,
+                               0.0,
+                               0.0,
+                               0.0,
+                               1.0};
   TF_VECTOR(T_SC0, imu_ext);
   calib_imucam_add_imu(calib, imu_rate, n_aw, n_gw, n_a, n_g, g, imu_ext);
   calib->imu_ok = 1;
@@ -8051,6 +8060,7 @@ int test_sim_gimbal_solve() {
   // Setup solver
   solver_t solver;
   solver_setup(&solver);
+  solver.verbose = 1;
   solver.param_order_func = &calib_gimbal_param_order;
   solver.cost_func = &calib_gimbal_cost;
   solver.linearize_func = &calib_gimbal_linearize_compact;
@@ -8087,11 +8097,11 @@ int test_sim_gimbal_solve() {
     }
 
     // Find gimbal NBV
-    real_t nbv_joints[3] = {0};
-    calib_gimbal_nbv(calib, nbv_joints);
-    sim_gimbal_set_joint(sim, 0, nbv_joints[0]);
-    sim_gimbal_set_joint(sim, 1, nbv_joints[1]);
-    sim_gimbal_set_joint(sim, 2, nbv_joints[2]);
+    // real_t nbv_joints[3] = {0};
+    // calib_gimbal_nbv(calib, nbv_joints);
+    // sim_gimbal_set_joint(sim, 0, nbv_joints[0]);
+    // sim_gimbal_set_joint(sim, 1, nbv_joints[1]);
+    // sim_gimbal_set_joint(sim, 2, nbv_joints[2]);
   }
 
   // Solve
@@ -8342,7 +8352,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_imucam_add_imu_event);
   MU_ADD_TEST(test_calib_imucam_add_fiducial_event);
   MU_ADD_TEST(test_calib_imucam_update);
-  // MU_ADD_TEST(test_calib_imucam_batch);
+  MU_ADD_TEST(test_calib_imucam_batch);
   // MU_ADD_TEST(test_calib_imucam_batch_ceres);
   // MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);

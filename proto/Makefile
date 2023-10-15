@@ -230,6 +230,10 @@ test_http:  ## Compile test_http
 
 tests: test_proto test_aprilgrid test_tis test_sbgc test_ubx
 
+ci:
+	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
+	@./build/test_proto
+
 run_test_proto: test_proto ## Run test_proto
 	@./build/test_proto
 
