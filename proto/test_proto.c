@@ -914,15 +914,15 @@ int test_hashmap_traverse(void) {
 
 int test_tic_toc() {
   struct timespec t_start = tic();
-  sleep(1.0);
-  MU_ASSERT(fabs(toc(&t_start) - 1.0) < 1e-2);
+  usleep(1);
+  MU_ASSERT(fabs(toc(&t_start) - 1e-3) < 1e-2);
   return 0;
 }
 
 int test_mtoc() {
   struct timespec t_start = tic();
-  sleep(1.0);
-  MU_ASSERT(fabs(mtoc(&t_start) - 1000) < 1);
+  usleep(1);
+  MU_ASSERT(fabs(mtoc(&t_start) - 1e-3) < 1);
   return 0;
 }
 
