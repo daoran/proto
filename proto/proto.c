@@ -20085,7 +20085,7 @@ static void tsf_solve(tsf_t *tsf) {
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 1;
+  solver.verbose = 0;
   solver.max_iter = 5;
   solver.cost_func = &tsf_cost;
   solver.param_order_func = &tsf_param_order;

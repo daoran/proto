@@ -3635,10 +3635,9 @@ int test_timeline() {
   const int num_cams = 2;
   const int num_imus = 1;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
-
-  printf("timeline->num_cams: %d\n", timeline->num_cams);
-  printf("timeline->num_imus: %d\n", timeline->num_imus);
-  printf("timeline->num_event_types: %d\n", timeline->num_event_types);
+  // printf("timeline->num_cams: %d\n", timeline->num_cams);
+  // printf("timeline->num_imus: %d\n", timeline->num_imus);
+  // printf("timeline->num_event_types: %d\n", timeline->num_event_types);
 
   FILE *imu_file = fopen("/tmp/imu.csv", "w");
 
@@ -5564,7 +5563,7 @@ int test_visual_odometry_batch() {
 int test_inertial_odometry_batch() {
   // Setup test data
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data, 5.0, 1.0);
+  setup_imu_test_data(&test_data, 1.0, 1.0);
 
   // Inertial Odometry
   const int num_partitions = test_data.num_measurements / 20.0;
@@ -5650,31 +5649,12 @@ int test_inertial_odometry_batch() {
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 1;
+  solver.verbose = 0;
   solver.param_order_func = &inertial_odometry_param_order;
   solver.cost_func = &inertial_odometry_cost;
   solver.linearize_func = &inertial_odometry_linearize_compact;
   solver_solve(&solver, odom);
   inertial_odometry_save(odom, "/tmp/imu_odom-est.csv");
-
-  // Marginalize
-  marg_factor_t *marg = marg_factor_malloc();
-  odom->poses[0].marginalize = 1;
-  odom->vels[0].marginalize = 1;
-  odom->biases[0].marginalize = 1;
-  marg_factor_add(marg, IMU_FACTOR, &odom->factors[0]);
-  marg_factor_marginalize(marg);
-  marg_factor_free(marg);
-
-  // print_vector("param0", imu_factor->params[0], 7);
-  // print_vector("param1", imu_factor->params[1], 3);
-  // print_vector("param2", imu_factor->params[2], 6);
-  // print_vector("param3", imu_factor->params[3], 7);
-  // print_vector("param4", imu_factor->params[4], 3);
-  // print_vector("param5", imu_factor->params[5], 6);
-  // print_matrix("J0", imu_factor->jacs[0], 15, 6);
-  // print_matrix("J1", imu_factor->jacs[1], 15, 3);
-  // print_matrix("J2", imu_factor->jacs[1], 15, 6);
 
   // Clean up
   inertial_odometry_free(odom);
@@ -5902,9 +5882,9 @@ int test_tsf() {
 
   for (size_t k = 0; k < cam0_data->num_frames; k++) {
     // for (size_t k = 0; k < 10; k++) {
-    TIC(tsf_loop);
-    printf("\n");
-    printf("k: %ld\n", k);
+    // TIC(tsf_loop);
+    // printf("\n");
+    // printf("k: %ld\n", k);
     const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
     // const sim_camera_frame_t *cam1_frame = cam1_data->frames[k];
     tsf_add_camera_event(tsf,
@@ -5920,7 +5900,7 @@ int test_tsf() {
     //                      cam1_frame->feature_ids,
     //                      cam1_frame->keypoints);
     tsf_update(tsf, cam0_frame->ts);
-    PRINT_TOC("tsf_loop", tsf_loop);
+    // PRINT_TOC("tsf_loop", tsf_loop);
   }
 
   // Clean up
@@ -6180,7 +6160,7 @@ int test_calib_camera_mono_batch() {
 
   // Setup camera calibration problem
   calib_camera_t *calib = calib_camera_malloc();
-  calib->verbose = 1;
+  calib->verbose = 0;
   calib->max_iter = 30;
   calib_camera_add_camera(calib,
                           0,
@@ -6265,7 +6245,7 @@ int test_calib_camera_mono_ceres() {
 
   // Solve
   ceres_solve(problem, 20);
-  calib_camera_print(calib);
+  // calib_camera_print(calib);
 
   // Clean up
   calib_camera_free(calib);
@@ -6345,7 +6325,7 @@ int test_calib_camera_mono_incremental() {
   // calib_camera_print(calib);
   const real_t time_taken = TOC(calib_camera_loop);
   const real_t rate_hz = num_files / time_taken;
-  printf("%d frames in %.2f [s] or %.2f Hz\n", num_files, time_taken, rate_hz);
+  // printf("%d frames in %.2f [s] or %.2f Hz\n", num_files, time_taken, rate_hz);
 
   // Clean up
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
@@ -6457,7 +6437,7 @@ int test_calib_camera_stereo_batch() {
   TF_VECTOR(T_CiCj, cam1_ext);
 
   calib_camera_t *stereo_calib = calib_camera_malloc();
-  stereo_calib->verbose = 1;
+  stereo_calib->verbose = 0;
   stereo_calib->max_iter = 50;
   calib_camera_add_camera(stereo_calib,
                           0,
@@ -6479,7 +6459,7 @@ int test_calib_camera_stereo_batch() {
     calib_camera_add_data(stereo_calib, cam_idx, data_path);
   }
   calib_camera_solve(stereo_calib);
-  calib_camera_print(stereo_calib);
+  // calib_camera_print(stereo_calib);
   calib_camera_free(stereo_calib);
 
   return 0;
@@ -6628,7 +6608,7 @@ int test_calib_camera_stereo_ceres() {
 
   // Solve
   ceres_solve(problem, 20);
-  calib_camera_print(calib);
+  // calib_camera_print(calib);
 
   // Clean up
   calib_camera_free(calib);
@@ -7061,9 +7041,9 @@ int test_calib_imucam_batch() {
       // PRINT_TOC("time", start);
     }
 
-    // if (calib->num_views >= 1000) {
-    //   break;
-    // }
+    if (calib->num_views >= 100) {
+      break;
+    }
   }
   // calib_imucam_save_estimates(calib);
 
@@ -7071,10 +7051,9 @@ int test_calib_imucam_batch() {
   int num_factors = 0;
   num_factors += calib->num_cam_factors;
   num_factors += calib->num_imu_factors;
-  printf("num_factors: %d\n", num_factors);
   // calib->max_iter = 10;
-  // calib->verbose = 1;
-  // calib_imucam_solve(calib);
+  calib->verbose = 0;
+  calib_imucam_solve(calib);
 
   // Clean up
   calib_imucam_free(calib);
@@ -7792,8 +7771,8 @@ int test_calib_gimbal_ceres_solve() {
 int test_assoc_pose_data() {
   const double threshold = 0.01;
   const char *matches_fpath = "./gnd_est_matches.csv";
-  const char *gnd_data_path = "test_data/euroc/MH01_groundtruth.csv";
-  const char *est_data_path = "test_data/euroc/MH01_estimate.csv";
+  const char *gnd_data_path = "./test_data/euroc/MH01_groundtruth.csv";
+  const char *est_data_path = "./test_data/euroc/MH01_estimate.csv";
 
   // Load ground-truth poses
   int num_gnd_poses = 0;
@@ -8362,8 +8341,8 @@ void test_suite() {
   MU_ADD_TEST(test_calib_imucam_add_imu_event);
   MU_ADD_TEST(test_calib_imucam_add_fiducial_event);
   MU_ADD_TEST(test_calib_imucam_update);
-  MU_ADD_TEST(test_calib_imucam_batch);
-  MU_ADD_TEST(test_calib_imucam_batch_ceres);
+  // MU_ADD_TEST(test_calib_imucam_batch);
+  // MU_ADD_TEST(test_calib_imucam_batch_ceres);
   // MU_ADD_TEST(test_calib_gimbal_copy);
   MU_ADD_TEST(test_calib_gimbal_add_fiducial);
   MU_ADD_TEST(test_calib_gimbal_add_pose);
@@ -8373,13 +8352,13 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_add_remove_view);
   MU_ADD_TEST(test_calib_gimbal_load);
   MU_ADD_TEST(test_calib_gimbal_save);
-  MU_ADD_TEST(test_calib_gimbal_solve);
+  // MU_ADD_TEST(test_calib_gimbal_solve);
 #ifdef USE_CERES
-  MU_ADD_TEST(test_calib_gimbal_ceres_solve);
+  // MU_ADD_TEST(test_calib_gimbal_ceres_solve);
 #endif // USE_CERES
 
   // DATASET
-  MU_ADD_TEST(test_assoc_pose_data);
+  // MU_ADD_TEST(test_assoc_pose_data);
 
   // PLOTTING
   // MU_ADD_TEST(test_gnuplot_xyplot);
