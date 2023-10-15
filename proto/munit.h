@@ -13,13 +13,29 @@ static int nb_passed = 0;
 static int nb_failed = 0;
 static char *test_target_name = NULL;
 
-/* MUNIT */
+/* MUNIT SETTINGS */
+#ifndef MU_REDIRECT_STREAMS
 #define MU_REDIRECT_STREAMS 0
-#define MU_LOG_DIR "/tmp"
-#define MU_KEEP_LOGS 1
-#define MU_ENABLE_TERM_COLORS 1
-#define MU_ENABLE_PRINT 0
+#endif
 
+#ifndef MU_LOG_DIR
+#define MU_LOG_DIR "/tmp"
+#endif
+
+#ifndef MU_KEEP_LOGS
+#define MU_KEEP_LOGS 1
+#endif
+
+#ifndef MU_ENABLE_TERM_COLORS
+#define MU_ENABLE_TERM_COLORS 1
+#endif
+
+#ifndef MU_ENABLE_PRINT
+#define MU_ENABLE_PRINT 0
+#endif
+
+
+/* TERMINAL COLORS */
 #if MU_ENABLE_TERM_COLORS == 1
 #define MU_RED "\x1B[1;31m"
 #define MU_GRN "\x1B[1;32m"
@@ -31,6 +47,7 @@ static char *test_target_name = NULL;
 #define MU_WHT
 #define MU_NRM
 #endif
+
 
 #define MU_PRINT(...)                                                          \
   do {                                                                         \
@@ -77,24 +94,24 @@ int streams_redirect(const char *output_path,
                      int *stdout_fd,
                      int *stderr_fd,
                      int *output_fd) {
-  /* Obtain stdout and stderr file descriptors */
+  // Obtain stdout and stderr file descriptors
   *stdout_fd = dup(STDOUT_FILENO);
   *stderr_fd = dup(STDERR_FILENO);
 
-  /* Open stdout log file */
+  // Open stdout log file
   *output_fd = open(output_path, O_RDWR | O_CREAT | O_TRUNC, 0600);
   if (*output_fd == -1) {
     perror("opening output.log");
     return -1;
   }
 
-  /* Redirect stdout */
+  // Redirect stdout
   if (dup2(*output_fd, STDOUT_FILENO) == -1) {
     perror("cannot redirect stdout");
     return -1;
   }
 
-  /* Redirect stderr */
+  // Redirect stderr
   if (dup2(*output_fd, STDERR_FILENO) == -1) {
     perror("cannot redirect stderr");
     return -1;
@@ -112,12 +129,12 @@ int streams_redirect(const char *output_path,
 void streams_restore(const int stdout_fd,
                      const int stderr_fd,
                      const int output_fd) {
-  /* Flush stdout, stderr and close output file */
+  // Flush stdout, stderr and close output file
   fflush(stdout);
   fflush(stderr);
   close(output_fd);
 
-  /* Restore stdout and stderr */
+  // Restore stdout and stderr
   dup2(stdout_fd, STDOUT_FILENO);
   dup2(stderr_fd, STDERR_FILENO);
 }
@@ -127,19 +144,19 @@ void streams_restore(const int stdout_fd,
  * @param[in] log_path Path to test log
  */
 void mu_print_log(const char *log_path) {
-  /* Open log file */
-  printf("TEST LOG [%s]\n", log_path);
+  // Open log file
+  printf("%s\n", log_path);
   FILE *log_file = fopen(log_path, "rb");
   if (log_file == NULL) {
     return;
   }
 
-  /* Get log file length */
+  // Get log file length
   fseek(log_file, 0, SEEK_END);
   size_t log_length = ftell(log_file);
   fseek(log_file, 0, SEEK_SET);
 
-  /* Print log and close log file */
+  // Print log and close log file
   char buf[9046] = {0};
   const size_t read = fread(buf, 1, log_length, log_file);
   if (read != log_length) {
@@ -173,12 +190,12 @@ void mu_run_test(const char *test_name,
                  int (*test_ptr)(),
                  const int redirect,
                  const int keep_logs) {
-  /* Check if test target is set and current test is test target */
+  // Check if test target is set and current test is test target
   if (test_target_name != NULL && strcmp(test_target_name, test_name) != 0) {
     return;
   }
 
-  /* Redirect stdout and stderr to file */
+  // Redirect stdout and stderr to file
   char log_path[1024] = {0};
   int stdout_fd = 0;
   int stderr_fd = 0;
@@ -191,25 +208,24 @@ void mu_run_test(const char *test_name,
     }
   }
 
-  /* Run test */
+  // Run test
   int test_retval = (*test_ptr)();
 
-  /* Restore stdout and stderr */
+  // Restore stdout and stderr
   if (redirect) {
     streams_restore(stdout_fd, stderr_fd, log_fd);
   }
 
-  /* Keep track of test results */
-  printf("-> [%s] ", test_name);
+  // Keep track of test results
   if (test_retval == 0) {
-    printf(MU_GRN "OK!\n" MU_NRM);
+    printf(".");
     fflush(stdout);
     nb_passed++;
     if (redirect && keep_logs == 0) {
       remove(log_path);
     }
   } else {
-    printf(MU_RED "FAILED!\n" MU_NRM);
+    printf("\n[%s] " MU_RED "FAILED!\n" MU_NRM, test_name);
     fflush(stdout);
     mu_print_log(log_path);
     nb_failed++;
