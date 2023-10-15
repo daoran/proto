@@ -9,6 +9,7 @@
 #define TEST_SIM_DATA TEST_DATA_PATH "sim_data"
 #define TEST_SIM_GIMBAL TEST_DATA_PATH "sim_gimbal"
 #define TEST_CAM_APRIL TEST_DATA_PATH "cam_april"
+#define TEST_IMU_APRIL TEST_DATA_PATH "imu_april"
 
 /******************************************************************************
  * TEST MACROS
@@ -3631,7 +3632,7 @@ int test_schur_complement() {
 }
 
 int test_timeline() {
-  const char *data_dir = "/data/proto/imu_april";
+  const char *data_dir = TEST_IMU_APRIL;
   const int num_cams = 2;
   const int num_imus = 1;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
@@ -6896,7 +6897,7 @@ int test_calib_imucam_update() {
   calib_imucam_add_camera(calib, 1, cam1_res, pm, dm, cam1_vec, cam1_ext);
 
   // Test update
-  char *data_dir = "/data/proto/imu_april/";
+  char *data_dir = TEST_IMU_APRIL;
   int num_cams = 1;
   int num_imus = 1;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
@@ -6972,7 +6973,7 @@ int test_calib_imucam_batch() {
   calib_imucam_add_camera(calib, 1, res, pm, dm, cam_vec[1], cam_exts[1]);
 
   // Incremental solve
-  char *data_dir = "/data/proto/imu_april/";
+  char *data_dir = TEST_IMU_APRIL;
   int num_cams = 2;
   int num_imus = 1;
   // int window_size = 20;
@@ -7123,7 +7124,7 @@ int test_calib_imucam_batch_ceres() {
   calib_imucam_add_camera(calib, 1, cam1_res, pm, dm, cam1_vec, cam1_ext);
 
   // Test update
-  char *data_dir = "/data/proto/imu_april/";
+  char *data_dir = TEST_IMU_APRIL;
   int num_cams = 2;
   int num_imus = 1;
   timeline_t *timeline = timeline_load_data(data_dir, num_cams, num_imus);
@@ -8328,7 +8329,7 @@ void test_suite() {
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
-  // MU_ADD_TEST(test_solver_eval);
+  MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_camchain);
   // MU_ADD_TEST(test_calib_camera_mono_batch);
   // MU_ADD_TEST(test_calib_camera_mono_ceres);
