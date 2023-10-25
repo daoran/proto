@@ -23,6 +23,9 @@ docs: ## Build docs
 build: ## Build libproto
 	@cd proto && make -s libproto
 
+install: build ## Install libproto
+	@cd proto && make -s install
+
 tests: ## Run unittests
 	@cd proto && make -s tests
 
