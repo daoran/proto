@@ -153,6 +153,7 @@ install: ## Install libproto
 	mkdir -p $(PREFIX)/include
 	ln -sf $(CUR_DIR)/build/libproto.a $(PREFIX)/lib/libproto.a
 	ln -sf $(CUR_DIR)/aprilgrid.h $(PREFIX)/include/aprilgrid.h
+	ln -sf $(CUR_DIR)/ceres_bridge.h $(PREFIX)/include/ceres_bridge.h
 	ln -sf $(CUR_DIR)/euroc.h $(PREFIX)/include/euroc.h
 	ln -sf $(CUR_DIR)/gui.h $(PREFIX)/include/gui.h
 	ln -sf $(CUR_DIR)/http.h $(PREFIX)/include/http.h
