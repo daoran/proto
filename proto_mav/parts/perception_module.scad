@@ -237,6 +237,43 @@ module arducam_MT9V034() {
 
 }
 
+module oak_d_lite() {
+  body_width = 91.0;
+  body_height = 28.0;
+  body_depth = 17.5;
+
+  mount_width = 75.0;
+  mount_height = (body_height / 2.0) - 18.5;
+  screw_width = 4.0;
+  screw_depth = 6.5;
+
+  cam_d = 8.0;
+
+  difference() {
+    // Body
+    translate([0.0, 0.0, body_depth / 2])
+      color([0.2, 0.2, 0.2])
+        cube([body_height, body_width, body_depth], center=true);
+
+    // Mount Holes
+    translate([mount_height, mount_width / 2.0, screw_depth / 2.0 - 0.01])
+      cylinder(h=screw_depth, r=screw_width / 2.0, center=true);
+    translate([mount_height, -mount_width / 2.0, screw_depth / 2.0 - 0.01])
+      cylinder(h=screw_depth, r=screw_width / 2.0, center=true);
+
+  // RGB Camera
+  translate([-5.0, 0.0, body_depth])
+    cylinder(h=1, r=cam_d / 2.0, center=true);
+
+  // SLAM Cameras
+  translate([-5.0, body_width / 2.0 - 12, body_depth])
+    cylinder(h=1, r=cam_d / 2.0, center=true);
+  translate([-5.0, -(body_width / 2.0 - 12), body_depth])
+    cylinder(h=1, r=cam_d / 2.0, center=true);
+  }
+
+}
+
 module gimbal_imu() {
   tol = 0.01;
   w = 20.0;
@@ -443,7 +480,7 @@ module encoder_frame(show_encoder=1, show_motor=0) {
   if (show_motor) {
     rotate(45)
       translate([0, 0, motor_standoff_h])
-        gimbal_motor();
+        gimbal_motor_GM2804();
   }
 
   difference() {
@@ -851,7 +888,7 @@ module sbgc_frame(show_sbgc=1, show_usb_hub=1) {
 
 
 // Gimbal Motor
-module gimbal_motor(has_encoders=0) {
+module gimbal_motor_GM2804(has_encoders=0) {
   motor_r = 35.0 / 2.0;
   motor_h = (has_encoders) ? 25.0 : 15.0;
   base_mount_d = (has_encoders) ? 20.0 : 29.0;
@@ -871,6 +908,82 @@ module gimbal_motor(has_encoders=0) {
     for (i = [45:90:360]) {
       rotate([0.0, 0.0, i])
         translate([19.0 / 2.0, 0.0, motor_h - 2.0 + 0.01])
+          cylinder(r=1.0, h=2.0, center=false);
+    }
+
+    // Base mount holes
+    for (i = [1 : 4]) {
+      rotate([0.0, 0.0, i * 90.0 + 45.0])
+        translate([base_mount_d / 2.0, 0.0, -0.01])
+          cylinder(r=1.0, h=2.0, center=false);
+    }
+
+    // Wire hole
+    if (has_encoders) {
+      translate([-motor_r + 2.5, 0.0, 2.0 - 0.01])
+        cube([5.0, 9.0, 4.0], center=true);
+    }
+  }
+}
+
+// Gimbal Motor GM3506
+module gimbal_motor_GM3506() {
+  motor_r = 40.0 / 2.0;
+  motor_h = 18.0;
+  top_mount_d = 20.0;
+  base_mount_d = 34.0;
+
+  color([0.2, 0.2, 0.2])
+  difference() {
+    union() {
+      // Main body
+      cylinder(r=motor_r, h=motor_h);
+
+      // Bottom shaft
+      translate([0, 0, -3 / 2])
+        cylinder(r=14 / 2, h=3, $fn=6, center=true);
+    }
+
+    // Top mount holes
+    for (i = [45:90:360]) {
+      rotate([0.0, 0.0, i])
+        translate([top_mount_d / 2.0, 0.0, motor_h - 2.0 + 0.01])
+          cylinder(r=1.0, h=2.0, center=false);
+    }
+
+    // Base mount holes
+    for (i = [1 : 4]) {
+      rotate([0.0, 0.0, i * 90.0 + 45.0])
+        translate([base_mount_d / 2.0, 0.0, -0.01])
+          cylinder(r=1.0, h=2.0, center=false);
+    }
+
+    // Wire hole
+    if (has_encoders) {
+      translate([-motor_r + 2.5, 0.0, 2.0 - 0.01])
+        cube([5.0, 9.0, 4.0], center=true);
+    }
+  }
+}
+
+// Gimbal Motor GM4008
+module gimbal_motor_GM4008() {
+  motor_r = 46.0 / 2.0;
+  motor_h = 21.0;
+  top_mount_d = 30.0;
+  base_mount_d = 30.0;
+
+  color([0.2, 0.2, 0.2])
+  difference() {
+    union() {
+      // Main body
+      cylinder(r=motor_r, h=motor_h);
+    }
+
+    // Top mount holes
+    for (i = [45:90:360]) {
+      rotate([0.0, 0.0, i])
+        translate([top_mount_d / 2.0, 0.0, motor_h - 2.0 + 0.01])
           cylinder(r=1.0, h=2.0, center=false);
     }
 
@@ -1051,14 +1164,14 @@ module gimbal_roll_frame(show_roll_motor=1,
 
   // Show roll motor
   if (show_roll_motor) {
-    translate([0, 0, -motor_h]) gimbal_motor();
+    translate([0, 0, -motor_h]) gimbal_motor_GM2804();
   }
 
   // Show pitch motor
   if (show_pitch_motor) {
     translate([0, motor_offset_y + motor_h / 2, motor_offset_z])
       rotate([90, 45, 0])
-        gimbal_motor();
+        gimbal_motor_GM2804();
   }
 
   // Show encoder
@@ -1150,7 +1263,7 @@ module gimbal_pitch_frame(show_pitch_motor=0, show_encoder=0, show_cameras=1) {
   // Show pitch motor
   if (show_pitch_motor) {
     translate([0, 0, -motor_h])
-      gimbal_motor();
+      gimbal_motor_GM2804();
   }
 
 
@@ -1381,7 +1494,7 @@ module gimbal_frame(mount_w, mount_d, show_yaw_frame=1) {
 
     translate([0, 0, support_h + encoder_standoff_h +  0.01])
       rotate(45)
-        gimbal_motor();
+        gimbal_motor_GM2804();
 
     translate([0, 0, support_h + encoder_standoff_h + motor_h])
       gimbal_yaw_frame();
@@ -1644,12 +1757,18 @@ module perception_module() {
 }
 
 
-// Assembly Development
+/////////////////////////////////////////////////////////////////////////////
+// ASSEMBLY                                                                //
+/////////////////////////////////////////////////////////////////////////////
+
 // top_stack();
 // perception_module();
 
-// Component Development
+/////////////////////////////////////////////////////////////////////////////
+// COMPONENT DEVELOPMENT                                                   //
+/////////////////////////////////////////////////////////////////////////////
 
+// -- SPACER
 // spacer_h = 16; // NUC frame
 // spacer_h = 25; // PCB frame
 // spacer(spacer_w=9,
@@ -1659,25 +1778,35 @@ module perception_module() {
 //        nut_h=M3_nut_h,
 //        nts=1);
 
-// Stereo camera frame spacer
+// -- STEREO CAMERA SPACER
 // spacer(spacer_w=M2_screw_w * 1.85,
 //        spacer_h=8,
 //        hole_w=M2_screw_w * 0.85);
 
 // battery_frame(batt_frame_w, batt_frame_d);
-// fcu_frame(show_fcu);
+// fcu_frame(1);
 // encoder_frame(0);
 // odroid_frame(nuc_mount_w, nuc_mount_d, 0);
 // landing_frame(nuc_mount_w, nuc_mount_d);
 // landing_feet();
 // stereo_camera_frame();
 
+// -- COMPONENTS
 // board_camera();
 // arducam_MT9V034();
+oak_d_lite();
 // usb_hub_board();
 // sbgc_board();
+
+// -- PCBS
 // sbgc_frame(show_sbgc=0, show_usb_hub=0);
-// gimbal_motor();
+
+// -- GIMBAL MOTORS
+// gimbal_motor_GM2804();
+// gimbal_motor_GM3506();
+// gimbal_motor_GM4008();
+
+// -- GIMBAL FRAMES
 // gimbal_imu();
 // gimbal_imu_frame();
 // gimbal_camera_frame(show_camera=0);
