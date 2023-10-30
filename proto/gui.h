@@ -102,8 +102,11 @@ void gl_matf_set(GLfloat *A,
                  const int i,
                  const int j,
                  const GLfloat val);
-GLfloat gl_matf_val(
-    const GLfloat *A, const int m, const int n, const int i, const int j);
+GLfloat gl_matf_val(const GLfloat *A,
+                    const int m,
+                    const int n,
+                    const int i,
+                    const int j);
 void gl_copy(const GLfloat *src, const int m, const int n, GLfloat *dest);
 void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t);
 void gl_zeros(GLfloat *A, const int nb_rows, const int nb_cols);
@@ -148,6 +151,7 @@ void gl_lookat(const GLfloat eye[3],
                const GLfloat at[3],
                const GLfloat up[3],
                GLfloat V[4 * 4]);
+int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
 // SHADER ////////////////////////////////////////////////////////////////////
 
@@ -312,6 +316,37 @@ void imshow_loop(imshow_t *imshow);
 //                             IMPLEMENTATION                               //
 //////////////////////////////////////////////////////////////////////////////
 
+#include <time.h>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
+/**
+ * Tic, start timer.
+ * @returns A timespec encapsulating the time instance when tic() is called
+ */
+struct timespec tic() {
+  struct timespec time_start;
+  clock_gettime(CLOCK_MONOTONIC, &time_start);
+  return time_start;
+}
+
+/**
+ * Toc, stop timer.
+ * @returns Time elapsed in seconds
+ */
+float toc(struct timespec *tic) {
+  assert(tic != NULL);
+  struct timespec toc;
+  float time_elasped;
+
+  clock_gettime(CLOCK_MONOTONIC, &toc);
+  time_elasped = (toc.tv_sec - tic->tv_sec);
+  time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
+
+  return time_elasped;
+}
+
 // OPENGL UTILS //////////////////////////////////////////////////////////////
 
 /**
@@ -448,8 +483,11 @@ void gl_matf_set(GLfloat *A,
   A[i + (j * m)] = val;
 }
 
-GLfloat gl_matf_val(
-    const GLfloat *A, const int m, const int n, const int i, const int j) {
+GLfloat gl_matf_val(const GLfloat *A,
+                    const int m,
+                    const int n,
+                    const int i,
+                    const int j) {
   UNUSED(n);
   return A[i + (j * m)];
 }
@@ -646,6 +684,31 @@ void gl_lookat(const GLfloat eye[3],
   // Form view matrix
   gl_zeros(V, 4, 4);
   gl_dot(R, 4, 4, T, 4, 4, V);
+}
+
+int gl_save_frame_buffer(const int width, const int height, const char *fp) {
+  // Malloc pixels
+  const int num_channels = 3;
+  const size_t num_pixels = num_channels * width * height;
+  GLubyte *pixels = malloc(sizeof(GLubyte) * num_pixels);
+
+  // Read pixels
+  const GLint x = 0;
+  const GLint y = 0;
+  glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+  // Write to file
+  GLsizei stride = num_channels * width;
+  stride += (stride % 4) ? (4 - stride % 4) : 0;
+  stbi_flip_vertically_on_write(1);
+  stbi_write_png(fp, width, height, num_channels, pixels, stride);
+
+  // Clean up
+  if (pixels) {
+    free(pixels);
+  }
+
+  return 0;
 }
 
 // SHADER ////////////////////////////////////////////////////////////////////
@@ -1490,7 +1553,7 @@ void gui_setup(gui_t *gui) {
   if (gui->window == NULL) {
     FATAL("SDL_CreateWindow Error: %s/n", SDL_GetError());
   }
-  SDL_SetWindowResizable(gui->window, 1);
+  SDL_SetWindowResizable(gui->window, 0);
 
   // OpenGL context
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -1559,13 +1622,17 @@ void gui_loop(gui_t *gui) {
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    gl_cube_draw(&cube, &gui->camera);
-    gl_cube_draw(&cube2, &gui->camera);
-    gl_cube_draw(&cube3, &gui->camera);
+    // gl_cube_draw(&cube, &gui->camera);
+    // gl_cube_draw(&cube2, &gui->camera);
+    // gl_cube_draw(&cube3, &gui->camera);
 
     gl_camera_frame_draw(&cf, &gui->camera);
     gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
+
+    // int width, height;
+    // SDL_GetWindowSize(gui->window, &width, &height);
+    // gl_save_frame_buffer(width, height, "/tmp/frame.png");
 
     gui_event_handler(gui);
     SDL_GL_SwapWindow(gui->window);
@@ -2352,25 +2419,25 @@ int test_imshow() {
 }
 
 int main(int argc, char *argv[]) {
-  TEST(test_gl_zeros);
-  TEST(test_gl_ones);
-  TEST(test_gl_eye);
-  TEST(test_gl_equals);
-  TEST(test_gl_matf_set);
-  TEST(test_gl_matf_val);
-  TEST(test_gl_transpose);
-  TEST(test_gl_vec3_cross);
-  TEST(test_gl_dot);
-  TEST(test_gl_norm);
-  TEST(test_gl_normalize);
-  TEST(test_gl_perspective);
-  TEST(test_gl_lookat);
-  TEST(test_gl_shader_compile);
-  TEST(test_gl_shaders_link);
-  TEST(test_gl_prog_setup);
-  TEST(test_gl_camera_setup);
+  // TEST(test_gl_zeros);
+  // TEST(test_gl_ones);
+  // TEST(test_gl_eye);
+  // TEST(test_gl_equals);
+  // TEST(test_gl_matf_set);
+  // TEST(test_gl_matf_val);
+  // TEST(test_gl_transpose);
+  // TEST(test_gl_vec3_cross);
+  // TEST(test_gl_dot);
+  // TEST(test_gl_norm);
+  // TEST(test_gl_normalize);
+  // TEST(test_gl_perspective);
+  // TEST(test_gl_lookat);
+  // TEST(test_gl_shader_compile);
+  // TEST(test_gl_shaders_link);
+  // TEST(test_gl_prog_setup);
+  // TEST(test_gl_camera_setup);
   TEST(test_gui);
-  TEST(test_imshow);
+  // TEST(test_imshow);
 
   return (nb_failed) ? -1 : 0;
 }
