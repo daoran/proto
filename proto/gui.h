@@ -247,6 +247,85 @@ void gl_grid_setup(gl_entity_t *entity);
 void gl_grid_cleanup(const gl_entity_t *entity);
 void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera);
 
+// MESH //////////////////////////////////////////////////////////////////////
+
+typedef struct gl_vertex_t {
+  float position[3];
+  float normal[3];
+  float tex_coords[2];
+} gl_vertex_t;
+
+typedef struct gl_texture_t {
+  unsigned int id;
+  char type;
+} gl_texture_t;
+
+typedef struct gl_mesh_t {
+  gl_vertex_t *vertices;
+  unsigned int *indices;
+  gl_texture_t *textures;
+
+  unsigned int VAO;
+  unsigned int VBO;
+  unsigned int EBO;
+} gl_mesh_t;
+
+void gl_mesh_setup(gl_mesh_t *mesh,
+                   gl_vertex_t *vertices,
+                   const int num_vertices,
+                   unsigned int *indices,
+                   const int num_indices,
+                   gl_texture_t *textures) {
+  // VAO
+  glGenVertexArrays(1, &mesh->VAO);
+  glBindVertexArray(mesh->VAO);
+
+  // VBO
+  glGenBuffers(1, &mesh->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+  glBufferData(GL_ARRAY_BUFFER,
+               sizeof(gl_vertex_t) * num_vertices,
+               &vertices[0],
+               GL_STATIC_DRAW);
+
+  // EBO
+  glGenBuffers(1, &mesh->EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               sizeof(unsigned int) * num_indices,
+               &indices[0],
+               GL_STATIC_DRAW);
+
+  // Vertex positions
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(gl_vertex_t),
+                        (void *) 0);
+
+  // Vertex normals
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(gl_vertex_t),
+                        (void *) offsetof(gl_vertex_t, normal));
+
+  // Vertex texture coords
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2,
+                        2,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(gl_vertex_t),
+                        (void *) offsetof(gl_vertex_t, tex_coords));
+
+  glBindVertexArray(0);
+}
+
 // GUI ///////////////////////////////////////////////////////////////////////
 
 typedef struct gui_t {
