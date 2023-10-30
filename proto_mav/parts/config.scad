@@ -1,18 +1,18 @@
 $fn = 30;
 
 // M2 Screw and Nut
-M2_screw_w = 2.7;
-M2_caphead_w = 3.75;
-M2_caphead_h = 2.0;
-M2_nut_w = 4.9;
-M2_nut_h = 2.0;
+M2_SCREW_W = 2.7;
+M2_CAPHEAD_W = 3.75;
+M2_CAPHEAD_H = 2.0;
+M2_NUT_W = 4.9;
+M2_NUT_H = 2.0;
 
 // M3 Screw and Nut
-M3_screw_w = 3.2;
-M3_caphead_w = 6.0;
-M3_caphead_h = 3.0;
-M3_nut_w = 6.5;
-M3_nut_h = 2.5;
+M3_SCREW_W = 3.2;
+M3_CAPHEAD_W = 6.0;
+M3_CAPHEAD_H = 3.0;
+M3_NUT_W = 6.5;
+M3_NUT_H = 2.5;
 
 // Odroid
 odroid_w = 59.0;
