@@ -29,6 +29,8 @@ SUITESPARSE_LDFLAGS := -llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod -lcxsp
 CERES_CFLAGS := -I/usr/include/eigen3
 CERES_LDFLAGS := -lgflags -lglog -lceres
 
+ASSIMP_LDFLAGS := -lassimp
+
 TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
 TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
 TIS_CFLAGS+=$(shell pkg-config gstreamer-video-1.0 --cflags)
@@ -83,6 +85,7 @@ LDFLAGS= \
 	$(SUITESPARSE_LDFLAGS) \
 	$(BLAS_LDFLAGS) \
 	$(OPENSSL_LDFLAGS) \
+	$(ASSIMP_LDFLAGS) \
 	$(TIS_LDFLAGS) \
 	$(YAML_LDFLAGS) \
 	-lstdc++ \
