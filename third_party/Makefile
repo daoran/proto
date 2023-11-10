@@ -90,26 +90,26 @@ build_arducam:
 
 build_stb:
 	@cd "$(PREFIX)/include" \
-    && ln -sf $(PWD)/src/stb/stb_c_lexer.h . \
-    && ln -sf $(PWD)/src/stb/stb_connected_components.h . \
-    && ln -sf $(PWD)/src/stb/stb_divide.h . \
-    && ln -sf $(PWD)/src/stb/stb_ds.h . \
-    && ln -sf $(PWD)/src/stb/stb_dxt.h . \
-    && ln -sf $(PWD)/src/stb/stb_easy_font.h . \
-    && ln -sf $(PWD)/src/stb/stb_herringbone_wang_tile.h . \
-    && ln -sf $(PWD)/src/stb/stb_hexwave.h . \
-    && ln -sf $(PWD)/src/stb/stb_image.h . \
-    && ln -sf $(PWD)/src/stb/stb_image_resize.h . \
-    && ln -sf $(PWD)/src/stb/stb_image_write.h . \
-    && ln -sf $(PWD)/src/stb/stb_include.h . \
-    && ln -sf $(PWD)/src/stb/stb_leakcheck.h . \
-    && ln -sf $(PWD)/src/stb/stb_perlin.h . \
-    && ln -sf $(PWD)/src/stb/stb_rect_pack.h . \
-    && ln -sf $(PWD)/src/stb/stb_sprintf.h . \
-    && ln -sf $(PWD)/src/stb/stb_textedit.h . \
-    && ln -sf $(PWD)/src/stb/stb_tilemap_editor.h . \
-    && ln -sf $(PWD)/src/stb/stb_truetype.h . \
-    && ln -sf $(PWD)/src/stb/stb_voxel_render.h
+    && ln -svf $(PWD)/src/stb/stb_c_lexer.h . \
+    && ln -svf $(PWD)/src/stb/stb_connected_components.h . \
+    && ln -svf $(PWD)/src/stb/stb_divide.h . \
+    && ln -svf $(PWD)/src/stb/stb_ds.h . \
+    && ln -svf $(PWD)/src/stb/stb_dxt.h . \
+    && ln -svf $(PWD)/src/stb/stb_easy_font.h . \
+    && ln -svf $(PWD)/src/stb/stb_herringbone_wang_tile.h . \
+    && ln -svf $(PWD)/src/stb/stb_hexwave.h . \
+    && ln -svf $(PWD)/src/stb/stb_image.h . \
+    && ln -svf $(PWD)/src/stb/stb_image_resize.h . \
+    && ln -svf $(PWD)/src/stb/stb_image_write.h . \
+    && ln -svf $(PWD)/src/stb/stb_include.h . \
+    && ln -svf $(PWD)/src/stb/stb_leakcheck.h . \
+    && ln -svf $(PWD)/src/stb/stb_perlin.h . \
+    && ln -svf $(PWD)/src/stb/stb_rect_pack.h . \
+    && ln -svf $(PWD)/src/stb/stb_sprintf.h . \
+    && ln -svf $(PWD)/src/stb/stb_textedit.h . \
+    && ln -svf $(PWD)/src/stb/stb_tilemap_editor.h . \
+    && ln -svf $(PWD)/src/stb/stb_truetype.h . \
+    && ln -svf $(PWD)/src/stb/stb_voxel_render.h
 
 build_dbow2:
 	@cd "$(SRC_PATH)/DBoW2" \
