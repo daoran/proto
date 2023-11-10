@@ -36,6 +36,20 @@
 #endif
 
 /**
+ * Return max between a and b
+ */
+#ifndef MAX
+#define MAX(a, b) a > b ? a : b
+#endif
+
+/**
+ * Return min between a and b
+ */
+#ifndef MIN
+#define MIN(a, b) a < b ? a : b;
+#endif
+
+/**
  * Fatal
  *
  * @param[in] M Message
@@ -292,9 +306,9 @@ typedef struct gl_mesh_t {
   int num_indices;
   int num_textures;
 
-  unsigned int VAO;
-  unsigned int VBO;
-  unsigned int EBO;
+  GLuint VAO;
+  GLuint VBO;
+  GLuint EBO;
 } gl_mesh_t;
 
 void gl_mesh_setup(gl_mesh_t *mesh,
@@ -304,11 +318,12 @@ void gl_mesh_setup(gl_mesh_t *mesh,
                    const int num_indices,
                    gl_texture_t *textures,
                    const int num_textures) {
+  // Setup
   mesh->vertices = vertices;
-  mesh->num_vertices = num_vertices;
   mesh->indices = indices;
-  mesh->num_indices = num_indices;
   mesh->textures = textures;
+  mesh->num_vertices = num_vertices;
+  mesh->num_indices = num_indices;
   mesh->num_textures = num_textures;
 
   // VAO
@@ -358,6 +373,7 @@ void gl_mesh_setup(gl_mesh_t *mesh,
                         sizeof(gl_vertex_t),
                         (void *) offsetof(gl_vertex_t, tex_coords));
 
+  // Clean up
   glBindVertexArray(0);
 }
 
@@ -403,313 +419,20 @@ void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader) {
  *****************************************************************************/
 
 typedef struct gl_model_t {
-  char *model_dir;
+  char model_dir[100];
 
-  gl_texture_t *textures;
+  GLfloat T[4 * 4];
+  GLint program_id;
+
   gl_mesh_t *meshes;
-  int num_textures;
   int num_meshes;
 
   int enable_gamma_correction;
 } gl_model_t;
 
-static unsigned int load_texture(const char *model_dir,
-                                 const char *texture_fname) {
-  // File fullpath
-  char filepath[9046] = {0};
-  strcat(filepath, model_dir);
-  strcat(filepath, "/");
-  strcat(filepath, texture_fname);
-
-  // Generate texture ID
-  unsigned int texture_id;
-  glGenTextures(1, &texture_id);
-
-  // Load image
-  int width = 0;
-  int height = 0;
-  int channels = 0;
-  unsigned char *data = stbi_load(filepath, &width, &height, &channels, 0);
-  if (data) {
-    // Image format
-    GLenum format;
-    if (channels == 1) {
-      format = GL_RED;
-    } else if (channels == 3) {
-      format = GL_RGB;
-    } else if (channels == 4) {
-      format = GL_RGBA;
-    } else {
-      printf("Invalid number of channels: %d\n", channels);
-      return -1;
-    }
-
-    // Load image to texture ID
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 format,
-                 width,
-                 height,
-                 0,
-                 format,
-                 GL_UNSIGNED_BYTE,
-                 data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_MIN_FILTER,
-                    GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  } else {
-    printf("Texture failed to load: [%s]\n", filepath);
-    return -1;
-  }
-
-  // Clean up
-  stbi_image_free(data);
-
-  return texture_id;
-}
-
-static void load_textures(const struct aiMaterial *material,
-                          const enum aiTextureType type,
-                          const char *model_dir,
-                          gl_texture_t *textures,
-                          int *textures_length) {
-  const int num_textures = aiGetMaterialTextureCount(material, type);
-  int texture_index = *textures_length - 1;
-
-  char type_name[30] = {0};
-  switch (type) {
-    case aiTextureType_DIFFUSE:
-      strcpy(type_name, "texture_diffuse");
-      break;
-    case aiTextureType_SPECULAR:
-      strcpy(type_name, "texture_specular");
-      break;
-    case aiTextureType_HEIGHT:
-      strcpy(type_name, "texture_height");
-      break;
-    case aiTextureType_AMBIENT:
-      strcpy(type_name, "texture_ambient");
-      break;
-  }
-
-  for (int index = 0; index < num_textures; index++) {
-    struct aiString texture_fname;
-    enum aiTextureMapping *mapping = NULL;
-    unsigned int *uvindex = NULL;
-    ai_real *blend = NULL;
-    enum aiTextureOp *op = NULL;
-    enum aiTextureMapMode *mapmode = NULL;
-    unsigned int *flags = NULL;
-    aiGetMaterialTexture(material,
-                         type,
-                         index,
-                         &texture_fname,
-                         mapping,
-                         uvindex,
-                         blend,
-                         op,
-                         mapmode,
-                         flags);
-
-    // Check if texture was loaded before and if so, continue to next iteration
-    // int load_texture = 1;
-    // for (unsigned int j = 0; j < textures_loaded.size(); j++) {
-    //   if (strcmp(textures_loaded[j].path.data(), str.C_Str()) == 0) {
-    //     // textures.push_back(textures_loaded[j]);
-    //     load_texture = 0;
-    //     break;
-    //   }
-    // }
-
-    // Load texture
-    // if (load_texture) {
-    //   Texture texture;
-    //   texture.id = TextureFromFile(str.C_Str(), this->directory);
-    //   texture.type = type_name;
-    //   texture.path = str.C_Str();
-    //   textures.push_back(texture);
-    //   textures_loaded.push_back(texture);
-    // }
-
-    textures[texture_index].id = load_texture(model_dir, texture_fname.data);
-    strcpy(textures[texture_index].type, type_name);
-    strcpy(textures[texture_index].path, texture_fname.data);
-    texture_index++;
-    (*textures_length)++;
-  }
-}
-
-static gl_mesh_t *load_mesh(const char *model_dir,
-                            struct aiMesh *mesh,
-                            const struct aiScene *scene) {
-  // For each mesh vertices
-  const int num_vertices = mesh->mNumVertices;
-  gl_vertex_t *vertices = malloc(sizeof(gl_vertex_t) * num_vertices);
-  for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-    // Vertex position
-    vertices[i].position[0] = mesh->mVertices[i].x;
-    vertices[i].position[1] = mesh->mVertices[i].y;
-    vertices[i].position[2] = mesh->mVertices[i].z;
-
-    // Vertex normal
-    if (mesh->mNormals != NULL && mesh->mNumVertices > 0) {
-      vertices[i].normal[0] = mesh->mNormals[i].x;
-      vertices[i].normal[1] = mesh->mNormals[i].y;
-      vertices[i].normal[2] = mesh->mNormals[i].z;
-    }
-
-    // Vertex texture coordinates
-    if (mesh->mTextureCoords[0]) {
-      // Texture coordinates
-      vertices[i].tex_coords[0] = mesh->mTextureCoords[0][i].x;
-      vertices[i].tex_coords[1] = mesh->mTextureCoords[0][i].y;
-      // Note: A vertex can contain up to 8 different texture coordinates. We
-      // thus make the assumption that we won't use models where a vertex can
-      // have multiple texture coordinates so we always take the first set (0).
-
-      // Tangent
-      vertices[i].tangent[0] = mesh->mTangents[i].x;
-      vertices[i].tangent[1] = mesh->mTangents[i].y;
-      vertices[i].tangent[2] = mesh->mTangents[i].z;
-
-      // Bitangent
-      vertices[i].bitangent[0] = mesh->mBitangents[i].x;
-      vertices[i].bitangent[1] = mesh->mBitangents[i].y;
-      vertices[i].bitangent[2] = mesh->mBitangents[i].z;
-
-    } else {
-      // Default Texture coordinates
-      vertices[i].tex_coords[0] = 0.0f;
-      vertices[i].tex_coords[1] = 0.0f;
-    }
-  }
-
-  // For each mesh face
-  // -- Determine number of indices
-  int num_indices = 0;
-  for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-    for (unsigned int j = 0; j < mesh->mFaces[i].mNumIndices; j++) {
-      num_indices++;
-    }
-  }
-  // -- Form indices array
-  unsigned int *indices = malloc(sizeof(unsigned int) * num_indices);
-  int index_counter = 0;
-  for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-    for (unsigned int j = 0; j < mesh->mFaces[i].mNumIndices; j++) {
-      indices[index_counter] = mesh->mFaces[i].mIndices[j];
-      index_counter++;
-    }
-  }
-
-  // Process texture materials
-  struct aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-  // Note: we assume a convention for sampler names in the shaders. Each diffuse texture should be named
-  // as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER.
-  // Same applies to other texture as the following list summarizes:
-  // diffuse: texture_diffuseN
-  // specular: texture_specularN
-  // normal: texture_normalN
-
-  // -- Get total number of textures
-  int num_textures = 0;
-  num_textures += aiGetMaterialTextureCount(material, aiTextureType_DIFFUSE);
-  num_textures += aiGetMaterialTextureCount(material, aiTextureType_SPECULAR);
-  num_textures += aiGetMaterialTextureCount(material, aiTextureType_HEIGHT);
-  num_textures += aiGetMaterialTextureCount(material, aiTextureType_AMBIENT);
-
-  // -- Load textures
-  int textures_length = 0;
-  gl_texture_t *textures = malloc(sizeof(gl_texture_t) * num_textures);
-
-  load_textures(material,
-                aiTextureType_DIFFUSE,
-                model_dir,
-                textures,
-                &textures_length);
-  load_textures(material,
-                aiTextureType_SPECULAR,
-                model_dir,
-                textures,
-                &textures_length);
-  load_textures(material,
-                aiTextureType_HEIGHT,
-                model_dir,
-                textures,
-                &textures_length);
-  load_textures(material,
-                aiTextureType_AMBIENT,
-                model_dir,
-                textures,
-                &textures_length);
-
-  // Form Mesh
-  gl_mesh_t *gl_mesh = malloc(sizeof(gl_mesh_t));
-  gl_mesh_setup(gl_mesh,
-                vertices,
-                num_vertices,
-                indices,
-                num_indices,
-                textures,
-                num_textures);
-
-  return gl_mesh;
-}
-
-static void process_node(const char *model_dir,
-                         const struct aiNode *node,
-                         const struct aiScene *scene) {
-  // Process each mesh located at the current node
-  for (unsigned int i = 0; i < node->mNumMeshes; i++) {
-    // The node object only contains indices to index the actual objects in the
-    // scene. The scene contains all the data, node is just to keep stuff
-    // organized (like relations between nodes).
-    load_mesh(model_dir, scene->mMeshes[node->mMeshes[i]], scene);
-  }
-
-  // After processing all of the meshes (if any) we then recursively process
-  // each of the children nodes
-  for (unsigned int i = 0; i < node->mNumChildren; i++) {
-    process_node(model_dir, node->mChildren[i], scene);
-  }
-}
-
-int gl_model_setup(gl_model_t *model, const char *model_path) {
-  // Using assimp to load model
-  const struct aiScene *scene =
-      aiImportFile(model_path, aiProcessPreset_TargetRealtime_MaxQuality);
-  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
-      !scene->mRootNode) {
-    printf("Failed to load model: %s\n", model_path);
-    return -1;
-  }
-
-  // Get model directory
-  char path[9046] = {0};
-  strcpy(path, model_path);
-  model->model_dir = dirname(path);
-  if (model->model_dir == NULL) {
-    printf("Failed to get directory name of [%s]!", model_path);
-    return -1;
-  }
-
-  // Process model
-  process_node(model->model_dir, scene->mRootNode, scene);
-
-  return 0;
-}
-
-void gl_model_draw(const gl_model_t *model, const GLuint shader) {
-  for (int i = 0; i < model->num_meshes; i++) {
-    gl_mesh_draw(&model->meshes[i], shader);
-  }
-}
+gl_model_t *gl_model_load(const char *model_path);
+void gl_model_free(gl_model_t *model);
+void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera);
 
 /******************************************************************************
  * GUI
@@ -1397,10 +1120,10 @@ void gl_camera_setup(gl_camera_t *camera,
   gl_vec3f(camera->front, 0.0f, 0.0f, -1.0f);
   camera->yaw = gl_deg2rad(0.0f);
   camera->pitch = gl_deg2rad(0.0f);
-  camera->radius = 10.0f;
+  camera->radius = 20.0f;
 
   camera->fov = gl_deg2rad(60.0f);
-  camera->near = 0.1f;
+  camera->near = 0.01f;
   camera->far = 100.0f;
 
   gl_camera_update(camera);
@@ -1926,6 +1649,361 @@ void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
 }
 
 /******************************************************************************
+ * GL-MODEL
+ *****************************************************************************/
+
+static unsigned int gl_texture_load(const char *model_dir,
+                                    const char *texture_fname) {
+  // File fullpath
+  char filepath[9046] = {0};
+  strcat(filepath, model_dir);
+  strcat(filepath, "/");
+  strcat(filepath, texture_fname);
+
+  // Generate texture ID
+  unsigned int texture_id;
+  glGenTextures(1, &texture_id);
+
+  // Load image
+  stbi_set_flip_vertically_on_load(1);
+  int width = 0;
+  int height = 0;
+  int channels = 0;
+  unsigned char *data = stbi_load(filepath, &width, &height, &channels, 0);
+  if (data) {
+    // Image format
+    GLenum format;
+    if (channels == 1) {
+      format = GL_RED;
+    } else if (channels == 3) {
+      format = GL_RGB;
+    } else if (channels == 4) {
+      format = GL_RGBA;
+    } else {
+      printf("Invalid number of channels: %d\n", channels);
+      return -1;
+    }
+
+    // Load image to texture ID
+    // clang-format off
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // clang-format on
+
+  } else {
+    printf("Texture failed to load: [%s]\n", filepath);
+    return -1;
+  }
+
+  // Clean up
+  stbi_image_free(data);
+
+  return texture_id;
+}
+
+static void assimp_load_textures(const struct aiMaterial *material,
+                                 const enum aiTextureType type,
+                                 const char *model_dir,
+                                 gl_texture_t *textures,
+                                 int *textures_length) {
+  // Setup
+  int texture_index = MAX(*textures_length - 1, 0);
+  const int num_textures = aiGetMaterialTextureCount(material, type);
+
+  // Type name
+  char type_name[30] = {0};
+  switch (type) {
+    case aiTextureType_DIFFUSE:
+      strcpy(type_name, "texture_diffuse");
+      break;
+    case aiTextureType_SPECULAR:
+      strcpy(type_name, "texture_specular");
+      break;
+    case aiTextureType_HEIGHT:
+      strcpy(type_name, "texture_height");
+      break;
+    case aiTextureType_AMBIENT:
+      strcpy(type_name, "texture_ambient");
+      break;
+    default:
+      FATAL("Not Implemented!");
+      break;
+  }
+
+  // Load texture
+  for (int index = 0; index < num_textures; index++) {
+    struct aiString texture_fname;
+    enum aiTextureMapping *mapping = NULL;
+    unsigned int *uvindex = NULL;
+    ai_real *blend = NULL;
+    enum aiTextureOp *op = NULL;
+    enum aiTextureMapMode *mapmode = NULL;
+    unsigned int *flags = NULL;
+    aiGetMaterialTexture(material,
+                         type,
+                         index,
+                         &texture_fname,
+                         mapping,
+                         uvindex,
+                         blend,
+                         op,
+                         mapmode,
+                         flags);
+
+    // Check if texture was loaded before and if so, continue to next iteration
+    // int load_texture = 1;
+    // for (unsigned int j = 0; j < textures_loaded.size(); j++) {
+    //   if (strcmp(textures_loaded[j].path.data(), str.C_Str()) == 0) {
+    //     // textures.push_back(textures_loaded[j]);
+    //     load_texture = 0;
+    //     break;
+    //   }
+    // }
+
+    // Load texture
+    // if (load_texture) {
+    //   Texture texture;
+    //   texture.id = TextureFromFile(str.C_Str(), this->directory);
+    //   texture.type = type_name;
+    //   texture.path = str.C_Str();
+    //   textures.push_back(texture);
+    //   textures_loaded.push_back(texture);
+    // }
+
+    textures[texture_index].id = gl_texture_load(model_dir, texture_fname.data);
+    strcpy(textures[texture_index].type, type_name);
+    strcpy(textures[texture_index].path, texture_fname.data);
+    texture_index++;
+    (*textures_length)++;
+  }
+}
+
+static void assimp_load_mesh(const struct aiMesh *mesh,
+                             const struct aiMaterial *material,
+                             gl_model_t *model) {
+  // For each mesh vertices
+  const int num_vertices = mesh->mNumVertices;
+  gl_vertex_t *vertices = MALLOC(gl_vertex_t, num_vertices);
+  for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+    // Position
+    vertices[i].position[0] = mesh->mVertices[i].x;
+    vertices[i].position[1] = mesh->mVertices[i].y;
+    vertices[i].position[2] = mesh->mVertices[i].z;
+
+    // Normal
+    if (mesh->mNormals != NULL && mesh->mNumVertices > 0) {
+      vertices[i].normal[0] = mesh->mNormals[i].x;
+      vertices[i].normal[1] = mesh->mNormals[i].y;
+      vertices[i].normal[2] = mesh->mNormals[i].z;
+    }
+
+    // Texture coordinates
+    if (mesh->mTextureCoords[0]) {
+      // Texture coordinates
+      vertices[i].tex_coords[0] = mesh->mTextureCoords[0][i].x;
+      vertices[i].tex_coords[1] = mesh->mTextureCoords[0][i].y;
+      // Note: A vertex can contain up to 8 different texture coordinates. We
+      // thus make the assumption that we won't use models where a vertex can
+      // have multiple texture coordinates so we always take the first set (0).
+    } else {
+      // Default Texture coordinates
+      vertices[i].tex_coords[0] = 0.0f;
+      vertices[i].tex_coords[1] = 0.0f;
+    }
+
+    // Tangent
+    if (mesh->mTangents) {
+      vertices[i].tangent[0] = mesh->mTangents[i].x;
+      vertices[i].tangent[1] = mesh->mTangents[i].y;
+      vertices[i].tangent[2] = mesh->mTangents[i].z;
+    }
+
+    // Bitangent
+    if (mesh->mBitangents) {
+      vertices[i].bitangent[0] = mesh->mBitangents[i].x;
+      vertices[i].bitangent[1] = mesh->mBitangents[i].y;
+      vertices[i].bitangent[2] = mesh->mBitangents[i].z;
+    }
+  }
+
+  // For each mesh face
+  // -- Determine number of indices
+  size_t num_indices = 0;
+  for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+    num_indices += mesh->mFaces[i].mNumIndices;
+  }
+  // -- Form indices array
+  unsigned int *indices = MALLOC(unsigned int, num_indices);
+  int index_counter = 0;
+  for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+    for (unsigned int j = 0; j < mesh->mFaces[i].mNumIndices; j++) {
+      indices[index_counter] = mesh->mFaces[i].mIndices[j];
+      index_counter++;
+    }
+  }
+
+  // Process texture materials
+  // struct aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+  // Note: we assume a convention for sampler names in the shaders. Each diffuse texture should be named
+  // as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER.
+  // Same applies to other texture as the following list summarizes:
+  // diffuse: texture_diffuseN
+  // specular: texture_specularN
+  // normal: texture_normalN
+
+  // -- Get total number of textures
+  int num_textures = 0;
+  num_textures += aiGetMaterialTextureCount(material, aiTextureType_DIFFUSE);
+  num_textures += aiGetMaterialTextureCount(material, aiTextureType_SPECULAR);
+  num_textures += aiGetMaterialTextureCount(material, aiTextureType_HEIGHT);
+  num_textures += aiGetMaterialTextureCount(material, aiTextureType_AMBIENT);
+
+  // -- Load textures
+  const char *model_dir = model->model_dir;
+  int textures_length = 0;
+  gl_texture_t *textures = MALLOC(gl_texture_t, num_textures);
+
+  assimp_load_textures(material,
+                       aiTextureType_DIFFUSE,
+                       model_dir,
+                       textures,
+                       &textures_length);
+  assimp_load_textures(material,
+                       aiTextureType_SPECULAR,
+                       model_dir,
+                       textures,
+                       &textures_length);
+  assimp_load_textures(material,
+                       aiTextureType_HEIGHT,
+                       model_dir,
+                       textures,
+                       &textures_length);
+  assimp_load_textures(material,
+                       aiTextureType_AMBIENT,
+                       model_dir,
+                       textures,
+                       &textures_length);
+
+  // Form Mesh
+  const int mesh_index = model->num_meshes;
+  gl_mesh_setup(&model->meshes[mesh_index],
+                vertices,
+                num_vertices,
+                indices,
+                num_indices,
+                textures,
+                num_textures);
+  model->num_meshes++;
+}
+
+static void assimp_load_model(const struct aiScene *scene,
+                              const struct aiNode *node,
+                              gl_model_t *model) {
+  // Process each mesh located at the current node
+  for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+    // The node object only contains indices to index the actual objects in the
+    // scene. The scene contains all the data, node is just to keep stuff
+    // organized (like relations between nodes).
+    struct aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+    struct aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+    assimp_load_mesh(mesh, material, model);
+  }
+
+  // After processing all of the meshes (if any) we then recursively process
+  // each of the children nodes
+  for (unsigned int i = 0; i < node->mNumChildren; i++) {
+    assimp_load_model(scene, node->mChildren[i], model);
+  }
+}
+
+static int assimp_num_meshes(const struct aiNode *node) {
+  int num_meshes = node->mNumMeshes;
+  for (unsigned int i = 0; i < node->mNumChildren; i++) {
+    num_meshes += assimp_num_meshes(node->mChildren[i]);
+  }
+  return num_meshes;
+}
+
+gl_model_t *gl_model_load(const char *model_path) {
+  // Malloc
+  gl_model_t *model = MALLOC(gl_model_t, 1);
+
+  // Entity transform
+  gl_eye(model->T, 4, 4);
+  model->T[12] = 0.0;
+  model->T[13] = 0.0;
+  model->T[14] = 0.0;
+
+  // Shader program
+  char *vs = file_read("./shaders/model.vert");
+  char *fs = file_read("./shaders/model.frag");
+  model->program_id = gl_prog_setup(vs, fs, NULL);
+  free(vs);
+  free(fs);
+  if (model->program_id == GL_FALSE) {
+    FATAL("Failed to create shaders!");
+  }
+
+  // Using assimp to load model
+  const struct aiScene *scene =
+      aiImportFile(model_path, aiProcessPreset_TargetRealtime_MaxQuality);
+  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+      !scene->mRootNode) {
+    printf("Failed to load model: %s\n", model_path);
+    return NULL;
+  }
+
+  // Get model directory
+  char path[9046] = {0};
+  strcpy(path, model_path);
+  char *model_dir = dirname(path);
+  if (model_dir == NULL) {
+    printf("Failed to get directory name of [%s]!", model_path);
+    return NULL;
+  }
+  strcpy(model->model_dir, model_dir);
+
+  // Load model
+  const int num_meshes = assimp_num_meshes(scene->mRootNode);
+  model->meshes = MALLOC(gl_mesh_t, num_meshes);
+  model->num_meshes = 0;
+  assimp_load_model(scene, scene->mRootNode, model);
+
+  // Clean up
+  aiReleaseImport(scene);
+
+  return model;
+}
+
+void gl_model_free(gl_model_t *model) {
+  for (int i = 0; i < model->num_meshes; i++) {
+    free(model->meshes[i].vertices);
+    free(model->meshes[i].indices);
+    free(model->meshes[i].textures);
+  }
+  free(model->meshes);
+
+  free(model);
+  model = NULL;
+}
+
+void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
+  glUseProgram(model->program_id);
+  gl_prog_set_mat4f(model->program_id, "projection", camera->P);
+  gl_prog_set_mat4f(model->program_id, "view", camera->V);
+  gl_prog_set_mat4f(model->program_id, "model", model->T);
+
+  for (int i = 0; i < model->num_meshes; i++) {
+    gl_mesh_draw(&model->meshes[i], model->program_id);
+  }
+}
+
+/******************************************************************************
  * GUI
  *****************************************************************************/
 
@@ -2050,6 +2128,9 @@ void gui_setup(gui_t *gui) {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
   }
 
+  // GL Settings
+  glEnable(GL_DEPTH_TEST);
+
   // Camera
   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
   gui->movement_speed = 50.0f;
@@ -2098,23 +2179,33 @@ void gui_loop(gui_t *gui) {
   gl_entity_t grid;
   gl_grid_setup(&grid);
 
+  gl_model_t *model = gl_model_load("/home/chutsu/planet/planet.obj");
+  // gl_model_t *model = gl_model_load("/home/chutsu/projects/LearnOpenGL/"
+  //                                   "resources/objects/nanosuit/nanosuit.obj");
+  // gl_model_t *model =
+  //     gl_model_load("/home/chutsu/projects/proto_ros2/gazebo/models/"
+  //                   "skokloster_castle/skokloster_castle.dae");
+
   gui->loop = 1;
   while (gui->loop) {
+    // Clear rendering states
+    glClear(GL_DEPTH_BUFFER_BIT);
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // gl_cube_draw(&cube, &gui->camera);
     // gl_cube_draw(&cube2, &gui->camera);
     // gl_cube_draw(&cube3, &gui->camera);
-
-    gl_camera_frame_draw(&cf, &gui->camera);
-    gl_axis_frame_draw(&frame, &gui->camera);
+    // gl_camera_frame_draw(&cf, &gui->camera);
+    // gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
+    gl_model_draw(model, &gui->camera);
 
     // int width, height;
     // SDL_GetWindowSize(gui->window, &width, &height);
     // gl_save_frame_buffer(width, height, "/tmp/frame.png");
 
+    // Update
     gui_event_handler(gui);
     SDL_GL_SwapWindow(gui->window);
     SDL_Delay(1);
@@ -2125,6 +2216,7 @@ void gui_loop(gui_t *gui) {
   gl_cube_cleanup(&cube3);
   gl_camera_frame_cleanup(&cf);
   gl_grid_cleanup(&grid);
+  gl_model_free(model);
 
   SDL_DestroyWindow(gui->window);
   SDL_Quit();
@@ -2681,13 +2773,13 @@ int test_gl_lookat() {
 // TEST SHADER ///////////////////////////////////////////////////////////////
 
 int test_gl_shader_compile() {
-  /* SDL init */
+  // SDL init
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
     return -1;
   }
 
-  /* Window */
+  // Window
   const char *title = "Hello World!";
   const int x = 100;
   const int y = 100;
@@ -2702,12 +2794,12 @@ int test_gl_shader_compile() {
     return -1;
   }
 
-  /* OpenGL context */
+  // OpenGL context
   SDL_GLContext context = SDL_GL_CreateContext(window);
   SDL_GL_SetSwapInterval(1);
   UNUSED(context);
 
-  /* GLEW */
+  // GLEW
   GLenum err = glewInit();
   if (err != GLEW_OK) {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
@@ -2727,13 +2819,13 @@ int test_gl_shader_compile() {
 }
 
 int test_gl_shaders_link() {
-  /* SDL init */
+  // SDL init
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
     return -1;
   }
 
-  /* Window */
+  // Window
   const char *title = "Hello World!";
   const int x = 100;
   const int y = 100;
@@ -2748,30 +2840,30 @@ int test_gl_shaders_link() {
     return -1;
   }
 
-  /* OpenGL context */
+  // OpenGL context
   SDL_GLContext context = SDL_GL_CreateContext(window);
   SDL_GL_SetSwapInterval(1);
   UNUSED(context);
 
-  /* GLEW */
+  // GLEW
   GLenum err = glewInit();
   if (err != GLEW_OK) {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
   }
 
-  /* Cube vertex shader */
+  // Cube vertex shader
   char *glcube_vs = file_read("./shaders/cube.vert");
   const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
   free(glcube_vs);
   TEST_ASSERT(vs != GL_FALSE);
 
-  /* Cube fragment shader */
+  // Cube fragment shader
   char *glcube_fs = file_read("./shaders/cube.frag");
   const GLuint fs = gl_shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
   free(glcube_fs);
   TEST_ASSERT(fs != GL_FALSE);
 
-  /* Link shakders */
+  // Link shakders
   const GLuint gs = GL_FALSE;
   const GLuint prog = gl_shaders_link(vs, fs, gs);
   TEST_ASSERT(prog != GL_FALSE);
@@ -2782,13 +2874,13 @@ int test_gl_shaders_link() {
 // TEST GL PROGRAM ///////////////////////////////////////////////////////////
 
 int test_gl_prog_setup() {
-  /* SDL init */
+  // SDL init
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("SDL_Init Error: %s/n", SDL_GetError());
     return -1;
   }
 
-  /* Window */
+  // Window
   const char *title = "Hello World!";
   const int x = 100;
   const int y = 100;
@@ -2803,18 +2895,18 @@ int test_gl_prog_setup() {
     return -1;
   }
 
-  /* OpenGL context */
+  // OpenGL context
   SDL_GLContext context = SDL_GL_CreateContext(window);
   SDL_GL_SetSwapInterval(1);
   UNUSED(context);
 
-  /* GLEW */
+  // GLEW
   GLenum err = glewInit();
   if (err != GLEW_OK) {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
   }
 
-  /* Shader program */
+  // Shader program
   char *glcube_vs = file_read("./shaders/cube.vert");
   char *glcube_fs = file_read("./shaders/cube.frag");
   const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL);
@@ -2861,6 +2953,48 @@ int test_gl_camera_setup() {
   TEST_ASSERT(fabs(camera.fov - fov_expected) < 1e-8);
   TEST_ASSERT(fabs(camera.near - near_expected) < 1e-8);
   TEST_ASSERT(fabs(camera.far - far_expected) < 1e-8);
+
+  return 0;
+}
+
+// TEST GL-MODEL /////////////////////////////////////////////////////////////
+
+int test_gl_model_load() {
+  // SDL init
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    printf("SDL_Init Error: %s/n", SDL_GetError());
+    return -1;
+  }
+
+  // Window
+  const char *title = "Hello World!";
+  const int x = 100;
+  const int y = 100;
+  const int w = 640;
+  const int h = 480;
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
+  if (window == NULL) {
+    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
+    return -1;
+  }
+
+  // OpenGL context
+  SDL_GLContext context = SDL_GL_CreateContext(window);
+  SDL_GL_SetSwapInterval(1);
+  UNUSED(context);
+
+  // GLEW
+  GLenum err = glewInit();
+  if (err != GLEW_OK) {
+    FATAL("glewInit failed: %s", glewGetErrorString(err));
+  }
+
+  // GL MODEL
+  gl_model_t *model = gl_model_load("/home/chutsu/planet/planet.obj");
+  gl_model_free(model);
 
   return 0;
 }
@@ -2919,6 +3053,7 @@ int main(int argc, char *argv[]) {
   // TEST(test_gl_shaders_link);
   // TEST(test_gl_prog_setup);
   // TEST(test_gl_camera_setup);
+  // TEST(test_gl_model_load);
   TEST(test_gui);
   // TEST(test_imshow);
 
