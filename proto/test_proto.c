@@ -6941,6 +6941,10 @@ int test_calib_imucam_update() {
     }
   }
 
+  // Clean up
+  timeline_free(timeline);
+  calib_imucam_free(calib);
+
   return 0;
 }
 
