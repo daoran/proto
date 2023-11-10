@@ -62,6 +62,8 @@ run_memcheck() {
 # python3 proto.py TestFactors.test_imu_factor2
 # python3 proto.py TestFactors.test_marg_factor
 # python3 proto.py TestFactorGraph
+# python3 proto.py TestFactorGraph.test_factor_graph_add_param
+# python3 proto.py TestFactorGraph.test_factor_graph_add_factor
 # python3 proto.py TestFactorGraph.test_factor_graph_solve_vo
 # python3 proto.py TestFactorGraph.test_factor_graph_solve_io
 # python3 proto.py TestFactorGraph.test_factor_graph_solve_vio
@@ -123,6 +125,10 @@ run_memcheck() {
 # time make clean
 # time make build
 # time make debug
+
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "make ci" C-m C-m
+exit
 
 run_all_tests() {
   tmux send-keys -t dev -R C-l C-m
@@ -186,10 +192,20 @@ dev_euroc() {
   exit
 }
 
+dev_gui() {
+  touch proto.c;
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_gui && ./build/test_gui" C-m
+  # tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_gui && gdb -ex=run -ex=bt ./build/test_gui" C-m
+  # tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_gui && gdb -ex=run -ex=bt -ex=quit ./build/test_gui" C-m
+  exit
+}
+
 # dev_sbgc
 # dev_arducam
 # dev_aprilgrid
 # dev_euroc
+# dev_gui
 # python3 scripts/plot_gimbal_calib.py
 # python3 scripts/plot_inertial_odometry.py
 
@@ -430,7 +446,7 @@ dev_euroc() {
 # run_test test_calib_imucam_add_fiducial_event
 # run_test test_calib_imucam_update
 # run_test test_calib_imucam_batch
-run_test test_calib_imucam_batch_ceres
+# run_test test_calib_imucam_batch_ceres
 # python3 test_data/test_marg.py
 # run_test test_calib_gimbal_copy
 # run_test test_calib_gimbal_add_fiducial
