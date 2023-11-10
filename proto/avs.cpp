@@ -384,40 +384,40 @@ FeatureGrid::FeatureGrid(const int image_width,
                          const int image_height,
                          const int grid_rows,
                          const int grid_cols)
-    : image_width_{image_width}, image_height_{image_height},
-      grid_rows_{grid_rows}, grid_cols_{grid_cols} {
-  for (int i = 0; i < (grid_rows_ * grid_cols_); i++) {
-    cells_.push_back(0);
+    : image_width{image_width},
+      image_height{image_height}, grid_rows{grid_rows}, grid_cols{grid_cols} {
+  for (int i = 0; i < (grid_rows * grid_cols); i++) {
+    cells.push_back(0);
   }
 }
 
 void FeatureGrid::add(const int pixel_x, const int pixel_y) {
-  assert(pixel_x >= 0 && pixel_x <= image_width_);
-  assert(pixel_y >= 0 && pixel_y <= image_height_);
+  assert(pixel_x >= 0 && pixel_x <= image_width);
+  assert(pixel_y >= 0 && pixel_y <= image_height);
   const int cell_idx = cellIndex(pixel_x, pixel_y);
-  cells_[cell_idx] += 1;
-  keypoints_.emplace_back(pixel_x, pixel_y);
+  cells[cell_idx] += 1;
+  keypoints.emplace_back(pixel_x, pixel_y);
 }
 
 int FeatureGrid::cellIndex(const int pixel_x, const int pixel_y) const {
-  const float img_w = image_width_;
-  const float img_h = image_height_;
-  float grid_x = ceil((std::max(1, pixel_x) / img_w) * grid_cols_) - 1.0;
-  float grid_y = ceil((std::max(1, pixel_y) / img_h) * grid_rows_) - 1.0;
-  const int cell_id = int(grid_x + (grid_y * grid_cols_));
+  const float img_w = image_width;
+  const float img_h = image_height;
+  float grid_x = ceil((std::max(1, pixel_x) / img_w) * grid_cols) - 1.0;
+  float grid_y = ceil((std::max(1, pixel_y) / img_h) * grid_rows) - 1.0;
+  const int cell_id = int(grid_x + (grid_y * grid_cols));
   return cell_id;
 }
 
 int FeatureGrid::count(const int cell_idx) const {
-  return cells_[cell_idx];
+  return cells[cell_idx];
 }
 
 void FeatureGrid::debug(const bool imshow) const {
-  const int w = image_width_;
-  const int h = image_height_;
+  const int w = image_width;
+  const int h = image_height;
   cv::Mat viz = cv::Mat::zeros(h, w, CV_32F);
 
-  for (const auto kp : keypoints_) {
+  for (const auto kp : keypoints) {
     const auto x = kp.first;
     const auto y = kp.second;
 
@@ -448,10 +448,10 @@ void GridDetector::detect(const cv::Mat &image,
   // Calculate number of grid cells and max corners per cell
   const int img_w = image.size().width;
   const int img_h = image.size().height;
-  const int dx = int(std::ceil(float(img_w) / float(grid_cols_)));
-  const int dy = int(std::ceil(float(img_h) / float(grid_rows_)));
-  const int num_cells = grid_rows_ * grid_cols_;
-  const int max_per_cell = floor(max_keypoints_ / num_cells);
+  const int dx = int(std::ceil(float(img_w) / float(grid_cols)));
+  const int dy = int(std::ceil(float(img_h) / float(grid_rows)));
+  const int num_cells = grid_rows * grid_cols;
+  const int max_per_cell = floor(max_keypoints / num_cells);
 
   // Create feature grid of previous keypoints
   FeatureGrid grid{img_w, img_h};
@@ -473,14 +473,14 @@ void GridDetector::detect(const cv::Mat &image,
       // Detect corners in grid cell
       cv::Rect roi(x, y, w, h);
       std::vector<cv::KeyPoint> kps_roi;
-      detector_->detect(image(roi), kps_roi);
+      detector->detect(image(roi), kps_roi);
       sort_keypoints(kps_roi);
       kps_roi = spread_keypoints(image(roi), kps_roi, 10, kps_prev);
 
       // Extract feature descriptors
       cv::Mat des_roi;
-      if (optflow_mode_ == false) {
-        detector_->compute(image(roi), kps_roi, des_roi);
+      if (optflow_mode == false) {
+        detector->compute(image(roi), kps_roi, des_roi);
       }
 
       // Offset keypoints
@@ -495,7 +495,7 @@ void GridDetector::detect(const cv::Mat &image,
         kp.pt.y += y;
 
         kps_new.push_back(kp);
-        if (optflow_mode_ == false) {
+        if (optflow_mode == false) {
           if (des_new.empty()) {
             des_new = des_roi.row(i);
           } else {
@@ -513,7 +513,7 @@ void GridDetector::detect(const cv::Mat &image,
 
   // Debug
   if (debug) {
-    _debug(image, grid, kps_new, kps_prev);
+    visualize(image, grid, kps_new, kps_prev);
   }
 }
 
@@ -521,15 +521,15 @@ void GridDetector::detect(const cv::Mat &image,
                           std::vector<cv::KeyPoint> &kps_new,
                           const std::vector<cv::KeyPoint> &kps_prev,
                           bool debug) const {
-  assert(optflow_mode_ == true);
+  assert(optflow_mode == true);
   cv::Mat des_new;
   detect(image, kps_new, des_new, kps_prev, debug);
 }
 
-void GridDetector::_debug(const cv::Mat &image,
-                          const FeatureGrid &grid,
-                          const std::vector<cv::KeyPoint> &kps_new,
-                          const std::vector<cv::KeyPoint> &kps_prev) const {
+void GridDetector::visualize(const cv::Mat &image,
+                             const FeatureGrid &grid,
+                             const std::vector<cv::KeyPoint> &kps_new,
+                             const std::vector<cv::KeyPoint> &kps_prev) const {
   // Visualization properties
   const auto red = cv::Scalar{0, 0, 255};
   const auto yellow = cv::Scalar{0, 255, 255};
@@ -539,8 +539,8 @@ void GridDetector::_debug(const cv::Mat &image,
   // Setup
   const int img_w = image.size().width;
   const int img_h = image.size().height;
-  const int dx = int(std::ceil(float(img_w) / float(grid_cols_)));
-  const int dy = int(std::ceil(float(img_h) / float(grid_rows_)));
+  const int dx = int(std::ceil(float(img_w) / float(grid_cols)));
+  const int dy = int(std::ceil(float(img_h) / float(grid_rows)));
   cv::Mat viz;
   cv::cvtColor(image, viz, cv::COLOR_GRAY2RGB);
 
@@ -574,354 +574,44 @@ void GridDetector::_debug(const cv::Mat &image,
   cv::waitKey(0);
 }
 
-/////////////
-// TRACKER //
-/////////////
-
-KeyFrame::KeyFrame(
-    const std::map<int, cv::Mat> images,
-    const std::map<int, std::vector<cv::KeyPoint>> &keypoints_ol,
-    const std::map<int, std::vector<cv::KeyPoint>> &keypoints_nol)
-    : images_{images}, keypoints_ol_{keypoints_ol}, keypoints_nol_{
-                                                        keypoints_nol} {
-}
-
-void KeyFrame::debug() const {
-  const cv::Scalar red = cv::Scalar{0, 0, 255};
-  const auto flags = cv::DrawMatchesFlags::DEFAULT;
-
-  bool quit = false;
-  while (quit == false) {
-    // Draw Keypoints
-    std::vector<cv::Mat> viz_imgs;
-    for (auto &[cam_idx, cam_img] : images_) {
-      const auto &kps_ol = keypoints_ol_.at(cam_idx);
-      const auto &kps_nol = keypoints_nol_.at(cam_idx);
-
-      cv::Mat viz_img;
-      cv::drawKeypoints(cam_img, kps_ol, viz_img, red, flags);
-      cv::drawKeypoints(cam_img, kps_nol, viz_img, red, flags);
-      viz_imgs.push_back(viz_img);
-    }
-
-    // Stitch images horizontally
-    cv::Mat viz;
-    for (const auto img : viz_imgs) {
-      if (viz.empty()) {
-        viz = img;
-      } else {
-        cv::hconcat(viz, img, viz);
-      }
-    }
-
-    // Show
-    cv::imshow("KeyFrame", viz);
-    if (cv::waitKey(0) == 'q') {
-      quit = true;
-    }
-  }
-}
-
-Tracker::Tracker() {
-  matcher_ = cv::DescriptorMatcher::create("BruteForce-Hamming");
-}
-
-void Tracker::addCamera(const camera_params_t &cam_params,
-                        const extrinsic_t &cam_ext) {
-  cam_params_[cam_params.cam_idx] = cam_params;
-  cam_exts_[cam_params.cam_idx] = cam_ext;
-}
-
-void Tracker::addOverlap(const std::pair<int, int> &overlap) {
-  overlaps_.push_back(overlap);
-}
-
-void Tracker::_detectOverlap(
-    const std::map<int, cv::Mat> &mcam_imgs,
-    std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap) const {
-  assert(cam_params_.size() > 0);
-  assert(cam_exts_.size() > 0);
-
-  // Detect overlapping features
-#pragma omp parallel for
-  for (size_t i = 0; i < overlaps_.size(); i++) {
-    const auto idx_i = overlaps_.at(i).first;
-    const auto idx_j = overlaps_.at(i).second;
-    const auto &img_i = mcam_imgs.at(idx_i);
-    const auto &img_j = mcam_imgs.at(idx_j);
-
-    // Detect new corners
-    std::vector<cv::KeyPoint> kps_i;
-    detector_.detect(img_i, kps_i);
-
-    // Optical-flow track
-    std::vector<cv::KeyPoint> kps_j;
-    std::vector<uchar> optflow_inliers;
-    optflow_track(img_i, img_j, kps_i, kps_j, optflow_inliers);
-
-    // RANSAC
-    undistort_func_t cam_i_undist = pinhole_radtan4_undistort;
-    undistort_func_t cam_j_undist = pinhole_radtan4_undistort;
-    const real_t *cam_i_params = cam_params_.at(idx_i).data;
-    const real_t *cam_j_params = cam_params_.at(idx_j).data;
-    std::vector<uchar> ransac_inliers;
-    ransac(kps_i,
-           kps_j,
-           cam_i_undist,
-           cam_j_undist,
-           cam_i_params,
-           cam_j_params,
-           ransac_inliers);
-
-    // Reprojection filter
-    const project_func_t cam_i_proj_func = pinhole_radtan4_project;
-    const int *cam_i_res = cam_params_.at(idx_i).resolution;
-    std::vector<cv::Point3d> points;
-    std::vector<bool> reproj_inliers;
-    TF(cam_exts_.at(idx_i).data, T_C0Ci);
-    TF(cam_exts_.at(idx_j).data, T_C0Cj);
-    reproj_filter(cam_i_proj_func,
-                  cam_i_res,
-                  cam_i_params,
-                  cam_j_params,
-                  T_C0Ci,
-                  T_C0Cj,
-                  kps_i,
-                  kps_j,
-                  points,
-                  reproj_inliers);
-
-    // Filter outliers
-    for (size_t n = 0; n < kps_i.size(); n++) {
-      if (optflow_inliers[n] && ransac_inliers[n] && reproj_inliers[n]) {
-        mcam_kps_overlap[idx_i].push_back(kps_i[n]);
-        mcam_kps_overlap[idx_j].push_back(kps_j[n]);
-      }
-    }
-  }
-}
-
-void Tracker::_detectNonOverlap(
-    const std::map<int, cv::Mat> &mcam_imgs,
-    const std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap,
-    std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_nonoverlap) const {
-  // Detect non-overlapping features
-  for (const auto &[cam_idx, cam_img] : mcam_imgs) {
-    std::vector<cv::KeyPoint> kps_prev = mcam_kps_overlap.at(cam_idx);
-    std::vector<cv::KeyPoint> kps_new;
-    detector_.detect(cam_img, kps_new, kps_prev);
-    mcam_kps_nonoverlap[cam_idx] = kps_new;
-  }
-}
-
-KeyFrame Tracker::_newKeyFrame(const std::map<int, cv::Mat> &mcam_imgs,
-                               const bool debug) const {
-  // Detect overlapping and non-overlapping features
-  std::map<int, std::vector<cv::KeyPoint>> mcam_kps_overlap;
-  _detectOverlap(mcam_imgs, mcam_kps_overlap);
-
-  std::map<int, std::vector<cv::KeyPoint>> mcam_kps_nonoverlap;
-  _detectNonOverlap(mcam_imgs, mcam_kps_overlap, mcam_kps_nonoverlap);
-
-  // Debug
-  if (debug) {
-    bool quit = false;
-    while (debug && quit == false) {
-      const cv::Scalar red = cv::Scalar{0, 0, 255};
-      const cv::Scalar yellow = cv::Scalar{0, 255, 255};
-      const auto flags = cv::DrawMatchesFlags::DEFAULT;
-
-      // Draw Keypoints
-      std::vector<cv::Mat> viz_imgs;
-      for (auto &[cam_idx, cam_img] : mcam_imgs) {
-        const auto &kps_prev = mcam_kps_overlap.at(cam_idx);
-        const auto &kps_new = mcam_kps_nonoverlap.at(cam_idx);
-        cv::Mat viz_img;
-        cv::drawKeypoints(cam_img, kps_prev, viz_img, yellow, flags);
-        cv::drawKeypoints(viz_img, kps_new, viz_img, red, flags);
-        viz_imgs.push_back(viz_img);
-      }
-
-      // Stitch images horizontally
-      cv::Mat viz;
-      for (const auto img : viz_imgs) {
-        if (viz.empty()) {
-          viz = img;
-        } else {
-          cv::hconcat(viz, img, viz);
-        }
-      }
-
-      cv::imshow("New features", viz);
-      if (cv::waitKey(0) == 'q') {
-        quit = true;
-      }
-    }
-  }
-
-  KeyFrame kf{mcam_imgs, mcam_kps_overlap, mcam_kps_nonoverlap};
-  return kf;
-}
-
-int Tracker::track(const std::map<int, cv::Mat> &mcam_imgs, const bool debug) {
-  // Create new keyframe
-  if (kf_ == nullptr) {
-    LOG_INFO("New Keyframe!\n");
-    kf_ = std::make_unique<KeyFrame>(_newKeyFrame(mcam_imgs));
-    return 0;
-  }
-
-  // Track features
-  bool new_keyframe = false;
-  std::map<int, std::vector<cv::KeyPoint>> kps_tracked;
-
-  for (int cam_idx = 0; cam_idx < kf_->keypoints_ol_.size(); cam_idx++) {
-    // Setup
-    const auto kps_i = kf_->keypoints_ol_[cam_idx];
-    const cv::Mat &img_i = kf_->images_[cam_idx];
-    const cv::Mat &img_j = mcam_imgs.at(cam_idx);
-
-    // Optflow track through time
-    std::vector<cv::KeyPoint> kps_j;
-    std::vector<uchar> optflow_inliers;
-    optflow_track(img_i, img_j, kps_i, kps_j, optflow_inliers);
-
-    // RANSAC
-    undistort_func_t cam_undist = pinhole_radtan4_undistort;
-    const real_t *cam_params = cam_params_.at(cam_idx).data;
-    std::vector<uchar> ransac_inliers;
-    ransac(kps_i,
-           kps_j,
-           cam_undist,
-           cam_undist,
-           cam_params,
-           cam_params,
-           ransac_inliers);
-
-    // Inliers
-    std::vector<uchar> inliers;
-    for (size_t i = 0; i < optflow_inliers.size(); i++) {
-      inliers.push_back(optflow_inliers[i] && ransac_inliers[i]);
-    }
-
-    size_t num_inliers = 0;
-    size_t num_outliers = 0;
-    size_t num_total = 0;
-    float inlier_ratio = 0.0f;
-    inlier_stats(inliers, num_inliers, num_outliers, num_total, inlier_ratio);
-    // printf("num_inliers: %ld, ", num_inliers);
-    // printf("num_outliers: %ld, ", num_outliers);
-    // printf("num_total: %ld, ", num_total);
-    // printf("inlier ratio: %f", inlier_ratio);
-    // printf("\n");
-
-    if (inlier_ratio < 0.6) {
-      new_keyframe = true;
-    }
-
-    // Filter outliers
-    kps_tracked[cam_idx] = filter_outliers(kps_j, inliers);
-  }
-
-  // Debug
-  {
-    // Draw keypoints
-    const cv::Scalar red = cv::Scalar{0, 0, 255};
-    const auto flags = cv::DrawMatchesFlags::DEFAULT;
-
-    // Draw KeyFrame
-    std::vector<cv::Mat> kframe_imgs;
-    for (auto &[cam_idx, cam_img] : kf_->images_) {
-      const auto &kps_ol = kf_->keypoints_ol_.at(cam_idx);
-      const auto &kps_nol = kf_->keypoints_nol_.at(cam_idx);
-
-      cv::Mat kframe_img = cam_img;
-      cv::drawKeypoints(kframe_img, kps_ol, kframe_img, red, flags);
-      cv::drawKeypoints(kframe_img, kps_nol, kframe_img, red, flags);
-      kframe_imgs.push_back(kframe_img);
-    }
-    // -- Stitch images horizontally
-    cv::Mat kframe;
-    for (const auto img : kframe_imgs) {
-      if (kframe.empty()) {
-        kframe = img;
-      } else {
-        cv::hconcat(kframe, img, kframe);
-      }
-    }
-
-    // Draw tracked keypoints
-    std::vector<cv::Mat> frame_imgs;
-    for (auto &[cam_idx, cam_img] : mcam_imgs) {
-      cv::Mat frame_img;
-      auto kps = kps_tracked[cam_idx];
-      cv::drawKeypoints(cam_img, kps, frame_img, red, flags);
-      frame_imgs.push_back(frame_img);
-    }
-    // -- Stitch images horizontally
-    cv::Mat frame;
-    for (const auto img : frame_imgs) {
-      if (frame.empty()) {
-        frame = img;
-      } else {
-        cv::hconcat(frame, img, frame);
-      }
-    }
-
-    // Show
-    cv::Mat viz;
-    cv::vconcat(kframe, frame, viz);
-    cv::imshow("Tracked", viz);
-    // cv::waitKey(100);
-  }
-
-  if (new_keyframe) {
-    LOG_INFO("New Keyframe!");
-    old_kfs_.push_back(std::move(kf_));
-    kf_ = std::make_unique<KeyFrame>(_newKeyFrame(mcam_imgs));
-  }
-
-  return 0;
-}
-
 /////////////////////
 // FEATURE-TRACKER //
 /////////////////////
 
 FeatureTracker::FeatureTracker() {
-  matcher_ = cv::DescriptorMatcher::create("BruteForce-Hamming");
+  matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
 }
 
-void FeatureTracker::addCamera(const camera_params_t &cam_params,
-                               const extrinsic_t &cam_ext) {
-  cam_params_[cam_params.cam_idx] = cam_params;
-  cam_exts_[cam_params.cam_idx] = cam_ext;
+void FeatureTracker::add_camera(const camera_params_t &cam_params,
+                                const extrinsic_t &cam_ext) {
+  cam_params_map[cam_params.cam_idx] = cam_params;
+  cam_exts_map[cam_params.cam_idx] = cam_ext;
 }
 
-void FeatureTracker::addOverlap(const std::pair<int, int> &overlap) {
-  overlaps_.push_back(overlap);
+void FeatureTracker::add_overlap(const std::pair<int, int> &overlap) {
+  overlaps.push_back(overlap);
 }
 
-void FeatureTracker::_detectOverlap(
+void FeatureTracker::detect_overlap(
     const std::map<int, cv::Mat> &mcam_imgs,
     std::map<int, std::vector<cv::KeyPoint>> &keypoints) const {
-  assert(cam_params_.size() > 0);
-  assert(cam_exts_.size() > 0);
+  assert(cam_params_map.size() > 0);
+  assert(cam_exts_map.size() > 0);
 
   // Detect overlapping features
-  for (size_t i = 0; i < overlaps_.size(); i++) {
-    const auto idx_i = overlaps_.at(i).first;
-    const auto idx_j = overlaps_.at(i).second;
+  for (size_t i = 0; i < overlaps.size(); i++) {
+    const auto idx_i = overlaps.at(i).first;
+    const auto idx_j = overlaps.at(i).second;
     const auto &img_i = mcam_imgs.at(idx_i);
     const auto &img_j = mcam_imgs.at(idx_j);
 
     // Detect new corners
     std::vector<cv::KeyPoint> kps_i;
     std::vector<cv::KeyPoint> kps_i_prev;
-    for (const auto &[feature_id, feature] : features_) {
-      kps_i_prev.push_back(feature.lastKeyPoint(idx_i));
+    for (const auto &[feature_id, feature] : features) {
+      kps_i_prev.push_back(feature.last_keypoint(idx_i));
     }
-    detector_.detect(img_i, kps_i, kps_i_prev);
+    detector.detect(img_i, kps_i, kps_i_prev);
 
     // Optical-flow track
     std::vector<cv::KeyPoint> kps_j;
@@ -931,8 +621,8 @@ void FeatureTracker::_detectOverlap(
     // RANSAC
     undistort_func_t cam_i_undist = pinhole_radtan4_undistort;
     undistort_func_t cam_j_undist = pinhole_radtan4_undistort;
-    const real_t *cam_i_params = cam_params_.at(idx_i).data;
-    const real_t *cam_j_params = cam_params_.at(idx_j).data;
+    const real_t *cam_i_params = cam_params_map.at(idx_i).data;
+    const real_t *cam_j_params = cam_params_map.at(idx_j).data;
     std::vector<uchar> ransac_inliers;
     ransac(kps_i,
            kps_j,
@@ -944,11 +634,11 @@ void FeatureTracker::_detectOverlap(
 
     // Reprojection filter
     const project_func_t cam_i_proj_func = pinhole_radtan4_project;
-    const int *cam_i_res = cam_params_.at(idx_i).resolution;
+    const int *cam_i_res = cam_params_map.at(idx_i).resolution;
     std::vector<cv::Point3d> points;
     std::vector<bool> reproj_inliers;
-    TF(cam_exts_.at(idx_i).data, T_C0Ci);
-    TF(cam_exts_.at(idx_j).data, T_C0Cj);
+    TF(cam_exts_map.at(idx_i).data, T_C0Ci);
+    TF(cam_exts_map.at(idx_j).data, T_C0Cj);
     reproj_filter(cam_i_proj_func,
                   cam_i_res,
                   cam_i_params,
@@ -974,30 +664,30 @@ int FeatureTracker::track(const timestamp_t ts,
                           const std::map<int, cv::Mat> &mcam_imgs,
                           const bool debug) {
   // Detect new features
-  if (init_ == false) {
+  if (init == false) {
     std::map<int, std::vector<cv::KeyPoint>> keypoints;
-    _detectOverlap(mcam_imgs, keypoints);
+    detect_overlap(mcam_imgs, keypoints);
 
     const auto &kps_i = keypoints[0];
     const auto &kps_j = keypoints[1];
     for (size_t n = 0; n < kps_i.size(); n++) {
-      const size_t fid = feature_counter_++;
-      features_[fid] = FeatureInfo{fid, ts, {{0, kps_i[n]}, {1, kps_j[n]}}};
+      const size_t fid = feature_counter++;
+      features[fid] = FeatureInfo{fid, ts, {{0, kps_i[n]}, {1, kps_j[n]}}};
     }
-    init_ = true;
-    prev_imgs_ = mcam_imgs;
+    init = true;
+    prev_imgs = mcam_imgs;
     return 0;
   }
 
   // Track features through time
   bool detect_new = false;
   for (const auto &[cam_idx, img_k] : mcam_imgs) {
-    const cv::Mat &img_km1 = prev_imgs_[cam_idx];
+    const cv::Mat &img_km1 = prev_imgs[cam_idx];
     std::vector<size_t> feature_ids;
     std::vector<cv::KeyPoint> kps_km1;
-    for (const auto &[feature_id, feature] : features_) {
+    for (const auto &[feature_id, feature] : features) {
       feature_ids.push_back(feature_id);
-      kps_km1.push_back(feature.lastKeyPoint(cam_idx));
+      kps_km1.push_back(feature.last_keypoint(cam_idx));
     }
 
     // Optflow track through time
@@ -1007,14 +697,14 @@ int FeatureTracker::track(const timestamp_t ts,
 
     // RANSAC
     undistort_func_t cam_undist = pinhole_radtan4_undistort;
-    const real_t *cam_params = cam_params_.at(cam_idx).data;
+    const real_t *params = cam_params_map.at(cam_idx).data;
     std::vector<uchar> ransac_inliers;
     ransac(kps_km1,
            kps_k,
            cam_undist,
            cam_undist,
-           cam_params,
-           cam_params,
+           params,
+           params,
            ransac_inliers);
 
     // Inliers
@@ -1041,10 +731,10 @@ int FeatureTracker::track(const timestamp_t ts,
     // Update features
     for (size_t i = 0; i < inliers.size(); i++) {
       if (inliers[i] == false) {
-        features_.erase(feature_ids[i]);
+        features.erase(feature_ids[i]);
       } else {
-        if (features_.count(feature_ids[i])) {
-          features_[feature_ids[i]].update(ts, cam_idx, kps_k[i]);
+        if (features.count(feature_ids[i])) {
+          features[feature_ids[i]].update(ts, cam_idx, kps_k[i]);
         }
       }
     }
@@ -1054,13 +744,13 @@ int FeatureTracker::track(const timestamp_t ts,
   if (detect_new) {
     LOG_INFO("Detecting new features!\n");
     std::map<int, std::vector<cv::KeyPoint>> keypoints;
-    _detectOverlap(mcam_imgs, keypoints);
+    detect_overlap(mcam_imgs, keypoints);
 
     const auto &kps_i = keypoints[0];
     const auto &kps_j = keypoints[1];
     for (size_t n = 0; n < kps_i.size(); n++) {
-      const size_t fid = feature_counter_++;
-      features_[fid] = FeatureInfo{fid, ts, {{0, kps_i[n]}, {1, kps_j[n]}}};
+      const size_t fid = feature_counter++;
+      features[fid] = FeatureInfo{fid, ts, {{0, kps_i[n]}, {1, kps_j[n]}}};
     }
   }
 
@@ -1075,8 +765,8 @@ int FeatureTracker::track(const timestamp_t ts,
     for (auto &[cam_idx, cam_img] : mcam_imgs) {
       cv::Mat frame_img;
       std::vector<cv::KeyPoint> kps;
-      for (const auto &[feature_id, feature] : features_) {
-        kps.push_back(feature.lastKeyPoint(cam_idx));
+      for (const auto &[feature_id, feature] : features) {
+        kps.push_back(feature.last_keypoint(cam_idx));
       }
 
       cv::drawKeypoints(cam_img, kps, frame_img, red, flags);
@@ -1098,8 +788,53 @@ int FeatureTracker::track(const timestamp_t ts,
   }
 
   // Update previous images
-  prev_imgs_ = mcam_imgs;
+  prev_imgs = mcam_imgs;
   return 0;
+}
+
+void FeatureTracker::visualize() {
+  // // Visualization properties
+  // const auto red = cv::Scalar{0, 0, 255};
+  // const auto yellow = cv::Scalar{0, 255, 255};
+  // const auto line = cv::LINE_AA;
+  // const auto font = cv::FONT_HERSHEY_SIMPLEX;
+
+  // // Setup
+  // const int img_w = image.size().width;
+  // const int img_h = image.size().height;
+  // const int dx = int(std::ceil(float(img_w) / float(grid_cols)));
+  // const int dy = int(std::ceil(float(img_h) / float(grid_rows)));
+  // cv::Mat viz;
+  // cv::cvtColor(image, viz, cv::COLOR_GRAY2RGB);
+
+  // // Draw horizontal lines
+  // for (int x = 0; x < img_w; x += dx) {
+  //   cv::line(viz, cv::Point2f(x, 0), cv::Point2f(x, img_w), red, 1, line);
+  // }
+
+  // // Draw vertical lines
+  // for (int y = 0; y < img_h; y += dy) {
+  //   cv::line(viz, cv::Point2f(0, y), cv::Point2f(img_w, y), red, 1, line);
+  // }
+
+  // // Draw bin numbers
+  // int cell_idx = 0;
+  // for (int y = 0; y < img_h; y += dy) {
+  //   for (int x = 0; x < img_w; x += dx) {
+  //     auto text = std::to_string(grid.count(cell_idx));
+  //     auto origin = cv::Point2f{x + 10.0f, y + 20.0f};
+  //     cv::putText(viz, text, origin, font, 0.5, red, 1, line);
+  //     cell_idx += 1;
+  //   }
+  // }
+
+  // // Draw keypoints
+  // cv::drawKeypoints(viz, kps_new, viz, red);
+  // cv::drawKeypoints(viz, kps_prev, viz, yellow);
+
+  // // Imshow
+  // cv::imshow("viz", viz);
+  // cv::waitKey(0);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1307,18 +1042,12 @@ int test_front_end() {
   // const auto img0 = cv::imread(img0_path, cv::IMREAD_GRAYSCALE);
   // const auto img1 = cv::imread(img1_path, cv::IMREAD_GRAYSCALE);
 
-  // Tracker
+  // Feature Tracker
   EuRoCParams euroc;
-
-  // Tracker tracker;
-  // tracker.addCamera(euroc.cam0_params, euroc.cam0_ext);
-  // tracker.addCamera(euroc.cam1_params, euroc.cam1_ext);
-  // tracker.addOverlap({0, 1});
-
   FeatureTracker ft;
-  ft.addCamera(euroc.cam0_params, euroc.cam0_ext);
-  ft.addCamera(euroc.cam1_params, euroc.cam1_ext);
-  ft.addOverlap({0, 1});
+  ft.add_camera(euroc.cam0_params, euroc.cam0_ext);
+  ft.add_camera(euroc.cam1_params, euroc.cam1_ext);
+  ft.add_overlap({0, 1});
 
   // Setup
   const char *data_path = "/data/euroc/V1_01";
@@ -1364,11 +1093,11 @@ int test_front_end() {
 }
 
 void run_unittests() {
-  // TEST(test_feature_grid);
-  // TEST(test_spread_keypoints);
-  // TEST(test_optflow_track);
-  // TEST(test_grid_detect);
-  TEST(test_front_end);
+  TEST(test_feature_grid);
+  TEST(test_spread_keypoints);
+  TEST(test_optflow_track);
+  TEST(test_grid_detect);
+  // TEST(test_front_end);
 }
 
 //////////////////////////////////////////////////////////////////////////////

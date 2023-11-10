@@ -123,14 +123,13 @@ void reproj_filter(const project_func_t cam_i_proj_func,
  *   cell_id = int(grid_x + (grid_y * grid_cols))
  *
  */
-class FeatureGrid {
-public:
-  int image_width_;
-  int image_height_;
-  int grid_rows_;
-  int grid_cols_;
-  std::vector<int> cells_;
-  std::vector<std::pair<int, int>> keypoints_;
+struct FeatureGrid {
+  int image_width;
+  int image_height;
+  int grid_rows;
+  int grid_cols;
+  std::vector<int> cells;
+  std::vector<std::pair<int, int>> keypoints;
 
   FeatureGrid(const int image_width,
               const int image_height,
@@ -158,15 +157,13 @@ public:
 /**
  * Grid detector
  */
-class GridDetector {
-public:
-  // cv::Ptr<cv::Feature2D> detector_ = cv::ORB::create();
-  // bool optflow_mode_ = false;
-  cv::Ptr<cv::Feature2D> detector_ = cv::FastFeatureDetector::create();
-  bool optflow_mode_ = true;
-  int max_keypoints_ = 200;
-  int grid_rows_ = 3;
-  int grid_cols_ = 4;
+struct GridDetector {
+  // cv::Ptr<cv::Feature2D> detector = cv::ORB::create();
+  cv::Ptr<cv::Feature2D> detector = cv::FastFeatureDetector::create();
+  bool optflow_mode = true;
+  int max_keypoints = 200;
+  int grid_rows = 3;
+  int grid_cols = 4;
 
   GridDetector() = default;
   virtual ~GridDetector() = default;
@@ -184,170 +181,103 @@ public:
       const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
       bool debug = false) const;
 
-  /** Debug **/
-  void _debug(const cv::Mat &image,
-              const FeatureGrid &grid,
-              const std::vector<cv::KeyPoint> &kps_new,
-              const std::vector<cv::KeyPoint> &kps_prev) const;
-};
-
-/////////////
-// TRACKER //
-/////////////
-
-class KeyFrame {
-public:
-  std::map<int, cv::Mat> images_;
-  std::map<int, std::vector<cv::KeyPoint>> keypoints_ol_;
-  std::map<int, std::vector<cv::KeyPoint>> keypoints_nol_;
-
-  KeyFrame(const std::map<int, cv::Mat> images,
-           const std::map<int, std::vector<cv::KeyPoint>> &keypoints_ol,
-           const std::map<int, std::vector<cv::KeyPoint>> &keypoints_nol);
-  virtual ~KeyFrame() = default;
-
-  /** Debug **/
-  void debug() const;
-};
-
-class Tracker {
-public:
-  // Counters
-  size_t keypoint_counter_ = 0;
-
-  // Settings
-  real_t reproj_threshold_ = 5.0;
-
-  // Feature detector and matcher
-  GridDetector detector_;
-  cv::Ptr<cv::DescriptorMatcher> matcher_;
-
-  // Variables
-  std::map<int, camera_params_t> cam_params_;
-  std::map<int, extrinsic_t> cam_exts_;
-  std::vector<std::pair<int, int>> overlaps_;
-  std::unique_ptr<KeyFrame> kf_;
-  std::vector<std::unique_ptr<KeyFrame>> old_kfs_;
-
-  Tracker();
-  virtual ~Tracker() = default;
-
-  /** Add camera **/
-  void addCamera(const camera_params_t &cam_params, const extrinsic_t &cam_ext);
-
-  /** Add overlap **/
-  void addOverlap(const std::pair<int, int> &overlap);
-
-  /** Detect overlapping keypoints **/
-  void _detectOverlap(
-      const std::map<int, cv::Mat> &mcam_imgs,
-      std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap) const;
-
-  /** Detect non-overlapping keypoints **/
-  void _detectNonOverlap(
-      const std::map<int, cv::Mat> &mcam_imgs,
-      const std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap,
-      std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_nonoverlap) const;
-
-  /** Create New Keyframe **/
-  KeyFrame _newKeyFrame(const std::map<int, cv::Mat> &mcam_imgs,
-                        const bool debug = false) const;
-
-  /** Track **/
-  int track(const std::map<int, cv::Mat> &mcam_imgs, const bool debug = false);
+  /** Visualize **/
+  void visualize(const cv::Mat &image,
+                 const FeatureGrid &grid,
+                 const std::vector<cv::KeyPoint> &kps_new,
+                 const std::vector<cv::KeyPoint> &kps_prev) const;
 };
 
 /////////////////////
 // FEATURE-TRACKER //
 /////////////////////
 
-class FeatureInfo {
-public:
-  size_t feature_id_ = 0;
-  std::vector<timestamp_t> timestamps_;
-  std::map<int, std::vector<cv::KeyPoint>> keypoints_;
+struct FeatureInfo {
+  size_t feature_id = 0;
+  std::vector<timestamp_t> timestamps;
+  std::map<int, std::vector<cv::KeyPoint>> keypoints;
 
   FeatureInfo() = default;
-  FeatureInfo(const size_t feature_id,
-              const timestamp_t ts,
-              const std::map<int, cv::KeyPoint> &keypoints)
-      : feature_id_{feature_id} {
-    timestamps_.push_back(ts);
-    for (const auto &[cam_idx, kp] : keypoints) {
-      keypoints_[cam_idx].push_back(kp);
+  FeatureInfo(const size_t feature_id_,
+              const timestamp_t ts_,
+              const std::map<int, cv::KeyPoint> &keypoints_)
+      : feature_id{feature_id_} {
+    timestamps.push_back(ts_);
+    for (const auto &[cam_idx, kp] : keypoints_) {
+      keypoints[cam_idx].push_back(kp);
     }
   }
   virtual ~FeatureInfo() = default;
 
   /** Return Feature ID **/
   size_t featureId() const {
-    return feature_id_;
+    return feature_id;
   }
 
   /** Return Timestamp **/
   timestamp_t timestamp(const size_t idx) const {
-    return timestamps_.at(idx);
+    return timestamps.at(idx);
   }
 
   /** Return First Timestamp **/
-  timestamp_t firstTimestamp() const {
-    return timestamps_.front();
+  timestamp_t first_timestamp() const {
+    return timestamps.front();
   }
 
   /** Return Last Timestamp **/
-  timestamp_t lastTimestamp() const {
-    return timestamps_.back();
+  timestamp_t last_timestamp() const {
+    return timestamps.back();
   }
 
   /** Return Camera Keypoints **/
-  std::vector<cv::KeyPoint> keyPoints(const int cam_idx) const {
-    return keypoints_.at(cam_idx);
+  std::vector<cv::KeyPoint> get_keypoints(const int cam_idx) const {
+    return keypoints.at(cam_idx);
   }
 
   /** Return Last Camera Keypoints **/
-  cv::KeyPoint lastKeyPoint(const int cam_idx) const {
-    return keypoints_.at(cam_idx).back();
+  cv::KeyPoint last_keypoint(const int cam_idx) const {
+    return keypoints.at(cam_idx).back();
   }
 
   /** Update feature with new measurement **/
   void update(const timestamp_t ts, const int cam_idx, const cv::KeyPoint &kp) {
-    timestamps_.push_back(ts);
-    keypoints_[cam_idx].push_back(kp);
+    timestamps.push_back(ts);
+    keypoints[cam_idx].push_back(kp);
   }
 };
 
-class FeatureTracker {
-public:
+struct FeatureTracker {
   // Flags and counters
-  bool init_ = false;
-  size_t feature_counter_ = 0;
+  bool init = false;
+  size_t feature_counter = 0;
 
   // Settings
-  real_t reproj_threshold_ = 5.0;
+  real_t reproj_threshold = 5.0;
 
   // Feature detector and matcher
-  GridDetector detector_;
-  cv::Ptr<cv::DescriptorMatcher> matcher_;
+  GridDetector detector;
+  cv::Ptr<cv::DescriptorMatcher> matcher;
 
   // Variables
-  std::map<int, camera_params_t> cam_params_;
-  std::map<int, extrinsic_t> cam_exts_;
-  std::vector<std::pair<int, int>> overlaps_;
+  std::map<int, camera_params_t> cam_params_map;
+  std::map<int, extrinsic_t> cam_exts_map;
+  std::vector<std::pair<int, int>> overlaps;
 
-  std::map<int, cv::Mat> prev_imgs_;
-  std::map<size_t, FeatureInfo> features_;
+  std::map<int, cv::Mat> prev_imgs;
+  std::map<size_t, FeatureInfo> features;
 
   FeatureTracker();
   virtual ~FeatureTracker() = default;
 
   /** Add camera **/
-  void addCamera(const camera_params_t &cam_params, const extrinsic_t &cam_ext);
+  void add_camera(const camera_params_t &cam_params,
+                  const extrinsic_t &cam_ext);
 
   /** Add overlap **/
-  void addOverlap(const std::pair<int, int> &overlap);
+  void add_overlap(const std::pair<int, int> &overlap);
 
   /** Detect overlapping keypoints **/
-  void _detectOverlap(
+  void detect_overlap(
       const std::map<int, cv::Mat> &mcam_imgs,
       std::map<int, std::vector<cv::KeyPoint>> &mcam_kps_overlap) const;
 
@@ -355,6 +285,9 @@ public:
   int track(const timestamp_t ts,
             const std::map<int, cv::Mat> &mcam_imgs,
             const bool debug = false);
+
+  /** Visualize **/
+  void visualize();
 };
 
 #endif // AVS_HPP
