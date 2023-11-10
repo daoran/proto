@@ -18916,7 +18916,6 @@ void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]) {
                                                calib->tag_size,
                                                calib->tag_spacing);
 
-#pragma omp parallel for
   for (int view_idx = 0; view_idx < num_views; view_idx++) {
     // Make a copy of the gimbal calibration problem
     calib_gimbal_t *calib_copy = calib_gimbal_copy(calib);

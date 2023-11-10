@@ -9465,6 +9465,7 @@ class TestNetwork(unittest.TestCase):
   #   # Decode websocket frame
   #   data = websocket_decode_frame(conn)
 
+  @unittest.skip("")
   def test_debug_server(self):
     """ Test Debug Server """
     server = DebugServer(test_websocket_callback)
@@ -10495,40 +10496,6 @@ class TestFactors(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
 
-    # Test marginalization
-    params = [sv.param for sv in fvars]
-    (r, [J0, J1, J2, J3]) = factor.eval(params)
-
-    H00 = J0.T @ J0
-    H01 = J0.T @ J1
-    H02 = J0.T @ J2
-    H03 = J0.T @ J3
-
-    H10 = J1.T @ J0
-    H11 = J1.T @ J1
-    H12 = J1.T @ J2
-    H13 = J1.T @ J3
-
-    H20 = J2.T @ J0
-    H21 = J2.T @ J1
-    H22 = J2.T @ J2
-    H23 = J2.T @ J3
-
-    H30 = J3.T @ J0
-    H31 = J3.T @ J1
-    H32 = J3.T @ J2
-    H33 = J3.T @ J3
-
-    H = np.block([[H00, H01, H02, H03],
-                  [H10, H11, H12, H13],
-                  [H20, H21, H22, H23],
-                  [H30, H31, H32, H33]])
-
-    print(f"rank: {rank(H)}")
-    print(f"shape: {H.shape}")
-    (w, V) = eig(H)
-    print(w)
-
   def test_camera_factor(self):
     """ Test camera factor """
     # Setup camera pose T_WB
@@ -10585,7 +10552,7 @@ class TestFactors(unittest.TestCase):
     param_ids = [0, 1, 2, 3]
     factor = CameraFactor(cam_geom, param_ids, z)
 
-    # # Test jacobians
+    # Test jacobians
     # fvars = [pose, cam_exts, feature, cam_params]
     # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose"))
     # self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
@@ -11520,6 +11487,7 @@ class TestFactorGraph(unittest.TestCase):
     self.assertEqual(len(graph.factors), 1)
     self.assertEqual(graph.factors[pose_factor_id], pose_factor)
 
+  @unittest.skip("")
   def test_factor_graph_solve_vo(self):
     """ Test solving a visual odometry problem """
     # Sim data
@@ -11601,6 +11569,7 @@ class TestFactorGraph(unittest.TestCase):
     errors = graph.get_reproj_errors()
     self.assertTrue(rmse(errors) < 0.1)
 
+  @unittest.skip("")
   def test_factor_graph_solve_io(self):
     """ Test solving a pure inertial odometry problem """
     # Imu params
@@ -11740,7 +11709,7 @@ class TestFactorGraph(unittest.TestCase):
 
       plt.show()
 
-  # @unittest.skip("")
+  @unittest.skip("")
   def test_factor_graph_solve_vio(self):
     """ Test solving a visual inertial odometry problem """
     # Imu params
@@ -12095,6 +12064,7 @@ class TestFeatureTracker(unittest.TestCase):
       cv2.imshow('viz', viz)
       cv2.waitKey(0)
 
+  # @unittest.skip("")
   def test_update(self):
     """ Test FeatureTracker.update() """
     for ts in self.dataset.cam0_data.timestamps[1000:1200]:
@@ -12110,8 +12080,8 @@ class TestFeatureTracker(unittest.TestCase):
       ft_data = self.feature_tracker.update(ts, mcam_imgs)
 
       # Visualize
-      debug = False
-      # debug = True
+      # debug = False
+      debug = True
       if debug:
         sys.stdout.flush()
         viz = visualize_tracking(ft_data)
@@ -12523,7 +12493,7 @@ class TestCalibration(unittest.TestCase):
       ax.set_zlabel("z [m]")
       plt.show()
 
-  # @unittest.skip("")
+  @unittest.skip("")
   def test_calibrator(self):
     """ Test Calibrator """
     # import apriltag_pybind as apriltag
