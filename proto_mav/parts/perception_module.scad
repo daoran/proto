@@ -240,6 +240,7 @@ module arducam_MT9V034() {
 
 }
 
+// Intel D430 Depth Module
 module intel_D430_depth_module() {
   body_w = 64.7;
   body_d = 14.0;
@@ -306,6 +307,66 @@ module intel_D430_depth_module() {
       cylinder(h=lip_h + 0.1, r=lip_screw_d / 2, center=true);
     translate([0, -body_w / 2 - lip_w + 0.5, lip_h / 2])
       cube([lip_screw_d, lip_w, lip_h + 0.1], center=true);
+  }
+}
+
+// Intel D4 Vision Processor
+module intel_D4_vision_processor() {
+  pcb_w = 72.0;
+  pcb_d = 16.0;
+  pcb_h = 1;
+
+  usbc_w = 9.0;
+  usbc_d = 8.0;
+  usbc_h = 3.5;
+
+  screw_w = M2_SCREW_W;
+
+  difference() {
+    union() {
+      // PCB
+      color([0, 1, 0])
+      translate([0, 0, pcb_h / 2])
+        cube([pcb_d, pcb_w, pcb_h], center=true);
+
+      // USB-C port
+      color([0.6, 0.6, 0.6])
+      translate([0, -pcb_w / 2 + usbc_w / 2, pcb_h + usbc_h / 2])
+        rotate([0, 0, 90])
+          cube([usbc_d, usbc_w, usbc_h], center=true);
+    }
+
+    // Hole 1
+    hole1_offset_x = -pcb_d / 2 + 0.6;
+    hole1_offset_y = -pcb_w / 2 + 5;
+    translate([hole1_offset_x, hole1_offset_y, pcb_h + usbc_h / 2])
+      cylinder(r=screw_w / 2, h=10, center=true);
+    translate([hole1_offset_x - 1.5, hole1_offset_y, pcb_h / 2])
+      cube([screw_w, screw_w, pcb_h + 0.1], center=true);
+
+    // Hole 2
+    hole2_offset_x = -pcb_d / 2 + 1.5;
+    hole2_offset_y = pcb_w / 2 - 4.5;
+    translate([hole2_offset_x, hole2_offset_y, pcb_h + usbc_h / 2])
+      cylinder(r=screw_w / 2, h=10, center=true);
+    translate([hole2_offset_x - screw_w / 2, hole2_offset_y, pcb_h / 2])
+      cube([screw_w, screw_w, pcb_h + 0.1], center=true);
+
+    // Hole 3
+    hole3_offset_x = pcb_d / 2 - 1;
+    hole3_offset_y = -pcb_w / 2 + 9;
+    translate([hole3_offset_x, hole3_offset_y, pcb_h + usbc_h / 2])
+      cylinder(r=screw_w / 2, h=10, center=true);
+    translate([hole3_offset_x + 1.5, hole3_offset_y, pcb_h / 2])
+      cube([screw_w, screw_w, pcb_h + 0.1], center=true);
+
+    // Hole 4
+    hole4_offset_x = pcb_d / 2 - 1.7;
+    hole4_offset_y = -pcb_w / 2 + 62;
+    translate([hole4_offset_x, hole4_offset_y, pcb_h + usbc_h / 2])
+      cylinder(r=screw_w / 2, h=10, center=true);
+    translate([hole4_offset_x + 1.5, hole4_offset_y, pcb_h / 2])
+      cube([screw_w, screw_w, pcb_h + 0.1], center=true);
   }
 }
 
@@ -1593,7 +1654,8 @@ module nuc_frame(mount_w, mount_d, show_nuc=0) {
 // -- COMPONENTS
 // board_camera();
 // arducam_MT9V034();
-intel_D430_depth_module();
+// intel_D430_depth_module();
+intel_D4_vision_processor();
 // oak_d_lite();
 // usb_hub_board();
 // sbgc_board();
