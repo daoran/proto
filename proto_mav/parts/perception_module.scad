@@ -259,7 +259,6 @@ module intel_D430_depth_module() {
   lip_w = 3.0;
   lip_d = 6.0;
   lip_h = 1.0;
-
   lip_screw_d = 1.8;
 
   difference() {
@@ -338,33 +337,33 @@ module intel_D4_vision_processor() {
 
     // Hole 1
     hole1_offset_x = -pcb_d / 2 + 0.6;
-    hole1_offset_y = -pcb_w / 2 + 5;
-    translate([hole1_offset_x, hole1_offset_y, pcb_h + usbc_h / 2])
-      cylinder(r=screw_w / 2, h=10, center=true);
+    hole1_offset_y = pcb_w / 2 - 67.5;
+    translate([hole1_offset_x, hole1_offset_y, pcb_h / 2])
+      cylinder(r=screw_w / 2, h=pcb_h + 0.1, center=true);
     translate([hole1_offset_x - 1.5, hole1_offset_y, pcb_h / 2])
       cube([screw_w, screw_w, pcb_h + 0.1], center=true);
 
     // Hole 2
     hole2_offset_x = -pcb_d / 2 + 1.5;
     hole2_offset_y = pcb_w / 2 - 4.5;
-    translate([hole2_offset_x, hole2_offset_y, pcb_h + usbc_h / 2])
-      cylinder(r=screw_w / 2, h=10, center=true);
+    translate([hole2_offset_x, hole2_offset_y, pcb_h / 2])
+      cylinder(r=screw_w / 2, h=pcb_h + 0.1, center=true);
     translate([hole2_offset_x - screw_w / 2, hole2_offset_y, pcb_h / 2])
       cube([screw_w, screw_w, pcb_h + 0.1], center=true);
 
     // Hole 3
     hole3_offset_x = pcb_d / 2 - 1;
-    hole3_offset_y = -pcb_w / 2 + 9;
-    translate([hole3_offset_x, hole3_offset_y, pcb_h + usbc_h / 2])
-      cylinder(r=screw_w / 2, h=10, center=true);
+    hole3_offset_y = pcb_w / 2 - 62.5;
+    translate([hole3_offset_x, hole3_offset_y, pcb_h / 2])
+      cylinder(r=screw_w / 2, h=pcb_h + 0.1, center=true);
     translate([hole3_offset_x + 1.5, hole3_offset_y, pcb_h / 2])
       cube([screw_w, screw_w, pcb_h + 0.1], center=true);
 
     // Hole 4
     hole4_offset_x = pcb_d / 2 - 1.7;
-    hole4_offset_y = -pcb_w / 2 + 62;
-    translate([hole4_offset_x, hole4_offset_y, pcb_h + usbc_h / 2])
-      cylinder(r=screw_w / 2, h=10, center=true);
+    hole4_offset_y = pcb_w / 2 - 10;
+    translate([hole4_offset_x, hole4_offset_y, pcb_h / 2])
+      cylinder(r=screw_w / 2, h=pcb_h + 0.1, center=true);
     translate([hole4_offset_x + 1.5, hole4_offset_y, pcb_h / 2])
       cube([screw_w, screw_w, pcb_h + 0.1], center=true);
   }
@@ -520,7 +519,6 @@ module gimbal_motor_GM4008() {
     // }
   }
 }
-
 
 module gimbal_imu() {
   tol = 0.01;
@@ -982,6 +980,137 @@ module sbgc_frame(show_sbgc=1, show_usb_hub=1) {
   }
 }
 
+module intel_realsense_frame(show_camera=0) {
+  frame_thickness = 4;
+  frame_w = 90;
+  frame_d = 20;
+
+  mount_w = 30;
+  mount_d = 6;
+  mount_hole_w = 12;
+
+  module_w = 64.7 + 6;
+  processor_w = 72.0;
+  imu_w = 20.0;
+
+  // Show camera
+  if (show_camera) {
+    // D430 Depth Module
+    translate([0, -frame_w / 2 + module_w / 2, frame_thickness])
+      intel_D430_depth_module();
+
+    // D4 Vision Processor
+    translate([0, -frame_w / 2 + processor_w / 2 + 10, 0])
+      rotate([0, -180, 0])
+        intel_D4_vision_processor();
+
+    // Gimbal IMU
+    translate([0, frame_w / 2 - imu_w / 2 + 1, frame_thickness])
+      rotate([0, 0, 180])
+        gimbal_imu();
+  }
+
+
+  difference() {
+    union() {
+      // Frame body
+      translate([0, 0, frame_thickness / 2])
+        cube([frame_d, frame_w, frame_thickness], center=true);
+
+      // Mount Lip
+      translate([-frame_d / 2 - mount_d / 2, 0, frame_thickness / 2])
+        cube([mount_d, mount_w, frame_thickness], center=true);
+    }
+
+    // Mount lip holes
+    translate([-frame_d / 2 - mount_d / 2, mount_hole_w / 2, frame_thickness / 2])
+      cylinder(r=M2_SCREW_W / 2, h=frame_thickness + 0.1, center=true);
+    translate([-frame_d / 2 - mount_d / 2, -mount_hole_w / 2, frame_thickness / 2])
+      cylinder(r=M2_SCREW_W / 2, h=frame_thickness + 0.1, center=true);
+
+    // D430 depth module mount holes
+    translate([0, -frame_w / 2 + module_w / 2, frame_thickness - 1]) {
+      module_w = 64.7;
+      lip_w = 3.0;
+      lip_d = 6.0;
+      lip_h = 1.0;
+      lip_screw_d = 1.8 - 0.5;
+      lip_screw_h = 2.0;
+
+      // Left lip hole
+      translate([0, module_w/ 2 + 1.8, lip_h - lip_screw_h / 2])
+        cylinder(h=lip_screw_h + 0.1, r=lip_screw_d / 2, center=true);
+
+      // Right lip hole
+      translate([0, -module_w/ 2 - lip_screw_d / 2 - 1, lip_h - lip_screw_h / 2])
+        cylinder(h=lip_screw_h + 0.1, r=lip_screw_d / 2, center=true);
+    }
+
+    // D4 vision processor mount holes
+    translate([0, -frame_w / 2 + processor_w / 2 + 10, 0])
+    rotate([0, -180, 0])
+    {
+      pcb_w = 72.0;
+      pcb_d = 16.0;
+      pcb_h = 1;
+
+      usbc_w = 9.0;
+      usbc_d = 8.0;
+      usbc_h = 3.5;
+
+      screw_w = M2_SCREW_W;
+
+      // Hole 1
+      hole1_offset_x = -pcb_d / 2 + 0.6;
+      hole1_offset_y = pcb_w / 2 - 67.5;
+      translate([hole1_offset_x, hole1_offset_y, -frame_thickness / 2])
+        cylinder(r=screw_w / 2, h=frame_thickness + 0.1, center=true);
+      translate([hole1_offset_x, hole1_offset_y, -frame_thickness / 2 - M2_NUT_H / 2])
+        cylinder(r=M2_NUT_W / 2, h=M2_NUT_H + 0.1, center=true, $fn=6);
+
+      // Hole 2
+      hole2_offset_x = -pcb_d / 2 + 1.5;
+      hole2_offset_y = pcb_w / 2 - 4.5;
+      translate([hole2_offset_x, hole2_offset_y, -frame_thickness / 2])
+        cylinder(r=screw_w / 2, h=frame_thickness + 0.1, center=true);
+      translate([hole2_offset_x, hole2_offset_y, -frame_thickness / 2 - M2_NUT_H / 2])
+        cylinder(r=M2_NUT_W / 2, h=M2_NUT_H + 0.1, center=true, $fn=6);
+
+      // Hole 3
+      hole3_offset_x = pcb_d / 2 - 1;
+      hole3_offset_y = pcb_w / 2 - 62.5;
+      translate([hole3_offset_x, hole3_offset_y, -frame_thickness / 2])
+        cylinder(r=screw_w / 2, h=frame_thickness + 0.1, center=true);
+      translate([hole3_offset_x, hole3_offset_y, -frame_thickness / 2 - M2_NUT_H / 2])
+        cylinder(r=M2_NUT_W / 2, h=M2_NUT_H + 0.1, center=true, $fn=6);
+
+      // Hole 4
+      hole4_offset_x = pcb_d / 2 - 1.7;
+      hole4_offset_y = pcb_w / 2 - 10;
+      translate([hole4_offset_x, hole4_offset_y, -frame_thickness / 2])
+        cylinder(r=screw_w / 2, h=frame_thickness + 0.1, center=true);
+      translate([hole4_offset_x, hole4_offset_y, -frame_thickness / 2 - M2_NUT_H / 2])
+        cylinder(r=M2_NUT_W / 2, h=M2_NUT_H + 0.1, center=true, $fn=6);
+    }
+
+    // Gimbal IMU mount holes
+    translate([0, frame_w / 2 - imu_w / 2 + 1, frame_thickness])
+    rotate([0, 0, 180]) {
+      tol = 0.1;
+      w = 20.0;
+      d = 18.0;
+      h = 2.0;
+      mount_w = 14.0;
+
+      // Mount holes
+      translate([d / 2 - 7.5, mount_w / 2, -h / 2])
+        cylinder(r=M2_SCREW_W / 2 - 0.2, h=h + tol, center=true);
+      translate([d / 2 - 7.5, -mount_w / 2, -h / 2])
+        cylinder(r=M2_SCREW_W / 2 - 0.2, h=h + tol, center=true);
+    }
+  }
+}
+
 module oak_d_lite_frame(show_camera=0) {
   support_w = 90;
   support_d = 8;
@@ -1238,11 +1367,11 @@ module gimbal_pitch_frame(show_pitch_motor=0, show_camera=0) {
     translate([support_x, 0, support_h / 2 + hole_offset]) {
       translate([0, 0, hole_w / 2]) {
         rotate([0.0, 90.0, 0.0])
-          cylinder(r=M25_SCREW_W / 2, h=support_d + 0.1, center=true);
+          cylinder(r=M2_SCREW_W / 2, h=support_d + 0.1, center=true);
       }
       translate([0, 0, -hole_w / 2]) {
         rotate([0.0, 90.0, 0.0])
-          cylinder(r=M25_SCREW_W / 2, h=support_d + 0.1, center=true);
+          cylinder(r=M2_SCREW_W / 2, h=support_d + 0.1, center=true);
       }
     }
 
@@ -1471,10 +1600,10 @@ module gimbal_yaw_frame(show_roll_frame=1, show_yaw_motor=1, show_sbgc_frame=1) 
       // Roll motor mount
       translate([roll_mount_x, 0.0, roll_mount_z])
         rotate([0, 90, 0])
-          cylinder(r=roll_motor_r, h=frame_thickness, center=true);
+          cylinder(r=roll_motor_r, h=frame_thickness - 2, center=true);
 
       // SBGC frame
-      translate([roll_mount_x, 0.0, roll_mount_z])
+      translate([roll_mount_x + 1, 0.0, roll_mount_z])
         rotate([0, -90, 0])
           sbgc_frame(show_sbgc=0, show_usb_hub=0);
 
@@ -1489,15 +1618,15 @@ module gimbal_yaw_frame(show_roll_frame=1, show_yaw_motor=1, show_sbgc_frame=1) 
 
       // Vertical support
       translate([roll_mount_x, 0, roll_mount_z / 2])
-        cube([frame_thickness, support_w, roll_mount_z], center=true);
+        cube([frame_thickness - 2, support_w, roll_mount_z], center=true);
 
       // Diagonal supports
-      translate([roll_mount_x / 2 - 15, support_w / 2 - frame_thickness / 2, roll_mount_z / 2 - 8])
-        rotate([0, 45, 0])
-          cube([25, frame_thickness, frame_thickness], center=true);
-      translate([roll_mount_x / 2 - 15, -support_w / 2 + frame_thickness / 2, roll_mount_z / 2 - 8])
-        rotate([0, 45, 0])
-          cube([25, frame_thickness, frame_thickness], center=true);
+      translate([roll_mount_x / 2 - 12, support_w / 2 - frame_thickness / 2, roll_mount_z / 2 - 8])
+        rotate([0, 35, 0])
+          cube([30, frame_thickness, frame_thickness], center=true);
+      translate([roll_mount_x / 2 - 12, -support_w / 2 + frame_thickness / 2, roll_mount_z / 2 - 8])
+        rotate([0, 35, 0])
+          cube([30, frame_thickness, frame_thickness], center=true);
     }
 
     // Yaw motor mount holes
@@ -1655,7 +1784,7 @@ module nuc_frame(mount_w, mount_d, show_nuc=0) {
 // board_camera();
 // arducam_MT9V034();
 // intel_D430_depth_module();
-intel_D4_vision_processor();
+// intel_D4_vision_processor();
 // oak_d_lite();
 // usb_hub_board();
 // sbgc_board();
@@ -1671,6 +1800,7 @@ intel_D4_vision_processor();
 // gimbal_yaw_frame(show_roll_frame=0, show_yaw_motor=0, show_sbgc_frame=0);
 
 // -- FRAMES
+intel_realsense_frame(show_camera=0);
 // oak_d_lite_frame(show_camera=1);
 // sbgc_frame(show_sbgc=0, show_usb_hub=0);
 // pcb_frame(nuc_mount_w, nuc_mount_d);
