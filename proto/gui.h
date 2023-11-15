@@ -317,102 +317,8 @@ void gl_mesh_setup(gl_mesh_t *mesh,
                    unsigned int *indices,
                    const int num_indices,
                    gl_texture_t *textures,
-                   const int num_textures) {
-  // Setup
-  mesh->vertices = vertices;
-  mesh->indices = indices;
-  mesh->textures = textures;
-  mesh->num_vertices = num_vertices;
-  mesh->num_indices = num_indices;
-  mesh->num_textures = num_textures;
-
-  // VAO
-  glGenVertexArrays(1, &mesh->VAO);
-  glBindVertexArray(mesh->VAO);
-
-  // VBO
-  glGenBuffers(1, &mesh->VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
-  glBufferData(GL_ARRAY_BUFFER,
-               sizeof(gl_vertex_t) * num_vertices,
-               &vertices[0],
-               GL_STATIC_DRAW);
-
-  // EBO
-  glGenBuffers(1, &mesh->EBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               sizeof(unsigned int) * num_indices,
-               &indices[0],
-               GL_STATIC_DRAW);
-
-  // Vertex positions
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0,
-                        3,
-                        GL_FLOAT,
-                        GL_FALSE,
-                        sizeof(gl_vertex_t),
-                        (void *) 0);
-
-  // Vertex normals
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1,
-                        3,
-                        GL_FLOAT,
-                        GL_FALSE,
-                        sizeof(gl_vertex_t),
-                        (void *) offsetof(gl_vertex_t, normal));
-
-  // Vertex texture coords
-  glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2,
-                        2,
-                        GL_FLOAT,
-                        GL_FALSE,
-                        sizeof(gl_vertex_t),
-                        (void *) offsetof(gl_vertex_t, tex_coords));
-
-  // Clean up
-  glBindVertexArray(0);
-}
-
-void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader) {
-  // bind appropriate textures
-  unsigned int num_diffuse = 1;
-  unsigned int num_specular = 1;
-  unsigned int num_normal = 1;
-  unsigned int num_height = 1;
-
-  for (int i = 0; i < mesh->num_textures; i++) {
-    // Active proper texture unit before binding
-    glActiveTexture(GL_TEXTURE0 + i);
-
-    // Form texture unit (the N in diffuse_textureN)
-    char texture_unit[30] = {0};
-    if (strcmp(mesh->textures[i].type, "texture_diffuse") == 0) {
-      sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_diffuse++);
-    } else if (strcmp(mesh->textures[i].type, "texture_specular") == 0) {
-      sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_specular++);
-    } else if (strcmp(mesh->textures[i].type, "texture_normal") == 0) {
-      sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_normal++);
-    } else if (strcmp(mesh->textures[i].type, "texture_height") == 0) {
-      sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_height++);
-    }
-
-    // Set the sampler to the correct texture unit and bind the texture
-    glUniform1i(glGetUniformLocation(shader, texture_unit), i);
-    glBindTexture(GL_TEXTURE_2D, mesh->textures[i].id);
-  }
-
-  // Draw mesh
-  glBindVertexArray(mesh->VAO);
-  glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, 0);
-  glBindVertexArray(0);
-
-  // Set everything back to defaults once configured
-  glActiveTexture(GL_TEXTURE0);
-}
+                   const int num_textures);
+void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader);
 
 /******************************************************************************
  * GL-MODEL
@@ -443,6 +349,7 @@ typedef struct gui_t {
   int screen_height;
 
   SDL_Window *window;
+  SDL_Renderer *renderer;
   char *window_title;
   int window_width;
   int window_height;
@@ -509,37 +416,41 @@ void imshow_loop(imshow_t *imshow);
 
 #include <time.h>
 
+#ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#endif
 
+#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#endif
 
-/**
- * Tic, start timer.
- * @returns A timespec encapsulating the time instance when tic() is called
- */
-struct timespec tic() {
-  struct timespec time_start;
-  clock_gettime(CLOCK_MONOTONIC, &time_start);
-  return time_start;
-}
+// /**
+//  * Tic, start timer.
+//  * @returns A timespec encapsulating the time instance when tic() is called
+//  */
+// struct timespec tic() {
+//   struct timespec time_start;
+//   clock_gettime(CLOCK_MONOTONIC, &time_start);
+//   return time_start;
+// }
 
-/**
- * Toc, stop timer.
- * @returns Time elapsed in seconds
- */
-float toc(struct timespec *tic) {
-  assert(tic != NULL);
-  struct timespec toc;
-  float time_elasped;
+// /**
+//  * Toc, stop timer.
+//  * @returns Time elapsed in seconds
+//  */
+// float toc(struct timespec *tic) {
+//   assert(tic != NULL);
+//   struct timespec toc;
+//   float time_elasped;
 
-  clock_gettime(CLOCK_MONOTONIC, &toc);
-  time_elasped = (toc.tv_sec - tic->tv_sec);
-  time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
+//   clock_gettime(CLOCK_MONOTONIC, &toc);
+//   time_elasped = (toc.tv_sec - tic->tv_sec);
+//   time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
 
-  return time_elasped;
-}
+//   return time_elasped;
+// }
 
 /******************************************************************************
  * OPENGL UTILS
@@ -551,7 +462,7 @@ float toc(struct timespec *tic) {
  * - Success: File contents
  * - Failure: NULL
  */
-static char *file_read(const char *fp) {
+static char *load_file(const char *fp) {
   assert(fp != NULL);
   FILE *f = fopen(fp, "rb");
   if (f == NULL) {
@@ -1114,15 +1025,15 @@ void gl_camera_setup(gl_camera_t *camera,
 
   gl_zeros(camera->focal, 3, 1);
   gl_vec3f(camera->world_up, 0.0f, 1.0f, 0.0f);
-  gl_vec3f(camera->position, 0.0f, 0.0f, 0.0f);
+  gl_vec3f(camera->position, 0.0f, 2.0f, 0.0f);
   gl_vec3f(camera->right, -1.0f, 0.0f, 0.0f);
   gl_vec3f(camera->up, 0.0f, 1.0f, 0.0f);
   gl_vec3f(camera->front, 0.0f, 0.0f, -1.0f);
   camera->yaw = gl_deg2rad(0.0f);
   camera->pitch = gl_deg2rad(0.0f);
-  camera->radius = 20.0f;
+  camera->radius = 1.0f;
 
-  camera->fov = gl_deg2rad(60.0f);
+  camera->fov = gl_deg2rad(90.0f);
   camera->near = 0.01f;
   camera->far = 100.0f;
 
@@ -1151,11 +1062,23 @@ void gl_camera_update(gl_camera_t *camera) {
   gl_perspective(camera->fov, aspect, camera->near, camera->far, camera->P);
 
   // View matrix
+  // GLfloat eye[3] = {0};
+  // eye[0] = camera->focal[0] + camera->radius * sin(camera->yaw);
+  // eye[1] = camera->focal[1] + camera->radius * cos(camera->pitch);
+  // eye[2] = camera->focal[2] + camera->radius * cos(camera->yaw);
+  // gl_lookat(eye, camera->focal, camera->world_up, camera->V);
+
   GLfloat eye[3] = {0};
-  eye[0] = camera->focal[0] + camera->radius * sin(camera->yaw);
-  eye[1] = camera->focal[1] + camera->radius * cos(camera->pitch);
-  eye[2] = camera->focal[2] + camera->radius * cos(camera->yaw);
-  gl_lookat(eye, camera->focal, camera->world_up, camera->V);
+  eye[0] = camera->position[0];
+  eye[1] = camera->position[1];
+  eye[2] = camera->position[2];
+
+  GLfloat carrot[3] = {0};
+  carrot[0] = camera->position[0] + camera->front[0];
+  carrot[1] = camera->position[1] + camera->front[1];
+  carrot[2] = camera->position[2] + camera->front[2];
+
+  gl_lookat(eye, carrot, camera->world_up, camera->V);
 }
 
 void gl_camera_rotate(gl_camera_t *camera,
@@ -1169,14 +1092,28 @@ void gl_camera_rotate(gl_camera_t *camera,
   pitch += dy * factor;
 
   // Constrain pitch and yaw
-  pitch = (pitch <= (-M_PI / 2.0) + 1e-5) ? (-M_PI / 2.0) + 1e-5 : pitch;
-  pitch = (pitch > 0.0) ? 0.0 : pitch;
-  yaw = (yaw > M_PI) ? yaw - 2 * M_PI : yaw;
-  yaw = (yaw < -M_PI) ? yaw + 2 * M_PI : yaw;
+  pitch = (pitch > gl_deg2rad(89.0f)) ? gl_deg2rad(89.0f) : pitch;
+  pitch = (pitch < gl_deg2rad(-80.0f)) ? gl_deg2rad(-80.0f) : pitch;
+
+  // pitch = (pitch <= (-M_PI / 2.0) + 1e-5) ? (-M_PI / 2.0) + 1e-5 : pitch;
+  // pitch = (pitch > 0.0) ? 0.0 : pitch;
+  // yaw = (yaw > M_PI) ? yaw - 2 * M_PI : yaw;
+  // yaw = (yaw < -M_PI) ? yaw + 2 * M_PI : yaw;
 
   // Update camera attitude
   camera->pitch = pitch;
   camera->yaw = yaw;
+
+  float direction[3] = {0};
+  direction[0] = cos(yaw) * cos(pitch);
+  direction[1] = sin(pitch);
+  direction[2] = sin(yaw) * cos(pitch);
+  gl_normalize(direction, 3);
+
+  camera->front[0] = direction[0];
+  camera->front[1] = direction[1];
+  camera->front[2] = direction[2];
+
   gl_camera_update(camera);
 }
 
@@ -1207,7 +1144,7 @@ void gl_camera_zoom(gl_camera_t *camera,
   UNUSED(factor);
   UNUSED(dx);
 
-  if (camera->fov >= gl_deg2rad(0.5f) && camera->fov <= gl_deg2rad(90.0f)) {
+  if (camera->fov >= gl_deg2rad(0.1f) && camera->fov <= gl_deg2rad(90.0f)) {
     camera->fov -= dy * 0.1;
   }
 
@@ -1232,8 +1169,8 @@ void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]) {
   entity->T[14] = pos[2];
 
   // Shader program
-  char *vs = file_read("./shaders/cube.vert");
-  char *fs = file_read("./shaders/cube.frag");
+  char *vs = load_file("./shaders/cube.vert");
+  char *fs = load_file("./shaders/cube.frag");
   entity->program_id = gl_prog_setup(vs, fs, NULL);
   free(vs);
   free(fs);
@@ -1352,8 +1289,8 @@ void gl_camera_frame_setup(gl_entity_t *entity) {
   gl_eye(entity->T, 4, 4);
 
   // Shader program
-  char *vs = file_read("./shaders/camera_frame.vert");
-  char *fs = file_read("./shaders/camera_frame.frag");
+  char *vs = load_file("./shaders/camera_frame.vert");
+  char *fs = load_file("./shaders/camera_frame.frag");
   entity->program_id = gl_prog_setup(vs, fs, NULL);
   free(vs);
   free(fs);
@@ -1457,8 +1394,8 @@ void gl_axis_frame_setup(gl_entity_t *entity) {
   gl_eye(entity->T, 4, 4);
 
   // Shader program
-  char *vs = file_read("./shaders/axis_frame.vert");
-  char *fs = file_read("./shaders/axis_frame.frag");
+  char *vs = load_file("./shaders/axis_frame.vert");
+  char *fs = load_file("./shaders/axis_frame.frag");
   entity->program_id = gl_prog_setup(vs, fs, NULL);
   free(vs);
   free(fs);
@@ -1534,6 +1471,8 @@ void gl_axis_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glLineWidth(original_line_width);
 }
 
+// GL GRID ///////////////////////////////////////////////////////////////////
+
 static GLfloat *glgrid_create_vertices(int grid_size) {
   // Allocate memory for vertices
   int nb_lines = (grid_size + 1) * 2;
@@ -1583,15 +1522,14 @@ static GLfloat *glgrid_create_vertices(int grid_size) {
   return vertices;
 }
 
-// GL GRID ///////////////////////////////////////////////////////////////////
 
 void gl_grid_setup(gl_entity_t *entity) {
   // Entity transform
   gl_eye(entity->T, 4, 4);
 
   // Shader program
-  char *vs = file_read("./shaders/grid.vert");
-  char *fs = file_read("./shaders/grid.frag");
+  char *vs = load_file("./shaders/grid.vert");
+  char *fs = load_file("./shaders/grid.frag");
   entity->program_id = gl_prog_setup(vs, fs, NULL);
   free(vs);
   free(fs);
@@ -1646,6 +1584,113 @@ void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glBindVertexArray(entity->vao);
   glDrawArrays(GL_LINES, 0, nb_vertices);
   glBindVertexArray(0); // Unbind VAO
+}
+
+/******************************************************************************
+ * GL-MESH
+ *****************************************************************************/
+
+void gl_mesh_setup(gl_mesh_t *mesh,
+                   gl_vertex_t *vertices,
+                   const int num_vertices,
+                   unsigned int *indices,
+                   const int num_indices,
+                   gl_texture_t *textures,
+                   const int num_textures) {
+  // Setup
+  mesh->vertices = vertices;
+  mesh->indices = indices;
+  mesh->textures = textures;
+  mesh->num_vertices = num_vertices;
+  mesh->num_indices = num_indices;
+  mesh->num_textures = num_textures;
+
+  // VAO
+  glGenVertexArrays(1, &mesh->VAO);
+  glBindVertexArray(mesh->VAO);
+
+  // VBO
+  glGenBuffers(1, &mesh->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+  glBufferData(GL_ARRAY_BUFFER,
+               sizeof(gl_vertex_t) * num_vertices,
+               &vertices[0],
+               GL_STATIC_DRAW);
+
+  // EBO
+  glGenBuffers(1, &mesh->EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+               sizeof(unsigned int) * num_indices,
+               &indices[0],
+               GL_STATIC_DRAW);
+
+  // Vertex positions
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(gl_vertex_t),
+                        (void *) 0);
+
+  // Vertex normals
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1,
+                        3,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(gl_vertex_t),
+                        (void *) offsetof(gl_vertex_t, normal));
+
+  // Vertex texture coords
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2,
+                        2,
+                        GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(gl_vertex_t),
+                        (void *) offsetof(gl_vertex_t, tex_coords));
+
+  // Clean up
+  glBindVertexArray(0);
+}
+
+void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader) {
+  // bind appropriate textures
+  unsigned int num_diffuse = 1;
+  unsigned int num_specular = 1;
+  unsigned int num_normal = 1;
+  unsigned int num_height = 1;
+
+  for (int i = 0; i < mesh->num_textures; i++) {
+    // Active proper texture unit before binding
+    glActiveTexture(GL_TEXTURE0 + i);
+
+    // Form texture unit (the N in diffuse_textureN)
+    char texture_unit[30] = {0};
+    if (strcmp(mesh->textures[i].type, "texture_diffuse") == 0) {
+      sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_diffuse++);
+    } else if (strcmp(mesh->textures[i].type, "texture_specular") == 0) {
+      sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_specular++);
+    } else if (strcmp(mesh->textures[i].type, "texture_normal") == 0) {
+      sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_normal++);
+    } else if (strcmp(mesh->textures[i].type, "texture_height") == 0) {
+      sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_height++);
+    }
+
+    // Set the sampler to the correct texture unit and bind the texture
+    glUniform1i(glGetUniformLocation(shader, texture_unit), i);
+    glBindTexture(GL_TEXTURE_2D, mesh->textures[i].id);
+  }
+
+  // Draw mesh
+  glBindVertexArray(mesh->VAO);
+  glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, 0);
+  glBindVertexArray(0);
+
+  // Set everything back to defaults once configured
+  glActiveTexture(GL_TEXTURE0);
 }
 
 /******************************************************************************
@@ -1940,8 +1985,8 @@ gl_model_t *gl_model_load(const char *model_path) {
   model->T[14] = 0.0;
 
   // Shader program
-  char *vs = file_read("./shaders/model.vert");
-  char *fs = file_read("./shaders/model.frag");
+  char *vs = load_file("./shaders/model.vert");
+  char *fs = load_file("./shaders/model.frag");
   model->program_id = gl_prog_setup(vs, fs, NULL);
   free(vs);
   free(fs);
@@ -1998,6 +2043,14 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
   gl_prog_set_mat4f(model->program_id, "view", camera->V);
   gl_prog_set_mat4f(model->program_id, "model", model->T);
 
+  float light_pos[3] = {0, 10, 0};
+  float light_color[3] = {1, 1, 1};
+  float object_color[3] = {1, 1, 1};
+  gl_prog_set_vec3f(model->program_id, "lightPos", light_pos);
+  gl_prog_set_vec3f(model->program_id, "viewPos", camera->position);
+  gl_prog_set_vec3f(model->program_id, "lightColor", light_color);
+  gl_prog_set_vec3f(model->program_id, "objectColor", object_color);
+
   for (int i = 0; i < model->num_meshes; i++) {
     gl_mesh_draw(&model->meshes[i], model->program_id);
   }
@@ -2018,16 +2071,48 @@ void gui_window_callback(gui_t *gui, const SDL_Event event) {
 }
 
 void gui_keyboard_callback(gui_t *gui, const SDL_Event event) {
+  const float camera_speed = 0.5f;
+
   if (event.type == SDL_KEYDOWN) {
     switch (event.key.keysym.sym) {
       case SDLK_ESCAPE:
         gui->loop = 0;
         break;
+      case SDLK_w:
+        gui->camera.position[0] += camera_speed * gui->camera.front[0];
+        gui->camera.position[1] += camera_speed * gui->camera.front[1];
+        gui->camera.position[2] += camera_speed * gui->camera.front[2];
+        break;
+      case SDLK_s:
+        gui->camera.position[0] -= camera_speed * gui->camera.front[0];
+        gui->camera.position[1] -= camera_speed * gui->camera.front[1];
+        gui->camera.position[2] -= camera_speed * gui->camera.front[2];
+        break;
+      case SDLK_a: {
+        GLfloat camera_left[3] = {0};
+        gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
+        gl_normalize(camera_left, 3);
+        gui->camera.position[0] -= camera_left[0] * camera_speed;
+        gui->camera.position[1] -= camera_left[1] * camera_speed;
+        gui->camera.position[2] -= camera_left[2] * camera_speed;
+        break;
+      }
+      case SDLK_d: {
+        GLfloat camera_left[3] = {0};
+        gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
+        gl_normalize(camera_left, 3);
+        gui->camera.position[0] += camera_left[0] * camera_speed;
+        gui->camera.position[1] += camera_left[1] * camera_speed;
+        gui->camera.position[2] += camera_left[2] * camera_speed;
+        break;
+      }
       case SDLK_q:
         gui->loop = 0;
         break;
     }
   }
+
+  gl_camera_update(&gui->camera);
 }
 
 void gui_mouse_callback(gui_t *gui, const SDL_Event event) {
@@ -2114,6 +2199,8 @@ void gui_setup(gui_t *gui) {
   }
   SDL_SetWindowResizable(gui->window, 0);
 
+  gui->renderer = SDL_CreateRenderer(gui->window, -1, SDL_RENDERER_ACCELERATED);
+
   // OpenGL context
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -2133,6 +2220,9 @@ void gui_setup(gui_t *gui) {
 
   // Camera
   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
+  gui->camera.position[0] = 0;
+  gui->camera.position[1] = 1;
+  gui->camera.position[2] = 0;
   gui->movement_speed = 50.0f;
   gui->mouse_sensitivity = 0.02f;
 
@@ -2179,12 +2269,16 @@ void gui_loop(gui_t *gui) {
   gl_entity_t grid;
   gl_grid_setup(&grid);
 
-  gl_model_t *model = gl_model_load("/home/chutsu/planet/planet.obj");
+  // gl_model_t *model = gl_model_load("/home/chutsu/planet/planet.obj");
+  gl_model_t *model = gl_model_load("/home/chutsu/mav.dae");
+  // gl_model_t *model = gl_model_load("/home/chutsu/aprilgrid/aprilgrid.obj");
+  // gl_model_t *model = gl_model_load("/home/chutsu/aprilgrid.dae");
   // gl_model_t *model = gl_model_load("/home/chutsu/projects/LearnOpenGL/"
   //                                   "resources/objects/nanosuit/nanosuit.obj");
-  // gl_model_t *model =
-  //     gl_model_load("/home/chutsu/projects/proto_ros2/gazebo/models/"
-  //                   "skokloster_castle/skokloster_castle.dae");
+  // gl_model_t *model = gl_model_load("/home/chutsu/castle.dae");
+
+  printf("window_width: %d\n", gui->window_width);
+  printf("window_height: %d\n", gui->window_height);
 
   gui->loop = 1;
   while (gui->loop) {
@@ -2193,6 +2287,7 @@ void gui_loop(gui_t *gui) {
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // glViewport(0, 0, gui->window_width / 2, gui->window_height / 2);
     // gl_cube_draw(&cube, &gui->camera);
     // gl_cube_draw(&cube2, &gui->camera);
     // gl_cube_draw(&cube3, &gui->camera);
@@ -2200,6 +2295,18 @@ void gui_loop(gui_t *gui) {
     // gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
     gl_model_draw(model, &gui->camera);
+
+    // glViewport(gui->window_width / 2,
+    //            0,
+    //            gui->window_width / 2,
+    //            gui->window_height / 2);
+    // glDisable(GL_DEPTH_TEST);
+    // glBegin(GL_LINES);
+    // glVertex2f(-1,01);
+    // glVertex2f(1,1);
+    // glEnd();
+    // glEnable(GL_DEPTH_TEST);
+
 
     // int width, height;
     // SDL_GetWindowSize(gui->window, &width, &height);
@@ -2805,12 +2912,12 @@ int test_gl_shader_compile() {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
   }
 
-  char *glcube_vs = file_read("./shaders/cube.vert");
+  char *glcube_vs = load_file("./shaders/cube.vert");
   const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
   free(glcube_vs);
   TEST_ASSERT(vs != GL_FALSE);
 
-  char *glcube_fs = file_read("./shaders/cube.frag");
+  char *glcube_fs = load_file("./shaders/cube.frag");
   const GLuint fs = gl_shader_compile(glcube_fs, GL_VERTEX_SHADER);
   free(glcube_fs);
   TEST_ASSERT(fs != GL_FALSE);
@@ -2852,13 +2959,13 @@ int test_gl_shaders_link() {
   }
 
   // Cube vertex shader
-  char *glcube_vs = file_read("./shaders/cube.vert");
+  char *glcube_vs = load_file("./shaders/cube.vert");
   const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
   free(glcube_vs);
   TEST_ASSERT(vs != GL_FALSE);
 
   // Cube fragment shader
-  char *glcube_fs = file_read("./shaders/cube.frag");
+  char *glcube_fs = load_file("./shaders/cube.frag");
   const GLuint fs = gl_shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
   free(glcube_fs);
   TEST_ASSERT(fs != GL_FALSE);
@@ -2907,8 +3014,8 @@ int test_gl_prog_setup() {
   }
 
   // Shader program
-  char *glcube_vs = file_read("./shaders/cube.vert");
-  char *glcube_fs = file_read("./shaders/cube.frag");
+  char *glcube_vs = load_file("./shaders/cube.vert");
+  char *glcube_fs = load_file("./shaders/cube.frag");
   const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL);
   free(glcube_vs);
   free(glcube_fs);
