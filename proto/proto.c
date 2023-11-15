@@ -1,16 +1,25 @@
 #include "proto.h"
 
 #ifdef USE_STB
+#ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#endif
 
+#ifndef STB_DS_IMPLEMENTATION
 #define STB_DS_IMPLEMENTATION
 #include <stb_ds.h>
+#endif
 #endif
 
 #ifdef USE_APRILGRID
 #define APRILGRID_IMPLEMENTATION
 #include "aprilgrid.h"
+#endif
+
+#ifdef USE_GUI
+#define GUI_IMPLEMENTATION
+#include "gui.h"
 #endif
 
 // #ifdef USE_SBGC

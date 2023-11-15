@@ -14,7 +14,7 @@ extern "C" {
 #define USE_SUITESPARSE
 #define USE_CERES
 #define USE_STB
-// #define USE_GUI
+#define USE_GUI
 #define USE_APRILGRID
 // #define USE_TIS
 // #define USE_SBGC
