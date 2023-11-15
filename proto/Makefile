@@ -104,6 +104,7 @@ LIBPROTO_OBJS := \
 	$(BLD_DIR)/proto.o \
 	$(BLD_DIR)/aprilgrid.o \
 	$(BLD_DIR)/euroc.o \
+	$(BLD_DIR)/gui.o \
 	$(BLD_DIR)/sbgc.o \
 	$(BLD_DIR)/tis.o \
 	$(BLD_DIR)/ceres_bridge.o
