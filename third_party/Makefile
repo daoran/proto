@@ -50,12 +50,10 @@ install_apt_pkgs:
 	@sudo apt-get install -y -qqq libopencv-*
 	@sudo apt-get install -y -qqq libglew-dev
 	@sudo apt-get install -y -qqq libsdl2-*
+	@sudo apt-get install -y -qqq libassimp-dev libassimp-doc
 	@sudo apt-get install -y -qqq libyaml-cpp-dev
 
-install_ros2:
-	@bash scripts/install_ros2.bash
-
-build_pkgs: build_apriltag build_tiscamera build_stb build_dbow2
+build_pkgs: build_apriltag build_stb build_dbow2
 
 build_apriltag:
 	@sudo apt-get install -y -qqq cmake libeigen3-dev libv4l-dev libopencv-*
