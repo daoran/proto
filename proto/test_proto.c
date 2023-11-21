@@ -3569,6 +3569,13 @@ int test_mav_waypoints() {
   mav_model_telem_free(telem);
   mav_waypoints_free(wps);
 
+  // gui_t gui;
+  // gui.window_title = "Test";
+  // gui.window_width = 640;
+  // gui.window_height = 480;
+  // gui_setup(&gui);
+  // gui_loop(&gui);
+
   return 0;
 }
 

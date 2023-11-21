@@ -1522,7 +1522,6 @@ static GLfloat *glgrid_create_vertices(int grid_size) {
   return vertices;
 }
 
-
 void gl_grid_setup(gl_entity_t *entity) {
   // Entity transform
   gl_eye(entity->T, 4, 4);
@@ -2062,11 +2061,9 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
 
 void gui_window_callback(gui_t *gui, const SDL_Event event) {
   if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-    const int width = event.window.data1;
-    const int height = event.window.data2;
-    gui->screen_width = width;
-    gui->screen_height = (height > 0) ? height : 1;
-    glViewport(0, 0, (GLsizei) gui->screen_width, (GLsizei) gui->screen_height);
+    const GLsizei width = event.window.data1;
+    const GLsizei height = (event.window.data2 > 0) ? event.window.data2 : 1;
+    glViewport(0, 0, width, height);
   }
 }
 
@@ -2270,12 +2267,12 @@ void gui_loop(gui_t *gui) {
   gl_grid_setup(&grid);
 
   // gl_model_t *model = gl_model_load("/home/chutsu/planet/planet.obj");
-  gl_model_t *model = gl_model_load("/home/chutsu/mav.dae");
+  gl_model_t *mav_model = gl_model_load("/home/chutsu/mav.dae");
   // gl_model_t *model = gl_model_load("/home/chutsu/aprilgrid/aprilgrid.obj");
   // gl_model_t *model = gl_model_load("/home/chutsu/aprilgrid.dae");
   // gl_model_t *model = gl_model_load("/home/chutsu/projects/LearnOpenGL/"
   //                                   "resources/objects/nanosuit/nanosuit.obj");
-  // gl_model_t *model = gl_model_load("/home/chutsu/castle.dae");
+  gl_model_t *model = gl_model_load("/home/chutsu/castle.dae");
 
   printf("window_width: %d\n", gui->window_width);
   printf("window_height: %d\n", gui->window_height);
@@ -2295,6 +2292,7 @@ void gui_loop(gui_t *gui) {
     // gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
     gl_model_draw(model, &gui->camera);
+    gl_model_draw(mav_model, &gui->camera);
 
     // glViewport(gui->window_width / 2,
     //            0,
@@ -2306,7 +2304,6 @@ void gui_loop(gui_t *gui) {
     // glVertex2f(1,1);
     // glEnd();
     // glEnable(GL_DEPTH_TEST);
-
 
     // int width, height;
     // SDL_GetWindowSize(gui->window, &width, &height);
@@ -2324,6 +2321,7 @@ void gui_loop(gui_t *gui) {
   gl_camera_frame_cleanup(&cf);
   gl_grid_cleanup(&grid);
   gl_model_free(model);
+  gl_model_free(mav_model);
 
   SDL_DestroyWindow(gui->window);
   SDL_Quit();

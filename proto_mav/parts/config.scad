@@ -28,10 +28,10 @@ odroid_mount_w = 52.0;
 odroid_mount_d = 76.0;
 
 // Pololu PSU
-pololu_w = 48.3;
-pololu_d = 15.2;
-pololu_mount_w = 43.2;
-pololu_mount_d = 10.2;
+POLOLU_W = 48.3;
+POLOLU_D = 15.2;
+POLOLU_MOUNT_W = 43.2;
+POLOLU_MOUNT_D = 10.2;
 
 // SBGC
 sbgc_w = 50.0;

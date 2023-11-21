@@ -97,6 +97,7 @@ run_memcheck() {
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
 # python3 proto.py TestSandbox.test_gimbal
+# python3 proto.py TestPoE.test_scene
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "\
@@ -126,9 +127,9 @@ run_memcheck() {
 # time make build
 # time make debug
 
-tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "make ci" C-m C-m
-exit
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "make ci" C-m C-m
+# exit
 
 run_all_tests() {
   tmux send-keys -t dev -R C-l C-m
@@ -156,8 +157,8 @@ run_test() {
 }
 
 dev_sbgc() {
-  time make build
-  cd ./proto/build;
+  time make test_sbgc
+  cd ./build;
   ./test_sbgc
   cd -
 }
@@ -201,7 +202,7 @@ dev_gui() {
   exit
 }
 
-# dev_sbgc
+dev_sbgc
 # dev_arducam
 # dev_aprilgrid
 # dev_euroc
@@ -388,7 +389,6 @@ dev_gui() {
 # run_test test_mav_vel_ctrl
 # run_test test_mav_pos_ctrl
 # run_test test_mav_waypoints
-# run_test test_mav_waypoints2
 # PROTO-SENSOR_FUSION
 # run_test test_schur_complement
 # run_test test_timeline
