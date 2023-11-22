@@ -157,10 +157,21 @@ run_test() {
 }
 
 dev_sbgc() {
-  time make test_sbgc
-  cd ./build;
-  ./test_sbgc
-  cd -
+  # tmux send-keys -t dev -R C-l C-m
+  # tmux send-keys -t dev -R "\
+# cd $HOME/projects/proto/proto \
+  # && time make test_sbgc \
+  # && cd ./build \
+  # && ./test_sbgc \
+  # && cd - \
+# " C-m
+  # exit
+
+cd $HOME/projects/proto/proto \
+  && time make test_sbgc \
+  && cd ./build \
+  && ./test_sbgc \
+  && cd -
 }
 
 dev_tiscam() {

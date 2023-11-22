@@ -782,7 +782,8 @@ module encoder_frame_GM3506(show_encoder=1, show_motor=0, has_encoders=0, roll_l
   // Pitch limiter
   pitch_limit_w = 5;
   pitch_limit_d = 7;
-  pitch_limit_offset = 135; // Pitch
+  // pitch_limit_offset = 135; // Pitch
+  pitch_limit_offset = 135 - 90; // Pitch
 
   // Roll limiter
   roll_limit_w = 6;
@@ -822,16 +823,23 @@ module encoder_frame_GM3506(show_encoder=1, show_motor=0, has_encoders=0, roll_l
 
       // Roll limiter
       if (roll_limit) {
-        // offset_x = 34 / 2 + roll_limit_d / 2;
-        // offset_y = -roll_limit_w / 2;
-        // #translate([offset_x, offset_y, roll_limit_h / 2])
-        //   cube([roll_limit_d, roll_limit_w, roll_limit_h], center=true);
-        rotate(35)
-          translate([18, 0, roll_limit_h / 2])
-            cube([roll_limit_d, roll_limit_w, roll_limit_h], center=true);
-        rotate(-35)
-          translate([-18, 0, roll_limit_h / 2])
-            cube([roll_limit_d, roll_limit_w, roll_limit_h], center=true);
+        translate([-motor_mount_d / 2, motor_mount_d / 2, roll_limit_h / 2])
+          rotate(-55)
+            translate([roll_limit_d / 2 - 4, -roll_limit_w / 2, 0])
+              cube([roll_limit_d, roll_limit_w, roll_limit_h], center=true);
+
+        translate([motor_mount_d / 2, motor_mount_d / 2, roll_limit_h / 2])
+          rotate(55)
+            translate([roll_limit_d / 2 - 6, -roll_limit_w / 2, 0])
+              cube([roll_limit_d, roll_limit_w, roll_limit_h], center=true);
+
+
+        // rotate(35)
+        //   translate([18, 0, roll_limit_h / 2])
+        //     cube([roll_limit_d, roll_limit_w, roll_limit_h], center=true);
+        // rotate(-35)
+        //   translate([-18, 0, roll_limit_h / 2])
+        //     cube([roll_limit_d, roll_limit_w, roll_limit_h], center=true);
       }
 
       // Pitch limiter
@@ -1885,10 +1893,12 @@ module gimbal_roll_frame(show_roll_motor=1,
         cube([roll_mount_w, pitch_mount_d, motor_offset_z], center=true);
 
       // Roll Limiter
-      translate([motor_r + limiter_d / 2 + limiter_offset_x, 0, limiter_h / 2])
-        cube([limiter_d + 0.5, limiter_w, limiter_h], center=true);
-      translate([motor_r + limiter_w / 2 + 0.25, 0, -limiter_reach_h / 2])
-        cube([limiter_w, limiter_w, limiter_reach_h], center=true);
+      rotate(180) {
+        translate([motor_r + limiter_d / 2 + limiter_offset_x, 0, limiter_h / 2])
+          cube([limiter_d + 0.5, limiter_w, limiter_h], center=true);
+        translate([motor_r + limiter_w / 2 + 0.25, 0, -limiter_reach_h / 2])
+          cube([limiter_w, limiter_w, limiter_reach_h], center=true);
+      }
     }
 
     // Roll mount holes
@@ -1973,9 +1983,10 @@ module gimbal_yaw_frame(show_roll_frame=1, show_yaw_motor=1, show_sbgc_frame=1) 
     // Roll frame
     offset_x = encoder_offset_x + roll_motor_h + roll_encoder_h + 1;
     offset_z = roll_mount_z;
+    roll_angle = 0.0;
     translate([offset_x, 0.0, offset_z])
       rotate([0, 90, 0])
-        rotate([0, 0, 0])
+        rotate([0, 0, roll_angle])
           gimbal_roll_frame(show_roll_motor=0);
   }
 
@@ -1987,7 +1998,8 @@ module gimbal_yaw_frame(show_roll_frame=1, show_yaw_motor=1, show_sbgc_frame=1) 
         encoder_frame_GM4008(show_encoder=1, show_motor=1);
 
     translate([0, 0, frame_thickness])
-      gimbal_yaw_limiter();
+      rotate(80)
+      #gimbal_yaw_limiter();
 
   }
 
@@ -2305,6 +2317,9 @@ module perception_module_assembly() {
   utility_frame(nuc_mount_w, nuc_mount_d, show_components=1);
 }
 
+// gimbal_assembly();
+// perception_module_assembly();
+
 /////////////////////////////////////////////////////////////////////////////
 // COMPONENT DEVELOPMENT                                                   //
 /////////////////////////////////////////////////////////////////////////////
@@ -2312,8 +2327,8 @@ module perception_module_assembly() {
 // battery_frame(batt_frame_w, batt_frame_d);
 // fcu_frame(1);
 // encoder_frame_GM2804(show_encoder=0, show_motor=0);
-// encoder_frame_GM3506(show_encoder=1, show_motor=0, roll_limit=0, pitch_limit=1);
-// encoder_frame_GM4008(show_encoder=1, show_motor=1);
+encoder_frame_GM3506(show_encoder=0, show_motor=0, roll_limit=0, pitch_limit=1);
+// encoder_frame_GM4008(show_encoder=0, show_motor=0);
 // odroid_frame(nuc_mount_w, nuc_mount_d, 0);
 // gimbal_yaw_limiter();
 
@@ -2339,6 +2354,7 @@ module perception_module_assembly() {
 // -- GIMBAL FRAMES
 // gimbal_frame(nuc_mount_w, nuc_mount_d, 0);
 // gimbal_pitch_frame(show_pitch_motor=0, show_camera=0);
+// #rotate(90 + 35)
 // gimbal_roll_frame(show_roll_motor=0, show_pitch_motor=0, show_pitch_frame=0);
 // gimbal_yaw_frame(show_roll_frame=0, show_yaw_motor=0, show_sbgc_frame=0);
 
