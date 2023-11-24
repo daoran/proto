@@ -31,17 +31,6 @@ CERES_LDFLAGS := -lgflags -lglog -lceres
 
 ASSIMP_LDFLAGS := -lassimp
 
-TIS_CFLAGS:=-DGST_DISABLE_DEPRECATED
-TIS_CFLAGS+=$(shell pkg-config gstreamer-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config gstreamer-video-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config gobject-introspection-1.0 --cflags)
-TIS_CFLAGS+=$(shell pkg-config tcam --cflags)
-TIS_LDFLAGS:=-L$(DEP_DIR)/lib
-TIS_LDFLAGS+=$(shell pkg-config gstreamer-1.0 --libs)
-TIS_LDFLAGS+=$(shell pkg-config gstreamer-video-1.0 --libs)
-TIS_LDFLAGS+=$(shell pkg-config gobject-introspection-1.0 --libs)
-TIS_LDFLAGS+=$(shell pkg-config tcam --libs)
-
 APRILTAG_LDFLAGS := -L$(DEPS_DIR)/lib -lapriltag
 YAML_LDFLAGS := -lyaml
 PROTO_LDFLAGS := -L$(BLD_DIR) -lproto
@@ -70,7 +59,6 @@ CFLAGS += \
 	-fPIC \
 	$(SDL2_CFLAGS) \
 	$(STB_CFLAGS) \
-	$(TIS_CFLAGS) \
 	$(CERES_CFLAGS)
 
 
@@ -86,7 +74,6 @@ LDFLAGS= \
 	$(BLAS_LDFLAGS) \
 	$(OPENSSL_LDFLAGS) \
 	$(ASSIMP_LDFLAGS) \
-	$(TIS_LDFLAGS) \
 	$(YAML_LDFLAGS) \
 	-lstdc++ \
 	-lpthread \
@@ -106,13 +93,11 @@ LIBPROTO_OBJS := \
 	$(BLD_DIR)/euroc.o \
 	$(BLD_DIR)/gui.o \
 	$(BLD_DIR)/sbgc.o \
-	$(BLD_DIR)/tis.o \
 	$(BLD_DIR)/ceres_bridge.o
 
 TESTS := \
 	test_proto \
 	test_aprilgrid \
-	test_tis \
 	test_sbgc \
 	test_ubx
 
@@ -217,10 +202,6 @@ test_gui:  ## Compile test_gui
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_gui.c -o $(BLD_DIR)/test_gui $(LDFLAGS)
 
-test_tis:  ## Compile test_tis
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_tis.c -o $(BLD_DIR)/test_tis $(LDFLAGS)
-
 test_sbgc:  ## Compile test_sbgc
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_sbgc.c -o $(BLD_DIR)/test_sbgc $(LDFLAGS)
@@ -233,7 +214,7 @@ test_http:  ## Compile test_http
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
 
-tests: test_proto test_aprilgrid test_tis test_sbgc test_ubx
+tests: test_proto test_aprilgrid test_sbgc test_ubx
 
 ci:
 	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
@@ -248,9 +229,6 @@ run_test_aprilgrid: test_aprilgrid ## Run test_aprilgrid
 run_test_euroc: test_euroc ## Run test_euroc
 	@./build/test_euroc
 
-run_test_tis: test_tis ## Run test_tis
-	@./build/test_tis
-
 run_test_sbgc: test_sbgc ## Run test_sbgc
 	@./build/test_sbgc
 
@@ -260,4 +238,4 @@ run_test_ubx: test_ubx ## Run test_ubx
 run_test_http: test_http ## Run test_http
 	@./build/test_http
 
-run_tests: run_test_proto run_test_aprilgrid run_test_tis run_test_run_sbgc run_test_ubx
+run_tests: run_test_proto run_test_aprilgrid run_test_run_sbgc run_test_ubx
