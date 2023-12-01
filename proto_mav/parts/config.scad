@@ -15,7 +15,7 @@ M25_NUT_W = 5.2;
 M25_NUT_H = 2.0;
 
 // M3 Screw and Nut
-M3_SCREW_W = 3.2;
+M3_SCREW_W = 3.5;
 M3_CAPHEAD_W = 6.0;
 M3_CAPHEAD_H = 3.0;
 M3_NUT_W = 6.5;
