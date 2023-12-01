@@ -42,10 +42,11 @@ class GimbalData:
         links.append(self.link1_ext)
 
         # Joints
-        joint_angles = []
-        joint_angles.append(self.joints[ts][0])
-        joint_angles.append(self.joints[ts][1])
-        joint_angles.append(self.joints[ts][2])
+        # joint_angles = []
+        # joint_angles.append(self.joints[ts][0])
+        # joint_angles.append(self.joints[ts][1])
+        # joint_angles.append(self.joints[ts][2])
+        joint_angles = [0.0, 0.0, 0.0]
 
         # Gimbal
         gimbal = GimbalKinematics(links, joint_angles)
@@ -72,6 +73,14 @@ def parse_int(line, key):
     if k != key:
         raise RuntimeError(f"Key [{k} != {key}]")
     return int(v)
+
+
+def parse_float(line, key):
+    """ Parse Float """
+    k, v = line.split(":")
+    if k != key:
+        raise RuntimeError(f"Key [{k} != {key}]")
+    return float(v)
 
 
 def parse_pose(line, key):
@@ -165,7 +174,12 @@ def load_view_file(view_file):
     ts = int(Path(view_file).stem)
     view_file = open(view_file, "r")
     view_lines = view_file.readlines()
-    num_corners = parse_int(view_lines[0], "num_corners")
+    # timestamp = parse_int(view_lines[0], "timestamp")
+    # num_rows = parse_int(view_lines[1], "num_rows")
+    # num_cols = parse_int(view_lines[2], "num_cols")
+    # tag_size = parse_int(view_lines[3], "tag_size")
+    # tag_spacing = parse_int(view_lines[4], "tag_spacing")
+    num_corners = parse_int(view_lines[6], "corners_detected")
 
     view_data = {}
     view_data["ts"] = ts
@@ -175,8 +189,8 @@ def load_view_file(view_file):
     view_data["object_points"] = []
     view_data["keypoints"] = []
 
-    assert(len(view_lines[3:]) == num_corners)
-    for line in view_lines[3:]:
+    assert(len(view_lines[8:]) == num_corners)
+    for line in view_lines[8:]:
         line = line.split(",")
         view_data["tag_ids"].append(int(line[0]))
         view_data["corner_indices"].append(int(line[1]))
@@ -233,15 +247,15 @@ def load_joints_file(joints_file):
 def load_sim_gimbal_data(calib_dir):
     """ Load gimbal simulation data. """
     config_path = os.path.join(calib_dir, "calib.config")
-    poses_path = os.path.join(calib_dir, "poses.sim")
-    joints_path = os.path.join(calib_dir, "joint_angles.sim")
+    poses_path = os.path.join(calib_dir, "poses.dat")
+    joints_path = os.path.join(calib_dir, "joint_angles.dat")
 
     config_data = load_config_file(config_path)
     poses_data = load_poses_file(poses_path)
     timestamps, joints_data = load_joints_file(joints_path)
 
     cam_dir = os.path.join(calib_dir, "cam0")
-    cam_files = glob.glob(os.path.join(cam_dir, "*.sim"))
+    cam_files = glob.glob(os.path.join(cam_dir, "*.csv"))
     cam_files = sorted(cam_files, key= lambda x : int(Path(x).stem))
     view_data = load_view_file(cam_files[0])
 
@@ -354,29 +368,29 @@ def plot_gimbal(ts, **kwargs):
     # Plot transforms
     (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = gnd.get_plot_tfs(ts)
     gnd_colors = ['r-', 'g-', 'b-'] if est is None else ['r-', 'r-', 'r-']
-    plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=gnd_colors)
-    plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=gnd_colors)
+    plot_tf(ax, T_WL0, name="Link0", size=0.01, colors=gnd_colors)
+    plot_tf(ax, T_WL1, name="Link1", size=0.01, colors=gnd_colors)
+    plot_tf(ax, T_WL2, name="Link2", size=0.01, colors=gnd_colors)
+    plot_tf(ax, T_WC0, name="cam0", size=0.01, colors=gnd_colors)
+    # plot_tf(ax, T_WC1, name="cam1", size=0.01, colors=gnd_colors)
 
     if est:
         (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = est.get_plot_tfs(ts)
         est_colors = ['b-', 'b-', 'b-']
-        plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL0, name="Link0", size=0.01, colors=est_colors)
+        plot_tf(ax, T_WL1, name="Link1", size=0.01, colors=est_colors)
+        plot_tf(ax, T_WL2, name="Link2", size=0.01, colors=est_colors)
+        plot_tf(ax, T_WC0, name="cam0", size=0.01, colors=est_colors)
+        plot_tf(ax, T_WC1, name="cam1", size=0.01, colors=est_colors)
 
     if init:
         (T_WL0, T_WL1, T_WL2, T_WC0, T_WC1) = init.get_plot_tfs(ts)
         est_colors = ['g-', 'g-', 'g-']
-        plot_tf(ax, T_WL0, name="Link0", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WL1, name="Link1", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WL2, name="Link2", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WC0, name="cam0", size=0.05, colors=est_colors)
-        plot_tf(ax, T_WC1, name="cam1", size=0.05, colors=est_colors)
+        plot_tf(ax, T_WL0, name="Link0", size=0.01, colors=est_colors)
+        plot_tf(ax, T_WL1, name="Link1", size=0.01, colors=est_colors)
+        plot_tf(ax, T_WL2, name="Link2", size=0.01, colors=est_colors)
+        plot_tf(ax, T_WC0, name="cam0", size=0.01, colors=est_colors)
+        plot_tf(ax, T_WC1, name="cam1", size=0.01, colors=est_colors)
 
     # Plot settings
     ax.set_xlabel("x [m]")
@@ -430,19 +444,20 @@ def check_transforms(sim_data, calib_data):
 if __name__ == "__main__":
     # calib_dir = "./test_data/sim_gimbal"
     # calib_dir = "/tmp/calib_gimbal"
-    # sim_data, calib_data  = load_sim_gimbal_data(calib_dir)
-    # plot_gimbal(sim_data.timestamps[0], gnd=sim_data)
-    # check_transforms(sim_data, calib_data)
+    calib_dir = "/home/chutsu/calib_gimbal"
+    sim_data, calib_data  = load_sim_gimbal_data(calib_dir)
+    plot_gimbal(sim_data.timestamps[0], gnd=sim_data)
+    check_transforms(sim_data, calib_data)
 
-    results_file = "/tmp/estimates-gnd.yaml"
-    data_gnd = load_calib_results(results_file)
+    # gnd_file = "/tmp/estimates-gnd.yaml"
+    # data_gnd = load_calib_results(gnd_file)
 
-    results_file = "/tmp/estimates-before.yaml"
-    data_before = load_calib_results(results_file)
+    # init_file = "/tmp/estimates-before.yaml"
+    # data_init = load_calib_results(init_file)
 
-    results_file = "/tmp/estimates-after.yaml"
-    data_after = load_calib_results(results_file)
+    # est_file = "/tmp/estimates-after.yaml"
+    # data_est = load_calib_results(est_file)
 
-    for k in range(data_gnd.num_views):
-        ts = data_gnd.timestamps[k]
-        plot_gimbal(ts, gnd=data_gnd, init=data_before, est=data_after)
+    # for k in range(data_gnd.num_views):
+    #     ts = data_gnd.timestamps[k]
+    #     plot_gimbal(ts, gnd=data_gnd, init=data_init, est=data_est)
