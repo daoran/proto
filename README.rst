@@ -1,7 +1,7 @@
 proto
 =====
 
-.. image:: https://github.com/chutsu/proto/workflows/ci/badge.svg
+.. image:: https://github.com/chutsu/proto/actions/workflows/ci.yml/badge.svg
   :target: https://github.com/chutsu/proto/actions?query=ci
 
 ``proto`` contain notes and code used to learn about different aspects of
