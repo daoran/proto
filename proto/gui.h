@@ -1,6 +1,10 @@
 #ifndef GUI_H
 #define GUI_H
 
+#ifdef __cplusplus
+#error "This module only supports C builds"
+#endif
+
 #include <stdio.h>
 #include <assert.h>
 #include <libgen.h>
@@ -406,6 +410,7 @@ void imshow_event_handler(imshow_t *gui);
 void imshow_setup(imshow_t *imshow, const char *fp);
 void imshow_reset(imshow_t *imshow);
 void imshow_loop(imshow_t *imshow);
+
 #endif // GUI_H
 
 #ifdef GUI_IMPLEMENTATION

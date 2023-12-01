@@ -12,7 +12,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define SBGC_ENABLE_ENCODER 0
 #define SBGC_INVERT_YAW 1
 
 // MACROS
@@ -612,7 +611,7 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
   // sbgc->encoder_offsets[2] = 16514048;
   sbgc->encoder_offsets[0] = 11737088;
   sbgc->encoder_offsets[1] = 14575616;
-  sbgc->encoder_offsets[2] = 16272384;
+  sbgc->encoder_offsets[2] = 16013312;
 
   sbgc->board_version = 0;
   sbgc->firmware_version = 0;
@@ -848,8 +847,7 @@ int sbgc_update(sbgc_t *sbgc) {
   const uint8_t enable_acc_data = 0;
   const uint8_t enable_motor4_control = 0;
   const uint8_t enable_ahrs_debug_info = 0;
-  // const uint8_t enable_encoder_raw24 = 1;
-  const uint8_t enable_encoder_raw24 = 0;
+  const uint8_t enable_encoder_raw24 = 1;
   const uint8_t enable_imu_angles_rad = 0;
   const uint8_t enable_script_vars_float = 0;
   const uint8_t enable_script_vars_int16 = 0;
@@ -929,9 +927,9 @@ int sbgc_update(sbgc_t *sbgc) {
   float target_roll = sbgc_parse_angle(payload, 8);
   float target_pitch = sbgc_parse_angle(payload, 10);
   float target_yaw = sbgc_parse_angle(payload, 12);
-  // float encoder_roll = sbgc_parse_encoder(payload, 14, sbgc->encoder_offsets[0]);
-  // float encoder_pitch = sbgc_parse_encoder(payload, 17, sbgc->encoder_offsets[1]);
-  // float encoder_yaw = sbgc_parse_encoder(payload, 20, sbgc->encoder_offsets[2]);
+  float encoder_roll = sbgc_parse_encoder(payload, 14, sbgc->encoder_offsets[0]);
+  float encoder_pitch = sbgc_parse_encoder(payload, 17, sbgc->encoder_offsets[1]);
+  float encoder_yaw = sbgc_parse_encoder(payload, 20, sbgc->encoder_offsets[2]);
   // clang-format on
 
   // Invert Yaw?
@@ -948,15 +946,15 @@ int sbgc_update(sbgc_t *sbgc) {
   sbgc->target_angles[0] = target_roll;
   sbgc->target_angles[1] = target_pitch;
   sbgc->target_angles[2] = target_yaw;
-  // sbgc->encoder_angles[0] = encoder_roll;
-  // sbgc->encoder_angles[1] = encoder_pitch;
-  // sbgc->encoder_angles[2] = (SBGC_INVERT_YAW * -1) encoder_yaw;
+  sbgc->encoder_angles[0] = encoder_roll;
+  sbgc->encoder_angles[1] = encoder_pitch;
+  sbgc->encoder_angles[2] = encoder_yaw;
 
   printf("\n");
   printf("timestamp: %ld\n", timestamp);
   printf("imu:     %f, %f, %f\n", imu_roll, imu_pitch, imu_yaw);
   printf("target:  %f, %f, %f\n", target_roll, target_pitch, target_yaw);
-  // printf("encoder: %f, %f, %f\n", encoder_roll, encoder_pitch, encoder_yaw);
+  printf("encoder: %f, %f, %f\n", encoder_roll, encoder_pitch, encoder_yaw);
 
   return 0;
 }

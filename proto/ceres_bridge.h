@@ -1,12 +1,15 @@
 #ifndef _CERES_BRIDGE_H_
 #define _CERES_BRIDGE_H_
+
+#include <ceres/c_api.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // ceres::Problem
-struct ceres_problem_s;
-typedef struct ceres_problem_s ceres_problem_t;
+// struct ceres_problem_s;
+// typedef struct ceres_problem_s ceres_problem_t;
 
 // ceres::ResidualBlock
 struct ceres_residual_block_id_s;
@@ -40,19 +43,19 @@ void ceres_free_problem(ceres_problem_t *problem);
 ceres_local_parameterization_t *ceres_create_pose_local_parameterization();
 void ceres_free_local_parameterization(ceres_local_parameterization_t *p);
 
-/**
- * Add residual block to ceres::Problem
- */
-ceres_residual_block_id_t *
-ceres_problem_add_residual_block(ceres_problem_t *problem,
-                                 ceres_cost_function_t cost_function,
-                                 void *cost_function_data,
-                                 ceres_loss_function_t loss_function,
-                                 void *loss_function_data,
-                                 int num_residuals,
-                                 int num_parameter_blocks,
-                                 int *parameter_block_sizes,
-                                 double **parameters);
+// /**
+//  * Add residual block to ceres::Problem
+//  */
+// ceres_residual_block_id_t *
+// ceres_problem_add_residual_block(ceres_problem_t *problem,
+//                                  ceres_cost_function_t cost_function,
+//                                  void *cost_function_data,
+//                                  ceres_loss_function_t loss_function,
+//                                  void *loss_function_data,
+//                                  int num_residuals,
+//                                  int num_parameter_blocks,
+//                                  int *parameter_block_sizes,
+//                                  double **parameters);
 
 /**
  * Set local parameterization for a particular parameter
@@ -69,7 +72,7 @@ void ceres_set_parameter_constant(ceres_problem_t *c_problem, double *values);
 /**
  * Solve ceres::Problem
  */
-void ceres_solve(ceres_problem_t *problem, const int max_iter, const int verbose);
+// void ceres_solve(ceres_problem_t *problem, const int max_iter, const int verbose);
 
 #ifdef __cplusplus
 } // extern "C"

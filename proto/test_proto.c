@@ -6013,7 +6013,8 @@ int test_ceres_example() {
                                      parameter_pointers);
   }
 
-  ceres_solve(problem, 10, 0);
+  // ceres_solve(problem, 10, 0);
+  ceres_solve(problem);
   ceres_free_problem(problem);
   // printf("Initial m: 0.0, c: 0.0\n");
   // printf("Final m: %g, c: %g\n", m, c);
@@ -6260,7 +6261,8 @@ int test_calib_camera_mono_ceres() {
   }     // For each views
 
   // Solve
-  ceres_solve(problem, 20, 0);
+  // ceres_solve(problem, 20, 0);
+  ceres_solve(problem);
   // calib_camera_print(calib);
 
   // Clean up
@@ -6623,7 +6625,8 @@ int test_calib_camera_stereo_ceres() {
   }     // For each views
 
   // Solve
-  ceres_solve(problem, 20, 0);
+  // ceres_solve(problem, 20, 0);
+  ceres_solve(problem);
   // calib_camera_print(calib);
 
   // Clean up
@@ -7270,7 +7273,8 @@ int test_calib_imucam_batch_ceres() {
   }
 
   // Solve
-  ceres_solve(problem, 100, 0);
+  // ceres_solve(problem, 100, 0);
+  ceres_solve(problem);
   calib_imucam_print(calib);
   // printf("num_factors: %d\n", num_factors);
 
@@ -7474,7 +7478,7 @@ int test_calib_gimbal_load() {
   const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *calib = calib_gimbal_load(data_path);
   MU_ASSERT(calib != NULL);
-  // calib_gimbal_print(calib);
+  calib_gimbal_print(calib);
   calib_gimbal_free(calib);
 
   return 0;
@@ -7572,46 +7576,48 @@ static void compare_gimbal_calib(const calib_gimbal_t *gnd,
 
 int test_calib_gimbal_solve() {
   // Setup
-  const int debug = 0;
+  const int debug = 1;
   // const char *data_path = TEST_SIM_GIMBAL;
-  const char *data_path = "/tmp/calib_gimbal";
+  // const char *data_path = "/tmp/calib_gimbal";
+  // const char *data_path = "/tmp/sim_gimbal";
+  const char *data_path = "/home/chutsu/calib_gimbal";
   calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
   calib_gimbal_t *calib_est = calib_gimbal_load(data_path);
   MU_ASSERT(calib_gnd != NULL);
   MU_ASSERT(calib_est != NULL);
 
   // Perturb parameters
-  {
-    // printf("Ground Truth:\n");
-    // calib_gimbal_print(calib_gnd);
-    // printf("\n");
+  // {
+  //   // printf("Ground Truth:\n");
+  //   // calib_gimbal_print(calib_gnd);
+  //   // printf("\n");
 
-    // Perturb
-    real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
-    // pose_update(calib_est->fiducial_ext.data, dx);
-    // pose_update(calib_est->cam_exts[0].data, dx);
-    // pose_update(calib_est->cam_exts[1].data, dx);
-    for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
-      pose_update(calib_est->links[link_idx].data, dx);
-    }
-    // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
-    //   for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
-    //     calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.05, 0.05);
-    //   }
-    // }
-    // printf("\n");
+  //   // Perturb
+  //   real_t dx[6] = {0.01, 0.01, 0.01, 0.1, 0.1, 0.1};
+  //   // pose_update(calib_est->fiducial_ext.data, dx);
+  //   // pose_update(calib_est->cam_exts[0].data, dx);
+  //   // pose_update(calib_est->cam_exts[1].data, dx);
+  //   for (int link_idx = 0; link_idx < calib_est->num_links; link_idx++) {
+  //     pose_update(calib_est->links[link_idx].data, dx);
+  //   }
+  //   // for (int view_idx = 0; view_idx < calib_est->num_views; view_idx++) {
+  //   //   for (int joint_idx = 0; joint_idx < calib_est->num_joints; joint_idx++) {
+  //   //     calib_est->joints[view_idx][joint_idx].data[0] += randf(-0.05, 0.05);
+  //   //   }
+  //   // }
+  //   // printf("\n");
 
-    //     printf("Initial:\n");
-    //     calib_gimbal_print(calib_est);
-    //     printf("\n");
-  }
-  if (debug) {
-    compare_gimbal_calib(calib_gnd, calib_est);
-  }
+  //   //     printf("Initial:\n");
+  //   //     calib_gimbal_print(calib_est);
+  //   //     printf("\n");
+  // }
+  // if (debug) {
+  //   compare_gimbal_calib(calib_gnd, calib_est);
+  // }
 
   // Solve
   calib_gimbal_save(calib_est, "/tmp/estimates-before.yaml");
-  // calib_gimbal_print(calib_est);
+  calib_gimbal_print(calib_est);
   TIC(solve);
   solver_t solver;
   solver_setup(&solver);
@@ -7627,30 +7633,30 @@ int test_calib_gimbal_solve() {
     PRINT_TOC("solve", solve);
   }
 
-  int sv_size = 0;
-  int r_size = 0;
-  param_order_t *hash = calib_gimbal_param_order(calib_est, &sv_size, &r_size);
+  // int sv_size = 0;
+  // int r_size = 0;
+  // param_order_t *hash = calib_gimbal_param_order(calib_est, &sv_size, &r_size);
 
-  const int J_rows = r_size;
-  const int J_cols = sv_size;
-  real_t *J = CALLOC(real_t, r_size * sv_size);
-  real_t *g = CALLOC(real_t, r_size * 1);
-  real_t *r = CALLOC(real_t, r_size * 1);
-  calib_gimbal_linearize(calib_est, J_rows, J_cols, hash, J, g, r);
-  mat_save("/tmp/J.csv", J, J_rows, J_cols);
+  // const int J_rows = r_size;
+  // const int J_cols = sv_size;
+  // real_t *J = CALLOC(real_t, r_size * sv_size);
+  // real_t *g = CALLOC(real_t, r_size * 1);
+  // real_t *r = CALLOC(real_t, r_size * 1);
+  // calib_gimbal_linearize(calib_est, J_rows, J_cols, hash, J, g, r);
+  // mat_save("/tmp/J.csv", J, J_rows, J_cols);
 
-  free(J);
-  free(g);
-  free(r);
-  param_order_free(hash);
+  // free(J);
+  // free(g);
+  // free(r);
+  // param_order_free(hash);
 
   // printf("Estimated:\n");
   // calib_gimbal_print(calib);
   // printf("\n");
 
   // Clean up
-  calib_gimbal_save(calib_gnd, "/tmp/estimates-gnd.yaml");
-  calib_gimbal_save(calib_est, "/tmp/estimates-after.yaml");
+  // calib_gimbal_save(calib_gnd, "/tmp/estimates-gnd.yaml");
+  // calib_gimbal_save(calib_est, "/tmp/estimates-after.yaml");
   calib_gimbal_free(calib_gnd);
   calib_gimbal_free(calib_est);
 
@@ -7770,7 +7776,8 @@ int test_calib_gimbal_ceres_solve() {
   ceres_set_parameterization(problem, calib_est->cam_exts[0].data, pose_pm);
   ceres_set_parameterization(problem, calib_est->cam_exts[1].data, pose_pm);
   TIC(solve);
-  ceres_solve(problem, 10, 0);
+  // ceres_solve(problem, 10, 0);
+  ceres_solve(problem);
   PRINT_TOC("solve", solve);
 
   // Compare ground-truth vs estimates
@@ -8374,7 +8381,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_add_remove_view);
   MU_ADD_TEST(test_calib_gimbal_load);
   MU_ADD_TEST(test_calib_gimbal_save);
-  // MU_ADD_TEST(test_calib_gimbal_solve);
+  MU_ADD_TEST(test_calib_gimbal_solve);
 #ifdef USE_CERES
   // MU_ADD_TEST(test_calib_gimbal_ceres_solve);
 #endif // USE_CERES

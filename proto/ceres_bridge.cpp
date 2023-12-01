@@ -1,6 +1,7 @@
 #include "ceres_bridge.h"
 
 #include <iostream>
+#include <ceres/c_api.h>
 #include <ceres/cost_function.h>
 #include <ceres/loss_function.h>
 #include <ceres/local_parameterization.h>
@@ -219,39 +220,39 @@ void ceres_free_problem(ceres_problem_t *problem) {
   delete reinterpret_cast<ceres::Problem *>(problem);
 }
 
-ceres_residual_block_id_t *
-ceres_problem_add_residual_block(ceres_problem_t *problem,
-                                 ceres_cost_function_t cost_function,
-                                 void *cost_function_data,
-                                 ceres_loss_function_t loss_function,
-                                 void *loss_function_data,
-                                 int num_residuals,
-                                 int num_parameter_blocks,
-                                 int *parameter_block_sizes,
-                                 double **parameters) {
-  auto *ceres_problem = reinterpret_cast<ceres::Problem *>(problem);
+// ceres_residual_block_id_t *
+// ceres_problem_add_residual_block(ceres_problem_t *problem,
+//                                  ceres_cost_function_t cost_function,
+//                                  void *cost_function_data,
+//                                  ceres_loss_function_t loss_function,
+//                                  void *loss_function_data,
+//                                  int num_residuals,
+//                                  int num_parameter_blocks,
+//                                  int *parameter_block_sizes,
+//                                  double **parameters) {
+//   auto *ceres_problem = reinterpret_cast<ceres::Problem *>(problem);
 
-  auto callback_cost_function =
-      std::make_unique<CostFunctionWrapper>(cost_function,
-                                            cost_function_data,
-                                            num_residuals,
-                                            num_parameter_blocks,
-                                            parameter_block_sizes);
+//   auto callback_cost_function =
+//       std::make_unique<CostFunctionWrapper>(cost_function,
+//                                             cost_function_data,
+//                                             num_residuals,
+//                                             num_parameter_blocks,
+//                                             parameter_block_sizes);
 
-  std::unique_ptr<ceres::LossFunction> callback_loss_function;
-  if (loss_function != nullptr) {
-    callback_loss_function =
-        std::make_unique<LossFunctionWrapper>(loss_function,
-                                              loss_function_data);
-  }
+//   std::unique_ptr<ceres::LossFunction> callback_loss_function;
+//   if (loss_function != nullptr) {
+//     callback_loss_function =
+//         std::make_unique<LossFunctionWrapper>(loss_function,
+//                                               loss_function_data);
+//   }
 
-  std::vector<double *> parameter_blocks(parameters,
-                                         parameters + num_parameter_blocks);
-  return reinterpret_cast<ceres_residual_block_id_t *>(
-      ceres_problem->AddResidualBlock(callback_cost_function.release(),
-                                      callback_loss_function.release(),
-                                      parameter_blocks));
-}
+//   std::vector<double *> parameter_blocks(parameters,
+//                                          parameters + num_parameter_blocks);
+//   return reinterpret_cast<ceres_residual_block_id_t *>(
+//       ceres_problem->AddResidualBlock(callback_cost_function.release(),
+//                                       callback_loss_function.release(),
+//                                       parameter_blocks));
+// }
 
 ceres_local_parameterization_t *ceres_create_pose_local_parameterization() {
   return reinterpret_cast<ceres_local_parameterization_t *>(
@@ -275,18 +276,18 @@ void ceres_set_parameter_constant(ceres_problem_t *c_problem, double *values) {
   problem->SetParameterBlockConstant(values);
 }
 
-void ceres_solve(ceres_problem_t *c_problem,
-                 const int max_iter,
-                 const int verbose) {
-  auto *problem = reinterpret_cast<ceres::Problem *>(c_problem);
-  ceres::Solver::Options options;
-  options.max_num_iterations = max_iter;
-  options.minimizer_progress_to_stdout = verbose;
+// void ceres_solve(ceres_problem_t *c_problem,
+//                  const int max_iter,
+//                  const int verbose) {
+//   auto *problem = reinterpret_cast<ceres::Problem *>(c_problem);
+//   ceres::Solver::Options options;
+//   options.max_num_iterations = max_iter;
+//   options.minimizer_progress_to_stdout = verbose;
 
-  ceres::Solver::Summary summary;
-  ceres::Solve(options, problem, &summary);
+//   ceres::Solver::Summary summary;
+//   ceres::Solve(options, problem, &summary);
 
-  if (verbose) {
-    std::cout << summary.FullReport() << std::endl;
-  }
-}
+//   if (verbose) {
+//     std::cout << summary.FullReport() << std::endl;
+//   }
+// }

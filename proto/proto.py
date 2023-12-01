@@ -3820,9 +3820,11 @@ class KittiRawDataset:
     plot_set_axes_equal(ax)
     plt.show()
 
+
 ###############################################################################
 # MANIPULATOR
 ###############################################################################
+
 
 def fwdkinspace(M, S_list, theta_list):
   """
@@ -4816,8 +4818,8 @@ class CalibGimbalFactor(Factor):
 
     return status, r, p_Ci
 
-  def get_reproj_error(self, fiducial, pose, gimbal_ext, links, joints,
-                       cam_ext, cam_params):
+  def get_reproj_error(self, fiducial, pose, gimbal_ext, links, joints, cam_ext,
+                       cam_params):
     """ Get reprojection error """
     status, r, _ = self.get_residual(fiducial, pose, gimbal_ext, links, joints,
                                      cam_ext, cam_params)
@@ -4846,7 +4848,7 @@ class CalibGimbalFactor(Factor):
     pose = pose2tf(params[1])
     gimbal_ext = pose2tf(params[2])
     links = [pose2tf(link) for link in params[3:5]]
-    joints = params[5:8]
+    joints = [params[5][0], params[6][0], params[7][0]]
     cam_exts = pose2tf(params[8])
     cam_params = params[9]
 
@@ -5106,6 +5108,7 @@ class ImuFactorData:
   g: np.array
   Dt: float
 
+
 @dataclass
 class ImuFactorData2:
   """ IMU Factor2 data """
@@ -5313,6 +5316,7 @@ class ImuFactor(Factor):
 
     return (r, [J0, J1, J2, J3])
 
+
 class ImuFactor2(Factor):
   """ Imu Factor2 """
   def __init__(self, pids, imu_params, imu_buf, sb_i):
@@ -5354,7 +5358,7 @@ class ImuFactor2(Factor):
     # Pre-integrate relative position, velocity, rotation and biases
     dr = np.array([0.0, 0.0, 0.0])  # Relative position
     dv = np.array([0.0, 0.0, 0.0])  # Relative velocity
-    dq = np.array([1.0, 0.0, 0.0, 0.0]) # Relative rotation
+    dq = np.array([1.0, 0.0, 0.0, 0.0])  # Relative rotation
     ba = sb_i.param[3:6]  # Accel biase at i
     bg = sb_i.param[6:9]  # Gyro biase at i
 
@@ -6048,10 +6052,10 @@ class Solver:
     # Cholesky decomposition
     dx = None
     try:
-        c, low = scipy.linalg.cho_factor(H_damped)
-        dx = scipy.linalg.cho_solve((c, low), g)
+      c, low = scipy.linalg.cho_factor(H_damped)
+      dx = scipy.linalg.cho_solve((c, low), g)
     except:
-        dx = np.zeros((H_damped.shape[0],))
+      dx = np.zeros((H_damped.shape[0],))
 
     # SVD
     # dx = solve_svd(H_damped, g)
@@ -6085,9 +6089,6 @@ class Solver:
     g = None
     param_idxs = None
 
-    # (J, g, param_idxs) = self._linearize2(params_k)
-    # np.savetxt("/tmp/J.csv", J, delimiter=",")
-
     # idx_i = None
     # size_i = None
     # for _, f in self.factors.items():
@@ -6095,14 +6096,6 @@ class Solver:
     #     idx_i = param_idxs[f.param_ids[3]]
     #     size_i = params_k[f.param_ids[3]].min_dims
     #     break
-
-    # print(idx_i)
-    # print(size_i)
-    # (U, s, Vt) = svd(J)
-    # J0 = np.delete(J, [idx_i, idx_i + 1, idx_i + 2, idx_i + 5], 1)
-    # print(f"rank(J): {rank(J)}, {J.shape}")
-    # print(f"drop 0: {rank(J0)}, {J0.shape}")
-    # exit(0)
 
     for i in range(1, self.solver_max_iter):
       # Update and calculate cost
@@ -6213,28 +6206,26 @@ class FactorGraph:
       solver.add(factor, factor_params)
     solver.solve(verbose)
 
-    params_k = copy.deepcopy(solver.params)
-    (H, g, param_idxs) = solver._linearize(params_k)
+    # params_k = copy.deepcopy(solver.params)
+    # (H, g, param_idxs) = solver._linearize(params_k)
 
-    m = 6
-    Hmm = H[0:m, 0:m]
-    Hmr = H[0:m, m:]
-    Hrm = H[m:, 0:m]
-    Hrr = H[m:, m:]
-    assert rank(Hmm) == Hmm.shape[0]
-    Hmm_inv = np.linalg.inv(Hmm)
-    H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
-    w, V = np.linalg.eigh(0.5 * (H_marg + H_marg.T))
+    # m = 6
+    # Hmm = H[0:m, 0:m]
+    # Hmr = H[0:m, m:]
+    # Hrm = H[m:, 0:m]
+    # Hrr = H[m:, m:]
+    # assert rank(Hmm) == Hmm.shape[0]
+    # Hmm_inv = np.linalg.inv(Hmm)
+    # H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+    # w, V = np.linalg.eigh(0.5 * (H_marg + H_marg.T))
 
-    w[w < 0.0] = 0.0
-    J = np.diag(np.sqrt(w)) @ V.T
-    diff = norm(H_marg - J.T @ J)
-    print(f"diff: {diff}")
+    # w[w < 0.0] = 0.0
+    # J = np.diag(np.sqrt(w)) @ V.T
+    # diff = norm(H_marg - J.T @ J)
+    # print(f"diff: {diff}")
     # plt.imshow(diff)
     # plt.colorbar()
     # plt.show()
-
-
 
 
 # FEATURE TRACKING #############################################################
@@ -7583,7 +7574,11 @@ class AprilGrid:
       points.append(r_WFi)
     points = np.array(points)
 
-    ax.scatter(points[:, 0], points[:, 1], points[:, 2], color=pt_colors)
+    ax.scatter(points[:, 0],
+               points[:, 1],
+               points[:, 2],
+               color=pt_colors,
+               alpha=0.2)
     plot_tf(ax, T_WF, size=self.tag_size, colors=tf_colors)
 
 
@@ -8823,6 +8818,7 @@ class SimGimbal:
     self.links = []
     self.joint_angles = []
     self.cam_params = []
+    self.end_ext = None
     self.cam_exts = []
 
     # Setup
@@ -8840,12 +8836,13 @@ class SimGimbal:
 
   def _setup_gimbal(self):
     # Gimbal pose
-    offset_x = 0.0
-    offset_y = -self.calib_target.get_dimensions()[0] / 2.0
-    offset_z = self.calib_target.get_dimensions()[1] / 2.0 - 0.2
-    C_WB = euler321(0.01, 0.01, 0.01)
-    r_WB = np.array([offset_x, offset_y, offset_z])
-    self.T_WB = tf(C_WB, r_WB)
+    # offset_x = 0.0
+    # offset_y = -self.calib_target.get_dimensions()[0] / 2.0
+    # offset_z = self.calib_target.get_dimensions()[1] / 2.0 - 0.2
+    # C_WB = euler321(0.01, 0.01, 0.01)
+    # r_WB = np.array([offset_x, offset_y, offset_z])
+    # self.T_WB = tf(C_WB, r_WB)
+    self.T_WB = np.eye(4)
 
     # Body to gimbal extrinsics
     C_BM0 = euler321(0.01, 0.01, 0.01)
@@ -8893,24 +8890,26 @@ class SimGimbal:
 
   def _setup_camera_extrinsics(self):
     """ Setup camera extrinsics """
-    # cam0 extrinsics
-    C_L2C0 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
-    r_L2C0 = np.array([0.0, -0.05, 0.12])
-    T_L2C0 = tf(C_L2C0, r_L2C0)
-    self.cam_exts.append(T_L2C0)
+    # End effector extrinsic
+    C_L2E = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
+    r_L2E = np.array([0.0, -0.05, 0.12])
+    T_L2E = tf(C_L2E, r_L2E)
+    self.end_ext = T_L2E
 
-    # cam1 extrinsics
-    C_L2C1 = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
-    r_L2C1 = np.array([0.0, -0.05, -0.12])
-    T_L2C1 = tf(C_L2C1, r_L2C1)
-    self.cam_exts.append(T_L2C1)
+    # cam0-cam1 extrinsics
+    C_C0C1 = euler321(deg2rad(0.0), deg2rad(0.0), 0.0)
+    r_C0C1 = np.array([0.1, 0.0, 0.0])
+    T_C0C1 = tf(C_C0C1, r_C0C1)
+    self.cam_exts.append(np.eye(4))
+    self.cam_exts.append(T_C0C1)
 
   def get_camera_measurements(self, cam_idx):
     """ Simulate camera frame """
     cam_geom = self.cam_params[cam_idx].data
     T_M0L2 = self.gimbal.forward_kinematics(joint_idx=2)
-    T_L2Ci = self.cam_exts[cam_idx]
-    T_WCi = self.T_WB @ self.T_BM0 @ T_M0L2 @ T_L2Ci
+    T_L2E = self.end_ext
+    T_ECi = self.cam_exts[cam_idx]
+    T_WCi = self.T_WB @ self.T_BM0 @ T_M0L2 @ T_L2E @ T_ECi
     T_CiW = np.linalg.inv(T_WCi)
 
     tag_ids = []
@@ -8944,8 +8943,9 @@ class SimGimbal:
     T_WL0 = self.T_WB @ self.T_BM0 @ T_M0L0
     T_WL1 = self.T_WB @ self.T_BM0 @ T_M0L1
     T_WL2 = self.T_WB @ self.T_BM0 @ T_M0L2
-    T_WC0 = T_WL2 @ self.cam_exts[0]
-    T_WC1 = T_WL2 @ self.cam_exts[1]
+    T_L2E = self.end_ext
+    T_WC0 = T_WL2 @ T_L2E @ self.cam_exts[0]
+    T_WC1 = T_WL2 @ T_L2E @ self.cam_exts[1]
 
     # Visualize
     plt.figure()
@@ -9117,8 +9117,8 @@ class SimGimbal:
     """ Setup save dir """
     os.system("rm -rf /tmp/sim_gimbal")
     os.system("mkdir -p /tmp/sim_gimbal")
-    os.system("mkdir -p /tmp/sim_gimbal/cam0")
-    os.system("mkdir -p /tmp/sim_gimbal/cam1")
+    os.system("mkdir -p /tmp/sim_gimbal/grid0/cam0")
+    os.system("mkdir -p /tmp/sim_gimbal/grid0/cam1")
 
   def _save_calib_file(self):
     """ Save calib file """
@@ -9146,13 +9146,18 @@ class SimGimbal:
       rx, ry, rz = tf_trans(cam_ext)
       qw, qx, qy, qz = tf_quat(cam_ext)
       tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      calib_file.write(f"cam{cam_idx}_exts: [{tf_str}]\n")
+      calib_file.write(f"cam{cam_idx}_ext: [{tf_str}]\n")
+    # -- Save end effector
+    rx, ry, rz = tf_trans(self.end_ext)
+    qw, qx, qy, qz = tf_quat(self.end_ext)
+    tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+    calib_file.write(f"end_ext: [{tf_str}]\n")
     # -- Save gimbal links
     for link_idx, link_ext in enumerate(self.links):
       rx, ry, rz = tf_trans(pose2tf(link_ext))
       qw, qx, qy, qz = tf_quat(pose2tf(link_ext))
       tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      calib_file.write(f"link{link_idx}_exts: [{tf_str}]\n")
+      calib_file.write(f"link{link_idx}_ext: [{tf_str}]\n")
     # -- Save gimbal extrinsics
     rx, ry, rz = tf_trans(self.T_BM0)
     qw, qx, qy, qz = tf_quat(self.T_BM0)
@@ -9162,21 +9167,25 @@ class SimGimbal:
     rx, ry, rz = tf_trans(self.T_WF)
     qw, qx, qy, qz = tf_quat(self.T_WF)
     tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-    calib_file.write(f"fiducial_ext: [{tf_str}]\n")
+    calib_file.write(f"fiducial_pose: [{tf_str}]\n")
     # -- Clean up
     calib_file.close()
 
-  @staticmethod
-  def _save_camera_data(view_data):
+  def _save_camera_data(self, view_data):
     """ Save camera data """
     # Save camera data
     for view_idx, view_set in enumerate(view_data):
       for cam_idx, cam_data in enumerate(view_set):
-        view_file = open(f"/tmp/sim_gimbal/cam{cam_idx}/{view_idx}.sim", "w")
-        view_file.write(f"num_corners: {cam_data['num_measurements']}\n")
+        view_file = open(f"/tmp/sim_gimbal/grid0/cam{cam_idx}/{view_idx}.dat", "w")
+        view_file.write(f"timestamp: {view_idx}\n")
+        view_file.write(f"num_rows: {self.calib_target.tag_rows}\n")
+        view_file.write(f"num_cols: {self.calib_target.tag_cols}\n")
+        view_file.write(f"tag_size: {self.calib_target.tag_size}\n")
+        view_file.write(f"tag_spacing: {self.calib_target.tag_spacing}\n")
         view_file.write("\n")
+        view_file.write(f"corners_detected: {cam_data['num_measurements']}\n")
 
-        view_file.write(f"#tag_id,corner_idx,px,py,pz,kp_x,kp_y\n")
+        view_file.write(f"#tag_id,corner_idx,kp_x,kp_y,px,py,pz\n")
         for i in range(cam_data["num_measurements"]):
           tag_id = cam_data["tag_ids"][i]
           corner_idx = cam_data["corner_idxs"][i]
@@ -9185,14 +9194,14 @@ class SimGimbal:
 
           view_file.write(f"{tag_id},")
           view_file.write(f"{corner_idx},")
-          view_file.write(f"{pt[0]},{pt[1]},{pt[2]},")
-          view_file.write(f"{kp[0]},{kp[1]}\n")
+          view_file.write(f"{kp[0]},{kp[1]},")
+          view_file.write(f"{pt[0]},{pt[1]},{pt[2]}")
+          view_file.write("\n")
         view_file.close()
 
-  @staticmethod
-  def _save_poses_data(pose_data):
+  def _save_poses_data(self, pose_data):
     """ Save pose data """
-    poses_file = open(f"/tmp/sim_gimbal/poses.sim", "w")
+    poses_file = open(f"/tmp/sim_gimbal/poses.dat", "w")
     poses_file.write(f"num_poses: {len(pose_data)}\n")
     poses_file.write(f"\n")
     poses_file.write(f"#ts,x,y,z,qw,qx,qy,qz\n")
@@ -9208,7 +9217,7 @@ class SimGimbal:
   def _save_joints_data(self, view_data, joint_data):
     """ Save joints data """
     num_joints = len(self.joint_angles)
-    joints_file = open(f"/tmp/sim_gimbal/joint_angles.sim", "w")
+    joints_file = open(f"/tmp/sim_gimbal/joint_angles.dat", "w")
     joints_file.write(f"num_views: {len(view_data)}\n")
     joints_file.write(f"num_joints: {num_joints}\n")
     joints_file.write(f"\n")
@@ -9337,7 +9346,7 @@ class SimGimbal:
     # Estimation
     est = copy.deepcopy(gnd)
 
-    # # -- Perturb gimbal pose
+    # -- Perturb gimbal pose
     # dpos = [-0.1, 0.1]
     # drot = [-0.1, 0.1]
     # for i, pose in enumerate(est.gimbal_poses):
@@ -12901,15 +12910,14 @@ class TestSandbox(unittest.TestCase):
     sim = SimGimbal()
     self.assertTrue(sim)
 
-    # sim.gimbal.set_joint_angle(0, deg2rad(0))
+    sim.gimbal.set_joint_angle(0, deg2rad(45))
     # sim.gimbal.set_joint_angle(1, deg2rad(0))
     # sim.gimbal.set_joint_angle(2, deg2rad(0))
-    # sim.visualize()
-    # pyqtgraph_example(sys)
+    sim.visualize()
     # sim.plot_camera_frame()
 
-    sim_data = sim.simulate(num_views=30)
-    sim.save(sim_data)
+    # sim_data = sim.simulate(num_views=30)
+    # sim.save(sim_data)
     # sim.solve(sim_data)
 
 
@@ -12918,13 +12926,9 @@ class TestPoE(unittest.TestCase):
   def test_scene(self):
     l1 = 0.1
     l2 = 0.2
-    M = np.array([[ 0, 0,  1, l1],
-                  [ 0, 1,  0, 0],
-                  [-1, 0,  0, -l2],
-                  [ 0, 0,  0, 1]])
-    s_list = np.array([[0, 0,  1,  0, 0, 0],
-                       [0, -1, 0,  0, 0, -l1],
-                       [1, 0,  0, 0, -l2, 0]])
+    M = np.array([[0, 0, 1, l1], [0, 1, 0, 0], [-1, 0, 0, -l2], [0, 0, 0, 1]])
+    s_list = np.array([[0, 0, 1, 0, 0, 0], [0, -1, 0, 0, 0, -l1],
+                       [1, 0, 0, 0, -l2, 0]])
     theta_list = np.deg2rad(np.array([0.0, 0.0, 45.0]))
 
     C_WB = np.eye(3)
@@ -12939,12 +12943,8 @@ class TestPoE(unittest.TestCase):
     plt.show()
 
   def test_fwdkinspace(self):
-    M = np.array([[-1, 0,  0, 0],
-                  [ 0, 1,  0, 6],
-                  [ 0, 0, -1, 2],
-                  [ 0, 0,  0, 1]])
-    S_list = np.array([[0, 0,  1,  4, 0,    0],
-                       [0, 0,  0,  0, 1,    0],
+    M = np.array([[-1, 0, 0, 0], [0, 1, 0, 6], [0, 0, -1, 2], [0, 0, 0, 1]])
+    S_list = np.array([[0, 0, 1, 4, 0, 0], [0, 0, 0, 0, 1, 0],
                        [0, 0, -1, -6, 0, -0.1]])
     theta_list = np.array([np.pi / 2.0, 3, np.pi])
 
