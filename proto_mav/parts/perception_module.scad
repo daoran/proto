@@ -2170,6 +2170,43 @@ module nuc_frame(mount_w, mount_d, show_nuc=0) {
   // }
 }
 
+module base_frame(mount_w, mount_d, show_nuc=0) {
+  nuc_standoff_w = 8;
+  nuc_standoff_h = 6;
+  nuc_support_w = 6;
+  nuc_support_h = 6;
+
+  // Show NUC
+  if (show_nuc) {
+    color([0.0, 0.0, 1.0])
+      translate([0, 0, -28 + nuc_standoff_h])
+        rotate([90.0, 0.0, 0.0])
+          import("../../proto_parts/Intel_NUC7i5DN/NUC7i5DN.STL");
+  }
+
+  // NUC frame
+  frame(mount_w, mount_d,
+        M3_SCREW_W, M3_NUT_W, M3_NUT_H + 0.5,
+        nuc_standoff_w, nuc_standoff_h,
+        nuc_support_w, nuc_support_h,
+        nut_csb=1);
+
+  // Supports
+  translate([0, 0, nuc_support_h / 2])
+    cube([nuc_support_w, mount_d, nuc_support_h], center=true);
+  translate([mount_w / 2 * 0.5, 0, nuc_support_h / 2])
+    cube([nuc_support_w, mount_d, nuc_support_h], center=true);
+  translate([-mount_w / 2 * 0.5, 0, nuc_support_h / 2])
+    cube([nuc_support_w, mount_d, nuc_support_h], center=true);
+
+  translate([0, 0, nuc_support_h / 2])
+    cube([mount_w, nuc_support_w, nuc_support_h], center=true);
+  translate([0, mount_d / 2 * 0.5, nuc_support_h / 2])
+    cube([mount_w, nuc_support_w, nuc_support_h], center=true);
+  translate([0, -mount_d / 2 * 0.5, nuc_support_h / 2])
+    cube([mount_w, nuc_support_w, nuc_support_h], center=true);
+}
+
 module utility_frame(mount_w, mount_d, show_components=1) {
   psu_standoff_h = 2;
   hub_standoff_h = 5;
@@ -2327,7 +2364,7 @@ module perception_module_assembly() {
 // battery_frame(batt_frame_w, batt_frame_d);
 // fcu_frame(1);
 // encoder_frame_GM2804(show_encoder=0, show_motor=0);
-encoder_frame_GM3506(show_encoder=0, show_motor=0, roll_limit=0, pitch_limit=1);
+// encoder_frame_GM3506(show_encoder=0, show_motor=0, roll_limit=0, pitch_limit=1);
 // encoder_frame_GM4008(show_encoder=0, show_motor=0);
 // odroid_frame(nuc_mount_w, nuc_mount_d, 0);
 // gimbal_yaw_limiter();
@@ -2364,4 +2401,5 @@ encoder_frame_GM3506(show_encoder=0, show_motor=0, roll_limit=0, pitch_limit=1);
 // sbgc_frame(show_sbgc=0, show_usb_hub=0);
 // pcb_frame(nuc_mount_w, nuc_mount_d);
 // nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=0);
+base_frame(nuc_mount_w, nuc_mount_d, show_nuc=0);
 // utility_frame(nuc_mount_w, nuc_mount_d, show_components=0);
