@@ -615,12 +615,9 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
   // sbgc->encoder_offsets[0] = 0;
   // sbgc->encoder_offsets[1] = 0;
   // sbgc->encoder_offsets[2] = 0;
-  // sbgc->encoder_offsets[0] = 11582464;
-  // sbgc->encoder_offsets[1] = 1927168;
-  // sbgc->encoder_offsets[2] = 16514048;
-  sbgc->encoder_offsets[0] = 11737088;
-  sbgc->encoder_offsets[1] = 14575616;
-  sbgc->encoder_offsets[2] = 16013312;
+  sbgc->encoder_offsets[0] = 11889664;
+  sbgc->encoder_offsets[1] = 6031360;
+  sbgc->encoder_offsets[2] = 16063488;
 
   sbgc->board_version = 0;
   sbgc->firmware_version = 0;
