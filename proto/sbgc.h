@@ -1304,57 +1304,51 @@ int test_sbgc_set_angle() {
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
-  TEST_ASSERT(sbgc_off(&sbgc) == 0);
+  // TEST_ASSERT(sbgc_off(&sbgc) == 0);
 
-  // // Zero gimal
-  // SBGC_INFO("Zero-ing gimbal!");
-  // while (1) {
-  //   sbgc_set_angle(&sbgc, 0, 0, 0);
-  //   printf("\n");
-  //   printf("camera_angle:  %f\n", sbgc.camera_angles[2]);
-  //   printf("encoder_angle: %f\n", sbgc.encoder_angles[2]);
-  //   usleep(10 * 1000);
-  // }
+  // Zero gimal
+  SBGC_INFO("Zero-ing gimbal!");
+  sbgc_set_angle(&sbgc, 0, 0, 0);
 
-  // // Test Roll
-  // SBGC_INFO("Testing roll!");
-  // for (int target_angle = -35; target_angle <= 35; target_angle += 10) {
-  //   sbgc_set_angle(&sbgc, target_angle, 0, 0);
-  //   printf("Setting roll to %d\n", target_angle);
-  //   fflush(stdout);
-  //   sleep(2);
-  // }
+  // Test Roll
+  SBGC_INFO("Testing roll!");
+  for (int target_angle = -35; target_angle <= 35; target_angle += 10) {
+    sbgc_set_angle(&sbgc, target_angle, 0, 0);
+    printf("Setting roll to %d\n", target_angle);
+    fflush(stdout);
+    sleep(2);
+  }
 
-  // // Zero gimal
-  // SBGC_INFO("Zero-ing gimbal!");
-  // sbgc_set_angle(&sbgc, 0, 0, 0);
-  // sleep(2);
+  // Zero gimal
+  SBGC_INFO("Zero-ing gimbal!");
+  sbgc_set_angle(&sbgc, 0, 0, 0);
+  sleep(2);
 
-  // // Test Pitch
-  // SBGC_INFO("Testing pitch!");
-  // for (int target_angle = 0; target_angle <= 40; target_angle += 10) {
-  //   sbgc_set_angle(&sbgc, 0, target_angle, 0);
-  //   printf("Setting pitch to %d\n", target_angle);
-  //   fflush(stdout);
-  //   sleep(2);
-  // }
+  // Test Pitch
+  SBGC_INFO("Testing pitch!");
+  for (int target_angle = 0; target_angle <= 40; target_angle += 10) {
+    sbgc_set_angle(&sbgc, 0, target_angle, 0);
+    printf("Setting pitch to %d\n", target_angle);
+    fflush(stdout);
+    sleep(2);
+  }
 
-  // // Test Pitch
-  // SBGC_INFO("Testing yaw!");
-  // for (int target_angle = -30; target_angle <= 30; target_angle += 10) {
-  //   sbgc_set_angle(&sbgc, 0, 0, target_angle);
-  //   printf("Setting yaw to %d\n", target_angle);
-  //   fflush(stdout);
-  //   sleep(2);
-  // }
+  // Test Pitch
+  SBGC_INFO("Testing yaw!");
+  for (int target_angle = -30; target_angle <= 30; target_angle += 10) {
+    sbgc_set_angle(&sbgc, 0, 0, target_angle);
+    printf("Setting yaw to %d\n", target_angle);
+    fflush(stdout);
+    sleep(2);
+  }
 
-  // // Zero gimal
-  // SBGC_INFO("Zero-ing gimbal!");
-  // sbgc_set_angle(&sbgc, 0, 0, 0);
-  // sleep(2);
+  // Zero gimal
+  SBGC_INFO("Zero-ing gimbal!");
+  sbgc_set_angle(&sbgc, 0, 0, 0);
+  sleep(2);
 
   // Switch off
-  // sbgc_off(&sbgc);
+  sbgc_off(&sbgc);
 
   return 0;
 }
@@ -1366,9 +1360,9 @@ int main(int argc, char *argv[]) {
   // TEST(test_sbgc_read);
   // TEST(test_sbgc_info);
   // TEST(test_sbgc_calib);
-  TEST(test_sbgc_update);
+  // TEST(test_sbgc_update);
   // TEST(test_sbgc_get_status);
-  // TEST(test_sbgc_set_angle);
+  TEST(test_sbgc_set_angle);
 
   return (nb_failed) ? -1 : 0;
 }
