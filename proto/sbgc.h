@@ -627,7 +627,6 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
   sbgc->connection_flags = 0;
 
   // Open serial port
-  sbgc->serial = open(sbgc->port, O_RDWR | O_NOCTTY | O_SYNC);
   sbgc->serial = open(sbgc->port, O_RDWR | O_NOCTTY | O_NDELAY);
   if (sbgc->serial == -1) {
     printf("Oh dear, open()! %s\n", strerror(errno));
