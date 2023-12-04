@@ -15,3 +15,4 @@ PenaltyBreakBeforeFirstCallParameter: 10000
 SortIncludes: false
 SpaceAfterCStyleCast: true
 ReflowComments: false
+IndentPPDirectives: BeforeHash
