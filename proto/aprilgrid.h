@@ -29,12 +29,15 @@ extern "C" {
 #define PRECISION 2
 #endif
 
+#ifndef REAL_TYPE
+#define REAL_TYPE
 #if PRECISION == 1
 typedef float real_t;
 #elif PRECISION == 2
 typedef double real_t;
 #else
 #error "Floating Point Precision not defined!"
+#endif
 #endif
 
 // MACROS

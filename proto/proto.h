@@ -307,12 +307,15 @@ STATUS file_copy(const char *src, const char *dest);
  * DATA
  ******************************************************************************/
 
+#ifndef REAL_TYPE
+#define REAL_TYPE
 #if PRECISION == 1
 typedef float real_t;
 #elif PRECISION == 2
 typedef double real_t;
 #else
 #error "Floating Point Precision not defined!"
+#endif
 #endif
 
 size_t string_copy(char *dst, const char *src);
