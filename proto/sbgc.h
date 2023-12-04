@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 #define SBGC_INVERT_YAW 1
 
@@ -715,6 +716,13 @@ int sbgc_read(const sbgc_t *sbgc,
               sbgc_frame_t *frame) {
   // Check connection
   if (sbgc->connected == 0) {
+    return -1;
+  }
+
+  // Check
+  uint16_t bytes = 0;
+  ioctl(sbgc->serial, FIONREAD, &bytes);
+  if (bytes == 0) {
     return -1;
   }
 
