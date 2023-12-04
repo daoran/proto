@@ -14,6 +14,9 @@
 
 #define SBGC_INVERT_YAW 1
 
+#ifndef SBGC_DEV
+#define SBGC_DEV "/dev/ttyUSB0"
+#endif
 // MACROS
 /**
  * Log info
