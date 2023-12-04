@@ -1111,7 +1111,9 @@ int sbgc_set_angle(sbgc_t *sbgc,
 
 #include <stdio.h>
 
+#ifndef SBGC_DEV
 #define SBGC_DEV "/dev/ttyUSB0"
+#endif
 
 // UNITESTS GLOBAL VARIABLES
 static int nb_tests = 0;
