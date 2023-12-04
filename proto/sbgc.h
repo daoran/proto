@@ -11,9 +11,13 @@
 #include <stdint.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 #define SBGC_INVERT_YAW 1
 
+#ifndef SBGC_DEV
+#define SBGC_DEV "/dev/ttyUSB0"
+#endif
 // MACROS
 /**
  * Log info
@@ -301,23 +305,29 @@ int sbgc_set_interface_attributes(int fd, int speed, int parity) {
   cfsetospeed(&tty, speed);
   cfsetispeed(&tty, speed);
 
-  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit chars
-  // disable IGNBRK for mismatched speed tests; otherwise receive break
-  // as \000 chars
-  tty.c_iflag &= ~IGNBRK; // disable break processing
-  tty.c_lflag = 0;        // no signaling chars, no echo,
-  // no canonical processing
-  tty.c_oflag = 0;     // no remapping, no delays
-  tty.c_cc[VMIN] = 0;  // read doesn't block
-  tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
+  tty.c_cflag &= ~(PARENB | PARODD | CSTOPB | CRTSCTS);
+  tty.c_cflag |= CS8 | CREAD | CLOCAL;
+  tty.c_iflag &= ~(IXON | IXOFF | IXANY | ICRNL);
+  tty.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+  tty.c_oflag &= ~OPOST;
 
-  tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-  tty.c_cflag |= (CLOCAL | CREAD);        // ignore modem controls,
-  // enable reading
-  tty.c_cflag &= ~(PARENB | PARODD); // shut off parity
-  tty.c_cflag |= parity;
-  tty.c_cflag &= ~CSTOPB;
-  tty.c_cflag &= ~CRTSCTS;
+  // tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit chars
+  // // disable IGNBRK for mismatched speed tests; otherwise receive break
+  // // as \000 chars
+  // tty.c_iflag &= ~IGNBRK; // disable break processing
+  // tty.c_lflag = 0;        // no signaling chars, no echo,
+  // // no canonical processing
+  // tty.c_oflag = 0;     // no remapping, no delays
+  // tty.c_cc[VMIN] = 0;  // read doesn't block
+  // tty.c_cc[VTIME] = 5; // 0.5 seconds read timeout
+
+  // tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+  // tty.c_cflag |= (CLOCAL | CREAD);        // ignore modem controls,
+  // // enable reading
+  // tty.c_cflag &= ~(PARENB | PARODD); // shut off parity
+  // tty.c_cflag |= parity;
+  // tty.c_cflag &= ~CSTOPB;
+  // tty.c_cflag &= ~CRTSCTS;
 
   if (tcsetattr(fd, TCSANOW, &tty) != 0) {
     SBGC_ERROR("%d from tcsetattr", errno);
@@ -606,12 +616,9 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
   // sbgc->encoder_offsets[0] = 0;
   // sbgc->encoder_offsets[1] = 0;
   // sbgc->encoder_offsets[2] = 0;
-  // sbgc->encoder_offsets[0] = 11582464;
-  // sbgc->encoder_offsets[1] = 1927168;
-  // sbgc->encoder_offsets[2] = 16514048;
-  sbgc->encoder_offsets[0] = 11737088;
-  sbgc->encoder_offsets[1] = 14575616;
-  sbgc->encoder_offsets[2] = 16013312;
+  sbgc->encoder_offsets[0] = 11889664;
+  sbgc->encoder_offsets[1] = 6031360;
+  sbgc->encoder_offsets[2] = 16063488;
 
   sbgc->board_version = 0;
   sbgc->firmware_version = 0;
@@ -620,7 +627,7 @@ int sbgc_connect(sbgc_t *sbgc, const char *port) {
   sbgc->connection_flags = 0;
 
   // Open serial port
-  sbgc->serial = open(sbgc->port, O_RDWR | O_NOCTTY | O_SYNC);
+  sbgc->serial = open(sbgc->port, O_RDWR | O_NOCTTY | O_NDELAY);
   if (sbgc->serial == -1) {
     printf("Oh dear, open()! %s\n", strerror(errno));
     return SBGC_NOT_CONNECTED;
@@ -708,6 +715,13 @@ int sbgc_read(const sbgc_t *sbgc,
               sbgc_frame_t *frame) {
   // Check connection
   if (sbgc->connected == 0) {
+    return -1;
+  }
+
+  // Check
+  uint16_t bytes = 0;
+  ioctl(sbgc->serial, FIONREAD, &bytes);
+  if (bytes == 0) {
     return -1;
   }
 
@@ -1037,11 +1051,13 @@ int sbgc_set_angle(sbgc_t *sbgc,
   }
 
   // Adjust roll, pitch and yaw
+  double yaw_error = yaw - sbgc->encoder_angles[2];
   const int16_t roll_adjusted = roll / SBGC_DEG_PER_BIT;
   const int16_t pitch_adjusted = pitch / SBGC_DEG_PER_BIT;
   const int16_t yaw_adjusted =
       (sbgc->camera_angles[2] + (sbgc->encoder_angles[2] - yaw)) /
       SBGC_DEG_PER_BIT;
+      -(sbgc->camera_angles[2] + yaw_error) / SBGC_DEG_PER_BIT;
 
   // printf("camera_angle:  %f\n", sbgc->camera_angles[2]);
   // printf("encoder_angle: %f\n", sbgc->encoder_angles[2]);
@@ -1095,7 +1111,9 @@ int sbgc_set_angle(sbgc_t *sbgc,
 
 #include <stdio.h>
 
+#ifndef SBGC_DEV
 #define SBGC_DEV "/dev/ttyUSB0"
+#endif
 
 // UNITESTS GLOBAL VARIABLES
 static int nb_tests = 0;
@@ -1286,57 +1304,51 @@ int test_sbgc_set_angle() {
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
-  TEST_ASSERT(sbgc_off(&sbgc) == 0);
+  // TEST_ASSERT(sbgc_off(&sbgc) == 0);
 
-  // // Zero gimal
-  // SBGC_INFO("Zero-ing gimbal!");
-  // while (1) {
-  //   sbgc_set_angle(&sbgc, 0, 0, 0);
-  //   printf("\n");
-  //   printf("camera_angle:  %f\n", sbgc.camera_angles[2]);
-  //   printf("encoder_angle: %f\n", sbgc.encoder_angles[2]);
-  //   usleep(10 * 1000);
-  // }
+  // Zero gimal
+  SBGC_INFO("Zero-ing gimbal!");
+  sbgc_set_angle(&sbgc, 0, 0, 0);
 
-  // // Test Roll
-  // SBGC_INFO("Testing roll!");
-  // for (int target_angle = -35; target_angle <= 35; target_angle += 10) {
-  //   sbgc_set_angle(&sbgc, target_angle, 0, 0);
-  //   printf("Setting roll to %d\n", target_angle);
-  //   fflush(stdout);
-  //   sleep(2);
-  // }
+  // Test Roll
+  SBGC_INFO("Testing roll!");
+  for (int target_angle = -35; target_angle <= 35; target_angle += 10) {
+    sbgc_set_angle(&sbgc, target_angle, 0, 0);
+    printf("Setting roll to %d\n", target_angle);
+    fflush(stdout);
+    sleep(2);
+  }
 
-  // // Zero gimal
-  // SBGC_INFO("Zero-ing gimbal!");
-  // sbgc_set_angle(&sbgc, 0, 0, 0);
-  // sleep(2);
+  // Zero gimal
+  SBGC_INFO("Zero-ing gimbal!");
+  sbgc_set_angle(&sbgc, 0, 0, 0);
+  sleep(2);
 
-  // // Test Pitch
-  // SBGC_INFO("Testing pitch!");
-  // for (int target_angle = 0; target_angle <= 40; target_angle += 10) {
-  //   sbgc_set_angle(&sbgc, 0, target_angle, 0);
-  //   printf("Setting pitch to %d\n", target_angle);
-  //   fflush(stdout);
-  //   sleep(2);
-  // }
+  // Test Pitch
+  SBGC_INFO("Testing pitch!");
+  for (int target_angle = 0; target_angle <= 40; target_angle += 10) {
+    sbgc_set_angle(&sbgc, 0, target_angle, 0);
+    printf("Setting pitch to %d\n", target_angle);
+    fflush(stdout);
+    sleep(2);
+  }
 
-  // // Test Pitch
-  // SBGC_INFO("Testing yaw!");
-  // for (int target_angle = -30; target_angle <= 30; target_angle += 10) {
-  //   sbgc_set_angle(&sbgc, 0, 0, target_angle);
-  //   printf("Setting yaw to %d\n", target_angle);
-  //   fflush(stdout);
-  //   sleep(2);
-  // }
+  // Test Pitch
+  SBGC_INFO("Testing yaw!");
+  for (int target_angle = -30; target_angle <= 30; target_angle += 10) {
+    sbgc_set_angle(&sbgc, 0, 0, target_angle);
+    printf("Setting yaw to %d\n", target_angle);
+    fflush(stdout);
+    sleep(2);
+  }
 
-  // // Zero gimal
-  // SBGC_INFO("Zero-ing gimbal!");
-  // sbgc_set_angle(&sbgc, 0, 0, 0);
-  // sleep(2);
+  // Zero gimal
+  SBGC_INFO("Zero-ing gimbal!");
+  sbgc_set_angle(&sbgc, 0, 0, 0);
+  sleep(2);
 
   // Switch off
-  // sbgc_off(&sbgc);
+  sbgc_off(&sbgc);
 
   return 0;
 }
@@ -1348,9 +1360,9 @@ int main(int argc, char *argv[]) {
   // TEST(test_sbgc_read);
   // TEST(test_sbgc_info);
   // TEST(test_sbgc_calib);
-  TEST(test_sbgc_update);
+  // TEST(test_sbgc_update);
   // TEST(test_sbgc_get_status);
-  // TEST(test_sbgc_set_angle);
+  TEST(test_sbgc_set_angle);
 
   return (nb_failed) ? -1 : 0;
 }
