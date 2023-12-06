@@ -8900,8 +8900,8 @@ class SimGimbal:
     C_C0C1 = euler321(deg2rad(0.0), deg2rad(0.0), 0.0)
     r_C0C1 = np.array([0.1, 0.0, 0.0])
     T_C0C1 = tf(C_C0C1, r_C0C1)
-    self.cam_exts.append(np.eye(4))
-    self.cam_exts.append(T_C0C1)
+    self.cam_exts.append(np.eye(4)) # T_C0C0
+    self.cam_exts.append(T_C0C1)    # T_C0C1
 
   def get_camera_measurements(self, cam_idx):
     """ Simulate camera frame """
@@ -12910,14 +12910,14 @@ class TestSandbox(unittest.TestCase):
     sim = SimGimbal()
     self.assertTrue(sim)
 
-    sim.gimbal.set_joint_angle(0, deg2rad(45))
+    # sim.gimbal.set_joint_angle(0, deg2rad(45))
     # sim.gimbal.set_joint_angle(1, deg2rad(0))
     # sim.gimbal.set_joint_angle(2, deg2rad(0))
-    sim.visualize()
+    # sim.visualize()
     # sim.plot_camera_frame()
 
-    # sim_data = sim.simulate(num_views=30)
-    # sim.save(sim_data)
+    sim_data = sim.simulate(num_views=30)
+    sim.save(sim_data)
     # sim.solve(sim_data)
 
 
