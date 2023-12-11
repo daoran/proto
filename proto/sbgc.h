@@ -16,7 +16,7 @@
 #define SBGC_INVERT_YAW 1
 
 #ifndef SBGC_DEV
-#define SBGC_DEV "/dev/ttyUSB0"
+  #define SBGC_DEV "/dev/ttyUSB0"
 #endif
 // MACROS
 /**
@@ -25,16 +25,16 @@
  * @param[in] ... Varadic arguments
  */
 #ifndef SBGC_INFO
-#define SBGC_INFO(...)                                                         \
-  do {                                                                         \
-    fprintf(stderr,                                                            \
-            "[SBGC-INFO] [%s:%d:%s()]: ",                                      \
-            __FILE__,                                                          \
-            __LINE__,                                                          \
-            __func__);                                                         \
-    fprintf(stderr, __VA_ARGS__);                                              \
-    fprintf(stderr, "\n");                                                     \
-  } while (0)
+  #define SBGC_INFO(...)                                                       \
+    do {                                                                       \
+      fprintf(stderr,                                                          \
+              "[SBGC-INFO] [%s:%d:%s()]: ",                                    \
+              __FILE__,                                                        \
+              __LINE__,                                                        \
+              __func__);                                                       \
+      fprintf(stderr, __VA_ARGS__);                                            \
+      fprintf(stderr, "\n");                                                   \
+    } while (0)
 #endif // SBGC_INFO
 
 /**
@@ -43,16 +43,16 @@
  * @param[in] ... Varadic arguments
  */
 #ifndef SBGC_ERROR
-#define SBGC_ERROR(...)                                                        \
-  do {                                                                         \
-    fprintf(stderr,                                                            \
-            "[SBGC-ERROR] [%s:%d:%s()]: ",                                     \
-            __FILE__,                                                          \
-            __LINE__,                                                          \
-            __func__);                                                         \
-    fprintf(stderr, __VA_ARGS__);                                              \
-    fprintf(stderr, "\n");                                                     \
-  } while (0)
+  #define SBGC_ERROR(...)                                                      \
+    do {                                                                       \
+      fprintf(stderr,                                                          \
+              "[SBGC-ERROR] [%s:%d:%s()]: ",                                   \
+              __FILE__,                                                        \
+              __LINE__,                                                        \
+              __func__);                                                       \
+      fprintf(stderr, __VA_ARGS__);                                            \
+      fprintf(stderr, "\n");                                                   \
+    } while (0)
 #endif // SBGC_ERROR
 
 #define SBGC_EXEC(FN)                                                          \
@@ -1054,10 +1054,10 @@ int sbgc_set_angle(sbgc_t *sbgc,
   double yaw_error = yaw - sbgc->encoder_angles[2];
   const int16_t roll_adjusted = roll / SBGC_DEG_PER_BIT;
   const int16_t pitch_adjusted = pitch / SBGC_DEG_PER_BIT;
+  // const int16_t yaw_adjusted = yaw / SBGC_DEG_PER_BIT;
   const int16_t yaw_adjusted =
-      (sbgc->camera_angles[2] + (sbgc->encoder_angles[2] - yaw)) /
+      -(sbgc->camera_angles[2] + (yaw - sbgc->encoder_angles[2])) /
       SBGC_DEG_PER_BIT;
-      -(sbgc->camera_angles[2] + yaw_error) / SBGC_DEG_PER_BIT;
 
   // printf("camera_angle:  %f\n", sbgc->camera_angles[2]);
   // printf("encoder_angle: %f\n", sbgc->encoder_angles[2]);
@@ -1112,7 +1112,7 @@ int sbgc_set_angle(sbgc_t *sbgc,
 #include <stdio.h>
 
 #ifndef SBGC_DEV
-#define SBGC_DEV "/dev/ttyUSB0"
+  #define SBGC_DEV "/dev/ttyUSB0"
 #endif
 
 // UNITESTS GLOBAL VARIABLES
@@ -1122,15 +1122,15 @@ static int nb_failed = 0;
 
 #define ENABLE_TERM_COLORS 0
 #if ENABLE_TERM_COLORS == 1
-#define TERM_RED "\x1B[1;31m"
-#define TERM_GRN "\x1B[1;32m"
-#define TERM_WHT "\x1B[1;37m"
-#define TERM_NRM "\x1B[1;0m"
+  #define TERM_RED "\x1B[1;31m"
+  #define TERM_GRN "\x1B[1;32m"
+  #define TERM_WHT "\x1B[1;37m"
+  #define TERM_NRM "\x1B[1;0m"
 #else
-#define TERM_RED
-#define TERM_GRN
-#define TERM_WHT
-#define TERM_NRM
+  #define TERM_RED
+  #define TERM_GRN
+  #define TERM_WHT
+  #define TERM_NRM
 #endif
 
 /**
@@ -1306,34 +1306,39 @@ int test_sbgc_set_angle() {
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
   // TEST_ASSERT(sbgc_off(&sbgc) == 0);
 
-  // Zero gimal
-  SBGC_INFO("Zero-ing gimbal!");
-  sbgc_set_angle(&sbgc, 0, 0, 0);
+  // // Zero gimal
+  // SBGC_INFO("Zero-ing gimbal!");
+  // sbgc_set_angle(&sbgc, 0, 0, 0);
 
-  // Test Roll
-  SBGC_INFO("Testing roll!");
-  for (int target_angle = -35; target_angle <= 35; target_angle += 10) {
-    sbgc_set_angle(&sbgc, target_angle, 0, 0);
-    printf("Setting roll to %d\n", target_angle);
-    fflush(stdout);
-    sleep(2);
-  }
+  // // Test Roll
+  // SBGC_INFO("Testing roll!");
+  // for (int target_angle = -30; target_angle <= 30; target_angle += 10) {
+  //   sbgc_set_angle(&sbgc, target_angle, 0, 0);
+  //   printf("Setting roll to %d\n", target_angle);
+  //   fflush(stdout);
+  //   sleep(2);
+  // }
+
+  // // Zero gimal
+  // SBGC_INFO("Zero-ing gimbal!");
+  // sbgc_set_angle(&sbgc, 0, 0, 0);
+  // sleep(2);
+
+  // // Test Pitch
+  // SBGC_INFO("Testing pitch!");
+  // for (int target_angle = -40; target_angle <= 40; target_angle += 10) {
+  //   sbgc_set_angle(&sbgc, 0, target_angle, 0);
+  //   printf("Setting pitch to %d\n", target_angle);
+  //   fflush(stdout);
+  //   sleep(2);
+  // }
 
   // Zero gimal
   SBGC_INFO("Zero-ing gimbal!");
   sbgc_set_angle(&sbgc, 0, 0, 0);
   sleep(2);
 
-  // Test Pitch
-  SBGC_INFO("Testing pitch!");
-  for (int target_angle = 0; target_angle <= 40; target_angle += 10) {
-    sbgc_set_angle(&sbgc, 0, target_angle, 0);
-    printf("Setting pitch to %d\n", target_angle);
-    fflush(stdout);
-    sleep(2);
-  }
-
-  // Test Pitch
+  // Test Yaw
   SBGC_INFO("Testing yaw!");
   for (int target_angle = -30; target_angle <= 30; target_angle += 10) {
     sbgc_set_angle(&sbgc, 0, 0, target_angle);
@@ -1343,9 +1348,9 @@ int test_sbgc_set_angle() {
   }
 
   // Zero gimal
-  SBGC_INFO("Zero-ing gimbal!");
-  sbgc_set_angle(&sbgc, 0, 0, 0);
-  sleep(2);
+  // SBGC_INFO("Zero-ing gimbal!");
+  // sbgc_set_angle(&sbgc, 0, 0, 0);
+  // sleep(2);
 
   // Switch off
   sbgc_off(&sbgc);
