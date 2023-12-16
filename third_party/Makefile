@@ -35,6 +35,7 @@ apt_base:
 		clang \
 		tcc \
 		libboost-dev \
+		libyaml-dev \
 		python3-pip \
 		python3-setuptools
 	@pip3 install --upgrade pip
