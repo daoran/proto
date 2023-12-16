@@ -96,7 +96,7 @@ run_memcheck() {
 # python3 proto.py TestSimulation.test_sim_arm
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
-# python3 proto.py TestSandbox.test_gimbal
+python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestPoE.test_scene
 
 # tmux send-keys -t dev -R C-l C-m
@@ -157,21 +157,21 @@ run_test() {
 }
 
 dev_sbgc() {
-  # tmux send-keys -t dev -R C-l C-m
-  # tmux send-keys -t dev -R "\
-# cd $HOME/projects/proto/proto \
-  # && time make test_sbgc \
-  # && cd ./build \
-  # && ./test_sbgc \
-  # && cd - \
-# " C-m
-  # exit
-
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "\
 cd $HOME/projects/proto/proto \
   && time make test_sbgc \
   && cd ./build \
   && ./test_sbgc \
-  && cd -
+  && cd - \
+" C-m
+  exit
+
+# cd $HOME/projects/proto/proto \
+#   && time make test_sbgc \
+#   && cd ./build \
+#   && ./test_sbgc \
+#   && cd -
 }
 
 dev_tiscam() {
@@ -213,7 +213,7 @@ dev_gui() {
   exit
 }
 
-dev_sbgc
+# dev_sbgc
 # dev_arducam
 # dev_aprilgrid
 # dev_euroc
@@ -468,6 +468,7 @@ dev_sbgc
 # run_test test_calib_gimbal_load
 # run_test test_calib_gimbal_save
 # run_test test_calib_gimbal_solve
+# python3 scripts/plot_gimbal_calib.py
 # run_test test_calib_gimbal_ceres_solve
 # PROTO-DATASET
 # run_test test_assoc_pose_data
