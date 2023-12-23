@@ -1672,7 +1672,7 @@ void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader) {
     glActiveTexture(GL_TEXTURE0 + i);
 
     // Form texture unit (the N in diffuse_textureN)
-    char texture_unit[30] = {0};
+    char texture_unit[120] = {0};
     if (strcmp(mesh->textures[i].type, "texture_diffuse") == 0) {
       sprintf(texture_unit, "%s%d", mesh->textures[i].type, num_diffuse++);
     } else if (strcmp(mesh->textures[i].type, "texture_specular") == 0) {
@@ -2272,12 +2272,12 @@ void gui_loop(gui_t *gui) {
   gl_grid_setup(&grid);
 
   // gl_model_t *model = gl_model_load("/home/chutsu/planet/planet.obj");
-  gl_model_t *mav_model = gl_model_load("/home/chutsu/mav.dae");
+  // gl_model_t *mav_model = gl_model_load("/home/chutsu/mav.dae");
   // gl_model_t *model = gl_model_load("/home/chutsu/aprilgrid/aprilgrid.obj");
   // gl_model_t *model = gl_model_load("/home/chutsu/aprilgrid.dae");
   // gl_model_t *model = gl_model_load("/home/chutsu/projects/LearnOpenGL/"
   //                                   "resources/objects/nanosuit/nanosuit.obj");
-  gl_model_t *model = gl_model_load("/home/chutsu/castle.dae");
+  // gl_model_t *model = gl_model_load("/home/chutsu/castle.dae");
 
   printf("window_width: %d\n", gui->window_width);
   printf("window_height: %d\n", gui->window_height);
@@ -2296,8 +2296,8 @@ void gui_loop(gui_t *gui) {
     // gl_camera_frame_draw(&cf, &gui->camera);
     // gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
-    gl_model_draw(model, &gui->camera);
-    gl_model_draw(mav_model, &gui->camera);
+    // gl_model_draw(model, &gui->camera);
+    // gl_model_draw(mav_model, &gui->camera);
 
     // glViewport(gui->window_width / 2,
     //            0,
@@ -2325,8 +2325,8 @@ void gui_loop(gui_t *gui) {
   gl_cube_cleanup(&cube3);
   gl_camera_frame_cleanup(&cf);
   gl_grid_cleanup(&grid);
-  gl_model_free(model);
-  gl_model_free(mav_model);
+  // gl_model_free(model);
+  // gl_model_free(mav_model);
 
   SDL_DestroyWindow(gui->window);
   SDL_Quit();
