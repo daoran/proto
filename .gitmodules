@@ -1,11 +1,3 @@
-[submodule "third_party/src/tiscamera"]
-	path = third_party/src/tiscamera
-	url = https://github.com/TheImagingSource/tiscamera
-  ignore = dirty
-[submodule "third_party/src/fast"]
-	path = third_party/src/fast
-	url = https://github.com/edrosten/fast-C-src
-  ignore = dirty
 [submodule "third_party/src/apriltag"]
 	path = third_party/src/apriltag
 	url = https://github.com/AprilRobotics/apriltag
@@ -33,8 +25,4 @@
 [submodule "third_party/src/DBoW2"]
 	path = third_party/src/DBoW2
 	url = https://github.com/dorian3d/DBoW2
-  ignore = dirty
-[submodule "third_party/src/ArduCAM_USB_Camera_Shield_Config"]
-	path = third_party/src/ArduCAM_USB_Camera_Shield_Config
-	url = https://github.com/ArduCAM/ArduCAM_USB_Camera_Shield_Config
   ignore = dirty
