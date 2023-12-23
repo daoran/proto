@@ -26,3 +26,6 @@
 	path = third_party/src/DBoW2
 	url = https://github.com/dorian3d/DBoW2
   ignore = dirty
+[submodule "third_party/src/glfw"]
+	path = third_party/src/glfw
+	url = https://github.com/glfw/glfw
