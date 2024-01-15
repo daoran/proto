@@ -11,8 +11,8 @@ BUILD_TYPE := debug
 ADDRESS_SANITIZER := 1
 # BUILD_TYPE := release
 # ADDRESS_SANITIZER := 0
-CC := clang
-# CC := gcc
+# CC := clang
+CC := gcc
 # CC := tcc
 
 # LIBRARIES
