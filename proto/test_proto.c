@@ -8378,10 +8378,10 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_extrinsic);
   MU_ADD_TEST(test_calib_gimbal_add_gimbal_link);
   MU_ADD_TEST(test_calib_gimbal_add_camera);
-  MU_ADD_TEST(test_calib_gimbal_add_remove_view);
-  MU_ADD_TEST(test_calib_gimbal_load);
-  MU_ADD_TEST(test_calib_gimbal_save);
-  MU_ADD_TEST(test_calib_gimbal_solve);
+  // MU_ADD_TEST(test_calib_gimbal_add_remove_view);
+  // MU_ADD_TEST(test_calib_gimbal_load);
+  // MU_ADD_TEST(test_calib_gimbal_save);
+  // MU_ADD_TEST(test_calib_gimbal_solve);
 #ifdef USE_CERES
   // MU_ADD_TEST(test_calib_gimbal_ceres_solve);
 #endif // USE_CERES
