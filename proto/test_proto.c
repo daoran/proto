@@ -6192,6 +6192,17 @@ int test_calib_camera_mono_batch() {
   // Batch solve
   calib_camera_add_data(calib, 0, data_path);
   calib_camera_solve(calib);
+
+  // Asserts
+  double reproj_rmse = 0.0;
+  double reproj_mean = 0.0;
+  double reproj_median = 0.0;
+  calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  MU_ASSERT(reproj_rmse < 0.5);
+  MU_ASSERT(reproj_mean < 0.5);
+  MU_ASSERT(reproj_median < 0.5);
+
+  // Clean up
   calib_camera_free(calib);
 
   return 0;
@@ -6266,6 +6277,15 @@ int test_calib_camera_mono_ceres() {
   // ceres_solve(problem, 20, 0);
   ceres_solve(problem);
   // calib_camera_print(calib);
+
+  // Asserts
+  double reproj_rmse = 0.0;
+  double reproj_mean = 0.0;
+  double reproj_median = 0.0;
+  calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  MU_ASSERT(reproj_rmse < 0.5);
+  MU_ASSERT(reproj_mean < 0.5);
+  MU_ASSERT(reproj_median < 0.5);
 
   // Clean up
   calib_camera_free(calib);
@@ -6475,6 +6495,17 @@ int test_calib_camera_stereo_batch() {
   }
   calib_camera_solve(stereo_calib);
   // calib_camera_print(stereo_calib);
+
+  // Asserts
+  double reproj_rmse = 0.0;
+  double reproj_mean = 0.0;
+  double reproj_median = 0.0;
+  calib_camera_errors(stereo_calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  MU_ASSERT(reproj_rmse < 0.5);
+  MU_ASSERT(reproj_mean < 0.5);
+  MU_ASSERT(reproj_median < 0.5);
+
+  // Clean up
   calib_camera_free(stereo_calib);
 
   return 0;
@@ -6625,6 +6656,15 @@ int test_calib_camera_stereo_ceres() {
   // ceres_solve(problem, 20, 0);
   ceres_solve(problem);
   // calib_camera_print(calib);
+
+  // Asserts
+  double reproj_rmse = 0.0;
+  double reproj_mean = 0.0;
+  double reproj_median = 0.0;
+  calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  MU_ASSERT(reproj_rmse < 0.5);
+  MU_ASSERT(reproj_mean < 0.5);
+  MU_ASSERT(reproj_median < 0.5);
 
   // Clean up
   calib_camera_free(calib);
@@ -8356,11 +8396,11 @@ void test_suite() {
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_camchain);
-  // MU_ADD_TEST(test_calib_camera_mono_batch);
-  // MU_ADD_TEST(test_calib_camera_mono_ceres);
+  MU_ADD_TEST(test_calib_camera_mono_batch);
+  MU_ADD_TEST(test_calib_camera_mono_ceres);
   MU_ADD_TEST(test_calib_camera_mono_incremental);
-  // MU_ADD_TEST(test_calib_camera_stereo_batch);
-  // MU_ADD_TEST(test_calib_camera_stereo_ceres);
+  MU_ADD_TEST(test_calib_camera_stereo_batch);
+  MU_ADD_TEST(test_calib_camera_stereo_ceres);
   MU_ADD_TEST(test_calib_imucam_view);
   MU_ADD_TEST(test_calib_imucam_add_imu);
   MU_ADD_TEST(test_calib_imucam_add_camera);
