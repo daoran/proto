@@ -9152,6 +9152,7 @@ static void timeline_form_timeline(timeline_t *tl) {
   tl->timeline_events = CALLOC(timeline_event_t **, tl->timeline_length);
   tl->timeline_events_lengths = CALLOC(int, tl->timeline_length);
 
+  printf("tl->num_event_types: %d\n", tl->num_event_types);
   int *indices = CALLOC(int, tl->num_event_types);
   for (int k = 0; k < tl->timeline_length; k++) {
     // Allocate memory
@@ -10019,251 +10020,251 @@ void feature_print(const feature_t *f) {
   printf("\n");
 }
 
-/**
- * Setup inverse-depth feature.
- */
-void idf_setup(feature_t *f,
-               const size_t feature_id,
-               const size_t pos_id,
-               const camera_params_t *cam_params,
-               const real_t C_WC[3 * 3],
-               const real_t z[2]) {
-  // Keypoint to bearing (u, v, 1)
-  real_t bearing[3] = {0};
-  camera_back_project(cam_params, z, bearing);
+// /**
+//  * Setup inverse-depth feature.
+//  */
+// void idf_setup(feature_t *f,
+//                const size_t feature_id,
+//                const size_t pos_id,
+//                const camera_params_t *cam_params,
+//                const real_t C_WC[3 * 3],
+//                const real_t z[2]) {
+//   // Keypoint to bearing (u, v, 1)
+//   real_t bearing[3] = {0};
+//   camera_back_project(cam_params, z, bearing);
 
-  // Convert bearing to theta, phi and rho
-  DOT(C_WC, 3, 3, bearing, 3, 1, h_W);
-  const real_t theta = atan2(h_W[0], h_W[2]);
-  const real_t phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]));
-  const real_t rho = 0.1;
+//   // Convert bearing to theta, phi and rho
+//   DOT(C_WC, 3, 3, bearing, 3, 1, h_W);
+//   const real_t theta = atan2(h_W[0], h_W[2]);
+//   const real_t phi = atan2(-h_W[1], sqrt(h_W[0] * h_W[0] + h_W[2] * h_W[2]));
+//   const real_t rho = 0.1;
 
-  // Set data
-  f->marginalize = 0;
-  f->type = FEATURE_INVERSE_DEPTH;
-  f->feature_id = feature_id;
-  f->status = 1;
-  f->data[0] = theta;
-  f->data[1] = phi;
-  f->data[2] = rho;
+//   // Set data
+//   f->marginalize = 0;
+//   f->type = FEATURE_INVERSE_DEPTH;
+//   f->feature_id = feature_id;
+//   f->status = 1;
+//   f->data[0] = theta;
+//   f->data[1] = phi;
+//   f->data[2] = rho;
 
-  f->cam_params = cam_params;
-  f->pos_id = pos_id;
-}
+//   f->cam_params = cam_params;
+//   f->pos_id = pos_id;
+// }
 
-/**
- * Convert inverse-depth feature to 3D point.
- */
-void idf_point(const feature_t *f, const real_t r_WC[3], real_t p_W[3]) {
-  const real_t x = r_WC[0];
-  const real_t y = r_WC[1];
-  const real_t z = r_WC[2];
-  const real_t theta = f->data[0];
-  const real_t phi = f->data[1];
-  const real_t depth = 1.0 / f->data[2];
+// /**
+//  * Convert inverse-depth feature to 3D point.
+//  */
+// void idf_point(const feature_t *f, const real_t r_WC[3], real_t p_W[3]) {
+//   const real_t x = r_WC[0];
+//   const real_t y = r_WC[1];
+//   const real_t z = r_WC[2];
+//   const real_t theta = f->data[0];
+//   const real_t phi = f->data[1];
+//   const real_t depth = 1.0 / f->data[2];
 
-  const real_t cphi = cos(phi);
-  const real_t sphi = sin(phi);
-  const real_t ctheta = cos(theta);
-  const real_t stheta = sin(theta);
-  const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
+//   const real_t cphi = cos(phi);
+//   const real_t sphi = sin(phi);
+//   const real_t ctheta = cos(theta);
+//   const real_t stheta = sin(theta);
+//   const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
 
-  p_W[0] = x + depth * m[0];
-  p_W[1] = y + depth * m[1];
-  p_W[2] = z + depth * m[2];
-}
+//   p_W[0] = x + depth * m[0];
+//   p_W[1] = y + depth * m[1];
+//   p_W[2] = z + depth * m[2];
+// }
 
-/**
- * Malloc features.
- */
-features_t *features_malloc() {
-  features_t *features = MALLOC(features_t, 1);
+// /**
+//  * Malloc features.
+//  */
+// features_t *features_malloc() {
+//   features_t *features = MALLOC(features_t, 1);
 
-  features->data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
-  features->num_features = 0;
-  features->feature_capacity = FEATURES_CAPACITY_INITIAL;
+//   features->data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
+//   features->num_features = 0;
+//   features->feature_capacity = FEATURES_CAPACITY_INITIAL;
 
-  features->pos_data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
-  features->num_positions = 0;
-  features->position_capacity = FEATURES_CAPACITY_INITIAL;
+//   features->pos_data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
+//   features->num_positions = 0;
+//   features->position_capacity = FEATURES_CAPACITY_INITIAL;
 
-  return features;
-}
+//   return features;
+// }
 
-/**
- * Free features.
- */
-void features_free(features_t *features) {
-  assert(features != NULL);
+// /**
+//  * Free features.
+//  */
+// void features_free(features_t *features) {
+//   assert(features != NULL);
 
-  for (size_t i = 0; i < features->feature_capacity; i++) {
-    free(features->data[i]);
-  }
-  free(features->data);
+//   for (size_t i = 0; i < features->feature_capacity; i++) {
+//     free(features->data[i]);
+//   }
+//   free(features->data);
 
-  for (size_t i = 0; i < features->position_capacity; i++) {
-    free(features->pos_data[i]);
-  }
-  free(features->pos_data);
+//   for (size_t i = 0; i < features->position_capacity; i++) {
+//     free(features->pos_data[i]);
+//   }
+//   free(features->pos_data);
 
-  free(features);
-}
+//   free(features);
+// }
 
-/**
- * Check whether feature with `feature_id` exists
- * @returns 1 for yes, 0 for no
- */
-int features_exists(const features_t *features, const size_t feature_id) {
-  return features->data[feature_id] != NULL;
-}
+// /**
+//  * Check whether feature with `feature_id` exists
+//  * @returns 1 for yes, 0 for no
+//  */
+// int features_exists(const features_t *features, const size_t feature_id) {
+//   return features->data[feature_id] != NULL;
+// }
 
-/**
- * Add XYZ feature.
- */
-void features_add_xyzs(features_t *features,
-                       const size_t *feature_ids,
-                       const real_t *params,
-                       const size_t num_features) {
-  assert(features != NULL);
-  assert(feature_ids != NULL);
-  assert(params != NULL);
+// /**
+//  * Add XYZ feature.
+//  */
+// void features_add_xyzs(features_t *features,
+//                        const size_t *feature_ids,
+//                        const real_t *params,
+//                        const size_t num_features) {
+//   assert(features != NULL);
+//   assert(feature_ids != NULL);
+//   assert(params != NULL);
 
-  // Expand features dynamic array if needed
-  if (feature_ids[num_features - 1] >= features->feature_capacity) {
-    size_t old_size = features->feature_capacity;
-    size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-    features->data = REALLOC(features->data, feature_t *, new_size);
-    features->feature_capacity = new_size;
-    for (size_t i = old_size; i < new_size; i++) {
-      features->data[i] = NULL;
-    }
-    // The above step is quite important because by default realloc will not
-    // initialize pointers to NULL, and there will be no way of knowing
-    // whether a feature exists.
-  }
+//   // Expand features dynamic array if needed
+//   if (feature_ids[num_features - 1] >= features->feature_capacity) {
+//     size_t old_size = features->feature_capacity;
+//     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
+//     features->data = REALLOC(features->data, feature_t *, new_size);
+//     features->feature_capacity = new_size;
+//     for (size_t i = old_size; i < new_size; i++) {
+//       features->data[i] = NULL;
+//     }
+//     // The above step is quite important because by default realloc will not
+//     // initialize pointers to NULL, and there will be no way of knowing
+//     // whether a feature exists.
+//   }
 
-  // Add features
-  for (size_t i = 0; i < num_features; i++) {
-    feature_t *f = MALLOC(feature_t, 1);
-    feature_setup(f, feature_ids[i], params + i * 3);
-    features->data[feature_ids[i]] = f;
-    features->num_features++;
-  }
-}
+//   // Add features
+//   for (size_t i = 0; i < num_features; i++) {
+//     feature_t *f = MALLOC(feature_t, 1);
+//     feature_setup(f, feature_ids[i], params + i * 3);
+//     features->data[feature_ids[i]] = f;
+//     features->num_features++;
+//   }
+// }
 
-/**
- * Add inverse-depth feature.
- */
-void features_add_idfs(features_t *features,
-                       const size_t *feature_ids,
-                       const camera_params_t *cam_params,
-                       const real_t T_WC[4 * 4],
-                       const real_t *keypoints,
-                       const size_t num_keypoints) {
-  assert(features != NULL);
-  assert(feature_ids != NULL);
-  assert(cam_params != NULL);
-  assert(T_WC != NULL);
-  assert(keypoints != NULL);
+// /**
+//  * Add inverse-depth feature.
+//  */
+// void features_add_idfs(features_t *features,
+//                        const size_t *feature_ids,
+//                        const camera_params_t *cam_params,
+//                        const real_t T_WC[4 * 4],
+//                        const real_t *keypoints,
+//                        const size_t num_keypoints) {
+//   assert(features != NULL);
+//   assert(feature_ids != NULL);
+//   assert(cam_params != NULL);
+//   assert(T_WC != NULL);
+//   assert(keypoints != NULL);
 
-  // Pre-check
-  if (num_keypoints == 0) {
-    return;
-  }
+//   // Pre-check
+//   if (num_keypoints == 0) {
+//     return;
+//   }
 
-  // Expand features dynamic array if needed
-  if (feature_ids[num_keypoints - 1] >= features->feature_capacity) {
-    size_t old_size = features->feature_capacity;
-    size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-    features->data = REALLOC(features->data, feature_t *, new_size);
-    features->feature_capacity = new_size;
-    for (size_t i = old_size; i < new_size; i++) {
-      features->data[i] = NULL;
-    }
-    // The above step is quite important because by default realloc will not
-    // initialize pointers to NULL, and there will be no way of knowing
-    // whether a feature exists.
-  }
+//   // Expand features dynamic array if needed
+//   if (feature_ids[num_keypoints - 1] >= features->feature_capacity) {
+//     size_t old_size = features->feature_capacity;
+//     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
+//     features->data = REALLOC(features->data, feature_t *, new_size);
+//     features->feature_capacity = new_size;
+//     for (size_t i = old_size; i < new_size; i++) {
+//       features->data[i] = NULL;
+//     }
+//     // The above step is quite important because by default realloc will not
+//     // initialize pointers to NULL, and there will be no way of knowing
+//     // whether a feature exists.
+//   }
 
-  // Expand positions dynamic array if needed
-  const size_t pos_id = features->num_positions;
-  if (pos_id >= features->position_capacity) {
-    size_t old_size = features->position_capacity;
-    size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-    features->data = REALLOC(features->pos_data, pos_t *, new_size);
-    features->position_capacity = new_size;
-    for (size_t i = old_size; i < new_size; i++) {
-      features->pos_data[i] = NULL;
-    }
-    // The above step is quite important because by default realloc will not
-    // initialize pointers to NULL, and there will be no way of knowing
-    // whether a feature exists.
-  }
+//   // Expand positions dynamic array if needed
+//   const size_t pos_id = features->num_positions;
+//   if (pos_id >= features->position_capacity) {
+//     size_t old_size = features->position_capacity;
+//     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
+//     features->data = REALLOC(features->pos_data, pos_t *, new_size);
+//     features->position_capacity = new_size;
+//     for (size_t i = old_size; i < new_size; i++) {
+//       features->pos_data[i] = NULL;
+//     }
+//     // The above step is quite important because by default realloc will not
+//     // initialize pointers to NULL, and there will be no way of knowing
+//     // whether a feature exists.
+//   }
 
-  // Setup
-  TF_ROT(T_WC, C_WC);
-  TF_TRANS(T_WC, r_WC);
+//   // Setup
+//   TF_ROT(T_WC, C_WC);
+//   TF_TRANS(T_WC, r_WC);
 
-  // Add feature
-  for (size_t i = 0; i < num_keypoints; i++) {
-    const size_t feature_id = feature_ids[i];
-    feature_t *f = MALLOC(feature_t, 1);
-    idf_setup(f, feature_id, pos_id, cam_params, C_WC, keypoints + i * 2);
-    features->data[feature_id] = f;
-    features->num_features++;
-  }
+//   // Add feature
+//   for (size_t i = 0; i < num_keypoints; i++) {
+//     const size_t feature_id = feature_ids[i];
+//     feature_t *f = MALLOC(feature_t, 1);
+//     idf_setup(f, feature_id, pos_id, cam_params, C_WC, keypoints + i * 2);
+//     features->data[feature_id] = f;
+//     features->num_features++;
+//   }
 
-  // Add inverse-depth "first-seen" position
-  pos_t *pos = MALLOC(pos_t, 1);
-  pos_setup(pos, r_WC);
-  features->pos_data[pos_id] = pos;
-  features->num_positions++;
-}
+//   // Add inverse-depth "first-seen" position
+//   pos_t *pos = MALLOC(pos_t, 1);
+//   pos_setup(pos, r_WC);
+//   features->pos_data[pos_id] = pos;
+//   features->num_positions++;
+// }
 
-/**
- * Returns pointer to feature with `feature_id`.
- */
-void features_get_xyz(const features_t *features,
-                      const size_t feature_id,
-                      feature_t **feature) {
-  *feature = features->data[feature_id];
-}
+// /**
+//  * Returns pointer to feature with `feature_id`.
+//  */
+// void features_get_xyz(const features_t *features,
+//                       const size_t feature_id,
+//                       feature_t **feature) {
+//   *feature = features->data[feature_id];
+// }
 
-/**
- * Returns pointer to feature with `feature_id`.
- */
-void features_get_idf(const features_t *features,
-                      const size_t feature_id,
-                      feature_t **feature,
-                      pos_t **pos) {
-  *feature = features->data[feature_id];
-  *pos = features->pos_data[(*feature)->pos_id];
-}
+// /**
+//  * Returns pointer to feature with `feature_id`.
+//  */
+// void features_get_idf(const features_t *features,
+//                       const size_t feature_id,
+//                       feature_t **feature,
+//                       pos_t **pos) {
+//   *feature = features->data[feature_id];
+//   *pos = features->pos_data[(*feature)->pos_id];
+// }
 
-/**
- * Returns 3D point corresponding to feature.
- */
-int features_point(const features_t *features,
-                   const size_t feature_id,
-                   real_t p_W[3]) {
-  if (features_exists(features, feature_id) != 0) {
-    return -1;
-  }
+// /**
+//  * Returns 3D point corresponding to feature.
+//  */
+// int features_point(const features_t *features,
+//                    const size_t feature_id,
+//                    real_t p_W[3]) {
+//   if (features_exists(features, feature_id) != 0) {
+//     return -1;
+//   }
 
-  const feature_t *f = features->data[feature_id];
-  if (f->type == FEATURE_XYZ) {
-    p_W[0] = f->data[0];
-    p_W[1] = f->data[1];
-    p_W[2] = f->data[2];
-  } else if (f->type == FEATURE_INVERSE_DEPTH) {
-    const pos_t *pos = features->pos_data[f->pos_id];
-    idf_point(f, pos->data, p_W);
-  } else {
-    FATAL("Invalid feature type [%d]!\n", f->type);
-  }
+//   const feature_t *f = features->data[feature_id];
+//   if (f->type == FEATURE_XYZ) {
+//     p_W[0] = f->data[0];
+//     p_W[1] = f->data[1];
+//     p_W[2] = f->data[2];
+//   } else if (f->type == FEATURE_INVERSE_DEPTH) {
+//     const pos_t *pos = features->pos_data[f->pos_id];
+//     idf_point(f, pos->data, p_W);
+//   } else {
+//     FATAL("Invalid feature type [%d]!\n", f->type);
+//   }
 
-  return 0;
-}
+//   return 0;
+// }
 
 // /**
 //  * Return IDFB feature ids, keypoints and points.
@@ -11253,7 +11254,7 @@ static void camera_factor_pose_jacobian(const real_t Jh_w[2 * 3],
  * Body-camera extrinsic jacobian
  */
 static void camera_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
-                                             const real_t T_BC[3 * 3],
+                                             const real_t T_BC[4 * 4],
                                              const real_t p_C[3],
                                              real_t J[2 * 6]) {
   assert(Jh_w != NULL);
@@ -11429,377 +11430,377 @@ int camera_factor_eval(void *factor_ptr) {
 // INVERSE-DEPTH FEATURES (IDF) FACTOR //
 /////////////////////////////////////////
 
-/**
- * Pose jacobian
- */
-static void idf_factor_pose_jacobian(const real_t Jh_w[2 * 3],
-                                     const real_t T_WB[3 * 3],
-                                     const real_t T_BC[3 * 3],
-                                     const real_t p_W[3],
-                                     real_t J[2 * 6]) {
-  assert(Jh_w != NULL);
-  assert(T_BC != NULL);
-  assert(T_WB != NULL);
-  assert(p_W != NULL);
-  assert(J != NULL);
+// /**
+//  * Pose jacobian
+//  */
+// static void idf_factor_pose_jacobian(const real_t Jh_w[2 * 3],
+//                                      const real_t T_WB[3 * 3],
+//                                      const real_t T_BC[3 * 3],
+//                                      const real_t p_W[3],
+//                                      real_t J[2 * 6]) {
+//   assert(Jh_w != NULL);
+//   assert(T_BC != NULL);
+//   assert(T_WB != NULL);
+//   assert(p_W != NULL);
+//   assert(J != NULL);
 
-  // Jh_w = -1 * sqrt_info * Jh;
-  // J_pos = Jh_w * C_CB * -C_BW;
-  // J_rot = Jh_w * C_CB * C_BW * hat(p_W - r_WB) * -C_WB;
-  // J = [J_pos, J_rot];
+//   // Jh_w = -1 * sqrt_info * Jh;
+//   // J_pos = Jh_w * C_CB * -C_BW;
+//   // J_rot = Jh_w * C_CB * C_BW * hat(p_W - r_WB) * -C_WB;
+//   // J = [J_pos, J_rot];
 
-  // Setup
-  real_t C_BW[3 * 3] = {0};
-  real_t C_CB[3 * 3] = {0};
+//   // Setup
+//   real_t C_BW[3 * 3] = {0};
+//   real_t C_CB[3 * 3] = {0};
 
-  TF_ROT(T_WB, C_WB);
-  TF_ROT(T_BC, C_BC);
-  mat_transpose(C_WB, 3, 3, C_BW);
-  mat_transpose(C_BC, 3, 3, C_CB);
-  DOT(C_CB, 3, 3, C_BW, 3, 3, C_CW);
+//   TF_ROT(T_WB, C_WB);
+//   TF_ROT(T_BC, C_BC);
+//   mat_transpose(C_WB, 3, 3, C_BW);
+//   mat_transpose(C_BC, 3, 3, C_CB);
+//   DOT(C_CB, 3, 3, C_BW, 3, 3, C_CW);
 
-  // Form: -C_BW
-  real_t neg_C_BW[3 * 3] = {0};
-  mat_copy(C_BW, 3, 3, neg_C_BW);
-  mat_scale(neg_C_BW, 3, 3, -1.0);
+//   // Form: -C_BW
+//   real_t neg_C_BW[3 * 3] = {0};
+//   mat_copy(C_BW, 3, 3, neg_C_BW);
+//   mat_scale(neg_C_BW, 3, 3, -1.0);
 
-  // Form: -C_CW
-  real_t neg_C_CW[3 * 3] = {0};
-  dot(C_CB, 3, 3, neg_C_BW, 3, 3, neg_C_CW);
+//   // Form: -C_CW
+//   real_t neg_C_CW[3 * 3] = {0};
+//   dot(C_CB, 3, 3, neg_C_BW, 3, 3, neg_C_CW);
 
-  // Form: -C_WB
-  real_t neg_C_WB[3 * 3] = {0};
-  mat_copy(C_WB, 3, 3, neg_C_WB);
-  mat_scale(neg_C_WB, 3, 3, -1.0);
+//   // Form: -C_WB
+//   real_t neg_C_WB[3 * 3] = {0};
+//   mat_copy(C_WB, 3, 3, neg_C_WB);
+//   mat_scale(neg_C_WB, 3, 3, -1.0);
 
-  // Form: C_CB * -C_BW * hat(p_W - r_WB) * -C_WB
-  real_t p[3] = {0};
-  real_t S[3 * 3] = {0};
-  TF_TRANS(T_WB, r_WB);
-  vec_sub(p_W, r_WB, p, 3);
-  hat(p, S);
+//   // Form: C_CB * -C_BW * hat(p_W - r_WB) * -C_WB
+//   real_t p[3] = {0};
+//   real_t S[3 * 3] = {0};
+//   TF_TRANS(T_WB, r_WB);
+//   vec_sub(p_W, r_WB, p, 3);
+//   hat(p, S);
 
-  DOT(neg_C_CW, 3, 3, S, 3, 3, A);
-  DOT(A, 3, 3, neg_C_WB, 3, 3, B);
+//   DOT(neg_C_CW, 3, 3, S, 3, 3, A);
+//   DOT(A, 3, 3, neg_C_WB, 3, 3, B);
 
-  // Form: J_pos = Jh_w * C_CB * -C_BW;
-  DOT(Jh_w, 2, 3, neg_C_CW, 3, 3, J_pos);
-  J[0] = J_pos[0];
-  J[1] = J_pos[1];
-  J[2] = J_pos[2];
+//   // Form: J_pos = Jh_w * C_CB * -C_BW;
+//   DOT(Jh_w, 2, 3, neg_C_CW, 3, 3, J_pos);
+//   J[0] = J_pos[0];
+//   J[1] = J_pos[1];
+//   J[2] = J_pos[2];
 
-  J[6] = J_pos[3];
-  J[7] = J_pos[4];
-  J[8] = J_pos[5];
+//   J[6] = J_pos[3];
+//   J[7] = J_pos[4];
+//   J[8] = J_pos[5];
 
-  // Form: J_rot = Jh_w * C_CB * -C_BW * hat(p_W - r_WB) * -C_WB;
-  DOT(Jh_w, 2, 3, B, 3, 3, J_rot);
+//   // Form: J_rot = Jh_w * C_CB * -C_BW * hat(p_W - r_WB) * -C_WB;
+//   DOT(Jh_w, 2, 3, B, 3, 3, J_rot);
 
-  J[3] = J_rot[0];
-  J[4] = J_rot[1];
-  J[5] = J_rot[2];
+//   J[3] = J_rot[0];
+//   J[4] = J_rot[1];
+//   J[5] = J_rot[2];
 
-  J[9] = J_rot[3];
-  J[10] = J_rot[4];
-  J[11] = J_rot[5];
-}
+//   J[9] = J_rot[3];
+//   J[10] = J_rot[4];
+//   J[11] = J_rot[5];
+// }
 
-/**
- * Body-camera extrinsic jacobian
- */
-static void idf_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
-                                          const real_t T_BC[3 * 3],
-                                          const real_t p_C[3],
-                                          real_t J[2 * 6]) {
-  assert(Jh_w != NULL);
-  assert(T_BC != NULL);
-  assert(p_C != NULL);
-  assert(J != NULL);
+// /**
+//  * Body-camera extrinsic jacobian
+//  */
+// static void idf_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
+//                                           const real_t T_BC[3 * 3],
+//                                           const real_t p_C[3],
+//                                           real_t J[2 * 6]) {
+//   assert(Jh_w != NULL);
+//   assert(T_BC != NULL);
+//   assert(p_C != NULL);
+//   assert(J != NULL);
 
-  // Jh_w = -1 * sqrt_info * Jh;
-  // J_pos = Jh_w * -C_CB;
-  // J_rot = Jh_w * C_CB * hat(C_BC * p_C);
+//   // Jh_w = -1 * sqrt_info * Jh;
+//   // J_pos = Jh_w * -C_CB;
+//   // J_rot = Jh_w * C_CB * hat(C_BC * p_C);
 
-  // Setup
-  real_t C_CB[3 * 3] = {0};
-  real_t C_BW[3 * 3] = {0};
-  real_t C_CW[3 * 3] = {0};
+//   // Setup
+//   real_t C_CB[3 * 3] = {0};
+//   real_t C_BW[3 * 3] = {0};
+//   real_t C_CW[3 * 3] = {0};
 
-  TF_ROT(T_BC, C_BC);
-  mat_transpose(C_BC, 3, 3, C_CB);
-  dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
+//   TF_ROT(T_BC, C_BC);
+//   mat_transpose(C_BC, 3, 3, C_CB);
+//   dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
 
-  // Form: -C_CB
-  real_t neg_C_CB[3 * 3] = {0};
-  mat_copy(C_CB, 3, 3, neg_C_CB);
-  mat_scale(neg_C_CB, 3, 3, -1.0);
+//   // Form: -C_CB
+//   real_t neg_C_CB[3 * 3] = {0};
+//   mat_copy(C_CB, 3, 3, neg_C_CB);
+//   mat_scale(neg_C_CB, 3, 3, -1.0);
 
-  // Form: -C_BC
-  real_t neg_C_BC[3 * 3] = {0};
-  mat_copy(C_BC, 3, 3, neg_C_BC);
-  mat_scale(neg_C_BC, 3, 3, -1.0);
+//   // Form: -C_BC
+//   real_t neg_C_BC[3 * 3] = {0};
+//   mat_copy(C_BC, 3, 3, neg_C_BC);
+//   mat_scale(neg_C_BC, 3, 3, -1.0);
 
-  // Form: -C_CB * hat(C_BC * p_C) * -C_BC
-  real_t p[3] = {0};
-  real_t S[3 * 3] = {0};
-  dot(C_BC, 3, 3, p_C, 3, 1, p);
-  hat(p, S);
+//   // Form: -C_CB * hat(C_BC * p_C) * -C_BC
+//   real_t p[3] = {0};
+//   real_t S[3 * 3] = {0};
+//   dot(C_BC, 3, 3, p_C, 3, 1, p);
+//   hat(p, S);
 
-  real_t A[3 * 3] = {0};
-  real_t B[3 * 3] = {0};
-  dot(neg_C_CB, 3, 3, S, 3, 3, A);
-  dot(A, 3, 3, neg_C_BC, 3, 3, B);
+//   real_t A[3 * 3] = {0};
+//   real_t B[3 * 3] = {0};
+//   dot(neg_C_CB, 3, 3, S, 3, 3, A);
+//   dot(A, 3, 3, neg_C_BC, 3, 3, B);
 
-  // Form: J_rot = Jh_w * -C_CB;
-  real_t J_pos[2 * 3] = {0};
-  dot(Jh_w, 2, 3, neg_C_CB, 3, 3, J_pos);
+//   // Form: J_rot = Jh_w * -C_CB;
+//   real_t J_pos[2 * 3] = {0};
+//   dot(Jh_w, 2, 3, neg_C_CB, 3, 3, J_pos);
 
-  J[0] = J_pos[0];
-  J[1] = J_pos[1];
-  J[2] = J_pos[2];
+//   J[0] = J_pos[0];
+//   J[1] = J_pos[1];
+//   J[2] = J_pos[2];
 
-  J[6] = J_pos[3];
-  J[7] = J_pos[4];
-  J[8] = J_pos[5];
+//   J[6] = J_pos[3];
+//   J[7] = J_pos[4];
+//   J[8] = J_pos[5];
 
-  // Form: J_rot = Jh_w * -C_CB * hat(C_BC * p_C) * -C_BC;
-  real_t J_rot[2 * 3] = {0};
-  dot(Jh_w, 2, 3, B, 3, 3, J_rot);
+//   // Form: J_rot = Jh_w * -C_CB * hat(C_BC * p_C) * -C_BC;
+//   real_t J_rot[2 * 3] = {0};
+//   dot(Jh_w, 2, 3, B, 3, 3, J_rot);
 
-  J[3] = J_rot[0];
-  J[4] = J_rot[1];
-  J[5] = J_rot[2];
+//   J[3] = J_rot[0];
+//   J[4] = J_rot[1];
+//   J[5] = J_rot[2];
 
-  J[9] = J_rot[3];
-  J[10] = J_rot[4];
-  J[11] = J_rot[5];
-}
+//   J[9] = J_rot[3];
+//   J[10] = J_rot[4];
+//   J[11] = J_rot[5];
+// }
 
-/**
- * Camera parameters jacobian
- */
-static void idf_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
-                                       const real_t J_cam_params[2 * 8],
-                                       real_t J[2 * 8]) {
-  assert(neg_sqrt_info != NULL);
-  assert(J_cam_params != NULL);
-  assert(J != NULL);
+// /**
+//  * Camera parameters jacobian
+//  */
+// static void idf_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
+//                                        const real_t J_cam_params[2 * 8],
+//                                        real_t J[2 * 8]) {
+//   assert(neg_sqrt_info != NULL);
+//   assert(J_cam_params != NULL);
+//   assert(J != NULL);
 
-  // J = -1 * sqrt_info * J_cam_params;
-  dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
-}
+//   // J = -1 * sqrt_info * J_cam_params;
+//   dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
+// }
 
-/**
- * Feature jacobian
- */
-static void idf_factor_feature_jacobian(const real_t Jh_w[2 * 3],
-                                        const real_t T_WB[4 * 4],
-                                        const real_t T_BC[4 * 4],
-                                        const real_t p_W[3],
-                                        const feature_t *idf_param,
-                                        real_t J_idf_pos[2 * 3],
-                                        real_t J_idf_param[2 * 3]) {
-  assert(Jh_w != NULL);
-  assert(T_WB != NULL);
-  assert(T_BC != NULL);
-  assert(idf_param != NULL);
-  assert(J_idf_pos != NULL);
-  assert(J_idf_param != NULL);
+// /**
+//  * Feature jacobian
+//  */
+// static void idf_factor_feature_jacobian(const real_t Jh_w[2 * 3],
+//                                         const real_t T_WB[4 * 4],
+//                                         const real_t T_BC[4 * 4],
+//                                         const real_t p_W[3],
+//                                         const feature_t *idf_param,
+//                                         real_t J_idf_pos[2 * 3],
+//                                         real_t J_idf_param[2 * 3]) {
+//   assert(Jh_w != NULL);
+//   assert(T_WB != NULL);
+//   assert(T_BC != NULL);
+//   assert(idf_param != NULL);
+//   assert(J_idf_pos != NULL);
+//   assert(J_idf_param != NULL);
 
-  const real_t theta = idf_param->data[0];
-  const real_t phi = idf_param->data[1];
-  const real_t rho = idf_param->data[2];
-  const real_t d = 1.0 / rho;
-  const real_t k = -1.0 / (rho * rho);
+//   const real_t theta = idf_param->data[0];
+//   const real_t phi = idf_param->data[1];
+//   const real_t rho = idf_param->data[2];
+//   const real_t d = 1.0 / rho;
+//   const real_t k = -1.0 / (rho * rho);
 
-  const real_t cphi = cos(phi);
-  const real_t sphi = sin(phi);
-  const real_t ctheta = cos(theta);
-  const real_t stheta = sin(theta);
-  const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
-  const real_t J_theta[3] = {d * cphi * ctheta, 0.0, d * cphi * -stheta};
-  const real_t J_phi[3] = {d * -sphi * stheta, d * -cphi, d * -sphi * ctheta};
-  const real_t J_rho[3] = {k * m[0], k * m[1], k * m[2]};
+//   const real_t cphi = cos(phi);
+//   const real_t sphi = sin(phi);
+//   const real_t ctheta = cos(theta);
+//   const real_t stheta = sin(theta);
+//   const real_t m[3] = {cphi * stheta, -sphi, cphi * ctheta};
+//   const real_t J_theta[3] = {d * cphi * ctheta, 0.0, d * cphi * -stheta};
+//   const real_t J_phi[3] = {d * -sphi * stheta, d * -cphi, d * -sphi * ctheta};
+//   const real_t J_rho[3] = {k * m[0], k * m[1], k * m[2]};
 
-  real_t J_idf[3 * 6] = {0};
-  J_idf[0] = 1.0;
-  J_idf[6] = 0.0;
-  J_idf[12] = 0.0;
+//   real_t J_idf[3 * 6] = {0};
+//   J_idf[0] = 1.0;
+//   J_idf[6] = 0.0;
+//   J_idf[12] = 0.0;
 
-  J_idf[1] = 0.0;
-  J_idf[7] = 1.0;
-  J_idf[13] = 0.0;
+//   J_idf[1] = 0.0;
+//   J_idf[7] = 1.0;
+//   J_idf[13] = 0.0;
 
-  J_idf[2] = 0.0;
-  J_idf[8] = 0.0;
-  J_idf[14] = 1.0;
+//   J_idf[2] = 0.0;
+//   J_idf[8] = 0.0;
+//   J_idf[14] = 1.0;
 
-  J_idf[3] = J_theta[0];
-  J_idf[9] = J_theta[1];
-  J_idf[15] = J_theta[2];
+//   J_idf[3] = J_theta[0];
+//   J_idf[9] = J_theta[1];
+//   J_idf[15] = J_theta[2];
 
-  J_idf[4] = J_phi[0];
-  J_idf[10] = J_phi[1];
-  J_idf[16] = J_phi[2];
+//   J_idf[4] = J_phi[0];
+//   J_idf[10] = J_phi[1];
+//   J_idf[16] = J_phi[2];
 
-  J_idf[5] = J_rho[0];
-  J_idf[11] = J_rho[1];
-  J_idf[17] = J_rho[2];
+//   J_idf[5] = J_rho[0];
+//   J_idf[11] = J_rho[1];
+//   J_idf[17] = J_rho[2];
 
-  // Jh_w = -1 * sqrt_info * Jh;
-  // J = Jh_w * C_CW * J_idf;
-  real_t J[2 * 6] = {0};
-  TF_CHAIN(T_WC, 2, T_WB, T_BC);
-  TF_ROT(T_WC, C_WC);
-  MAT_TRANSPOSE(C_WC, 3, 3, C_CW);
-  dot3(Jh_w, 2, 3, C_CW, 3, 3, J_idf, 3, 6, J);
+//   // Jh_w = -1 * sqrt_info * Jh;
+//   // J = Jh_w * C_CW * J_idf;
+//   real_t J[2 * 6] = {0};
+//   TF_CHAIN(T_WC, 2, T_WB, T_BC);
+//   TF_ROT(T_WC, C_WC);
+//   MAT_TRANSPOSE(C_WC, 3, 3, C_CW);
+//   dot3(Jh_w, 2, 3, C_CW, 3, 3, J_idf, 3, 6, J);
 
-  J_idf_pos[0] = J[0];
-  J_idf_pos[1] = J[1];
-  J_idf_pos[2] = J[2];
-  J_idf_pos[3] = J[6];
-  J_idf_pos[4] = J[7];
-  J_idf_pos[5] = J[8];
+//   J_idf_pos[0] = J[0];
+//   J_idf_pos[1] = J[1];
+//   J_idf_pos[2] = J[2];
+//   J_idf_pos[3] = J[6];
+//   J_idf_pos[4] = J[7];
+//   J_idf_pos[5] = J[8];
 
-  J_idf_param[0] = J[3];
-  J_idf_param[1] = J[4];
-  J_idf_param[2] = J[5];
-  J_idf_param[3] = J[9];
-  J_idf_param[4] = J[10];
-  J_idf_param[5] = J[11];
-}
+//   J_idf_param[0] = J[3];
+//   J_idf_param[1] = J[4];
+//   J_idf_param[2] = J[5];
+//   J_idf_param[3] = J[9];
+//   J_idf_param[4] = J[10];
+//   J_idf_param[5] = J[11];
+// }
 
-/**
- * Setup IDF factor
- */
-void idf_factor_setup(idf_factor_t *factor,
-                      pose_t *pose,
-                      extrinsic_t *extrinsic,
-                      camera_params_t *camera,
-                      pos_t *idf_pos,
-                      feature_t *idf_param,
-                      const timestamp_t ts,
-                      const int cam_idx,
-                      const size_t feature_id,
-                      const real_t z[2],
-                      const real_t var[2]) {
-  assert(factor != NULL);
-  assert(pose != NULL);
-  assert(extrinsic != NULL);
-  assert(camera != NULL);
-  assert(idf_pos != NULL);
-  assert(idf_param != NULL);
+// /**
+//  * Setup IDF factor
+//  */
+// void idf_factor_setup(idf_factor_t *factor,
+//                       pose_t *pose,
+//                       extrinsic_t *extrinsic,
+//                       camera_params_t *camera,
+//                       pos_t *idf_pos,
+//                       feature_t *idf_param,
+//                       const timestamp_t ts,
+//                       const int cam_idx,
+//                       const size_t feature_id,
+//                       const real_t z[2],
+//                       const real_t var[2]) {
+//   assert(factor != NULL);
+//   assert(pose != NULL);
+//   assert(extrinsic != NULL);
+//   assert(camera != NULL);
+//   assert(idf_pos != NULL);
+//   assert(idf_param != NULL);
 
-  // Property
-  factor->ts = ts;
-  factor->cam_idx = cam_idx;
-  factor->feature_id = feature_id;
+//   // Property
+//   factor->ts = ts;
+//   factor->cam_idx = cam_idx;
+//   factor->feature_id = feature_id;
 
-  // Parameters
-  factor->pose = pose;
-  factor->extrinsic = extrinsic;
-  factor->camera = camera;
-  factor->idf_pos = idf_pos;
-  factor->idf_param = idf_param;
+//   // Parameters
+//   factor->pose = pose;
+//   factor->extrinsic = extrinsic;
+//   factor->camera = camera;
+//   factor->idf_pos = idf_pos;
+//   factor->idf_param = idf_param;
 
-  // Measurement covariance matrix
-  factor->covar[0] = var[0];
-  factor->covar[1] = 0.0;
-  factor->covar[2] = 0.0;
-  factor->covar[3] = var[1];
+//   // Measurement covariance matrix
+//   factor->covar[0] = var[0];
+//   factor->covar[1] = 0.0;
+//   factor->covar[2] = 0.0;
+//   factor->covar[3] = var[1];
 
-  // Square-root information matrix
-  factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
-  factor->sqrt_info[1] = 0.0;
-  factor->sqrt_info[2] = 0.0;
-  factor->sqrt_info[3] = sqrt(1.0 / factor->covar[3]);
+//   // Square-root information matrix
+//   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
+//   factor->sqrt_info[1] = 0.0;
+//   factor->sqrt_info[2] = 0.0;
+//   factor->sqrt_info[3] = sqrt(1.0 / factor->covar[3]);
 
-  // Measurement
-  factor->z[0] = z[0];
-  factor->z[1] = z[1];
+//   // Measurement
+//   factor->z[0] = z[0];
+//   factor->z[1] = z[1];
 
-  // Parameters, residuals, jacobians
-  factor->r_size = 2;
-  factor->num_params = 5;
+//   // Parameters, residuals, jacobians
+//   factor->r_size = 2;
+//   factor->num_params = 5;
 
-  factor->param_types[0] = POSE_PARAM;
-  factor->param_types[1] = EXTRINSIC_PARAM;
-  factor->param_types[2] = CAMERA_PARAM;
-  factor->param_types[3] = POSITION_PARAM;
-  factor->param_types[4] = IDF_BEARING_PARAM;
+//   factor->param_types[0] = POSE_PARAM;
+//   factor->param_types[1] = EXTRINSIC_PARAM;
+//   factor->param_types[2] = CAMERA_PARAM;
+//   factor->param_types[3] = POSITION_PARAM;
+//   factor->param_types[4] = IDF_BEARING_PARAM;
 
-  factor->params[0] = factor->pose->data;
-  factor->params[1] = factor->extrinsic->data;
-  factor->params[2] = factor->camera->data;
-  factor->params[3] = factor->idf_pos->data;
-  factor->params[4] = factor->idf_param->data;
+//   factor->params[0] = factor->pose->data;
+//   factor->params[1] = factor->extrinsic->data;
+//   factor->params[2] = factor->camera->data;
+//   factor->params[3] = factor->idf_pos->data;
+//   factor->params[4] = factor->idf_param->data;
 
-  factor->jacs[0] = factor->J_pose;
-  factor->jacs[1] = factor->J_extrinsic;
-  factor->jacs[2] = factor->J_camera;
-  factor->jacs[3] = factor->J_idf_pos;
-  factor->jacs[4] = factor->J_idf_param;
-}
+//   factor->jacs[0] = factor->J_pose;
+//   factor->jacs[1] = factor->J_extrinsic;
+//   factor->jacs[2] = factor->J_camera;
+//   factor->jacs[3] = factor->J_idf_pos;
+//   factor->jacs[4] = factor->J_idf_param;
+// }
 
-/**
- * Evaluate IDF factor
- */
-int idf_factor_eval(void *factor_ptr) {
-  idf_factor_t *factor = (idf_factor_t *) factor_ptr;
+// /**
+//  * Evaluate IDF factor
+//  */
+// int idf_factor_eval(void *factor_ptr) {
+//   idf_factor_t *factor = (idf_factor_t *) factor_ptr;
 
-  // Form T_CiW
-  TF(factor->pose->data, T_WB);
-  TF(factor->extrinsic->data, T_BCi);
-  TF_CHAIN(T_WCi, 2, T_WB, T_BCi);
-  // TF_TRANS(T_WCi, r_WCi);
-  TF_INV(T_WCi, T_CiW);
+//   // Form T_CiW
+//   TF(factor->pose->data, T_WB);
+//   TF(factor->extrinsic->data, T_BCi);
+//   TF_CHAIN(T_WCi, 2, T_WB, T_BCi);
+//   // TF_TRANS(T_WCi, r_WCi);
+//   TF_INV(T_WCi, T_CiW);
 
-  // Calculate residuals and jacobians
-  // -- Form: -1 * sqrt_info
-  real_t nsqrt_info[2 * 2] = {0};
-  mat_copy(factor->sqrt_info, 2, 2, nsqrt_info);
-  mat_scale(nsqrt_info, 2, 2, -1.0);
+//   // Calculate residuals and jacobians
+//   // -- Form: -1 * sqrt_info
+//   real_t nsqrt_info[2 * 2] = {0};
+//   mat_copy(factor->sqrt_info, 2, 2, nsqrt_info);
+//   mat_scale(nsqrt_info, 2, 2, -1.0);
 
-  // Form 3D point in world frame
-  real_t p_W[3] = {0};
-  idf_point(factor->idf_param, factor->idf_pos->data, p_W);
+//   // Form 3D point in world frame
+//   real_t p_W[3] = {0};
+//   idf_point(factor->idf_param, factor->idf_pos->data, p_W);
 
-  // Project to image frame
-  real_t z_hat[2];
-  TF_POINT(T_CiW, p_W, p_Ci);
-  camera_project(factor->camera, p_Ci, z_hat);
+//   // Project to image frame
+//   real_t z_hat[2];
+//   TF_POINT(T_CiW, p_W, p_Ci);
+//   camera_project(factor->camera, p_Ci, z_hat);
 
-  // Residual z - z_hat
-  real_t r[2] = {0};
-  r[0] = factor->z[0] - z_hat[0];
-  r[1] = factor->z[1] - z_hat[1];
-  // -- Weighted residual
-  dot(factor->sqrt_info, 2, 2, r, 2, 1, factor->r);
+//   // Residual z - z_hat
+//   real_t r[2] = {0};
+//   r[0] = factor->z[0] - z_hat[0];
+//   r[1] = factor->z[1] - z_hat[1];
+//   // -- Weighted residual
+//   dot(factor->sqrt_info, 2, 2, r, 2, 1, factor->r);
 
-  // -- Form: Jh_ = -1 * sqrt_info * Jh
-  real_t Jh[2 * 3] = {0};
-  real_t Jh_w[2 * 3] = {0};
-  pinhole_radtan4_project_jacobian(factor->camera->data, p_Ci, Jh);
-  dot(nsqrt_info, 2, 2, Jh, 2, 3, Jh_w);
+//   // -- Form: Jh_ = -1 * sqrt_info * Jh
+//   real_t Jh[2 * 3] = {0};
+//   real_t Jh_w[2 * 3] = {0};
+//   pinhole_radtan4_project_jacobian(factor->camera->data, p_Ci, Jh);
+//   dot(nsqrt_info, 2, 2, Jh, 2, 3, Jh_w);
 
-  // -- Form: J_camera
-  real_t J_camera[2 * 8] = {0};
-  pinhole_radtan4_params_jacobian(factor->camera->data, p_Ci, J_camera);
+//   // -- Form: J_camera
+//   real_t J_camera[2 * 8] = {0};
+//   pinhole_radtan4_params_jacobian(factor->camera->data, p_Ci, J_camera);
 
-  // -- Fill Jacobians
-  idf_factor_pose_jacobian(Jh_w, T_WB, T_BCi, p_W, factor->jacs[0]);
-  idf_factor_extrinsic_jacobian(Jh_w, T_BCi, p_Ci, factor->jacs[1]);
-  idf_factor_camera_jacobian(nsqrt_info, J_camera, factor->jacs[2]);
-  idf_factor_feature_jacobian(Jh_w,
-                              T_WB,
-                              T_BCi,
-                              p_W,
-                              factor->idf_param,
-                              factor->jacs[3],
-                              factor->jacs[4]);
+//   // -- Fill Jacobians
+//   idf_factor_pose_jacobian(Jh_w, T_WB, T_BCi, p_W, factor->jacs[0]);
+//   idf_factor_extrinsic_jacobian(Jh_w, T_BCi, p_Ci, factor->jacs[1]);
+//   idf_factor_camera_jacobian(nsqrt_info, J_camera, factor->jacs[2]);
+//   idf_factor_feature_jacobian(Jh_w,
+//                               T_WB,
+//                               T_BCi,
+//                               p_W,
+//                               factor->idf_param,
+//                               factor->jacs[3],
+//                               factor->jacs[4]);
 
-  return 0;
-}
+//   return 0;
+// }
 
 ////////////////
 // IMU FACTOR //
@@ -14578,18 +14579,18 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     }
   }
   // -- Track IDF factor params
-  {
-    list_node_t *node = marg->idf_factors->first;
-    while (node != NULL) {
-      idf_factor_t *factor = (idf_factor_t *) node->value;
-      MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
-      MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->extrinsic);
-      MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->camera);
-      MARG_TRACK(marg->r_positions, marg->m_positions, factor->idf_pos);
-      MARG_TRACK(marg->r_features, marg->m_features, factor->idf_param);
-      node = node->next;
-    }
-  }
+  // {
+  //   list_node_t *node = marg->idf_factors->first;
+  //   while (node != NULL) {
+  //     idf_factor_t *factor = (idf_factor_t *) node->value;
+  //     MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
+  //     MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->extrinsic);
+  //     MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->camera);
+  //     MARG_TRACK(marg->r_positions, marg->m_positions, factor->idf_pos);
+  //     MARG_TRACK(marg->r_features, marg->m_features, factor->idf_param);
+  //     node = node->next;
+  //   }
+  // }
   // -- Track IMU factor params
   {
     list_node_t *node = marg->imu_factors->first;
@@ -14713,7 +14714,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   // param_order_print(marg->hash);
   MARG_H(marg, ba_factor_t, marg->ba_factors, H, b, ls);
   MARG_H(marg, camera_factor_t, marg->camera_factors, H, b, ls);
-  MARG_H(marg, idf_factor_t, marg->idf_factors, H, b, ls);
+  // MARG_H(marg, idf_factor_t, marg->idf_factors, H, b, ls);
   MARG_H(marg, imu_factor_t, marg->imu_factors, H, b, ls);
   MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
   MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
@@ -16006,7 +16007,8 @@ void calib_camera_marginalize(calib_camera_t *calib) {
     calib_camera_view_free(cam_views[cam_idx]);
   }
   free(cam_views);
-  hmdel(calib->view_sets, ts);
+  (void) hmdel(calib->view_sets, ts);
+  // ^ (void) cast required for now: https://github.com/nothings/stb/issues/1574
 
   // Remove timestamp
   arrdel(calib->timestamps, 0);
@@ -19634,13 +19636,13 @@ tsf_t *tsf_malloc() {
   tsf->cam_exts = NULL;
   tsf->frame_sets[0] = NULL;
   tsf->frame_sets[1] = NULL;
-  tsf->features = features_malloc();
+  // tsf->features = features_malloc();
 
   // Factors
   tsf->num_factors_i = 0;
   tsf->num_factors_j = 0;
-  tsf->idf_factors_i = NULL;
-  tsf->idf_factors_j = NULL;
+  // tsf->idf_factors_i = NULL;
+  // tsf->idf_factors_j = NULL;
   tsf->imu_factor = NULL;
   tsf->marg = NULL;
 
@@ -19671,11 +19673,11 @@ void tsf_free(tsf_t *tsf) {
   free(tsf->cam_exts);
   tsf_frame_set_free(tsf->frame_sets[0]);
   tsf_frame_set_free(tsf->frame_sets[1]);
-  features_free(tsf->features);
+  // features_free(tsf->features);
 
   // FACTORS
-  free(tsf->idf_factors_i);
-  free(tsf->idf_factors_j);
+  // free(tsf->idf_factors_i);
+  // free(tsf->idf_factors_j);
   free(tsf->imu_factor);
   marg_factor_free(tsf->marg);
 
@@ -19831,344 +19833,344 @@ void tsf_add_camera_event(tsf_t *tsf,
   tsf_frame_set_add(fs, ts, cam_idx, n, fids, kps);
 }
 
-static size_t *tsf_unique_feature_ids(tsf_t *tsf, size_t *n) {
-  size_t *fids_unique = MALLOC(size_t, tsf->num_factors_i + tsf->num_factors_j);
-  size_t fid_idx = 0;
+// static size_t *tsf_unique_feature_ids(tsf_t *tsf, size_t *n) {
+//   size_t *fids_unique = MALLOC(size_t, tsf->num_factors_i + tsf->num_factors_j);
+//   size_t fid_idx = 0;
 
-  // Load unique feature ids with feature ids from the previous step
-  for (int i = 0; i < tsf->num_factors_i; i++) {
-    fids_unique[fid_idx++] = tsf->idf_factors_i[i].feature_id;
-  }
+//   // Load unique feature ids with feature ids from the previous step
+//   for (int i = 0; i < tsf->num_factors_i; i++) {
+//     fids_unique[fid_idx++] = tsf->idf_factors_i[i].feature_id;
+//   }
 
-  // Loop feature ids in the current step and add only untracked feature ids
-  for (int j = 0; j < tsf->num_factors_j; j++) {
-    size_t fid = tsf->idf_factors_j[j].feature_id;
+//   // Loop feature ids in the current step and add only untracked feature ids
+//   for (int j = 0; j < tsf->num_factors_j; j++) {
+//     size_t fid = tsf->idf_factors_j[j].feature_id;
 
-    int found = 0;
-    for (int i = 0; i < fid_idx; i++) {
-      if (fids_unique[i] == fid) {
-        found = 1;
-        break;
-      } else if (fids_unique[i] > fid) {
-        found = 0;
-        break;
-      }
-    }
+//     int found = 0;
+//     for (int i = 0; i < fid_idx; i++) {
+//       if (fids_unique[i] == fid) {
+//         found = 1;
+//         break;
+//       } else if (fids_unique[i] > fid) {
+//         found = 0;
+//         break;
+//       }
+//     }
 
-    if (found == 0) {
-      fids_unique[fid_idx++] = fid;
-    }
-  }
+//     if (found == 0) {
+//       fids_unique[fid_idx++] = fid;
+//     }
+//   }
 
-  *n = fid_idx;
-  return fids_unique;
-}
+//   *n = fid_idx;
+//   return fids_unique;
+// }
 
-/**
- * Form parameter order.
- */
-param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
-  // Setup parameter order
-  tsf_t *tsf = (tsf_t *) data;
-  param_order_t *hash = NULL;
-  int col_idx = 0;
+// /**
+//  * Form parameter order.
+//  */
+// param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
+//   // Setup parameter order
+//   tsf_t *tsf = (tsf_t *) data;
+//   param_order_t *hash = NULL;
+//   int col_idx = 0;
 
-  // Add state at timestep k - 1
-  param_order_add_pose(&hash, tsf->pose_i, &col_idx);
-  if (tsf->num_imus) {
-    param_order_add_velocity(&hash, tsf->vel_i, &col_idx);
-    param_order_add_imu_biases(&hash, tsf->biases_i, &col_idx);
-  }
+//   // Add state at timestep k - 1
+//   param_order_add_pose(&hash, tsf->pose_i, &col_idx);
+//   if (tsf->num_imus) {
+//     param_order_add_velocity(&hash, tsf->vel_i, &col_idx);
+//     param_order_add_imu_biases(&hash, tsf->biases_i, &col_idx);
+//   }
 
-  // Add state at timestep k
-  param_order_add_pose(&hash, tsf->pose_j, &col_idx);
-  if (tsf->num_imus) {
-    param_order_add_velocity(&hash, tsf->vel_j, &col_idx);
-    param_order_add_imu_biases(&hash, tsf->biases_j, &col_idx);
-  }
+//   // Add state at timestep k
+//   param_order_add_pose(&hash, tsf->pose_j, &col_idx);
+//   if (tsf->num_imus) {
+//     param_order_add_velocity(&hash, tsf->vel_j, &col_idx);
+//     param_order_add_imu_biases(&hash, tsf->biases_j, &col_idx);
+//   }
 
-  // Add camera extrinsic
-  for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
-    param_order_add_extrinsic(&hash, &tsf->cam_exts[cam_idx], &col_idx);
-  }
+//   // Add camera extrinsic
+//   for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
+//     param_order_add_extrinsic(&hash, &tsf->cam_exts[cam_idx], &col_idx);
+//   }
 
-  // Add camera parameters
-  for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
-    param_order_add_camera(&hash, &tsf->cam_params[cam_idx], &col_idx);
-  }
+//   // Add camera parameters
+//   for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
+//     param_order_add_camera(&hash, &tsf->cam_params[cam_idx], &col_idx);
+//   }
 
-  // Add features
-  size_t n = 0;
-  size_t *fids = tsf_unique_feature_ids(tsf, &n);
-  for (size_t i = 0; i < n; i++) {
-    feature_t *idf_param = NULL;
-    pos_t *idf_pos = NULL;
-    features_get_idf(tsf->features, fids[i], &idf_param, &idf_pos);
+//   // Add features
+//   size_t n = 0;
+//   size_t *fids = tsf_unique_feature_ids(tsf, &n);
+//   for (size_t i = 0; i < n; i++) {
+//     feature_t *idf_param = NULL;
+//     pos_t *idf_pos = NULL;
+//     features_get_idf(tsf->features, fids[i], &idf_param, &idf_pos);
 
-    param_order_add(&hash, IDF_BEARING_PARAM, 0, idf_param->data, &col_idx);
-    if (param_order_exists(&hash, idf_pos->data) == 0) {
-      param_order_add(&hash, POSITION_PARAM, 0, idf_pos->data, &col_idx);
-    }
-  }
+//     param_order_add(&hash, IDF_BEARING_PARAM, 0, idf_param->data, &col_idx);
+//     if (param_order_exists(&hash, idf_pos->data) == 0) {
+//       param_order_add(&hash, POSITION_PARAM, 0, idf_pos->data, &col_idx);
+//     }
+//   }
 
-  // Set state-vector and residual size
-  *sv_size = col_idx;
-  *r_size = 0;
-  *r_size += tsf->num_factors_i * 2;
-  *r_size += tsf->num_factors_j * 2;
-  *r_size += tsf->num_imus * 15;
-  if (tsf->marg) {
-    *r_size += tsf->marg->r_size;
-  }
+//   // Set state-vector and residual size
+//   *sv_size = col_idx;
+//   *r_size = 0;
+//   *r_size += tsf->num_factors_i * 2;
+//   *r_size += tsf->num_factors_j * 2;
+//   *r_size += tsf->num_imus * 15;
+//   if (tsf->marg) {
+//     *r_size += tsf->marg->r_size;
+//   }
 
-  // Clean up
-  free(fids);
+//   // Clean up
+//   free(fids);
 
-  return hash;
-}
+//   return hash;
+// }
 
-/**
- * Calculate problem cost.
- */
-void tsf_cost(const void *data, real_t *r) {
-  // Evaluate factors
-  tsf_t *tsf = (tsf_t *) data;
-  int r_idx = 0;
+// /**
+//  * Calculate problem cost.
+//  */
+// void tsf_cost(const void *data, real_t *r) {
+//   // Evaluate factors
+//   tsf_t *tsf = (tsf_t *) data;
+//   int r_idx = 0;
 
-  // -- Evaluate IDF factors
-  for (int i = 0; i < tsf->num_factors_i; i++) {
-    idf_factor_t *factor = &tsf->idf_factors_i[i];
-    idf_factor_eval(factor);
-    vec_copy(factor->r, factor->r_size, &r[r_idx]);
-    r_idx += factor->r_size;
-  }
-  for (int j = 0; j < tsf->num_factors_j; j++) {
-    idf_factor_t *factor = &tsf->idf_factors_j[j];
-    idf_factor_eval(factor);
-    vec_copy(factor->r, factor->r_size, &r[r_idx]);
-    r_idx += factor->r_size;
-  }
+//   // -- Evaluate IDF factors
+//   for (int i = 0; i < tsf->num_factors_i; i++) {
+//     idf_factor_t *factor = &tsf->idf_factors_i[i];
+//     idf_factor_eval(factor);
+//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
+//     r_idx += factor->r_size;
+//   }
+//   for (int j = 0; j < tsf->num_factors_j; j++) {
+//     idf_factor_t *factor = &tsf->idf_factors_j[j];
+//     idf_factor_eval(factor);
+//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
+//     r_idx += factor->r_size;
+//   }
 
-  // -- Evaluate marginalization factor
-  if (tsf->marg) {
-    marg_factor_eval(tsf->marg);
-    vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
-  }
-}
+//   // -- Evaluate marginalization factor
+//   if (tsf->marg) {
+//     marg_factor_eval(tsf->marg);
+//     vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
+//   }
+// }
 
-/**
- * TSF reprojection errors.
- */
-void tsf_reproj_errors(const tsf_t *tsf,
-                       real_t *reproj_rmse,
-                       real_t *reproj_mean,
-                       real_t *reproj_median) {
-  // Setup
-  const int N = (tsf->num_factors_i + tsf->num_factors_j);
-  const int r_size = N * 2;
-  int r_idx = 0;
-  real_t *r = CALLOC(real_t, r_size);
-  for (int i = 0; i < tsf->num_factors_i; i++) {
-    idf_factor_t *factor = &tsf->idf_factors_i[i];
-    idf_factor_eval(factor);
-    vec_copy(factor->r, factor->r_size, &r[r_idx]);
-    r_idx += factor->r_size;
-  }
-  for (int j = 0; j < tsf->num_factors_j; j++) {
-    idf_factor_t *factor = &tsf->idf_factors_j[j];
-    idf_factor_eval(factor);
-    vec_copy(factor->r, factor->r_size, &r[r_idx]);
-    r_idx += factor->r_size;
-  }
+// /**
+//  * TSF reprojection errors.
+//  */
+// void tsf_reproj_errors(const tsf_t *tsf,
+//                        real_t *reproj_rmse,
+//                        real_t *reproj_mean,
+//                        real_t *reproj_median) {
+//   // Setup
+//   const int N = (tsf->num_factors_i + tsf->num_factors_j);
+//   const int r_size = N * 2;
+//   int r_idx = 0;
+//   real_t *r = CALLOC(real_t, r_size);
+//   for (int i = 0; i < tsf->num_factors_i; i++) {
+//     idf_factor_t *factor = &tsf->idf_factors_i[i];
+//     idf_factor_eval(factor);
+//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
+//     r_idx += factor->r_size;
+//   }
+//   for (int j = 0; j < tsf->num_factors_j; j++) {
+//     idf_factor_t *factor = &tsf->idf_factors_j[j];
+//     idf_factor_eval(factor);
+//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
+//     r_idx += factor->r_size;
+//   }
 
-  // Calculate reprojection errors
-  real_t *errors = CALLOC(real_t, N);
-  for (int i = 0; i < N; i++) {
-    const real_t x = r[i * 2 + 0];
-    const real_t y = r[i * 2 + 1];
-    errors[i] = sqrt(x * x + y * y);
-  }
+//   // Calculate reprojection errors
+//   real_t *errors = CALLOC(real_t, N);
+//   for (int i = 0; i < N; i++) {
+//     const real_t x = r[i * 2 + 0];
+//     const real_t y = r[i * 2 + 1];
+//     errors[i] = sqrt(x * x + y * y);
+//   }
 
-  // Calculate RMSE
-  real_t sum = 0.0;
-  real_t sse = 0.0;
-  for (int i = 0; i < N; i++) {
-    sum += errors[i];
-    sse += errors[i] * errors[i];
-  }
-  *reproj_rmse = sqrt(sse / N);
-  *reproj_mean = sum / N;
-  *reproj_median = median(errors, N);
+//   // Calculate RMSE
+//   real_t sum = 0.0;
+//   real_t sse = 0.0;
+//   for (int i = 0; i < N; i++) {
+//     sum += errors[i];
+//     sse += errors[i] * errors[i];
+//   }
+//   *reproj_rmse = sqrt(sse / N);
+//   *reproj_mean = sum / N;
+//   *reproj_median = median(errors, N);
 
-  // Clean up
-  free(errors);
-  free(r);
-}
+//   // Clean up
+//   free(errors);
+//   free(r);
+// }
 
-/**
- * Linearize SF Non-linear Least Square Problem.
- */
-void tsf_linearize_compact(const void *data,
-                           const int sv_size,
-                           param_order_t *hash,
-                           real_t *H,
-                           real_t *g,
-                           real_t *r) {
-  // Evaluate factors
-  tsf_t *tsf = (tsf_t *) data;
-  size_t r_idx = 0;
+// /**
+//  * Linearize SF Non-linear Least Square Problem.
+//  */
+// void tsf_linearize_compact(const void *data,
+//                            const int sv_size,
+//                            param_order_t *hash,
+//                            real_t *H,
+//                            real_t *g,
+//                            real_t *r) {
+//   // Evaluate factors
+//   tsf_t *tsf = (tsf_t *) data;
+//   size_t r_idx = 0;
 
-  // // -- IMU factor
-  // if (sf->num_imus) {
-  //   imu_factor_t *factor = &sf->imu_factor;
-  //   SOLVER_EVAL_FACTOR_COMPACT(hash,
-  //                              sv_size,
-  //                              H,
-  //                              g,
-  //                              imu_factor_eval,
-  //                              factor,
-  //                              r,
-  //                              r_idx);
-  // }
+//   // // -- IMU factor
+//   // if (sf->num_imus) {
+//   //   imu_factor_t *factor = &sf->imu_factor;
+//   //   SOLVER_EVAL_FACTOR_COMPACT(hash,
+//   //                              sv_size,
+//   //                              H,
+//   //                              g,
+//   //                              imu_factor_eval,
+//   //                              factor,
+//   //                              r,
+//   //                              r_idx);
+//   // }
 
-  // -- IDF factors
-  for (int i = 0; i < tsf->num_factors_i; i++) {
-    idf_factor_t *factor = &tsf->idf_factors_i[i];
-    idf_factor_eval(factor);
-    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+//   // -- IDF factors
+//   for (int i = 0; i < tsf->num_factors_i; i++) {
+//     idf_factor_t *factor = &tsf->idf_factors_i[i];
+//     idf_factor_eval(factor);
+//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
 
-    solver_fill_hessian(hash,
-                        factor->num_params,
-                        factor->params,
-                        factor->jacs,
-                        factor->r,
-                        factor->r_size,
-                        sv_size,
-                        H,
-                        g);
-    r_idx += factor->r_size;
-  }
-  for (int j = 0; j < tsf->num_factors_j; j++) {
-    idf_factor_t *factor = &tsf->idf_factors_j[j];
-    idf_factor_eval(factor);
-    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+//     solver_fill_hessian(hash,
+//                         factor->num_params,
+//                         factor->params,
+//                         factor->jacs,
+//                         factor->r,
+//                         factor->r_size,
+//                         sv_size,
+//                         H,
+//                         g);
+//     r_idx += factor->r_size;
+//   }
+//   for (int j = 0; j < tsf->num_factors_j; j++) {
+//     idf_factor_t *factor = &tsf->idf_factors_j[j];
+//     idf_factor_eval(factor);
+//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
 
-    solver_fill_hessian(hash,
-                        factor->num_params,
-                        factor->params,
-                        factor->jacs,
-                        factor->r,
-                        factor->r_size,
-                        sv_size,
-                        H,
-                        g);
-    r_idx += factor->r_size;
-  }
+//     solver_fill_hessian(hash,
+//                         factor->num_params,
+//                         factor->params,
+//                         factor->jacs,
+//                         factor->r,
+//                         factor->r_size,
+//                         sv_size,
+//                         H,
+//                         g);
+//     r_idx += factor->r_size;
+//   }
 
-  // -- Marginalization factor
-  if (tsf->marg) {
-    marg_factor_eval(tsf->marg);
-    vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
+//   // -- Marginalization factor
+//   if (tsf->marg) {
+//     marg_factor_eval(tsf->marg);
+//     vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
 
-    solver_fill_hessian(hash,
-                        tsf->marg->num_params,
-                        tsf->marg->params,
-                        tsf->marg->jacs,
-                        tsf->marg->r,
-                        tsf->marg->r_size,
-                        sv_size,
-                        H,
-                        g);
-  }
-}
+//     solver_fill_hessian(hash,
+//                         tsf->marg->num_params,
+//                         tsf->marg->params,
+//                         tsf->marg->jacs,
+//                         tsf->marg->r,
+//                         tsf->marg->r_size,
+//                         sv_size,
+//                         H,
+//                         g);
+//   }
+// }
 
-static int tsf_process_data(tsf_t *tsf) {
-  // Map out frame data
-  const int cam_idx = 0;
-  const int fs_idx = (tsf->frame_idx == 0) ? 0 : 1;
-  const camera_params_t *cam = &tsf->cam_params[cam_idx];
-  const tsf_frame_set_t *fs = tsf->frame_sets[fs_idx];
-  const tsf_frame_t *f = fs->cam_frames[cam_idx];
-  const timestamp_t ts = fs->ts;
-  const int n = f->num_measurements;
-  const size_t *fids = f->feature_ids;
-  const real_t *kps = f->keypoints;
+// static int tsf_process_data(tsf_t *tsf) {
+//   // Map out frame data
+//   const int cam_idx = 0;
+//   const int fs_idx = (tsf->frame_idx == 0) ? 0 : 1;
+//   const camera_params_t *cam = &tsf->cam_params[cam_idx];
+//   const tsf_frame_set_t *fs = tsf->frame_sets[fs_idx];
+//   const tsf_frame_t *f = fs->cam_frames[cam_idx];
+//   const timestamp_t ts = fs->ts;
+//   const int n = f->num_measurements;
+//   const size_t *fids = f->feature_ids;
+//   const real_t *kps = f->keypoints;
 
-  // Initialize pose at k
-  pose_t *pose_k = NULL;
-  if (tsf->frame_idx == 0) {
-    pose_k = MALLOC(pose_t, 1);
-    const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-    pose_setup(pose_k, ts, pose_data);
-    tsf->pose_i = pose_k;
-  } else {
-    pose_k = MALLOC(pose_t, 1);
-    pose_setup(pose_k, ts, tsf->pose_i->data);
-    tsf->pose_j = pose_k;
-  }
+//   // Initialize pose at k
+//   pose_t *pose_k = NULL;
+//   if (tsf->frame_idx == 0) {
+//     pose_k = MALLOC(pose_t, 1);
+//     const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//     pose_setup(pose_k, ts, pose_data);
+//     tsf->pose_i = pose_k;
+//   } else {
+//     pose_k = MALLOC(pose_t, 1);
+//     pose_setup(pose_k, ts, tsf->pose_i->data);
+//     tsf->pose_j = pose_k;
+//   }
 
-  // Form camera pose T_WCi at k
-  POSE2TF(pose_k->data, T_WB_k);
-  POSE2TF(tsf->cam_exts[cam_idx].data, T_BCi);
-  TF_CHAIN(T_WCi_k, 2, T_WB_k, T_BCi);
+//   // Form camera pose T_WCi at k
+//   POSE2TF(pose_k->data, T_WB_k);
+//   POSE2TF(tsf->cam_exts[cam_idx].data, T_BCi);
+//   TF_CHAIN(T_WCi_k, 2, T_WB_k, T_BCi);
 
-  // Add new features
-  if (fs_idx == 0) {
-    features_add_idfs(tsf->features, fids, cam, T_WCi_k, kps, n);
+//   // Add new features
+//   if (fs_idx == 0) {
+//     features_add_idfs(tsf->features, fids, cam, T_WCi_k, kps, n);
 
-  } else {
-    size_t *fids_new = MALLOC(size_t, n);
-    real_t *kps_new = MALLOC(real_t, n * 2);
-    int n_new = 0;
-    for (int i = 0; i < n; i++) {
-      if (features_exists(tsf->features, fids[i]) == 0) {
-        fids_new[n_new] = fids[i];
-        kps_new[n_new * 2 + 0] = kps[i * 2 + 0];
-        kps_new[n_new * 2 + 1] = kps[i * 2 + 1];
-        n_new++;
-      }
-    }
-    features_add_idfs(tsf->features, fids_new, cam, T_WCi_k, kps_new, n_new);
-    free(fids_new);
-    free(kps_new);
-  }
+//   } else {
+//     size_t *fids_new = MALLOC(size_t, n);
+//     real_t *kps_new = MALLOC(real_t, n * 2);
+//     int n_new = 0;
+//     for (int i = 0; i < n; i++) {
+//       if (features_exists(tsf->features, fids[i]) == 0) {
+//         fids_new[n_new] = fids[i];
+//         kps_new[n_new * 2 + 0] = kps[i * 2 + 0];
+//         kps_new[n_new * 2 + 1] = kps[i * 2 + 1];
+//         n_new++;
+//       }
+//     }
+//     features_add_idfs(tsf->features, fids_new, cam, T_WCi_k, kps_new, n_new);
+//     free(fids_new);
+//     free(kps_new);
+//   }
 
-  // Create IDF factors
-  const real_t var[2] = {1.0, 1.0};
-  idf_factor_t *factors = MALLOC(idf_factor_t, n);
+//   // Create IDF factors
+//   const real_t var[2] = {1.0, 1.0};
+//   idf_factor_t *factors = MALLOC(idf_factor_t, n);
 
-  for (int i = 0; i < n; i++) {
-    // Get IDF
-    const size_t fid = fids[i];
-    const real_t *z = &kps[i * 2];
-    pos_t *idf_pos = NULL;
-    feature_t *idf_param = NULL;
-    features_get_idf(tsf->features, fid, &idf_param, &idf_pos);
+//   for (int i = 0; i < n; i++) {
+//     // Get IDF
+//     const size_t fid = fids[i];
+//     const real_t *z = &kps[i * 2];
+//     pos_t *idf_pos = NULL;
+//     feature_t *idf_param = NULL;
+//     features_get_idf(tsf->features, fid, &idf_param, &idf_pos);
 
-    // Form IDF factor
-    idf_factor_setup(&factors[i],
-                     pose_k,
-                     &tsf->cam_exts[cam_idx],
-                     &tsf->cam_params[cam_idx],
-                     idf_pos,
-                     idf_param,
-                     pose_k->ts,
-                     cam_idx,
-                     fid,
-                     z,
-                     var);
-  }
+//     // Form IDF factor
+//     idf_factor_setup(&factors[i],
+//                      pose_k,
+//                      &tsf->cam_exts[cam_idx],
+//                      &tsf->cam_params[cam_idx],
+//                      idf_pos,
+//                      idf_param,
+//                      pose_k->ts,
+//                      cam_idx,
+//                      fid,
+//                      z,
+//                      var);
+//   }
 
-  if (tsf->frame_idx == 0) {
-    tsf->idf_factors_i = factors;
-    tsf->num_factors_i = n;
-  } else {
-    tsf->idf_factors_j = factors;
-    tsf->num_factors_j = n;
-  }
+//   if (tsf->frame_idx == 0) {
+//     tsf->idf_factors_i = factors;
+//     tsf->num_factors_i = n;
+//   } else {
+//     tsf->idf_factors_j = factors;
+//     tsf->num_factors_j = n;
+//   }
 
-  return n;
-}
+//   return n;
+// }
 
 static void tsf_solve(tsf_t *tsf) {
   assert(tsf != NULL);
@@ -20183,9 +20185,9 @@ static void tsf_solve(tsf_t *tsf) {
   solver_setup(&solver);
   solver.verbose = 0;
   solver.max_iter = 5;
-  solver.cost_func = &tsf_cost;
-  solver.param_order_func = &tsf_param_order;
-  solver.linearize_func = &tsf_linearize_compact;
+  // solver.cost_func = &tsf_cost;
+  // solver.param_order_func = &tsf_param_order;
+  // solver.linearize_func = &tsf_linearize_compact;
   solver_solve(&solver, tsf);
 
   // Print reprojection errors
@@ -20234,7 +20236,7 @@ static void tsf_solve(tsf_t *tsf) {
  * Update TSF.
  */
 void tsf_update(tsf_t *tsf, const timestamp_t ts) {
-  tsf_process_data(tsf);
+  // tsf_process_data(tsf);
   tsf_solve(tsf);
   // tsf_marginalize(tsf);
 
@@ -20249,11 +20251,11 @@ void tsf_update(tsf_t *tsf, const timestamp_t ts) {
     tsf->frame_sets[1] = NULL;
 
     // Factors
-    free(tsf->idf_factors_i);
-    tsf->idf_factors_i = tsf->idf_factors_j;
-    tsf->num_factors_i = tsf->num_factors_j;
-    tsf->idf_factors_j = NULL;
-    tsf->num_factors_j = 0;
+    // free(tsf->idf_factors_i);
+    // tsf->idf_factors_i = tsf->idf_factors_j;
+    // tsf->num_factors_i = tsf->num_factors_j;
+    // tsf->idf_factors_j = NULL;
+    // tsf->num_factors_j = 0;
 
     // Poses
     free(tsf->pose_i);

@@ -1847,48 +1847,48 @@ typedef struct feature_t {
 
 void feature_setup(feature_t *f, const size_t feature_id, const real_t *data);
 void feature_print(const feature_t *feature);
-void idf_setup(feature_t *f,
-               const size_t feature_id,
-               const size_t pos_id,
-               const camera_params_t *cam_params,
-               const real_t C_WC[3 * 3],
-               const real_t z[2]);
-void idf_point(const feature_t *f, const real_t r_WC[3], real_t p_W[3]);
+// void idf_setup(feature_t *f,
+//                const size_t feature_id,
+//                const size_t pos_id,
+//                const camera_params_t *cam_params,
+//                const real_t C_WC[3 * 3],
+//                const real_t z[2]);
+// void idf_point(const feature_t *f, const real_t r_WC[3], real_t p_W[3]);
 
-/** Features **/
-typedef struct features_t {
-  feature_t **data;
-  size_t num_features;
-  size_t feature_capacity;
+// /** Features **/
+// typedef struct features_t {
+//   feature_t **data;
+//   size_t num_features;
+//   size_t feature_capacity;
 
-  pos_t **pos_data;
-  size_t num_positions;
-  size_t position_capacity;
-} features_t;
+//   pos_t **pos_data;
+//   size_t num_positions;
+//   size_t position_capacity;
+// } features_t;
 
-features_t *features_malloc();
-void features_free(features_t *features);
-int features_exists(const features_t *features, const size_t feature_id);
-void features_add_xyzs(features_t *features,
-                       const size_t *feature_ids,
-                       const real_t *params,
-                       const size_t num_features);
-void features_add_idfs(features_t *features,
-                       const size_t *feature_ids,
-                       const camera_params_t *cam_params,
-                       const real_t T_WC[4 * 4],
-                       const real_t *keypoints,
-                       const size_t num_keypoints);
-void features_get_xyz(const features_t *features,
-                      const size_t feature_id,
-                      feature_t **feature);
-void features_get_idf(const features_t *features,
-                      const size_t feature_id,
-                      feature_t **feature,
-                      pos_t **pos);
-int features_point(const features_t *features,
-                   const size_t feature_id,
-                   real_t p_W[3]);
+// features_t *features_malloc();
+// void features_free(features_t *features);
+// int features_exists(const features_t *features, const size_t feature_id);
+// void features_add_xyzs(features_t *features,
+//                        const size_t *feature_ids,
+//                        const real_t *params,
+//                        const size_t num_features);
+// void features_add_idfs(features_t *features,
+//                        const size_t *feature_ids,
+//                        const camera_params_t *cam_params,
+//                        const real_t T_WC[4 * 4],
+//                        const real_t *keypoints,
+//                        const size_t num_keypoints);
+// void features_get_xyz(const features_t *features,
+//                       const size_t feature_id,
+//                       feature_t **feature);
+// void features_get_idf(const features_t *features,
+//                       const size_t feature_id,
+//                       feature_t **feature,
+//                       pos_t **pos);
+// int features_point(const features_t *features,
+//                    const size_t feature_id,
+//                    real_t p_W[3]);
 
 ////////////////
 // TIME-DELAY //
@@ -2169,47 +2169,47 @@ int camera_factor_eval(void *factor_ptr);
 // INVERSE-DEPTH FEATURE (IDF) FACTOR //
 ////////////////////////////////////////
 
-typedef struct idf_factor_t {
-  timestamp_t ts;
-  int cam_idx;
-  size_t feature_id;
+// typedef struct idf_factor_t {
+//   timestamp_t ts;
+//   int cam_idx;
+//   size_t feature_id;
 
-  pose_t *pose;
-  extrinsic_t *extrinsic;
-  camera_params_t *camera;
-  pos_t *idf_pos;
-  feature_t *idf_param;
+//   pose_t *pose;
+//   extrinsic_t *extrinsic;
+//   camera_params_t *camera;
+//   pos_t *idf_pos;
+//   feature_t *idf_param;
 
-  real_t covar[2 * 2];
-  real_t sqrt_info[2 * 2];
-  real_t z[2];
+//   real_t covar[2 * 2];
+//   real_t sqrt_info[2 * 2];
+//   real_t z[2];
 
-  int r_size;
-  int num_params;
-  int param_types[5];
+//   int r_size;
+//   int num_params;
+//   int param_types[5];
 
-  real_t *params[5];
-  real_t r[2];
-  real_t *jacs[5];
-  real_t J_pose[2 * 6];
-  real_t J_extrinsic[2 * 6];
-  real_t J_camera[2 * 8];
-  real_t J_idf_pos[2 * 3];
-  real_t J_idf_param[2 * 3];
-} idf_factor_t;
+//   real_t *params[5];
+//   real_t r[2];
+//   real_t *jacs[5];
+//   real_t J_pose[2 * 6];
+//   real_t J_extrinsic[2 * 6];
+//   real_t J_camera[2 * 8];
+//   real_t J_idf_pos[2 * 3];
+//   real_t J_idf_param[2 * 3];
+// } idf_factor_t;
 
-void idf_factor_setup(idf_factor_t *factor,
-                      pose_t *pose,
-                      extrinsic_t *extrinsic,
-                      camera_params_t *camera,
-                      pos_t *idf_pos,
-                      feature_t *idf_param,
-                      const timestamp_t ts,
-                      const int cam_idx,
-                      const size_t feature_id,
-                      const real_t z[2],
-                      const real_t var[2]);
-int idf_factor_eval(void *factor_ptr);
+// void idf_factor_setup(idf_factor_t *factor,
+//                       pose_t *pose,
+//                       extrinsic_t *extrinsic,
+//                       camera_params_t *camera,
+//                       pos_t *idf_pos,
+//                       feature_t *idf_param,
+//                       const timestamp_t ts,
+//                       const int cam_idx,
+//                       const size_t feature_id,
+//                       const real_t z[2],
+//                       const real_t var[2]);
+// int idf_factor_eval(void *factor_ptr);
 
 ////////////////
 // IMU FACTOR //
@@ -3432,13 +3432,13 @@ typedef struct tsf_t {
   camera_params_t *cam_params;
   extrinsic_t *cam_exts;
   tsf_frame_set_t *frame_sets[2];
-  features_t *features;
+  // features_t *features;
 
   // Factors
   int num_factors_i;
   int num_factors_j;
-  idf_factor_t *idf_factors_i;
-  idf_factor_t *idf_factors_j;
+  // idf_factor_t *idf_factors_i;
+  // idf_factor_t *idf_factors_j;
   imu_factor_t *imu_factor;
   marg_factor_t *marg;
 
