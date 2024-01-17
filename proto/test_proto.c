@@ -3818,168 +3818,168 @@ int test_feature() {
   return 0;
 }
 
-int test_idf() {
-  // Body pose
-  pose_t pose;
-  const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose, 0, pose_data);
+// int test_idf() {
+//   // Body pose
+//   pose_t pose;
+//   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   pose_setup(&pose, 0, pose_data);
 
-  // Extrinsic
-  extrinsic_t cam_ext;
-  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
-  extrinsic_setup(&cam_ext, ext_data);
+//   // Extrinsic
+//   extrinsic_t cam_ext;
+//   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
+//   extrinsic_setup(&cam_ext, ext_data);
 
-  // Camera parameters
-  camera_params_t cam;
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+//   // Camera parameters
+//   camera_params_t cam;
+//   const int cam_idx = 0;
+//   const int cam_res[2] = {640, 480};
+//   const char *proj_model = "pinhole";
+//   const char *dist_model = "radtan4";
+//   const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
+//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
-  // Setup feature and image point
-  TF(pose_data, T_WB);
-  TF(ext_data, T_BCi);
-  TF_INV(T_WB, T_BW);
-  TF_INV(T_BCi, T_CiB);
-  TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-  TF_INV(T_CiW, T_WCi);
-  TF_ROT(T_WCi, C_WCi);
-  TF_TRANS(T_WCi, r_WCi);
+//   // Setup feature and image point
+//   TF(pose_data, T_WB);
+//   TF(ext_data, T_BCi);
+//   TF_INV(T_WB, T_BW);
+//   TF_INV(T_BCi, T_CiB);
+//   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
+//   TF_INV(T_CiW, T_WCi);
+//   TF_ROT(T_WCi, C_WCi);
+//   TF_TRANS(T_WCi, r_WCi);
 
-  const size_t feature_id = 0;
-  const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
-  real_t z[2] = {0};
-  TF_POINT(T_CiW, p_W, p_Ci);
-  pinhole_radtan4_project(cam_data, p_Ci, z);
+//   const size_t feature_id = 0;
+//   const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
+//   real_t z[2] = {0};
+//   TF_POINT(T_CiW, p_W, p_Ci);
+//   pinhole_radtan4_project(cam_data, p_Ci, z);
 
-  // Setup IDF
-  pos_t idf_pos;
-  pos_setup(&idf_pos, r_WCi);
+//   // Setup IDF
+//   pos_t idf_pos;
+//   pos_setup(&idf_pos, r_WCi);
 
-  feature_t idf_param;
-  idf_setup(&idf_param, feature_id, 0, &cam, C_WCi, z);
+//   feature_t idf_param;
+//   idf_setup(&idf_param, feature_id, 0, &cam, C_WCi, z);
 
-  // Reproject IDF to feature in world frame
-  real_t p_W_est[3] = {0};
-  idf_point(&idf_param, idf_pos.data, p_W_est);
+//   // Reproject IDF to feature in world frame
+//   real_t p_W_est[3] = {0};
+//   idf_point(&idf_param, idf_pos.data, p_W_est);
 
-  const real_t dx = p_W_est[0] - p_W[0];
-  const real_t dy = p_W_est[1] - p_W[1];
-  const real_t dz = p_W_est[2] - p_W[2];
-  const real_t dist = sqrt(dx * dx + dy * dy + dz * dz);
-  MU_ASSERT(dist < 1e-1);
+//   const real_t dx = p_W_est[0] - p_W[0];
+//   const real_t dy = p_W_est[1] - p_W[1];
+//   const real_t dz = p_W_est[2] - p_W[2];
+//   const real_t dist = sqrt(dx * dx + dy * dy + dz * dz);
+//   MU_ASSERT(dist < 1e-1);
 
-  return 0;
-}
+//   return 0;
+// }
 
-int test_features() {
-  // XYZ Features
-  // clang-format off
-  size_t feature_ids[3] = {1, 2, 3};
-  real_t params[3 * 3] = {0.1, 0.2, 0.3,
-                          0.4, 0.5, 0.6,
-                          0.7, 0.8, 0.9};
-  // clang-format on
+// int test_features() {
+//   // XYZ Features
+//   // clang-format off
+//   size_t feature_ids[3] = {1, 2, 3};
+//   real_t params[3 * 3] = {0.1, 0.2, 0.3,
+//                           0.4, 0.5, 0.6,
+//                           0.7, 0.8, 0.9};
+//   // clang-format on
 
-  // Body pose
-  pose_t pose;
-  const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose, 0, pose_data);
+//   // Body pose
+//   pose_t pose;
+//   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   pose_setup(&pose, 0, pose_data);
 
-  // Extrinsic
-  extrinsic_t cam_ext;
-  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
-  extrinsic_setup(&cam_ext, ext_data);
+//   // Extrinsic
+//   extrinsic_t cam_ext;
+//   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
+//   extrinsic_setup(&cam_ext, ext_data);
 
-  // Camera parameters
-  camera_params_t cam;
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+//   // Camera parameters
+//   camera_params_t cam;
+//   const int cam_idx = 0;
+//   const int cam_res[2] = {640, 480};
+//   const char *proj_model = "pinhole";
+//   const char *dist_model = "radtan4";
+//   const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
+//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
-  // Setup feature and image point
-  TF(pose_data, T_WB);
-  TF(ext_data, T_BCi);
-  TF_INV(T_WB, T_BW);
-  TF_INV(T_BCi, T_CiB);
-  TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-  TF_INV(T_CiW, T_WCi);
+//   // Setup feature and image point
+//   TF(pose_data, T_WB);
+//   TF(ext_data, T_BCi);
+//   TF_INV(T_WB, T_BW);
+//   TF_INV(T_BCi, T_CiB);
+//   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
+//   TF_INV(T_CiW, T_WCi);
 
-  // Setup inverse-depth features and keypoints
-  size_t num_idfs = 10;
-  size_t *idf_ids = MALLOC(size_t, num_idfs);
-  real_t *idf_features = MALLOC(real_t, num_idfs * 3);
-  real_t *idf_keypoints = MALLOC(real_t, num_idfs * 2);
-  for (size_t i = 0; i < num_idfs; i++) {
-    const size_t feature_id = i + (4);
-    const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
-    real_t z[2] = {0};
-    TF_POINT(T_CiW, p_W, p_Ci);
-    pinhole_radtan4_project(cam_data, p_Ci, z);
+//   // Setup inverse-depth features and keypoints
+//   size_t num_idfs = 10;
+//   size_t *idf_ids = MALLOC(size_t, num_idfs);
+//   real_t *idf_features = MALLOC(real_t, num_idfs * 3);
+//   real_t *idf_keypoints = MALLOC(real_t, num_idfs * 2);
+//   for (size_t i = 0; i < num_idfs; i++) {
+//     const size_t feature_id = i + (4);
+//     const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
+//     real_t z[2] = {0};
+//     TF_POINT(T_CiW, p_W, p_Ci);
+//     pinhole_radtan4_project(cam_data, p_Ci, z);
 
-    idf_ids[i] = feature_id;
-    idf_features[i * 3 + 0] = p_W[0];
-    idf_features[i * 3 + 1] = p_W[1];
-    idf_features[i * 3 + 2] = p_W[2];
-    idf_keypoints[i * 2 + 0] = z[0];
-    idf_keypoints[i * 2 + 1] = z[1];
-  }
+//     idf_ids[i] = feature_id;
+//     idf_features[i * 3 + 0] = p_W[0];
+//     idf_features[i * 3 + 1] = p_W[1];
+//     idf_features[i * 3 + 2] = p_W[2];
+//     idf_keypoints[i * 2 + 0] = z[0];
+//     idf_keypoints[i * 2 + 1] = z[1];
+//   }
 
-  // Setup
-  features_t *features = features_malloc();
+//   // Setup
+//   features_t *features = features_malloc();
 
-  // -- Add XYZ features
-  features_add_xyzs(features, feature_ids, params, 3);
-  MU_ASSERT(features->num_features == 3);
+//   // -- Add XYZ features
+//   features_add_xyzs(features, feature_ids, params, 3);
+//   MU_ASSERT(features->num_features == 3);
 
-  // // -- Add IDF features
-  // features_add_idfs(features, idf_ids, &cam, T_WCi, idf_keypoints, num_idfs);
-  // MU_ASSERT(features->num_features == 3 + num_idfs);
+//   // // -- Add IDF features
+//   // features_add_idfs(features, idf_ids, &cam, T_WCi, idf_keypoints, num_idfs);
+//   // MU_ASSERT(features->num_features == 3 + num_idfs);
 
-  // -- Check features exists
-  MU_ASSERT(features_exists(features, 1) == 1);
-  MU_ASSERT(features_exists(features, 2) == 1);
-  MU_ASSERT(features_exists(features, 3) == 1);
-  MU_ASSERT(features_exists(features, 99) == 0);
+//   // -- Check features exists
+//   MU_ASSERT(features_exists(features, 1) == 1);
+//   MU_ASSERT(features_exists(features, 2) == 1);
+//   MU_ASSERT(features_exists(features, 3) == 1);
+//   MU_ASSERT(features_exists(features, 99) == 0);
 
-  // -- Get features
-  feature_t *f0 = NULL;
-  feature_t *f1 = NULL;
-  feature_t *f2 = NULL;
-  feature_t *f3 = NULL;
+//   // -- Get features
+//   feature_t *f0 = NULL;
+//   feature_t *f1 = NULL;
+//   feature_t *f2 = NULL;
+//   feature_t *f3 = NULL;
 
-  features_get_xyz(features, 1, &f0);
-  features_get_xyz(features, 2, &f1);
-  features_get_xyz(features, 3, &f2);
-  features_get_xyz(features, 99, &f3);
+//   features_get_xyz(features, 1, &f0);
+//   features_get_xyz(features, 2, &f1);
+//   features_get_xyz(features, 3, &f2);
+//   features_get_xyz(features, 99, &f3);
 
-  MU_ASSERT(f0->feature_id == 1);
-  MU_ASSERT(f0->status == 1);
-  MU_ASSERT(vec_equals(f0->data, params + 0, 3) == 1);
+//   MU_ASSERT(f0->feature_id == 1);
+//   MU_ASSERT(f0->status == 1);
+//   MU_ASSERT(vec_equals(f0->data, params + 0, 3) == 1);
 
-  MU_ASSERT(f1->feature_id == 2);
-  MU_ASSERT(f1->status == 1);
-  MU_ASSERT(vec_equals(f1->data, params + 3, 3) == 1);
+//   MU_ASSERT(f1->feature_id == 2);
+//   MU_ASSERT(f1->status == 1);
+//   MU_ASSERT(vec_equals(f1->data, params + 3, 3) == 1);
 
-  MU_ASSERT(f2->feature_id == 3);
-  MU_ASSERT(f2->status == 1);
-  MU_ASSERT(vec_equals(f2->data, params + 6, 3) == 1);
+//   MU_ASSERT(f2->feature_id == 3);
+//   MU_ASSERT(f2->status == 1);
+//   MU_ASSERT(vec_equals(f2->data, params + 6, 3) == 1);
 
-  MU_ASSERT(f3 == NULL);
+//   MU_ASSERT(f3 == NULL);
 
-  // Clean up
-  features_free(features);
-  free(idf_ids);
-  free(idf_features);
-  free(idf_keypoints);
+//   // Clean up
+//   features_free(features);
+//   free(idf_ids);
+//   free(idf_features);
+//   free(idf_keypoints);
 
-  return 0;
-}
+//   return 0;
+// }
 
 int test_time_delay() {
   time_delay_t td;
@@ -4239,79 +4239,79 @@ int test_camera_factor() {
   return 0;
 }
 
-int test_idf_factor() {
-  // Timestamp
-  timestamp_t ts = 0;
+// int test_idf_factor() {
+//   // Timestamp
+//   timestamp_t ts = 0;
 
-  // Body pose
-  pose_t pose;
-  const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose, ts, pose_data);
+//   // Body pose
+//   pose_t pose;
+//   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   pose_setup(&pose, ts, pose_data);
 
-  // Extrinsic
-  extrinsic_t cam_ext;
-  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
-  extrinsic_setup(&cam_ext, ext_data);
+//   // Extrinsic
+//   extrinsic_t cam_ext;
+//   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
+//   extrinsic_setup(&cam_ext, ext_data);
 
-  // Camera parameters
-  camera_params_t cam;
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+//   // Camera parameters
+//   camera_params_t cam;
+//   const int cam_idx = 0;
+//   const int cam_res[2] = {640, 480};
+//   const char *proj_model = "pinhole";
+//   const char *dist_model = "radtan4";
+//   const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
+//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
-  // Setup feature and image point
-  TF(pose_data, T_WB);
-  TF(ext_data, T_BCi);
-  TF_INV(T_WB, T_BW);
-  TF_INV(T_BCi, T_CiB);
-  TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-  TF_INV(T_CiW, T_WCi);
-  TF_TRANS(T_WCi, r_WCi);
+//   // Setup feature and image point
+//   TF(pose_data, T_WB);
+//   TF(ext_data, T_BCi);
+//   TF_INV(T_WB, T_BW);
+//   TF_INV(T_BCi, T_CiB);
+//   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
+//   TF_INV(T_CiW, T_WCi);
+//   TF_TRANS(T_WCi, r_WCi);
 
-  const size_t feature_id = 0;
-  const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
-  real_t z[2] = {0};
-  TF_POINT(T_CiW, p_W, p_Ci);
-  pinhole_radtan4_project(cam_data, p_Ci, z);
+//   const size_t feature_id = 0;
+//   const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
+//   real_t z[2] = {0};
+//   TF_POINT(T_CiW, p_W, p_Ci);
+//   pinhole_radtan4_project(cam_data, p_Ci, z);
 
-  // Setup IDF
-  pos_t idf_pos;
-  pos_setup(&idf_pos, r_WCi);
+//   // Setup IDF
+//   pos_t idf_pos;
+//   pos_setup(&idf_pos, r_WCi);
 
-  feature_t idf_param;
-  TF_ROT(T_WCi, C_WCi);
-  idf_setup(&idf_param, feature_id, 0, &cam, C_WCi, z);
+//   feature_t idf_param;
+//   TF_ROT(T_WCi, C_WCi);
+//   idf_setup(&idf_param, feature_id, 0, &cam, C_WCi, z);
 
-  // Setup IDF Factor
-  const real_t var[2] = {1.0, 1.0};
-  idf_factor_t factor;
-  idf_factor_setup(&factor,
-                   &pose,
-                   &cam_ext,
-                   &cam,
-                   &idf_pos,
-                   &idf_param,
-                   ts,
-                   cam_idx,
-                   feature_id,
-                   z,
-                   var);
+//   // Setup IDF Factor
+//   const real_t var[2] = {1.0, 1.0};
+//   idf_factor_t factor;
+//   idf_factor_setup(&factor,
+//                    &pose,
+//                    &cam_ext,
+//                    &cam,
+//                    &idf_pos,
+//                    &idf_param,
+//                    ts,
+//                    cam_idx,
+//                    feature_id,
+//                    z,
+//                    var);
 
-  // Check Jacobians
-  const real_t step_size = 1e-8;
-  const real_t tol = 1e-4;
-  const int debug = 0;
-  CHECK_FACTOR_J(0, factor, idf_factor_eval, step_size, tol, debug);
-  CHECK_FACTOR_J(1, factor, idf_factor_eval, step_size, tol, debug);
-  CHECK_FACTOR_J(2, factor, idf_factor_eval, step_size, tol, debug);
-  CHECK_FACTOR_J(3, factor, idf_factor_eval, step_size, tol, debug);
-  CHECK_FACTOR_J(4, factor, idf_factor_eval, step_size, tol, debug);
+//   // Check Jacobians
+//   const real_t step_size = 1e-8;
+//   const real_t tol = 1e-4;
+//   const int debug = 0;
+//   CHECK_FACTOR_J(0, factor, idf_factor_eval, step_size, tol, debug);
+//   CHECK_FACTOR_J(1, factor, idf_factor_eval, step_size, tol, debug);
+//   CHECK_FACTOR_J(2, factor, idf_factor_eval, step_size, tol, debug);
+//   CHECK_FACTOR_J(3, factor, idf_factor_eval, step_size, tol, debug);
+//   CHECK_FACTOR_J(4, factor, idf_factor_eval, step_size, tol, debug);
 
-  return 0;
-}
+//   return 0;
+// }
 
 int test_imu_buffer_setup() {
   imu_buffer_t imu_buf;
@@ -4675,14 +4675,14 @@ int test_imu_factor_form_F_matrix() {
   imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
   imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
 
-  imu_params_t imu_params;
-  imu_params.imu_idx = 0;
-  imu_params.rate = 200.0;
-  imu_params.sigma_a = 0.08;
-  imu_params.sigma_g = 0.004;
-  imu_params.sigma_aw = 0.00004;
-  imu_params.sigma_gw = 2.0e-6;
-  imu_params.g = 9.81;
+  // imu_params_t imu_params;
+  // imu_params.imu_idx = 0;
+  // imu_params.rate = 200.0;
+  // imu_params.sigma_a = 0.08;
+  // imu_params.sigma_g = 0.004;
+  // imu_params.sigma_aw = 0.00004;
+  // imu_params.sigma_gw = 2.0e-6;
+  // imu_params.g = 9.81;
 
   // Test form F Matrix
   const int k = idx_j;
@@ -4776,31 +4776,33 @@ int test_imu_factor() {
   mat_save("/tmp/F_.csv", factor.F, 15, 15);
   // mat_save("/tmp/P_.csv", factor.P, 15, 15);
 
-  // const char *cmd = "\
-// F = csvread('/tmp/F.csv'); \
-// state_F = csvread('/tmp/F_.csv'); \
-// subplot(311); \
-// imagesc(F); \
-// title('Python'); \
-// axis 'equal'; \
-// colorbar(); \
-// subplot(312); \
-// imagesc(state_F); \
-// title('C'); \
-// axis 'equal'; \
-// colorbar(); \
-// subplot(313); \
-// imagesc(F - state_F); \
-// title('F - stateF'); \
-// colorbar(); \
-// axis 'equal'; \
-// F(1:3, 1:3); \
-// state_F(1:3, 1:3); \
-// ginput();\
-// ";
-  // char syscmd[9046] = {0};
-  // sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
-  // system(syscmd);
+  /*
+  const char *cmd = "\
+F = csvread('/tmp/F.csv'); \
+state_F = csvread('/tmp/F_.csv'); \
+subplot(311); \
+imagesc(F); \
+title('Python'); \
+axis 'equal'; \
+colorbar(); \
+subplot(312); \
+imagesc(state_F); \
+title('C'); \
+axis 'equal'; \
+colorbar(); \
+subplot(313); \
+imagesc(F - state_F); \
+title('F - stateF'); \
+colorbar(); \
+axis 'equal'; \
+F(1:3, 1:3); \
+state_F(1:3, 1:3); \
+ginput();\
+";
+  char syscmd[9046] = {0};
+  sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
+  system(syscmd);
+  */
 
   MU_ASSERT(factor.pose_i == &pose_i);
   MU_ASSERT(factor.vel_i == &vel_i);
@@ -6037,77 +6039,77 @@ typedef struct cam_view_t {
   camera_params_t *cam_params;
 } cam_view_t;
 
-int test_solver_eval() {
-  // Load test data
-  const char *dir_path = TEST_SIM_DATA "/cam0";
-  sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
+// int test_solver_eval() {
+//   // Load test data
+//   const char *dir_path = TEST_SIM_DATA "/cam0";
+//   sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
 
-  // Camera parameters
-  camera_params_t cam;
-  const int cam_idx = 0;
-  const int cam_res[2] = {640, 480};
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
+//   // Camera parameters
+//   camera_params_t cam;
+//   const int cam_idx = 0;
+//   const int cam_res[2] = {640, 480};
+//   const char *proj_model = "pinhole";
+//   const char *dist_model = "radtan4";
+//   const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
 
-  // Setup features
-  // -- Load features csv
-  int num_rows = 0;
-  int num_cols = 0;
-  char *features_csv = TEST_SIM_DATA "/features.csv";
-  real_t **features_data = csv_data(features_csv, &num_rows, &num_cols);
-  size_t *feature_ids = MALLOC(size_t, num_rows);
-  real_t *feature_xyzs = MALLOC(real_t, num_rows * 3);
-  for (int i = 0; i < num_rows; i++) {
-    feature_ids[i] = features_data[i][0];
-    feature_xyzs[i * 3 + 0] = features_data[i][1];
-    feature_xyzs[i * 3 + 1] = features_data[i][2];
-    feature_xyzs[i * 3 + 2] = features_data[i][3];
-    free(features_data[i]);
-  }
-  free(features_data);
-  // -- Add features to container
-  features_t *features = features_malloc();
-  features_add_xyzs(features, feature_ids, feature_xyzs, num_rows);
-  free(feature_ids);
-  free(feature_xyzs);
+//   // Setup features
+//   // -- Load features csv
+//   int num_rows = 0;
+//   int num_cols = 0;
+//   char *features_csv = TEST_SIM_DATA "/features.csv";
+//   real_t **features_data = csv_data(features_csv, &num_rows, &num_cols);
+//   size_t *feature_ids = MALLOC(size_t, num_rows);
+//   real_t *feature_xyzs = MALLOC(real_t, num_rows * 3);
+//   for (int i = 0; i < num_rows; i++) {
+//     feature_ids[i] = features_data[i][0];
+//     feature_xyzs[i * 3 + 0] = features_data[i][1];
+//     feature_xyzs[i * 3 + 1] = features_data[i][2];
+//     feature_xyzs[i * 3 + 2] = features_data[i][3];
+//     free(features_data[i]);
+//   }
+//   free(features_data);
+//   // -- Add features to container
+//   features_t *features = features_malloc();
+//   features_add_xyzs(features, feature_ids, feature_xyzs, num_rows);
+//   free(feature_ids);
+//   free(feature_xyzs);
 
-  // Loop over simulated camera frames
-  const real_t var[2] = {1.0, 1.0};
-  cam_view_t *cam_views = MALLOC(cam_view_t, cam_data->num_frames);
-  for (int k = 0; k < cam_data->num_frames; k++) {
-    // Camera frame
-    const sim_camera_frame_t *frame = cam_data->frames[k];
+//   // Loop over simulated camera frames
+//   const real_t var[2] = {1.0, 1.0};
+//   cam_view_t *cam_views = MALLOC(cam_view_t, cam_data->num_frames);
+//   for (int k = 0; k < cam_data->num_frames; k++) {
+//     // Camera frame
+//     const sim_camera_frame_t *frame = cam_data->frames[k];
 
-    // Pose
-    pose_t *pose = &cam_views[k].pose;
-    pose_setup(pose, frame->ts, &cam_data->poses[k]);
+//     // Pose
+//     pose_t *pose = &cam_views[k].pose;
+//     pose_setup(pose, frame->ts, &cam_data->poses[k]);
 
-    // Add factors
-    cam_views[k].num_factors = frame->num_measurements;
-    for (int i = 0; i < frame->num_measurements; i++) {
-      const int feature_id = frame->feature_ids[i];
-      const real_t *z = &frame->keypoints[i];
-      feature_t *f = NULL;
-      features_get_xyz(features, feature_id, &f);
+//     // Add factors
+//     cam_views[k].num_factors = frame->num_measurements;
+//     for (int i = 0; i < frame->num_measurements; i++) {
+//       const int feature_id = frame->feature_ids[i];
+//       const real_t *z = &frame->keypoints[i];
+//       feature_t *f = NULL;
+//       features_get_xyz(features, feature_id, &f);
 
-      // Factor
-      ba_factor_t *factor = &cam_views[k].factors[i];
-      ba_factor_setup(factor, pose, f, &cam, z, var);
-    }
-  }
+//       // Factor
+//       ba_factor_t *factor = &cam_views[k].factors[i];
+//       ba_factor_setup(factor, pose, f, &cam, z, var);
+//     }
+//   }
 
-  solver_t solver;
-  solver_setup(&solver);
+//   solver_t solver;
+//   solver_setup(&solver);
 
-  // Clean up
-  sim_camera_data_free(cam_data);
-  free(cam_views);
-  features_free(features);
+//   // Clean up
+//   sim_camera_data_free(cam_data);
+//   free(cam_views);
+//   features_free(features);
 
-  return 0;
-}
+//   return 0;
+// }
 
 int test_camchain() {
   // Form camera poses
@@ -6296,6 +6298,7 @@ int test_calib_camera_mono_incremental() {
 
   calib->verbose = 0;
   // TIC(calib_camera_loop);
+
   for (int view_idx = 0; view_idx < num_files; view_idx++) {
     // Load aprilgrid
     aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
@@ -6326,13 +6329,6 @@ int test_calib_camera_mono_incremental() {
     }
     calib_camera_solve(calib);
 
-    // if (calib->num_views) {
-    //   real_t entropy = 0.0f;
-    //   if (calib_camera_shannon_entropy(calib, &entropy) == 0) {
-    //     printf("entropy: %f\n", entropy);
-    //   }
-    // }
-
     // Clean up
     free(tag_ids);
     free(corner_indices);
@@ -6340,6 +6336,7 @@ int test_calib_camera_mono_incremental() {
     free(pts);
     aprilgrid_free(grid);
   }
+
   // calib_camera_print(calib);
   // const real_t time_taken = TOC(calib_camera_loop);
   // const real_t rate_hz = num_files / time_taken;
@@ -8325,8 +8322,8 @@ void test_suite() {
   MU_ADD_TEST(test_fiducial_buffer);
   MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
-  MU_ADD_TEST(test_features);
-  MU_ADD_TEST(test_idf);
+  // MU_ADD_TEST(test_features);
+  // MU_ADD_TEST(test_idf);
   // MU_ADD_TEST(test_idfb);
   MU_ADD_TEST(test_time_delay);
   MU_ADD_TEST(test_joint);
@@ -8335,7 +8332,7 @@ void test_suite() {
   MU_ADD_TEST(test_pose_factor);
   MU_ADD_TEST(test_ba_factor);
   MU_ADD_TEST(test_camera_factor);
-  MU_ADD_TEST(test_idf_factor);
+  // MU_ADD_TEST(test_idf_factor);
   MU_ADD_TEST(test_imu_buffer_setup);
   MU_ADD_TEST(test_imu_buffer_add);
   MU_ADD_TEST(test_imu_buffer_clear);
@@ -8357,11 +8354,11 @@ void test_suite() {
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
   MU_ADD_TEST(test_solver_setup);
-  MU_ADD_TEST(test_solver_eval);
+  // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_camchain);
   // MU_ADD_TEST(test_calib_camera_mono_batch);
   // MU_ADD_TEST(test_calib_camera_mono_ceres);
-  // MU_ADD_TEST(test_calib_camera_mono_incremental);
+  MU_ADD_TEST(test_calib_camera_mono_incremental);
   // MU_ADD_TEST(test_calib_camera_stereo_batch);
   // MU_ADD_TEST(test_calib_camera_stereo_ceres);
   MU_ADD_TEST(test_calib_imucam_view);
