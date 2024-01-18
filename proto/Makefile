@@ -189,14 +189,17 @@ arducam:
 test_proto: libproto  ## Compile test_proto
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
+	./build/test_proto --target $(TEST_TARGET)
 
 test_aprilgrid:  ## Compile test_aprilgrid
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_aprilgrid.c -o $(BLD_DIR)/test_aprilgrid $(LDFLAGS)
+	@./build/test_aprilgrid
 
 test_euroc:  ## Compile test_euroc
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_euroc.c -o $(BLD_DIR)/test_euroc $(LDFLAGS)
+	@./build/test_euroc
 
 test_gui:  ## Compile test_gui
 	@echo "CC [$@]"
@@ -205,37 +208,20 @@ test_gui:  ## Compile test_gui
 test_sbgc:  ## Compile test_sbgc
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_sbgc.c -o $(BLD_DIR)/test_sbgc $(LDFLAGS)
+	@./build/test_sbgc
 
 test_ubx:  ## Compile test_ubx
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_ubx.c -o $(BLD_DIR)/test_ubx $(LDFLAGS)
+	@./build/test_ubx
 
 test_http:  ## Compile test_http
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
+	@./build/test_http
 
 tests: test_proto test_aprilgrid test_sbgc test_ubx
 
 ci:
 	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
 	@./build/test_proto
-
-run_test_proto: test_proto ## Run test_proto
-	@./build/test_proto
-
-run_test_aprilgrid: test_aprilgrid ## Run test_aprilgrid
-	@./build/test_aprilgrid
-
-run_test_euroc: test_euroc ## Run test_euroc
-	@./build/test_euroc
-
-run_test_sbgc: test_sbgc ## Run test_sbgc
-	@./build/test_sbgc
-
-run_test_ubx: test_ubx ## Run test_ubx
-	@./build/test_ubx
-
-run_test_http: test_http ## Run test_http
-	@./build/test_http
-
-run_tests: run_test_proto run_test_aprilgrid run_test_run_sbgc run_test_ubx
