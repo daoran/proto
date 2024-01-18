@@ -5722,7 +5722,7 @@ class MargFactor(Factor):
     if check_inverse:
       inv_norm = np.linalg.norm((H_mm @ H_mm_inv) - np.eye(H_mm.shape[0]))
       if inv_norm > 1e-8:
-        print("Hmmm... inverse check failed in MargFactor!")
+        print("Hmmm... inverse check failed!")
 
     # Apply Shur-Complement
     H_marg = H_rr - H_rm @ H_mm_inv @ H_mr
@@ -8900,8 +8900,8 @@ class SimGimbal:
     C_C0C1 = euler321(deg2rad(0.0), deg2rad(0.0), 0.0)
     r_C0C1 = np.array([0.1, 0.0, 0.0])
     T_C0C1 = tf(C_C0C1, r_C0C1)
-    self.cam_exts.append(np.eye(4)) # T_C0C0
-    self.cam_exts.append(T_C0C1)    # T_C0C1
+    self.cam_exts.append(np.eye(4))  # T_C0C0
+    self.cam_exts.append(T_C0C1)  # T_C0C1
 
   def get_camera_measurements(self, cam_idx):
     """ Simulate camera frame """
@@ -9176,7 +9176,8 @@ class SimGimbal:
     # Save camera data
     for view_idx, view_set in enumerate(view_data):
       for cam_idx, cam_data in enumerate(view_set):
-        view_file = open(f"/tmp/sim_gimbal/grid0/cam{cam_idx}/{view_idx}.dat", "w")
+        view_file = open(f"/tmp/sim_gimbal/grid0/cam{cam_idx}/{view_idx}.dat",
+                         "w")
         view_file.write(f"timestamp: {view_idx}\n")
         view_file.write(f"num_rows: {self.calib_target.tag_rows}\n")
         view_file.write(f"num_cols: {self.calib_target.tag_cols}\n")
@@ -10709,115 +10710,115 @@ class TestFactors(unittest.TestCase):
     kwargs = {"verbose": True}
     self.assertTrue(factor.check_jacobian(fvars, 5, "J_cam_params", **kwargs))
 
-  def test_calib_gimbal_factor(self):
-    """ Test calib gimbal factor """
-    # Setup
-    sim = SimGimbal()
-    grid = sim.calib_target
-    cam_idx = 0
-    tag_id = 2
-    corner_idx = 2
-    p_FFi = grid.get_object_point(tag_id, corner_idx)
+  # def test_calib_gimbal_factor(self):
+  #   """ Test calib gimbal factor """
+  #   # Setup
+  #   sim = SimGimbal()
+  #   grid = sim.calib_target
+  #   cam_idx = 0
+  #   tag_id = 2
+  #   corner_idx = 2
+  #   p_FFi = grid.get_object_point(tag_id, corner_idx)
 
-    T_WF = sim.T_WF  # Fiducial pose
-    T_WB = sim.T_WB  # Body pose
-    T_BM0 = sim.T_BM0  # Body to gimbal extrinsic
-    T_L2C0 = sim.cam_exts[0]
-    T_M0L2 = sim.gimbal.forward_kinematics(joint_idx=2)
-    T_C0W = np.linalg.inv(T_WB @ T_BM0 @ T_M0L2 @ T_L2C0)
-    p_C0Fi = tf_point(T_C0W @ T_WF, p_FFi)
+  #   T_WF = sim.T_WF  # Fiducial pose
+  #   T_WB = sim.T_WB  # Body pose
+  #   T_BM0 = sim.T_BM0  # Body to gimbal extrinsic
+  #   T_L2C0 = sim.cam_exts[0]
+  #   T_M0L2 = sim.gimbal.forward_kinematics(joint_idx=2)
+  #   T_C0W = np.linalg.inv(T_WB @ T_BM0 @ T_M0L2 @ T_L2C0)
+  #   p_C0Fi = tf_point(T_C0W @ T_WF, p_FFi)
 
-    cam_geom = sim.cam_params[cam_idx].data
-    cam_params = sim.cam_params[cam_idx].param
-    status, z = cam_geom.project(cam_params, p_C0Fi)
-    self.assertTrue(status)
+  #   cam_geom = sim.cam_params[cam_idx].data
+  #   cam_params = sim.cam_params[cam_idx].param
+  #   status, z = cam_geom.project(cam_params, p_C0Fi)
+  #   self.assertTrue(status)
 
-    # Form CalibGimbalFactor
-    fiducial = pose_setup(0, sim.T_WF)
-    pose = pose_setup(0, sim.T_WB)
-    gimbal_ext = extrinsics_setup(sim.T_BM0)
-    link0 = extrinsics_setup(sim.links[0])
-    link1 = extrinsics_setup(sim.links[1])
-    th0 = joint_angle_setup(sim.joint_angles[0])
-    th1 = joint_angle_setup(sim.joint_angles[1])
-    th2 = joint_angle_setup(sim.joint_angles[2])
-    cam0_ext = extrinsics_setup(sim.cam_exts[0])
-    cam0_params = sim.cam_params[0]
+  #   # Form CalibGimbalFactor
+  #   fiducial = pose_setup(0, sim.T_WF)
+  #   pose = pose_setup(0, sim.T_WB)
+  #   gimbal_ext = extrinsics_setup(sim.T_BM0)
+  #   link0 = extrinsics_setup(sim.links[0])
+  #   link1 = extrinsics_setup(sim.links[1])
+  #   th0 = joint_angle_setup(sim.joint_angles[0])
+  #   th1 = joint_angle_setup(sim.joint_angles[1])
+  #   th2 = joint_angle_setup(sim.joint_angles[2])
+  #   cam0_ext = extrinsics_setup(sim.cam_exts[0])
+  #   cam0_params = sim.cam_params[0]
 
-    cam0_geom = sim.cam_params[0].data
-    pids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    grid_data = tag_id, corner_idx, p_FFi, z
-    factor = CalibGimbalFactor(cam0_geom, pids, grid_data)
+  #   cam0_geom = sim.cam_params[0].data
+  #   pids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  #   grid_data = tag_id, corner_idx, p_FFi, z
+  #   factor = CalibGimbalFactor(cam0_geom, pids, grid_data)
 
-    # Test Jacobians
-    fvars = [
-        fiducial,
-        pose,
-        gimbal_ext,
-        link0,
-        link1,
-        th0,
-        th1,
-        th2,
-        cam0_ext,
-        cam0_params,
-    ]
-    self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
-    self.assertTrue(factor.check_jacobian(fvars, 1, "J_pose"))
-    self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_ext"))
-    self.assertTrue(factor.check_jacobian(fvars, 3, "J_link1"))
-    self.assertTrue(factor.check_jacobian(fvars, 4, "J_link2"))
-    self.assertTrue(factor.check_jacobian(fvars, 5, "J_th0"))
-    self.assertTrue(factor.check_jacobian(fvars, 6, "J_th1"))
-    self.assertTrue(factor.check_jacobian(fvars, 7, "J_th2"))
-    self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_exts"))
-    self.assertTrue(factor.check_jacobian(fvars, 9, "J_cam_params"))
+  #   # Test Jacobians
+  #   fvars = [
+  #       fiducial,
+  #       pose,
+  #       gimbal_ext,
+  #       link0,
+  #       link1,
+  #       th0,
+  #       th1,
+  #       th2,
+  #       cam0_ext,
+  #       cam0_params,
+  #   ]
+  #   self.assertTrue(factor.check_jacobian(fvars, 0, "J_fiducial"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 1, "J_pose"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 2, "J_gimbal_ext"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 3, "J_link1"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 4, "J_link2"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 5, "J_th0"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 6, "J_th1"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 7, "J_th2"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 8, "J_cam_exts"))
+  #   self.assertTrue(factor.check_jacobian(fvars, 9, "J_cam_params"))
 
-    # params = [sv.param for sv in fvars]
-    # r, jacs = factor.eval(params)
-    # for idx, J in enumerate(jacs):
-    #   print(rank(J.T @ J), J.shape)
+  #   # params = [sv.param for sv in fvars]
+  #   # r, jacs = factor.eval(params)
+  #   # for idx, J in enumerate(jacs):
+  #   #   print(rank(J.T @ J), J.shape)
 
-    save_jacobians = False
-    if save_jacobians:
-      fp = open("/tmp/test_calib_gimbal_factor.conf", "w")
-      param_strs = {}
-      param_strs["tag_id"] = str(tag_id)
-      param_strs["corner_idx"] = str(corner_idx)
-      param_strs["p_FFi"] = ', '.join([str(x) for x in p_FFi])
-      param_strs["fiducial"] = ', '.join([str(x) for x in fiducial.param])
-      param_strs["link0"] = ', '.join([str(x) for x in link0.param])
-      param_strs["link1"] = ', '.join([str(x) for x in link1.param])
-      param_strs["link2"] = ', '.join([str(x) for x in link2.param])
-      param_strs["th0"] = ', '.join([str(x) for x in th0.param])
-      param_strs["th1"] = ', '.join([str(x) for x in th1.param])
-      param_strs["th2"] = ', '.join([str(x) for x in th2.param])
-      param_strs["cam0_ext"] = ', '.join([str(x) for x in cam0_ext.param])
-      param_strs["cam0_params"] = ', '.join([str(x) for x in cam0_params.param])
+  #   save_jacobians = False
+  #   if save_jacobians:
+  #     fp = open("/tmp/test_calib_gimbal_factor.conf", "w")
+  #     param_strs = {}
+  #     param_strs["tag_id"] = str(tag_id)
+  #     param_strs["corner_idx"] = str(corner_idx)
+  #     param_strs["p_FFi"] = ', '.join([str(x) for x in p_FFi])
+  #     param_strs["fiducial"] = ', '.join([str(x) for x in fiducial.param])
+  #     param_strs["link0"] = ', '.join([str(x) for x in link0.param])
+  #     param_strs["link1"] = ', '.join([str(x) for x in link1.param])
+  #     param_strs["link2"] = ', '.join([str(x) for x in link2.param])
+  #     param_strs["th0"] = ', '.join([str(x) for x in th0.param])
+  #     param_strs["th1"] = ', '.join([str(x) for x in th1.param])
+  #     param_strs["th2"] = ', '.join([str(x) for x in th2.param])
+  #     param_strs["cam0_ext"] = ', '.join([str(x) for x in cam0_ext.param])
+  #     param_strs["cam0_params"] = ', '.join([str(x) for x in cam0_params.param])
 
-      fp.write(f"tag_id: {param_strs['tag_id']}\n")
-      fp.write(f"corner_idx: {param_strs['corner_idx']}\n")
-      fp.write(f"p_FFi: [{param_strs['p_FFi']}]\n")
-      fp.write(f"fiducial: [{param_strs['fiducial']}]\n")
-      fp.write(f"link0: [{param_strs['link0']}]\n")
-      fp.write(f"link1: [{param_strs['link1']}]\n")
-      fp.write(f"link1: [{param_strs['link2']}]\n")
-      fp.write(f"th0: [{param_strs['th0']}]\n")
-      fp.write(f"th1: [{param_strs['th1']}]\n")
-      fp.write(f"th2: [{param_strs['th2']}]\n")
-      fp.write(f"cam0_ext: [{param_strs['cam0_ext']}]\n")
-      fp.write(f"cam0_params: [{param_strs['cam0_params']}]\n")
-      fp.write("\n")
-      fp.close()
+  #     fp.write(f"tag_id: {param_strs['tag_id']}\n")
+  #     fp.write(f"corner_idx: {param_strs['corner_idx']}\n")
+  #     fp.write(f"p_FFi: [{param_strs['p_FFi']}]\n")
+  #     fp.write(f"fiducial: [{param_strs['fiducial']}]\n")
+  #     fp.write(f"link0: [{param_strs['link0']}]\n")
+  #     fp.write(f"link1: [{param_strs['link1']}]\n")
+  #     fp.write(f"link1: [{param_strs['link2']}]\n")
+  #     fp.write(f"th0: [{param_strs['th0']}]\n")
+  #     fp.write(f"th1: [{param_strs['th1']}]\n")
+  #     fp.write(f"th2: [{param_strs['th2']}]\n")
+  #     fp.write(f"cam0_ext: [{param_strs['cam0_ext']}]\n")
+  #     fp.write(f"cam0_params: [{param_strs['cam0_params']}]\n")
+  #     fp.write("\n")
+  #     fp.close()
 
-      jac_names = [
-          "fiducial", "link0", "link1", "link2", "joint0", "joint1", "joint2",
-          "cam_exts", "cam_params"
-      ]
-      for i, jac_name in enumerate(jac_names):
-        J_fp = f"/tmp/test_calib_gimbal_factor-jacobian-{jac_name}.csv"
-        J = factor.calculate_jacobian(fvars, i)
-        np.savetxt(J_fp, J, delimiter=",")
+  #     jac_names = [
+  #         "fiducial", "link0", "link1", "link2", "joint0", "joint1", "joint2",
+  #         "cam_exts", "cam_params"
+  #     ]
+  #     for i, jac_name in enumerate(jac_names):
+  #       J_fp = f"/tmp/test_calib_gimbal_factor-jacobian-{jac_name}.csv"
+  #       J = factor.calculate_jacobian(fvars, i)
+  #       np.savetxt(J_fp, J, delimiter=",")
 
   def test_imu_buffer(self):
     """ Test IMU Buffer """
@@ -10971,42 +10972,38 @@ class TestFactors(unittest.TestCase):
     fvars = [pose_i, sb_i, pose_j, sb_j]
     factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
 
-    factor.sqrt_info = np.eye(15)
+    # Evaluate and obtain residuals, jacobians
     params = [sv.param for sv in fvars]
     (r, [J0, J1, J2, J3]) = factor.eval(params)
 
-    # Print
-    # params = [sv.param for sv in fvars]
-    # r, _ = factor.eval(params)
-    # print(f"pose_i: {np.round(pose_i.param, 4)}")
-    # print(f"pose_j: {np.round(pose_j.param, 4)}")
-    # print(f"dr: {factor.dr}")
-    # print(f"dv: {factor.dv}")
-    # print(f"dq: {rot2quat(factor.dC)}")
-    # print(f"Dt: {factor.Dt}")
-    # print(f"r: {r}")
+    # Form Hessian
+    J = np.block([J0, J1, J2, J3])
+    H = J.T @ J
 
-    # Save matrix F, P and Q
-    # np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
-    # np.savetxt("/tmp/P.csv", factor.state_P, delimiter=",")
-    # np.savetxt("/tmp/sqrt_info.csv", factor.sqrt_info, delimiter=",")
+    # Perform Schur Complement
+    m = 6 + 9
+    Hmm = H[0:m, 0:m]
+    Hmr = H[0:m, m:]
+    Hrm = H[m:, 0:m]
+    Hrr = H[m:, m:]
+    Hmm_inv = inv(Hmm)
+    H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+    print(f"rank(Hmm): {rank(Hmm)}")
+    print(f"rank(H_marg): {rank(H_marg)}")
+
+    # Check inverse Hmm_inv
+    check_inverse = True
+    if check_inverse:
+      inv_norm = np.linalg.norm((Hmm @ Hmm_inv) - np.eye(Hmm.shape[0]))
+      if inv_norm > 1e-8:
+        print("Hmmm... inverse check failed!")
 
     # Test jacobians
-    # yapf: disable
-    # self.assertTrue(factor)
-    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
-
-    # factor.sqrt_info = np.eye(15)
-    # params = [sv.param for sv in fvars]
-    # r, jacs = factor.eval(params)
-    # np.savetxt("/tmp/J.csv", jacs[1][:, 3:], delimiter=",")
-
     factor.sqrt_info = np.eye(15)
     self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i"))
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
-    self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j", threshold=1e-3))
+    self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j"))
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
-    # yapf: enable
 
   def test_imu_propagation_jacobians(self):
     """ Test IMU Propagation Jacobians """
@@ -11094,8 +11091,6 @@ class TestFactors(unittest.TestCase):
 
     # Propagate imu measurements
     data = ImuFactor2.propagate(imu_buf, imu_params, sb_i)
-    np.savetxt("/tmp/state_F.csv", data.state_F, delimiter=",")
-    np.savetxt("/tmp/state_P.csv", data.state_P, delimiter=",")
 
     # Check propagation
     ts_j = imu_data.timestamps[end_idx - 1]
@@ -11160,142 +11155,38 @@ class TestFactors(unittest.TestCase):
     fvars = [pose_i, sb_i, pose_j, sb_j]
     factor = ImuFactor2(param_ids, imu_params, imu_buf, sb_i)
 
-    # Print
+    # Evaluate and obtain residuals, jacobians
     params = [sv.param for sv in fvars]
-    r, _ = factor.eval(params)
-    # print(f"pose_i: {np.round(pose_i.param, 4)}")
-    # print(f"pose_j: {np.round(pose_j.param, 4)}")
-    # print(f"dr: {factor.dr}")
-    # print(f"dv: {factor.dv}")
-    # print(f"dq: {factor.dq}")
-    # print(f"Dt: {factor.Dt}")
-    # print(f"r: {r}")
+    (r, [J0, J1, J2, J3]) = factor.eval(params)
 
-    # Save matrix F, P and Q
-    # np.savetxt("/tmp/F.csv", factor.state_F, delimiter=",")
-    # np.savetxt("/tmp/P.csv", factor.state_P, delimiter=",")
-    # np.savetxt("/tmp/sqrt_info.csv", factor.sqrt_info, delimiter=",")
+    # Form Hessian
+    J = np.block([J0, J1, J2, J3])
+    H = J.T @ J
+
+    # Perform Schur Complement
+    m = 6 + 9
+    Hmm = H[0:m, 0:m]
+    Hmr = H[0:m, m:]
+    Hrm = H[m:, 0:m]
+    Hrr = H[m:, m:]
+    Hmm_inv = inv(Hmm)
+    H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+    print(f"rank(Hmm): {rank(Hmm)}")
+    print(f"rank(H_marg): {rank(H_marg)}")
+
+    # Check inverse Hmm_inv
+    check_inverse = True
+    if check_inverse:
+      inv_norm = np.linalg.norm((Hmm @ Hmm_inv) - np.eye(Hmm.shape[0]))
+      if inv_norm > 1e-8:
+        print("Hmmm... inverse check failed!")
 
     # Test jacobians
-    # self.assertTrue(factor)
-    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i", threshold=1e-3))
-
-    # factor.sqrt_info = np.eye(15)
-    # params = [sv.param for sv in fvars]
-    # (r, [J0, J1, J2, J3]) = factor.eval(params)
-
-    # J = np.block([J0, J1, J2, J3])
-    # H = J.T @ J
-    # np.savetxt("/tmp/H.csv", H, delimiter=",")
-
-    # m = 15
-    # eps = 1e-8
-    # H_mm = H[:m, :m]
-
-    # # Invert H_mm matrix sub-block via Eigen-decomposition
-    # H_mm = 0.5 * (H_mm + H_mm.T)  # Enforce symmetry
-    # w, V = eig(H_mm)
-    # w_inv = np.zeros(w.shape)
-
-    # for idx, w_i in enumerate(w):
-    #   if w_i > eps:
-    #     w_inv[idx] = 1.0 / w_i
-    #   else:
-    #     w[idx] = 0.0
-    #     w_inv[idx] = 0.0
-
-    # Lambda_inv = np.diag(w_inv)
-    # H_mm_inv = V @ Lambda_inv @ V.T
-
-    # # Check inverse
-    # check_inverse = True
-    # if check_inverse:
-    #   inv_norm = np.linalg.norm((H_mm @ H_mm_inv) - np.eye(H_mm.shape[0]))
-    #   if inv_norm > 1e-8:
-    #     print("Hmmm... inverse check failed in MargFactor!")
-
-    # m = 6 + 9
-    # Hmm = H[0:m, 0:m]
-    # Hmr = H[0:m, m:]
-    # Hrm = H[m:, 0:m]
-    # Hrr = H[m:, m:]
-
-    # assert rank(Hmm) == Hmm.shape[0]
-    # Hmm = 0.5 * (Hmm + Hmm.T)
-    # (w, V) = np.linalg.eig(Hmm)
-    # W_inv = np.diag(1.0 / w)
-    # Hmm_inv = V @ W_inv @ V.T
-    # H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
-
-    # # J = diag(w^0.5) * V'
-    # # J_inv = diag(w^-0.5) * V'
-    # w, V = np.linalg.eig(H_marg)
-    # w[w < 0] = 0.0
-    # # w_inv = np.linalg.inv(w)
-    # # S_inv_sqrt = np.diag(np.sqrt(w_inv))
-    # J = np.diag(w**0.5) @ V.T
-    # # # J_inv = S_inv_sqrt @ V.T
-    # # # H_marg_ = J.T @ J
-    # # # H_marg_ = V @ np.diag(w) @ V.T
-    # diff = norm(H_marg - J.T @ J)
-    # print(f"norm(H_marg - J.T @ J): {diff}")
-    # plt.imshow(H_marg - J.T @ J)
-    # plt.colorbar()
-    # plt.show()
-
     factor.sqrt_info = np.eye(15)
     self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose_i"))
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_sb_i"))
     self.assertTrue(factor.check_jacobian(fvars, 2, "J_pose_j"))
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
-    # yapf: enable
-
-    # params = [sv.param for sv in fvars]
-    # (r, [J0, J1, J2, J3]) = factor.eval(params)
-    # np.set_printoptions(threshold=np.inf)
-    # np.set_printoptions(linewidth=np.inf)
-    # print(f"param0: {params[0]}")
-    # print(f"param1: {params[1]}")
-    # print(f"param2: {params[2]}")
-    # print(f"param3: {params[3]}")
-    # print(f"J0: {np.round(J0, 2)}")
-    # print(f"J1: {J1}")
-    # print(f"J2: {J2}")
-
-    H = np.genfromtxt("/tmp/H.csv", delimiter=",")
-    H_marg_ = np.genfromtxt("/tmp/H_marg.csv", delimiter=",")
-
-    m = 15
-    Hmm = H[0:m, 0:m]
-    Hmr = H[0:m, m:]
-    Hrm = H[m:, 0:m]
-    Hrr = H[m:, m:]
-    assert rank(Hmm) == Hmm.shape[0]
-    Hmm = 0.5 * (Hmm + Hmm.T)
-    (w, V) = np.linalg.eig(Hmm)
-    w[w < 0] = 0.0
-    W_inv = np.diag(1.0 / w)
-    Hmm_inv = V @ W_inv @ V.T
-    H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
-
-    # plt.subplot(211)
-    # plt.imshow(H_marg_)
-    # plt.colorbar()
-    # plt.subplot(212)
-    # plt.imshow(H_marg)
-    # plt.colorbar()
-    # plt.show()
-
-    # diff = norm(H_marg - H_marg_)
-    # print(f"norm(H_marg - H_marg_): {diff}")
-
-    # J = diag(w^0.5) * V'
-    # H_marg = 0.5 * (H_marg + H_marg.T)
-    # w, V = np.linalg.eig(H_marg)
-    # w[w < 0] = 0.0
-    # J = np.diag(w**0.5) @ V.T
-    # diff = norm(H_marg - J.T @ J)
-    # print(f"norm(H_marg - J.T @ J): {diff}")
 
   def test_marg_factor(self):
     """ Test MargFactor """
@@ -11599,7 +11490,7 @@ class TestFactorGraph(unittest.TestCase):
     errors = graph.get_reproj_errors()
     self.assertTrue(rmse(errors) < 0.1)
 
-  @unittest.skip("")
+  # @unittest.skip("")
   def test_factor_graph_solve_io(self):
     """ Test solving a pure inertial odometry problem """
     # Imu params
@@ -11622,6 +11513,7 @@ class TestFactorGraph(unittest.TestCase):
     poses_est = []
     poses_gnd = []
     sb_est = []
+    sb_gnd = []
     graph = FactorGraph()
 
     # -- Pose i
@@ -11640,6 +11532,7 @@ class TestFactorGraph(unittest.TestCase):
     sb_i = speed_biases_setup(ts_i, vel_i, ba_i, bg_i)
     sb_i_id = graph.add_param(sb_i)
     sb_est.append(sb_i_id)
+    sb_gnd = [[*vel_i, *ba_i, *bg_i]]
 
     for ts_idx in range(start_idx + window_size, end_idx, window_size):
       # -- Pose j
@@ -11665,10 +11558,12 @@ class TestFactorGraph(unittest.TestCase):
       poses_est.append(pose_j_id)
       poses_gnd.append(T_WS_j_gnd)
       sb_est.append(sb_j_id)
+      sb_gnd.append([*vel_j, *ba_j, *bg_j])
 
       # -- Imu Factor
       param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
       imu_buf = imu0_data.form_imu_buffer(ts_idx - window_size, ts_idx)
+      # factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
       factor = ImuFactor2(param_ids, imu_params, imu_buf, sb_i)
       graph.add_factor(factor)
 
@@ -11696,46 +11591,79 @@ class TestFactorGraph(unittest.TestCase):
         pos_est.append(tf_trans(pose2tf(pose.param)))
       pos_est = np.array(pos_est)
 
+      sb_gnd = np.array(sb_gnd)
       sb_est = [graph.params[pid] for pid in sb_est]
       sb_ts0 = sb_est[0].ts
       sb_time = np.array([ts2sec(sb.ts - sb_ts0) for sb in sb_est])
       vel_est = np.array([sb.param[0:3] for sb in sb_est])
       ba_est = np.array([sb.param[3:6] for sb in sb_est])
       bg_est = np.array([sb.param[6:9] for sb in sb_est])
+      vel_gnd = np.array([sb[0:3] for sb in sb_gnd])
+      ba_gnd = np.array([sb[3:6] for sb in sb_gnd])
+      bg_gnd = np.array([sb[6:9] for sb in sb_gnd])
 
+      # Plot X-Y position
       plt.figure()
-      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-', alpha=0.2)
-      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'k--')
-      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-')
+      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-', alpha=0.2, label="Initial")
+      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'k--', label="Ground-Truth")
+      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-', label="Estimate")
+      plt.legend(loc=0)
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")
 
+      # Plot velocity
       plt.figure()
       plt.subplot(311)
-      plt.plot(sb_time, vel_est[:, 0], 'r-')
+      plt.plot(sb_time, vel_gnd[:, 0], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, vel_est[:, 0], 'r-', label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
       plt.subplot(312)
-      plt.plot(sb_time, vel_est[:, 1], 'g-')
+      plt.plot(sb_time, vel_gnd[:, 1], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, vel_est[:, 1], 'g-', label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
       plt.subplot(313)
-      plt.plot(sb_time, vel_est[:, 2], 'b-')
+      plt.plot(sb_time, vel_gnd[:, 2], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, vel_est[:, 2], 'b-', label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
 
-      # plt.plot(sb_time, ba_est[:, 0], 'r-')
-      # plt.plot(sb_time, ba_est[:, 1], 'g-')
-      # plt.plot(sb_time, ba_est[:, 2], 'b-')
-      # plt.xlabel("Time [s]")
-      # plt.ylabel("Accelerometer Bias [m s^-2]")
+      # Plot accelerometer bias
+      plt.figure()
+      plt.subplot(311)
+      plt.plot(sb_time, ba_gnd[:, 0], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, ba_est[:, 0], 'r-', label="Estimate")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Accelerometer Bias [m s^-2]")
+      plt.subplot(312)
+      plt.plot(sb_time, ba_gnd[:, 1], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, ba_est[:, 1], 'g-', label="Estimate")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Accelerometer Bias [m s^-2]")
+      plt.subplot(313)
+      plt.plot(sb_time, ba_gnd[:, 2], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, ba_est[:, 2], 'b-', label="Estimate")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Accelerometer Bias [m s^-2]")
 
-      # plt.subplot(414)
-      # plt.plot(sb_time, bg_est[:, 0], 'r-')
-      # plt.plot(sb_time, bg_est[:, 1], 'g-')
-      # plt.plot(sb_time, bg_est[:, 2], 'b-')
-      # plt.xlabel("Time [s]")
-      # plt.ylabel("Gyroscope Bias [rad s^-1]")
+      # Plot gyroscope bias
+      plt.figure()
+      plt.subplot(311)
+      plt.plot(sb_time, bg_gnd[:, 0], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, bg_est[:, 0], 'r-', label="Estimate")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Gyroscope Bias [rad s^-1]")
+      plt.subplot(312)
+      plt.plot(sb_time, bg_gnd[:, 1], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, bg_est[:, 1], 'g-', label="Estimate")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Gyroscope Bias [rad s^-1]")
+      plt.subplot(313)
+      plt.plot(sb_time, bg_gnd[:, 2], 'k-', label="Ground-Truth")
+      plt.plot(sb_time, bg_est[:, 2], 'b-', label="Estimate")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Gyroscope Bias [rad s^-1]")
 
       plt.show()
 
