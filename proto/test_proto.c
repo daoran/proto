@@ -951,14 +951,14 @@ int test_tcp_server_setup() {
  ******************************************************************************/
 
 int test_min() {
-  MU_ASSERT(PMIN(1, 2) == 1);
-  MU_ASSERT(PMIN(2, 1) == 1);
+  MU_ASSERT(MIN(1, 2) == 1);
+  MU_ASSERT(MIN(2, 1) == 1);
   return 0;
 }
 
 int test_max() {
-  MU_ASSERT(PMAX(1, 2) == 2);
-  MU_ASSERT(PMAX(2, 1) == 2);
+  MU_ASSERT(MAX(1, 2) == 2);
+  MU_ASSERT(MAX(2, 1) == 2);
   return 0;
 }
 
@@ -3808,7 +3808,9 @@ int test_feature() {
 
   size_t feature_id = 99;
   real_t data[3] = {0.1, 0.2, 0.3};
-  feature_setup(&feature, feature_id, data);
+  feature_init(&feature, feature_id, data);
+
+  printf("sizeof(feature_t): %ld bytes\n", sizeof(feature_t));
 
   MU_ASSERT(feature.feature_id == feature_id);
   MU_ASSERT(fltcmp(feature.data[0], 0.1) == 0.0);
@@ -4149,7 +4151,7 @@ int test_ba_factor() {
   // Feature
   const real_t p_W[3] = {1.0, 0.1, 0.2};
   feature_t feature;
-  feature_setup(&feature, 0, p_W);
+  feature_init(&feature, 0, p_W);
 
   // Camera parameters
   const int cam_idx = 0;
@@ -4202,7 +4204,7 @@ int test_camera_factor() {
   // Feature p_W
   feature_t feature;
   const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_setup(&feature, 0, p_W);
+  feature_init(&feature, 0, p_W);
 
   // Camera parameters
   camera_params_t cam;
@@ -5314,7 +5316,7 @@ int test_marg() {
     const real_t dz = randf(-0.5, 0.5);
     const real_t p_W[3] = {3.0 + dx, 0.0 + dy, 0.0 + dz};
     feature_t *feature = &features[i];
-    feature_setup(feature, 0, p_W);
+    feature_init(feature, 0, p_W);
     points[i * 3 + 0] = p_W[0];
     points[i * 3 + 1] = p_W[1];
     points[i * 3 + 2] = p_W[2];
@@ -5612,7 +5614,7 @@ int test_inertial_odometry_batch() {
 
   for (int i = 1; i < num_partitions; i++) {
     const int ks = i * N;
-    const int ke = PMIN((i + 1) * N - 1, test_data.num_measurements - 1);
+    const int ke = MIN((i + 1) * N - 1, test_data.num_measurements - 1);
 
     // Setup imu buffer
     imu_buffer_t imu_buf;
@@ -5667,7 +5669,7 @@ int test_inertial_odometry_batch() {
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 0;
+  solver.verbose = 1;
   solver.param_order_func = &inertial_odometry_param_order;
   solver.cost_func = &inertial_odometry_cost;
   solver.linearize_func = &inertial_odometry_linearize_compact;
@@ -5844,13 +5846,14 @@ int test_inertial_odometry_batch() {
 //   return 0;
 // }
 
+
 int test_tsf() {
   // Simulate features
   const real_t origin[3] = {0.0, 0.0, 0.0};
   const real_t dim[3] = {5.0, 5.0, 5.0};
   const int num_features = 1000;
-  real_t features[3 * 1000] = {0};
-  sim_create_features(origin, dim, num_features, features);
+  real_t feature_data[3 * 1000] = {0};
+  sim_create_features(origin, dim, num_features, feature_data);
 
   // Camera configuration
   const int cam_res[2] = {640, 480};
@@ -5876,6 +5879,8 @@ int test_tsf() {
   TF_ER(cam1_ext_ypr, cam1_ext_r, T_SC1);
   TF_VECTOR(T_SC0, cam0_ext);
   TF_VECTOR(T_SC1, cam1_ext);
+  TF_INV(T_SC0, T_C0S);
+  TF_CHAIN(T_C0C1, 2, T_C0S, T_SC1);
 
   // Simulate data
   // const real_t imu_rate = 200.0;
@@ -5885,47 +5890,53 @@ int test_tsf() {
   sim_camera_data_t *cam0_data = sim_camera_circle_trajectory(&conf,
                                                               T_SC0,
                                                               &cam0_params,
-                                                              features,
+                                                              feature_data,
                                                               num_features);
-  // sim_camera_data_t *cam1_data = sim_camera_circle_trajectory(&conf,
-  //                                                             T_SC1,
-  //                                                             &cam1_params,
-  //                                                             features,
-  //                                                             num_features);
+  sim_camera_data_t *cam1_data = sim_camera_circle_trajectory(&conf,
+                                                              T_SC1,
+                                                              &cam1_params,
+                                                              feature_data,
+                                                              num_features);
 
   // Simulate VO
-  tsf_t *tsf = tsf_malloc();
-  tsf_add_camera(tsf, 0, cam_res, pmodel, dmodel, cam_vec, cam0_ext);
-  // tsf_add_camera(tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
+  tsf_t tsf;
+  tsf_setup(&tsf);
+  tsf_set_camera(&tsf, 0, cam_res, pmodel, dmodel, cam_vec, cam0_ext);
+  tsf_set_camera(&tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
 
-  for (size_t k = 0; k < cam0_data->num_frames; k++) {
-    // for (size_t k = 0; k < 10; k++) {
-    // TIC(tsf_loop);
-    // printf("\n");
-    // printf("k: %ld\n", k);
-    const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
-    // const sim_camera_frame_t *cam1_frame = cam1_data->frames[k];
-    tsf_add_camera_event(tsf,
-                         cam0_frame->ts,
-                         cam0_frame->cam_idx,
-                         cam0_frame->num_measurements,
-                         cam0_frame->feature_ids,
-                         cam0_frame->keypoints);
-    // tsf_add_camera_event(tsf,
-    //                      cam1_frame->ts,
-    //                      cam1_frame->cam_idx,
-    //                      cam1_frame->num_measurements,
-    //                      cam1_frame->feature_ids,
-    //                      cam1_frame->keypoints);
-    tsf_update(tsf, cam0_frame->ts);
-    // PRINT_TOC("tsf_loop", tsf_loop);
-  }
+  // const sim_camera_frame_t *frame0_k = cam0_data->frames[0];
+  // const sim_camera_frame_t *frame1_k = cam1_data->frames[0];
+  // POSE2TF(&cam0_data->poses[0], T_WC0);
+  // POSE2TF(&cam1_data->poses[0], T_WC1);
+
+  // for (size_t k = 0; k < cam0_data->num_frames; k++) {
+  //   // for (size_t k = 0; k < 10; k++) {
+  //   // TIC(tsf_loop);
+  //   // printf("\n");
+  //   // printf("k: %ld\n", k);
+  //   const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
+  //   // const sim_camera_frame_t *cam1_frame = cam1_data->frames[k];
+  //   tsf_add_camera_event(tsf,
+  //                        cam0_frame->ts,
+  //                        cam0_frame->cam_idx,
+  //                        cam0_frame->num_measurements,
+  //                        cam0_frame->feature_ids,
+  //                        cam0_frame->keypoints);
+  //   // tsf_add_camera_event(tsf,
+  //   //                      cam1_frame->ts,
+  //   //                      cam1_frame->cam_idx,
+  //   //                      cam1_frame->num_measurements,
+  //   //                      cam1_frame->feature_ids,
+  //   //                      cam1_frame->keypoints);
+  //   tsf_update(tsf, cam0_frame->ts);
+  //   // PRINT_TOC("tsf_loop", tsf_loop);
+  // }
 
   // Clean up
-  tsf_free(tsf);
+  // hmfree(feature_map);
   // sim_imu_data_free(imu_data);
   sim_camera_data_free(cam0_data);
-  // sim_camera_data_free(cam1_data);
+  sim_camera_data_free(cam1_data);
 
   return 0;
 }
@@ -8045,7 +8056,7 @@ int test_sim_camera_circle_trajectory() {
     const sim_camera_frame_t *cam_frame = cam_data->frames[k];
     const real_t *cam_pose = &cam_data->poses[k * 7];
 
-    for (int i = 0; i < cam_frame->num_measurements; i++) {
+    for (int i = 0; i < cam_frame->n; i++) {
       const size_t feature_id = cam_frame->feature_ids[i];
       const real_t *p_W = &features[feature_id * 3];
       const real_t *z = &cam_frame->keypoints[i * 2];
@@ -8387,9 +8398,9 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_marg);
   // MU_ADD_TEST(test_visual_odometry_batch);
-  // MU_ADD_TEST(test_inertial_odometry_batch);
+  MU_ADD_TEST(test_inertial_odometry_batch);
   // MU_ADD_TEST(test_visual_inertial_odometry_batch);
-  // MU_ADD_TEST(test_tsf);
+  MU_ADD_TEST(test_tsf);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES
