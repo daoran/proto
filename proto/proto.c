@@ -3897,7 +3897,7 @@ int __svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
         }
       }
     }
-    anorm = PMAX(anorm, (fabs(w[i]) + fabs(rv1[i])));
+    anorm = MAX(anorm, (fabs(w[i]) + fabs(rv1[i])));
   }
 
   for (i = n - 1; i >= 0; i--) {
@@ -3924,7 +3924,7 @@ int __svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
     l = i;
   }
 
-  for (i = PMIN(m, n) - 1; i >= 0; i--) {
+  for (i = MIN(m, n) - 1; i >= 0; i--) {
     l = i + 1;
     g = w[i];
     for (j = l; j < n; j++) {
@@ -9992,7 +9992,24 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]) {
 /**
  * Setup feature.
  */
-void feature_setup(feature_t *f, const size_t feature_id, const real_t *data) {
+void feature_setup(feature_t *f, const size_t feature_id) {
+  assert(f != NULL);
+
+  f->marginalize = 0;
+  f->fix = 0;
+
+  f->type = FEATURE_XYZ;
+  f->feature_id = feature_id;
+  f->status = 0;
+  f->data[0] = 0.0;
+  f->data[1] = 0.0;
+  f->data[2] = 0.0;
+}
+
+/**
+ * Initialize feature.
+ */
+void feature_init(feature_t *f, const size_t feature_id, const real_t *data) {
   assert(f != NULL);
   assert(data != NULL);
 
@@ -10005,9 +10022,6 @@ void feature_setup(feature_t *f, const size_t feature_id, const real_t *data) {
   f->data[0] = data[0];
   f->data[1] = data[1];
   f->data[2] = data[2];
-
-  f->cam_params = NULL;
-  f->pos_id = 0;
 }
 
 /**
@@ -10146,7 +10160,7 @@ void feature_print(const feature_t *f) {
 //   // Add features
 //   for (size_t i = 0; i < num_features; i++) {
 //     feature_t *f = MALLOC(feature_t, 1);
-//     feature_setup(f, feature_ids[i], params + i * 3);
+//     feature_init(f, feature_ids[i], params + i * 3);
 //     features->data[feature_ids[i]] = f;
 //     features->num_features++;
 //   }
@@ -19521,90 +19535,89 @@ void inertial_odometry_linearize_compact(const void *data,
 // TWO-STATE FILTER (TSF) //
 ////////////////////////////
 
-/**
- * Malloc TSF frame.
- */
-tsf_frame_t *tsf_frame_malloc(const timestamp_t ts,
-                              const int cam_idx,
-                              const size_t num_features,
-                              const size_t *feature_ids,
-                              const real_t *keypoints) {
-  tsf_frame_t *f = MALLOC(tsf_frame_t, 1);
-  f->ts = ts;
-  f->cam_idx = cam_idx;
-  f->feature_ids = MALLOC(size_t, num_features);
-  f->keypoints = MALLOC(real_t, num_features * 2);
-  f->num_measurements = num_features;
+// /**
+//  * Malloc TSF frame.
+//  */
+// tsf_frame_t *tsf_frame_malloc(const timestamp_t ts,
+//                               const int cam_idx,
+//                               const size_t num_features,
+//                               const size_t *feature_ids,
+//                               const real_t *keypoints) {
+//   tsf_frame_t *f = MALLOC(tsf_frame_t, 1);
+//   f->ts = ts;
+//   f->cam_idx = cam_idx;
+//   f->feature_ids = MALLOC(size_t, num_features);
+//   f->keypoints = MALLOC(real_t, num_features * 2);
+//   f->num_measurements = num_features;
 
-  for (size_t i = 0; i < num_features; i++) {
-    f->feature_ids[i] = feature_ids[i];
-    f->keypoints[i * 2 + 0] = keypoints[i * 2 + 0];
-    f->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
-  }
+//   for (size_t i = 0; i < num_features; i++) {
+//     f->feature_ids[i] = feature_ids[i];
+//     f->keypoints[i * 2 + 0] = keypoints[i * 2 + 0];
+//     f->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
+//   }
 
-  return f;
-}
+//   return f;
+// }
 
-/**
- * Free TSF frame.
- */
-void tsf_frame_free(tsf_frame_t *f) {
-  if (f == NULL) {
-    return;
-  }
-  free(f->feature_ids);
-  free(f->keypoints);
-  free(f);
-}
+// /**
+//  * Free TSF frame.
+//  */
+// void tsf_frame_free(tsf_frame_t *f) {
+//   if (f == NULL) {
+//     return;
+//   }
+//   free(f->feature_ids);
+//   free(f->keypoints);
+//   free(f);
+// }
 
-/**
- * Malloc TSF frame set.
- */
-tsf_frame_set_t *tsf_frame_set_malloc(const timestamp_t ts,
-                                      const int num_cams) {
-  assert(num_cams > 0);
+// /**
+//  * Malloc TSF frame set.
+//  */
+// tsf_frameset_t *tsf_frameset_malloc(const timestamp_t ts, const int num_cams) {
+//   assert(num_cams > 0);
 
-  tsf_frame_set_t *fs = MALLOC(tsf_frame_set_t, 1);
-  fs->ts = ts;
-  fs->cam_frames = MALLOC(tsf_frame_t *, num_cams);
-  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-    fs->cam_frames[cam_idx] = NULL;
-  }
-  fs->num_cams = num_cams;
+//   tsf_frameset_t *fs = MALLOC(tsf_frameset_t, 1);
+//   fs->ts = ts;
+//   fs->cam_frames = MALLOC(tsf_frame_t *, num_cams);
+//   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+//     fs->cam_frames[cam_idx] = NULL;
+//   }
+//   fs->num_cams = num_cams;
 
-  return fs;
-}
+//   return fs;
+// }
 
-/**
- * Free TSF frame set.
- */
-void tsf_frame_set_free(tsf_frame_set_t *fs) {
-  if (fs == NULL) {
-    return;
-  }
+// /**
+//  * Free TSF frame set.
+//  */
+// void tsf_frameset_free(tsf_frameset_t *fs) {
+//   if (fs == NULL) {
+//     return;
+//   }
 
-  for (int i = 0; i < fs->num_cams; i++) {
-    tsf_frame_free(fs->cam_frames[i]);
-  }
-  free(fs->cam_frames);
-  free(fs);
-}
+//   for (int i = 0; i < fs->num_cams; i++) {
+//     tsf_frame_free(fs->cam_frames[i]);
+//   }
+//   free(fs->cam_frames);
+//   free(fs);
+// }
 
-/**
- * Add camera frame data to frame set.
- */
-void tsf_frame_set_add(tsf_frame_set_t *fs,
-                       const timestamp_t ts,
-                       const int cam_idx,
-                       const size_t n,
-                       const size_t *fids,
-                       const real_t *kps) {
-  assert(fs != NULL);
-  assert(cam_idx < fs->num_cams);
-  assert(fs->ts == ts);
-  assert(fs->cam_frames[cam_idx] == NULL);
-  fs->cam_frames[cam_idx] = tsf_frame_malloc(ts, cam_idx, n, fids, kps);
-}
+// /**
+//  * Add camera frame data to frame set.
+//  */
+// void tsf_frameset_add(tsf_frameset_t *fs,
+//                       const timestamp_t ts,
+//                       const int cam_idx,
+//                       const size_t n,
+//                       const size_t *fids,
+//                       const real_t *kps) {
+//   assert(fs != NULL);
+//   assert(cam_idx < fs->num_cams);
+//   assert(fs->ts == ts);
+//   assert(fs->cam_frames[cam_idx] == NULL);
+//   fs->cam_frames[cam_idx] = tsf_frame_malloc(ts, cam_idx, n, fids, kps);
+// }
 
 /**
  * Malloc TSF.
@@ -19634,8 +19647,8 @@ tsf_t *tsf_malloc() {
   // Vision
   tsf->cam_params = NULL;
   tsf->cam_exts = NULL;
-  tsf->frame_sets[0] = NULL;
-  tsf->frame_sets[1] = NULL;
+  // tsf->frame_sets[0] = NULL;
+  // tsf->frame_sets[1] = NULL;
   // tsf->features = features_malloc();
 
   // Factors
@@ -19671,8 +19684,8 @@ void tsf_free(tsf_t *tsf) {
   // VISION
   free(tsf->cam_params);
   free(tsf->cam_exts);
-  tsf_frame_set_free(tsf->frame_sets[0]);
-  tsf_frame_set_free(tsf->frame_sets[1]);
+  // tsf_frameset_free(tsf->frame_sets[0]);
+  // tsf_frameset_free(tsf->frame_sets[1]);
   // features_free(tsf->features);
 
   // FACTORS
@@ -19820,17 +19833,17 @@ void tsf_add_camera_event(tsf_t *tsf,
   assert(kps != NULL);
 
   // Malloc frame set
-  tsf_frame_set_t *fs = NULL;
-  const int fs_idx = (tsf->frame_idx == 0) ? 0 : 1;
-  if (tsf->frame_sets[fs_idx] == NULL) {
-    fs = tsf_frame_set_malloc(ts, tsf->num_cams);
-    tsf->frame_sets[fs_idx] = fs;
-  } else {
-    fs = tsf->frame_sets[fs_idx];
-  }
+  // tsf_frameset_t *fs = NULL;
+  // const int fs_idx = (tsf->frame_idx == 0) ? 0 : 1;
+  // if (tsf->frame_sets[fs_idx] == NULL) {
+  //   fs = tsf_frameset_malloc(ts, tsf->num_cams);
+  //   tsf->frame_sets[fs_idx] = fs;
+  // } else {
+  //   fs = tsf->frame_sets[fs_idx];
+  // }
 
-  // Add frame set data
-  tsf_frame_set_add(fs, ts, cam_idx, n, fids, kps);
+  // // Add frame set data
+  // tsf_frameset_add(fs, ts, cam_idx, n, fids, kps);
 }
 
 // static size_t *tsf_unique_feature_ids(tsf_t *tsf, size_t *n) {
@@ -20089,7 +20102,7 @@ void tsf_add_camera_event(tsf_t *tsf,
 //   const int cam_idx = 0;
 //   const int fs_idx = (tsf->frame_idx == 0) ? 0 : 1;
 //   const camera_params_t *cam = &tsf->cam_params[cam_idx];
-//   const tsf_frame_set_t *fs = tsf->frame_sets[fs_idx];
+//   const tsf_frameset_t *fs = tsf->frame_sets[fs_idx];
 //   const tsf_frame_t *f = fs->cam_frames[cam_idx];
 //   const timestamp_t ts = fs->ts;
 //   const int n = f->num_measurements;
@@ -20246,9 +20259,9 @@ void tsf_update(tsf_t *tsf, const timestamp_t ts) {
   // - Move current pose to previous
   if (tsf->frame_idx > 0) {
     // Frameset
-    tsf_frame_set_free(tsf->frame_sets[0]);
-    tsf->frame_sets[0] = tsf->frame_sets[1];
-    tsf->frame_sets[1] = NULL;
+    // tsf_frameset_free(tsf->frame_sets[0]);
+    // tsf->frame_sets[0] = tsf->frame_sets[1];
+    // tsf->frame_sets[1] = NULL;
 
     // Factors
     // free(tsf->idf_factors_i);
@@ -20834,7 +20847,7 @@ void sim_camera_frame_setup(sim_camera_frame_t *frame,
                             const int cam_idx) {
   frame->ts = ts;
   frame->cam_idx = cam_idx;
-  frame->num_measurements = 0;
+  frame->n = 0;
   frame->feature_ids = NULL;
   frame->keypoints = NULL;
 }
@@ -20870,8 +20883,8 @@ void sim_camera_frame_free(sim_camera_frame_t *frame_data) {
 void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame,
                                    const size_t feature_id,
                                    const real_t kp[2]) {
-  const int N = frame->num_measurements + 1;
-  frame->num_measurements = N;
+  const int N = frame->n + 1;
+  frame->n = N;
   frame->feature_ids = REALLOC(frame->feature_ids, real_t, N);
   frame->keypoints = REALLOC(frame->keypoints, real_t, N * 2);
   frame->feature_ids[N - 1] = feature_id;
@@ -20898,7 +20911,7 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
   frame_data->ts = path2ts(csv_path);
   frame_data->feature_ids = MALLOC(size_t, num_rows);
   frame_data->keypoints = MALLOC(real_t, num_rows * 2);
-  frame_data->num_measurements = num_rows;
+  frame_data->n = num_rows;
   for (int i = 0; i < num_rows; i++) {
     frame_data->feature_ids[i] = (int) data[i][0];
     frame_data->keypoints[i * 2 + 0] = data[i][1];
@@ -20916,8 +20929,8 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
  */
 void sim_camera_frame_print(const sim_camera_frame_t *frame_data) {
   printf("ts: %ld\n", frame_data->ts);
-  printf("num_measurements: %d\n", frame_data->num_measurements);
-  for (int i = 0; i < frame_data->num_measurements; i++) {
+  printf("num_measurements: %d\n", frame_data->n);
+  for (int i = 0; i < frame_data->n; i++) {
     const int feature_id = frame_data->feature_ids[i];
     const real_t *kp = frame_data->keypoints + i * 2;
     printf("- ");

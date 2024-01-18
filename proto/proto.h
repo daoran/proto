@@ -22,6 +22,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <math.h>
 #include <complex.h>
@@ -570,10 +571,10 @@ STATUS tcp_client_loop(tcp_client_t *client);
 #endif
 
 /** Min of two numbers, X or Y. */
-#define PMIN(x, y) ((x) < (y) ? (x) : (y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 /** Max of two numbers, X or Y. */
-#define PMAX(x, y) ((x) > (y) ? (x) : (y))
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 /** Based on sign of b, return +ve or -ve a. */
 #define SIGN2(a, b) ((b) > 0.0 ? fabs(a) : -fabs(a))
@@ -1783,6 +1784,15 @@ void triangulate_batch(const camera_params_t *cam_i,
                        const int n,
                        real_t *points,
                        int *status);
+void stereo_triangulate(const camera_params_t *cam_i,
+                        const camera_params_t *cam_j,
+                        const real_t T_WCi[4 * 4],
+                        const real_t T_CiCj[4 * 4],
+                        const real_t *kps_i,
+                        const real_t *kps_j,
+                        const int n,
+                        real_t *points,
+                        int *status);
 
 //////////////
 // VELOCITY //
@@ -1825,6 +1835,7 @@ void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
 
 #define FEATURE_XYZ 0
 #define FEATURE_INVERSE_DEPTH 1
+#define FEATURE_MAX_LENGTH 20
 
 #define FEATURES_CAPACITY_INITIAL 10000
 #define FEATURES_CAPACITY_GROWTH_FACTOR 2
@@ -1839,14 +1850,17 @@ typedef struct feature_t {
   size_t feature_id;
   int status;
   real_t data[3];
-
-  // Inverse-Depth data
-  const camera_params_t *cam_params;
-  size_t pos_id;
 } feature_t;
 
-void feature_setup(feature_t *f, const size_t feature_id, const real_t *data);
+typedef struct feature_map_t {
+  size_t key;
+  feature_t feature;
+} feature_map_t;
+
+void feature_setup(feature_t *f, const size_t feature_id);
+void feature_init(feature_t *f, const size_t feature_id, const real_t *data);
 void feature_print(const feature_t *feature);
+
 // void idf_setup(feature_t *f,
 //                const size_t feature_id,
 //                const size_t pos_id,
@@ -3373,39 +3387,52 @@ void inertial_odometry_linearize_compact(const void *data,
 
 #define TSF_INIT_FRAME_I 1
 #define TSF_INIT_FRAME_J 2
+#define TSF_FRAME_LIMIT 1000
 #define TSF_EST_MODE 3
 
 /** TSF Frame **/
-typedef struct tsf_frame_t {
-  timestamp_t ts;
-  int cam_idx;
-  size_t *feature_ids;
-  real_t *keypoints;
-  int num_measurements;
-} tsf_frame_t;
+// typedef struct tsf_frame_t {
+//   timestamp_t ts;
+//   int cam_idx;
+//   size_t *feature_ids;
+//   real_t *keypoints;
+//   int num_measurements;
+// } tsf_frame_t;
 
-tsf_frame_t *tsf_frame_malloc(const timestamp_t ts,
-                              const int cam_idx,
-                              const size_t num_features,
-                              const size_t *feature_ids,
-                              const real_t *keypoints);
-void tsf_frame_free(tsf_frame_t *f);
+typedef struct tsf_frameset_t {
+  timestamp_t ts;
+
+  size_t cam0_fids[TSF_FRAME_LIMIT];
+  real_t cam0_kps[TSF_FRAME_LIMIT * 3];
+  int cam0_nkps;
+
+  size_t cam1_fids[TSF_FRAME_LIMIT];
+  real_t cam1_kps[TSF_FRAME_LIMIT * 3];
+  int cam1_nkps;
+} tsf_frameset_t;
+
+// tsf_frame_t *tsf_frame_malloc(const timestamp_t ts,
+//                               const int cam_idx,
+//                               const size_t num_features,
+//                               const size_t *feature_ids,
+//                               const real_t *keypoints);
+// void tsf_frame_free(tsf_frame_t *f);
 
 /** TSF Frame Set **/
-typedef struct tsf_frame_set_t {
-  timestamp_t ts;
-  tsf_frame_t **cam_frames;
-  int num_cams;
-} tsf_frame_set_t;
+// typedef struct tsf_frameset_t {
+//   timestamp_t ts;
+//   tsf_frame_t **cam_frames;
+//   int num_cams;
+// } tsf_frameset_t;
 
-tsf_frame_set_t *tsf_frame_set_malloc(const timestamp_t ts, const int num_cams);
-void tsf_frame_set_free(tsf_frame_set_t *fs);
-void tsf_frame_set_add(tsf_frame_set_t *fs,
-                       const timestamp_t ts,
-                       const int cam_idx,
-                       const size_t num_features,
-                       const size_t *feature_ids,
-                       const real_t *keypoints);
+// tsf_frameset_t *tsf_frameset_malloc(const timestamp_t ts, const int num_cams);
+// void tsf_frameset_free(tsf_frameset_t *fs);
+// void tsf_frameset_add(tsf_frameset_t *fs,
+//                       const timestamp_t ts,
+//                       const int cam_idx,
+//                       const size_t num_features,
+//                       const size_t *feature_ids,
+//                       const real_t *keypoints);
 
 /** Two-State Filter (TSF) **/
 typedef struct tsf_t {
@@ -3431,7 +3458,7 @@ typedef struct tsf_t {
   // Vision
   camera_params_t *cam_params;
   extrinsic_t *cam_exts;
-  tsf_frame_set_t *frame_sets[2];
+  // tsf_frameset_t *frame_sets[2];
   // features_t *features;
 
   // Factors
@@ -3599,7 +3626,7 @@ typedef struct sim_camera_frame_t {
   int cam_idx;
   size_t *feature_ids;
   real_t *keypoints;
-  int num_measurements;
+  int n;
 } sim_camera_frame_t;
 
 void sim_camera_frame_setup(sim_camera_frame_t *frame,
