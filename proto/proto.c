@@ -19535,102 +19535,38 @@ void inertial_odometry_linearize_compact(const void *data,
 // TWO-STATE FILTER (TSF) //
 ////////////////////////////
 
-// /**
-//  * Malloc TSF frame.
-//  */
-// tsf_frame_t *tsf_frame_malloc(const timestamp_t ts,
-//                               const int cam_idx,
-//                               const size_t num_features,
-//                               const size_t *feature_ids,
-//                               const real_t *keypoints) {
-//   tsf_frame_t *f = MALLOC(tsf_frame_t, 1);
-//   f->ts = ts;
-//   f->cam_idx = cam_idx;
-//   f->feature_ids = MALLOC(size_t, num_features);
-//   f->keypoints = MALLOC(real_t, num_features * 2);
-//   f->num_measurements = num_features;
+/**
+ * TSF frameset setup
+ */
+void tsf_frameset_setup(tsf_frameset_t *fs) {
+  fs->ts = 0;
 
-//   for (size_t i = 0; i < num_features; i++) {
-//     f->feature_ids[i] = feature_ids[i];
-//     f->keypoints[i * 2 + 0] = keypoints[i * 2 + 0];
-//     f->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
-//   }
+  memset(fs->cam0_fids, 0, sizeof(size_t) * TSF_FRAME_LIMIT);
+  memset(fs->cam0_kps, 0, sizeof(real_t) * TSF_FRAME_LIMIT * 2);
+  fs->cam0_num_kps = 0;
 
-//   return f;
-// }
-
-// /**
-//  * Free TSF frame.
-//  */
-// void tsf_frame_free(tsf_frame_t *f) {
-//   if (f == NULL) {
-//     return;
-//   }
-//   free(f->feature_ids);
-//   free(f->keypoints);
-//   free(f);
-// }
-
-// /**
-//  * Malloc TSF frame set.
-//  */
-// tsf_frameset_t *tsf_frameset_malloc(const timestamp_t ts, const int num_cams) {
-//   assert(num_cams > 0);
-
-//   tsf_frameset_t *fs = MALLOC(tsf_frameset_t, 1);
-//   fs->ts = ts;
-//   fs->cam_frames = MALLOC(tsf_frame_t *, num_cams);
-//   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-//     fs->cam_frames[cam_idx] = NULL;
-//   }
-//   fs->num_cams = num_cams;
-
-//   return fs;
-// }
-
-// /**
-//  * Free TSF frame set.
-//  */
-// void tsf_frameset_free(tsf_frameset_t *fs) {
-//   if (fs == NULL) {
-//     return;
-//   }
-
-//   for (int i = 0; i < fs->num_cams; i++) {
-//     tsf_frame_free(fs->cam_frames[i]);
-//   }
-//   free(fs->cam_frames);
-//   free(fs);
-// }
-
-// /**
-//  * Add camera frame data to frame set.
-//  */
-// void tsf_frameset_add(tsf_frameset_t *fs,
-//                       const timestamp_t ts,
-//                       const int cam_idx,
-//                       const size_t n,
-//                       const size_t *fids,
-//                       const real_t *kps) {
-//   assert(fs != NULL);
-//   assert(cam_idx < fs->num_cams);
-//   assert(fs->ts == ts);
-//   assert(fs->cam_frames[cam_idx] == NULL);
-//   fs->cam_frames[cam_idx] = tsf_frame_malloc(ts, cam_idx, n, fids, kps);
-// }
+  memset(fs->cam1_fids, 0, sizeof(size_t) * TSF_FRAME_LIMIT);
+  memset(fs->cam1_kps, 0, sizeof(real_t) * TSF_FRAME_LIMIT * 2);
+  fs->cam1_num_kps = 0;
+}
 
 /**
- * Malloc TSF.
+ * TSF reset
  */
-tsf_t *tsf_malloc() {
-  tsf_t *tsf = MALLOC(tsf_t, 1);
+void tsf_frameset_reset(tsf_frameset_t *fs) {
+  tsf_frameset_setup(fs);
+}
 
+/**
+ * TSF Setup.
+ */
+void tsf_setup(tsf_t *tsf) {
   // Flags
-  tsf->state = TSF_INIT_FRAME_I;
+  tsf->state = 0;
   tsf->num_imus = 0;
   tsf->num_cams = 0;
   tsf->imu_started = 0;
-  tsf->frame_idx = 0;
+  tsf->frame_idx = -1;
 
   // Settings
   tsf->fix_cam_params = 0;
@@ -19645,8 +19581,9 @@ tsf_t *tsf_malloc() {
   tsf->time_delay = NULL;
 
   // Vision
-  tsf->cam_params = NULL;
-  tsf->cam_exts = NULL;
+  memset(tsf->cams_ok, 0, sizeof(int) * 2);
+  // tsf->cam0_params = NULL;
+  // tsf->cam0_exts = NULL;
   // tsf->frame_sets[0] = NULL;
   // tsf->frame_sets[1] = NULL;
   // tsf->features = features_malloc();
@@ -19668,7 +19605,14 @@ tsf_t *tsf_malloc() {
   tsf->vel_j = NULL;
   tsf->biases_i = NULL;
   tsf->biases_j = NULL;
+}
 
+/**
+ * Malloc TSF.
+ */
+tsf_t *tsf_malloc() {
+  tsf_t *tsf = MALLOC(sizeof(tsf_t), 1);
+  tsf_setup(tsf);
   return tsf;
 }
 
@@ -19682,8 +19626,8 @@ void tsf_free(tsf_t *tsf) {
   free(tsf->time_delay);
 
   // VISION
-  free(tsf->cam_params);
-  free(tsf->cam_exts);
+  // free(tsf->cam_params);
+  // free(tsf->cam_exts);
   // tsf_frameset_free(tsf->frame_sets[0]);
   // tsf_frameset_free(tsf->frame_sets[1]);
   // features_free(tsf->features);
@@ -19691,16 +19635,16 @@ void tsf_free(tsf_t *tsf) {
   // FACTORS
   // free(tsf->idf_factors_i);
   // free(tsf->idf_factors_j);
-  free(tsf->imu_factor);
-  marg_factor_free(tsf->marg);
+  // free(tsf->imu_factor);
+  // marg_factor_free(tsf->marg);
 
   // STATE
-  free(tsf->pose_i);
-  free(tsf->pose_j);
-  free(tsf->vel_i);
-  free(tsf->vel_j);
-  free(tsf->biases_i);
-  free(tsf->biases_j);
+  // free(tsf->pose_i);
+  // free(tsf->pose_j);
+  // free(tsf->vel_i);
+  // free(tsf->vel_j);
+  // free(tsf->biases_i);
+  // free(tsf->biases_j);
 
   free(tsf);
 }
@@ -19725,34 +19669,41 @@ void tsf_print(const tsf_t *tsf) {
 /**
  * Add camera to TSF.
  */
-void tsf_add_camera(tsf_t *tsf,
+void tsf_set_camera(tsf_t *tsf,
                     const int cam_idx,
                     const int cam_res[2],
                     const char *proj_model,
                     const char *dist_model,
-                    const real_t *cam_params,
-                    const real_t *cam_ext) {
+                    const real_t *intrinsic,
+                    const real_t *extrinsic) {
   assert(tsf != NULL);
-  assert(cam_idx <= tsf->num_cams);
+  // assert(cam_idx <= tsf->num_cams);
   assert(cam_res != NULL);
   assert(proj_model != NULL);
   assert(dist_model != NULL);
-  assert(cam_params != NULL);
-  assert(cam_ext != NULL);
+  assert(intrinsic != NULL);
+  assert(extrinsic != NULL);
 
-  if (cam_idx > (tsf->num_cams - 1)) {
-    const int new_size = tsf->num_cams + 1;
-    tsf->cam_params = REALLOC(tsf->cam_params, camera_params_t, new_size);
-    tsf->cam_exts = REALLOC(tsf->cam_exts, extrinsic_t, new_size);
+  camera_params_t *cam_params = NULL;
+  extrinsic_t *cam_ext = NULL;
+  if (cam_idx == 0) {
+    cam_params = &tsf->cam0_params;
+    cam_ext = &tsf->cam0_ext;
+  } else if (cam_idx == 1) {
+    cam_params = &tsf->cam1_params;
+    cam_ext = &tsf->cam1_ext;
+  } else {
+    return;
   }
 
-  camera_params_setup(&tsf->cam_params[cam_idx],
+  tsf->cams_ok[cam_idx] = 1;
+  camera_params_setup(cam_params,
                       cam_idx,
                       cam_res,
                       proj_model,
                       dist_model,
-                      cam_params);
-  extrinsic_setup(&tsf->cam_exts[cam_idx], cam_ext);
+                      intrinsic);
+  extrinsic_setup(cam_ext, extrinsic);
   tsf->num_cams++;
 }
 
@@ -19817,33 +19768,164 @@ void tsf_add_imu_event(tsf_t *tsf,
   tsf->imu_started = 1;
 }
 
+static void tsf_extract_stereo_keypoints(const size_t *fids0,
+                                         const real_t *kps0,
+                                         const int num_kps0,
+                                         const size_t *fids1,
+                                         const real_t *kps1,
+                                         const int num_kps1,
+                                         const int limit,
+                                         size_t *match_fids,
+                                         int *num_match_fids,
+                                         real_t *kps0_out,
+                                         real_t *kps1_out) {
+  // Initialize output to zero
+  memset(match_fids, sizeof(int), limit);
+  *num_match_fids = 0;
+  memset(kps0_out, sizeof(real_t), limit * 2);
+  memset(kps1_out, sizeof(real_t), limit * 2);
+
+  // Extract features with same feature id
+  int cam0_idx = 0;
+  int cam1_idx = 0;
+  for (int i = 0; i < MAX(num_kps0, num_kps1); i++) {
+    // Check bounds
+    if (i >= num_kps0) {
+      break;
+    } else if (i >= num_kps1) {
+      break;
+    }
+    const size_t fid0 = fids0[cam0_idx];
+    const size_t fid1 = fids1[cam1_idx];
+    if (fid0 == fid1) {
+      match_fids[*num_match_fids] = fid0;
+      (*num_match_fids)++;
+      cam0_idx++;
+      cam1_idx++;
+    } else if (fid0 < fid1) {
+      cam0_idx++;
+    } else if (fid0 > fid1) {
+      cam1_idx++;
+    }
+
+    if (*num_match_fids == limit) {
+      break;
+    }
+  }
+
+  // Extact keypoints
+  // -- Extrack keypoints from cam0
+  int idx0 = 0;
+  for (int i = 0; i < *num_match_fids; i++) {
+    size_t fid = match_fids[i];
+    for (int j = idx0; j < num_kps0; j++) {
+      if (fids0[j] == fid) {
+        kps0_out[i * 2 + 0] = kps0[j * 2 + 0];
+        kps0_out[i * 2 + 1] = kps0[j * 2 + 1];
+        idx0 = j + 1;
+        break;
+      }
+    }
+  }
+  // -- Extrack keypoints from cam1
+  int idx1 = 0;
+  for (int i = 0; i < *num_match_fids; i++) {
+    size_t fid = match_fids[i];
+    for (int j = idx1; j < num_kps1; j++) {
+      if (fids1[j] == fid) {
+        kps1_out[i * 2 + 0] = kps1[j * 2 + 0];
+        kps1_out[i * 2 + 1] = kps1[j * 2 + 1];
+        idx1 = j + 1;
+        break;
+      }
+    }
+  }
+}
+
 /**
  * Add camera event.
  */
-void tsf_add_camera_event(tsf_t *tsf,
-                          const timestamp_t ts,
-                          const int cam_idx,
-                          const size_t n,
-                          const size_t *fids,
-                          const real_t *kps) {
+void tsf_camera_event(tsf_t *tsf,
+                      const timestamp_t ts,
+                      const size_t *cam0_fids,
+                      const real_t *cam0_kps,
+                      const int num_cam0_kps,
+                      const size_t *cam1_fids,
+                      const real_t *cam1_kps,
+                      const int num_cam1_kps) {
   assert(tsf != NULL);
   assert(ts >= 0);
-  assert(cam_idx >= 0 && cam_idx < tsf->num_cams);
-  assert(fids != NULL);
-  assert(kps != NULL);
+  assert(cam0_fids != NULL);
+  assert(cam0_kps != NULL);
+  assert(cam1_fids != NULL);
+  assert(cam1_kps != NULL);
+  tsf->frame_idx++;
 
-  // Malloc frame set
-  // tsf_frameset_t *fs = NULL;
-  // const int fs_idx = (tsf->frame_idx == 0) ? 0 : 1;
-  // if (tsf->frame_sets[fs_idx] == NULL) {
-  //   fs = tsf_frameset_malloc(ts, tsf->num_cams);
-  //   tsf->frame_sets[fs_idx] = fs;
-  // } else {
-  //   fs = tsf->frame_sets[fs_idx];
-  // }
+  // Initialize features
+  if (tsf->frame_idx == 0) {
+    // Extract common feature ids and keypoints
+    const int limit = 1000;
+    size_t match_fids[1000] = {0};
+    int num_match_fids = 0;
+    real_t kps0[1000 * 2] = {0};
+    real_t kps1[1000 * 2] = {0};
+    tsf_extract_stereo_keypoints(cam0_fids,
+                                 cam0_kps,
+                                 num_cam0_kps,
+                                 cam1_fids,
+                                 cam1_kps,
+                                 num_cam1_kps,
+                                 limit,
+                                 match_fids,
+                                 &num_match_fids,
+                                 kps0,
+                                 kps1);
 
-  // // Add frame set data
-  // tsf_frameset_add(fs, ts, cam_idx, n, fids, kps);
+    // Triangulate features
+    // -- Setup projection matrices
+    real_t P_i[3 * 4] = {0};
+    real_t P_j[3 * 4] = {0};
+    // pinhole_projection_matrix(tsf->cam0_params.data, T_WC0, P_i);
+    // pinhole_projection_matrix(tsf->cam1_params.data, T_WC1, P_j);
+
+    // -- Triangulate features
+    const real_t *cam0_params = tsf->cam0_params.data;
+    const real_t *cam1_params = tsf->cam1_params.data;
+    for (int i = 0; i < num_match_fids; i++) {
+      // Undistort keypoints
+      real_t z_i[2] = {0};
+      real_t z_j[2] = {0};
+      tsf->cam0_params.undistort_func(cam0_params, &kps0[i * 2], z_i);
+      tsf->cam1_params.undistort_func(cam1_params, &kps1[i * 2], z_j);
+
+      // Triangulate
+      real_t p[3] = {0};
+      linear_triangulation(P_i, P_j, z_i, z_j, p);
+
+      // Add new feature
+      const int fid = match_fids[i];
+      feature_map_t feature;
+      feature_setup(&feature.feature, fid);
+      hmputs(tsf->feature_map, feature);
+    }
+
+    // Form frameset km1
+    tsf_frameset_setup(&tsf->fs_km1);
+    tsf->fs_km1.ts = ts;
+    for (int i = 0; i < num_match_fids; i++) {
+      tsf->fs_km1.cam0_fids[i] = match_fids[i];
+      tsf->fs_km1.cam0_kps[i * 2 + 0] = kps0[i * 2 + 0];
+      tsf->fs_km1.cam0_kps[i * 2 + 1] = kps0[i * 2 + 1];
+
+      tsf->fs_km1.cam1_fids[i] = match_fids[i];
+      tsf->fs_km1.cam1_kps[i * 2 + 0] = kps1[i * 2 + 0];
+      tsf->fs_km1.cam1_kps[i * 2 + 1] = kps1[i * 2 + 1];
+    }
+    tsf->fs_km1.cam0_num_kps = num_match_fids;
+    tsf->fs_km1.cam1_num_kps = num_match_fids;
+
+    return;
+  }
 }
 
 // static size_t *tsf_unique_feature_ids(tsf_t *tsf, size_t *n) {
@@ -20250,7 +20332,7 @@ static void tsf_solve(tsf_t *tsf) {
  */
 void tsf_update(tsf_t *tsf, const timestamp_t ts) {
   // tsf_process_data(tsf);
-  tsf_solve(tsf);
+  // tsf_solve(tsf);
   // tsf_marginalize(tsf);
 
   // Update book-keeping

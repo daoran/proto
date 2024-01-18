@@ -3377,62 +3377,39 @@ void inertial_odometry_linearize_compact(const void *data,
                                          real_t *g,
                                          real_t *r);
 
-////////////////////////
-// TWO-VIEW ESTIMATOR //
-////////////////////////
+/////////////////////////////
+// RELATIVE POSE ESTIMATOR //
+/////////////////////////////
+
+int relpose_estimator(const int num_cams,
+                      const camera_params_t **cam_params,
+                      const real_t **cam_exts,
+                      const size_t **fids,
+                      const real_t **kps,
+                      const int *num_kps,
+                      const feature_map_t *feature_map,
+                      const real_t T_WC0_km1[4 * 4],
+                      real_t T_WC0_k[4 * 4]);
 
 ////////////////////////////
 // TWO-STATE FILTER (TSF) //
 ////////////////////////////
 
-#define TSF_INIT_FRAME_I 1
-#define TSF_INIT_FRAME_J 2
 #define TSF_FRAME_LIMIT 1000
 #define TSF_EST_MODE 3
 
-/** TSF Frame **/
-// typedef struct tsf_frame_t {
-//   timestamp_t ts;
-//   int cam_idx;
-//   size_t *feature_ids;
-//   real_t *keypoints;
-//   int num_measurements;
-// } tsf_frame_t;
-
+/** TSF Frameset **/
 typedef struct tsf_frameset_t {
   timestamp_t ts;
 
   size_t cam0_fids[TSF_FRAME_LIMIT];
   real_t cam0_kps[TSF_FRAME_LIMIT * 3];
-  int cam0_nkps;
+  int cam0_num_kps;
 
   size_t cam1_fids[TSF_FRAME_LIMIT];
   real_t cam1_kps[TSF_FRAME_LIMIT * 3];
-  int cam1_nkps;
+  int cam1_num_kps;
 } tsf_frameset_t;
-
-// tsf_frame_t *tsf_frame_malloc(const timestamp_t ts,
-//                               const int cam_idx,
-//                               const size_t num_features,
-//                               const size_t *feature_ids,
-//                               const real_t *keypoints);
-// void tsf_frame_free(tsf_frame_t *f);
-
-/** TSF Frame Set **/
-// typedef struct tsf_frameset_t {
-//   timestamp_t ts;
-//   tsf_frame_t **cam_frames;
-//   int num_cams;
-// } tsf_frameset_t;
-
-// tsf_frameset_t *tsf_frameset_malloc(const timestamp_t ts, const int num_cams);
-// void tsf_frameset_free(tsf_frameset_t *fs);
-// void tsf_frameset_add(tsf_frameset_t *fs,
-//                       const timestamp_t ts,
-//                       const int cam_idx,
-//                       const size_t num_features,
-//                       const size_t *feature_ids,
-//                       const real_t *keypoints);
 
 /** Two-State Filter (TSF) **/
 typedef struct tsf_t {
@@ -3441,7 +3418,7 @@ typedef struct tsf_t {
   int num_imus;
   int num_cams;
   int imu_started;
-  size_t frame_idx;
+  ssize_t frame_idx;
 
   // Settings
   int fix_cam_params;
@@ -3456,16 +3433,18 @@ typedef struct tsf_t {
   time_delay_t *time_delay;
 
   // Vision
-  camera_params_t *cam_params;
-  extrinsic_t *cam_exts;
-  // tsf_frameset_t *frame_sets[2];
-  // features_t *features;
+  int cams_ok[2];
+  camera_params_t cam0_params;
+  camera_params_t cam1_params;
+  extrinsic_t cam1_ext;
+  extrinsic_t cam0_ext;
+  tsf_frameset_t fs_km1;
+  tsf_frameset_t fs_k;
+  feature_map_t *feature_map;
 
   // Factors
   int num_factors_i;
   int num_factors_j;
-  // idf_factor_t *idf_factors_i;
-  // idf_factor_t *idf_factors_j;
   imu_factor_t *imu_factor;
   marg_factor_t *marg;
 
@@ -3480,11 +3459,15 @@ typedef struct tsf_t {
   imu_biases_t *biases_j;
 } tsf_t;
 
+void tsf_frameset_setup(tsf_frameset_t *fs);
+void tsf_frameset_reset(tsf_frameset_t *fs);
+
+void tsf_setup();
 tsf_t *tsf_malloc();
 void tsf_free(tsf_t *tsf);
 void tsf_print(const tsf_t *tsif);
 
-void tsf_add_camera(tsf_t *tsif,
+void tsf_set_camera(tsf_t *tsif,
                     const int cam_idx,
                     const int cam_res[2],
                     const char *proj_model,
@@ -3504,12 +3487,14 @@ void tsf_add_imu_event(tsf_t *tsf,
                        const timestamp_t ts,
                        const real_t acc[3],
                        const real_t gyr[3]);
-void tsf_add_camera_event(tsf_t *tsf,
-                          const timestamp_t ts,
-                          const int cam_idx,
-                          const size_t n,
-                          const size_t *fids,
-                          const real_t *kps);
+void tsf_camera_event(tsf_t *tsf,
+                      const timestamp_t ts,
+                      const size_t *cam0_fids,
+                      const real_t *cam0_kps,
+                      const int num_cam0_kps,
+                      const size_t *cam1_fids,
+                      const real_t *cam1_kps,
+                      const int num_cam1_kps);
 
 void tsf_cost(const void *data, real_t *r);
 void tsf_errors(const tsf_t *tsf,
