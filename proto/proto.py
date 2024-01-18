@@ -11563,8 +11563,8 @@ class TestFactorGraph(unittest.TestCase):
       # -- Imu Factor
       param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
       imu_buf = imu0_data.form_imu_buffer(ts_idx - window_size, ts_idx)
-      # factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i)
-      factor = ImuFactor2(param_ids, imu_params, imu_buf, sb_i)
+      # factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i) # Euler method
+      factor = ImuFactor2(param_ids, imu_params, imu_buf, sb_i) # Midpoint method
       graph.add_factor(factor)
 
       # -- Update
