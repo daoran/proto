@@ -5846,16 +5846,8 @@ int test_inertial_odometry_batch() {
 //   return 0;
 // }
 
-
 int test_tsf() {
-  // Simulate features
-  const real_t origin[3] = {0.0, 0.0, 0.0};
-  const real_t dim[3] = {5.0, 5.0, 5.0};
-  const int num_features = 1000;
-  real_t feature_data[3 * 1000] = {0};
-  sim_create_features(origin, dim, num_features, feature_data);
-
-  // Camera configuration
+  // Camera config
   const int cam_res[2] = {640, 480};
   const real_t fov = 90.0;
   const real_t fx = pinhole_focal(cam_res[0], fov);
@@ -5865,12 +5857,7 @@ int test_tsf() {
   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
   const char *pmodel = "pinhole";
   const char *dmodel = "radtan4";
-  camera_params_t cam0_params;
-  camera_params_t cam1_params;
-  camera_params_setup(&cam0_params, 0, cam_res, pmodel, dmodel, cam_vec);
-  camera_params_setup(&cam1_params, 1, cam_res, pmodel, dmodel, cam_vec);
 
-  // IMU-Camera0 extrinsic
   const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
   const real_t cam0_ext_r[3] = {0.05, 0.0, 0.0};
   const real_t cam1_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
@@ -5879,64 +5866,43 @@ int test_tsf() {
   TF_ER(cam1_ext_ypr, cam1_ext_r, T_SC1);
   TF_VECTOR(T_SC0, cam0_ext);
   TF_VECTOR(T_SC1, cam1_ext);
-  TF_INV(T_SC0, T_C0S);
-  TF_CHAIN(T_C0C1, 2, T_C0S, T_SC1);
 
-  // Simulate data
-  // const real_t imu_rate = 200.0;
-  sim_circle_t conf;
-  sim_circle_defaults(&conf);
-  // sim_imu_data_t *imu_data = sim_imu_circle_trajectory(imu_rate, r, v, th0, y0);
-  sim_camera_data_t *cam0_data = sim_camera_circle_trajectory(&conf,
-                                                              T_SC0,
-                                                              &cam0_params,
-                                                              feature_data,
-                                                              num_features);
-  sim_camera_data_t *cam1_data = sim_camera_circle_trajectory(&conf,
-                                                              T_SC1,
-                                                              &cam1_params,
-                                                              feature_data,
-                                                              num_features);
+  // IMU config
+  const real_t imu_rate = 200;
+  const real_t sigma_a = 0.08;
+  const real_t sigma_g = 0.004;
+  const real_t sigma_aw = 0.00004;
+  const real_t sigma_gw = 2.0e-6;
+  const real_t g = 9.81;
+  TF_IDENTITY(T_BS);
+  TF_VECTOR(T_BS, imu0_ext);
 
   // Simulate VO
-  tsf_t tsf;
-  tsf_setup(&tsf);
-  tsf_set_camera(&tsf, 0, cam_res, pmodel, dmodel, cam_vec, cam0_ext);
-  tsf_set_camera(&tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
+  tsf_t *tsf = tsf_malloc();
+  tsf_add_camera(tsf, 0, cam_res, pmodel, dmodel, cam_vec, cam0_ext);
+  tsf_add_camera(tsf, 1, cam_res, pmodel, dmodel, cam_vec, cam1_ext);
+  tsf_add_imu(tsf, imu_rate, sigma_aw, sigma_gw, sigma_a, sigma_g, g, imu0_ext);
 
-  // const sim_camera_frame_t *frame0_k = cam0_data->frames[0];
-  // const sim_camera_frame_t *frame1_k = cam1_data->frames[0];
-  // POSE2TF(&cam0_data->poses[0], T_WC0);
-  // POSE2TF(&cam1_data->poses[0], T_WC1);
+  // Loop through timeline
+  sim_circle_camera_imu_t *sim_data = sim_circle_camera_imu();
+  timeline_t *timeline = sim_data->timeline;
+  // for (int k = 0; k < timeline->timeline_length; k++) {
+  //   printf("HERE\n");
+  //   // Extract timeline events
+  //   for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+  //     timeline_event_t *event = timeline->timeline_events[k][i];
+  //     const timestamp_t ts = event->ts;
 
-  // for (size_t k = 0; k < cam0_data->num_frames; k++) {
-  //   // for (size_t k = 0; k < 10; k++) {
-  //   // TIC(tsf_loop);
-  //   // printf("\n");
-  //   // printf("k: %ld\n", k);
-  //   const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
-  //   // const sim_camera_frame_t *cam1_frame = cam1_data->frames[k];
-  //   tsf_add_camera_event(tsf,
-  //                        cam0_frame->ts,
-  //                        cam0_frame->cam_idx,
-  //                        cam0_frame->num_measurements,
-  //                        cam0_frame->feature_ids,
-  //                        cam0_frame->keypoints);
-  //   // tsf_add_camera_event(tsf,
-  //   //                      cam1_frame->ts,
-  //   //                      cam1_frame->cam_idx,
-  //   //                      cam1_frame->num_measurements,
-  //   //                      cam1_frame->feature_ids,
-  //   //                      cam1_frame->keypoints);
-  //   tsf_update(tsf, cam0_frame->ts);
-  //   // PRINT_TOC("tsf_loop", tsf_loop);
+  //     if (event->type == IMU_EVENT) {
+  //       const imu_event_t *data = &event->data.imu;
+  //       tsf_imu_event(tsf, ts, data->acc, data->gyr);
+  //     }
+  //   }
   // }
 
   // Clean up
-  // hmfree(feature_map);
-  // sim_imu_data_free(imu_data);
-  sim_camera_data_free(cam0_data);
-  sim_camera_data_free(cam1_data);
+  sim_circle_camera_imu_free(sim_data);
+  tsf_free(tsf);
 
   return 0;
 }

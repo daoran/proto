@@ -9152,7 +9152,6 @@ static void timeline_form_timeline(timeline_t *tl) {
   tl->timeline_events = CALLOC(timeline_event_t **, tl->timeline_length);
   tl->timeline_events_lengths = CALLOC(int, tl->timeline_length);
 
-  printf("tl->num_event_types: %d\n", tl->num_event_types);
   int *indices = CALLOC(int, tl->num_event_types);
   for (int k = 0; k < tl->timeline_length; k++) {
     // Allocate memory
@@ -9323,6 +9322,22 @@ void rot_print(const char *prefix, const rot_t *rot) {
 //////////
 // POSE //
 //////////
+
+/**
+ * Initialize pose vector.
+ */
+void pose_init(real_t *pose) {
+  // Translation
+  pose[0] = 0.0; // rx
+  pose[1] = 0.0; // ry
+  pose[2] = 0.0; // rz
+
+  // Rotation (Quaternion)
+  pose[3] = 1.0; // qw
+  pose[4] = 0.0; // qx
+  pose[5] = 0.0; // qy
+  pose[6] = 0.0; // qz
+}
 
 /**
  * Setup pose.
@@ -11874,9 +11889,17 @@ void imu_buffer_add(imu_buffer_t *imu_buf,
 }
 
 /**
+ * Return first timestamp in IMU buffer
+ */
+timestamp_t imu_buffer_first_ts(const imu_buffer_t *imu_buf) {
+  assert(imu_buf != NULL);
+  return imu_buf->ts[0];
+}
+
+/**
  * Return last timestamp in IMU buffer
  */
-timestamp_t imu_buffer_last_timestamp(const imu_buffer_t *imu_buf) {
+timestamp_t imu_buffer_last_ts(const imu_buffer_t *imu_buf) {
   assert(imu_buf != NULL);
   return imu_buf->ts[imu_buf->size - 1];
 }
@@ -17134,7 +17157,7 @@ static int calib_imucam_update_precheck(calib_imucam_t *calib) {
   }
 
   // Check IMU timestamp is after fiducial data
-  if (ts > imu_buffer_last_timestamp(&calib->imu_buf)) {
+  if (ts > imu_buffer_last_ts(&calib->imu_buf)) {
     return -3;
   }
 
@@ -17208,7 +17231,7 @@ int calib_imucam_update(calib_imucam_t *calib) {
   }
 
   // Add state
-  const timestamp_t ts = imu_buffer_last_timestamp(&calib->imu_buf);
+  const timestamp_t ts = imu_buffer_last_ts(&calib->imu_buf);
   calib_imucam_add_state(calib, ts);
 
   // Form new view
@@ -19558,9 +19581,11 @@ void tsf_frameset_reset(tsf_frameset_t *fs) {
 }
 
 /**
- * TSF Setup.
+ * TSF Malloc.
  */
-void tsf_setup(tsf_t *tsf) {
+tsf_t *tsf_malloc() {
+  tsf_t *tsf = MALLOC(tsf_t, 1);
+
   // Flags
   tsf->state = 0;
   tsf->num_imus = 0;
@@ -19581,38 +19606,28 @@ void tsf_setup(tsf_t *tsf) {
   tsf->time_delay = NULL;
 
   // Vision
-  memset(tsf->cams_ok, 0, sizeof(int) * 2);
-  // tsf->cam0_params = NULL;
-  // tsf->cam0_exts = NULL;
-  // tsf->frame_sets[0] = NULL;
-  // tsf->frame_sets[1] = NULL;
-  // tsf->features = features_malloc();
+  tsf->cam_params = NULL;
+  tsf->cam_exts = NULL;
+  tsf->feature_map = NULL;
 
   // Factors
-  tsf->num_factors_i = 0;
-  tsf->num_factors_j = 0;
-  // tsf->idf_factors_i = NULL;
-  // tsf->idf_factors_j = NULL;
   tsf->imu_factor = NULL;
   tsf->marg = NULL;
 
   // State
+  pose_init(tsf->pose_init);
+  memset(tsf->vel_init, 0, sizeof(real_t) * 3);
+  memset(tsf->ba_init, 0, sizeof(real_t) * 3);
+  memset(tsf->bg_init, 0, sizeof(real_t) * 3);
   tsf->ts_i = 0;
   tsf->ts_j = 0;
-  tsf->pose_i = NULL;
-  tsf->pose_j = NULL;
-  tsf->vel_i = NULL;
-  tsf->vel_j = NULL;
-  tsf->biases_i = NULL;
-  tsf->biases_j = NULL;
-}
+  // tsf->pose_i = NULL;
+  // tsf->pose_j = NULL;
+  // tsf->vel_i = NULL;
+  // tsf->vel_j = NULL;
+  // tsf->biases_i = NULL;
+  // tsf->biases_j = NULL;
 
-/**
- * Malloc TSF.
- */
-tsf_t *tsf_malloc() {
-  tsf_t *tsf = MALLOC(sizeof(tsf_t), 1);
-  tsf_setup(tsf);
   return tsf;
 }
 
@@ -19626,15 +19641,11 @@ void tsf_free(tsf_t *tsf) {
   free(tsf->time_delay);
 
   // VISION
-  // free(tsf->cam_params);
-  // free(tsf->cam_exts);
-  // tsf_frameset_free(tsf->frame_sets[0]);
-  // tsf_frameset_free(tsf->frame_sets[1]);
-  // features_free(tsf->features);
+  free(tsf->cam_params);
+  free(tsf->cam_exts);
+  hmfree(tsf->feature_map);
 
   // FACTORS
-  // free(tsf->idf_factors_i);
-  // free(tsf->idf_factors_j);
   // free(tsf->imu_factor);
   // marg_factor_free(tsf->marg);
 
@@ -19667,9 +19678,14 @@ void tsf_print(const tsf_t *tsf) {
 }
 
 /**
+ * Set TSF initial pose.
+ */
+void tsf_set_initial_pose(tsf_t *tsif, real_t pose[7]);
+
+/**
  * Add camera to TSF.
  */
-void tsf_set_camera(tsf_t *tsf,
+void tsf_add_camera(tsf_t *tsf,
                     const int cam_idx,
                     const int cam_res[2],
                     const char *proj_model,
@@ -19677,33 +19693,26 @@ void tsf_set_camera(tsf_t *tsf,
                     const real_t *intrinsic,
                     const real_t *extrinsic) {
   assert(tsf != NULL);
-  // assert(cam_idx <= tsf->num_cams);
+  assert(cam_idx <= tsf->num_cams);
   assert(cam_res != NULL);
   assert(proj_model != NULL);
   assert(dist_model != NULL);
   assert(intrinsic != NULL);
   assert(extrinsic != NULL);
 
-  camera_params_t *cam_params = NULL;
-  extrinsic_t *cam_ext = NULL;
-  if (cam_idx == 0) {
-    cam_params = &tsf->cam0_params;
-    cam_ext = &tsf->cam0_ext;
-  } else if (cam_idx == 1) {
-    cam_params = &tsf->cam1_params;
-    cam_ext = &tsf->cam1_ext;
-  } else {
-    return;
+  if (cam_idx > (tsf->num_cams - 1)) {
+    const int new_size = tsf->num_cams + 1;
+    tsf->cam_params = REALLOC(tsf->cam_params, camera_params_t, new_size);
+    tsf->cam_exts = REALLOC(tsf->cam_exts, extrinsic_t, new_size);
   }
 
-  tsf->cams_ok[cam_idx] = 1;
-  camera_params_setup(cam_params,
+  camera_params_setup(&tsf->cam_params[cam_idx],
                       cam_idx,
                       cam_res,
                       proj_model,
                       dist_model,
                       intrinsic);
-  extrinsic_setup(cam_ext, extrinsic);
+  extrinsic_setup(&tsf->cam_exts[cam_idx], extrinsic);
   tsf->num_cams++;
 }
 
@@ -19753,19 +19762,32 @@ void tsf_add_imu(tsf_t *tsf,
 }
 
 /**
- * Add IMU event.
+ * TSF handle IMU event.
  */
-void tsf_add_imu_event(tsf_t *tsf,
-                       const timestamp_t ts,
-                       const real_t acc[3],
-                       const real_t gyr[3]) {
+void tsf_imu_event(tsf_t *tsf,
+                   const timestamp_t ts,
+                   const real_t acc[3],
+                   const real_t gyr[3]) {
   assert(tsf != NULL);
-  assert(ts > 0);
+  assert(ts >= 0);
   assert(acc != NULL);
   assert(gyr != NULL);
 
+  // Add IMU measurement to buffer
   imu_buffer_add(&tsf->imu_buf, ts, acc, gyr);
   tsf->imu_started = 1;
+
+  const timestamp_t ts_i = imu_buffer_first_ts(&tsf->imu_buf);
+  const timestamp_t ts_j = imu_buffer_last_ts(&tsf->imu_buf);
+  const real_t dt = ts2sec(ts_j - ts_i);
+  if (dt > 0.5) {
+    pose_setup(&tsf->pose_i, ts_i, tsf->pose_init);
+    pose_setup(&tsf->pose_j, ts_j, tsf->pose_init);
+    velocity_setup(&tsf->vel_i, ts_i, tsf->vel_init);
+    velocity_setup(&tsf->vel_j, ts_j, tsf->vel_init);
+    imu_biases_setup(&tsf->biases_i, ts_i, tsf->ba_init, tsf->bg_init);
+    imu_biases_setup(&tsf->biases_j, ts_j, tsf->ba_init, tsf->bg_init);
+  }
 }
 
 static void tsf_extract_stereo_keypoints(const size_t *fids0,
@@ -19843,7 +19865,7 @@ static void tsf_extract_stereo_keypoints(const size_t *fids0,
 }
 
 /**
- * Add camera event.
+ * TSF handle camera event.
  */
 void tsf_camera_event(tsf_t *tsf,
                       const timestamp_t ts,
@@ -19885,18 +19907,22 @@ void tsf_camera_event(tsf_t *tsf,
     // -- Setup projection matrices
     real_t P_i[3 * 4] = {0};
     real_t P_j[3 * 4] = {0};
+    POSE2TF(tsf->cam_exts[0].data, T_SC0);
+    POSE2TF(tsf->cam_exts[1].data, T_SC1);
+    TF_INV(T_SC0, T_C0S);
+    TF_CHAIN(T_C0C1, 2, T_C0S, T_SC1);
     // pinhole_projection_matrix(tsf->cam0_params.data, T_WC0, P_i);
     // pinhole_projection_matrix(tsf->cam1_params.data, T_WC1, P_j);
 
     // -- Triangulate features
-    const real_t *cam0_params = tsf->cam0_params.data;
-    const real_t *cam1_params = tsf->cam1_params.data;
+    const real_t *cam0_params = tsf->cam_params[0].data;
+    const real_t *cam1_params = tsf->cam_params[1].data;
     for (int i = 0; i < num_match_fids; i++) {
       // Undistort keypoints
       real_t z_i[2] = {0};
       real_t z_j[2] = {0};
-      tsf->cam0_params.undistort_func(cam0_params, &kps0[i * 2], z_i);
-      tsf->cam1_params.undistort_func(cam1_params, &kps1[i * 2], z_j);
+      tsf->cam_params[0].undistort_func(cam0_params, &kps0[i * 2], z_i);
+      tsf->cam_params[1].undistort_func(cam1_params, &kps1[i * 2], z_j);
 
       // Triangulate
       real_t p[3] = {0};
@@ -20353,9 +20379,9 @@ void tsf_update(tsf_t *tsf, const timestamp_t ts) {
     // tsf->num_factors_j = 0;
 
     // Poses
-    free(tsf->pose_i);
-    tsf->pose_i = tsf->pose_j;
-    tsf->pose_j = NULL;
+    // free(tsf->pose_i);
+    // tsf->pose_i = tsf->pose_j;
+    // tsf->pose_j = NULL;
   }
 
   // Increment frame index
@@ -21237,6 +21263,120 @@ sim_camera_circle_trajectory(const sim_circle_t *conf,
   }
 
   return data;
+}
+
+/////////////////////////
+// SIM CAMERA IMU DATA //
+/////////////////////////
+
+sim_circle_camera_imu_t *sim_circle_camera_imu() {
+  // Malloc
+  sim_circle_camera_imu_t *sim_data = MALLOC(sim_circle_camera_imu_t, 1);
+
+  // Simulate features
+  const real_t origin[3] = {0.0, 0.0, 0.0};
+  const real_t dim[3] = {5.0, 5.0, 5.0};
+  sim_data->num_features = 1000;
+  sim_create_features(origin,
+                      dim,
+                      sim_data->num_features,
+                      sim_data->feature_data);
+
+  // Camera configuration
+  const int res[2] = {640, 480};
+  const real_t fov = 90.0;
+  const real_t fx = pinhole_focal(res[0], fov);
+  const real_t fy = pinhole_focal(res[0], fov);
+  const real_t cx = res[0] / 2.0;
+  const real_t cy = res[1] / 2.0;
+  const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  camera_params_t *cam0_params = &sim_data->cam0_params;
+  camera_params_t *cam1_params = &sim_data->cam1_params;
+  camera_params_setup(cam0_params, 0, res, pmodel, dmodel, cam_vec);
+  camera_params_setup(cam1_params, 1, res, pmodel, dmodel, cam_vec);
+
+  // IMU-Camera0 extrinsic
+  const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const real_t cam0_ext_r[3] = {0.05, 0.0, 0.0};
+  const real_t cam1_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const real_t cam1_ext_r[3] = {-0.05, 0.0, 0.0};
+  TF_ER(cam0_ext_ypr, cam0_ext_r, T_SC0);
+  TF_ER(cam1_ext_ypr, cam1_ext_r, T_SC1);
+  tf_vector(T_SC0, sim_data->cam0_ext);
+  tf_vector(T_SC1, sim_data->cam1_ext);
+
+  // IMU extrinsic
+  TF_IDENTITY(T_BS);
+  tf_vector(T_BS, sim_data->imu0_ext);
+
+  // Simulate data
+  sim_circle_defaults(&sim_data->conf);
+  sim_data->imu_data = sim_imu_circle_trajectory(&sim_data->conf);
+  sim_data->cam0_data = sim_camera_circle_trajectory(&sim_data->conf,
+                                                     T_SC0,
+                                                     &sim_data->cam0_params,
+                                                     sim_data->feature_data,
+                                                     sim_data->num_features);
+  sim_data->cam1_data = sim_camera_circle_trajectory(&sim_data->conf,
+                                                     T_SC1,
+                                                     &sim_data->cam1_params,
+                                                     sim_data->feature_data,
+                                                     sim_data->num_features);
+
+  // Form timeline
+  const int num_event_types = 1;
+  timeline_event_t **events = MALLOC(timeline_event_t *, num_event_types);
+  timestamp_t **events_timestamps = MALLOC(timestamp_t *, num_event_types);
+  int *events_lengths = CALLOC(int, num_event_types);
+  int *events_types = CALLOC(int, num_event_types);
+  int type_idx = 0;
+
+  // -- IMU data to timeline
+  const size_t num_imu_events = sim_data->imu_data->num_measurements;
+  timeline_event_t *imu_events = MALLOC(timeline_event_t, num_imu_events);
+  for (size_t k = 0; k < sim_data->imu_data->num_measurements; k++) {
+    imu_events[k].type = IMU_EVENT;
+    imu_events[k].ts = sim_data->imu_data->timestamps[k];
+    imu_events[k].data.imu.ts = sim_data->imu_data->timestamps[k];
+    imu_events[k].data.imu.acc[0] = sim_data->imu_data->imu_acc[k * 3 + 0];
+    imu_events[k].data.imu.acc[1] = sim_data->imu_data->imu_acc[k * 3 + 1];
+    imu_events[k].data.imu.acc[2] = sim_data->imu_data->imu_acc[k * 3 + 2];
+    imu_events[k].data.imu.gyr[0] = sim_data->imu_data->imu_gyr[k * 3 + 0];
+    imu_events[k].data.imu.gyr[1] = sim_data->imu_data->imu_gyr[k * 3 + 1];
+    imu_events[k].data.imu.gyr[2] = sim_data->imu_data->imu_gyr[k * 3 + 2];
+  }
+  events[type_idx] = imu_events;
+  events_timestamps[type_idx] = CALLOC(timestamp_t, num_imu_events);
+  for (int k = 0; k < num_imu_events; k++) {
+    events_timestamps[type_idx][k] = events[type_idx][k].ts;
+  }
+  events_lengths[type_idx] = num_imu_events;
+  events_types[type_idx] = IMU_EVENT;
+  type_idx++;
+
+  // -- Add to timeline
+  sim_data->timeline = timeline_malloc();
+  sim_data->timeline->num_imus = 1;
+  sim_data->timeline->num_event_types = num_event_types;
+  sim_data->timeline->events = events;
+  sim_data->timeline->events_timestamps = events_timestamps;
+  sim_data->timeline->events_lengths = events_lengths;
+  sim_data->timeline->events_types = events_types;
+
+  // -- Form timeline
+  timeline_form_timeline(sim_data->timeline);
+
+  return sim_data;
+}
+
+void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
+  sim_imu_data_free(sim_data->imu_data);
+  sim_camera_data_free(sim_data->cam0_data);
+  sim_camera_data_free(sim_data->cam1_data);
+  timeline_free(sim_data->timeline);
+  free(sim_data);
 }
 
 /////////////////////

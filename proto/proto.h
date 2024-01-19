@@ -1677,6 +1677,7 @@ typedef struct pose_t {
   real_t data[7];
 } pose_t;
 
+void pose_init(real_t *pose);
 void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
 void pose_copy(const pose_t *src, pose_t *dst);
 void pose_fprint(const char *prefix, const pose_t *pose, FILE *f);
@@ -2256,7 +2257,8 @@ void imu_buffer_add(imu_buffer_t *imu_buf,
                     const timestamp_t ts,
                     const real_t acc[3],
                     const real_t gyr[3]);
-timestamp_t imu_buffer_last_timestamp(const imu_buffer_t *imu_buf);
+timestamp_t imu_buffer_first_ts(const imu_buffer_t *imu_buf);
+timestamp_t imu_buffer_last_ts(const imu_buffer_t *imu_buf);
 void imu_buffer_clear(imu_buffer_t *imu_buf);
 void imu_buffer_copy(const imu_buffer_t *from, imu_buffer_t *to);
 void imu_buffer_print(const imu_buffer_t *imu_buf);
@@ -3433,41 +3435,40 @@ typedef struct tsf_t {
   time_delay_t *time_delay;
 
   // Vision
-  int cams_ok[2];
-  camera_params_t cam0_params;
-  camera_params_t cam1_params;
-  extrinsic_t cam1_ext;
-  extrinsic_t cam0_ext;
+  camera_params_t *cam_params;
+  extrinsic_t *cam_exts;
   tsf_frameset_t fs_km1;
   tsf_frameset_t fs_k;
   feature_map_t *feature_map;
 
   // Factors
-  int num_factors_i;
-  int num_factors_j;
   imu_factor_t *imu_factor;
   marg_factor_t *marg;
 
   // State
+  real_t pose_init[7];
+  real_t vel_init[3];
+  real_t ba_init[3];
+  real_t bg_init[3];
   timestamp_t ts_i;
   timestamp_t ts_j;
-  pose_t *pose_i;
-  pose_t *pose_j;
-  velocity_t *vel_i;
-  velocity_t *vel_j;
-  imu_biases_t *biases_i;
-  imu_biases_t *biases_j;
+  pose_t pose_i;
+  pose_t pose_j;
+  velocity_t vel_i;
+  velocity_t vel_j;
+  imu_biases_t biases_i;
+  imu_biases_t biases_j;
 } tsf_t;
 
 void tsf_frameset_setup(tsf_frameset_t *fs);
 void tsf_frameset_reset(tsf_frameset_t *fs);
 
-void tsf_setup();
 tsf_t *tsf_malloc();
 void tsf_free(tsf_t *tsf);
 void tsf_print(const tsf_t *tsif);
 
-void tsf_set_camera(tsf_t *tsif,
+void tsf_set_initial_pose(tsf_t *tsif, real_t pose[7]);
+void tsf_add_camera(tsf_t *tsif,
                     const int cam_idx,
                     const int cam_res[2],
                     const char *proj_model,
@@ -3483,10 +3484,10 @@ void tsf_add_imu(tsf_t *tsf,
                  const real_t g,
                  const real_t *imu_ext);
 
-void tsf_add_imu_event(tsf_t *tsf,
-                       const timestamp_t ts,
-                       const real_t acc[3],
-                       const real_t gyr[3]);
+void tsf_imu_event(tsf_t *tsf,
+                   const timestamp_t ts,
+                   const real_t acc[3],
+                   const real_t gyr[3]);
 void tsf_camera_event(tsf_t *tsf,
                       const timestamp_t ts,
                       const size_t *cam0_fids,
@@ -3647,6 +3648,32 @@ sim_camera_circle_trajectory(const sim_circle_t *conf,
                              const camera_params_t *cam_params,
                              const real_t *features,
                              const int num_features);
+
+/////////////////////////
+// SIM CAMERA IMU DATA //
+/////////////////////////
+
+/** Sim Circle Camera-IMU Data **/
+typedef struct sim_circle_camera_imu_t {
+  sim_circle_t conf;
+  sim_imu_data_t *imu_data;
+  sim_camera_data_t *cam0_data;
+  sim_camera_data_t *cam1_data;
+
+  real_t feature_data[3 * 1000];
+  int num_features;
+
+  camera_params_t cam0_params;
+  camera_params_t cam1_params;
+  real_t cam0_ext[7];
+  real_t cam1_ext[7];
+  real_t imu0_ext[7];
+
+  timeline_t *timeline;
+} sim_circle_camera_imu_t;
+
+sim_circle_camera_imu_t *sim_circle_camera_imu();
+void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data);
 
 /////////////////////
 // SIM GIMBAL DATA //
