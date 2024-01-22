@@ -647,6 +647,13 @@ module encoder_magnet_holder_GM4008() {
   }
 }
 
+module S500_arm() {
+  color([0.3, 0.3, 0.3])
+  rotate([90, 0, 0])
+    translate([3.5, 0, 0])
+      import("../../proto_parts/S500/S500_Arm.STL");
+}
+
 module fcu_frame(show_fcu=0) {
   if (show_fcu) {
     translate([0.0, 0.0, fcu_standoff_h])
@@ -1506,6 +1513,116 @@ module intel_realsense_frame(show_camera=0) {
   }
 }
 
+module intel_realsense_frame2(show_camera=0) {
+  frame_thickness = 6;
+  frame_w = 95;
+  frame_d = 20;
+
+  mount_w = 30;
+  mount_d = 6;
+  mount_hole_w = 12;
+
+  module_w = 64.7 + 6;
+  processor_w = 72.0;
+  rs_offset = 11;
+
+  // Show camera
+  if (show_camera) {
+    // D430 Depth Module
+    translate([0, -frame_w / 2 + module_w / 2 + rs_offset, frame_thickness])
+      intel_D430_depth_module();
+
+    // D4 Vision Processor
+    translate([0, -frame_w / 2 + processor_w / 2 + 10 + rs_offset, 0])
+      rotate([0, -180, 0])
+        intel_D4_vision_processor();
+  }
+
+
+  difference() {
+    union() {
+      // Frame body
+      translate([0, 0, frame_thickness / 2])
+        cube([frame_d, frame_w, frame_thickness], center=true);
+
+      // Mount cylinders
+      rotate([0, 90, 0])
+        translate([-frame_thickness / 2, frame_w / 2, 0])
+          cylinder(r=M3_SCREW_W, h=frame_d, center=true);
+      rotate([0, 90, 0])
+        translate([-frame_thickness / 2, -frame_w / 2, 0])
+          cylinder(r=M3_SCREW_W, h=frame_d, center=true);
+    }
+
+    // D430 depth module mount holes
+    translate([0, -frame_w / 2 + module_w / 2 + rs_offset, frame_thickness - 1]) {
+      module_w = 64.7;
+      lip_w = 3.0;
+      lip_d = 6.0;
+      lip_h = 1.0;
+      lip_screw_d = 1.8 - 0.1;
+      lip_screw_h = 4.0;
+
+      // Left lip hole
+      translate([0, module_w/ 2 + 1.8, lip_h - lip_screw_h / 2])
+        cylinder(h=lip_screw_h + 0.1, r=lip_screw_d / 2, center=true);
+
+      // Right lip hole
+      translate([0, -module_w/ 2 - lip_screw_d / 2 - 1, lip_h - lip_screw_h / 2])
+        cylinder(h=lip_screw_h + 0.1, r=lip_screw_d / 2, center=true);
+    }
+
+    // D4 vision processor mount holes
+    translate([0.5, -frame_w / 2 + processor_w / 2 + 10 + rs_offset, 0])
+    rotate([0, -180, 0])
+    {
+      pcb_w = 72.0;
+      pcb_d = 16.0;
+      pcb_h = 1;
+
+      usbc_w = 9.0;
+      usbc_d = 8.0;
+      usbc_h = 3.5;
+
+      screw_w = M2_SCREW_W;
+
+      // // Hole 1
+      // hole1_offset_x = -pcb_d / 2 + 0.6;
+      // hole1_offset_y = pcb_w / 2 - 67.5;
+      // translate([hole1_offset_x, hole1_offset_y, -frame_thickness / 2])
+      //   cylinder(r=screw_w / 2, h=frame_thickness + 0.1, center=true);
+      // translate([hole1_offset_x, hole1_offset_y, -frame_thickness + M2_NUT_H / 2])
+      //   cylinder(r=M2_NUT_W / 2, h=M2_NUT_H + 0.1, center=true, $fn=6);
+
+      // Hole 2
+      hole2_offset_x = -pcb_d / 2 + 1.5;
+      hole2_offset_y = pcb_w / 2 - 4.5;
+      translate([hole2_offset_x, hole2_offset_y, -frame_thickness / 2])
+        cylinder(r=screw_w / 2, h=frame_thickness + 0.1, center=true);
+      translate([hole2_offset_x, hole2_offset_y, -frame_thickness + M2_NUT_H / 2])
+        cylinder(r=M2_NUT_W / 2, h=M2_NUT_H + 0.1, center=true, $fn=6);
+
+      // Hole 3
+      hole3_offset_x = pcb_d / 2;
+      hole3_offset_y = pcb_w / 2 - 62;
+      translate([hole3_offset_x, hole3_offset_y, -frame_thickness / 2])
+        cylinder(r=screw_w / 2, h=frame_thickness + 0.1, center=true);
+      translate([hole3_offset_x, hole3_offset_y, -frame_thickness + M2_NUT_H / 2])
+        cylinder(r=M2_NUT_W / 2, h=M2_NUT_H + 0.1, center=true, $fn=6);
+    }
+
+    // Mount cylinders
+    {
+      rotate([0, 90, 0])
+        translate([-frame_thickness / 2, frame_w / 2, 0])
+          cylinder(r=M3_SCREW_W / 2, h=frame_d + 0.1, center=true);
+      rotate([0, 90, 0])
+        translate([-frame_thickness / 2, -frame_w / 2, 0])
+          cylinder(r=M3_SCREW_W / 2, h=frame_d + 0.1, center=true);
+    }
+  }
+}
+
 module oak_d_lite_frame(show_camera=0) {
   support_w = 90;
   support_d = 8;
@@ -2304,7 +2421,230 @@ module utility_frame(mount_w, mount_d, show_components=1) {
       }
     }
   }
+}
 
+module mav_top_plate(show_arms=0, show_nuc=1) {
+  thickness = 4;
+  wheelbase = 500;
+  plate_w = 120;
+  mount_w = 30;
+  mount_d = 30;
+
+  // MAV Arms
+  if (show_arms) {
+    for (i = [1:4]) {
+      rotate(45)
+        rotate(90 * i)
+          translate([-60, 0, 0])
+            S500_arm();
+    }
+  }
+
+  // Intel NUC
+  if (show_nuc) {
+    rotate([90.0, 0.0, 0.0])
+      import("../../proto_parts/Intel_NUC7i5DN/NUC7i5DN.STL");
+  }
+
+  // Main plate
+  difference() {
+    union() {
+      // Plate
+      // -- Outer support
+      for (i = [1:4]) {
+        rotate(90 * i)
+          translate([52, 0, thickness / 2])
+            cube([10, 69.3, thickness], center=true);
+      }
+      // -- Inner support
+      for (i = [1:4]) {
+        rotate(90 * i)
+          translate([25, 0, thickness / 2])
+            cube([10, 50, thickness], center=true);
+      }
+      // -- Spinal support
+      for (i = [0:1]) {
+        rotate(90 * i)
+        translate([0, 0, thickness / 2])
+          cube([10, 114, thickness], center=true);
+      }
+
+      for (i = [1:4]) {
+        rotate(45)
+        rotate(90 * i)
+        translate([-60, 0, 0]) {
+        // Mount top-left
+        translate([0, -mount_w / 2, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2 * 2, h=thickness, center=true);
+
+        // Mount top-right
+        translate([0, mount_w / 2, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2 * 2, h=thickness, center=true);
+
+        // Mount bottom
+        translate([mount_d, 0, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2 * 4, h=thickness, center=true);
+
+        // Mount supports
+        translate([0, 0, thickness / 2])
+          cube([thickness + 5, mount_w + 2, thickness], center=true);
+        translate([15, -8, thickness / 2])
+          rotate(-63)
+          cube([thickness + 4, 32, thickness], center=true);
+        translate([15, 8, thickness / 2])
+          rotate(63)
+          cube([thickness + 4, 32, thickness], center=true);
+        }
+      }
+    }
+
+    // Arm mount holes
+    for (i = [1:4]) {
+      rotate(45)
+      rotate(90 * i)
+      translate([-60, 0, 0]) {
+        // Hole top-left
+        translate([0, -mount_w / 2, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2, h=thickness + 0.1, center=true);
+
+        // Hole top-right
+        translate([0, mount_w / 2, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2, h=thickness + 0.1, center=true);
+
+        // Hole bottom
+        translate([mount_d, 0, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2, h=thickness + 0.1, center=true);
+      }
+    }
+
+    // Module mount holes
+    for (i = [0:3]) {
+      rotate(90 * i)
+        translate([25, 0, thickness / 2])
+        cylinder(r=M2_SCREW_W / 2, h=thickness + 0.1, center=true);
+    }
+  }
+}
+
+module mav_bottom_plate(show_arms=0) {
+  thickness = 4;
+  wheelbase = 500;
+  plate_w = 120;
+  mount_w = 20;
+  mount_d = 30;
+
+  // MAV Arms
+  if (show_arms) {
+    for (i = [1:4]) {
+      rotate(45)
+        rotate(90 * i)
+          translate([-60, 0, 19 + thickness])
+            S500_arm();
+    }
+  }
+
+  // Main plate
+  difference() {
+    union() {
+      // Plate
+      // -- Outer support
+      for (i = [1:4]) {
+        rotate(90 * i)
+          translate([52, 0, thickness / 2])
+            cube([10, 69.3, thickness], center=true);
+      }
+      // -- Inner support
+      for (i = [1:4]) {
+        rotate(90 * i)
+          translate([25, 0, thickness / 2])
+            cube([10, 50, thickness], center=true);
+      }
+      // -- Spinal support
+      for (i = [1:4]) {
+        rotate(90 * i)
+        translate([36, 0, thickness / 2])
+          cube([5, 36, thickness], center=true);
+
+        rotate(90 * i)
+        translate([45, 0, thickness / 2])
+          cube([6, 36, thickness], center=true);
+      }
+      translate([22, 0, thickness / 2])
+        cube([10, 114, thickness], center=true);
+      translate([-22, 0, thickness / 2])
+        cube([10, 114, thickness], center=true);
+      translate([0, 22, thickness / 2])
+        cube([114, 10, thickness], center=true);
+      translate([0, -22, thickness / 2])
+        cube([114, 10, thickness], center=true);
+
+      // Fill middle
+      translate([0, 0, thickness / 2])
+        cube([35, 35, thickness], center=true);
+
+      for (i = [1:4]) {
+        rotate(45)
+        rotate(90 * i)
+        translate([-60, 0, 0]) {
+        // Mount top-left
+        translate([0, -mount_w / 2, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2 * 2, h=thickness, center=true);
+
+        // Mount top-right
+        translate([0, mount_w / 2, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2 * 2, h=thickness, center=true);
+
+        // Mount bottom
+        translate([mount_d, 0, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2 * 4, h=thickness, center=true);
+
+        // Mount supports
+        translate([0, 0, thickness / 2])
+          cube([thickness + 5.5, mount_w + 12, thickness], center=true);
+        translate([15, -8, thickness / 2])
+          rotate(-63)
+          cube([thickness + 4, 32, thickness], center=true);
+        translate([15, 8, thickness / 2])
+          rotate(63)
+          cube([thickness + 4, 32, thickness], center=true);
+        }
+      }
+    }
+
+    // Arm mount holes
+    for (i = [1:4]) {
+      rotate(45)
+      rotate(90 * i)
+      translate([-60, 0, 0]) {
+        // Hole top-left
+        translate([0, -mount_w / 2, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2, h=thickness + 0.1, center=true);
+
+        // Hole top-right
+        translate([0, mount_w / 2, thickness / 2])
+          cylinder(r=M25_SCREW_W / 2, h=thickness + 0.1, center=true);
+
+        // // Hole bottom
+        // translate([mount_d, 0, thickness / 2])
+        //   cylinder(r=M25_SCREW_W / 2, h=thickness + 0.1, center=true);
+      }
+    }
+
+    // FPV stack mount holes
+    for (i = [1:4]) {
+      rotate(45)
+      rotate(90 * i)
+      translate([30.5 / 2, 0, thickness / 2])
+        cylinder(r=M3_SCREW_W / 2, h=thickness + 0.1, center=true);
+    }
+
+    // Module mount holes
+    for (i = [0:3]) {
+      rotate(90 * i)
+        translate([23.5, 0, thickness / 2])
+        cylinder(r=M3_SCREW_W / 2, h=thickness + 0.1, center=true);
+    }
+  }
 }
 
 
@@ -2387,6 +2727,7 @@ module perception_module_assembly() {
 // gimbal_imu();
 // encoder_magnet_holder_GM3506();
 // encoder_magnet_holder_GM4008();
+// S500_arm();
 
 // -- GIMBAL FRAMES
 // gimbal_frame(nuc_mount_w, nuc_mount_d, 0);
@@ -2397,9 +2738,12 @@ module perception_module_assembly() {
 
 // -- FRAMES
 // intel_realsense_frame(show_camera=1);
+// intel_realsense_frame2(show_camera=1);
 // oak_d_lite_frame(show_camera=1);
 // sbgc_frame(show_sbgc=0, show_usb_hub=0);
 // pcb_frame(nuc_mount_w, nuc_mount_d);
 // nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=0);
-base_frame(nuc_mount_w, nuc_mount_d, show_nuc=0);
+// base_frame(nuc_mount_w, nuc_mount_d, show_nuc=0);
 // utility_frame(nuc_mount_w, nuc_mount_d, show_components=0);
+// mav_top_plate(show_arms=1, show_nuc=0);
+mav_bottom_plate(show_arms=0);
