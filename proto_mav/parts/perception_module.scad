@@ -2644,6 +2644,13 @@ module mav_bottom_plate(show_arms=0) {
         translate([23.5, 0, thickness / 2])
         cylinder(r=M3_SCREW_W / 2, h=thickness + 0.1, center=true);
     }
+
+    // Cable rails
+    for (i = [0:3]) {
+      rotate(90 * i)
+        translate([53, 0, thickness / 2])
+        cube([2, 48, thickness + 0.1], center=true);
+    }
   }
 }
 
