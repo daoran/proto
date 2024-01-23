@@ -2578,6 +2578,24 @@ module mav_bottom_plate(show_arms=0) {
       translate([0, -22, thickness / 2])
         cube([114, 10, thickness], center=true);
 
+      for (i = [1:4]) {
+        rotate(45 + i * 90)
+        translate([49, 0, thickness / 2])
+        cylinder(r=12, h=thickness, center=true);
+      }
+
+      // for (i = [1:4]) {
+      //   rotate(45 + i * 90)
+      //   translate([60, 0, thickness / 2]) {
+      //     translate([-14, 6, 2]) {
+      //       cylinder(r=M25_SCREW_W * 0.8, h=thickness + 0.1, center=true);
+      //     }
+      //     translate([-14, -6, 2]) {
+      //       cylinder(r=M25_SCREW_W * 0.8, h=thickness + 0.1, center=true);
+      //     }
+      //   }
+      // }
+
       // Fill middle
       translate([0, 0, thickness / 2])
         cube([35, 35, thickness], center=true);
@@ -2631,12 +2649,14 @@ module mav_bottom_plate(show_arms=0) {
     }
 
     // FPV stack mount holes
-    for (i = [1:4]) {
-      rotate(45)
-      rotate(90 * i)
-      translate([30.5 / 2, 0, thickness / 2])
-        cylinder(r=M3_SCREW_W / 2, h=thickness + 0.1, center=true);
-    }
+    translate([30.5 / 2, 30.5 / 2, thickness / 2])
+      cylinder(r=M3_SCREW_W / 2, h=thickness + 0.1, center=true);
+    translate([30.5 / 2, -30.5 / 2, thickness / 2])
+      cylinder(r=M3_SCREW_W / 2, h=thickness + 0.1, center=true);
+    translate([-30.5 / 2, 30.5 / 2, thickness / 2])
+      cylinder(r=M3_SCREW_W / 2, h=thickness + 0.1, center=true);
+    translate([-30.5 / 2, -30.5 / 2, thickness / 2])
+      cylinder(r=M3_SCREW_W / 2, h=thickness + 0.1, center=true);
 
     // Module mount holes
     for (i = [0:3]) {
@@ -2650,6 +2670,26 @@ module mav_bottom_plate(show_arms=0) {
       rotate(90 * i)
         translate([53, 0, thickness / 2])
         cube([2, 48, thickness + 0.1], center=true);
+    }
+
+    // Landing leg hole
+    for (i = [1:4]) {
+      rotate(45 + i * 90)
+      translate([60, 0, thickness / 2]) {
+        translate([-14, 6, 0]) {
+          cylinder(r=M25_SCREW_W / 2, h=thickness + 0.1, center=true);
+        }
+        translate([-14, -6, 0]) {
+          cylinder(r=M25_SCREW_W / 2, h=thickness + 0.1, center=true);
+        }
+
+        // translate([-14, 6, thickness - 1]) {
+        //   cylinder(r=M25_SCREW_W / 2, h=2 + 0.2, center=true, $fn=6);
+        // }
+        // translate([-14, -6, thickness - 1]) {
+        //   cylinder(r=M25_SCREW_W / 2, h=2 + 0.2, center=true, $fn=6);
+        // }
+      }
     }
   }
 }
