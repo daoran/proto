@@ -654,6 +654,55 @@ module S500_arm() {
       import("../../proto_parts/S500/S500_Arm.STL");
 }
 
+module intel_nuc() {
+  translate([0, 0, -27.5])
+    rotate([90, 0, 0])
+      import("../../proto_parts/Intel_NUC7i5DN/NUC7i5DN.STL");
+}
+
+module pixracer() {
+  fmu_w = 36.0;
+  fmu_h = 10.0;
+
+  color([0.3, 0.3, 0.3])
+  translate([0, 0, fmu_h / 2])
+  difference() {
+    union() {
+      cube([fmu_w, fmu_w, fmu_h], center=true);
+    }
+
+    translate([30.5 / 2, 30.5 / 2, 0])
+      cylinder(r=3.2 / 2, h = fmu_h + 0.1, center=true);
+    translate([-30.5 / 2, 30.5 / 2, 0])
+      cylinder(r=3.2 / 2, h = fmu_h + 0.1, center=true);
+    translate([-30.5 / 2, -30.5 / 2, 0])
+      cylinder(r=3.2 / 2, h = fmu_h + 0.1, center=true);
+    translate([30.5 / 2, -30.5 / 2, 0])
+      cylinder(r=3.2 / 2, h = fmu_h + 0.1, center=true);
+  }
+}
+
+module f450_top_plate() {
+  translate([0, 0, 0.3])
+    rotate([90, 0, 0])
+      scale(25)
+        import("../../proto_parts/DJI-F450/Top_Plate.STL");
+}
+
+module f450_bottom_plate() {
+  translate([0, 0, 0.3])
+    rotate([90, 0, 0])
+      scale(25.3)
+        import("../../proto_parts/DJI-F450/Bottom_Plate.STL");
+}
+
+module f450_arm() {
+  rotate([90, 0, 180])
+    scale(26)
+      translate([-8, 0, -1.125])
+      import("../../proto_parts/DJI-F450/Arm.STL");
+}
+
 module fcu_frame(show_fcu=0) {
   if (show_fcu) {
     translate([0.0, 0.0, fcu_standoff_h])
@@ -2694,6 +2743,68 @@ module mav_bottom_plate(show_arms=0) {
   }
 }
 
+module f450_fmu_frame(show_fmu=0) {
+  standoff_w = 6.0;
+  standoff_h = 4.0;
+  support_w = 4.0;
+  support_h = 4.0;
+
+  // Pixracer
+  if (show_fmu) {
+    translate([0, 0,  support_h])
+      pixracer();
+  }
+
+  difference() {
+    union() {
+      // FMU frame
+      {
+        screw_w = M25_SCREW_W;
+        nut_w = M25_NUT_W;
+        nut_h = M25_NUT_H;
+        frame(30.5, 30.5, screw_w, nut_w, nut_h,
+              standoff_w + 1, standoff_h,
+              support_w, support_h,
+              nut_cst=0, nut_csb=0,
+              disable=[]);
+      }
+
+      // Support
+      {
+        translate([0, 30.5 / 2 + 4, support_h / 2])
+          cube([27, 4, support_h], center=true);
+        translate([0, -1 * (30.5 / 2 + 4), support_h / 2])
+          cube([27, 4, support_h], center=true);
+      }
+
+      // Top plate frame
+      {
+        w = 63;
+        d = 39.3;
+        standoff_w = 6.0;
+        standoff_h = 4.0;
+        support_w = 4.0;
+        support_h = 4.0;
+        frame(w, d,
+              M25_SCREW_W, M25_NUT_W, M25_NUT_H,
+              standoff_w, standoff_h,
+              support_w, support_h,
+              nut_cst=0, nut_csb=0,
+              disable=[]);
+      }
+    }
+
+    translate([30.5 / 2, 30.5 / 2, 1 - 0.1])
+      cylinder(r=2.5, h=2, center=true);
+    translate([-30.5 / 2, 30.5 / 2, 1 - 0.1])
+      cylinder(r=2.5, h=2, center=true);
+    translate([30.5 / 2, -30.5 / 2, 1 - 0.1])
+      cylinder(r=2.5, h=2, center=true);
+    translate([-30.5 / 2, -30.5 / 2, 1 - 0.1])
+      cylinder(r=2.5, h=2, center=true);
+  }
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 // ASSEMBLY                                                                //
@@ -2775,6 +2886,10 @@ module perception_module_assembly() {
 // encoder_magnet_holder_GM3506();
 // encoder_magnet_holder_GM4008();
 // S500_arm();
+// intel_nuc();
+// f450_top_plate();
+// f450_bottom_plate();
+// f450_arm();
 
 // -- GIMBAL FRAMES
 // gimbal_frame(nuc_mount_w, nuc_mount_d, 0);
@@ -2793,4 +2908,117 @@ module perception_module_assembly() {
 // base_frame(nuc_mount_w, nuc_mount_d, show_nuc=0);
 // utility_frame(nuc_mount_w, nuc_mount_d, show_components=0);
 // mav_top_plate(show_arms=1, show_nuc=0);
-mav_bottom_plate(show_arms=0);
+// mav_bottom_plate(show_arms=0);
+// f450_fmu_frame();
+
+
+module f450_nuc_frame(show_nuc=0) {
+  standoff_w = 9;
+  standoff_h = 5;
+  support_w = 6;
+  support_h = 5;
+  recess_h = 10;
+
+  if (show_nuc) {
+    translate([0, 0, 15])
+      intel_nuc();
+  }
+
+  difference() {
+    union() {
+      // NUC frame
+      frame(nuc_mount_w, nuc_mount_d,
+        M3_SCREW_W, M3_NUT_W, M3_NUT_H,
+        standoff_w + 1, standoff_h,
+        support_w + 1, support_h);
+
+      // Mount frame
+      frame(63, 93,
+        M2_SCREW_W, M2_NUT_W, M2_NUT_H,
+        standoff_w, standoff_h,
+        support_w, support_h);
+
+      // Support frame
+      frame_support_h = 25;
+      translate([63 / 2, 93 / 2, standoff_h / 2 - frame_support_h / 2])
+       cylinder(r=standoff_w / 2, h=frame_support_h + standoff_h + 0.1, center=true);
+      translate([-63 / 2, 93 / 2, standoff_h / 2 - frame_support_h / 2])
+       cylinder(r=standoff_w / 2, h=frame_support_h + standoff_h + 0.1, center=true);
+      translate([63 / 2, -93 / 2, standoff_h / 2 - frame_support_h / 2])
+       cylinder(r=standoff_w / 2, h=frame_support_h + standoff_h + 0.1, center=true);
+      translate([-63 / 2, -93 / 2, standoff_h / 2 - frame_support_h / 2])
+        cylinder(r=standoff_w / 2, h=frame_support_h + standoff_h + 0.1, center=true);
+    }
+
+    translate([63 / 2, 93 / 2, -recess_h / 2 + 0.1])
+     cylinder(r=3, h=recess_h, center=true);
+    translate([-63 / 2, 93 / 2, -recess_h / 2 + 0.1])
+     cylinder(r=3, h=recess_h, center=true);
+    translate([63 / 2, -93 / 2, -recess_h / 2 + 0.1])
+     cylinder(r=3, h=recess_h, center=true);
+    translate([-63 / 2, -93 / 2, -recess_h / 2 + 0.1])
+      cylinder(r=3, h=recess_h, center=true);
+
+    translate([63 / 2, 93 / 2, recess_h / 2])
+     cylinder(r=3, h=recess_h, center=true);
+    translate([-63 / 2, 93 / 2, recess_h / 2])
+     cylinder(r=3, h=recess_h, center=true);
+    translate([63 / 2, -93 / 2, recess_h / 2])
+     cylinder(r=3, h=recess_h, center=true);
+    translate([-63 / 2, -93 / 2, recess_h / 2])
+      cylinder(r=3, h=recess_h, center=true);
+
+    translate([63 / 2, 93 / 2, recess_h / 2])
+     cylinder(r=M3_SCREW_W / 2, h=100, center=true);
+    translate([-63 / 2, 93 / 2, recess_h / 2])
+     cylinder(r=M3_SCREW_W / 2, h=100, center=true);
+    translate([63 / 2, -93 / 2, recess_h / 2])
+     cylinder(r=M3_SCREW_W / 2, h=100, center=true);
+    translate([-63 / 2, -93 / 2, recess_h / 2])
+      cylinder(r=M3_SCREW_W / 2, h=100, center=true);
+  }
+}
+
+// Arms
+{
+  color([1.0, 1.0, 1.0])
+    rotate(45)
+      translate([43, 0, 0])
+        f450_arm();
+  color([1.0, 1.0, 1.0])
+    rotate(-45)
+      translate([43, 0, 0])
+        f450_arm();
+
+  color([1.0, 0.0, 0.0])
+    rotate(135)
+      translate([43, 0, 0])
+        f450_arm();
+  color([1.0, 0.0, 0.0])
+    rotate(-135)
+      translate([43, 0, 0])
+        f450_arm();
+}
+
+// Top plate
+{
+  color([0.2, 0.2, 0.2])
+    translate([0, 0, 55])
+      f450_top_plate();
+}
+
+// Bottom plate
+{
+  color([0.2, 0.2, 0.2])
+    translate([0, 0, 17])
+      f450_bottom_plate();
+}
+
+// FMU frame
+translate([0, 0, 55])
+  f450_fmu_frame(1);
+
+// NUC frame
+rotate(90)
+  translate([0, 0, 55 + 26])
+    f450_nuc_frame(1);
