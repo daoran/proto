@@ -12,8 +12,7 @@
   ignore = dirty
 [submodule "proto_parts"]
 	path = proto_parts
-	url = https://github.com/chutsu/proto_parts
-  ignore = dirty
+	url = git@github.com:chutsu/proto_parts.git
 [submodule "third_party/src/SuiteSparse"]
 	path = third_party/src/SuiteSparse
 	url = https://github.com/DrTimothyAldenDavis/SuiteSparse/
