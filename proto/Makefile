@@ -167,7 +167,7 @@ avs: $(BLD_DIR)/libproto.a
 		-fsanitize=address -static-libasan \
 		-fopenmp \
 		-I$(DEPS_DIR)/include \
-		-I./ \
+		-I/usr/include/eigen3 \
 		$(shell pkg-config opencv4 --cflags) \
 		avs.cpp \
 		-o $(BLD_DIR)/avs \
