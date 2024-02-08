@@ -2842,31 +2842,31 @@ module f450_nuc_frame(show_nuc=1) {
         support_w + 1, support_h);
 
       // Mount frame
-      frame(63, 93,
+      frame(63, 96,
         M2_SCREW_W, M2_NUT_W, M2_NUT_H,
         standoff_w, standoff_h,
         support_w, support_h);
 
       // Support frame
       frame_support_h = 25 - 8;
-      translate([63 / 2, 93 / 2, standoff_h / 2 - frame_support_h / 2])
+      translate([63 / 2, 96 / 2, standoff_h / 2 - frame_support_h / 2])
        cylinder(r=standoff_w / 2, h=frame_support_h + standoff_h + 0.1, center=true);
-      translate([-63 / 2, 93 / 2, standoff_h / 2 - frame_support_h / 2])
+      translate([-63 / 2, 96 / 2, standoff_h / 2 - frame_support_h / 2])
        cylinder(r=standoff_w / 2, h=frame_support_h + standoff_h + 0.1, center=true);
-      translate([63 / 2, -93 / 2, standoff_h / 2 - frame_support_h / 2])
+      translate([63 / 2, -96 / 2, standoff_h / 2 - frame_support_h / 2])
        cylinder(r=standoff_w / 2, h=frame_support_h + standoff_h + 0.1, center=true);
-      translate([-63 / 2, -93 / 2, standoff_h / 2 - frame_support_h / 2])
+      translate([-63 / 2, -96 / 2, standoff_h / 2 - frame_support_h / 2])
         cylinder(r=standoff_w / 2, h=frame_support_h + standoff_h + 0.1, center=true);
 
       // NUC support
       translate([nuc_mount_w / 2, nuc_mount_d / 2, nuc_support_h / 2])
-       cylinder(r=standoff_w / 2, h=nuc_support_h, center=true);
+       cylinder(r=standoff_w / 2 - 1.5, h=nuc_support_h, center=true);
       translate([-nuc_mount_w / 2, nuc_mount_d / 2, nuc_support_h / 2])
-       cylinder(r=standoff_w / 2, h=nuc_support_h, center=true);
+       cylinder(r=standoff_w / 2 - 1.5, h=nuc_support_h, center=true);
       translate([nuc_mount_w / 2, -nuc_mount_d / 2, nuc_support_h / 2])
-       cylinder(r=standoff_w / 2, h=nuc_support_h, center=true);
+       cylinder(r=standoff_w / 2 - 1.5, h=nuc_support_h, center=true);
       translate([-nuc_mount_w / 2, -nuc_mount_d / 2, nuc_support_h / 2])
-       cylinder(r=standoff_w / 2, h=nuc_support_h, center=true);
+       cylinder(r=standoff_w / 2 - 1.5, h=nuc_support_h, center=true);
     }
 
     // NUC mount holes
@@ -2889,32 +2889,32 @@ module f450_nuc_frame(show_nuc=1) {
      cylinder(r=M3_NUT_W / 2, h=M3_NUT_H + 01, center=true, $fn=6);
 
     // Mount holes
-    translate([63 / 2, 93 / 2, -recess_h / 2 + 0.1])
+    translate([63 / 2, 96 / 2, -recess_h / 2 + 0.1])
      cylinder(r=3, h=recess_h, center=true);
-    translate([-63 / 2, 93 / 2, -recess_h / 2 + 0.1])
+    translate([-63 / 2, 96 / 2, -recess_h / 2 + 0.1])
      cylinder(r=3, h=recess_h, center=true);
-    translate([63 / 2, -93 / 2, -recess_h / 2 + 0.1])
+    translate([63 / 2, -96 / 2, -recess_h / 2 + 0.1])
      cylinder(r=3, h=recess_h, center=true);
-    translate([-63 / 2, -93 / 2, -recess_h / 2 + 0.1])
+    translate([-63 / 2, -96 / 2, -recess_h / 2 + 0.1])
       cylinder(r=3, h=recess_h, center=true);
 
-    translate([63 / 2, 93 / 2, recess_h / 2])
+    translate([63 / 2, 96 / 2, recess_h / 2])
      cylinder(r=M3_SCREW_W / 2, h=100, center=true);
-    translate([-63 / 2, 93 / 2, recess_h / 2])
+    translate([-63 / 2, 96 / 2, recess_h / 2])
      cylinder(r=M3_SCREW_W / 2, h=100, center=true);
-    translate([63 / 2, -93 / 2, recess_h / 2])
+    translate([63 / 2, -96 / 2, recess_h / 2])
      cylinder(r=M3_SCREW_W / 2, h=100, center=true);
-    translate([-63 / 2, -93 / 2, recess_h / 2])
+    translate([-63 / 2, -96 / 2, recess_h / 2])
       cylinder(r=M3_SCREW_W / 2, h=100, center=true);
 
     // Mount recess holes
-    translate([63 / 2, 93 / 2, recess_h / 2])
+    translate([63 / 2, 96 / 2, recess_h / 2])
      cylinder(r=3, h=recess_h, center=true);
-    translate([-63 / 2, 93 / 2, recess_h / 2])
+    translate([-63 / 2, 96 / 2, recess_h / 2])
      cylinder(r=3, h=recess_h, center=true);
-    translate([63 / 2, -93 / 2, recess_h / 2])
+    translate([63 / 2, -96 / 2, recess_h / 2])
      cylinder(r=3, h=recess_h, center=true);
-    translate([-63 / 2, -93 / 2, recess_h / 2])
+    translate([-63 / 2, -96 / 2, recess_h / 2])
       cylinder(r=3, h=recess_h, center=true);
   }
 }
