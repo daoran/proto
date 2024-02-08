@@ -3390,8 +3390,8 @@ int relpose_estimator(const int num_cams,
                       const real_t **kps,
                       const int *num_kps,
                       const feature_map_t *feature_map,
-                      const real_t T_WC0_km1[4 * 4],
-                      real_t T_WC0_k[4 * 4]);
+                      const real_t T_WB_km1[4 * 4],
+                      real_t T_WB_k[4 * 4]);
 
 ////////////////////////////
 // TWO-STATE FILTER (TSF) //

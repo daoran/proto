@@ -19554,6 +19554,22 @@ void inertial_odometry_linearize_compact(const void *data,
   }
 }
 
+/////////////////////////////
+// RELATIVE POSE ESTIMATOR //
+/////////////////////////////
+
+int relpose_estimator(const int num_cams,
+                      const camera_params_t **cam_params,
+                      const real_t **cam_exts,
+                      const size_t **fids,
+                      const real_t **kps,
+                      const int *num_kps,
+                      const feature_map_t *feature_map,
+                      const real_t T_WB_km1[4 * 4],
+                      real_t T_WB_k[4 * 4]) {
+  return 0;
+}
+
 ////////////////////////////
 // TWO-STATE FILTER (TSF) //
 ////////////////////////////
