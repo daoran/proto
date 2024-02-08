@@ -747,513 +747,6 @@ struct FeatureInfo {
  * STATE-ESTIMATION
  *****************************************************************************/
 
-/* Pose */
-struct Pose {
-  timestamp_t ts = 0;
-  real_t data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-
-  Pose() = default;
-
-  Pose(const timestamp_t ts_, const real_t T_WB[4 * 4]) : ts{ts_} {
-    TF_VECTOR(T_WB, pose_vector);
-    for (int i = 0; i < 7; i++) {
-      data[i] = pose_vector[i];
-    }
-  }
-
-  virtual ~Pose() = default;
-};
-
-/* Camera Intrinsic */
-struct CameraIntrinsic {
-  int id = -1;
-  int resolution[2] = {0};
-  std::string proj_model;
-  std::string dist_model;
-  real_t data[8] = {0};
-
-  CameraIntrinsic() = default;
-
-  CameraIntrinsic(const int id_,
-                  const int resolution_[2],
-                  const std::string &proj_model_,
-                  const std::string &dist_model_,
-                  const real_t data_[8])
-      : id{id_}, proj_model{proj_model_}, dist_model{dist_model_} {
-    for (int i = 0; i < 8; i++) {
-      data[i] = data_[i];
-    }
-  }
-
-  virtual ~CameraIntrinsic() = default;
-};
-
-/* Camera Extrinsic */
-struct CameraExtrinsic {
-  int id = -1;
-  real_t data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-
-  CameraExtrinsic() = default;
-
-  CameraExtrinsic(const int id_, const real_t data_[7]) : id{id_} {
-    for (int i = 0; i < 7; i++) {
-      data[i] = data_[i];
-    }
-  }
-
-  virtual ~CameraExtrinsic() = default;
-};
-
-/* Feature */
-struct Feature {
-  size_t id = 0;
-  real_t data[3] = {0};
-
-  Feature() = default;
-
-  Feature(const size_t id_, const cv::Point3d &point_) : id{id_} {
-    data[0] = point_.x;
-    data[1] = point_.y;
-    data[2] = point_.z;
-  }
-
-  Feature(const size_t id_, const real_t point_[3]) : id{id_} {
-    data[0] = point_[0];
-    data[1] = point_[1];
-    data[2] = point_[2];
-  }
-
-  virtual ~Feature() = default;
-};
-
-/**
- * Pose local parameterization
- */
-struct PoseLocalParameterization : public ceres::LocalParameterization {
-  virtual bool Plus(const double *x,
-                    const double *dx,
-                    double *x_plus_dx) const {
-    x_plus_dx[0] = x[0] + dx[0];
-    x_plus_dx[1] = x[1] + dx[1];
-    x_plus_dx[2] = x[2] + dx[2];
-
-    double dq[4] = {0};
-    quat_delta(dx + 3, dq);
-    quat_mul(x + 3, dq, x_plus_dx + 3);
-    quat_normalize(x_plus_dx + 3);
-
-    return true;
-  }
-
-  virtual bool ComputeJacobian(const double *x, double *J) const {
-    // clang-format off
-    J[0]  = 1; J[1]  = 0; J[2]  = 0;  J[3] = 0; J[4]  = 0; J[5]  = 0;
-    J[6]  = 0; J[7]  = 1; J[8]  = 0;  J[9] = 0; J[10] = 0; J[11] = 0;
-    J[12] = 0; J[13] = 0; J[14] = 1; J[15] = 0; J[16] = 0; J[17] = 0;
-    J[18] = 0; J[19] = 0; J[20] = 0; J[21] = 1; J[22] = 0; J[23] = 0;
-    J[24] = 0; J[25] = 0; J[26] = 0; J[27] = 0; J[28] = 1; J[29] = 0;
-    J[30] = 0; J[31] = 0; J[32] = 0; J[33] = 0; J[34] = 0; J[35] = 1;
-    J[36] = 0; J[37] = 0; J[38] = 0; J[39] = 0; J[40] = 0; J[41] = 0;
-    // clang-format on
-    return true;
-  }
-
-  virtual int GlobalSize() const {
-    return 7;
-  }
-
-  virtual int LocalSize() const {
-    return 6;
-  }
-
-  /**
-   * Form delta quaternion `dq` from a small rotation vector `dalpha`.
-   */
-  static void quat_delta(const double dalpha[3], double dq[4]) {
-    assert(dalpha != NULL);
-    assert(dq != NULL);
-
-    const double half_norm = 0.5 * vec_norm(dalpha, 3);
-    const double k = sinc(half_norm) * 0.5;
-    const double vector[3] = {k * dalpha[0], k * dalpha[1], k * dalpha[2]};
-    double scalar = cos(half_norm);
-
-    dq[0] = scalar;
-    dq[1] = vector[0];
-    dq[2] = vector[1];
-    dq[3] = vector[2];
-  }
-
-  /**
-   * Quaternion left-multiply `p` with `q`, results are outputted to `r`.
-   */
-  static void quat_lmul(const double p[4], const double q[4], double r[4]) {
-    assert(p != NULL);
-    assert(q != NULL);
-    assert(r != NULL);
-
-    const double pw = p[0];
-    const double px = p[1];
-    const double py = p[2];
-    const double pz = p[3];
-
-    r[0] = pw * q[0] - px * q[1] - py * q[2] - pz * q[3];
-    r[1] = px * q[0] + pw * q[1] - pz * q[2] + py * q[3];
-    r[2] = py * q[0] + pz * q[1] + pw * q[2] - px * q[3];
-    r[3] = pz * q[0] - py * q[1] + px * q[2] + pw * q[3];
-  }
-
-  /**
-   * Quaternion multiply `p` with `q`, results are outputted to `r`.
-   */
-  static void quat_mul(const double p[4], const double q[4], double r[4]) {
-    assert(p != NULL);
-    assert(q != NULL);
-    assert(r != NULL);
-    quat_lmul(p, q, r);
-  }
-
-  /**
-   * Return Quaternion norm
-   */
-  static double quat_norm(const double q[4]) {
-    return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
-  }
-
-  /**
-   * Normalize Quaternion
-   */
-  static void quat_normalize(double q[4]) {
-    const double n = quat_norm(q);
-    q[0] = q[0] / n;
-    q[1] = q[1] / n;
-    q[2] = q[2] / n;
-    q[3] = q[3] / n;
-  }
-};
-
-/**
- * Vision Factor
- */
-struct VisionFactor : ceres::CostFunction {
-  timestamp_t ts;
-  int cam_id = -1;
-  size_t feature_id = 0;
-  real_t z[2] = {0};
-  real_t sqrt_info[2 * 2] = {0};
-
-  /** Constructor **/
-  VisionFactor() = delete;
-
-  /** Constructor **/
-  VisionFactor(const timestamp_t ts_,
-               const int cam_id_,
-               const size_t feature_id_,
-               const real_t z_[2])
-      : ts{ts_}, cam_id{cam_id_}, feature_id{feature_id_} {
-    z[0] = z_[0];
-    z[1] = z_[1];
-    sqrt_info[0] = 1;
-    sqrt_info[1] = 0;
-    sqrt_info[2] = 0;
-    sqrt_info[3] = 1;
-
-    set_num_residuals(2);
-    auto block_sizes = mutable_parameter_block_sizes();
-    block_sizes->push_back(7); // Body pose
-    block_sizes->push_back(7); // Camera extrinsic
-    block_sizes->push_back(3); // Feature position
-    block_sizes->push_back(8); // Camera intrinsic
-  }
-
-  /** Destructor **/
-  virtual ~VisionFactor() = default;
-
-  /** Evaluate **/
-  bool Evaluate(double const *const *params, double *res, double **jacs) const {
-    // Map parameters
-    TF(params[0], T_WB);
-    TF(params[1], T_BCi);
-    const double *p_W = params[2];
-    const double *cam = params[3];
-
-    // Transform feature from world to camera frame
-    TF_INV(T_BCi, T_CiB);
-    TF_INV(T_WB, T_BW);
-    TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-    TF_POINT(T_CiW, p_W, p_Ci);
-
-    // Project to image plane
-    bool valid = true;
-    real_t z_hat[2] = {0};
-    const project_func_t proj_func = pinhole_radtan4_project;
-    proj_func(cam, p_Ci, z_hat);
-
-    bool x_ok = z_hat[0] > 0 && z_hat[0] < 752;
-    bool y_ok = z_hat[1] > 0 && z_hat[1] < 480;
-    if (p_Ci[2] < 0.01) {
-      valid = false;
-    } else if (!x_ok || !y_ok) {
-      valid = false;
-    }
-
-    // Calculate residuals
-    // -- Residual
-    double r[2] = {0};
-    r[0] = z[0] - z_hat[0];
-    r[1] = z[1] - z_hat[1];
-    // -- Weighted residual
-    dot(sqrt_info, 2, 2, r, 2, 1, res);
-
-    // Calculate jacobians
-    // -- Form: -1 * sqrt_info
-    real_t neg_sqrt_info[2 * 2] = {0};
-    mat_copy(sqrt_info, 2, 2, neg_sqrt_info);
-    neg_sqrt_info[0] *= -1.0;
-    neg_sqrt_info[3] *= -1.0;
-    // -- Form: Jh_ = -1 * sqrt_info * Jh
-    real_t Jh[2 * 3] = {0};
-    real_t Jh_[2 * 3] = {0};
-    pinhole_radtan4_project_jacobian(cam, p_Ci, Jh);
-    dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_);
-    // -- Form: J_cam_params
-    real_t J_cam_params[2 * 8] = {0};
-    pinhole_radtan4_params_jacobian(cam, p_Ci, J_cam_params);
-    // -- Form minimal Jacobians
-    double mJ0[2 * 6] = {0};
-    double mJ1[2 * 6] = {0};
-    double mJ2[2 * 3] = {0};
-    double mJ3[2 * 8] = {0};
-    if (valid) {
-      camera_factor_pose_jacobian(Jh_, T_WB, T_BCi, p_W, mJ0);
-      camera_factor_extrinsic_jacobian(Jh_, T_BCi, p_Ci, mJ1);
-      camera_factor_feature_jacobian(Jh_, T_WB, T_BCi, mJ2);
-      camera_factor_camera_jacobian(neg_sqrt_info, J_cam_params, mJ3);
-    }
-    // -- Form global Jacobians
-    if (jacs) {
-      if (jacs[0]) {
-        memset(jacs[0], 0, sizeof(double) * 2 * 7);
-        mat_block_set(jacs[0], 7, 0, 1, 0, 5, mJ0);
-      }
-
-      if (jacs[1]) {
-        memset(jacs[1], 0, sizeof(double) * 2 * 7);
-        mat_block_set(jacs[1], 7, 0, 1, 0, 5, mJ1);
-      }
-
-      if (jacs[2]) {
-        memset(jacs[2], 0, sizeof(double) * 2 * 3);
-        mat_copy(mJ2, 2, 3, jacs[2]);
-      }
-
-      if (jacs[3]) {
-        memset(jacs[3], 0, sizeof(double) * 2 * 8);
-        mat_copy(mJ3, 2, 3, jacs[3]);
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Pose jacobian
-   */
-  static void camera_factor_pose_jacobian(const real_t Jh_w[2 * 3],
-                                          const real_t T_WB[3 * 3],
-                                          const real_t T_BC[3 * 3],
-                                          const real_t p_W[3],
-                                          real_t J[2 * 6]) {
-    assert(Jh_w != NULL);
-    assert(T_BC != NULL);
-    assert(T_WB != NULL);
-    assert(p_W != NULL);
-    assert(J != NULL);
-
-    // Jh_w = -1 * sqrt_info * Jh;
-    // J_pos = Jh_w * C_CB * -C_BW;
-    // J_rot = Jh_w * C_CB * C_BW * hat(p_W - r_WB) * -C_WB;
-    // J = [J_pos, J_rot];
-
-    // Setup
-    real_t C_BW[3 * 3] = {0};
-    real_t C_CB[3 * 3] = {0};
-    real_t C_CW[3 * 3] = {0};
-
-    TF_ROT(T_WB, C_WB);
-    TF_ROT(T_BC, C_BC);
-    mat_transpose(C_WB, 3, 3, C_BW);
-    mat_transpose(C_BC, 3, 3, C_CB);
-    dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
-
-    // Form: -C_BW
-    real_t neg_C_BW[3 * 3] = {0};
-    mat_copy(C_BW, 3, 3, neg_C_BW);
-    mat_scale(neg_C_BW, 3, 3, -1.0);
-
-    // Form: -C_CW
-    real_t neg_C_CW[3 * 3] = {0};
-    dot(C_CB, 3, 3, neg_C_BW, 3, 3, neg_C_CW);
-
-    // Form: -C_WB
-    real_t neg_C_WB[3 * 3] = {0};
-    mat_copy(C_WB, 3, 3, neg_C_WB);
-    mat_scale(neg_C_WB, 3, 3, -1.0);
-
-    // Form: C_CB * -C_BW * hat(p_W - r_WB) * -C_WB
-    real_t p[3] = {0};
-    real_t S[3 * 3] = {0};
-    TF_TRANS(T_WB, r_WB);
-    vec_sub(p_W, r_WB, p, 3);
-    hat(p, S);
-
-    real_t A[3 * 3] = {0};
-    real_t B[3 * 3] = {0};
-    dot(neg_C_CW, 3, 3, S, 3, 3, A);
-    dot(A, 3, 3, neg_C_WB, 3, 3, B);
-
-    // Form: J_pos = Jh_w * C_CB * -C_BW;
-    real_t J_pos[2 * 3] = {0};
-    dot(Jh_w, 2, 3, neg_C_CW, 3, 3, J_pos);
-
-    J[0] = J_pos[0];
-    J[1] = J_pos[1];
-    J[2] = J_pos[2];
-
-    J[6] = J_pos[3];
-    J[7] = J_pos[4];
-    J[8] = J_pos[5];
-
-    // Form: J_rot = Jh_w * C_CB * -C_BW * hat(p_W - r_WB) * -C_WB;
-    real_t J_rot[2 * 3] = {0};
-    dot(Jh_w, 2, 3, B, 3, 3, J_rot);
-
-    J[3] = J_rot[0];
-    J[4] = J_rot[1];
-    J[5] = J_rot[2];
-
-    J[9] = J_rot[3];
-    J[10] = J_rot[4];
-    J[11] = J_rot[5];
-  }
-
-  /**
-   * Body-camera extrinsic jacobian
-   */
-  static void camera_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
-                                               const real_t T_BC[4 * 4],
-                                               const real_t p_C[3],
-                                               real_t J[2 * 6]) {
-    assert(Jh_w != NULL);
-    assert(T_BC != NULL);
-    assert(p_C != NULL);
-    assert(J != NULL);
-
-    // Jh_w = -1 * sqrt_info * Jh;
-    // J_pos = Jh_w * -C_CB;
-    // J_rot = Jh_w * C_CB * hat(C_BC * p_C);
-
-    // Setup
-    real_t C_BC[3 * 3] = {0};
-    real_t C_CB[3 * 3] = {0};
-    real_t C_BW[3 * 3] = {0};
-    real_t C_CW[3 * 3] = {0};
-
-    tf_rot_get(T_BC, C_BC);
-    mat_transpose(C_BC, 3, 3, C_CB);
-    dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
-
-    // Form: -C_CB
-    real_t neg_C_CB[3 * 3] = {0};
-    mat_copy(C_CB, 3, 3, neg_C_CB);
-    mat_scale(neg_C_CB, 3, 3, -1.0);
-
-    // Form: -C_BC
-    real_t neg_C_BC[3 * 3] = {0};
-    mat_copy(C_BC, 3, 3, neg_C_BC);
-    mat_scale(neg_C_BC, 3, 3, -1.0);
-
-    // Form: -C_CB * hat(C_BC * p_C) * -C_BC
-    real_t p[3] = {0};
-    real_t S[3 * 3] = {0};
-    dot(C_BC, 3, 3, p_C, 3, 1, p);
-    hat(p, S);
-
-    real_t A[3 * 3] = {0};
-    real_t B[3 * 3] = {0};
-    dot(neg_C_CB, 3, 3, S, 3, 3, A);
-    dot(A, 3, 3, neg_C_BC, 3, 3, B);
-
-    // Form: J_rot = Jh_w * -C_CB;
-    real_t J_pos[2 * 3] = {0};
-    dot(Jh_w, 2, 3, neg_C_CB, 3, 3, J_pos);
-
-    J[0] = J_pos[0];
-    J[1] = J_pos[1];
-    J[2] = J_pos[2];
-
-    J[6] = J_pos[3];
-    J[7] = J_pos[4];
-    J[8] = J_pos[5];
-
-    // Form: J_rot = Jh_w * -C_CB * hat(C_BC * p_C) * -C_BC;
-    real_t J_rot[2 * 3] = {0};
-    dot(Jh_w, 2, 3, B, 3, 3, J_rot);
-
-    J[3] = J_rot[0];
-    J[4] = J_rot[1];
-    J[5] = J_rot[2];
-
-    J[9] = J_rot[3];
-    J[10] = J_rot[4];
-    J[11] = J_rot[5];
-  }
-
-  /**
-   * Camera parameters jacobian
-   */
-  static void camera_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
-                                            const real_t J_cam_params[2 * 8],
-                                            real_t J[2 * 8]) {
-    assert(neg_sqrt_info != NULL);
-    assert(J_cam_params != NULL);
-    assert(J != NULL);
-
-    // J = -1 * sqrt_info * J_cam_params;
-    dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
-  }
-
-  /**
-   * Feature jacobian
-   */
-  static void camera_factor_feature_jacobian(const real_t Jh_w[2 * 3],
-                                             const real_t T_WB[4 * 4],
-                                             const real_t T_BC[4 * 4],
-                                             real_t J[2 * 3]) {
-    if (J == NULL) {
-      return;
-    }
-    assert(Jh_w != NULL);
-    assert(T_WB != NULL);
-    assert(T_BC != NULL);
-    assert(J != NULL);
-
-    // Jh_w = -1 * sqrt_info * Jh;
-    // J = Jh_w * C_CW;
-
-    // Setup
-    real_t T_WC[4 * 4] = {0};
-    real_t C_WC[3 * 3] = {0};
-    real_t C_CW[3 * 3] = {0};
-    dot(T_WB, 4, 4, T_BC, 4, 4, T_WC);
-    tf_rot_get(T_WC, C_WC);
-    mat_transpose(C_WC, 3, 3, C_CW);
-
-    // Form: J = -1 * sqrt_info * Jh * C_CW;
-    dot(Jh_w, 2, 3, C_CW, 3, 3, J);
-  }
-};
-
 // /** Estimate Relative Pose **/
 // real_t estimate_relpose(const Mapper &mapper,
 //                         CameraIntrinsics &cam_ints,
@@ -1308,7 +801,7 @@ struct VisionFactor : ceres::CostFunction {
 
 //   // Add vision factors
 //   std::set<size_t> feature_ids;
-//   std::map<size_t, VisionFactor *> factors;
+//   std::map<size_t, CameraFactor *> factors;
 //   auto add_factors =
 //       [&](const int ts_idx, TrackerData &tracking_data, Pose &pose) {
 //         for (auto &[cam_id, cam_data] : tracking_data) {
@@ -1325,7 +818,7 @@ struct VisionFactor : ceres::CostFunction {
 //             // Form factor
 //             auto &feature = features.at(fid);
 //             const real_t z[2] = {kp.pt.x, kp.pt.y};
-//             auto res_fn = new VisionFactor{ts_idx, cam_id, fid, z};
+//             auto res_fn = new CameraFactor{ts_idx, cam_id, fid, z};
 //             factors[fid] = res_fn;
 
 //             // Add factor to problem
@@ -1385,3 +878,358 @@ struct VisionFactor : ceres::CostFunction {
 // }
 
 #endif // AVS_HPP
+
+//////////////////////////////////////////////////////////////////////////////
+//                              UNIT-TESTS                                  //
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef AVS_UNITTESTS
+
+// UNITESTS GLOBAL VARIABLES
+static int nb_tests = 0;
+static int nb_passed = 0;
+static int nb_failed = 0;
+
+#define ENABLE_TERM_COLORS 0
+#if ENABLE_TERM_COLORS == 1
+#define TERM_RED "\x1B[1;31m"
+#define TERM_GRN "\x1B[1;32m"
+#define TERM_WHT "\x1B[1;37m"
+#define TERM_NRM "\x1B[1;0m"
+#else
+#define TERM_RED
+#define TERM_GRN
+#define TERM_WHT
+#define TERM_NRM
+#endif
+
+/**
+ * Run unittests
+ * @param[in] test_name Test name
+ * @param[in] test_ptr Pointer to unittest
+ */
+void run_test(const char *test_name, int (*test_ptr)()) {
+  if ((*test_ptr)() == 0) {
+    printf("-> [%s] " TERM_GRN "OK!\n" TERM_NRM, test_name);
+    fflush(stdout);
+    nb_passed++;
+  } else {
+    printf(TERM_RED "FAILED!\n" TERM_NRM);
+    fflush(stdout);
+    nb_failed++;
+  }
+  nb_tests++;
+}
+
+/**
+ * Add unittest
+ * @param[in] TEST Test function
+ */
+#define TEST(TEST_FN) run_test(#TEST_FN, TEST_FN);
+
+/**
+ * Unit-test assert
+ * @param[in] TEST Test condition
+ */
+#define TEST_ASSERT(TEST)                                                      \
+  do {                                                                         \
+    if ((TEST) == 0) {                                                         \
+      printf(TERM_RED "ERROR!" TERM_NRM " [%s:%d] %s FAILED!\n",               \
+             __func__,                                                         \
+             __LINE__,                                                         \
+             #TEST);                                                           \
+      return -1;                                                               \
+    }                                                                          \
+  } while (0)
+
+int test_feature_grid() {
+  int image_width = 640;
+  int image_height = 480;
+  int grid_rows = 3;
+  int grid_cols = 4;
+  FeatureGrid grid{image_width, image_height, grid_rows, grid_cols};
+
+  const float dx = (image_width / grid_cols);
+  const float dy = (image_height / grid_rows);
+  for (int i = 0; i < grid_rows; i++) {
+    for (int j = 0; j < grid_cols; j++) {
+      const int pixel_x = dx * j + dx / 2;
+      const int pixel_y = dy * i + dy / 2;
+      grid.add(pixel_x, pixel_y);
+    }
+  }
+  grid.debug(true);
+
+  return 0;
+}
+
+int test_spread_keypoints() {
+  // Load image
+  const auto img_path = "./test_data/frontend/cam0/1403715297312143104.png";
+  const auto img = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+
+  // Detect keypoints
+  const cv::Ptr<cv::Feature2D> detector = cv::ORB::create();
+  std::vector<cv::KeyPoint> kps;
+  detector->detect(img, kps);
+
+  // Spread keypoints
+  const int min_dist = 5;
+  const std::vector<cv::KeyPoint> kps_prev;
+  const bool debug = false;
+  const auto kps_new = spread_keypoints(img, kps, min_dist, kps_prev, debug);
+
+  // Assert keypoints are a Euclidean distance away from each other
+  for (const auto kp : kps_new) {
+    for (const auto kp_ref : kps_new) {
+      const int px = kp.pt.x;
+      const int py = kp.pt.y;
+      const int px_ref = kp_ref.pt.x;
+      const int py_ref = kp_ref.pt.y;
+
+      const int dx = std::abs(px_ref - px);
+      const int dy = std::abs(py_ref - py);
+      if (dx == 0 && dy == 0) {
+        continue;
+      }
+
+      const int dist = sqrt(dx * dx + dy * dy);
+      TEST_ASSERT(dist >= min_dist);
+    }
+  }
+
+  return 0;
+}
+
+int test_grid_detect() {
+  const auto img_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
+  const auto img = cv::imread(img_path, cv::IMREAD_GRAYSCALE);
+
+  std::vector<cv::KeyPoint> kps_prev;
+  std::vector<cv::KeyPoint> kps_new;
+  cv::Mat des_new;
+  GridDetector detector;
+  detector.detect(img, kps_new, des_new, kps_prev, true);
+
+  return 0;
+}
+
+int test_optflow_track() {
+  const auto img_i_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
+  const auto img_j_path = "./test_data/frontend/cam1/1403715297312143104.jpg";
+  const auto img_i = cv::imread(img_i_path, cv::IMREAD_GRAYSCALE);
+  const auto img_j = cv::imread(img_j_path, cv::IMREAD_GRAYSCALE);
+
+  // Detect keypoints
+  std::vector<cv::KeyPoint> kps_new;
+  GridDetector det;
+  det.detect(img_i, kps_new);
+
+  // Optical-flow track
+  std::vector<cv::KeyPoint> kps_i = kps_new;
+  std::vector<cv::KeyPoint> kps_j = kps_new;
+  std::vector<uchar> inliers;
+  optflow_track(img_i, img_j, kps_i, kps_j, inliers);
+
+  return 0;
+}
+
+int test_reproj_filter() {
+  const auto img_i_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
+  const auto img_j_path = "./test_data/frontend/cam1/1403715297312143104.jpg";
+  auto img_i = cv::imread(img_i_path, cv::IMREAD_GRAYSCALE);
+  auto img_j = cv::imread(img_j_path, cv::IMREAD_GRAYSCALE);
+
+  // Detect keypoints
+  std::vector<cv::KeyPoint> kps_new;
+  GridDetector det;
+  det.detect(img_i, kps_new);
+
+  // Optical-flow track
+  std::vector<cv::KeyPoint> kps_i = kps_new;
+  std::vector<cv::KeyPoint> kps_j = kps_new;
+  std::vector<uchar> optflow_inliers;
+  optflow_track(img_i, img_j, kps_i, kps_j, optflow_inliers);
+
+  // clang-format off
+  const int cam_res[2] = {752, 480};
+  real_t cam0_int[8] = {
+    458.654, 457.296, 367.215, 248.375, -0.28340811,
+    0.07395907, 0.00019359, 1.76187114e-05
+  };
+  real_t cam1_int[8] = {
+    457.587, 456.134, 379.999, 255.238,
+    -0.28368365, 0.07451284, -0.00010473, -3.55590700e-05
+  };
+  const real_t T_SC0[4 * 4] = {
+    0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+    0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+    -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+    0.0, 0.0, 0.0, 1.0
+  };
+  const real_t T_SC1[4 * 4] = {
+    0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
+    0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
+    -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
+    0.0, 0.0, 0.0, 1.0
+  };
+  TF_INV(T_SC0, T_C0S);
+  TF_IDENTITY(T_C0C0);
+  TF_CHAIN(T_C0C1, 2, T_C0S, T_SC1);
+  // clang-format on
+
+  TIC(reproj_filter_time);
+  std::vector<cv::Point3d> points;
+  std::vector<bool> reproj_inliers;
+  reproj_filter(pinhole_radtan4_project,
+                cam_res,
+                cam0_int,
+                cam1_int,
+                T_C0C0,
+                T_C0C1,
+                kps_i,
+                kps_j,
+                points,
+                reproj_inliers);
+  PRINT_TOC("Reproj Filter", reproj_filter_time);
+
+  // Filter keypoints
+  TrackerKeypoints keypoints;
+  keypoints[0] = std::vector<cv::KeyPoint>();
+  keypoints[1] = std::vector<cv::KeyPoint>();
+  for (size_t n = 0; n < kps_i.size(); n++) {
+    if (optflow_inliers[n] && reproj_inliers[n]) {
+      keypoints[0].push_back(kps_i[n]);
+      keypoints[1].push_back(kps_j[n]);
+    }
+  }
+
+  // Visualize
+  const auto red = cv::Scalar{0, 0, 255};
+  cv::Mat img0_viz;
+  cv::Mat img1_viz;
+  cv::Mat viz;
+  cv::cvtColor(img_i, img0_viz, cv::COLOR_GRAY2RGB);
+  cv::cvtColor(img_j, img1_viz, cv::COLOR_GRAY2RGB);
+  cv::drawKeypoints(img0_viz, keypoints[0], img0_viz, red);
+  cv::drawKeypoints(img1_viz, keypoints[1], img1_viz, red);
+  cv::hconcat(img0_viz, img1_viz, viz);
+  cv::imshow("viz", viz);
+  cv::waitKey(0);
+
+  return 0;
+}
+
+class EuRoCParams {
+public:
+  camera_params_t cam0_params;
+  camera_params_t cam1_params;
+  extrinsic_t cam0_ext;
+  extrinsic_t cam1_ext;
+
+  EuRoCParams() {
+    // clang-format off
+    // camera_params_t cam0_params;
+    // camera_params_t cam1_params;
+    // extrinsic_t cam0_ext;
+    // extrinsic_t cam1_ext;
+
+    const int cam_res[2] = {752, 480};
+    const char *proj_model = "pinhole";
+    const char *dist_model = "radtan4";
+    real_t cam0_data[8] = {
+      458.654, 457.296, 367.215, 248.375,
+      -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05
+    };
+    real_t cam1_data[8] = {
+      457.587, 456.134, 379.999, 255.238,
+      -0.28368365, 0.07451284, -0.00010473, -3.55590700e-05
+    };
+    real_t cam0_ext_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+    real_t cam1_ext_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+    const real_t T_SC0[4 * 4] = {
+      0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+      0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+      -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+      0.0, 0.0, 0.0, 1.0
+    };
+    const real_t T_SC1[4 * 4] = {
+      0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
+      0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
+      -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
+      0.0, 0.0, 0.0, 1.0
+    };
+    TF_INV(T_SC0, T_C0S);
+    TF_CHAIN(T_C0C1, 2, T_C0S, T_SC1);
+    tf_vector(T_C0C1, cam1_ext_data);
+
+    camera_params_setup(&cam0_params, 0, cam_res, proj_model, dist_model, cam0_data);
+    camera_params_setup(&cam1_params, 1, cam_res, proj_model, dist_model, cam1_data);
+    extrinsic_setup(&cam0_ext, cam0_ext_data);
+    extrinsic_setup(&cam1_ext, cam1_ext_data);
+    // clang-format on
+  }
+};
+
+// int test_front_end() {
+//   // const auto img0_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
+//   // const auto img1_path = "./test_data/frontend/cam1/1403715297312143104.jpg";
+//   // const auto img0 = cv::imread(img0_path, cv::IMREAD_GRAYSCALE);
+//   // const auto img1 = cv::imread(img1_path, cv::IMREAD_GRAYSCALE);
+
+//   // Feature Tracker
+//   EuRoCParams euroc;
+//   FeatureTracker ft;
+//   ft.add_camera(euroc.cam0_params, euroc.cam0_ext);
+//   ft.add_camera(euroc.cam1_params, euroc.cam1_ext);
+//   ft.add_overlap({0, 1});
+
+//   // Setup
+//   const char *data_path = "/data/euroc/V1_01";
+//   euroc_data_t *data = euroc_data_load(data_path);
+//   euroc_timeline_t *timeline = data->timeline;
+
+//   int imshow_wait = 1;
+//   for (size_t k = 0; k < timeline->num_timestamps; k++) {
+//     const timestamp_t ts = timeline->timestamps[k];
+//     const euroc_event_t *event = &timeline->events[k];
+
+//     if (event->has_cam0 && event->has_cam1) {
+//       const cv::Mat img0 = cv::imread(event->cam0_image, cv::IMREAD_GRAYSCALE);
+//       const cv::Mat img1 = cv::imread(event->cam1_image, cv::IMREAD_GRAYSCALE);
+//       assert(img0.empty() == false);
+//       assert(img1.empty() == false);
+//       struct timespec t_start = tic();
+//       // tracker.track({{0, img0}, {1, img1}}, true);
+//       ft.track(ts, {{0, img0}, {1, img1}}, true);
+//       printf("track elasped: %f [s]\n", toc(&t_start));
+
+//       char key = cv::waitKey(imshow_wait);
+//       if (key == 'q') {
+//         k = timeline->num_timestamps;
+//       } else if (key == 's') {
+//         imshow_wait = 0;
+//       } else if (key == ' ' && imshow_wait == 1) {
+//         imshow_wait = 0;
+//       } else if (key == ' ' && imshow_wait == 0) {
+//         imshow_wait = 1;
+//       }
+//     }
+//   }
+
+//   // Clean up
+//   euroc_data_free(data);
+
+//   return 0;
+// }
+
+void run_unittests() {
+  // TEST(test_feature_grid);
+  // TEST(test_spread_keypoints);
+  // TEST(test_grid_detect);
+  // TEST(test_optflow_track);
+  // TEST(test_reproj_filter);
+  // TEST(test_front_end);
+}
+
+#endif // AVS_UNITTESTS
