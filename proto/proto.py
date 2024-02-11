@@ -36,6 +36,7 @@ import signal
 import socket
 import base64
 import hashlib
+import unittest
 from datetime import datetime
 from pathlib import Path
 from enum import Enum
@@ -56,6 +57,7 @@ from pstats import Stats
 
 SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
+EUROC_DATA_PATH = '/data/euroc/V1_01'
 
 ###############################################################################
 # YAML
@@ -454,10 +456,82 @@ class DebugServer:
     self.sock.close()
 
 
+def test_websocket_callback():
+  """ Test WebSocket Callback """
+  time.sleep(1)
+  return "Hello World"
+
+
+class TestNetwork(unittest.TestCase):
+  """ Test Network """
+  def test_http_parse_request(self):
+    """ Test Parsing HTTP Request """
+    request_string = """GET / HTTP/1.1\r\n
+                        Host: localhost:8080\r\n
+                        User-Agent: Mozilla/5.0\r\n
+                        Accept-Language: en-GB,en;q=0.5\r\n
+                        Accept-Encoding: gzip, deflate\r\n
+                        Connection: keep-alive\r\n
+                        Upgrade-Insecure-Requests: 1\r\n
+                        Sec-Fetch-Dest: document\r\n
+                        Sec-Fetch-Mode: navigate\r\n
+                        Sec-Fetch-Site: cross-site\r\n
+                        Cache-Control: max-age=0\r\n\r\n"""
+    (protocol, method, path, headers) = http_parse_request(request_string)
+    self.assertTrue(protocol == "HTTP/1.1")
+    self.assertTrue(method == "GET")
+    self.assertTrue(path == "/")
+    self.assertTrue(headers["Host"] == "localhost:8080")
+    self.assertTrue(headers["User-Agent"] == "Mozilla/5.0")
+
+  def test_websocket_hash(self):
+    """ Test WebSocket Upgrade Response """
+    ws_key = "dGhlIHNhbXBsZSBub25jZQ=="
+    ws_hash = "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+    self.assertTrue(websocket_hash(ws_key) == ws_hash)
+
+  def test_websocket_encode_frame(self):
+    """ Test WebSocket Frame """
+    payload = "Hello World!"
+    frame = websocket_encode_frame(payload)
+    self.assertTrue(frame is not None)
+
+  # def test_websocket_decode_frame(self):
+  #   """ Test WebSocket Frame """
+  #   host = '127.0.0.1'
+  #   port = 5000
+  #   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  #   sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+  #   sock.bind((host, port))
+  #   sock.listen()
+  #   conn, _ = sock.accept()
+  #
+  #   # Request
+  #   buf_size = 4096
+  #   req_str = conn.recv(buf_size, 0).decode("ascii")
+  #   (_, _, _, headers) = http_parse_request(req_str)
+  #   ws_key = headers["Sec-WebSocket-Key"]
+  #
+  #   # Respond
+  #   resp = websocket_handshake_response(ws_key)
+  #   conn.send(str.encode(resp))
+  #
+  #   # Decode websocket frame
+  #   data = websocket_decode_frame(conn)
+
+  @unittest.skip("")
+  def test_debug_server(self):
+    """ Test Debug Server """
+    server = DebugServer(test_websocket_callback)
+    self.assertTrue(server is not None)
+
+
 ###############################################################################
 # MATHS
 ###############################################################################
 
+from numpy import deg2rad
+from numpy import rad2deg
 from math import pi
 from math import isclose
 from math import sqrt
@@ -475,12 +549,41 @@ def rmse(errors):
   return np.sqrt(np.mean(errors**2))
 
 
+def clip_value(x, vmin, vmax):
+  """ Clip """
+  x_tmp = x
+  x_tmp = vmax if (x_tmp > vmax) else x_tmp
+  x_tmp = vmin if (x_tmp < vmin) else x_tmp
+  return x_tmp
+
+
+def wrap_180(d):
+  x = np.fmod(d + 180, 360)
+  if x < 0:
+    x += 360.0
+
+  return x - 180.0
+
+
+def wrap_360(d):
+  """Wrap angle `d` in degrees to 0 to 360 degrees"""
+  x = np.fmod(d, 360)
+  if x < 0:
+    x += 360.0
+  return x
+
+
+def wrap_pi(r):
+  """Wrap angle `r` in radians to +- pi radians."""
+  return deg2rad(wrap_180(rad2deg(r)))
+
+
 ###############################################################################
 # LINEAR ALGEBRA
 ###############################################################################
 
-from numpy import rad2deg
 from numpy import deg2rad
+from numpy import rad2deg
 from numpy import sinc
 from numpy import zeros
 from numpy import ones
@@ -782,6 +885,50 @@ def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
     print("-" * 60)
 
   return False
+
+
+class TestLinearAlgebra(unittest.TestCase):
+  """ Test Linear Algebra """
+  def test_normalize(self):
+    """ Test normalize() """
+    x = np.array([1.0, 2.0, 3.0])
+    x_prime = normalize(x)
+    self.assertTrue(isclose(norm(x_prime), 1.0))
+
+  def test_hat(self):
+    """ Test hat() """
+    x = np.array([1.0, 2.0, 3.0])
+    S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
+    self.assertTrue(matrix_equal(S, hat(x)))
+
+  def test_vee(self):
+    """ Test vee() """
+    x = np.array([1.0, 2.0, 3.0])
+    S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
+    self.assertTrue(matrix_equal(x, vee(S)))
+
+  def test_matrix_equal(self):
+    """ Test matrix_equal() """
+    A = ones((3, 3))
+    B = ones((3, 3))
+    self.assertTrue(matrix_equal(A, B))
+
+    C = 2.0 * ones((3, 3))
+    self.assertFalse(matrix_equal(A, C))
+
+  # def test_check_jacobian(self):
+  #   step_size = 1e-6
+  #   threshold = 1e-5
+  #
+  #   x = 2
+  #   y0 = x**2
+  #   y1 = (x + step_size)**2
+  #   jac = 2 * x
+  #   fdiff = y1 - y0
+  #
+  #   jac_name = "jac"
+  #   fdiff = (y1 - y0) / step_size
+  #   self.assertTrue(check_jacobian(jac_name, fdiff, jac, threshold))
 
 
 ###############################################################################
@@ -1114,6 +1261,131 @@ def poe(screw_axis, theta, tol=1e-6):
   return np.block([[A, B.reshape((3, 1))], [0.0, 0.0, 0.0, 1.0]])
 
 
+class TestLie(unittest.TestCase):
+  """ Test Lie algebra functions """
+  def test_Exp_Log(self):
+    """ Test Exp() and Log() """
+    pass
+
+  def test_sandbox(self):
+    """ Test sandbox """
+    step_size = 1e-8
+    threshold = 1e-4
+
+    # Test Jacobian w.r.t C_10 in p_1 = T_10 * p_0
+    C_10 = euler321(0.1, 0.2, 0.3)
+    r_10 = np.array([0.1, 0.2, 0.3])
+    T_10 = tf(C_10, r_10)
+    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_1 = tf_point(T_10, p_0)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      T_fwd = tf_perturb(T_10, 3 + i, step_size)
+      p_1_fwd = tf_point(T_fwd, p_0)
+      J_fdiff[:, i] = (p_1_fwd - p_1) / step_size
+
+    J = np.zeros((3, 3))
+    J[0:3, 0:3] = -tf_rot(T_10) @ hat(p_0)
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
+
+    # Test Jacobian w.r.t C_10 in p_2 = T_21 * T_10 * p_0
+    C_10 = euler321(0.1, 0.2, 0.3)
+    r_10 = np.array([0.1, 0.2, 0.3])
+    T_10 = tf(C_10, r_10)
+
+    C_21 = euler321(0.1, 0.2, 0.3)
+    r_21 = np.array([0.1, 0.2, 0.3])
+    T_21 = tf(C_21, r_21)
+
+    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_2 = tf_point(T_21 @ T_10, p_0)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      T_10_fwd = tf_perturb(T_10, 3 + i, step_size)
+      p_2_fwd = tf_point(T_21 @ T_10_fwd, p_0)
+      J_fdiff[:, i] = (p_2_fwd - p_2) / step_size
+
+    J = np.zeros((3, 3))
+    J[0:3, 0:3] = C_21 @ -tf_rot(T_10) @ hat(p_0)
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
+
+    # Test Jacobian w.r.t C_21 in p_3 = T_32 * inv(T_21) * T_10 * p_0
+    C_10 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_10 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_10 = tf(C_10, r_10)
+
+    C_21 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_21 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_21 = tf(C_21, r_21)
+
+    C_32 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_32 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_32 = tf(C_32, r_32)
+
+    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_3 = tf_point(T_32 @ inv(T_21) @ T_10, p_0)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      T_21_fwd = tf_perturb(T_21, 3 + i, step_size)
+      p_3_fwd = tf_point(T_32 @ inv(T_21_fwd) @ T_10, p_0)
+      J_fdiff[:, i] = (p_3_fwd - p_3) / step_size
+
+    J = np.zeros((3, 3))
+    p_1 = tf_point(T_10, p_0)
+    J[0:3, 0:3] = C_32 @ -C_21.T @ hat(p_1 - r_21) @ -C_21
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
+
+    # Test Jacobian w.r.t C_21 in p_3 = inv(T_32) * inv(T_21) * T_10 * p_0
+    C_10 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_10 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_10 = tf(C_10, r_10)
+
+    C_21 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_21 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_21 = tf(C_21, r_21)
+
+    C_32 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
+    r_32 = np.random.uniform(-1.0, 1.0, size=(3,))
+    T_32 = tf(C_32, r_32)
+
+    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_3 = tf_point(inv(T_32) @ inv(T_21) @ T_10, p_0)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      T_21_fwd = tf_perturb(T_21, 3 + i, step_size)
+      p_3_fwd = tf_point(inv(T_32) @ inv(T_21_fwd) @ T_10, p_0)
+      J_fdiff[:, i] = (p_3_fwd - p_3) / step_size
+
+    J = np.zeros((3, 3))
+    p_1 = tf_point(T_10, p_0)
+    J[0:3, 0:3] = C_32.T @ -C_21.T @ hat(p_1 - r_21) @ -C_21
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
+
+    # Test Jacobian w.r.t C_10 in p_1 = inv(T_10) * p_0
+    C_10 = euler321(0.1, 0.2, 0.3)
+    r_10 = np.array([0.1, 0.2, 0.3])
+    T_10 = tf(C_10, r_10)
+    T_01 = inv(T_10)
+    p_1 = np.random.uniform(-1.0, 1.0, size=(3,))
+    p_0 = tf_point(T_01, p_1)
+
+    J_fdiff = np.zeros((3, 3))
+    for i in range(3):
+      C_10_fwd = rot_perturb(C_10, i, step_size)
+      T_10_fwd = tf(C_10_fwd, r_10)
+      T_01_fwd = inv(T_10_fwd)
+      p_0_fwd = tf_point(T_01_fwd, p_1)
+      J_fdiff[:, i] = (p_0_fwd - p_0) / step_size
+
+    J = np.zeros((3, 3))
+    J[0:3, 0:3] = -C_10.T @ hat(p_1 - r_10) @ -C_10
+    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
+
+
 ###############################################################################
 # TRANSFORM
 ###############################################################################
@@ -1411,6 +1683,104 @@ def rot2quat(C):
   return quat_normalize(np.array([qw, qx, qy, qz]))
 
 
+# UNITESTS #####################################################################
+
+
+class TestTransform(unittest.TestCase):
+  """ Test transform functions """
+  def test_homogeneous(self):
+    """ Test homogeneous() """
+    p = np.array([1.0, 2.0, 3.0])
+    hp = homogeneous(p)
+    self.assertTrue(hp[0] == 1.0)
+    self.assertTrue(hp[1] == 2.0)
+    self.assertTrue(hp[2] == 3.0)
+    self.assertTrue(len(hp) == 4)
+
+  def test_dehomogeneous(self):
+    """ Test dehomogeneous() """
+    p = np.array([1.0, 2.0, 3.0])
+    hp = np.array([1.0, 2.0, 3.0, 1.0])
+    p = dehomogeneous(hp)
+    self.assertTrue(p[0] == 1.0)
+    self.assertTrue(p[1] == 2.0)
+    self.assertTrue(p[2] == 3.0)
+    self.assertTrue(len(p) == 3)
+
+  def test_rotx(self):
+    """ Test rotx() """
+    x = np.array([0.0, 1.0, 0.0])
+    C = rotx(deg2rad(90.0))
+    x_prime = C @ x
+    self.assertTrue(np.allclose(x_prime, [0.0, 0.0, 1.0]))
+
+  def test_roty(self):
+    """ Test roty() """
+    x = np.array([1.0, 0.0, 0.0])
+    C = roty(deg2rad(90.0))
+    x_prime = C @ x
+    self.assertTrue(np.allclose(x_prime, [0.0, 0.0, -1.0]))
+
+  def test_rotz(self):
+    """ Test rotz() """
+    x = np.array([1.0, 0.0, 0.0])
+    C = rotz(deg2rad(90.0))
+    x_prime = C @ x
+    self.assertTrue(np.allclose(x_prime, [0.0, 1.0, 0.0]))
+
+  def test_aa2quat(self):
+    """ Test aa2quat() """
+    pass
+
+  def test_aa2rot(self):
+    """ Test rvec2quat() """
+    pass
+
+  def test_vecs2aa(self):
+    """ Test vecs2aa() """
+    pass
+
+  def test_euler321(self):
+    """ Test euler321() """
+    C = euler321(0.0, 0.0, 0.0)
+    self.assertTrue(np.array_equal(C, eye(3)))
+
+  def test_euler2quat_and_quat2euler(self):
+    """ Test euler2quat() and quat2euler() """
+    y_in = deg2rad(3.0)
+    p_in = deg2rad(2.0)
+    r_in = deg2rad(1.0)
+
+    q = euler2quat(y_in, p_in, r_in)
+    ypr_out = quat2euler(q)
+
+    self.assertTrue(len(q) == 4)
+    self.assertTrue(abs(y_in - ypr_out[0]) < 1e-5)
+    self.assertTrue(abs(p_in - ypr_out[1]) < 1e-5)
+    self.assertTrue(abs(r_in - ypr_out[2]) < 1e-5)
+
+  def test_quat2rot(self):
+    """ Test quat2rot() """
+    ypr = np.array([0.1, 0.2, 0.3])
+    C_i = euler321(*ypr)
+    C_j = quat2rot(euler2quat(*ypr))
+    self.assertTrue(np.allclose(C_i, C_j))
+
+  def test_rot2euler(self):
+    """ Test rot2euler() """
+    ypr = np.array([0.1, 0.2, 0.3])
+    C = euler321(*ypr)
+    euler = rot2euler(C)
+    self.assertTrue(np.allclose(ypr, euler))
+
+  def test_rot2quat(self):
+    """ Test rot2quat() """
+    ypr = np.array([0.1, 0.2, 0.3])
+    C = euler321(*ypr)
+    q = rot2quat(C)
+    self.assertTrue(np.allclose(quat2euler(q), ypr))
+
+
 # QUATERNION ##################################################################
 
 
@@ -1566,6 +1936,74 @@ def quat_slerp(q_i, q_j, t):
   s1 = sin_theta / sin_theta_0
 
   return (s0 * q_i) + (s1 * q_j)
+
+
+# UNITESTS #####################################################################
+
+
+class TestQuaternion(unittest.TestCase):
+  """ Test Quaternion functions """
+  def test_quat_norm(self):
+    """ Test quat_norm() """
+    q = np.array([1.0, 0.0, 0.0, 0.0])
+    self.assertTrue(isclose(quat_norm(q), 1.0))
+
+  def test_quat_normalize(self):
+    """ Test quat_normalize() """
+    q = np.array([1.0, 0.1, 0.2, 0.3])
+    q = quat_normalize(q)
+    self.assertTrue(isclose(quat_norm(q), 1.0))
+
+  def test_quat_conj(self):
+    """ Test quat_conj() """
+    ypr = np.array([0.1, 0.0, 0.0])
+    q = rot2quat(euler321(*ypr))
+    q_conj = quat_conj(q)
+    self.assertTrue(np.allclose(quat2euler(q_conj), -1.0 * ypr))
+
+  def test_quat_inv(self):
+    """ Test quat_inv() """
+    ypr = np.array([0.1, 0.0, 0.0])
+    q = rot2quat(euler321(*ypr))
+    q_inv = quat_inv(q)
+    self.assertTrue(np.allclose(quat2euler(q_inv), -1.0 * ypr))
+
+  def test_quat_mul(self):
+    """ Test quat_mul() """
+    p = euler2quat(deg2rad(3.0), deg2rad(2.0), deg2rad(1.0))
+    q = euler2quat(deg2rad(1.0), deg2rad(2.0), deg2rad(3.0))
+    r = quat_mul(p, q)
+    self.assertTrue(r is not None)
+
+  def test_quat_omega(self):
+    """ Test quat_omega() """
+    pass
+
+  def test_quat_slerp(self):
+    """ Test quat_slerp() """
+    q_i = rot2quat(euler321(0.1, 0.0, 0.0))
+    q_j = rot2quat(euler321(0.2, 0.0, 0.0))
+    q_k = quat_slerp(q_i, q_j, 0.5)
+    self.assertTrue(np.allclose(quat2euler(q_k), [0.15, 0.0, 0.0]))
+
+    q_i = rot2quat(euler321(0.0, 0.1, 0.0))
+    q_j = rot2quat(euler321(0.0, 0.2, 0.0))
+    q_k = quat_slerp(q_i, q_j, 0.5)
+    self.assertTrue(np.allclose(quat2euler(q_k), [0.0, 0.15, 0.0]))
+
+    q_i = rot2quat(euler321(0.0, 0.0, 0.1))
+    q_j = rot2quat(euler321(0.0, 0.0, 0.2))
+    q_k = quat_slerp(q_i, q_j, 0.5)
+    self.assertTrue(np.allclose(quat2euler(q_k), [0.0, 0.0, 0.15]))
+
+  def test_tf(self):
+    """ Test tf() """
+    r = np.array([1.0, 2.0, 3.0])
+    q = np.array([0.0, 0.0, 0.0, 1.0])
+    T = tf(q, r)
+
+    self.assertTrue(np.allclose(T[0:3, 0:3], quat2rot(q)))
+    self.assertTrue(np.allclose(T[0:3, 3], r))
 
 
 # TF ##########################################################################
@@ -3429,6 +3867,526 @@ def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
   raise RuntimeError(f"Unrecognized [{proj_model}]-[{dist_model}] combo!")
 
 
+# UNITESTS #####################################################################
+
+
+class TestCV(unittest.TestCase):
+  """ Test computer vision functions """
+  def setUp(self):
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    self.proj_params = [fx, fy, cx, cy]
+
+    # Camera pose in world frame
+    C_WC = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WC = np.array([0.0, 0.0, 0.0])
+    self.T_WC = tf(C_WC, r_WC)
+
+    # 3D World point
+    self.p_W = np.array([10.0, 0.0, 0.0])
+
+    # Point w.r.t camera
+    self.p_C = tf_point(inv(self.T_WC), self.p_W)
+    self.x = np.array([self.p_C[0] / self.p_C[2], self.p_C[1] / self.p_C[2]])
+
+  def test_linear_triangulation(self):
+    """ Test linear_triangulation() """
+    # Camera i - Camera j extrinsics
+    C_CiCj = eye(3)
+    r_CiCj = np.array([0.05, 0.0, 0.0])
+    T_CiCj = tf(C_CiCj, r_CiCj)
+
+    # Camera 0 pose in world frame
+    C_WCi = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WCi = np.array([0.0, 0.0, 0.0])
+    T_WCi = tf(C_WCi, r_WCi)
+
+    # Camera 1 pose in world frame
+    T_WCj = T_WCi @ T_CiCj
+
+    # Projection matrices P_i and P_j
+    P_i = pinhole_P(self.proj_params, eye(4))
+    P_j = pinhole_P(self.proj_params, T_CiCj)
+
+    # Test multiple times
+    nb_tests = 100
+    for _ in range(nb_tests):
+      # Project feature point p_W to image plane
+      x = np.random.uniform(-0.05, 0.05)
+      y = np.random.uniform(-0.05, 0.05)
+      p_W = np.array([10.0, x, y])
+      p_Ci_gnd = tf_point(inv(T_WCi), p_W)
+      p_Cj_gnd = tf_point(inv(T_WCj), p_W)
+      z_i = pinhole_project(self.proj_params, p_Ci_gnd)
+      z_j = pinhole_project(self.proj_params, p_Cj_gnd)
+
+      # Triangulate
+      p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
+      self.assertTrue(np.allclose(p_Ci_est, p_Ci_gnd))
+
+  def test_homography_find(self):
+    """ Test homography_find() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose i
+    C_WC_i = euler321(-pi / 2 - deg2rad(45), 0.0, -pi / 2)
+    r_WC_i = np.array([0.0, 1.0, 0.0])
+    T_WC_i = tf(C_WC_i, r_WC_i)
+
+    # Camera pose j
+    C_WC_j = euler321(-pi / 2 + deg2rad(45), 0.0, -pi / 2)
+    r_WC_j = np.array([0.0, -1.0, 0.0])
+    T_WC_j = tf(C_WC_j, r_WC_j)
+
+    # Generate image points
+    num_points = 10
+    points = []
+    pts_i = []
+    pts_j = []
+    for _ in range(num_points):
+      # Project feature point p_W to image plane
+      x = np.random.uniform(-0.5, 0.5)
+      y = np.random.uniform(-0.5, 0.5)
+      p_W = np.array([1.0, x, y])
+      p_Ci_gnd = tf_point(inv(T_WC_i), p_W)
+      p_Cj_gnd = tf_point(inv(T_WC_j), p_W)
+      z_i = pinhole_project(proj_params, p_Ci_gnd)
+      z_j = pinhole_project(proj_params, p_Cj_gnd)
+      pt_i = pinhole_back_project(proj_params, z_i)
+      pt_j = pinhole_back_project(proj_params, z_j)
+
+      points.append(p_W)
+      pts_i.append(pt_i)
+      pts_j.append(pt_j)
+    points = np.array(points)
+    pts_i = np.array(pts_i)
+    pts_j = np.array(pts_j)
+
+    H = homography_find(pts_i, pts_j)
+    for i in range(num_points):
+      pt_j_gnd = np.array([pts_j[i, 0], pts_j[i, 1], 1.0])
+      pt_j_est = H @ np.array([pts_i[i, 0], pts_i[i, 1], 1.0])
+
+      pt_j_est[0] /= pt_j_est[2]
+      pt_j_est[1] /= pt_j_est[2]
+      pt_j_est[2] /= pt_j_est[2]
+
+      diff = norm(pt_j_gnd - pt_j_est)
+      self.assertTrue(diff < 1e-5)
+
+      # print(f"pt_j_gnd: {pt_j_gnd}")
+      # print(f"pt_j_est: {pt_j_est}")
+      # print(f"diff: {pt_j_gnd - pt_j_est}")
+      # print()
+
+    # # Plot 3D
+    # plt.figure()
+    # ax = plt.axes(projection='3d')
+    # plot_tf(ax, T_WC_i, size=0.1, name="pose_i")
+    # plot_tf(ax, T_WC_j, size=0.1, name="pose_j")
+    # ax.scatter(points[:, 0], points[:, 1], points[:, 2])
+    # ax.set_xlabel("x [m]")
+    # ax.set_ylabel("y [m]")
+    # ax.set_zlabel("z [m]")
+    # plot_set_axes_equal(ax)
+    # plt.show()
+
+  def test_homography_pose(self):
+    """ Test homography_pose() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose T_WC
+    C_WC = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WC = np.array([0.0, 0.0, 0.0])
+    T_WC = tf(C_WC, r_WC)
+
+    # Calibration target pose T_WF
+    num_rows = 4
+    num_cols = 4
+    tag_size = 0.1
+
+    target_x = ((num_cols - 1) * tag_size) / 2.0
+    target_y = -((num_rows - 1) * tag_size) / 2.0
+    C_WF = euler321(-pi / 2, 0.0, pi / 2)
+    r_WF = np.array([0.5, target_x, target_y])
+    T_WF = tf(C_WF, r_WF)
+
+    # Generate data
+    world_points = []
+    object_points = []
+    image_points = []
+
+    for i in range(num_rows):
+      for j in range(num_cols):
+        p_F = np.array([i * tag_size, j * tag_size, 0.0])
+        p_W = tf_point(T_WF, p_F)
+        p_C = tf_point(inv(T_WC), p_W)
+        z = pinhole_project(proj_params, p_C)
+
+        object_points.append(p_F)
+        world_points.append(p_W)
+        image_points.append(z)
+
+    object_points = np.array(object_points)
+    world_points = np.array(world_points)
+    image_points = np.array(image_points)
+
+    T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
+    T_WC_est = T_WF @ inv(T_CF)
+
+    # Compare estimated and ground-truth
+    (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+    self.assertTrue(norm(dr) < 1e-2)
+    self.assertTrue(abs(dtheta) < 1e-4)
+
+    # Plot 3D
+    # debug = True
+    debug = False
+    if debug:
+      plt.figure()
+      ax = plt.axes(projection='3d')
+      plot_tf(ax, T_WC, size=0.1, name="camera")
+      plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
+      plot_tf(ax, T_WF, size=0.1, name="fiducial")
+      ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plot_set_axes_equal(ax)
+      plt.show()
+
+  def test_dlt_pose(self):
+    """ Test dlt_pose() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    # Camera pose T_WC
+    C_WC = euler321(deg2rad(50.0), 0.0, 0.0)
+    r_WC = np.array([0.0, 0.0, 1.0])
+    T_WC = tf(C_WC, r_WC)
+
+    # Calibration target pose T_WF
+    num_rows = 4
+    num_cols = 4
+    tag_size = 0.1
+
+    C_WF = euler321(0.0, 0.0, 0.0)
+    r_WF = np.array([0, 0, 0])
+    T_WF = tf(C_WF, r_WF)
+
+    # Generate data
+    world_points = []
+    object_points = []
+    image_points = []
+
+    for i in range(num_rows):
+      for j in range(num_cols):
+        p_F = np.array([i * tag_size, j * tag_size, random.uniform(0.0, 1.0)])
+        p_W = tf_point(T_WF, p_F)
+        p_C = tf_point(inv(T_WC), p_W)
+        z = pinhole_project(proj_params, p_C)
+
+        object_points.append(p_F)
+        world_points.append(p_W)
+        image_points.append(z)
+
+    object_points = np.array(object_points)
+    world_points = np.array(world_points)
+    image_points = np.array(image_points)
+
+    T_CF = dlt_pose(object_points, image_points, fx, fy, cx, cy)
+    T_WC_est = T_WF @ inv(T_CF)
+
+    # Compare estimated and ground-truth
+    (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+    self.assertTrue(norm(dr) < 1e-4)
+    self.assertTrue(abs(dtheta) < 1e-4)
+
+    # Plot 3D
+    debug = False
+    if debug:
+      plt.figure()
+      ax = plt.axes(projection='3d')
+      plot_tf(ax, T_WC, size=0.1, name="camera")
+      plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
+      plot_tf(ax, T_WF, size=0.1, name="fiducial")
+      ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plot_set_axes_equal(ax)
+      plt.show()
+
+  def test_solvepnp(self):
+    """ Test solvepnp() """
+    # Camera
+    img_w = 640
+    img_h = 480
+    fx = focal_length(img_w, 90.0)
+    fy = focal_length(img_w, 90.0)
+    cx = img_w / 2.0
+    cy = img_h / 2.0
+    proj_params = [fx, fy, cx, cy]
+
+    num_points = 10
+    for _ in range(num_points):
+      # Camera pose T_WC
+      dr = np.random.uniform(-0.01, 0.01, size=(3,))
+      drot = np.random.uniform(-0.01, 0.01, size=(3,))
+      C_WC = euler321(-pi / 2 + drot[0], 0.0 + drot[1], -pi / 2 + drot[2])
+      r_WC = np.array([0.0 + dr[0], 0.0 + dr[1], 0.0 + dr[2]])
+      T_WC = tf(C_WC, r_WC)
+
+      # Calibration target pose T_WF
+      num_rows = 4
+      num_cols = 4
+      tag_size = 0.1
+
+      C_WF = euler321(-pi / 2, 0.0, pi / 2)
+      r_WF = np.array([0.1, 0, 0])
+      T_WF = tf(C_WF, r_WF)
+
+      # Generate data
+      world_points = []
+      object_points = []
+      image_points = []
+
+      for i in range(num_rows):
+        for j in range(num_cols):
+          p_F = np.array([i * tag_size, j * tag_size, 0.0])
+          p_W = tf_point(T_WF, p_F)
+          p_C = tf_point(inv(T_WC), p_W)
+          z = pinhole_project(proj_params, p_C)
+
+          object_points.append(p_F)
+          world_points.append(p_W)
+          image_points.append(z)
+
+      object_points = np.array(object_points)
+      world_points = np.array(world_points)
+      image_points = np.array(image_points)
+
+      # Get initial T_CF using DLT and perturb it
+      T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
+      trans_rand = np.random.rand(3) * 0.01
+      rvec_rand = np.random.rand(3) * 0.01
+      T_CF = tf_update(T_CF, np.block([*trans_rand, *rvec_rand]))
+
+      # Test solvepnp
+      t_start = datetime.now()
+      T_CF = solvepnp(object_points,
+                      image_points,
+                      fx,
+                      fy,
+                      cx,
+                      cy,
+                      T_CF_init=T_CF,
+                      verbose=False)
+      t_end = datetime.now()
+      solvepnp_time = (t_end - t_start).total_seconds()
+      T_WC_est = T_WF @ inv(T_CF)
+
+      # Compare estimated and ground-truth
+      (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+      self.assertTrue(norm(dr) < 1e-1)
+      self.assertTrue(abs(dtheta) < 1e-1)
+
+      # Solve pnp with OpenCV
+      K = pinhole_K([fx, fy, cx, cy])
+      D = np.array([0.0, 0.0, 0.0, 0.0])
+      flags = cv2.SOLVEPNP_ITERATIVE
+      t_start = datetime.now()
+      _, rvec, tvec = cv2.solvePnP(object_points,
+                                   image_points,
+                                   K,
+                                   D,
+                                   False,
+                                   flags=flags)
+      C, _ = cv2.Rodrigues(rvec)
+      r = tvec.flatten()
+      T_CF_opencv = tf(C, r)
+      t_end = datetime.now()
+      opencv_time = (t_end - t_start).total_seconds()
+      T_WC_opencv = T_WF @ inv(T_CF_opencv)
+
+      # Compare against opencv
+      (dr, dtheta) = tf_diff(T_CF, T_CF_opencv)
+      self.assertTrue(norm(dr) < 1e-1)
+      self.assertTrue(abs(dtheta) < 1e-1)
+      # print(f"dr: {norm(dr)}, dtheta: {dtheta}")
+
+      # (dr, dtheta) = tf_diff(T_WC, T_WC_est)
+      # print(f"dr: {norm(dr):.2e}, dtheta: {dtheta:.2e}")
+      # (dr, dtheta) = tf_diff(T_WC, T_WC_opencv)
+      # print(f"dr: {norm(dr):.2e}, dtheta: {dtheta:.2e}")
+      # print(f"time: {solvepnp_time}, {opencv_time}")
+      # print()
+
+      # Plot 3D
+      # debug = True
+      debug = False
+      if debug:
+        plt.figure()
+        ax = plt.axes(projection='3d')
+        plot_tf(ax, T_WC, size=0.1, name="camera")
+        plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
+        plot_tf(ax, T_WF, size=0.1, name="fiducial")
+        ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        ax.set_zlabel("z [m]")
+        plot_set_axes_equal(ax)
+        plt.show()
+
+  def test_illumination_invariant_transform(self):
+    """ Test illumination_invariant_transform() """
+    img_path = os.path.join(SCRIPT_DIR, "./test_data/images/flower.jpg")
+    img = cv2.imread(img_path)
+    img = illumination_invariant_transform(img)
+
+    debug = False
+    if debug:
+      cv2.imshow("Image", img)
+      cv2.waitKey(0)
+
+    self.assertTrue(True)
+
+  def test_harris_corner(self):
+    """ Test harris_corner() """
+    img_file = "./test_data/images/checker_board-5x5.png"
+    img_path = os.path.join(SCRIPT_DIR, img_file)
+    img = cv2.imread(img_path)
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # corners = cv2.goodFeaturesToTrack(img_gray, 1000, 0.01, 10)
+    # corners = np.int0(corners)
+    # for i in corners:
+    #   x, y = i.ravel()
+    #   # cv2.circle(img, (x, y), 1, 255, -1)
+    #   img[x, y] = [0, 0, 255]
+
+    corners = harris_corner(img_gray)
+    for corner in corners:
+      x, y = corner
+      img[x, y] = [0, 0, 255]
+
+    debug = False
+    if debug:
+      cv2.imshow("Image", img)
+      cv2.waitKey(0)
+
+    self.assertTrue(True)
+
+  def test_shi_tomasi_corner(self):
+    """ Test shi_tomasi_corner() """
+    img_file = "./test_data/images/checker_board-5x5.png"
+    img_path = os.path.join(SCRIPT_DIR, img_file)
+    img = cv2.imread(img_path)
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # corners = cv2.goodFeaturesToTrack(img_gray, 1000, 0.01, 10)
+    # corners = np.int0(corners)
+
+    corners = shi_tomasi_corner(img_gray)
+    for corner in corners:
+      x, y = corner
+      img[x, y] = [0, 0, 255]
+
+    # print(f"num corners: {len(corners)}")
+    debug = False
+    if debug:
+      cv2.imshow("Image", img)
+      cv2.waitKey(0)
+
+    self.assertTrue(len(corners))
+
+  def test_pinhole_K(self):
+    """ Test pinhole_K() """
+    fx = 1.0
+    fy = 2.0
+    cx = 3.0
+    cy = 4.0
+    proj_params = [fx, fy, cx, cy]
+    K = pinhole_K(proj_params)
+    expected = np.array([[1.0, 0.0, 3.0], [0.0, 2.0, 4.0], [0.0, 0.0, 1.0]])
+
+    self.assertTrue(np.array_equal(K, expected))
+
+  def test_pinhole_project(self):
+    """ Test pinhole_project() """
+    z = pinhole_project(self.proj_params, self.p_C)
+    self.assertTrue(isclose(z[0], 320.0))
+    self.assertTrue(isclose(z[1], 240.0))
+
+  def test_pinhole_params_jacobian(self):
+    """ Test pinhole_params_jacobian() """
+    # Pinhole params jacobian
+    fx, fy, cx, cy = self.proj_params
+    z = np.array([fx * self.x[0] + cx, fy * self.x[1] + cy])
+    J = pinhole_params_jacobian(self.x)
+
+    # Perform numerical diff to obtain finite difference
+    step_size = 1e-6
+    tol = 1e-4
+    finite_diff = zeros((2, 4))
+
+    for i in range(4):
+      params_diff = list(self.proj_params)
+      params_diff[i] += step_size
+      fx, fy, cx, cy = params_diff
+
+      z_diff = np.array([fx * self.x[0] + cx, fy * self.x[1] + cy])
+      finite_diff[0:2, i] = (z_diff - z) / step_size
+
+    self.assertTrue(matrix_equal(finite_diff, J, tol, True))
+
+  def test_pinhole_point_jacobian(self):
+    """ Test pinhole_point_jacobian() """
+    # Pinhole params jacobian
+    fx, fy, cx, cy = self.proj_params
+    z = np.array([fx * self.x[0] + cx, fy * self.x[1] + cy])
+    J = pinhole_point_jacobian(self.proj_params)
+
+    # Perform numerical diff to obtain finite difference
+    step_size = 1e-6
+    tol = 1e-4
+    finite_diff = zeros((2, 2))
+
+    for i in range(2):
+      x_diff = list(self.x)
+      x_diff[i] += step_size
+
+      z_diff = np.array([fx * x_diff[0] + cx, fy * x_diff[1] + cy])
+      finite_diff[0:2, i] = (z_diff - z) / step_size
+
+    self.assertTrue(matrix_equal(finite_diff, J, tol, True))
+
+
 ################################################################################
 # DATASET
 ################################################################################
@@ -3681,6 +4639,14 @@ class EurocDataset:
     return None
 
 
+class TestEuroc(unittest.TestCase):
+  """ Test Euroc dataset loader """
+  def test_load(self):
+    """ Test load """
+    dataset = EurocDataset(EUROC_DATA_PATH)
+    self.assertTrue(dataset is not None)
+
+
 # KITTI #######################################################################
 
 
@@ -3819,6 +4785,37 @@ class KittiRawDataset:
     ax.set_zlabel("z [m]")
     plot_set_axes_equal(ax)
     plt.show()
+
+
+class TestKitti(unittest.TestCase):
+  """ Test KITTI dataset loader """
+  @unittest.skip("")
+  def test_load(self):
+    """ Test load """
+    data_dir = '/data/kitti'
+    date = "2011_09_26"
+    seq = "93"
+    dataset = KittiRawDataset(data_dir, date, seq, True)
+    # dataset.plot_frames()
+
+    for i in range(dataset.nb_camera_images()):
+      cam0_img = dataset.get_camera_image(0, index=i)
+      cam1_img = dataset.get_camera_image(1, index=i)
+      cam2_img = dataset.get_camera_image(2, index=i)
+      cam3_img = dataset.get_camera_image(3, index=i)
+
+      img_size = cam0_img.shape
+      img_new_size = (int(img_size[1] / 2.0), int(img_size[0] / 2.0))
+
+      cam0_img = cv2.resize(cam0_img, img_new_size)
+      cam1_img = cv2.resize(cam1_img, img_new_size)
+      cam2_img = cv2.resize(cam2_img, img_new_size)
+      cam3_img = cv2.resize(cam3_img, img_new_size)
+
+      cv2.imshow("viz", cv2.vconcat([cam0_img, cam1_img, cam2_img, cam3_img]))
+      cv2.waitKey(0)
+
+    self.assertTrue(dataset is not None)
 
 
 ###############################################################################
@@ -5822,4587 +6819,6 @@ class MargFactor(Factor):
     return (r, jacs)
 
 
-# SOLVER #######################################################################
-
-
-class Solver:
-  """ Solver """
-  def __init__(self):
-    self.factors = {}
-    self.params = {}
-    self.solver_max_iter = 5
-    self.solver_lambda = 1e4
-
-  def add(self, factor, factor_params):
-    """ Add factor and parameters """
-    assert factor.factor_id is not None
-    assert len(factor_params) >= 1
-    assert factor_params[0].param_id is not None
-    self.factors[factor.factor_id] = factor
-    for param in factor_params:
-      self.params[param.param_id] = param
-
-  def add_param(self, param):
-    """ Add param """
-    self.params[param.param_id] = param
-
-  def add_factor(self, factor):
-    """ Add factor """
-    # Double check if params exists
-    for param_id in factor.param_ids:
-      if param_id not in self.params:
-        raise RuntimeError(f"Parameter [{param_id}] does not exist!")
-
-    # Add factor
-    self.factors[factor.factor_id] = factor
-
-  @staticmethod
-  def _print_to_console(iter_k, lambda_k, cost_kp1, cost_k):
-    """ Print to console """
-
-    print(f"iter[{iter_k}]:", end=" ")
-    print(f"lambda: {lambda_k:.2e}", end=", ")
-    print(f"cost: {cost_kp1:.2e}", end=", ")
-    print(f"dcost: {cost_kp1 - cost_k:.2e}", end=" ")
-    print()
-
-    # status, rmse_vision = rmse(self._get_reproj_errors())
-    # print(f"rms_reproj_error: {rmse_vision:.2f} px")
-
-    sys.stdout.flush()
-
-  def _form_param_indices(self):
-    """ Form parameter indices """
-    # Parameter ids
-    param_ids = {
-        'pose': set(),
-        'speed_and_biases': set(),
-        'feature': set(),
-        'camera': set(),
-        'extrinsics': set(),
-        'joint_angle': set(),
-    }
-
-    # Track parameters
-    nb_params = 0
-    for _, factor in self.factors.items():
-      for _, param_id in enumerate(factor.param_ids):
-        param = self.params[param_id]
-        if param.fix:
-          continue
-        else:
-          param_ids[param.var_type].add(param_id)
-        nb_params += 1
-
-    # Assign global parameter order
-    param_order = []
-    param_order.append("joint_angle")
-    param_order.append("pose")
-    param_order.append("speed_and_biases")
-    param_order.append("feature")
-    param_order.append("camera")
-    param_order.append("extrinsics")
-
-    param_idxs = {}
-    param_size = 0
-    for param_type in param_order:
-      for param_id in param_ids[param_type]:
-        param_idxs[param_id] = param_size
-        param_size += self.params[param_id].min_dims
-
-    return (param_idxs, param_size)
-
-  def _linearize(self, params):
-    """ Linearize non-linear problem """
-    # Setup
-    (param_idxs, param_size) = self._form_param_indices()
-    H = zeros((param_size, param_size))
-    g = zeros(param_size)
-
-    # Form Hessian and R.H.S of Gauss newton
-    for _, factor in self.factors.items():
-      factor_params = [params[pid].param for pid in factor.param_ids]
-      r, jacobians = factor.eval(factor_params)
-
-      # Form Hessian
-      nb_params = len(factor_params)
-      for i in range(nb_params):
-        param_i = params[factor.param_ids[i]]
-        if param_i.fix:
-          continue
-        idx_i = param_idxs[factor.param_ids[i]]
-        size_i = param_i.min_dims
-        J_i = jacobians[i]
-
-        for j in range(i, nb_params):
-          param_j = params[factor.param_ids[j]]
-          if param_j.fix:
-            continue
-          idx_j = param_idxs[factor.param_ids[j]]
-          size_j = param_j.min_dims
-          J_j = jacobians[j]
-
-          rs = idx_i
-          re = idx_i + size_i
-          cs = idx_j
-          ce = idx_j + size_j
-
-          if i == j:  # Diagonal
-            H[rs:re, cs:ce] += J_i.T @ J_j
-          else:  # Off-Diagonal
-            H[rs:re, cs:ce] += J_i.T @ J_j
-            H[cs:ce, rs:re] += (J_i.T @ J_j).T
-
-        # Form R.H.S. Gauss Newton g
-        rs = idx_i
-        re = idx_i + size_i
-        g[rs:re] += (-J_i.T @ r)
-
-    return (H, g, param_idxs)
-
-  def _linearize2(self, params):
-    """ Linearize non-linear problem
-
-    This function forms the Jacboian J instead of the Hessian H.
-
-    """
-    # Setup
-    (param_idxs, param_size) = self._form_param_indices()
-    r_size = np.sum([f.r_size for _, f in self.factors.items()])
-    J = zeros((r_size, param_size))
-    g = zeros(param_size)
-
-    # Form Jacobian and R.H.S of Gauss newton
-    J_idx = 0
-    for _, factor in self.factors.items():
-      factor_params = [params[pid].param for pid in factor.param_ids]
-      r, jacobians = factor.eval(factor_params)
-      J_rs = J_idx
-      J_re = J_rs + len(r)
-
-      # Form Jacobian
-      nb_params = len(factor_params)
-      for i in range(nb_params):
-        param_i = params[factor.param_ids[i]]
-        if param_i.fix:
-          continue
-        idx_i = param_idxs[factor.param_ids[i]]
-        size_i = param_i.min_dims
-        J_i = jacobians[i]
-
-        J_cs = idx_i
-        J_ce = J_cs + size_i
-        J[J_rs:J_re, J_cs:J_ce] = J_i
-
-        # Form R.H.S. Gauss Newton g
-        rs = idx_i
-        re = idx_i + size_i
-        g[rs:re] += (-J_i.T @ r)
-
-      # Update row index
-      J_idx = J_rs + len(r)
-
-    # print(f"J.shape: {J.shape}")
-    return (J, g, param_idxs)
-
-  def _calculate_residuals(self, params):
-    """ Calculate Residuals """
-    residuals = np.array([])
-
-    for _, factor in self.factors.items():
-      factor_params = [params[pid].param for pid in factor.param_ids]
-      r = factor.eval(factor_params, only_residuals=True)
-      residuals = np.append(residuals, r)
-
-    return residuals
-
-  def _calculate_cost(self, params):
-    """ Calculate Cost """
-    r = self._calculate_residuals(params)
-    return 0.5 * (r.T @ r)
-
-  @staticmethod
-  def _update(params_k, param_idxs, dx):
-    """ Update """
-    params_kp1 = copy.deepcopy(params_k)
-
-    for param_id, param in params_kp1.items():
-      # Check if param even exists
-      if param_id not in param_idxs:
-        continue
-
-      # Update parameter
-      start = param_idxs[param_id]
-      end = start + param.min_dims
-      param_dx = dx[start:end]
-      update_state_variable(param, param_dx)
-
-    return params_kp1
-
-  @staticmethod
-  def _solve_for_dx(lambda_k, H, g):
-    """ Solve for dx """
-    # Damp Hessian
-    H_damped = H + lambda_k * eye(H.shape[0])
-    # H_damped = H + lambda_k * np.diag(H.diagonal())
-
-    # # Pseudo inverse
-    # dx = pinv(H) @ g
-
-    # Cholesky decomposition
-    dx = None
-    try:
-      c, low = scipy.linalg.cho_factor(H_damped)
-      dx = scipy.linalg.cho_solve((c, low), g)
-    except:
-      dx = np.zeros((H_damped.shape[0],))
-
-    # SVD
-    # dx = solve_svd(H_damped, g)
-
-    # # QR
-    # q, r = np.linalg.qr(H_damped)
-    # p = np.dot(q.T, g)
-    # dx = np.dot(np.linalg.inv(r), p)
-
-    # Sparse cholesky decomposition
-    # sH = scipy.sparse.csc_matrix(H_damped)
-    # dx = scipy.sparse.linalg.spsolve(sH, g)
-
-    return dx
-
-  def solve(self, verbose=False):
-    """ Solve """
-    lambda_k = self.solver_lambda
-    params_k = copy.deepcopy(self.params)
-    cost_k = self._calculate_cost(params_k)
-
-    # First evaluation
-    if verbose:
-      print(f"num_factors: {len(self.factors)}")
-      print(f"num_params: {len(self.params)}")
-      self._print_to_console(0, lambda_k, cost_k, cost_k)
-
-    # Iterate
-    success = False
-    H = None
-    g = None
-    param_idxs = None
-
-    # idx_i = None
-    # size_i = None
-    # for _, f in self.factors.items():
-    #   if f.factor_type == "CalibGimbalFactor":
-    #     idx_i = param_idxs[f.param_ids[3]]
-    #     size_i = params_k[f.param_ids[3]].min_dims
-    #     break
-
-    for i in range(1, self.solver_max_iter):
-      # Update and calculate cost
-      if i == 1 or success:
-        (H, g, param_idxs) = self._linearize(params_k)
-
-      dx = self._solve_for_dx(lambda_k, H, g)
-      params_kp1 = self._update(params_k, param_idxs, dx)
-      cost_kp1 = self._calculate_cost(params_kp1)
-
-      # Verbose
-      if verbose:
-        self._print_to_console(i, lambda_k, cost_kp1, cost_k)
-
-      # Accept or reject update
-      dcost = cost_kp1 - cost_k
-      success = dcost < 0
-
-      if success:
-        # Accept update
-        cost_k = cost_kp1
-        params_k = params_kp1
-        lambda_k /= 10.0
-
-      else:
-        # Reject update
-        # params_k = params_k
-        lambda_k *= 10.0
-
-      # # Termination criteria
-      # if dcost > -1e-5:
-      #   break
-
-    # Finish - set the original params the optimized values
-    # Note: The reason we don't just do `self.params = params_k` is because
-    # that would destroy the references to outside `FactorGraph()`.
-    for param_id, param in params_k.items():
-      self.params[param_id].param = param.param
-
-
-# FACTOR GRAPH ################################################################
-
-
-class FactorGraph:
-  """ Factor Graph """
-  def __init__(self):
-    # Parameters and factors
-    self._next_param_id = 0
-    self._next_factor_id = 0
-    self.params = {}
-    self.factors = {}
-    self.solver_max_iter = 5
-    self.solver_lambda = 1e4
-
-  def add_param(self, param):
-    """ Add param """
-    param_id = self._next_param_id
-    self.params[param_id] = param
-    self.params[param_id].set_param_id(param_id)
-    self._next_param_id += 1
-    return param_id
-
-  def add_factor(self, factor):
-    """ Add factor """
-    # Double check if params exists
-    for param_id in factor.param_ids:
-      if param_id not in self.params:
-        raise RuntimeError(f"Parameter [{param_id}] does not exist!")
-
-    # Add factor
-    factor_id = self._next_factor_id
-    self.factors[factor_id] = factor
-    self.factors[factor_id].set_factor_id(factor_id)
-    self._next_factor_id += 1
-    return factor_id
-
-  def remove_param(self, param):
-    """ Remove param """
-    assert param.param_id in self.params
-    del self.params[param.param_id]
-
-  def remove_factor(self, factor):
-    """ Remove factor """
-    assert factor.factor_id in self.factors
-    del self.factors[factor.factor_id]
-
-  def get_reproj_errors(self):
-    """ Get reprojection errors """
-    target_factors = ["BAFactor", "VisionFactor", "CalibVisionFactor"]
-
-    reproj_errors = []
-    for _, factor in self.factors.items():
-      if factor.factor_type in target_factors:
-        factor_params = [self.params[pid].param for pid in factor.param_ids]
-        status, error = factor.get_reproj_error(*factor_params)
-        if status:
-          reproj_errors.append(error)
-
-    return np.array(reproj_errors).flatten()
-
-  def solve(self, verbose=False):
-    """ Solve """
-    solver = Solver()
-    solver.solver_max_iter = self.solver_max_iter
-    solver.solver_lambda = self.solver_lambda
-    for _, factor in self.factors.items():
-      factor_params = [self.params[pid] for pid in factor.param_ids]
-      solver.add(factor, factor_params)
-    solver.solve(verbose)
-
-    # params_k = copy.deepcopy(solver.params)
-    # (H, g, param_idxs) = solver._linearize(params_k)
-
-    # m = 6
-    # Hmm = H[0:m, 0:m]
-    # Hmr = H[0:m, m:]
-    # Hrm = H[m:, 0:m]
-    # Hrr = H[m:, m:]
-    # assert rank(Hmm) == Hmm.shape[0]
-    # Hmm_inv = np.linalg.inv(Hmm)
-    # H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
-    # w, V = np.linalg.eigh(0.5 * (H_marg + H_marg.T))
-
-    # w[w < 0.0] = 0.0
-    # J = np.diag(np.sqrt(w)) @ V.T
-    # diff = norm(H_marg - J.T @ J)
-    # print(f"diff: {diff}")
-    # plt.imshow(diff)
-    # plt.colorbar()
-    # plt.show()
-
-
-# FEATURE TRACKING #############################################################
-
-
-def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs):
-  """
-  Draw keypoint matches between images `img_i` and `img_j` with keypoints
-  `kps_i` and `kps_j`
-  """
-  assert len(kps_i) == len(kps_j)
-
-  nb_kps = len(kps_i)
-  viz = cv2.hconcat([img_i, img_j])
-  viz = cv2.cvtColor(viz, cv2.COLOR_GRAY2RG)
-
-  color = (0, 255, 0)
-  radius = 3
-  thickness = kwargs.get('thickness', cv2.FILLED)
-  linetype = kwargs.get('linetype', cv2.LINE_AA)
-
-  for n in range(nb_kps):
-    pt_i = None
-    pt_j = None
-    if hasattr(kps_i[n], 'pt'):
-      pt_i = (int(kps_i[n].pt[0]), int(kps_i[n].pt[1]))
-      pt_j = (int(kps_j[n].pt[0] + img_i.shape[1]), int(kps_j[n].pt[1]))
-    else:
-      pt_i = (int(kps_i[n][0]), int(kps_i[n][1]))
-      pt_j = (int(kps_j[n][0] + img_i.shape[1]), int(kps_j[n][1]))
-
-    cv2.circle(viz, pt_i, radius, color, thickness, lineType=linetype)
-    cv2.circle(viz, pt_j, radius, color, thickness, lineType=linetype)
-    cv2.line(viz, pt_i, pt_j, color, 1, linetype)
-
-  return viz
-
-
-def draw_keypoints(img, kps, inliers=None, **kwargs):
-  """
-  Draw points `kps` on image `img`. The `inliers` boolean list is optional
-  and is expected to be the same size as `kps` denoting whether the point
-  should be drawn or not.
-  """
-  inliers = [1 for i in range(len(kps))] if inliers is None else inliers
-  radius = kwargs.get('radius', 2)
-  color = kwargs.get('color', (0, 255, 0))
-  thickness = kwargs.get('thickness', cv2.FILLED)
-  linetype = kwargs.get('linetype', cv2.LINE_AA)
-
-  viz = img
-  if len(img.shape) == 2:
-    viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-
-  for n, kp in enumerate(kps):
-    if inliers[n]:
-      p = None
-      if hasattr(kp, 'pt'):
-        p = (int(kp.pt[0]), int(kp.pt[1]))
-      else:
-        p = (int(kp[0]), int(kp[1]))
-
-      cv2.circle(viz, p, radius, color, thickness, lineType=linetype)
-
-  return viz
-
-
-def sort_keypoints(kps):
-  """ Sort a list of cv2.KeyPoint based on their response """
-  responses = [kp.response for kp in kps]
-  indices = range(len(responses))
-  indices = sorted(indices, key=lambda i: responses[i], reverse=True)
-  return [kps[i] for i in indices]
-
-
-def spread_keypoints(img, kps, min_dist, **kwargs):
-  """
-  Given a set of keypoints `kps` make sure they are atleast `min_dist` pixels
-  away from each other, if they are not remove them.
-  """
-  # Pre-check
-  if not kps:
-    return kps
-
-  # Setup
-  debug = kwargs.get('debug', False)
-  prev_kps = kwargs.get('prev_kps', [])
-  min_dist = int(min_dist)
-  img_h, img_w = img.shape
-  A = np.zeros(img.shape)  # Allowable areas are marked 0 else not allowed
-
-  # Loop through previous keypoints
-  for kp in prev_kps:
-    # Convert from keypoint to tuple
-    p = (int(kp.pt[0]), int(kp.pt[1]))
-
-    # Fill the area of the matrix where the next keypoint cannot be around
-    rs = int(max(p[1] - min_dist, 0.0))
-    re = int(min(p[1] + min_dist + 1, img_h))
-    cs = int(max(p[0] - min_dist, 0.0))
-    ce = int(min(p[0] + min_dist + 1, img_w))
-    A[rs:re, cs:ce] = np.ones((re - rs, ce - cs))
-
-  # Loop through keypoints
-  kps_results = []
-  for kp in sort_keypoints(kps):
-    # Convert from keypoint to tuple
-    p = (int(kp.pt[0]), int(kp.pt[1]))
-
-    # Check if point is ok to be added to results
-    if A[p[1], p[0]] > 0.0:
-      continue
-
-    # Fill the area of the matrix where the next keypoint cannot be around
-    rs = int(max(p[1] - min_dist, 0.0))
-    re = int(min(p[1] + min_dist + 1, img_h))
-    cs = int(max(p[0] - min_dist, 0.0))
-    ce = int(min(p[0] + min_dist + 1, img_w))
-    A[rs:re, cs:ce] = np.ones((re - rs, ce - cs))
-    A[p[1], p[0]] = 2
-
-    # Add to results
-    kps_results.append(kp)
-
-  # Debug
-  if debug:
-    img = draw_keypoints(img, kps_results, radius=3)
-
-    plt.figure()
-
-    ax = plt.subplot(121)
-    ax.imshow(A)
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
-    ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
-
-    ax = plt.subplot(122)
-    ax.imshow(img)
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
-    ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
-
-    plt.show()
-
-  return kps_results
-
-
-class FeatureGrid:
-  """
-  FeatureGrid
-
-  The idea is to take all the feature positions and put them into grid cells
-  across the full image space. This is so that one could keep track of how many
-  feautures are being tracked in each individual grid cell and act accordingly.
-
-  o-----> x
-  | ---------------------
-  | |  0 |  1 |  2 |  3 |
-  V ---------------------
-  y |  4 |  5 |  6 |  7 |
-    ---------------------
-    |  8 |  9 | 10 | 11 |
-    ---------------------
-    | 12 | 13 | 14 | 15 |
-    ---------------------
-
-    grid_x = ceil((max(1, pixel_x) / img_w) * grid_cols) - 1.0
-    grid_y = ceil((max(1, pixel_y) / img_h) * grid_rows) - 1.0
-    cell_id = int(grid_x + (grid_y * grid_cols))
-
-  """
-  def __init__(self, grid_rows, grid_cols, image_shape, keypoints):
-    assert len(image_shape) == 2
-    self.grid_rows = grid_rows
-    self.grid_cols = grid_cols
-    self.image_shape = image_shape
-    self.keypoints = keypoints
-
-    self.cell = [0 for i in range(self.grid_rows * self.grid_cols)]
-    for kp in keypoints:
-      if hasattr(kp, 'pt'):
-        # cv2.KeyPoint
-        assert (kp.pt[0] >= 0 and kp.pt[0] <= image_shape[1])
-        assert (kp.pt[1] >= 0 and kp.pt[1] <= image_shape[0])
-        self.cell[self.cell_index(kp.pt)] += 1
-      else:
-        # Tuple
-        assert (kp[0] >= 0 and kp[0] <= image_shape[1])
-        assert (kp[1] >= 0 and kp[1] <= image_shape[0])
-        self.cell[self.cell_index(kp)] += 1
-
-  def cell_index(self, pt):
-    """ Return cell index based on point `pt` """
-    pixel_x, pixel_y = pt
-    img_h, img_w = self.image_shape
-    grid_x = math.ceil((max(1, pixel_x) / img_w) * self.grid_cols) - 1.0
-    grid_y = math.ceil((max(1, pixel_y) / img_h) * self.grid_rows) - 1.0
-    cell_id = int(grid_x + (grid_y * self.grid_cols))
-    return cell_id
-
-  def count(self, cell_idx):
-    """ Return cell count """
-    return self.cell[cell_idx]
-
-
-def grid_detect(detector, image, **kwargs):
-  """
-  Detect features uniformly using a grid system.
-  """
-  optflow_mode = kwargs.get('optflow_mode', False)
-  max_keypoints = kwargs.get('max_keypoints', 240)
-  grid_rows = kwargs.get('grid_rows', 3)
-  grid_cols = kwargs.get('grid_cols', 4)
-  prev_kps = kwargs.get('prev_kps', [])
-  if prev_kps is None:
-    prev_kps = []
-
-  # Calculate number of grid cells and max corners per cell
-  image_height, image_width = image.shape
-  dx = int(math.ceil(float(image_width) / float(grid_cols)))
-  dy = int(math.ceil(float(image_height) / float(grid_rows)))
-  nb_cells = grid_rows * grid_cols
-  max_per_cell = math.floor(max_keypoints / nb_cells)
-
-  # Detect corners in each grid cell
-  feature_grid = FeatureGrid(grid_rows, grid_cols, image.shape, prev_kps)
-  des_all = []
-  kps_all = []
-
-  cell_idx = 0
-  for y in range(0, image_height, dy):
-    for x in range(0, image_width, dx):
-      # Make sure roi width and height are not out of bounds
-      w = image_width - x if (x + dx > image_width) else dx
-      h = image_height - y if (y + dy > image_height) else dy
-
-      # Detect corners in grid cell
-      cs, ce, rs, re = (x, x + w, y, y + h)
-      roi_image = image[rs:re, cs:ce]
-
-      kps = None
-      des = None
-      if optflow_mode:
-        detector.setNonmaxSuppression(1)
-        kps = detector.detect(roi_image)
-        kps = sort_keypoints(kps)
-
-      else:
-        kps = detector.detect(roi_image, None)
-        kps, des = detector.compute(roi_image, kps)
-
-      # Offset keypoints
-      cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
-      if cell_vacancy <= 0:
-        continue
-
-      limit = min(len(kps), cell_vacancy)
-      for i in range(limit):
-        kp = kps[i]
-        kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
-        kps_all.append(kp)
-        des_all.append(des[i, :] if optflow_mode is False else None)
-
-      # Update cell_idx
-      cell_idx += 1
-
-  # Space out the keypoints
-  if optflow_mode:
-    kps_all = spread_keypoints(image, kps_all, 20, prev_kps=prev_kps)
-
-  # Debug
-  if kwargs.get('debug', False):
-    # Setup
-    viz = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    kps_grid = FeatureGrid(grid_rows, grid_cols, image.shape, kps_all)
-
-    # Visualization properties
-    red = (0, 0, 255)
-    yellow = (0, 255, 255)
-    linetype = cv2.LINE_AA
-    font = cv2.FONT_HERSHEY_SIMPLEX
-
-    # -- Draw horizontal lines
-    for x in range(0, image_width, dx):
-      cv2.line(viz, (x, 0), (x, image_height), red, 1, linetype)
-
-    # -- Draw vertical lines
-    for y in range(0, image_height, dy):
-      cv2.line(viz, (0, y), (image_width, y), red, 1, linetype)
-
-    # -- Draw bin numbers
-    cell_idx = 0
-    for y in range(0, image_height, dy):
-      for x in range(0, image_width, dx):
-        text = str(kps_grid.count(cell_idx))
-        origin = (x + 10, y + 20)
-        viz = cv2.putText(viz, text, origin, font, 0.5, red, 1, linetype)
-
-        # text = str(feature_grid.count(cell_idx))
-        # origin = (x + 10, y + 20)
-        # viz = cv2.putText(viz, text, origin, font, 0.5, yellow, 1, linetype)
-
-        cell_idx += 1
-
-    # -- Draw keypoints
-    viz = draw_keypoints(viz, kps_all, color=red)
-    viz = draw_keypoints(viz, prev_kps, color=yellow)
-    cv2.imshow("viz", viz)
-    cv2.waitKey(0)
-
-  # Return
-  if optflow_mode:
-    return kps_all
-
-  return kps_all, np.array(des_all)
-
-
-def optflow_track(img_i, img_j, pts_i, **kwargs):
-  """
-  Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
-  flow. Returns a tuple of `(pts_i, pts_j, inliers)` points in image i, j and a
-  vector of inliers.
-  """
-  # Setup
-  patch_size = kwargs.get('patch_size', 50)
-  max_iter = kwargs.get('max_iter', 100)
-  epsilon = kwargs.get('epsilon', 0.001)
-  crit = (cv2.TermCriteria_COUNT | cv2.TermCriteria_EPS, max_iter, epsilon)
-
-  # Optical flow settings
-  config = {}
-  config['winSize'] = (patch_size, patch_size)
-  config['maxLevel'] = 3
-  config['criteria'] = crit
-  config['flags'] = cv2.OPTFLOW_USE_INITIAL_FLOW
-
-  # Track using optical flow
-  pts_j = np.array(pts_i)
-  track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, pts_i, pts_j, **config)
-  (pts_j, optflow_inliers, _) = track_results
-
-  # Make sure keypoints are within image dimensions
-  bound_inliers = []
-  img_h, img_w = img_j.shape
-  for p in pts_j:
-    x_ok = p[0] >= 0 and p[0] <= img_w
-    y_ok = p[1] >= 0 and p[1] <= img_h
-    if x_ok and y_ok:
-      bound_inliers.append(True)
-    else:
-      bound_inliers.append(False)
-
-  # Update or mark feature as lost
-  assert len(pts_i) == optflow_inliers.shape[0]
-  assert len(pts_i) == len(bound_inliers)
-  inliers = []
-  for i in range(len(pts_i)):
-    if optflow_inliers[i, 0] and bound_inliers[i]:
-      inliers.append(True)
-    else:
-      inliers.append(False)
-
-  if kwargs.get('debug', False):
-    viz_i = draw_keypoints(img_i, pts_i, inliers)
-    viz_j = draw_keypoints(img_j, pts_j, inliers)
-    viz = cv2.hconcat([viz_i, viz_j])
-    cv2.imshow('viz', viz)
-    cv2.waitKey(0)
-
-  return (pts_i, pts_j, inliers)
-
-
-def filter_outliers(pts_i, pts_j, inliers):
-  """ Filter outliers """
-  pts_out_i = []
-  pts_out_j = []
-  for n, status in enumerate(inliers):
-    if status:
-      pts_out_i.append(pts_i[n])
-      pts_out_j.append(pts_j[n])
-
-  return (pts_out_i, pts_out_j)
-
-
-def ransac(pts_i, pts_j, cam_i, cam_j):
-  """ RANSAC """
-  # Setup
-  cam_geom_i = cam_i.data
-  cam_geom_j = cam_j.data
-
-  # Undistort points
-  pts_i_ud = np.array([cam_geom_i.undistort(cam_i.param, p) for p in pts_i])
-  pts_j_ud = np.array([cam_geom_j.undistort(cam_j.param, p) for p in pts_j])
-
-  # Ransac via OpenCV's find fundamental matrix
-  method = cv2.FM_RANSAC
-  reproj_thresh = 0.75
-  confidence = 0.99
-  args = [pts_i_ud, pts_j_ud, method, reproj_thresh, confidence]
-  _, inliers = cv2.findFundamentalMat(*args)
-
-  return inliers.flatten()
-
-
-class FeatureTrackerData:
-  """
-  Feature tracking data *per camera*
-
-  This data structure keeps track of:
-
-  - Image
-  - Keypoints
-  - Descriptors
-  - Feature ids (optional)
-
-  """
-  def __init__(self, cam_idx, image, keypoints, feature_ids=None):
-    self.cam_idx = cam_idx
-    self.image = image
-    self.keypoints = list(keypoints)
-    self.feature_ids = list(feature_ids)
-
-  def add(self, fid, kp):
-    """ Add measurement """
-    assert isinstance(fid, int)
-    assert hasattr(kp, 'pt')
-    self.keypoints.append(kp)
-    self.feature_ids.append(fid)
-    assert len(self.keypoints) == len(self.feature_ids)
-
-  def update(self, image, fids, kps):
-    """ Extend measurements """
-    assert len(kps) == len(fids)
-    self.image = np.array(image)
-
-    if kps:
-      assert hasattr(kps[0], 'pt')
-
-    self.feature_ids.extend(fids)
-    self.keypoints.extend(kps)
-    assert len(self.keypoints) == len(self.feature_ids)
-
-
-class FeatureTracker:
-  """ Feature tracker """
-  def __init__(self):
-    # Settings
-    self.mode = "TRACK_DEFAULT"
-    # self.mode = "TRACK_OVERLAPS"
-    # self.mode = "TRACK_INDEPENDENT"
-
-    # Settings
-    self.reproj_threshold = 5.0
-
-    # Data
-    self.prev_ts = None
-    self.frame_idx = 0
-    self.detector = cv2.FastFeatureDetector_create(threshold=50)
-    self.features_detected = 0
-    self.features_tracking = 0
-    self.feature_overlaps = {}
-    self.prev_mcam_imgs = None
-    self.kp_size = 0
-
-    self.cam_idxs = []
-    self.cam_params = {}
-    self.cam_exts = {}
-    self.cam_overlaps = {}
-    self.cam_data = {}
-
-  def add_camera(self, cam_idx, cam_params, cam_exts):
-    """ Add camera """
-    self.cam_idxs.append(cam_idx)
-    self.cam_data[cam_idx] = None
-    self.cam_params[cam_idx] = cam_params
-    self.cam_exts[cam_idx] = cam_exts
-
-  def add_overlap(self, cam_i_idx, cam_j_idx):
-    """ Add overlap """
-    if cam_i_idx not in self.cam_overlaps:
-      self.cam_overlaps[cam_i_idx] = []
-    self.cam_overlaps[cam_i_idx].append(cam_j_idx)
-
-  def num_tracking(self):
-    """ Return number of features tracking """
-    feature_ids = []
-    for _, cam_data in self.cam_data.items():
-      if cam_data is not None:
-        feature_ids.extend(cam_data.feature_ids)
-    return len(set(feature_ids))
-
-  def _get_camera_indices(self):
-    """ Get camera indices """
-    return [cam_idx for cam_idx, _ in self.cam_params]
-
-  def _get_keypoints(self, cam_idx):
-    """ Get keypoints observed by camera `cam_idx` """
-    keypoints = None
-    if self.cam_data[cam_idx] is not None:
-      keypoints = self.cam_data[cam_idx].keypoints
-
-    return keypoints
-
-  def _get_feature_ids(self, cam_idx):
-    """ Get feature ids observed by camera `cam_idx` """
-    feature_ids = None
-    if self.cam_data[cam_idx] is not None:
-      feature_ids = self.cam_data[cam_idx].feature_ids
-
-    return feature_ids
-
-  def _form_feature_ids(self, nb_kps):
-    """ Form list of feature ids for new features to be added """
-    self.features_detected += nb_kps
-    start_idx = self.features_detected - nb_kps
-    end_idx = start_idx + nb_kps
-    return list(range(start_idx, end_idx))
-
-  def _triangulate(self, idx_i, idx_j, z_i, z_j):
-    """ Triangulate feature """
-    # Setup
-    cam_i = self.cam_params[idx_i]
-    cam_j = self.cam_params[idx_j]
-    cam_geom_i = cam_i.data
-    cam_geom_j = cam_j.data
-    cam_exts_i = self.cam_exts[idx_i]
-    cam_exts_j = self.cam_exts[idx_j]
-
-    # Form projection matrices P_i and P_j
-    T_BCi = pose2tf(cam_exts_i.param)
-    T_BCj = pose2tf(cam_exts_j.param)
-    T_CiCj = inv(T_BCi) @ T_BCj
-    P_i = pinhole_P(cam_geom_i.proj_params(cam_i.param), eye(4))
-    P_j = pinhole_P(cam_geom_j.proj_params(cam_j.param), T_CiCj)
-
-    # Undistort image points z_i and z_j
-    x_i = cam_geom_i.undistort(cam_i.param, z_i)
-    x_j = cam_geom_j.undistort(cam_j.param, z_j)
-
-    # Linear triangulate
-    p_Ci = linear_triangulation(P_i, P_j, x_i, x_j)
-
-    return p_Ci
-
-  def _reproj_filter(self, idx_i, idx_j, pts_i, pts_j):
-    """ Filter features by triangulating them via a stereo-pair and see if the
-    reprojection error is reasonable """
-    assert idx_i != idx_j
-    assert len(pts_i) == len(pts_j)
-
-    # Reject outliers based on reprojection error
-    reproj_inliers = []
-    cam_i = self.cam_params[idx_i]
-    cam_geom_i = cam_i.data
-
-    nb_pts = len(pts_i)
-    for n in range(nb_pts):
-      # Triangulate
-      z_i = pts_i[n]
-      z_j = pts_j[n]
-      p_Ci = self._triangulate(idx_i, idx_j, z_i, z_j)
-      if p_Ci[2] < 0.0:
-        reproj_inliers.append(False)
-        continue
-
-      # Reproject
-      status, z_i_hat = cam_geom_i.project(cam_i.param, p_Ci)
-      if status is False:
-        reproj_inliers.append(False)
-      else:
-        reproj_error = norm(z_i - z_i_hat)
-        if reproj_error > self.reproj_threshold:
-          reproj_inliers.append(False)
-        else:
-          reproj_inliers.append(True)
-
-    return reproj_inliers
-
-  def _add_features(self, cam_idxs, mcam_imgs, cam_kps, fids):
-    """ Add features """
-    # Pre-check
-    assert cam_idxs
-    assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
-    assert all(cam_idx in cam_kps for cam_idx in cam_idxs)
-
-    # Add camera data
-    for idx in cam_idxs:
-      img = mcam_imgs[idx]
-      kps = cam_kps[idx]
-      assert len(kps) == len(fids)
-      if self.cam_data[idx] is None:
-        self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
-      else:
-        self.cam_data[idx].update(img, fids, kps)
-
-    # Update overlapping features
-    if len(cam_idxs) > 1:
-      for fid in fids:
-        self.feature_overlaps[fid] = 2
-
-  def _update_features(self, cam_idxs, mcam_imgs, cam_kps, fids):
-    """ Update features """
-    # Pre-check
-    assert cam_idxs
-    assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
-    assert all(cam_idx in cam_kps for cam_idx in cam_idxs)
-
-    # Update camera data
-    for idx in cam_idxs:
-      img = mcam_imgs[idx]
-      kps = cam_kps[idx]
-      self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
-
-    # # Update lost features
-    # fids_out = set(fids)
-    # fids_lost = [x for x in fids_in if x not in fids_out]
-    # for fid in fids_lost:
-    #   # feature overlaps
-    #   if fid in self.feature_overlaps:
-    #     self.feature_overlaps[fid] -= 1
-    #     if self.feature_overlaps[fid] == 0:
-    #       del self.feature_overlaps[fid]
-
-  def _detect(self, image, prev_kps=None):
-    """ Detect """
-    assert image is not None
-    kwargs = {'prev_kps': prev_kps, 'optflow_mode': True}
-    kps = grid_detect(self.detector, image, **kwargs)
-    self.kp_size = kps[0].size if kps else 0
-    return kps
-
-  def _detect_overlaps(self, mcam_imgs):
-    """ Detect overlapping features """
-    # Loop through camera overlaps
-    for idx_i, overlaps in self.cam_overlaps.items():
-      # Detect keypoints observed from idx_i (primary camera)
-      cam_i = self.cam_params[idx_i]
-      img_i = mcam_imgs[idx_i]
-      prev_kps = self._get_keypoints(idx_i)
-      kps_i = self._detect(img_i, prev_kps=prev_kps)
-      pts_i = np.array([kp.pt for kp in kps_i], dtype=np.float32)
-      fids_new = self._form_feature_ids(len(kps_i))
-      if not kps_i:
-        continue
-
-      # Track feature from camera idx_i to idx_j (primary to secondary camera)
-      for idx_j in overlaps:
-        # Optical flow
-        img_j = mcam_imgs[idx_j]
-        (_, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
-
-        # RANSAC
-        ransac_inliers = []
-        if len(kps_i) < 10:
-          ransac_inliers = np.array([True for _, _ in enumerate(kps_i)])
-        else:
-          cam_j = self.cam_params[idx_j]
-          ransac_inliers = ransac(pts_i, pts_j, cam_i, cam_j)
-
-        # Reprojection filter
-        reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
-
-        # Filter outliers
-        inliers = optflow_inliers & ransac_inliers & reproj_inliers
-        kps_j = [cv2.KeyPoint(p[0], p[1], self.kp_size) for p in pts_j]
-        fids = []
-        cam_kps = {idx_i: [], idx_j: []}
-        for i, inlier in enumerate(inliers):
-          if inlier:
-            fids.append(fids_new[i])
-            cam_kps[idx_i].append(kps_i[i])
-            cam_kps[idx_j].append(kps_j[i])
-
-        # Add features
-        cam_idxs = [idx_i, idx_j]
-        cam_imgs = {idx_i: img_i, idx_j: img_j}
-        self._add_features(cam_idxs, cam_imgs, cam_kps, fids)
-
-  def _detect_nonoverlaps(self, mcam_imgs):
-    """ Detect non-overlapping features """
-    for idx in self.cam_params:
-      # Detect keypoints
-      img = mcam_imgs[idx]
-      prev_kps = self._get_keypoints(idx)
-      kps = self._detect(img, prev_kps=prev_kps)
-      if not kps:
-        return
-
-      # Add features
-      fids = self._form_feature_ids(len(kps))
-      self._add_features([idx], {idx: img}, {idx: kps}, fids)
-
-  def _detect_new(self, mcam_imgs):
-    """ Detect new features """
-
-    # Detect new features
-    if self.mode == "TRACK_DEFAULT":
-      self._detect_overlaps(mcam_imgs)
-      self._detect_nonoverlaps(mcam_imgs)
-    elif self.mode == "TRACK_OVERLAPS":
-      self._detect_overlaps(mcam_imgs)
-    elif self.mode == "TRACK_INDEPENDENT":
-      self._detect_nonoverlaps(mcam_imgs)
-    else:
-      raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
-
-  def _track_through_time(self, mcam_imgs, cam_idx):
-    """ Track features through time """
-
-    # Setup images
-    img_km1 = self.prev_mcam_imgs[cam_idx]
-    img_k = mcam_imgs[cam_idx]
-
-    # Setup keypoints and feature_ids
-    kps_km1 = self._get_keypoints(cam_idx)
-    feature_ids = self._get_feature_ids(cam_idx)
-    pts_km1 = np.array([kp.pt for kp in kps_km1], dtype=np.float32)
-
-    # Optical flow
-    (pts_km1, pts_k, optflow_inliers) = optflow_track(img_km1, img_k, pts_km1)
-
-    # RANSAC
-    ransac_inliers = []
-    if len(kps_km1) < 10:
-      ransac_inliers = np.array([True for _, _ in enumerate(kps_km1)])
-    else:
-      cam = self.cam_params[cam_idx]
-      ransac_inliers = ransac(pts_km1, pts_k, cam, cam)
-
-    # Form inliers list
-    optflow_inliers = np.array(optflow_inliers)
-    ransac_inliers = np.array(ransac_inliers)
-    inliers = optflow_inliers & ransac_inliers
-
-    return (pts_km1, pts_k, feature_ids, inliers)
-
-  def _track_stereo(self, mcam_imgs, idx_i, idx_j, pts_i):
-    """ Track feature through stereo-pair """
-    # Optical flow
-    img_i = mcam_imgs[idx_i]
-    img_j = mcam_imgs[idx_j]
-    (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
-
-    # RANSAC
-    cam_i = self.cam_params[idx_i]
-    cam_j = self.cam_params[idx_j]
-    ransac_inliers = ransac(pts_i, pts_j, cam_i, cam_j)
-
-    # Reject outliers based on reprojection error
-    reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
-
-    # Logical AND optflow_inliers and reproj_inliers
-    ransac_inliers = np.array(ransac_inliers)
-    optflow_inliers = np.array(optflow_inliers)
-    reproj_inliers = np.array(reproj_inliers)
-    inliers = optflow_inliers & ransac_inliers & reproj_inliers
-
-    return (pts_i, pts_j, inliers)
-
-  def _track_features(self, mcam_imgs):
-    """ Track features """
-    # Track features in each camera
-    for idx in self.cam_idxs:
-      # Track through time
-      track_results = self._track_through_time(mcam_imgs, idx)
-      (_, pts_k, fids_old, inliers) = track_results
-
-      fids = []
-      kps = []
-      for i, inlier in enumerate(inliers):
-        if inlier:
-          pt = pts_k[i]
-          fids.append(fids_old[i])
-          kps.append(cv2.KeyPoint(pt[0], pt[1], self.kp_size))
-
-      # Update features
-      cam_idxs = [idx]
-      cam_imgs = {idx: mcam_imgs[idx]}
-      cam_kps = {idx: kps}
-      self._update_features(cam_idxs, cam_imgs, cam_kps, fids)
-
-  def update(self, ts, mcam_imgs):
-    """ Update Feature Tracker """
-    # Track features
-    if self.frame_idx == 0:
-      self._detect_new(mcam_imgs)
-      self.features_tracking = self.num_tracking()
-    else:
-      self._track_features(mcam_imgs)
-      if (self.num_tracking() / self.features_tracking) < 0.8:
-        self._detect_new(mcam_imgs)
-
-    # Update
-    self.frame_idx += 1
-    self.prev_ts = ts
-    self.prev_mcam_imgs = mcam_imgs
-
-    return self.cam_data
-
-
-def visualize_tracking(ft_data):
-  """ Visualize feature tracking data """
-  viz = []
-
-  radius = 4
-  green = (0, 255, 0)
-  yellow = (0, 255, 255)
-  thickness = 1
-  linetype = cv2.LINE_AA
-
-  # Find overlaps
-  fids = {}
-  feature_overlaps = set()
-  for _, cam_data in ft_data.items():
-    for n, _ in enumerate(cam_data.keypoints):
-      fid = cam_data.feature_ids[n]
-      fids[fid] = (fids[fid] + 1) if fid in fids else 1
-
-      if fids[fid] > 1:
-        feature_overlaps.add(fid)
-
-  # Draw features being tracked in each camera
-  for _, cam_data in ft_data.items():
-    img = cam_data.image
-    cam_viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-
-    for n, kp in enumerate(cam_data.keypoints):
-      fid = cam_data.feature_ids[n]
-      color = green if fid in feature_overlaps else yellow
-      p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
-      cv2.circle(cam_viz, p, radius, color, thickness, lineType=linetype)
-
-    viz.append(cam_viz)
-
-  return cv2.hconcat(viz)
-
-
-# STATE-ESTIMATOR #############################################################
-
-
-class KeyFrame:
-  """ Key Frame """
-  def __init__(self, ts, images, pose, vision_factors):
-    self.ts = ts
-    self.images = images
-    self.pose = pose
-    self.vision_factors = vision_factors
-
-
-class Tracker:
-  """ Tracker """
-  def __init__(self, feature_tracker):
-    # Feature tracker
-    self.feature_tracker = feature_tracker
-
-    # Flags
-    self.imu_started = False
-    self.cams_started = False
-
-    # Data
-    self.graph = FactorGraph()
-    self.pose_init = None
-
-    self.imu_buf = ImuBuffer()
-    self.imu_params = None
-
-    self.cam_params = {}
-    self.cam_geoms = {}
-    self.cam_exts = {}
-    self.features = {}
-    self.keyframes = []
-
-    # Settings
-    self.window_size = 10
-
-  def nb_cams(self):
-    """ Return number of cameras """
-    return len(self.cam_params)
-
-  def nb_keyframes(self):
-    """ Return number of keyframes """
-    return len(self.keyframes)
-
-  def nb_features(self):
-    """ Return number of keyframes """
-    return len(self.features)
-
-  def add_imu(self, imu_params):
-    """ Add imu """
-    self.imu_params = imu_params
-
-  def add_camera(self, cam_idx, cam_params, cam_exts):
-    """ Add camera """
-    self.cam_params[cam_idx] = cam_params
-    self.cam_geoms[cam_idx] = cam_params.data
-    self.cam_exts[cam_idx] = cam_exts
-    self.graph.add_param(cam_params)
-    self.graph.add_param(cam_exts)
-    self.feature_tracker.add_camera(cam_idx, cam_params, cam_exts)
-
-  def add_overlap(self, cam_i, cam_j):
-    """ Add overlap """
-    self.feature_tracker.add_overlap(cam_i, cam_j)
-
-  def set_initial_pose(self, T_WB):
-    """ Set initial pose """
-    assert self.pose_init is None
-    self.pose_init = T_WB
-
-  def inertial_callback(self, ts, acc, gyr):
-    """ Inertial callback """
-    if self.imu_params is None:
-      raise RuntimeError("Forgot to add imu to tracker?")
-    self.imu_buf.add(ts, acc, gyr)
-    self.imu_started = True
-
-  def _triangulate(self, cam_i, cam_j, z_i, z_j, T_WB):
-    """ Triangulate feature """
-    # Setup
-    cam_params_i = self.cam_params[cam_i]
-    cam_params_j = self.cam_params[cam_j]
-    cam_geom_i = cam_params_i.data
-    cam_geom_j = cam_params_j.data
-    cam_exts_i = self.cam_exts[cam_i]
-    cam_exts_j = self.cam_exts[cam_j]
-
-    # Form projection matrices P_i and P_j
-    T_BCi = pose2tf(cam_exts_i.param)
-    T_BCj = pose2tf(cam_exts_j.param)
-    T_CiCj = inv(T_BCi) @ T_BCj
-    P_i = pinhole_P(cam_geom_i.proj_params(cam_params_i.param), eye(4))
-    P_j = pinhole_P(cam_geom_j.proj_params(cam_params_j.param), T_CiCj)
-
-    # Undistort image points z_i and z_j
-    x_i = cam_geom_i.undistort(cam_params_i.param, z_i)
-    x_j = cam_geom_j.undistort(cam_params_j.param, z_j)
-
-    # Linear triangulate
-    p_Ci = linear_triangulation(P_i, P_j, x_i, x_j)
-    if p_Ci[2] < 0.0:
-      return None
-
-    # Transform feature from camera frame to world frame
-    T_BCi = pose2tf(self.cam_exts[cam_i].param)
-    p_W = tf_point(T_WB @ T_BCi, p_Ci)
-    return p_W
-
-  def _add_pose(self, ts, T_WB):
-    """
-    Add pose
-
-    Args:
-
-      T_WB (np.array): Body pose in world frame
-
-    """
-    pose = pose_setup(ts, T_WB)
-    self.graph.add_param(pose)
-    return pose
-
-  def _get_last_pose(self):
-    """ Get last pose """
-    return pose2tf(self.keyframes[-1].pose.param)
-
-  def _add_feature(self, fid, ts, cam_idx, kp):
-    """
-    Add feature
-
-    Args:
-
-      fid (int): Feature id
-      ts (int): Timestamp
-      cam_idx (int): Camera index
-      kp (cv2.KeyPoint): Key point
-
-    """
-    assert hasattr(kp, 'pt')
-    self.features[fid] = feature_setup(zeros((3,)))
-    self.features[fid].data.update(ts, cam_idx, kp.pt)
-    feature_pid = self.graph.add_param(self.features[fid])
-    return feature_pid
-
-  def _update_feature(self, fid, ts, cam_idx, kp, T_WB):
-    """
-    Update feature
-
-    Args:
-
-      fid (int): Feature id
-      ts (int): Timestamp
-      cam_idx (int): Camera index
-      kp (cv2.KeyPoint): Key point
-      T_WB (np.array): Body pose in world frame
-
-    """
-    # Update feature
-    self.features[fid].data.update(ts, cam_idx, kp.pt)
-
-    # Initialize overlapping features
-    has_inited = self.features[fid].data.initialized()
-    has_overlap = self.features[fid].data.has_overlap(ts)
-    if has_inited is False and has_overlap is True:
-      overlaps = self.features[fid].data.get_overlaps(ts)
-      cam_i, z_i = overlaps[0]
-      cam_j, z_j = overlaps[1]
-      p_W = self._triangulate(cam_i, cam_j, z_i, z_j, T_WB)
-      if p_W is not None:
-        self.features[fid].param = p_W
-        self.features[fid].data.set_initialized()
-
-  def _process_features(self, ts, ft_data, pose):
-    """ Process features
-
-    Args:
-
-      ts (int): Timestamp
-      ft_data (Dict[int, FeatureTrackerData]): Multi-camera feature tracker data
-      pose (StateVariable): Body pose in world frame
-
-    """
-    # Add or update feature
-    T_WB = pose2tf(pose.param)
-
-    for cam_idx, cam_data in ft_data.items():
-      for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
-        if fid not in self.features:
-          self._add_feature(fid, ts, cam_idx, kp)
-        else:
-          self._update_feature(fid, ts, cam_idx, kp, T_WB)
-
-  def _add_keyframe(self, ts, mcam_imgs, ft_data, pose):
-    """
-    Add keyframe
-
-    Args:
-
-      ts (int): Timestamp
-      mcam_imgs (Dict[int, np.array]): Multi-camera images
-      ft_data (Dict[int, FeatureTrackerData]): Multi-camera features
-      pose (Pose): Body pose in world frame
-
-    """
-    vision_factors = []
-
-    for cam_idx, cam_data in ft_data.items():
-      # camera params, geometry and extrinsics
-      cam_params = self.cam_params[cam_idx]
-      cam_geom = self.cam_geoms[cam_idx]
-      cam_exts = self.cam_exts[cam_idx]
-
-      # Form vision factors
-      for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
-        feature = self.features[fid]
-        if feature.data.initialized() is False:
-          continue
-
-        # Form vision factor
-        param_ids = []
-        param_ids.append(pose.param_id)
-        param_ids.append(cam_exts.param_id)
-        param_ids.append(feature.param_id)
-        param_ids.append(cam_params.param_id)
-        factor = VisionFactor(cam_geom, param_ids, kp.pt)
-        vision_factors.append(factor)
-        self.graph.add_factor(factor)
-
-    # Form keyframe
-    self.keyframes.append(KeyFrame(ts, mcam_imgs, pose, vision_factors))
-
-  def _pop_old_keyframe(self):
-    """ Pop old keyframe """
-    # Remove pose parameter and vision factors
-    kf = self.keyframes[0]
-    self.graph.remove_param(kf.pose)
-    for factor in kf.vision_factors:
-      self.graph.remove_factor(factor)
-
-    # Pop the front of the queue
-    self.keyframes.pop(0)
-
-  def _filter_keyframe_factors(self, filter_from=0):
-    """ Filter keyframe factors """
-    removed = 0
-
-    for kf in self.keyframes[filter_from:]:
-      # Calculate reprojection error
-      reproj_errors = []
-      for factor in list(kf.vision_factors):
-        # factor_params = self.graph._get_factor_params(factor)
-        params = [self.graph.params[pid].param for pid in factor.param_ids]
-        r, _ = factor.eval(params)
-        reproj_errors.append(norm(r))
-
-      # Filter factors
-      threshold = 3.0 * np.std(reproj_errors)
-      filtered_factors = []
-
-      for reproj_error, factor in zip(reproj_errors, kf.vision_factors):
-        if reproj_error >= threshold:
-          self.graph.remove_factor(factor)
-          removed += 1
-        else:
-          filtered_factors.append(factor)
-      kf.vision_factors = filtered_factors
-
-  def vision_callback(self, ts, mcam_imgs):
-    """
-    Vision callback
-
-    Args:
-
-      ts (int): Timestamp
-      mcam_imgs (Dict[int, np.array]): Multi-camera images
-
-    """
-    assert self.pose_init is not None
-
-    # Has IMU?
-    if self.imu_params is not None and self.imu_started is False:
-      return
-
-    # Perform feature tracking
-    ft_data = self.feature_tracker.update(ts, mcam_imgs)
-
-    # Add pose
-    pose = None
-    if self.nb_keyframes() == 0:
-      pose = self._add_pose(ts, self.pose_init)
-    else:
-      T_WB = self._get_last_pose()
-      pose = self._add_pose(ts, T_WB)
-
-    # Process features, add keyframe and solve
-    self._process_features(ts, ft_data, pose)
-    self._add_keyframe(ts, mcam_imgs, ft_data, pose)
-
-    if self.nb_keyframes() != 1:
-      self.graph.solve(True)
-      self._filter_keyframe_factors()
-
-    if len(self.keyframes) > self.window_size:
-      self._pop_old_keyframe()
-
-    errors = self.graph.get_reproj_errors()
-    print(f"reproj_error:", end=" [")
-    print(f"mean: {np.mean(errors):.2f}", end=", ")
-    print(f"median: {np.median(errors):.2f}", end=", ")
-    print(f"rms: {rmse(errors):.2f}", end=", ")
-    print(f"max: {np.max(errors):.2f}", end="]\n")
-    print(f"nb_keyframes: {self.nb_keyframes()}")
-    print()
-
-
-###############################################################################
-# CALIBRATION
-###############################################################################
-
-
-class AprilGrid:
-  """ AprilGrid """
-  def __init__(self, **kwargs):
-    self.tag_rows = kwargs.get("tag_rows", 6)
-    self.tag_cols = kwargs.get("tag_cols", 6)
-    self.tag_size = kwargs.get("tag_size", 0.088)
-    self.tag_spacing = kwargs.get("tag_spacing", 0.3)
-    self.nb_tags = self.tag_rows * self.tag_cols
-    self.ts = None
-    self.data = {}
-
-  @staticmethod
-  def load(csv_file):
-    """ Load AprilGrid """
-    import pandas
-
-    # Load csv file
-    dtype = {
-        "#ts": int,
-        "tag_rows": int,
-        "tag_cols": int,
-        "tag_size": float,
-        "tag_spacing": float,
-        "tag_id": int,
-        "corner_idx": int,
-        "kp_x": float,
-        "kp_y": float,
-    }
-    csv_data = pandas.read_csv(csv_file, dtype=dtype)
-    if csv_data.shape[0] == 0:
-      return None
-
-    # AprilGrid properties
-    ts = csv_data['#ts'][0]
-    tag_rows = csv_data['tag_rows'][0]
-    tag_cols = csv_data['tag_cols'][0]
-    tag_size = csv_data['tag_size'][0]
-    tag_spacing = csv_data['tag_spacing'][0]
-
-    # AprilGrid measurements
-    tag_indices = csv_data['tag_id']
-    corner_indices = csv_data['corner_idx']
-    kps = np.array([csv_data['kp_x'], csv_data['kp_y']]).T
-
-    # Form AprilGrid
-    grid_conf = {
-        "tag_rows": tag_rows,
-        "tag_cols": tag_cols,
-        "tag_size": tag_size,
-        "tag_spacing": tag_spacing
-    }
-    grid = AprilGrid(**grid_conf)
-    for tag_id, corner_idx, kp in zip(tag_indices, corner_indices, kps):
-      grid.add_keypoint(ts, tag_id, corner_idx, kp)
-
-    return grid
-
-  def get_object_point(self, tag_id, corner_idx):
-    """ Form object point """
-    # Calculate the AprilGrid index using tag id
-    [i, j] = self.get_grid_index(tag_id)
-
-    # Calculate the x and y of the tag origin (bottom left corner of tag)
-    # relative to grid origin (bottom left corner of entire grid)
-    x = j * (self.tag_size + self.tag_size * self.tag_spacing)
-    y = i * (self.tag_size + self.tag_size * self.tag_spacing)
-
-    # Corners from bottom left in counter-clockwise fashion
-    if corner_idx == 0:
-      # Bottom left
-      return np.array([x, y, 0])
-    elif corner_idx == 1:
-      # Bottom right
-      return np.array([x + self.tag_size, y, 0])
-    elif corner_idx == 2:
-      # Top right
-      return np.array([x + self.tag_size, y + self.tag_size, 0])
-    elif corner_idx == 3:
-      # Top left
-      return np.array([x, y + self.tag_size, 0])
-
-    raise RuntimeError(f"Invalid tag_id[{tag_id}] corner_idx[{corner_idx}]!")
-
-  def get_object_points(self):
-    """ Form object points """
-    object_points = []
-    for tag_id in range(self.nb_tags):
-      for corner_idx in range(4):
-        pt = self.get_object_point(tag_id, corner_idx)
-        object_points.append((tag_id, corner_idx, pt))
-    return object_points
-
-  def get_dimensions(self):
-    """ Get AprilGrid dimensions """
-    spacing_x = (self.tag_cols - 1) * self.tag_spacing * self.tag_size
-    spacing_y = (self.tag_rows - 1) * self.tag_spacing * self.tag_size
-    width = self.tag_cols * self.tag_size + spacing_x
-    height = self.tag_rows * self.tag_size + spacing_y
-    return (width, height)
-
-  def get_center(self):
-    """ Calculate center of aprilgrid """
-    x = (self.tag_cols / 2.0) * self.tag_size
-    x += ((self.tag_cols / 2.0) - 1) * self.tag_spacing * self.tag_size
-    x += 0.5 * self.tag_spacing * self.tag_size
-
-    y = (self.tag_rows / 2.0) * self.tag_size
-    y += ((self.tag_rows / 2.0) - 1) * self.tag_spacing * self.tag_size
-    y += 0.5 * self.tag_spacing * self.tag_size
-
-    return np.array([x, y, 0.0])
-
-  def get_grid_index(self, tag_id):
-    """ Calculate grid index from tag id """
-    assert tag_id < (self.nb_tags) and tag_id >= 0
-    i = int(tag_id / self.tag_cols)
-    j = int(tag_id % self.tag_cols)
-    return (i, j)
-
-  def add_keypoint(self, ts, tag_id, corner_idx, kp):
-    """ Add keypoint """
-    self.ts = ts
-    if tag_id not in self.data:
-      self.data[tag_id] = {}
-    self.data[tag_id][corner_idx] = kp
-
-  def remove_keypoint(self, tag_id, corner_idx):
-    """ Remove keypoint """
-    assert tag_id in self.data
-    assert corner_idx in self.data[tag_id]
-    del self.data[tag_id][corner_idx]
-
-  def add_tag_data(self, ts, tag_data):
-    """ Add tag data """
-    for (tag_id, corner_idx, kp_x, kp_y) in tag_data:
-      self.add_keypoint(ts, tag_id, corner_idx, np.array([kp_x, kp_y]))
-
-  def get_measurements(self):
-    """ Get measurements """
-    data = []
-    for tag_id, tag_data in self.data.items():
-      for corner_idx, kp in tag_data.items():
-        obj_point = self.get_object_point(tag_id, corner_idx)
-        data.append((tag_id, corner_idx, obj_point, kp))
-
-    return data
-
-  def solvepnp(self, cam_params):
-    """ Estimate relative transform between camera and aprilgrid """
-    # Check if we actually have data to work with
-    if not self.data:
-      return None
-
-    # Create object points (counter-clockwise, from bottom left)
-    cam_geom = cam_params.data
-    obj_pts = []
-    img_pts = []
-    for (_, _, r_FFi, z) in self.get_measurements():
-      img_pts.append(cam_geom.undistort(cam_params.param, z))
-      obj_pts.append(r_FFi)
-    obj_pts = np.array(obj_pts)
-    img_pts = np.array(img_pts)
-
-    # Solve pnp
-    K = pinhole_K(cam_params.param[0:4])
-    D = np.array([0.0, 0.0, 0.0, 0.0])
-    flags = cv2.SOLVEPNP_ITERATIVE
-    _, rvec, tvec = cv2.solvePnP(obj_pts, img_pts, K, D, False, flags=flags)
-
-    # Form relative tag pose as a 4x4 transform matrix
-    C, _ = cv2.Rodrigues(rvec)
-    r = tvec.flatten()
-    T_CF = tf(C, r)
-
-    return T_CF
-
-  def plot(self, ax, T_WF, **kwargs):
-    """ Plot """
-    pt_colors = kwargs.get("pt_colors", "#0000ff")
-    tf_colors = kwargs.get("tf_colors", ["r-", "g-", "b-"])
-
-    points = []
-    for data in self.get_object_points():
-      _, _, r_FFi = data
-      r_WFi = tf_point(T_WF, r_FFi)
-      points.append(r_WFi)
-    points = np.array(points)
-
-    ax.scatter(points[:, 0],
-               points[:, 1],
-               points[:, 2],
-               color=pt_colors,
-               alpha=0.2)
-    plot_tf(ax, T_WF, size=self.tag_size, colors=tf_colors)
-
-
-def calib_generate_poses(calib_target, **kwargs):
-  """ Generate calibration poses infront of the calibration target """
-  # Pose settings
-  x_range = kwargs.get('x_range', np.linspace(-0.3, 0.3, 5))
-  y_range = kwargs.get('y_range', np.linspace(-0.3, 0.3, 5))
-  z_range = kwargs.get('z_range', np.linspace(0.3, 0.5, 5))
-
-  # Generate camera positions infront of the calib target r_FC
-  calib_center = calib_target.get_center()
-  cam_pos = []
-  pos_idx = 0
-  for x in x_range:
-    for y in y_range:
-      for z in z_range:
-        r_FC = np.array([x, y, z]) + calib_center
-        cam_pos.append(r_FC)
-        pos_idx += 1
-
-  # For each position create a camera pose that "looks at" the calib
-  # center in the target frame, T_FC.
-  return [lookat(r_FC, calib_center) for r_FC in cam_pos]
-
-
-def calib_generate_random_poses(calib_target, **kwargs):
-  """ Generate random calibration poses infront of the calibration target """
-  # Settings
-  nb_poses = kwargs.get('nb_poses', 30)
-  att_range = kwargs.get('att_range', [deg2rad(-10.0), deg2rad(10.0)])
-  x_range = kwargs.get('x_range', [-0.5, 0.5])
-  y_range = kwargs.get('y_range', [-0.5, 0.5])
-  z_range = kwargs.get('z_range', [0.5, 0.7])
-
-  # For each position create a camera pose that "looks at" the calibration
-  # center in the target frame, T_FC.
-  calib_center = calib_target.get_center()
-  poses = []
-
-  for _ in range(nb_poses):
-    # Generate random pose
-    x = np.random.uniform(x_range[0], x_range[1])
-    y = np.random.uniform(y_range[0], y_range[1])
-    z = np.random.uniform(z_range[0], z_range[1])
-    r_FC = calib_center + np.array([x, y, z])
-    T_FC = lookat(r_FC, calib_center)
-
-    # Perturb the pose a little so it doesn't look at the center directly
-    yaw = np.random.uniform(*att_range)
-    pitch = np.random.uniform(*att_range)
-    roll = np.random.uniform(*att_range)
-    C_perturb = euler321(yaw, pitch, roll)
-    r_perturb = zeros((3,))
-    T_perturb = tf(C_perturb, r_perturb)
-
-    poses.append(T_FC @ T_perturb)
-
-  return poses
-
-
-class CalibView:
-  """ Calibration View """
-  def __init__(self, pose, cam_params, cam_exts, grid):
-    self.ts = grid.ts
-    self.pose = pose
-    self.cam_idx = cam_params.data.cam_idx
-    self.cam_params = cam_params
-    self.cam_geom = cam_params.data
-    self.cam_exts = cam_exts
-    self.grid = grid
-    self.factors = []
-
-    pids = [pose.param_id, cam_exts.param_id, cam_params.param_id]
-    for grid_data in grid.get_measurements():
-      self.factors.append(CalibVisionFactor(self.cam_geom, pids, grid_data))
-
-  def get_reproj_errors(self):
-    """ Get reprojection errors """
-    reproj_errors = []
-
-    factor_params = [self.pose, self.cam_exts, self.cam_params]
-    for factor in self.factors:
-      status, reproj_error = factor.get_reproj_error(*factor_params)
-      if status:
-        reproj_errors.append(reproj_error)
-
-    return reproj_errors
-
-
-class Calibrator:
-  """ Calibrator """
-  def __init__(self):
-    self.verbose = False
-
-    # Parameters
-    self.cam_geoms = {}
-    self.cam_params = {}
-    self.cam_exts = {}
-    self.imu_params = None
-
-    # Data
-    self.graph = FactorGraph()
-    self.poses = {}
-    self.calib_views = {}
-
-  def get_num_cams(self):
-    """ Return number of cameras """
-    return len(self.cam_params)
-
-  def get_num_views(self):
-    """ Return number of views """
-    return len(self.calib_views)
-
-  def add_camera(self, cam_idx, cam_res, proj_model, dist_model):
-    """ Add camera """
-    fx = focal_length(cam_res[0], 90.0)
-    fy = focal_length(cam_res[1], 90.0)
-    cx = cam_res[0] / 2.0
-    cy = cam_res[1] / 2.0
-    params = [fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0]
-    args = [cam_idx, cam_res, proj_model, dist_model, params]
-    cam_params = camera_params_setup(*args)
-
-    fix_exts = (cam_idx == 0)
-    self.cam_geoms[cam_idx] = cam_params.data
-    self.cam_params[cam_idx] = cam_params
-    self.cam_exts[cam_idx] = extrinsics_setup(eye(4), fix=fix_exts)
-
-    self.graph.add_param(self.cam_params[cam_idx])
-    self.graph.add_param(self.cam_exts[cam_idx])
-
-  def add_imu(self, imu_params):
-    """ Add imu """
-    self.imu_params = imu_params
-
-  def add_camera_view(self, ts, cam_idx, grid):
-    """ Add camera view """
-    # Estimate relative pose T_BF
-    cam_params = self.cam_params[cam_idx]
-    cam_exts = self.cam_exts[cam_idx]
-    T_CiF = grid.solvepnp(cam_params)
-    T_BCi = pose2tf(cam_exts.param)
-    T_BF = T_BCi @ T_CiF
-    self.poses[ts] = pose_setup(ts, T_BF)
-
-    # CalibView
-    self.graph.add_param(self.poses[ts])
-    self.calib_views[ts] = CalibView(self.poses[ts], cam_params, cam_exts, grid)
-    for factor in self.calib_views[ts].factors:
-      self.graph.add_factor(factor)
-
-    # # Solve
-    # if len(self.calib_views) >= 5:
-    #   self.graph.solver_max_iter = 10
-    #   self.graph.solve(True)
-    #
-    #   # Calculate reprojection error
-    #   reproj_errors = self.graph.get_reproj_errors()
-    #   print(f"nb_reproj_errors: {len(reproj_errors)}")
-    #   print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
-    #   print()
-    #   # plt.hist(reproj_errors)
-    #   # plt.show()
-
-  def solve(self):
-    """ Solve """
-    self.graph.solver_max_iter = 30
-    self.graph.solve(self.verbose)
-
-    if self.verbose:
-      reproj_errors = self.graph.get_reproj_errors()
-      print(f"num_cams: {self.get_num_cams()}")
-      print(f"num_views: {self.get_num_views()}")
-      print(f"num_reproj_errors: {len(reproj_errors)}")
-      print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
-      sys.stdout.flush()
-
-
-class GimbalCalibrator:
-  """ Gimbal Calibrator """
-  def __init__(self):
-    # Factor graph
-    self.graph = FactorGraph()
-
-    # Variable ids
-    self.fiducial_id = None
-    self.body_pose_ids = []
-    self.gimbal_ext_id = None
-    self.gimbal_link_ids = {}
-    self.gimbal_joint_ids = {}
-    self.cam_params_ids = {}
-    self.cam_ext_ids = {}
-
-    # Factor ids
-    self.pose_factor_ids = []
-    self.link_factor_ids = []
-    self.joint_factor_ids = []
-    self.calib_factor_ids = []
-
-    # Variables
-    self.fiducial = None
-    self.body_poses = []
-    self.gimbal_ext = None
-    self.gimbal_links = {}
-    self.gimbal_joints = {}
-    self.cam_params = {}
-    self.cam_exts = {}
-
-  def add_fiducial(self, T_WF, fix=True):
-    """ Add fiducial """
-    self.fiducial = extrinsics_setup(T_WF, fix=fix)
-    self.fiducial_id = self.graph.add_param(self.fiducial)
-    return self.fiducial_id
-
-  def add_body_pose(self, ts, T_WB, **kwargs):
-    """ Add body pose """
-    fix = kwargs.get("fix", False)
-    covar = kwargs.get("covar", eye(6) * 0.1)
-
-    pose = pose_setup(ts, T_WB, fix=fix)
-    pose_id = self.graph.add_param(pose)
-    self.body_pose_ids.append(pose_id)
-    self.body_poses.append(pose)
-
-    if fix is False:
-      pids = [pose_id]
-      pose_factor = PoseFactor(pids, T_WB, covar)
-      self.pose_factor_ids.append(self.graph.add_factor(pose_factor))
-
-    return pose_id
-
-  def add_gimbal_extrinsic(self, T_BM0, **kwargs):
-    """ Add gimbal extrinsic """
-    fix = kwargs.get("fix", False)
-    covar = kwargs.get("covar", eye(6) * 0.1)
-
-    ext = extrinsics_setup(T_BM0, fix=fix)
-    ext_id = self.graph.add_param(ext)
-    self.gimbal_ext_id = ext_id
-    self.gimbal_ext = ext
-
-    if fix is False:
-      pids = [ext_id]
-      pose_factor = PoseFactor(pids, T_BM0, covar)
-      self.pose_factor_ids.append(self.graph.add_factor(pose_factor))
-
-    return ext_id
-
-  def add_gimbal_link(self, link_idx, T_link, **kwargs):
-    """ Add gimbal link """
-    fix = kwargs.get("fix", False)
-    covar = kwargs.get("covar", eye(6) * 0.5)
-
-    link = extrinsics_setup(T_link, fix=fix)
-    link_id = self.graph.add_param(link)
-    self.gimbal_link_ids[link_idx] = link_id
-    self.gimbal_links[link_idx] = link
-
-    if fix is False:
-      pids = [link_id]
-      link_factor = PoseFactor(pids, T_link, covar)
-      self.link_factor_ids.append(self.graph.add_factor(link_factor))
-
-    return link_id
-
-  def add_gimbal_joint(self, view_idx, joint_idx, joint_angle, **kwargs):
-    """ Add gimbal joint """
-    fix = kwargs.get("fix", False)
-    covar = kwargs.get("covar", np.deg2rad(5))
-
-    if view_idx not in self.gimbal_joint_ids:
-      self.gimbal_joint_ids[view_idx] = {}
-      self.gimbal_joints[view_idx] = {}
-
-    joint = joint_angle_setup(joint_angle, fix=fix)
-    joint_id = self.graph.add_param(joint)
-    self.gimbal_joint_ids[view_idx][joint_idx] = joint_id
-    self.gimbal_joints[view_idx][joint_idx] = joint
-
-    if fix is False:
-      pids = [joint_id]
-      joint_factor = MeasurementFactor(pids, joint_angle, covar)
-      self.joint_factor_ids.append(self.graph.add_factor(joint_factor))
-
-    return joint_id
-
-  def add_camera(self, **kwargs):
-    """ Add camera """
-    cam_params = kwargs.get("cam_params")
-    fix = kwargs.get("fix", False)
-
-    if cam_params is not None:
-      cam_idx = cam_params.data.cam_idx
-      cam_params_id = self.graph.add_param(cam_params)
-      self.cam_params_ids[cam_idx] = cam_params_id
-      self.cam_params[cam_idx] = cam_params
-      self.cam_params[cam_idx].fix = fix
-      return cam_params_id
-
-    cam_idx = kwargs["cam_idx"]
-    cam_res = kwargs["cam_res"]
-    proj_model = kwargs["proj_model"]
-    dist_model = kwargs["dist_model"]
-    params = kwargs["params"]
-    cam_params = camera_params_setup(cam_idx, cam_res, proj_model, dist_model,
-                                     params)
-    cam_params_id = self.graph.add_param(cam_params)
-    self.cam_params_ids[cam_idx] = cam_params_id
-    self.cam_params[cam_idx] = cam_params
-    self.cam_params[cam_idx].fix = fix
-    return cam_params_id
-
-  def add_camera_extrinsic(self, cam_idx, cam_ext, fix=False):
-    """ Add camera extrinsic """
-    ext = extrinsics_setup(cam_ext, fix=fix)
-    ext_id = self.graph.add_param(ext)
-    self.cam_ext_ids[cam_idx] = ext_id
-    self.cam_exts[cam_idx] = ext
-    return ext_id
-
-  def add_camera_view_set(self, view_idx, view_set):
-    """ Add multi-camera data """
-    for cam_idx, cam_view in enumerate(view_set):
-      cam_params_id = self.cam_params_ids[cam_idx]
-      cam_params = self.graph.params[cam_params_id]
-      cam_geom = cam_params.data
-      pids = [
-          self.fiducial_id,
-          self.body_pose_ids[-1],
-          self.gimbal_ext_id,
-          self.gimbal_link_ids[0],
-          self.gimbal_link_ids[1],
-          self.gimbal_joint_ids[view_idx][0],
-          self.gimbal_joint_ids[view_idx][1],
-          self.gimbal_joint_ids[view_idx][2],
-          self.cam_ext_ids[cam_idx],
-          self.cam_params_ids[cam_idx],
-      ]
-
-      for i in range(cam_view["num_measurements"]):
-        tag_id = cam_view["tag_ids"][i]
-        corner_idx = cam_view["corner_idxs"][i]
-        pt = cam_view["object_points"][i]
-        kp = cam_view["keypoints"][i]
-        grid_data = tag_id, corner_idx, pt, kp
-        factor = CalibGimbalFactor(cam_geom, pids, grid_data)
-        self.calib_factor_ids.append(self.graph.add_factor(factor))
-
-  def solve(self, **kwargs):
-    """ Solve """
-    debug = kwargs.get("debug", True)
-    max_iter = kwargs.get("max_iter", 10)
-    self.graph.solver_max_iter = max_iter
-    self.graph.solve(debug)
-
-  def results(self):
-    """ Results """
-    joint_data = []
-    for _, joints in self.gimbal_joints.items():
-      joint_data.append([joint.param[0] for _, joint in joints.items()])
-
-    calib = GimbalProblem(
-        pose2tf(self.fiducial.param),
-        pose2tf(self.gimbal_ext.param),
-        pose2tf(self.body_poses[0].param),
-        pose2tf(self.gimbal_links[0].param),
-        pose2tf(self.gimbal_links[1].param),
-        self.cam_params[0],
-        self.cam_params[1],
-        pose2tf(self.cam_exts[0].param),
-        pose2tf(self.cam_exts[1].param),
-        joint_data,
-    )
-
-    return calib
-
-
-###############################################################################
-# SIMULATION
-###############################################################################
-
-# UTILS #######################################################################
-
-
-def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
-  """ Create 3D features randomly """
-  features = zeros((nb_features, 3))
-  for i in range(nb_features):
-    features[i, 0] = random.uniform(*x_bounds)
-    features[i, 1] = random.uniform(*y_bounds)
-    features[i, 2] = random.uniform(*z_bounds)
-  return features
-
-
-def create_3d_features_perimeter(origin, dim, nb_features):
-  """ Create 3D features in a square """
-  assert len(origin) == 3
-  assert len(dim) == 3
-  assert nb_features > 0
-
-  # Dimension of the outskirt
-  w, l, h = dim
-
-  # Features per side
-  nb_fps = int(nb_features / 4.0)
-
-  # Features in the east side
-  x_bounds = [origin[0] - w, origin[0] + w]
-  y_bounds = [origin[1] + l, origin[1] + l]
-  z_bounds = [origin[2] - h, origin[2] + h]
-  east = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
-
-  # Features in the north side
-  x_bounds = [origin[0] + w, origin[0] + w]
-  y_bounds = [origin[1] - l, origin[1] + l]
-  z_bounds = [origin[2] - h, origin[2] + h]
-  north = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
-
-  # Features in the west side
-  x_bounds = [origin[0] - w, origin[0] + w]
-  y_bounds = [origin[1] - l, origin[1] - l]
-  z_bounds = [origin[2] - h, origin[2] + h]
-  west = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
-
-  # Features in the south side
-  x_bounds = [origin[0] - w, origin[0] - w]
-  y_bounds = [origin[1] - l, origin[1] + l]
-  z_bounds = [origin[2] - h, origin[2] + h]
-  south = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
-
-  # Stack features and return
-  return np.block([[east], [north], [west], [south]])
-
-
-# SIMULATION ##################################################################
-
-
-class SimCameraFrame:
-  """ Sim camera frame """
-  def __init__(self, ts, cam_idx, camera, T_WCi, features):
-    assert T_WCi.shape == (4, 4)
-    assert features.shape[0] > 0
-    assert features.shape[1] == 3
-
-    self.ts = ts
-    self.cam_idx = cam_idx
-    self.T_WCi = T_WCi
-    self.cam_geom = camera.data
-    self.cam_params = camera.param
-    self.feature_ids = []
-    self.measurements = []
-
-    # Simulate camera frame
-    nb_points = features.shape[0]
-    T_CiW = tf_inv(self.T_WCi)
-
-    for i in range(nb_points):
-      # Project point from world frame to camera frame
-      p_W = features[i, :]
-      p_C = tf_point(T_CiW, p_W)
-      status, z = self.cam_geom.project(self.cam_params, p_C)
-      if status:
-        self.measurements.append(z)
-        self.feature_ids.append(i)
-
-  def num_measurements(self):
-    """ Return number of measurements """
-    return len(self.measurements)
-
-  def draw_measurements(self):
-    """ Returns camera measurements in an image """
-    # kps = [kp for kp in self.measurements]
-    kps = self.measurements
-    img_w, img_h = self.cam_geom.resolution
-    img = np.zeros((img_h, img_w), dtype=np.uint8)
-    return draw_keypoints(img, kps)
-
-
-class SimCameraData:
-  """ Sim camera data """
-  def __init__(self, cam_idx, camera, features):
-    self.cam_idx = cam_idx
-    self.camera = camera
-    self.features = features
-    self.timestamps = []
-    self.poses = {}
-    self.frames = {}
-
-
-class SimImuData:
-  """ Sim imu data """
-  def __init__(self, imu_idx):
-    self.imu_idx = imu_idx
-    self.timestamps = []
-    self.poses = {}
-    self.vel = {}
-    self.acc = {}
-    self.gyr = {}
-
-  def form_imu_buffer(self, start_idx, end_idx):
-    """ Form ImuBuffer """
-    imu_ts = self.timestamps[start_idx:end_idx]
-    imu_acc = []
-    imu_gyr = []
-    for ts in self.timestamps:
-      imu_acc.append(self.acc[ts])
-      imu_gyr.append(self.gyr[ts])
-
-    return ImuBuffer(imu_ts, imu_acc, imu_gyr)
-
-
-class SimData:
-  """ Sim data """
-  def __init__(self, circle_r, circle_v, **kwargs):
-    # Settings
-    self.circle_r = circle_r
-    self.circle_v = circle_v
-    self.cam_rate = 10.0
-    self.imu_rate = 200.0
-    self.nb_features = 200
-
-    # Trajectory data
-    self.g = np.array([0.0, 0.0, 9.81])
-    self.circle_dist = 2.0 * pi * circle_r
-    self.time_taken = self.circle_dist / self.circle_v
-    self.w = -2.0 * pi * (1.0 / self.time_taken)
-    self.theta_init = pi
-    self.yaw_init = pi / 2.0
-    self.features = self._setup_features()
-
-    # print(f"circle_r: {self.circle_r}")
-    # print(f"circle_v: {self.circle_v}")
-    # print(f"circle_dist: {self.circle_dist}")
-    # print(f"time_taken: {self.time_taken}")
-
-    # Simulate IMU
-    self.imu0_data = None
-    if kwargs.get("sim_imu", True):
-      self.imu0_data = self._sim_imu(0)
-
-    # Simulate camera
-    self.mcam_data = {}
-    self.cam_exts = {}
-    if kwargs.get("sim_cams", True):
-      # -- cam0
-      self.cam0_params = self._setup_camera(0)
-      C_BC0 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
-      r_BC0 = np.array([0.0, 0.0, 0.0])
-      self.T_BC0 = tf(C_BC0, r_BC0)
-      self.mcam_data[0] = self._sim_cam(0, self.cam0_params, self.T_BC0)
-      self.cam_exts[0] = extrinsics_setup(self.T_BC0)
-      # -- cam1
-      self.cam1_params = self._setup_camera(1)
-      C_BC1 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
-      r_BC1 = np.array([0.0, 0.0, 0.0])
-      self.T_BC1 = tf(C_BC1, r_BC1)
-      # -- Multicam data
-      self.mcam_data[1] = self._sim_cam(1, self.cam1_params, self.T_BC1)
-      self.cam_exts[1] = extrinsics_setup(self.T_BC1)
-
-    # Timeline
-    self.timeline = self._form_timeline()
-
-  def get_camera_data(self, cam_idx):
-    """ Get camera data """
-    return self.mcam_data[cam_idx]
-
-  def get_camera_params(self, cam_idx):
-    """ Get camera parameters """
-    return self.mcam_data[cam_idx].camera
-
-  def get_camera_geometry(self, cam_idx):
-    """ Get camera geometry """
-    return self.mcam_data[cam_idx].camera.data
-
-  def get_camera_extrinsics(self, cam_idx):
-    """ Get camera extrinsics """
-    return self.cam_exts[cam_idx]
-
-  def plot_scene(self):
-    """ Plot 3D Scene """
-    # Setup
-    plt.figure()
-    ax = plt.axes(projection='3d')
-
-    # Plot features
-    features = self.features
-    ax.scatter3D(features[:, 0], features[:, 1], features[:, 2])
-
-    # Plot camera frames
-    idx = 0
-    for _, T_WB in self.imu0_data.poses.items():
-      if idx % 100 == 0:
-        T_BC0 = pose2tf(self.cam_exts[0].param)
-        T_BC1 = pose2tf(self.cam_exts[1].param)
-        plot_tf(ax, T_WB @ T_BC0)
-        plot_tf(ax, T_WB @ T_BC1)
-      if idx > 3000:
-        break
-      idx += 1
-
-    # Show
-    plt.show()
-
-  @staticmethod
-  def create_or_load(circle_r, circle_v, pickle_path):
-    """ Create or load SimData """
-    sim_data = None
-
-    if os.path.exists(pickle_path):
-      with open(pickle_path, 'rb') as f:
-        sim_data = pickle.load(f)
-    else:
-      sim_data = SimData(circle_r, circle_v)
-      with open(pickle_path, 'wb') as f:
-        pickle.dump(sim_data, f)
-        f.flush()
-
-    return sim_data
-
-  @staticmethod
-  def _setup_camera(cam_idx):
-    """ Setup camera """
-    res = [640, 480]
-    fov = 120.0
-    fx = focal_length(res[0], fov)
-    fy = focal_length(res[0], fov)
-    cx = res[0] / 2.0
-    cy = res[1] / 2.0
-
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    proj_params = [fx, fy, cx, cy]
-    dist_params = [0.0, 0.0, 0.0, 0.0]
-    params = np.block([*proj_params, *dist_params])
-
-    return camera_params_setup(cam_idx, res, proj_model, dist_model, params)
-
-  def _setup_features(self):
-    """ Setup features """
-    origin = [0, 0, 0]
-    dim = [self.circle_r * 2.0, self.circle_r * 2.0, self.circle_r * 1.5]
-    return create_3d_features_perimeter(origin, dim, self.nb_features)
-
-  def _sim_imu(self, imu_idx):
-    """ Simulate IMU """
-    sim_data = SimImuData(imu_idx)
-
-    ts = 0
-    dt_ns = sec2ts(1.0 / self.imu_rate)
-    theta = self.theta_init
-    yaw = self.yaw_init
-
-    while ts <= sec2ts(self.time_taken):
-      # IMU pose
-      rx = self.circle_r * cos(theta)
-      ry = self.circle_r * sin(theta)
-      rz = 0.0
-      r_WS = np.array([rx, ry, rz])
-      C_WS = euler321(yaw, 0.0, 0.0)
-      T_WS = tf(C_WS, r_WS)
-
-      # IMU velocity
-      vx = -self.circle_r * self.w * sin(theta)
-      vy = self.circle_r * self.w * cos(theta)
-      vz = 0.0
-      v_WS = np.array([vx, vy, vz])
-
-      # IMU acceleration
-      ax = -self.circle_r * self.w**2 * cos(theta)
-      ay = -self.circle_r * self.w**2 * sin(theta)
-      az = 0.0
-      a_WS = np.array([ax, ay, az])
-
-      # IMU angular velocity
-      wx = 0.0
-      wy = 0.0
-      wz = self.w
-      w_WS = np.array([wx, wy, wz])
-
-      # IMU measurements
-      acc = C_WS.T @ (a_WS + self.g)
-      gyr = C_WS.T @ w_WS
-
-      # Update
-      sim_data.timestamps.append(ts)
-      sim_data.poses[ts] = T_WS
-      sim_data.vel[ts] = v_WS
-      sim_data.acc[ts] = acc
-      sim_data.gyr[ts] = gyr
-
-      theta += self.w * ts2sec(dt_ns)
-      yaw += self.w * ts2sec(dt_ns)
-      ts += dt_ns
-
-    return sim_data
-
-  def _sim_cam(self, cam_idx, cam_params, T_BCi):
-    """ Simulate camera """
-    sim_data = SimCameraData(cam_idx, cam_params, self.features)
-
-    ts = 0
-    dt_ns = sec2ts(1.0 / self.cam_rate)
-    theta = self.theta_init
-    yaw = self.yaw_init
-
-    while ts <= sec2ts(self.time_taken):
-      # Body pose
-      rx = self.circle_r * cos(theta)
-      ry = self.circle_r * sin(theta)
-      rz = 0.0
-      r_WB = [rx, ry, rz]
-      C_WB = euler321(yaw, 0.0, 0.0)
-      T_WB = tf(C_WB, r_WB)
-
-      # Simulate camera pose and camera frame
-      T_WCi = T_WB @ T_BCi
-      cam_frame = SimCameraFrame(ts, cam_idx, cam_params, T_WCi, self.features)
-      sim_data.timestamps.append(ts)
-      sim_data.poses[ts] = T_WCi
-      sim_data.frames[ts] = cam_frame
-
-      # Update
-      theta += self.w * ts2sec(dt_ns)
-      yaw += self.w * ts2sec(dt_ns)
-      ts += dt_ns
-
-    return sim_data
-
-  def _form_timeline(self):
-    """ Form timeline """
-    # Form timeline
-    timeline = Timeline()
-
-    # -- Add imu events
-    imu_idx = self.imu0_data.imu_idx
-    for ts in self.imu0_data.timestamps:
-      acc = self.imu0_data.acc[ts]
-      gyr = self.imu0_data.gyr[ts]
-      imu_event = ImuEvent(ts, imu_idx, acc, gyr)
-      timeline.add_event(ts, imu_event)
-
-    # -- Add camera events
-    for cam_idx, cam_data in self.mcam_data.items():
-      for ts in cam_data.timestamps:
-        frame = cam_data.frames[ts]
-        fids = frame.feature_ids
-        kps = frame.measurements
-
-        sim_img = []
-        for i, fid in enumerate(fids):
-          sim_img.append([fid, kps[i]])
-
-        cam_event = CameraEvent(ts, cam_idx, sim_img)
-        timeline.add_event(ts, cam_event)
-
-    return timeline
-
-
-class SimFeatureTracker(FeatureTracker):
-  """ Sim Feature Tracker """
-  def __init__(self):
-    FeatureTracker.__init__(self)
-
-  def update(self, ts, mcam_imgs):
-    """ Update Sim Feature Tracker """
-    for cam_idx, cam_data in mcam_imgs.items():
-      kps = [data[1] for data in cam_data]
-      fids = [data[0] for data in cam_data]
-      ft_data = FeatureTrackerData(cam_idx, None, kps, fids)
-      self.cam_data[cam_idx] = ft_data
-
-    # Update
-    self.frame_idx += 1
-    self.prev_ts = ts
-    self.prev_mcam_imgs = mcam_imgs
-
-    return self.cam_data
-
-  def visualize(self):
-    """ Visualize """
-    # Image size
-    # cam_res = cam0_params.data.resolution
-    # img_w, img_h = cam_res
-    # img0 = np.zeros((img_h, img_w), dtype=np.uint8)
-    # kps = [kp for kp in ft_data[0].keypoints]
-    # viz = draw_keypoints(img0, kps)
-    # cv2.imshow('viz', viz)
-    # cv2.waitKey(0)
-    pass
-
-
-def dh_matrix(theta, d, a, alpha):
-  """ Denavit-Hartenburg Matrix """
-  ctheta = np.cos(theta)
-  stheta = np.sin(theta)
-  calpha = np.cos(alpha)
-  salpha = np.sin(alpha)
-
-  row0 = [ctheta, -stheta * calpha, stheta * salpha, a * ctheta]
-  row1 = [stheta, ctheta * calpha, -ctheta * salpha, a * stheta]
-  row2 = [0.0, salpha, calpha, d]
-  row3 = [0.0, 0.0, 0.0, 1.0]
-  return np.array([row0, row1, row2, row3])
-
-
-###############################################################################
-# CONTROL
-###############################################################################
-
-
-class PID:
-  """ PID controller """
-  def __init__(self, k_p, k_i, k_d):
-    self.k_p = k_p
-    self.k_i = k_i
-    self.k_d = k_d
-
-    self.error_p = 0.0
-    self.error_i = 0.0
-    self.error_d = 0.0
-    self.error_prev = 0.0
-    self.error_sum = 0.0
-
-  def update(self, setpoint, actual, dt):
-    """ Update """
-    # Calculate errors
-    error = setpoint - actual
-    self.error_sum += error * dt
-
-    # Calculate output
-    self.error_p = self.k_p * error
-    self.error_i = self.k_i * self.error_sum
-    self.error_d = self.k_d * (error - self.error_prev) / dt
-    output = self.error_p + self.error_i + self.error_d
-
-    # Keep track of error
-    self.error_prev = error
-
-    return output
-
-  def reset(self):
-    """ Reset """
-
-
-class CarrotController:
-  """ Carrot Controller """
-  def __init__(self):
-    self.waypoints = []
-    self.wp_start = None
-    self.wp_end = None
-    self.wp_index = None
-    self.look_ahead_dist = 0.0
-
-  def _calculate_closest_point(self, pos):
-    """ Calculate closest point """
-    v1 = pos - self.wp_start
-    v2 = self.wp_end - self.wp_start
-    t = v1 @ v2 / v2.squaredNorm()
-    pt = self.wp_start + t * v2
-
-    return (t, pt)
-
-  def _calculate_carrot_point(self, pos):
-    """ Calculate carrot point """
-    assert len(pos) == 3
-
-    t, closest_pt = self._calculate_closest_point(pos)
-    carrot_pt = None
-
-    if t == -1:
-      # Closest point is before wp_start
-      carrot_pt = self.wp_start
-
-    elif t == 0:
-      # Closest point is between wp_start wp_end
-      u = self.wp_end - self.wp_start
-      v = u / norm(u)
-      carrot_pt = closest_pt + self.look_ahead_dist * v
-
-    elif t == 1:
-      # Closest point is after wp_end
-      carrot_pt = self.wp_end
-
-    return (t, carrot_pt)
-
-  def update(self, pos):
-    """ Update """
-    assert len(pos) == 3
-    # Calculate new carot point
-    status, carrot_pt = self._calculate_carrot_point(pos)
-
-    # Check if there are more waypoints
-    if (self.wp_index + 1) == len(self.waypoints):
-      return None
-
-    # Update waypoints
-    if status == 1:
-      self.wp_index += 1
-      self.wp_start = self.wp_end
-      self.wp_end = self.waypoints[self.wp_index]
-
-    return carrot_pt
-
-
-###############################################################################
-# Visualizer
-###############################################################################
-
-import websockets
-import asyncio
-
-from subprocess import Popen, PIPE
-
-
-class DevServer:
-  """ Dev server """
-  def __init__(self, loop_fn):
-    self.host = "127.0.0.1"
-    self.port = 5000
-    self.loop_fn = loop_fn
-
-  def __del__(self):
-    process = Popen([f"lsof", "-i", ":{self.port}"], stdout=PIPE, stderr=PIPE)
-    stdout, _ = process.communicate()
-    for process in str(stdout.decode("utf-8")).split("\n")[1:]:
-      data = [x for x in process.split(" ") if x != '']
-      if len(data) <= 1:
-        continue
-      print(f"killing {data[1]}")
-      os.kill(int(data[1]), signal.SIGKILL)
-
-  def run(self):
-    """ Run server """
-    kwargs = {"ping_timeout": 1, "close_timeout": 1}
-    server = websockets.serve(self.loop_fn, self.host, self.port, **kwargs)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(server)
-    loop.run_forever()
-
-  @staticmethod
-  def stop():
-    """ Stop server """
-    asyncio.get_event_loop().stop()
-
-
-class MultiPlot:
-  """ MultiPlot """
-  def __init__(self, has_gnd=False):
-    self.plots = []
-    self.add_pos_xy_plot(has_gnd=has_gnd)
-    self.add_pos_z_plot(has_gnd=has_gnd)
-    self.add_roll_plot(has_gnd=has_gnd)
-    self.add_pitch_plot(has_gnd=has_gnd)
-    self.add_yaw_plot(has_gnd=has_gnd)
-    self.add_pos_error_plot()
-    self.add_att_error_plot()
-    self.add_reproj_error_plot()
-
-    self.plot_data = {}
-    self.emit_rate = 8.0  # Hz
-    self.last_updated = datetime.now()
-
-  def _add_plot(self, title, xlabel, ylabel, trace_names, **kwargs):
-    conf = {}
-    conf["title"] = title
-    conf["width"] = kwargs.get("width", 300)
-    conf["height"] = kwargs.get("height", 280)
-    conf["buf_size"] = kwargs.get("buf_size", 100)
-    conf["trace_names"] = trace_names
-    conf["xlabel"] = xlabel
-    conf["ylabel"] = ylabel
-    conf["show_legend"] = (len(trace_names) > 1)
-    self.plots.append(conf)
-
-  def add_pos_xy_plot(self, **kwargs):
-    """ Add Position X-Y Data """
-    title = "Position X-Y"
-    xlabel = "x [m]"
-    ylabel = "y [m]"
-    trace_names = ["Estimate"]
-    if kwargs.get("has_gnd"):
-      trace_names.append("Ground-Truth")
-
-    self._add_plot(title, xlabel, ylabel, trace_names)
-
-  def add_pos_z_plot(self, **kwargs):
-    """ Add Position Z Data """
-    xlabel = "Time [s]"
-    ylabel = "y [m]"
-    trace_names = ["Estimate"]
-    if kwargs.get("has_gnd"):
-      trace_names.append("Ground-Truth")
-
-    self._add_plot("Position Z", xlabel, ylabel, trace_names)
-
-  def add_roll_plot(self, **kwargs):
-    """ Add Roll Data """
-    xlabel = "Time [s]"
-    ylabel = "Attitude [deg]"
-    trace_names = ["Estimate"]
-    if kwargs.get("has_gnd"):
-      trace_names.append("Ground-Truth")
-
-    self._add_plot("Roll", xlabel, ylabel, trace_names)
-
-  def add_pitch_plot(self, **kwargs):
-    """ Add Roll Data """
-    xlabel = "Time [s]"
-    ylabel = "Attitude [deg]"
-    trace_names = ["Estimate"]
-    if kwargs.get("has_gnd"):
-      trace_names.append("Ground-Truth")
-
-    self._add_plot("Pitch", xlabel, ylabel, trace_names)
-
-  def add_yaw_plot(self, **kwargs):
-    """ Add Yaw Data """
-    xlabel = "Time [s]"
-    ylabel = "Attitude [deg]"
-    trace_names = ["Estimate"]
-    if kwargs.get("has_gnd"):
-      trace_names.append("Ground-Truth")
-
-    self._add_plot("Yaw", xlabel, ylabel, trace_names)
-
-  def add_pos_error_plot(self):
-    """ Add Position Error Data """
-    title = "Position Error"
-    xlabel = "Time [s]"
-    ylabel = "Position Error [m]"
-    trace_names = ["Error"]
-    self._add_plot(title, xlabel, ylabel, trace_names)
-
-  def add_att_error_plot(self):
-    """ Add Attitude Error Data """
-    title = "Attitude Error"
-    xlabel = "Time [s]"
-    ylabel = "Position Error [m]"
-    trace_names = ["Error"]
-    self._add_plot(title, xlabel, ylabel, trace_names)
-
-  def add_reproj_error_plot(self):
-    """ Add Reprojection Error Data """
-    title = "Reprojection Error"
-    xlabel = "Time [s]"
-    ylabel = "Reprojection Error [px]"
-    trace_names = ["Mean", "RMSE"]
-    self._add_plot(title, xlabel, ylabel, trace_names)
-
-  def _form_plot_data(self, plot_title, time_s, **kwargs):
-    gnd = kwargs.get("gnd")
-    est = kwargs.get("est")
-    err = kwargs.get("err")
-
-    conf = {plot_title: {}}
-    if gnd:
-      conf[plot_title]["Ground-Truth"] = {"x": time_s, "y": gnd}
-
-    if est:
-      conf[plot_title]["Estimate"] = {"x": time_s, "y": est}
-
-    if err:
-      conf[plot_title]["Error"] = {"x": time_s, "y": err}
-
-    self.plot_data.update(conf)
-
-  def add_pos_xy_data(self, **kwargs):
-    """ Add Position X-Y Data """
-    plot_title = "Position X-Y"
-    conf = {plot_title: {}}
-
-    if "gnd" in kwargs:
-      gnd = kwargs["gnd"]
-      conf[plot_title]["Ground-Truth"] = {"x": gnd[0], "y": gnd[1]}
-
-    if "est" in kwargs:
-      est = kwargs["est"]
-      conf[plot_title]["Estimate"] = {"x": est[0], "y": est[1]}
-
-    self.plot_data.update(conf)
-
-  def add_pos_z_data(self, time_s, **kwargs):
-    """ Add Position Z Data """
-    self._form_plot_data("Position Z", time_s, **kwargs)
-
-  def add_roll_data(self, time_s, **kwargs):
-    """ Add Roll Data """
-    self._form_plot_data("Roll", time_s, **kwargs)
-
-  def add_pitch_data(self, time_s, **kwargs):
-    """ Add Roll Data """
-    self._form_plot_data("Pitch", time_s, **kwargs)
-
-  def add_yaw_data(self, time_s, **kwargs):
-    """ Add Yaw Data """
-    self._form_plot_data("Yaw", time_s, **kwargs)
-
-  def add_pos_error_data(self, time_s, error):
-    """ Add Position Error Data """
-    self._form_plot_data("Position Error", time_s, err=error)
-
-  def add_att_error_data(self, time_s, error):
-    """ Add Attitude Error Data """
-    self._form_plot_data("Attitude Error", time_s, err=error)
-
-  def add_reproj_error_data(self, time_s, reproj_rmse, reproj_mean):
-    """ Add Reprojection Error Data """
-    plot_title = "Reprojection Error"
-    conf = {plot_title: {}}
-    conf[plot_title]["Mean"] = {"x": time_s, "y": reproj_rmse}
-    conf[plot_title]["RMSE"] = {"x": time_s, "y": reproj_mean}
-    self.plot_data.update(conf)
-
-  def get_plots(self):
-    """ Get plots """
-    return json.dumps(self.plots)
-
-  def get_plot_data(self):
-    """ Get plot data """
-    return json.dumps(self.plot_data)
-
-  async def emit_data(self, ws):
-    """ Emit data """
-    time_now = datetime.now()
-    time_diff = (time_now - self.last_updated).total_seconds()
-    if time_diff > (1.0 / self.emit_rate):
-      await ws.send(self.get_plot_data())
-      self.last_updated = time_now
-
-
-###############################################################################
-# Sandbox
-###############################################################################
-
-
-@dataclass
-class GimbalProblem:
-  """ Gimbal Problem """
-  fiducial: np.ndarray
-  gimbal_ext: np.ndarray
-  gimbal_poses: np.ndarray
-  gimbal_link0: np.ndarray
-  gimbal_link1: np.ndarray
-  cam0_params: np.ndarray
-  cam1_params: np.ndarray
-  cam0_ext: np.ndarray
-  cam1_ext: np.ndarray
-  joint_angles: list
-
-  @staticmethod
-  def _compare_poses(name, sv0, sv1):
-    """ Compare poses """
-    dr, dtheta = pose_diff(sv0, sv1)
-    print(
-        f"{name} dr: [{dr[0]:.2e}, {dr[1]:.2e}, {dr[2]:.2e}] [m], dtheta: {rad2deg(dtheta):.2e} [deg]"
-    )
-
-  @staticmethod
-  def _compare_tfs(name, sv0, sv1):
-    """ Compare poses """
-    pose0 = tf2pose(sv0)
-    pose1 = tf2pose(sv1)
-    GimbalProblem._compare_poses(name, pose0, pose1)
-
-  @staticmethod
-  def _compare_vectors(name, sv0, sv1):
-    """ Comapre vectors """
-    dr = sv0.param - sv1.param
-    print(f"{name} dr: [", end="")
-    for _, val in enumerate(dr):
-      print(f"{val:.2e} ", end="")
-    print("]")
-
-  @staticmethod
-  def _compare_joints(joint_sets0, joint_sets1):
-    """ Comapre joints """
-    diff = 0.0
-    for _, (j0, j1) in enumerate(zip(joint_sets0, joint_sets1)):
-      dr = np.array([j0[0] - j1[0], j0[1] - j1[1], j0[2] - j1[2]])
-      diff += np.sum(np.fabs(dr))
-
-    print(f"joints diff: {diff:.4f} [deg]")
-
-  def get_joint_pose(self, view_idx, joint_idx):
-    """ Get joint pose """
-    links = [
-        tf2pose(self.gimbal_link0),
-        tf2pose(self.gimbal_link1),
-    ]
-    joint_angles = [
-        self.joint_angles[view_idx][0],
-        self.joint_angles[view_idx][1],
-        self.joint_angles[view_idx][2],
-    ]
-    gimbal = GimbalKinematics(links, joint_angles)
-    T_M0L = gimbal.forward_kinematics(joint_idx=joint_idx)
-    T_WL = self.gimbal_poses[0] @ self.gimbal_ext @ T_M0L
-    return T_WL
-
-  def get_camera_pose(self, view_idx, cam_idx):
-    """ Get camera pose """
-    T_WL2 = self.get_joint_pose(view_idx, 2)
-    if cam_idx == 0:
-      T_L2Ci = self.cam0_ext
-      return T_WL2 @ T_L2Ci
-    elif cam_idx == 1:
-      T_L2Ci = self.cam1_ext
-      return T_WL2 @ T_L2Ci
-
-    return None
-
-  def get_fiducial_pose(self):
-    """ Get fiducial pose """
-    return self.fiducial
-
-  def compare(self, data):
-    """ Compare against another gimbal problem """
-    self._compare_tfs("fiducial", self.fiducial, data.fiducial)
-    self._compare_tfs("gimbal_ext", self.gimbal_ext, data.gimbal_ext)
-    # self._compare_tfs("gimbal_pose", self.gimbal_pose, data.gimbal_pose)
-    self._compare_tfs("gimbal_link0", self.gimbal_link0, data.gimbal_link0)
-    self._compare_tfs("gimbal_link1", self.gimbal_link1, data.gimbal_link1)
-    self._compare_vectors("cam0_params", self.cam0_params, data.cam0_params)
-    self._compare_vectors("cam1_params", self.cam1_params, data.cam1_params)
-    self._compare_tfs("cam0_ext", self.cam0_ext, data.cam0_ext)
-    self._compare_tfs("cam1_ext", self.cam1_ext, data.cam1_ext)
-    self._compare_joints(self.joint_angles, data.joint_angles)
-
-
-class SimGimbal:
-  """ Gimbal Simulation """
-  def __init__(self):
-    self.T_WB = None
-    self.T_BM0 = None
-    self.links = []
-    self.joint_angles = []
-    self.cam_params = []
-    self.end_ext = None
-    self.cam_exts = []
-
-    # Setup
-    self._setup_calib_target()
-    self._setup_gimbal()
-    self._setup_camera_params()
-    self._setup_camera_extrinsics()
-
-  def _setup_calib_target(self):
-    """ Setup calibration target """
-    self.calib_target = AprilGrid()
-    C_WF = euler321(-pi / 2.0, 0.0, pi / 2.0)
-    r_WF = np.array([0.3, 0.0, 0.0])
-    self.T_WF = tf(C_WF, r_WF)
-
-  def _setup_gimbal(self):
-    # Gimbal pose
-    # offset_x = 0.0
-    # offset_y = -self.calib_target.get_dimensions()[0] / 2.0
-    # offset_z = self.calib_target.get_dimensions()[1] / 2.0 - 0.2
-    # C_WB = euler321(0.01, 0.01, 0.01)
-    # r_WB = np.array([offset_x, offset_y, offset_z])
-    # self.T_WB = tf(C_WB, r_WB)
-    self.T_WB = np.eye(4)
-
-    # Body to gimbal extrinsics
-    C_BM0 = euler321(0.01, 0.01, 0.01)
-    r_BM0 = np.array([0.001, 0.001, 0.001])
-    self.T_BM0 = tf(C_BM0, r_BM0)
-
-    # Gimbal links
-    # -- Roll link
-    C_L0M1 = euler321(0.0, deg2rad(90.0), 0.0)
-    r_L0M1 = np.array([-0.1, 0.0, 0.15])
-    T_L0M1 = tf(C_L0M1, r_L0M1)
-    self.links.append(tf2pose(T_L0M1))
-    # -- Pitch link
-    C_L1M2 = euler321(0.0, 0.0, deg2rad(-90.0))
-    r_L1M2 = np.array([0.0, -0.05, 0.1])
-    T_L1M2 = tf(C_L1M2, r_L1M2)
-    self.links.append(tf2pose(T_L1M2))
-
-    # Gimbal joint angles
-    self.joint_angles = [0.0, 0.0, 0.0]
-
-    # Gimbal
-    self.gimbal = GimbalKinematics(self.links, self.joint_angles)
-
-  def _setup_camera_params(self):
-    """ Setup Camera Parameters """
-    res = [640, 480]
-    fov = 120.0
-    fx = focal_length(res[0], fov)
-    fy = focal_length(res[0], fov)
-    cx = res[0] / 2.0
-    cy = res[1] / 2.0
-
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    proj_params = [fx, fy, cx, cy]
-    dist_params = [0.0, 0.0, 0.0, 0.0]
-    params = np.block([*proj_params, *dist_params])
-
-    cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
-    cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
-
-    self.cam_params.append(cam0)
-    self.cam_params.append(cam1)
-
-  def _setup_camera_extrinsics(self):
-    """ Setup camera extrinsics """
-    # End effector extrinsic
-    C_L2E = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
-    r_L2E = np.array([0.0, -0.05, 0.12])
-    T_L2E = tf(C_L2E, r_L2E)
-    self.end_ext = T_L2E
-
-    # cam0-cam1 extrinsics
-    C_C0C1 = euler321(deg2rad(0.0), deg2rad(0.0), 0.0)
-    r_C0C1 = np.array([0.1, 0.0, 0.0])
-    T_C0C1 = tf(C_C0C1, r_C0C1)
-    self.cam_exts.append(np.eye(4))  # T_C0C0
-    self.cam_exts.append(T_C0C1)  # T_C0C1
-
-  def get_camera_measurements(self, cam_idx):
-    """ Simulate camera frame """
-    cam_geom = self.cam_params[cam_idx].data
-    T_M0L2 = self.gimbal.forward_kinematics(joint_idx=2)
-    T_L2E = self.end_ext
-    T_ECi = self.cam_exts[cam_idx]
-    T_WCi = self.T_WB @ self.T_BM0 @ T_M0L2 @ T_L2E @ T_ECi
-    T_CiW = np.linalg.inv(T_WCi)
-
-    tag_ids = []
-    corner_idxs = []
-    object_points = []
-    keypoints = []
-    for (tag_id, corner_idx, p_FFi) in self.calib_target.get_object_points():
-      p_CiFi = tf_point(T_CiW @ self.T_WF, p_FFi)
-      status, z = cam_geom.project(self.cam_params[cam_idx].param, p_CiFi)
-      if status:
-        tag_ids.append(tag_id)
-        corner_idxs.append(corner_idx)
-        object_points.append(p_FFi)
-        keypoints.append(z)
-
-    cam_data = {
-        "num_measurements": len(tag_ids),
-        "tag_ids": tag_ids,
-        "corner_idxs": corner_idxs,
-        "object_points": np.array(object_points),
-        "keypoints": np.array(keypoints),
-    }
-
-    return cam_data
-
-  def visualize(self):
-    """ Visualize """
-    T_M0L0 = self.gimbal.forward_kinematics(joint_idx=0)
-    T_M0L1 = self.gimbal.forward_kinematics(joint_idx=1)
-    T_M0L2 = self.gimbal.forward_kinematics(joint_idx=2)
-    T_WL0 = self.T_WB @ self.T_BM0 @ T_M0L0
-    T_WL1 = self.T_WB @ self.T_BM0 @ T_M0L1
-    T_WL2 = self.T_WB @ self.T_BM0 @ T_M0L2
-    T_L2E = self.end_ext
-    T_WC0 = T_WL2 @ T_L2E @ self.cam_exts[0]
-    T_WC1 = T_WL2 @ T_L2E @ self.cam_exts[1]
-
-    # Visualize
-    plt.figure()
-    ax = plt.axes(projection='3d')
-
-    # Plot transforms
-    self.calib_target.plot(ax, self.T_WF)
-    plot_tf(ax, T_WL0, name="Link0", size=0.05)
-    plot_tf(ax, T_WL1, name="Link1", size=0.05)
-    plot_tf(ax, T_WL2, name="Link2", size=0.05)
-    plot_tf(ax, T_WC0, name="cam0", size=0.05)
-    plot_tf(ax, T_WC1, name="cam1", size=0.05)
-
-    # Plot settings
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
-    plot_set_axes_equal(ax)
-    plt.show()
-
-  def plot_camera_frame(self, **kwargs):
-    """ Plot camera frame """
-    figsize = kwargs.get("figsize", (1200, 600))
-    dpi = kwargs.get("dpi", 96)
-
-    # Camera resolution and measurements
-    cam0_res = self.cam_params[0].data.resolution
-    cam1_res = self.cam_params[1].data.resolution
-    cam0_data = self.get_camera_measurements(0)["keypoints"]
-    cam1_data = self.get_camera_measurements(1)["keypoints"]
-
-    # Setup plot
-    figsize = (figsize[0] / dpi, figsize[1] / dpi)
-    plt.figure(figsize=figsize, dpi=dpi)
-
-    # -- Plot cam0
-    ax0 = plt.subplot(121)
-    ax0.plot(cam0_data[:, 0], cam0_data[:, 1], 'r.')
-    ax0.axis([0, cam0_res[0], cam0_res[1], 0])
-    ax0.set_xlabel('pixel')
-    ax0.set_ylabel('pixel')
-    ax0.xaxis.tick_top()
-    ax0.xaxis.set_label_position('top')
-    ax0.set_title("Camera 0")
-    plt.gca().set_aspect('equal', adjustable='box')
-
-    # -- Plot cam1
-    ax1 = plt.subplot(122)
-    ax1.plot(cam1_data[:, 0], cam1_data[:, 1], 'r.')
-    ax1.axis([0, cam1_res[0], cam1_res[1], 0])
-    ax1.set_xlabel('pixel')
-    ax1.set_ylabel('pixel')
-    ax1.xaxis.tick_top()
-    ax1.xaxis.set_label_position('top')
-    ax1.set_title("Camera 1")
-    plt.gca().set_aspect('equal', adjustable='box')
-
-    plt.show()
-
-  def simulate(self, **kwargs):
-    """ Simulate """
-    # Settings
-    num_views = kwargs.get("num_views", 50)
-    fix_gimbal = kwargs.get("fix_gimbal", True)
-
-    # Simulation data
-    pose_data = []
-    view_data = []
-    joint_data = []
-
-    # Fix gimbal pose?
-    if fix_gimbal is True:
-      pose_data.append(copy.deepcopy(self.T_WB))
-
-    # # Perturb Yaw
-    # yaw_start = deg2rad(-45)
-    # yaw_end = deg2rad(45)
-    # yaw_diff = deg2rad(10)
-    # yaw = yaw_start
-
-    # while yaw <= yaw_end:
-    #   # Perturb joint angles for a different view
-    #   self.gimbal.joint_angles[0] = yaw
-    #   self.gimbal.joint_angles[1] = 0.0
-    #   self.gimbal.joint_angles[2] = 0.0
-    #   joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
-
-    #   # Get camera data
-    #   cam_data = []
-    #   for cam_idx in range(len(self.cam_params)):
-    #     cam_data.append(self.get_camera_measurements(cam_idx))
-    #   view_data.append(cam_data)
-
-    #   # Update
-    #   yaw += yaw_diff
-
-    # # Perturb Roll
-    # roll_start = deg2rad(-45)
-    # roll_end = deg2rad(45)
-    # roll_diff = deg2rad(10)
-    # roll = roll_start
-
-    # while roll <= roll_end:
-    #   # Perturb joint angles for a different view
-    #   self.gimbal.joint_angles[0] = 0.0
-    #   self.gimbal.joint_angles[1] = roll
-    #   self.gimbal.joint_angles[2] = 0.0
-    #   joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
-
-    #   # Get camera data
-    #   cam_data = []
-    #   for cam_idx in range(len(self.cam_params)):
-    #     cam_data.append(self.get_camera_measurements(cam_idx))
-    #   view_data.append(cam_data)
-
-    #   # Update
-    #   roll += roll_diff
-
-    # # Perturb pitch
-    # pitch_start = deg2rad(-45)
-    # pitch_end = deg2rad(45)
-    # pitch_diff = deg2rad(10)
-    # pitch = pitch_start
-
-    # while pitch <= pitch_end:
-    #   # Perturb joint angles for a different view
-    #   self.gimbal.joint_angles[0] = 0.0
-    #   self.gimbal.joint_angles[1] = pitch
-    #   self.gimbal.joint_angles[2] = 0.0
-    #   joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
-
-    #   # Get camera data
-    #   cam_data = []
-    #   for cam_idx in range(len(self.cam_params)):
-    #     cam_data.append(self.get_camera_measurements(cam_idx))
-    #   view_data.append(cam_data)
-
-    #   # Update
-    #   pitch += pitch_diff
-
-    # Simulate Random joint angles
-    for _ in range(num_views):
-      # Perturb joint angles for a different view
-      self.gimbal.joint_angles[0] = np.random.uniform(-1.0, 1.0)
-      self.gimbal.joint_angles[1] = np.random.uniform(-1.5, 1.5)
-      self.gimbal.joint_angles[2] = np.random.uniform(-1.5, 1.5)
-      joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
-
-      # Perturb body pose
-      if fix_gimbal is False:
-        self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
-        self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
-        self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
-        self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
-        self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
-        self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
-        pose_data.append(copy.deepcopy(self.T_WB))
-
-      # Get camera data
-      cam_data = []
-      for cam_idx in range(len(self.cam_params)):
-        cam_data.append(self.get_camera_measurements(cam_idx))
-      view_data.append(cam_data)
-
-    return (pose_data, view_data, joint_data)
-
-  @staticmethod
-  def _setup_save_dir():
-    """ Setup save dir """
-    os.system("rm -rf /tmp/sim_gimbal")
-    os.system("mkdir -p /tmp/sim_gimbal")
-    os.system("mkdir -p /tmp/sim_gimbal/grid0/cam0")
-    os.system("mkdir -p /tmp/sim_gimbal/grid0/cam1")
-
-  def _save_calib_file(self):
-    """ Save calib file """
-    # Save calib file
-    calib_file = open(f"/tmp/sim_gimbal/calib.config", "w")
-    # -- Save camera parameters
-    calib_file.write(f"num_cams: {len(self.cam_params)}\n")
-    calib_file.write(f"num_links: {len(self.links)}\n")
-    calib_file.write("\n")
-    for cam_idx, cam_params in enumerate(self.cam_params):
-      cam_geom = cam_params.data
-      cam_res = cam_geom.resolution
-      proj_params = [str(x) for x in cam_geom.proj_params(cam_params.param)]
-      dist_params = [str(x) for x in cam_geom.dist_params(cam_params.param)]
-
-      calib_file.write(f"cam{cam_idx}:\n")
-      calib_file.write(f"  resolution: [{cam_res[0]}, {cam_res[1]}]\n")
-      calib_file.write(f"  proj_model: \"{cam_geom.proj_model}\"\n")
-      calib_file.write(f"  dist_model: \"{cam_geom.dist_model}\"\n")
-      calib_file.write(f"  proj_params: [{', '.join(proj_params)}]\n")
-      calib_file.write(f"  dist_params: [{', '.join(dist_params)}]\n")
-      calib_file.write(f"\n")
-    # -- Save camera extrinsics
-    for cam_idx, cam_ext in enumerate(self.cam_exts):
-      rx, ry, rz = tf_trans(cam_ext)
-      qw, qx, qy, qz = tf_quat(cam_ext)
-      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      calib_file.write(f"cam{cam_idx}_ext: [{tf_str}]\n")
-    # -- Save end effector
-    rx, ry, rz = tf_trans(self.end_ext)
-    qw, qx, qy, qz = tf_quat(self.end_ext)
-    tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-    calib_file.write(f"end_ext: [{tf_str}]\n")
-    # -- Save gimbal links
-    for link_idx, link_ext in enumerate(self.links):
-      rx, ry, rz = tf_trans(pose2tf(link_ext))
-      qw, qx, qy, qz = tf_quat(pose2tf(link_ext))
-      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      calib_file.write(f"link{link_idx}_ext: [{tf_str}]\n")
-    # -- Save gimbal extrinsics
-    rx, ry, rz = tf_trans(self.T_BM0)
-    qw, qx, qy, qz = tf_quat(self.T_BM0)
-    tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-    calib_file.write(f"gimbal_ext: [{tf_str}]\n")
-    # -- Save fiducial extrinsics
-    rx, ry, rz = tf_trans(self.T_WF)
-    qw, qx, qy, qz = tf_quat(self.T_WF)
-    tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-    calib_file.write(f"fiducial_pose: [{tf_str}]\n")
-    # -- Clean up
-    calib_file.close()
-
-  def _save_camera_data(self, view_data):
-    """ Save camera data """
-    # Save camera data
-    for view_idx, view_set in enumerate(view_data):
-      for cam_idx, cam_data in enumerate(view_set):
-        view_file = open(f"/tmp/sim_gimbal/grid0/cam{cam_idx}/{view_idx}.dat",
-                         "w")
-        view_file.write(f"timestamp: {view_idx}\n")
-        view_file.write(f"num_rows: {self.calib_target.tag_rows}\n")
-        view_file.write(f"num_cols: {self.calib_target.tag_cols}\n")
-        view_file.write(f"tag_size: {self.calib_target.tag_size}\n")
-        view_file.write(f"tag_spacing: {self.calib_target.tag_spacing}\n")
-        view_file.write("\n")
-        view_file.write(f"corners_detected: {cam_data['num_measurements']}\n")
-
-        view_file.write(f"#tag_id,corner_idx,kp_x,kp_y,px,py,pz\n")
-        for i in range(cam_data["num_measurements"]):
-          tag_id = cam_data["tag_ids"][i]
-          corner_idx = cam_data["corner_idxs"][i]
-          pt = cam_data["object_points"][i]
-          kp = cam_data["keypoints"][i]
-
-          view_file.write(f"{tag_id},")
-          view_file.write(f"{corner_idx},")
-          view_file.write(f"{kp[0]},{kp[1]},")
-          view_file.write(f"{pt[0]},{pt[1]},{pt[2]}")
-          view_file.write("\n")
-        view_file.close()
-
-  def _save_poses_data(self, pose_data):
-    """ Save pose data """
-    poses_file = open(f"/tmp/sim_gimbal/poses.dat", "w")
-    poses_file.write(f"num_poses: {len(pose_data)}\n")
-    poses_file.write(f"\n")
-    poses_file.write(f"#ts,x,y,z,qw,qx,qy,qz\n")
-    view_idx = 0
-    for pose in pose_data:
-      rx, ry, rz = tf_trans(pose)
-      qw, qx, qy, qz = tf_quat(pose)
-      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
-      poses_file.write(f"{view_idx},{tf_str}\n")
-      view_idx += 1
-    poses_file.close()
-
-  def _save_joints_data(self, view_data, joint_data):
-    """ Save joints data """
-    num_joints = len(self.joint_angles)
-    joints_file = open(f"/tmp/sim_gimbal/joint_angles.dat", "w")
-    joints_file.write(f"num_views: {len(view_data)}\n")
-    joints_file.write(f"num_joints: {num_joints}\n")
-    joints_file.write(f"\n")
-    joints_str = ','.join([f"joint{i}" for i in range(num_joints)])
-    joints_file.write(f"#ts,{joints_str}\n")
-    for i, data in enumerate(joint_data):
-      joints_str = ','.join([str(x) for x in data])
-      joints_file.write(f"{i},{joints_str}\n")
-    joints_file.close()
-
-  def save(self, sim_data):
-    """ Save """
-    pose_data, view_data, joint_data = sim_data
-    self._setup_save_dir()
-    self._save_calib_file()
-    self._save_camera_data(view_data)
-    self._save_poses_data(pose_data)
-    self._save_joints_data(view_data, joint_data)
-
-  def plot(self, gnd, init, est, **kwargs):
-    """ Plot """
-    figsize = kwargs.get("figsize", (1200, 600))
-    dpi = kwargs.get("dpi", 96)
-    num_views = len(gnd.joint_angles)
-
-    for view_idx in range(num_views):
-      # Visualize
-      _ = plt.figure(figsize=(figsize[0] / dpi, figsize[1] / dpi), dpi=dpi)
-
-      # Plot data
-      # -- Ground truth
-      T_WF_gnd = gnd.get_fiducial_pose()
-      T_WL0_gnd = gnd.get_joint_pose(view_idx, 0)
-      T_WL1_gnd = gnd.get_joint_pose(view_idx, 1)
-      T_WL2_gnd = gnd.get_joint_pose(view_idx, 2)
-      T_WC0_gnd = gnd.get_camera_pose(view_idx, 0)
-      T_WC1_gnd = gnd.get_camera_pose(view_idx, 1)
-      # -- Initial
-      T_WF_init = init.get_fiducial_pose()
-      T_WL0_init = init.get_joint_pose(view_idx, 0)
-      T_WL1_init = init.get_joint_pose(view_idx, 1)
-      T_WL2_init = init.get_joint_pose(view_idx, 2)
-      T_WC0_init = init.get_camera_pose(view_idx, 0)
-      T_WC1_init = init.get_camera_pose(view_idx, 1)
-      # -- Estimated
-      T_WF_est = est.get_fiducial_pose()
-      T_WL0_est = est.get_joint_pose(view_idx, 0)
-      T_WL1_est = est.get_joint_pose(view_idx, 1)
-      T_WL2_est = est.get_joint_pose(view_idx, 2)
-      T_WC0_est = est.get_camera_pose(view_idx, 0)
-      T_WC1_est = est.get_camera_pose(view_idx, 1)
-
-      # Before optimisation
-      ax = plt.subplot(121, projection='3d')
-      # -- Plot ground Truth
-      gnd_c = ('r-', 'r-', 'r-')
-      gnd_pt = '#ff0000'
-      self.calib_target.plot(ax, T_WF_gnd, tf_colors=gnd_c, pt_colors=gnd_pt)
-      plot_tf(ax, T_WL0_gnd, name="Link0", size=0.05, colors=gnd_c)
-      plot_tf(ax, T_WL1_gnd, name="Link1", size=0.05, colors=gnd_c)
-      plot_tf(ax, T_WL2_gnd, name="Link2", size=0.05, colors=gnd_c)
-      plot_tf(ax, T_WC0_gnd, name="cam0", size=0.05, colors=gnd_c)
-      plot_tf(ax, T_WC1_gnd, name="cam1", size=0.05, colors=gnd_c)
-      # -- Plot initial
-      init_c = ('b-', 'b-', 'b-')
-      init_pt = "#0000ff"
-      self.calib_target.plot(ax, T_WF_init, tf_colors=init_c, pt_colors=init_pt)
-      plot_tf(ax, T_WL0_init, name="Link0", size=0.05, colors=init_c)
-      plot_tf(ax, T_WL1_init, name="Link1", size=0.05, colors=init_c)
-      plot_tf(ax, T_WL2_init, name="Link2", size=0.05, colors=init_c)
-      plot_tf(ax, T_WC0_init, name="cam0", size=0.05, colors=init_c)
-      plot_tf(ax, T_WC1_init, name="cam1", size=0.05, colors=init_c)
-      # -- Plot settings
-      ax.set_xlabel("x [m]")
-      ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
-      plot_set_axes_equal(ax)
-      ax.set_title("Before Optimisation")
-
-      # After optimisation
-      ax = plt.subplot(122, projection='3d')
-      # -- Plot ground Truth
-      gnd_c = ('r-', 'r-', 'r-')
-      gnd_pt = '#ff0000'
-      self.calib_target.plot(ax, T_WF_gnd, tf_colors=gnd_c, pt_colors=gnd_pt)
-      plot_tf(ax, T_WL0_gnd, name="Link0", size=0.05, colors=gnd_c)
-      plot_tf(ax, T_WL1_gnd, name="Link1", size=0.05, colors=gnd_c)
-      plot_tf(ax, T_WL2_gnd, name="Link2", size=0.05, colors=gnd_c)
-      plot_tf(ax, T_WC0_gnd, name="cam0", size=0.05, colors=gnd_c)
-      plot_tf(ax, T_WC1_gnd, name="cam1", size=0.05, colors=gnd_c)
-      # -- Plot Estimate
-      est_c = ('b-', 'b-', 'b-')
-      est_pt = "#0000ff"
-      self.calib_target.plot(ax, T_WF_est, tf_colors=est_c, pt_colors=est_pt)
-      plot_tf(ax, T_WL0_est, name="Link0", size=0.05, colors=est_c)
-      plot_tf(ax, T_WL1_est, name="Link1", size=0.05, colors=est_c)
-      plot_tf(ax, T_WL2_est, name="Link2", size=0.05, colors=est_c)
-      plot_tf(ax, T_WC0_est, name="cam0", size=0.05, colors=est_c)
-      plot_tf(ax, T_WC1_est, name="cam1", size=0.05, colors=est_c)
-      # -- Plot settings
-      ax.set_xlabel("x [m]")
-      ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
-      ax.set_title("After Optimisation")
-      plot_set_axes_equal(ax)
-
-      plt.subplots_adjust(left=0.05,
-                          right=0.95,
-                          top=0.95,
-                          bottom=0.05,
-                          wspace=0.05)
-      plt.show()
-
-  def solve(self, sim_data):
-    """ Solve """
-    (pose_data, view_data, joint_data) = sim_data
-    print(f"num_poses: {len(pose_data)}")
-
-    # Ground-truth
-    gnd = GimbalProblem(self.T_WF,
-                        self.T_BM0, pose_data, pose2tf(self.links[0]),
-                        pose2tf(self.links[1]), self.cam_params[0],
-                        self.cam_params[1], self.cam_exts[0], self.cam_exts[1],
-                        joint_data)
-
-    # Estimation
-    est = copy.deepcopy(gnd)
-
-    # -- Perturb gimbal pose
-    # dpos = [-0.1, 0.1]
-    # drot = [-0.1, 0.1]
-    # for i, pose in enumerate(est.gimbal_poses):
-    #   pose = perturb_tf_random(pose, dpos, drot)
-    #   est.gimbal_poses[i] = pose
-
-    # -- Perturb gimbal links
-    dpos = [-0.01, 0.01]
-    drot = [-0.0, 0.0]
-    est.gimbal_link0 = perturb_tf_random(est.gimbal_link0, dpos, drot)
-    est.gimbal_link1 = perturb_tf_random(est.gimbal_link1, dpos, drot)
-
-    # -- Perturb gimbal joints
-    for view_idx, joints in enumerate(est.joint_angles):
-      drot = np.random.uniform(-0.01, 0.01, size=(3,))
-      est.joint_angles[view_idx] = joints + drot
-    init = copy.deepcopy(est)
-
-    fix_fiducial = True
-    fix_body_pose = True
-    fix_gimbal_ext = True
-    fix_gimbal_links = [False, False]
-    fix_gimbal_joints = [False, False, False]
-    fix_cam_params = [True, True]
-    fix_cam_exts = [True, True]
-
-    calib = GimbalCalibrator()
-    calib.add_fiducial(est.fiducial, fix=fix_fiducial)
-    calib.add_body_pose(0, est.gimbal_poses[0], fix=fix_body_pose)
-    calib.add_gimbal_extrinsic(est.gimbal_ext, fix=fix_gimbal_ext)
-    calib.add_gimbal_link(0, est.gimbal_link0, fix=fix_gimbal_links[0])
-    calib.add_gimbal_link(1, est.gimbal_link1, fix=fix_gimbal_links[1])
-    calib.add_camera(cam_params=est.cam0_params, fix=fix_cam_params[0])
-    calib.add_camera(cam_params=est.cam1_params, fix=fix_cam_params[1])
-    calib.add_camera_extrinsic(0, est.cam0_ext, fix=fix_cam_exts[0])
-    calib.add_camera_extrinsic(1, est.cam1_ext, fix=fix_cam_exts[1])
-
-    # Add camera views
-    est_data = zip(view_data, est.joint_angles)
-    for view_idx, (view_set, joints) in enumerate(est_data):
-      # Add pose
-      if len(est.gimbal_poses) > 1 and view_idx >= 1:
-        calib.add_body_pose(view_idx,
-                            est.gimbal_poses[view_idx],
-                            fix=fix_body_pose)
-
-      # Add views
-      calib.add_gimbal_joint(view_idx, 0, joints[0], fix=fix_gimbal_joints[0])
-      calib.add_gimbal_joint(view_idx, 1, joints[1], fix=fix_gimbal_joints[1])
-      calib.add_gimbal_joint(view_idx, 2, joints[2], fix=fix_gimbal_joints[2])
-      calib.add_camera_view_set(view_idx, view_set)
-
-    # Solve
-    print(f"fix_fiducial: {fix_fiducial}")
-    print(f"fix_body_pose: {fix_body_pose}")
-    print(f"fix_gimbal_ext: {fix_gimbal_ext}")
-    print(f"fix_gimbal_links: {fix_gimbal_links}")
-    print(f"fix_gimbal_joints: {fix_gimbal_joints}")
-    print(f"fix_cam_params: {fix_cam_params}")
-    print(f"fix_cam_exts:  {fix_cam_exts}")
-    print("")
-    calib.solve(max_iter=10)
-
-    # Compare results
-    print("\ngnd - init")
-    gnd.compare(init)
-
-    print("\ngnd - est")
-    est = calib.results()
-    gnd.compare(est)
-
-    # self.plot(gnd, init, est)
-
-
-###############################################################################
-#                               UNITTESTS
-###############################################################################
-
-import unittest
-
-euroc_data_path = '/data/euroc/V1_01'
-
-# NETWORK #####################################################################
-
-
-def test_websocket_callback():
-  """ Test WebSocket Callback """
-  time.sleep(1)
-  return "Hello World"
-
-
-class TestNetwork(unittest.TestCase):
-  """ Test Network """
-  def test_http_parse_request(self):
-    """ Test Parsing HTTP Request """
-    request_string = """GET / HTTP/1.1\r\n
-                        Host: localhost:8080\r\n
-                        User-Agent: Mozilla/5.0\r\n
-                        Accept-Language: en-GB,en;q=0.5\r\n
-                        Accept-Encoding: gzip, deflate\r\n
-                        Connection: keep-alive\r\n
-                        Upgrade-Insecure-Requests: 1\r\n
-                        Sec-Fetch-Dest: document\r\n
-                        Sec-Fetch-Mode: navigate\r\n
-                        Sec-Fetch-Site: cross-site\r\n
-                        Cache-Control: max-age=0\r\n\r\n"""
-    (protocol, method, path, headers) = http_parse_request(request_string)
-    self.assertTrue(protocol == "HTTP/1.1")
-    self.assertTrue(method == "GET")
-    self.assertTrue(path == "/")
-    self.assertTrue(headers["Host"] == "localhost:8080")
-    self.assertTrue(headers["User-Agent"] == "Mozilla/5.0")
-
-  def test_websocket_hash(self):
-    """ Test WebSocket Upgrade Response """
-    ws_key = "dGhlIHNhbXBsZSBub25jZQ=="
-    ws_hash = "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
-    self.assertTrue(websocket_hash(ws_key) == ws_hash)
-
-  def test_websocket_encode_frame(self):
-    """ Test WebSocket Frame """
-    payload = "Hello World!"
-    frame = websocket_encode_frame(payload)
-    self.assertTrue(frame is not None)
-
-  # def test_websocket_decode_frame(self):
-  #   """ Test WebSocket Frame """
-  #   host = '127.0.0.1'
-  #   port = 5000
-  #   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  #   sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-  #   sock.bind((host, port))
-  #   sock.listen()
-  #   conn, _ = sock.accept()
-  #
-  #   # Request
-  #   buf_size = 4096
-  #   req_str = conn.recv(buf_size, 0).decode("ascii")
-  #   (_, _, _, headers) = http_parse_request(req_str)
-  #   ws_key = headers["Sec-WebSocket-Key"]
-  #
-  #   # Respond
-  #   resp = websocket_handshake_response(ws_key)
-  #   conn.send(str.encode(resp))
-  #
-  #   # Decode websocket frame
-  #   data = websocket_decode_frame(conn)
-
-  @unittest.skip("")
-  def test_debug_server(self):
-    """ Test Debug Server """
-    server = DebugServer(test_websocket_callback)
-    self.assertTrue(server is not None)
-
-
-# LINEAR ALGEBRA ##############################################################
-
-
-class TestLinearAlgebra(unittest.TestCase):
-  """ Test Linear Algebra """
-  def test_normalize(self):
-    """ Test normalize() """
-    x = np.array([1.0, 2.0, 3.0])
-    x_prime = normalize(x)
-    self.assertTrue(isclose(norm(x_prime), 1.0))
-
-  def test_hat(self):
-    """ Test hat() """
-    x = np.array([1.0, 2.0, 3.0])
-    S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
-    self.assertTrue(matrix_equal(S, hat(x)))
-
-  def test_vee(self):
-    """ Test vee() """
-    x = np.array([1.0, 2.0, 3.0])
-    S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
-    self.assertTrue(matrix_equal(x, vee(S)))
-
-  def test_matrix_equal(self):
-    """ Test matrix_equal() """
-    A = ones((3, 3))
-    B = ones((3, 3))
-    self.assertTrue(matrix_equal(A, B))
-
-    C = 2.0 * ones((3, 3))
-    self.assertFalse(matrix_equal(A, C))
-
-  # def test_check_jacobian(self):
-  #   step_size = 1e-6
-  #   threshold = 1e-5
-  #
-  #   x = 2
-  #   y0 = x**2
-  #   y1 = (x + step_size)**2
-  #   jac = 2 * x
-  #   fdiff = y1 - y0
-  #
-  #   jac_name = "jac"
-  #   fdiff = (y1 - y0) / step_size
-  #   self.assertTrue(check_jacobian(jac_name, fdiff, jac, threshold))
-
-
-# LIE ########################################################################
-
-
-class TestLie(unittest.TestCase):
-  """ Test Lie algebra functions """
-  def test_Exp_Log(self):
-    """ Test Exp() and Log() """
-    pass
-
-  def test_sandbox(self):
-    """ Test sandbox """
-    step_size = 1e-8
-    threshold = 1e-4
-
-    # Test Jacobian w.r.t C_10 in p_1 = T_10 * p_0
-    C_10 = euler321(0.1, 0.2, 0.3)
-    r_10 = np.array([0.1, 0.2, 0.3])
-    T_10 = tf(C_10, r_10)
-    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
-    p_1 = tf_point(T_10, p_0)
-
-    J_fdiff = np.zeros((3, 3))
-    for i in range(3):
-      T_fwd = tf_perturb(T_10, 3 + i, step_size)
-      p_1_fwd = tf_point(T_fwd, p_0)
-      J_fdiff[:, i] = (p_1_fwd - p_1) / step_size
-
-    J = np.zeros((3, 3))
-    J[0:3, 0:3] = -tf_rot(T_10) @ hat(p_0)
-    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
-
-    # Test Jacobian w.r.t C_10 in p_2 = T_21 * T_10 * p_0
-    C_10 = euler321(0.1, 0.2, 0.3)
-    r_10 = np.array([0.1, 0.2, 0.3])
-    T_10 = tf(C_10, r_10)
-
-    C_21 = euler321(0.1, 0.2, 0.3)
-    r_21 = np.array([0.1, 0.2, 0.3])
-    T_21 = tf(C_21, r_21)
-
-    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
-    p_2 = tf_point(T_21 @ T_10, p_0)
-
-    J_fdiff = np.zeros((3, 3))
-    for i in range(3):
-      T_10_fwd = tf_perturb(T_10, 3 + i, step_size)
-      p_2_fwd = tf_point(T_21 @ T_10_fwd, p_0)
-      J_fdiff[:, i] = (p_2_fwd - p_2) / step_size
-
-    J = np.zeros((3, 3))
-    J[0:3, 0:3] = C_21 @ -tf_rot(T_10) @ hat(p_0)
-    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
-
-    # Test Jacobian w.r.t C_21 in p_3 = T_32 * inv(T_21) * T_10 * p_0
-    C_10 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
-    r_10 = np.random.uniform(-1.0, 1.0, size=(3,))
-    T_10 = tf(C_10, r_10)
-
-    C_21 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
-    r_21 = np.random.uniform(-1.0, 1.0, size=(3,))
-    T_21 = tf(C_21, r_21)
-
-    C_32 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
-    r_32 = np.random.uniform(-1.0, 1.0, size=(3,))
-    T_32 = tf(C_32, r_32)
-
-    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
-    p_3 = tf_point(T_32 @ inv(T_21) @ T_10, p_0)
-
-    J_fdiff = np.zeros((3, 3))
-    for i in range(3):
-      T_21_fwd = tf_perturb(T_21, 3 + i, step_size)
-      p_3_fwd = tf_point(T_32 @ inv(T_21_fwd) @ T_10, p_0)
-      J_fdiff[:, i] = (p_3_fwd - p_3) / step_size
-
-    J = np.zeros((3, 3))
-    p_1 = tf_point(T_10, p_0)
-    J[0:3, 0:3] = C_32 @ -C_21.T @ hat(p_1 - r_21) @ -C_21
-    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
-
-    # Test Jacobian w.r.t C_21 in p_3 = inv(T_32) * inv(T_21) * T_10 * p_0
-    C_10 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
-    r_10 = np.random.uniform(-1.0, 1.0, size=(3,))
-    T_10 = tf(C_10, r_10)
-
-    C_21 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
-    r_21 = np.random.uniform(-1.0, 1.0, size=(3,))
-    T_21 = tf(C_21, r_21)
-
-    C_32 = euler321(*np.random.uniform(-1.0, 1.0, size=(3,)))
-    r_32 = np.random.uniform(-1.0, 1.0, size=(3,))
-    T_32 = tf(C_32, r_32)
-
-    p_0 = np.random.uniform(-1.0, 1.0, size=(3,))
-    p_3 = tf_point(inv(T_32) @ inv(T_21) @ T_10, p_0)
-
-    J_fdiff = np.zeros((3, 3))
-    for i in range(3):
-      T_21_fwd = tf_perturb(T_21, 3 + i, step_size)
-      p_3_fwd = tf_point(inv(T_32) @ inv(T_21_fwd) @ T_10, p_0)
-      J_fdiff[:, i] = (p_3_fwd - p_3) / step_size
-
-    J = np.zeros((3, 3))
-    p_1 = tf_point(T_10, p_0)
-    J[0:3, 0:3] = C_32.T @ -C_21.T @ hat(p_1 - r_21) @ -C_21
-    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
-
-    # Test Jacobian w.r.t C_10 in p_1 = inv(T_10) * p_0
-    C_10 = euler321(0.1, 0.2, 0.3)
-    r_10 = np.array([0.1, 0.2, 0.3])
-    T_10 = tf(C_10, r_10)
-    T_01 = inv(T_10)
-    p_1 = np.random.uniform(-1.0, 1.0, size=(3,))
-    p_0 = tf_point(T_01, p_1)
-
-    J_fdiff = np.zeros((3, 3))
-    for i in range(3):
-      C_10_fwd = rot_perturb(C_10, i, step_size)
-      T_10_fwd = tf(C_10_fwd, r_10)
-      T_01_fwd = inv(T_10_fwd)
-      p_0_fwd = tf_point(T_01_fwd, p_1)
-      J_fdiff[:, i] = (p_0_fwd - p_0) / step_size
-
-    J = np.zeros((3, 3))
-    J[0:3, 0:3] = -C_10.T @ hat(p_1 - r_10) @ -C_10
-    check_jacobian("J_rot", J_fdiff, J, threshold, verbose=False)
-
-
-# TRANSFORM ###################################################################
-
-
-class TestTransform(unittest.TestCase):
-  """ Test transform functions """
-  def test_homogeneous(self):
-    """ Test homogeneous() """
-    p = np.array([1.0, 2.0, 3.0])
-    hp = homogeneous(p)
-    self.assertTrue(hp[0] == 1.0)
-    self.assertTrue(hp[1] == 2.0)
-    self.assertTrue(hp[2] == 3.0)
-    self.assertTrue(len(hp) == 4)
-
-  def test_dehomogeneous(self):
-    """ Test dehomogeneous() """
-    p = np.array([1.0, 2.0, 3.0])
-    hp = np.array([1.0, 2.0, 3.0, 1.0])
-    p = dehomogeneous(hp)
-    self.assertTrue(p[0] == 1.0)
-    self.assertTrue(p[1] == 2.0)
-    self.assertTrue(p[2] == 3.0)
-    self.assertTrue(len(p) == 3)
-
-  def test_rotx(self):
-    """ Test rotx() """
-    x = np.array([0.0, 1.0, 0.0])
-    C = rotx(deg2rad(90.0))
-    x_prime = C @ x
-    self.assertTrue(np.allclose(x_prime, [0.0, 0.0, 1.0]))
-
-  def test_roty(self):
-    """ Test roty() """
-    x = np.array([1.0, 0.0, 0.0])
-    C = roty(deg2rad(90.0))
-    x_prime = C @ x
-    self.assertTrue(np.allclose(x_prime, [0.0, 0.0, -1.0]))
-
-  def test_rotz(self):
-    """ Test rotz() """
-    x = np.array([1.0, 0.0, 0.0])
-    C = rotz(deg2rad(90.0))
-    x_prime = C @ x
-    self.assertTrue(np.allclose(x_prime, [0.0, 1.0, 0.0]))
-
-  def test_aa2quat(self):
-    """ Test aa2quat() """
-    pass
-
-  def test_aa2rot(self):
-    """ Test rvec2quat() """
-    pass
-
-  def test_vecs2aa(self):
-    """ Test vecs2aa() """
-    pass
-
-  def test_euler321(self):
-    """ Test euler321() """
-    C = euler321(0.0, 0.0, 0.0)
-    self.assertTrue(np.array_equal(C, eye(3)))
-
-  def test_euler2quat_and_quat2euler(self):
-    """ Test euler2quat() and quat2euler() """
-    y_in = deg2rad(3.0)
-    p_in = deg2rad(2.0)
-    r_in = deg2rad(1.0)
-
-    q = euler2quat(y_in, p_in, r_in)
-    ypr_out = quat2euler(q)
-
-    self.assertTrue(len(q) == 4)
-    self.assertTrue(abs(y_in - ypr_out[0]) < 1e-5)
-    self.assertTrue(abs(p_in - ypr_out[1]) < 1e-5)
-    self.assertTrue(abs(r_in - ypr_out[2]) < 1e-5)
-
-  def test_quat2rot(self):
-    """ Test quat2rot() """
-    ypr = np.array([0.1, 0.2, 0.3])
-    C_i = euler321(*ypr)
-    C_j = quat2rot(euler2quat(*ypr))
-    self.assertTrue(np.allclose(C_i, C_j))
-
-  def test_rot2euler(self):
-    """ Test rot2euler() """
-    ypr = np.array([0.1, 0.2, 0.3])
-    C = euler321(*ypr)
-    euler = rot2euler(C)
-    self.assertTrue(np.allclose(ypr, euler))
-
-  def test_rot2quat(self):
-    """ Test rot2quat() """
-    ypr = np.array([0.1, 0.2, 0.3])
-    C = euler321(*ypr)
-    q = rot2quat(C)
-    self.assertTrue(np.allclose(quat2euler(q), ypr))
-
-  def test_quat_norm(self):
-    """ Test quat_norm() """
-    q = np.array([1.0, 0.0, 0.0, 0.0])
-    self.assertTrue(isclose(quat_norm(q), 1.0))
-
-  def test_quat_normalize(self):
-    """ Test quat_normalize() """
-    q = np.array([1.0, 0.1, 0.2, 0.3])
-    q = quat_normalize(q)
-    self.assertTrue(isclose(quat_norm(q), 1.0))
-
-  def test_quat_conj(self):
-    """ Test quat_conj() """
-    ypr = np.array([0.1, 0.0, 0.0])
-    q = rot2quat(euler321(*ypr))
-    q_conj = quat_conj(q)
-    self.assertTrue(np.allclose(quat2euler(q_conj), -1.0 * ypr))
-
-  def test_quat_inv(self):
-    """ Test quat_inv() """
-    ypr = np.array([0.1, 0.0, 0.0])
-    q = rot2quat(euler321(*ypr))
-    q_inv = quat_inv(q)
-    self.assertTrue(np.allclose(quat2euler(q_inv), -1.0 * ypr))
-
-  def test_quat_mul(self):
-    """ Test quat_mul() """
-    p = euler2quat(deg2rad(3.0), deg2rad(2.0), deg2rad(1.0))
-    q = euler2quat(deg2rad(1.0), deg2rad(2.0), deg2rad(3.0))
-    r = quat_mul(p, q)
-    self.assertTrue(r is not None)
-
-  def test_quat_omega(self):
-    """ Test quat_omega() """
-    pass
-
-  def test_quat_slerp(self):
-    """ Test quat_slerp() """
-    q_i = rot2quat(euler321(0.1, 0.0, 0.0))
-    q_j = rot2quat(euler321(0.2, 0.0, 0.0))
-    q_k = quat_slerp(q_i, q_j, 0.5)
-    self.assertTrue(np.allclose(quat2euler(q_k), [0.15, 0.0, 0.0]))
-
-    q_i = rot2quat(euler321(0.0, 0.1, 0.0))
-    q_j = rot2quat(euler321(0.0, 0.2, 0.0))
-    q_k = quat_slerp(q_i, q_j, 0.5)
-    self.assertTrue(np.allclose(quat2euler(q_k), [0.0, 0.15, 0.0]))
-
-    q_i = rot2quat(euler321(0.0, 0.0, 0.1))
-    q_j = rot2quat(euler321(0.0, 0.0, 0.2))
-    q_k = quat_slerp(q_i, q_j, 0.5)
-    self.assertTrue(np.allclose(quat2euler(q_k), [0.0, 0.0, 0.15]))
-
-  def test_tf(self):
-    """ Test tf() """
-    r = np.array([1.0, 2.0, 3.0])
-    q = np.array([0.0, 0.0, 0.0, 1.0])
-    T = tf(q, r)
-
-    self.assertTrue(np.allclose(T[0:3, 0:3], quat2rot(q)))
-    self.assertTrue(np.allclose(T[0:3, 3], r))
-
-
-# CV ##########################################################################
-
-
-class TestCV(unittest.TestCase):
-  """ Test computer vision functions """
-  def setUp(self):
-    # Camera
-    img_w = 640
-    img_h = 480
-    fx = focal_length(img_w, 90.0)
-    fy = focal_length(img_w, 90.0)
-    cx = img_w / 2.0
-    cy = img_h / 2.0
-    self.proj_params = [fx, fy, cx, cy]
-
-    # Camera pose in world frame
-    C_WC = euler321(-pi / 2, 0.0, -pi / 2)
-    r_WC = np.array([0.0, 0.0, 0.0])
-    self.T_WC = tf(C_WC, r_WC)
-
-    # 3D World point
-    self.p_W = np.array([10.0, 0.0, 0.0])
-
-    # Point w.r.t camera
-    self.p_C = tf_point(inv(self.T_WC), self.p_W)
-    self.x = np.array([self.p_C[0] / self.p_C[2], self.p_C[1] / self.p_C[2]])
-
-  def test_linear_triangulation(self):
-    """ Test linear_triangulation() """
-    # Camera i - Camera j extrinsics
-    C_CiCj = eye(3)
-    r_CiCj = np.array([0.05, 0.0, 0.0])
-    T_CiCj = tf(C_CiCj, r_CiCj)
-
-    # Camera 0 pose in world frame
-    C_WCi = euler321(-pi / 2, 0.0, -pi / 2)
-    r_WCi = np.array([0.0, 0.0, 0.0])
-    T_WCi = tf(C_WCi, r_WCi)
-
-    # Camera 1 pose in world frame
-    T_WCj = T_WCi @ T_CiCj
-
-    # Projection matrices P_i and P_j
-    P_i = pinhole_P(self.proj_params, eye(4))
-    P_j = pinhole_P(self.proj_params, T_CiCj)
-
-    # Test multiple times
-    nb_tests = 100
-    for _ in range(nb_tests):
-      # Project feature point p_W to image plane
-      x = np.random.uniform(-0.05, 0.05)
-      y = np.random.uniform(-0.05, 0.05)
-      p_W = np.array([10.0, x, y])
-      p_Ci_gnd = tf_point(inv(T_WCi), p_W)
-      p_Cj_gnd = tf_point(inv(T_WCj), p_W)
-      z_i = pinhole_project(self.proj_params, p_Ci_gnd)
-      z_j = pinhole_project(self.proj_params, p_Cj_gnd)
-
-      # Triangulate
-      p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
-      self.assertTrue(np.allclose(p_Ci_est, p_Ci_gnd))
-
-  def test_homography_find(self):
-    """ Test homography_find() """
-    # Camera
-    img_w = 640
-    img_h = 480
-    fx = focal_length(img_w, 90.0)
-    fy = focal_length(img_w, 90.0)
-    cx = img_w / 2.0
-    cy = img_h / 2.0
-    proj_params = [fx, fy, cx, cy]
-
-    # Camera pose i
-    C_WC_i = euler321(-pi / 2 - deg2rad(45), 0.0, -pi / 2)
-    r_WC_i = np.array([0.0, 1.0, 0.0])
-    T_WC_i = tf(C_WC_i, r_WC_i)
-
-    # Camera pose j
-    C_WC_j = euler321(-pi / 2 + deg2rad(45), 0.0, -pi / 2)
-    r_WC_j = np.array([0.0, -1.0, 0.0])
-    T_WC_j = tf(C_WC_j, r_WC_j)
-
-    # Generate image points
-    num_points = 10
-    points = []
-    pts_i = []
-    pts_j = []
-    for _ in range(num_points):
-      # Project feature point p_W to image plane
-      x = np.random.uniform(-0.5, 0.5)
-      y = np.random.uniform(-0.5, 0.5)
-      p_W = np.array([1.0, x, y])
-      p_Ci_gnd = tf_point(inv(T_WC_i), p_W)
-      p_Cj_gnd = tf_point(inv(T_WC_j), p_W)
-      z_i = pinhole_project(proj_params, p_Ci_gnd)
-      z_j = pinhole_project(proj_params, p_Cj_gnd)
-      pt_i = pinhole_back_project(proj_params, z_i)
-      pt_j = pinhole_back_project(proj_params, z_j)
-
-      points.append(p_W)
-      pts_i.append(pt_i)
-      pts_j.append(pt_j)
-    points = np.array(points)
-    pts_i = np.array(pts_i)
-    pts_j = np.array(pts_j)
-
-    H = homography_find(pts_i, pts_j)
-    for i in range(num_points):
-      pt_j_gnd = np.array([pts_j[i, 0], pts_j[i, 1], 1.0])
-      pt_j_est = H @ np.array([pts_i[i, 0], pts_i[i, 1], 1.0])
-
-      pt_j_est[0] /= pt_j_est[2]
-      pt_j_est[1] /= pt_j_est[2]
-      pt_j_est[2] /= pt_j_est[2]
-
-      diff = norm(pt_j_gnd - pt_j_est)
-      self.assertTrue(diff < 1e-5)
-
-      # print(f"pt_j_gnd: {pt_j_gnd}")
-      # print(f"pt_j_est: {pt_j_est}")
-      # print(f"diff: {pt_j_gnd - pt_j_est}")
-      # print()
-
-    # # Plot 3D
-    # plt.figure()
-    # ax = plt.axes(projection='3d')
-    # plot_tf(ax, T_WC_i, size=0.1, name="pose_i")
-    # plot_tf(ax, T_WC_j, size=0.1, name="pose_j")
-    # ax.scatter(points[:, 0], points[:, 1], points[:, 2])
-    # ax.set_xlabel("x [m]")
-    # ax.set_ylabel("y [m]")
-    # ax.set_zlabel("z [m]")
-    # plot_set_axes_equal(ax)
-    # plt.show()
-
-  def test_homography_pose(self):
-    """ Test homography_pose() """
-    # Camera
-    img_w = 640
-    img_h = 480
-    fx = focal_length(img_w, 90.0)
-    fy = focal_length(img_w, 90.0)
-    cx = img_w / 2.0
-    cy = img_h / 2.0
-    proj_params = [fx, fy, cx, cy]
-
-    # Camera pose T_WC
-    C_WC = euler321(-pi / 2, 0.0, -pi / 2)
-    r_WC = np.array([0.0, 0.0, 0.0])
-    T_WC = tf(C_WC, r_WC)
-
-    # Calibration target pose T_WF
-    num_rows = 4
-    num_cols = 4
-    tag_size = 0.1
-
-    target_x = ((num_cols - 1) * tag_size) / 2.0
-    target_y = -((num_rows - 1) * tag_size) / 2.0
-    C_WF = euler321(-pi / 2, 0.0, pi / 2)
-    r_WF = np.array([0.5, target_x, target_y])
-    T_WF = tf(C_WF, r_WF)
-
-    # Generate data
-    world_points = []
-    object_points = []
-    image_points = []
-
-    for i in range(num_rows):
-      for j in range(num_cols):
-        p_F = np.array([i * tag_size, j * tag_size, 0.0])
-        p_W = tf_point(T_WF, p_F)
-        p_C = tf_point(inv(T_WC), p_W)
-        z = pinhole_project(proj_params, p_C)
-
-        object_points.append(p_F)
-        world_points.append(p_W)
-        image_points.append(z)
-
-    object_points = np.array(object_points)
-    world_points = np.array(world_points)
-    image_points = np.array(image_points)
-
-    T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
-    T_WC_est = T_WF @ inv(T_CF)
-
-    # Compare estimated and ground-truth
-    (dr, dtheta) = tf_diff(T_WC, T_WC_est)
-    self.assertTrue(norm(dr) < 1e-2)
-    self.assertTrue(abs(dtheta) < 1e-4)
-
-    # Plot 3D
-    # debug = True
-    debug = False
-    if debug:
-      plt.figure()
-      ax = plt.axes(projection='3d')
-      plot_tf(ax, T_WC, size=0.1, name="camera")
-      plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
-      plot_tf(ax, T_WF, size=0.1, name="fiducial")
-      ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
-      ax.set_xlabel("x [m]")
-      ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
-      plot_set_axes_equal(ax)
-      plt.show()
-
-  def test_dlt_pose(self):
-    """ Test dlt_pose() """
-    # Camera
-    img_w = 640
-    img_h = 480
-    fx = focal_length(img_w, 90.0)
-    fy = focal_length(img_w, 90.0)
-    cx = img_w / 2.0
-    cy = img_h / 2.0
-    proj_params = [fx, fy, cx, cy]
-
-    # Camera pose T_WC
-    C_WC = euler321(deg2rad(50.0), 0.0, 0.0)
-    r_WC = np.array([0.0, 0.0, 1.0])
-    T_WC = tf(C_WC, r_WC)
-
-    # Calibration target pose T_WF
-    num_rows = 4
-    num_cols = 4
-    tag_size = 0.1
-
-    C_WF = euler321(0.0, 0.0, 0.0)
-    r_WF = np.array([0, 0, 0])
-    T_WF = tf(C_WF, r_WF)
-
-    # Generate data
-    world_points = []
-    object_points = []
-    image_points = []
-
-    for i in range(num_rows):
-      for j in range(num_cols):
-        p_F = np.array([i * tag_size, j * tag_size, random.uniform(0.0, 1.0)])
-        p_W = tf_point(T_WF, p_F)
-        p_C = tf_point(inv(T_WC), p_W)
-        z = pinhole_project(proj_params, p_C)
-
-        object_points.append(p_F)
-        world_points.append(p_W)
-        image_points.append(z)
-
-    object_points = np.array(object_points)
-    world_points = np.array(world_points)
-    image_points = np.array(image_points)
-
-    T_CF = dlt_pose(object_points, image_points, fx, fy, cx, cy)
-    T_WC_est = T_WF @ inv(T_CF)
-
-    # Compare estimated and ground-truth
-    (dr, dtheta) = tf_diff(T_WC, T_WC_est)
-    self.assertTrue(norm(dr) < 1e-4)
-    self.assertTrue(abs(dtheta) < 1e-4)
-
-    # Plot 3D
-    debug = False
-    if debug:
-      plt.figure()
-      ax = plt.axes(projection='3d')
-      plot_tf(ax, T_WC, size=0.1, name="camera")
-      plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
-      plot_tf(ax, T_WF, size=0.1, name="fiducial")
-      ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
-      ax.set_xlabel("x [m]")
-      ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
-      plot_set_axes_equal(ax)
-      plt.show()
-
-  def test_solvepnp(self):
-    """ Test solvepnp() """
-    # Camera
-    img_w = 640
-    img_h = 480
-    fx = focal_length(img_w, 90.0)
-    fy = focal_length(img_w, 90.0)
-    cx = img_w / 2.0
-    cy = img_h / 2.0
-    proj_params = [fx, fy, cx, cy]
-
-    num_points = 10
-    for _ in range(num_points):
-      # Camera pose T_WC
-      dr = np.random.uniform(-0.01, 0.01, size=(3,))
-      drot = np.random.uniform(-0.01, 0.01, size=(3,))
-      C_WC = euler321(-pi / 2 + drot[0], 0.0 + drot[1], -pi / 2 + drot[2])
-      r_WC = np.array([0.0 + dr[0], 0.0 + dr[1], 0.0 + dr[2]])
-      T_WC = tf(C_WC, r_WC)
-
-      # Calibration target pose T_WF
-      num_rows = 4
-      num_cols = 4
-      tag_size = 0.1
-
-      C_WF = euler321(-pi / 2, 0.0, pi / 2)
-      r_WF = np.array([0.1, 0, 0])
-      T_WF = tf(C_WF, r_WF)
-
-      # Generate data
-      world_points = []
-      object_points = []
-      image_points = []
-
-      for i in range(num_rows):
-        for j in range(num_cols):
-          p_F = np.array([i * tag_size, j * tag_size, 0.0])
-          p_W = tf_point(T_WF, p_F)
-          p_C = tf_point(inv(T_WC), p_W)
-          z = pinhole_project(proj_params, p_C)
-
-          object_points.append(p_F)
-          world_points.append(p_W)
-          image_points.append(z)
-
-      object_points = np.array(object_points)
-      world_points = np.array(world_points)
-      image_points = np.array(image_points)
-
-      # Get initial T_CF using DLT and perturb it
-      T_CF = homography_pose(object_points, image_points, fx, fy, cx, cy)
-      trans_rand = np.random.rand(3) * 0.01
-      rvec_rand = np.random.rand(3) * 0.01
-      T_CF = tf_update(T_CF, np.block([*trans_rand, *rvec_rand]))
-
-      # Test solvepnp
-      t_start = datetime.now()
-      T_CF = solvepnp(object_points,
-                      image_points,
-                      fx,
-                      fy,
-                      cx,
-                      cy,
-                      T_CF_init=T_CF,
-                      verbose=False)
-      t_end = datetime.now()
-      solvepnp_time = (t_end - t_start).total_seconds()
-      T_WC_est = T_WF @ inv(T_CF)
-
-      # Compare estimated and ground-truth
-      (dr, dtheta) = tf_diff(T_WC, T_WC_est)
-      self.assertTrue(norm(dr) < 1e-1)
-      self.assertTrue(abs(dtheta) < 1e-1)
-
-      # Solve pnp with OpenCV
-      K = pinhole_K([fx, fy, cx, cy])
-      D = np.array([0.0, 0.0, 0.0, 0.0])
-      flags = cv2.SOLVEPNP_ITERATIVE
-      t_start = datetime.now()
-      _, rvec, tvec = cv2.solvePnP(object_points,
-                                   image_points,
-                                   K,
-                                   D,
-                                   False,
-                                   flags=flags)
-      C, _ = cv2.Rodrigues(rvec)
-      r = tvec.flatten()
-      T_CF_opencv = tf(C, r)
-      t_end = datetime.now()
-      opencv_time = (t_end - t_start).total_seconds()
-      T_WC_opencv = T_WF @ inv(T_CF_opencv)
-
-      # Compare against opencv
-      (dr, dtheta) = tf_diff(T_CF, T_CF_opencv)
-      self.assertTrue(norm(dr) < 1e-1)
-      self.assertTrue(abs(dtheta) < 1e-1)
-      # print(f"dr: {norm(dr)}, dtheta: {dtheta}")
-
-      # (dr, dtheta) = tf_diff(T_WC, T_WC_est)
-      # print(f"dr: {norm(dr):.2e}, dtheta: {dtheta:.2e}")
-      # (dr, dtheta) = tf_diff(T_WC, T_WC_opencv)
-      # print(f"dr: {norm(dr):.2e}, dtheta: {dtheta:.2e}")
-      # print(f"time: {solvepnp_time}, {opencv_time}")
-      # print()
-
-      # Plot 3D
-      # debug = True
-      debug = False
-      if debug:
-        plt.figure()
-        ax = plt.axes(projection='3d')
-        plot_tf(ax, T_WC, size=0.1, name="camera")
-        plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
-        plot_tf(ax, T_WF, size=0.1, name="fiducial")
-        ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
-        ax.set_xlabel("x [m]")
-        ax.set_ylabel("y [m]")
-        ax.set_zlabel("z [m]")
-        plot_set_axes_equal(ax)
-        plt.show()
-
-  def test_illumination_invariant_transform(self):
-    """ Test illumination_invariant_transform() """
-    img_path = os.path.join(SCRIPT_DIR, "./test_data/images/flower.jpg")
-    img = cv2.imread(img_path)
-    img = illumination_invariant_transform(img)
-
-    debug = False
-    if debug:
-      cv2.imshow("Image", img)
-      cv2.waitKey(0)
-
-    self.assertTrue(True)
-
-  def test_harris_corner(self):
-    """ Test harris_corner() """
-    img_file = "./test_data/images/checker_board-5x5.png"
-    img_path = os.path.join(SCRIPT_DIR, img_file)
-    img = cv2.imread(img_path)
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    # corners = cv2.goodFeaturesToTrack(img_gray, 1000, 0.01, 10)
-    # corners = np.int0(corners)
-    # for i in corners:
-    #   x, y = i.ravel()
-    #   # cv2.circle(img, (x, y), 1, 255, -1)
-    #   img[x, y] = [0, 0, 255]
-
-    corners = harris_corner(img_gray)
-    for corner in corners:
-      x, y = corner
-      img[x, y] = [0, 0, 255]
-
-    debug = False
-    if debug:
-      cv2.imshow("Image", img)
-      cv2.waitKey(0)
-
-    self.assertTrue(True)
-
-  def test_shi_tomasi_corner(self):
-    """ Test shi_tomasi_corner() """
-    img_file = "./test_data/images/checker_board-5x5.png"
-    img_path = os.path.join(SCRIPT_DIR, img_file)
-    img = cv2.imread(img_path)
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    # corners = cv2.goodFeaturesToTrack(img_gray, 1000, 0.01, 10)
-    # corners = np.int0(corners)
-
-    corners = shi_tomasi_corner(img_gray)
-    for corner in corners:
-      x, y = corner
-      img[x, y] = [0, 0, 255]
-
-    # print(f"num corners: {len(corners)}")
-    debug = False
-    if debug:
-      cv2.imshow("Image", img)
-      cv2.waitKey(0)
-
-    self.assertTrue(len(corners))
-
-  def test_pinhole_K(self):
-    """ Test pinhole_K() """
-    fx = 1.0
-    fy = 2.0
-    cx = 3.0
-    cy = 4.0
-    proj_params = [fx, fy, cx, cy]
-    K = pinhole_K(proj_params)
-    expected = np.array([[1.0, 0.0, 3.0], [0.0, 2.0, 4.0], [0.0, 0.0, 1.0]])
-
-    self.assertTrue(np.array_equal(K, expected))
-
-  def test_pinhole_project(self):
-    """ Test pinhole_project() """
-    z = pinhole_project(self.proj_params, self.p_C)
-    self.assertTrue(isclose(z[0], 320.0))
-    self.assertTrue(isclose(z[1], 240.0))
-
-  def test_pinhole_params_jacobian(self):
-    """ Test pinhole_params_jacobian() """
-    # Pinhole params jacobian
-    fx, fy, cx, cy = self.proj_params
-    z = np.array([fx * self.x[0] + cx, fy * self.x[1] + cy])
-    J = pinhole_params_jacobian(self.x)
-
-    # Perform numerical diff to obtain finite difference
-    step_size = 1e-6
-    tol = 1e-4
-    finite_diff = zeros((2, 4))
-
-    for i in range(4):
-      params_diff = list(self.proj_params)
-      params_diff[i] += step_size
-      fx, fy, cx, cy = params_diff
-
-      z_diff = np.array([fx * self.x[0] + cx, fy * self.x[1] + cy])
-      finite_diff[0:2, i] = (z_diff - z) / step_size
-
-    self.assertTrue(matrix_equal(finite_diff, J, tol, True))
-
-  def test_pinhole_point_jacobian(self):
-    """ Test pinhole_point_jacobian() """
-    # Pinhole params jacobian
-    fx, fy, cx, cy = self.proj_params
-    z = np.array([fx * self.x[0] + cx, fy * self.x[1] + cy])
-    J = pinhole_point_jacobian(self.proj_params)
-
-    # Perform numerical diff to obtain finite difference
-    step_size = 1e-6
-    tol = 1e-4
-    finite_diff = zeros((2, 2))
-
-    for i in range(2):
-      x_diff = list(self.x)
-      x_diff[i] += step_size
-
-      z_diff = np.array([fx * x_diff[0] + cx, fy * x_diff[1] + cy])
-      finite_diff[0:2, i] = (z_diff - z) / step_size
-
-    self.assertTrue(matrix_equal(finite_diff, J, tol, True))
-
-
-# DATASET  ####################################################################
-
-
-class TestEuroc(unittest.TestCase):
-  """ Test Euroc dataset loader """
-  def test_load(self):
-    """ Test load """
-    dataset = EurocDataset(euroc_data_path)
-    self.assertTrue(dataset is not None)
-
-
-class TestKitti(unittest.TestCase):
-  """ Test KITTI dataset loader """
-  @unittest.skip("")
-  def test_load(self):
-    """ Test load """
-    data_dir = '/data/kitti'
-    date = "2011_09_26"
-    seq = "93"
-    dataset = KittiRawDataset(data_dir, date, seq, True)
-    # dataset.plot_frames()
-
-    for i in range(dataset.nb_camera_images()):
-      cam0_img = dataset.get_camera_image(0, index=i)
-      cam1_img = dataset.get_camera_image(1, index=i)
-      cam2_img = dataset.get_camera_image(2, index=i)
-      cam3_img = dataset.get_camera_image(3, index=i)
-
-      img_size = cam0_img.shape
-      img_new_size = (int(img_size[1] / 2.0), int(img_size[0] / 2.0))
-
-      cam0_img = cv2.resize(cam0_img, img_new_size)
-      cam1_img = cv2.resize(cam1_img, img_new_size)
-      cam2_img = cv2.resize(cam2_img, img_new_size)
-      cam3_img = cv2.resize(cam3_img, img_new_size)
-
-      cv2.imshow("viz", cv2.vconcat([cam0_img, cam1_img, cam2_img, cam3_img]))
-      cv2.waitKey(0)
-
-    self.assertTrue(dataset is not None)
-
-
-# STATE ESTIMATION ############################################################
-
-
 class TestFactors(unittest.TestCase):
   """ Test factors """
   def test_pose_factor(self):
@@ -11356,6 +7772,412 @@ class TestFactors(unittest.TestCase):
     # self.assertEqual(len(marg_factor.marg_param_ids), 5)
 
 
+# SOLVER #######################################################################
+
+
+class Solver:
+  """ Solver """
+  def __init__(self):
+    self.factors = {}
+    self.params = {}
+    self.solver_max_iter = 5
+    self.solver_lambda = 1e4
+
+  def add(self, factor, factor_params):
+    """ Add factor and parameters """
+    assert factor.factor_id is not None
+    assert len(factor_params) >= 1
+    assert factor_params[0].param_id is not None
+    self.factors[factor.factor_id] = factor
+    for param in factor_params:
+      self.params[param.param_id] = param
+
+  def add_param(self, param):
+    """ Add param """
+    self.params[param.param_id] = param
+
+  def add_factor(self, factor):
+    """ Add factor """
+    # Double check if params exists
+    for param_id in factor.param_ids:
+      if param_id not in self.params:
+        raise RuntimeError(f"Parameter [{param_id}] does not exist!")
+
+    # Add factor
+    self.factors[factor.factor_id] = factor
+
+  @staticmethod
+  def _print_to_console(iter_k, lambda_k, cost_kp1, cost_k):
+    """ Print to console """
+
+    print(f"iter[{iter_k}]:", end=" ")
+    print(f"lambda: {lambda_k:.2e}", end=", ")
+    print(f"cost: {cost_kp1:.2e}", end=", ")
+    print(f"dcost: {cost_kp1 - cost_k:.2e}", end=" ")
+    print()
+
+    # status, rmse_vision = rmse(self._get_reproj_errors())
+    # print(f"rms_reproj_error: {rmse_vision:.2f} px")
+
+    sys.stdout.flush()
+
+  def _form_param_indices(self):
+    """ Form parameter indices """
+    # Parameter ids
+    param_ids = {
+        'pose': set(),
+        'speed_and_biases': set(),
+        'feature': set(),
+        'camera': set(),
+        'extrinsics': set(),
+        'joint_angle': set(),
+    }
+
+    # Track parameters
+    nb_params = 0
+    for _, factor in self.factors.items():
+      for _, param_id in enumerate(factor.param_ids):
+        param = self.params[param_id]
+        if param.fix:
+          continue
+        else:
+          param_ids[param.var_type].add(param_id)
+        nb_params += 1
+
+    # Assign global parameter order
+    param_order = []
+    param_order.append("joint_angle")
+    param_order.append("pose")
+    param_order.append("speed_and_biases")
+    param_order.append("feature")
+    param_order.append("camera")
+    param_order.append("extrinsics")
+
+    param_idxs = {}
+    param_size = 0
+    for param_type in param_order:
+      for param_id in param_ids[param_type]:
+        param_idxs[param_id] = param_size
+        param_size += self.params[param_id].min_dims
+
+    return (param_idxs, param_size)
+
+  def _linearize(self, params):
+    """ Linearize non-linear problem """
+    # Setup
+    (param_idxs, param_size) = self._form_param_indices()
+    H = zeros((param_size, param_size))
+    g = zeros(param_size)
+
+    # Form Hessian and R.H.S of Gauss newton
+    for _, factor in self.factors.items():
+      factor_params = [params[pid].param for pid in factor.param_ids]
+      r, jacobians = factor.eval(factor_params)
+
+      # Form Hessian
+      nb_params = len(factor_params)
+      for i in range(nb_params):
+        param_i = params[factor.param_ids[i]]
+        if param_i.fix:
+          continue
+        idx_i = param_idxs[factor.param_ids[i]]
+        size_i = param_i.min_dims
+        J_i = jacobians[i]
+
+        for j in range(i, nb_params):
+          param_j = params[factor.param_ids[j]]
+          if param_j.fix:
+            continue
+          idx_j = param_idxs[factor.param_ids[j]]
+          size_j = param_j.min_dims
+          J_j = jacobians[j]
+
+          rs = idx_i
+          re = idx_i + size_i
+          cs = idx_j
+          ce = idx_j + size_j
+
+          if i == j:  # Diagonal
+            H[rs:re, cs:ce] += J_i.T @ J_j
+          else:  # Off-Diagonal
+            H[rs:re, cs:ce] += J_i.T @ J_j
+            H[cs:ce, rs:re] += (J_i.T @ J_j).T
+
+        # Form R.H.S. Gauss Newton g
+        rs = idx_i
+        re = idx_i + size_i
+        g[rs:re] += (-J_i.T @ r)
+
+    return (H, g, param_idxs)
+
+  def _linearize2(self, params):
+    """ Linearize non-linear problem
+
+    This function forms the Jacboian J instead of the Hessian H.
+
+    """
+    # Setup
+    (param_idxs, param_size) = self._form_param_indices()
+    r_size = np.sum([f.r_size for _, f in self.factors.items()])
+    J = zeros((r_size, param_size))
+    g = zeros(param_size)
+
+    # Form Jacobian and R.H.S of Gauss newton
+    J_idx = 0
+    for _, factor in self.factors.items():
+      factor_params = [params[pid].param for pid in factor.param_ids]
+      r, jacobians = factor.eval(factor_params)
+      J_rs = J_idx
+      J_re = J_rs + len(r)
+
+      # Form Jacobian
+      nb_params = len(factor_params)
+      for i in range(nb_params):
+        param_i = params[factor.param_ids[i]]
+        if param_i.fix:
+          continue
+        idx_i = param_idxs[factor.param_ids[i]]
+        size_i = param_i.min_dims
+        J_i = jacobians[i]
+
+        J_cs = idx_i
+        J_ce = J_cs + size_i
+        J[J_rs:J_re, J_cs:J_ce] = J_i
+
+        # Form R.H.S. Gauss Newton g
+        rs = idx_i
+        re = idx_i + size_i
+        g[rs:re] += (-J_i.T @ r)
+
+      # Update row index
+      J_idx = J_rs + len(r)
+
+    # print(f"J.shape: {J.shape}")
+    return (J, g, param_idxs)
+
+  def _calculate_residuals(self, params):
+    """ Calculate Residuals """
+    residuals = np.array([])
+
+    for _, factor in self.factors.items():
+      factor_params = [params[pid].param for pid in factor.param_ids]
+      r = factor.eval(factor_params, only_residuals=True)
+      residuals = np.append(residuals, r)
+
+    return residuals
+
+  def _calculate_cost(self, params):
+    """ Calculate Cost """
+    r = self._calculate_residuals(params)
+    return 0.5 * (r.T @ r)
+
+  @staticmethod
+  def _update(params_k, param_idxs, dx):
+    """ Update """
+    params_kp1 = copy.deepcopy(params_k)
+
+    for param_id, param in params_kp1.items():
+      # Check if param even exists
+      if param_id not in param_idxs:
+        continue
+
+      # Update parameter
+      start = param_idxs[param_id]
+      end = start + param.min_dims
+      param_dx = dx[start:end]
+      update_state_variable(param, param_dx)
+
+    return params_kp1
+
+  @staticmethod
+  def _solve_for_dx(lambda_k, H, g):
+    """ Solve for dx """
+    # Damp Hessian
+    H_damped = H + lambda_k * eye(H.shape[0])
+    # H_damped = H + lambda_k * np.diag(H.diagonal())
+
+    # # Pseudo inverse
+    # dx = pinv(H) @ g
+
+    # Cholesky decomposition
+    dx = None
+    try:
+      c, low = scipy.linalg.cho_factor(H_damped)
+      dx = scipy.linalg.cho_solve((c, low), g)
+    except:
+      dx = np.zeros((H_damped.shape[0],))
+
+    # SVD
+    # dx = solve_svd(H_damped, g)
+
+    # # QR
+    # q, r = np.linalg.qr(H_damped)
+    # p = np.dot(q.T, g)
+    # dx = np.dot(np.linalg.inv(r), p)
+
+    # Sparse cholesky decomposition
+    # sH = scipy.sparse.csc_matrix(H_damped)
+    # dx = scipy.sparse.linalg.spsolve(sH, g)
+
+    return dx
+
+  def solve(self, verbose=False):
+    """ Solve """
+    lambda_k = self.solver_lambda
+    params_k = copy.deepcopy(self.params)
+    cost_k = self._calculate_cost(params_k)
+
+    # First evaluation
+    if verbose:
+      print(f"num_factors: {len(self.factors)}")
+      print(f"num_params: {len(self.params)}")
+      self._print_to_console(0, lambda_k, cost_k, cost_k)
+
+    # Iterate
+    success = False
+    H = None
+    g = None
+    param_idxs = None
+
+    # idx_i = None
+    # size_i = None
+    # for _, f in self.factors.items():
+    #   if f.factor_type == "CalibGimbalFactor":
+    #     idx_i = param_idxs[f.param_ids[3]]
+    #     size_i = params_k[f.param_ids[3]].min_dims
+    #     break
+
+    for i in range(1, self.solver_max_iter):
+      # Update and calculate cost
+      if i == 1 or success:
+        (H, g, param_idxs) = self._linearize(params_k)
+
+      dx = self._solve_for_dx(lambda_k, H, g)
+      params_kp1 = self._update(params_k, param_idxs, dx)
+      cost_kp1 = self._calculate_cost(params_kp1)
+
+      # Verbose
+      if verbose:
+        self._print_to_console(i, lambda_k, cost_kp1, cost_k)
+
+      # Accept or reject update
+      dcost = cost_kp1 - cost_k
+      success = dcost < 0
+
+      if success:
+        # Accept update
+        cost_k = cost_kp1
+        params_k = params_kp1
+        lambda_k /= 10.0
+
+      else:
+        # Reject update
+        # params_k = params_k
+        lambda_k *= 10.0
+
+      # # Termination criteria
+      # if dcost > -1e-5:
+      #   break
+
+    # Finish - set the original params the optimized values
+    # Note: The reason we don't just do `self.params = params_k` is because
+    # that would destroy the references to outside `FactorGraph()`.
+    for param_id, param in params_k.items():
+      self.params[param_id].param = param.param
+
+
+# FACTOR GRAPH ################################################################
+
+
+class FactorGraph:
+  """ Factor Graph """
+  def __init__(self):
+    # Parameters and factors
+    self._next_param_id = 0
+    self._next_factor_id = 0
+    self.params = {}
+    self.factors = {}
+    self.solver_max_iter = 5
+    self.solver_lambda = 1e4
+
+  def add_param(self, param):
+    """ Add param """
+    param_id = self._next_param_id
+    self.params[param_id] = param
+    self.params[param_id].set_param_id(param_id)
+    self._next_param_id += 1
+    return param_id
+
+  def add_factor(self, factor):
+    """ Add factor """
+    # Double check if params exists
+    for param_id in factor.param_ids:
+      if param_id not in self.params:
+        raise RuntimeError(f"Parameter [{param_id}] does not exist!")
+
+    # Add factor
+    factor_id = self._next_factor_id
+    self.factors[factor_id] = factor
+    self.factors[factor_id].set_factor_id(factor_id)
+    self._next_factor_id += 1
+    return factor_id
+
+  def remove_param(self, param):
+    """ Remove param """
+    assert param.param_id in self.params
+    del self.params[param.param_id]
+
+  def remove_factor(self, factor):
+    """ Remove factor """
+    assert factor.factor_id in self.factors
+    del self.factors[factor.factor_id]
+
+  def get_reproj_errors(self):
+    """ Get reprojection errors """
+    target_factors = ["BAFactor", "VisionFactor", "CalibVisionFactor"]
+
+    reproj_errors = []
+    for _, factor in self.factors.items():
+      if factor.factor_type in target_factors:
+        factor_params = [self.params[pid].param for pid in factor.param_ids]
+        status, error = factor.get_reproj_error(*factor_params)
+        if status:
+          reproj_errors.append(error)
+
+    return np.array(reproj_errors).flatten()
+
+  def solve(self, verbose=False):
+    """ Solve """
+    solver = Solver()
+    solver.solver_max_iter = self.solver_max_iter
+    solver.solver_lambda = self.solver_lambda
+    for _, factor in self.factors.items():
+      factor_params = [self.params[pid] for pid in factor.param_ids]
+      solver.add(factor, factor_params)
+    solver.solve(verbose)
+
+    # params_k = copy.deepcopy(solver.params)
+    # (H, g, param_idxs) = solver._linearize(params_k)
+
+    # m = 6
+    # Hmm = H[0:m, 0:m]
+    # Hmr = H[0:m, m:]
+    # Hrm = H[m:, 0:m]
+    # Hrr = H[m:, m:]
+    # assert rank(Hmm) == Hmm.shape[0]
+    # Hmm_inv = np.linalg.inv(Hmm)
+    # H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+    # w, V = np.linalg.eigh(0.5 * (H_marg + H_marg.T))
+
+    # w[w < 0.0] = 0.0
+    # J = np.diag(np.sqrt(w)) @ V.T
+    # diff = norm(H_marg - J.T @ J)
+    # print(f"diff: {diff}")
+    # plt.imshow(diff)
+    # plt.colorbar()
+    # plt.show()
+
+
 class TestFactorGraph(unittest.TestCase):
   """ Test Factor Graph """
   def setUp(self):
@@ -11564,7 +8386,8 @@ class TestFactorGraph(unittest.TestCase):
       param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
       imu_buf = imu0_data.form_imu_buffer(ts_idx - window_size, ts_idx)
       # factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i) # Euler method
-      factor = ImuFactor2(param_ids, imu_params, imu_buf, sb_i) # Midpoint method
+      factor = ImuFactor2(param_ids, imu_params, imu_buf,
+                          sb_i)  # Midpoint method
       graph.add_factor(factor)
 
       # -- Update
@@ -11801,12 +8624,849 @@ class TestFactorGraph(unittest.TestCase):
     self.assertTrue(rmse(errors) < 0.1)
 
 
+# FEATURE TRACKING #############################################################
+
+
+def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs):
+  """
+  Draw keypoint matches between images `img_i` and `img_j` with keypoints
+  `kps_i` and `kps_j`
+  """
+  assert len(kps_i) == len(kps_j)
+
+  nb_kps = len(kps_i)
+  viz = cv2.hconcat([img_i, img_j])
+  viz = cv2.cvtColor(viz, cv2.COLOR_GRAY2RG)
+
+  color = (0, 255, 0)
+  radius = 3
+  thickness = kwargs.get('thickness', cv2.FILLED)
+  linetype = kwargs.get('linetype', cv2.LINE_AA)
+
+  for n in range(nb_kps):
+    pt_i = None
+    pt_j = None
+    if hasattr(kps_i[n], 'pt'):
+      pt_i = (int(kps_i[n].pt[0]), int(kps_i[n].pt[1]))
+      pt_j = (int(kps_j[n].pt[0] + img_i.shape[1]), int(kps_j[n].pt[1]))
+    else:
+      pt_i = (int(kps_i[n][0]), int(kps_i[n][1]))
+      pt_j = (int(kps_j[n][0] + img_i.shape[1]), int(kps_j[n][1]))
+
+    cv2.circle(viz, pt_i, radius, color, thickness, lineType=linetype)
+    cv2.circle(viz, pt_j, radius, color, thickness, lineType=linetype)
+    cv2.line(viz, pt_i, pt_j, color, 1, linetype)
+
+  return viz
+
+
+def draw_keypoints(img, kps, inliers=None, **kwargs):
+  """
+  Draw points `kps` on image `img`. The `inliers` boolean list is optional
+  and is expected to be the same size as `kps` denoting whether the point
+  should be drawn or not.
+  """
+  inliers = [1 for i in range(len(kps))] if inliers is None else inliers
+  radius = kwargs.get('radius', 2)
+  color = kwargs.get('color', (0, 255, 0))
+  thickness = kwargs.get('thickness', cv2.FILLED)
+  linetype = kwargs.get('linetype', cv2.LINE_AA)
+
+  viz = img
+  if len(img.shape) == 2:
+    viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
+  for n, kp in enumerate(kps):
+    if inliers[n]:
+      p = None
+      if hasattr(kp, 'pt'):
+        p = (int(kp.pt[0]), int(kp.pt[1]))
+      else:
+        p = (int(kp[0]), int(kp[1]))
+
+      cv2.circle(viz, p, radius, color, thickness, lineType=linetype)
+
+  return viz
+
+
+def sort_keypoints(kps):
+  """ Sort a list of cv2.KeyPoint based on their response """
+  responses = [kp.response for kp in kps]
+  indices = range(len(responses))
+  indices = sorted(indices, key=lambda i: responses[i], reverse=True)
+  return [kps[i] for i in indices]
+
+
+def spread_keypoints(img, kps, min_dist, **kwargs):
+  """
+  Given a set of keypoints `kps` make sure they are atleast `min_dist` pixels
+  away from each other, if they are not remove them.
+  """
+  # Pre-check
+  if not kps:
+    return kps
+
+  # Setup
+  debug = kwargs.get('debug', False)
+  prev_kps = kwargs.get('prev_kps', [])
+  min_dist = int(min_dist)
+  img_h, img_w = img.shape
+  A = np.zeros(img.shape)  # Allowable areas are marked 0 else not allowed
+
+  # Loop through previous keypoints
+  for kp in prev_kps:
+    # Convert from keypoint to tuple
+    p = (int(kp.pt[0]), int(kp.pt[1]))
+
+    # Fill the area of the matrix where the next keypoint cannot be around
+    rs = int(max(p[1] - min_dist, 0.0))
+    re = int(min(p[1] + min_dist + 1, img_h))
+    cs = int(max(p[0] - min_dist, 0.0))
+    ce = int(min(p[0] + min_dist + 1, img_w))
+    A[rs:re, cs:ce] = np.ones((re - rs, ce - cs))
+
+  # Loop through keypoints
+  kps_results = []
+  for kp in sort_keypoints(kps):
+    # Convert from keypoint to tuple
+    p = (int(kp.pt[0]), int(kp.pt[1]))
+
+    # Check if point is ok to be added to results
+    if A[p[1], p[0]] > 0.0:
+      continue
+
+    # Fill the area of the matrix where the next keypoint cannot be around
+    rs = int(max(p[1] - min_dist, 0.0))
+    re = int(min(p[1] + min_dist + 1, img_h))
+    cs = int(max(p[0] - min_dist, 0.0))
+    ce = int(min(p[0] + min_dist + 1, img_w))
+    A[rs:re, cs:ce] = np.ones((re - rs, ce - cs))
+    A[p[1], p[0]] = 2
+
+    # Add to results
+    kps_results.append(kp)
+
+  # Debug
+  if debug:
+    img = draw_keypoints(img, kps_results, radius=3)
+
+    plt.figure()
+
+    ax = plt.subplot(121)
+    ax.imshow(A)
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+
+    ax = plt.subplot(122)
+    ax.imshow(img)
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+
+    plt.show()
+
+  return kps_results
+
+
+class FeatureGrid:
+  """
+  FeatureGrid
+
+  The idea is to take all the feature positions and put them into grid cells
+  across the full image space. This is so that one could keep track of how many
+  feautures are being tracked in each individual grid cell and act accordingly.
+
+  o-----> x
+  | ---------------------
+  | |  0 |  1 |  2 |  3 |
+  V ---------------------
+  y |  4 |  5 |  6 |  7 |
+    ---------------------
+    |  8 |  9 | 10 | 11 |
+    ---------------------
+    | 12 | 13 | 14 | 15 |
+    ---------------------
+
+    grid_x = ceil((max(1, pixel_x) / img_w) * grid_cols) - 1.0
+    grid_y = ceil((max(1, pixel_y) / img_h) * grid_rows) - 1.0
+    cell_id = int(grid_x + (grid_y * grid_cols))
+
+  """
+  def __init__(self, grid_rows, grid_cols, image_shape, keypoints):
+    assert len(image_shape) == 2
+    self.grid_rows = grid_rows
+    self.grid_cols = grid_cols
+    self.image_shape = image_shape
+    self.keypoints = keypoints
+
+    self.cell = [0 for i in range(self.grid_rows * self.grid_cols)]
+    for kp in keypoints:
+      if hasattr(kp, 'pt'):
+        # cv2.KeyPoint
+        assert (kp.pt[0] >= 0 and kp.pt[0] <= image_shape[1])
+        assert (kp.pt[1] >= 0 and kp.pt[1] <= image_shape[0])
+        self.cell[self.cell_index(kp.pt)] += 1
+      else:
+        # Tuple
+        assert (kp[0] >= 0 and kp[0] <= image_shape[1])
+        assert (kp[1] >= 0 and kp[1] <= image_shape[0])
+        self.cell[self.cell_index(kp)] += 1
+
+  def cell_index(self, pt):
+    """ Return cell index based on point `pt` """
+    pixel_x, pixel_y = pt
+    img_h, img_w = self.image_shape
+    grid_x = math.ceil((max(1, pixel_x) / img_w) * self.grid_cols) - 1.0
+    grid_y = math.ceil((max(1, pixel_y) / img_h) * self.grid_rows) - 1.0
+    cell_id = int(grid_x + (grid_y * self.grid_cols))
+    return cell_id
+
+  def count(self, cell_idx):
+    """ Return cell count """
+    return self.cell[cell_idx]
+
+
+def grid_detect(detector, image, **kwargs):
+  """
+  Detect features uniformly using a grid system.
+  """
+  optflow_mode = kwargs.get('optflow_mode', False)
+  max_keypoints = kwargs.get('max_keypoints', 240)
+  grid_rows = kwargs.get('grid_rows', 3)
+  grid_cols = kwargs.get('grid_cols', 4)
+  prev_kps = kwargs.get('prev_kps', [])
+  if prev_kps is None:
+    prev_kps = []
+
+  # Calculate number of grid cells and max corners per cell
+  image_height, image_width = image.shape
+  dx = int(math.ceil(float(image_width) / float(grid_cols)))
+  dy = int(math.ceil(float(image_height) / float(grid_rows)))
+  nb_cells = grid_rows * grid_cols
+  max_per_cell = math.floor(max_keypoints / nb_cells)
+
+  # Detect corners in each grid cell
+  feature_grid = FeatureGrid(grid_rows, grid_cols, image.shape, prev_kps)
+  des_all = []
+  kps_all = []
+
+  cell_idx = 0
+  for y in range(0, image_height, dy):
+    for x in range(0, image_width, dx):
+      # Make sure roi width and height are not out of bounds
+      w = image_width - x if (x + dx > image_width) else dx
+      h = image_height - y if (y + dy > image_height) else dy
+
+      # Detect corners in grid cell
+      cs, ce, rs, re = (x, x + w, y, y + h)
+      roi_image = image[rs:re, cs:ce]
+
+      kps = None
+      des = None
+      if optflow_mode:
+        detector.setNonmaxSuppression(1)
+        kps = detector.detect(roi_image)
+        kps = sort_keypoints(kps)
+
+      else:
+        kps = detector.detect(roi_image, None)
+        kps, des = detector.compute(roi_image, kps)
+
+      # Offset keypoints
+      cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
+      if cell_vacancy <= 0:
+        continue
+
+      limit = min(len(kps), cell_vacancy)
+      for i in range(limit):
+        kp = kps[i]
+        kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
+        kps_all.append(kp)
+        des_all.append(des[i, :] if optflow_mode is False else None)
+
+      # Update cell_idx
+      cell_idx += 1
+
+  # Space out the keypoints
+  if optflow_mode:
+    kps_all = spread_keypoints(image, kps_all, 20, prev_kps=prev_kps)
+
+  # Debug
+  if kwargs.get('debug', False):
+    # Setup
+    viz = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    kps_grid = FeatureGrid(grid_rows, grid_cols, image.shape, kps_all)
+
+    # Visualization properties
+    red = (0, 0, 255)
+    yellow = (0, 255, 255)
+    linetype = cv2.LINE_AA
+    font = cv2.FONT_HERSHEY_SIMPLEX
+
+    # -- Draw horizontal lines
+    for x in range(0, image_width, dx):
+      cv2.line(viz, (x, 0), (x, image_height), red, 1, linetype)
+
+    # -- Draw vertical lines
+    for y in range(0, image_height, dy):
+      cv2.line(viz, (0, y), (image_width, y), red, 1, linetype)
+
+    # -- Draw bin numbers
+    cell_idx = 0
+    for y in range(0, image_height, dy):
+      for x in range(0, image_width, dx):
+        text = str(kps_grid.count(cell_idx))
+        origin = (x + 10, y + 20)
+        viz = cv2.putText(viz, text, origin, font, 0.5, red, 1, linetype)
+
+        # text = str(feature_grid.count(cell_idx))
+        # origin = (x + 10, y + 20)
+        # viz = cv2.putText(viz, text, origin, font, 0.5, yellow, 1, linetype)
+
+        cell_idx += 1
+
+    # -- Draw keypoints
+    viz = draw_keypoints(viz, kps_all, color=red)
+    viz = draw_keypoints(viz, prev_kps, color=yellow)
+    cv2.imshow("viz", viz)
+    cv2.waitKey(0)
+
+  # Return
+  if optflow_mode:
+    return kps_all
+
+  return kps_all, np.array(des_all)
+
+
+def optflow_track(img_i, img_j, pts_i, **kwargs):
+  """
+  Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
+  flow. Returns a tuple of `(pts_i, pts_j, inliers)` points in image i, j and a
+  vector of inliers.
+  """
+  # Setup
+  patch_size = kwargs.get('patch_size', 50)
+  max_iter = kwargs.get('max_iter', 100)
+  epsilon = kwargs.get('epsilon', 0.001)
+  crit = (cv2.TermCriteria_COUNT | cv2.TermCriteria_EPS, max_iter, epsilon)
+
+  # Optical flow settings
+  config = {}
+  config['winSize'] = (patch_size, patch_size)
+  config['maxLevel'] = 3
+  config['criteria'] = crit
+  config['flags'] = cv2.OPTFLOW_USE_INITIAL_FLOW
+
+  # Track using optical flow
+  pts_j = np.array(pts_i)
+  track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, pts_i, pts_j, **config)
+  (pts_j, optflow_inliers, _) = track_results
+
+  # Make sure keypoints are within image dimensions
+  bound_inliers = []
+  img_h, img_w = img_j.shape
+  for p in pts_j:
+    x_ok = p[0] >= 0 and p[0] <= img_w
+    y_ok = p[1] >= 0 and p[1] <= img_h
+    if x_ok and y_ok:
+      bound_inliers.append(True)
+    else:
+      bound_inliers.append(False)
+
+  # Update or mark feature as lost
+  assert len(pts_i) == optflow_inliers.shape[0]
+  assert len(pts_i) == len(bound_inliers)
+  inliers = []
+  for i in range(len(pts_i)):
+    if optflow_inliers[i, 0] and bound_inliers[i]:
+      inliers.append(True)
+    else:
+      inliers.append(False)
+
+  if kwargs.get('debug', False):
+    viz_i = draw_keypoints(img_i, pts_i, inliers)
+    viz_j = draw_keypoints(img_j, pts_j, inliers)
+    viz = cv2.hconcat([viz_i, viz_j])
+    cv2.imshow('viz', viz)
+    cv2.waitKey(0)
+
+  return (pts_i, pts_j, inliers)
+
+
+def filter_outliers(pts_i, pts_j, inliers):
+  """ Filter outliers """
+  pts_out_i = []
+  pts_out_j = []
+  for n, status in enumerate(inliers):
+    if status:
+      pts_out_i.append(pts_i[n])
+      pts_out_j.append(pts_j[n])
+
+  return (pts_out_i, pts_out_j)
+
+
+def ransac(pts_i, pts_j, cam_i, cam_j):
+  """ RANSAC """
+  # Setup
+  cam_geom_i = cam_i.data
+  cam_geom_j = cam_j.data
+
+  # Undistort points
+  pts_i_ud = np.array([cam_geom_i.undistort(cam_i.param, p) for p in pts_i])
+  pts_j_ud = np.array([cam_geom_j.undistort(cam_j.param, p) for p in pts_j])
+
+  # Ransac via OpenCV's find fundamental matrix
+  method = cv2.FM_RANSAC
+  reproj_thresh = 0.75
+  confidence = 0.99
+  args = [pts_i_ud, pts_j_ud, method, reproj_thresh, confidence]
+  _, inliers = cv2.findFundamentalMat(*args)
+
+  return inliers.flatten()
+
+
+class FeatureTrackerData:
+  """
+  Feature tracking data *per camera*
+
+  This data structure keeps track of:
+
+  - Image
+  - Keypoints
+  - Descriptors
+  - Feature ids (optional)
+
+  """
+  def __init__(self, cam_idx, image, keypoints, feature_ids=None):
+    self.cam_idx = cam_idx
+    self.image = image
+    self.keypoints = list(keypoints)
+    self.feature_ids = list(feature_ids)
+
+  def add(self, fid, kp):
+    """ Add measurement """
+    assert isinstance(fid, int)
+    assert hasattr(kp, 'pt')
+    self.keypoints.append(kp)
+    self.feature_ids.append(fid)
+    assert len(self.keypoints) == len(self.feature_ids)
+
+  def update(self, image, fids, kps):
+    """ Extend measurements """
+    assert len(kps) == len(fids)
+    self.image = np.array(image)
+
+    if kps:
+      assert hasattr(kps[0], 'pt')
+
+    self.feature_ids.extend(fids)
+    self.keypoints.extend(kps)
+    assert len(self.keypoints) == len(self.feature_ids)
+
+
+class FeatureTracker:
+  """ Feature tracker """
+  def __init__(self):
+    # Settings
+    self.mode = "TRACK_DEFAULT"
+    # self.mode = "TRACK_OVERLAPS"
+    # self.mode = "TRACK_INDEPENDENT"
+
+    # Settings
+    self.reproj_threshold = 5.0
+
+    # Data
+    self.prev_ts = None
+    self.frame_idx = 0
+    self.detector = cv2.FastFeatureDetector_create(threshold=50)
+    self.features_detected = 0
+    self.features_tracking = 0
+    self.feature_overlaps = {}
+    self.prev_mcam_imgs = None
+    self.kp_size = 0
+
+    self.cam_idxs = []
+    self.cam_params = {}
+    self.cam_exts = {}
+    self.cam_overlaps = {}
+    self.cam_data = {}
+
+  def add_camera(self, cam_idx, cam_params, cam_exts):
+    """ Add camera """
+    self.cam_idxs.append(cam_idx)
+    self.cam_data[cam_idx] = None
+    self.cam_params[cam_idx] = cam_params
+    self.cam_exts[cam_idx] = cam_exts
+
+  def add_overlap(self, cam_i_idx, cam_j_idx):
+    """ Add overlap """
+    if cam_i_idx not in self.cam_overlaps:
+      self.cam_overlaps[cam_i_idx] = []
+    self.cam_overlaps[cam_i_idx].append(cam_j_idx)
+
+  def num_tracking(self):
+    """ Return number of features tracking """
+    feature_ids = []
+    for _, cam_data in self.cam_data.items():
+      if cam_data is not None:
+        feature_ids.extend(cam_data.feature_ids)
+    return len(set(feature_ids))
+
+  def _get_camera_indices(self):
+    """ Get camera indices """
+    return [cam_idx for cam_idx, _ in self.cam_params]
+
+  def _get_keypoints(self, cam_idx):
+    """ Get keypoints observed by camera `cam_idx` """
+    keypoints = None
+    if self.cam_data[cam_idx] is not None:
+      keypoints = self.cam_data[cam_idx].keypoints
+
+    return keypoints
+
+  def _get_feature_ids(self, cam_idx):
+    """ Get feature ids observed by camera `cam_idx` """
+    feature_ids = None
+    if self.cam_data[cam_idx] is not None:
+      feature_ids = self.cam_data[cam_idx].feature_ids
+
+    return feature_ids
+
+  def _form_feature_ids(self, nb_kps):
+    """ Form list of feature ids for new features to be added """
+    self.features_detected += nb_kps
+    start_idx = self.features_detected - nb_kps
+    end_idx = start_idx + nb_kps
+    return list(range(start_idx, end_idx))
+
+  def _triangulate(self, idx_i, idx_j, z_i, z_j):
+    """ Triangulate feature """
+    # Setup
+    cam_i = self.cam_params[idx_i]
+    cam_j = self.cam_params[idx_j]
+    cam_geom_i = cam_i.data
+    cam_geom_j = cam_j.data
+    cam_exts_i = self.cam_exts[idx_i]
+    cam_exts_j = self.cam_exts[idx_j]
+
+    # Form projection matrices P_i and P_j
+    T_BCi = pose2tf(cam_exts_i.param)
+    T_BCj = pose2tf(cam_exts_j.param)
+    T_CiCj = inv(T_BCi) @ T_BCj
+    P_i = pinhole_P(cam_geom_i.proj_params(cam_i.param), eye(4))
+    P_j = pinhole_P(cam_geom_j.proj_params(cam_j.param), T_CiCj)
+
+    # Undistort image points z_i and z_j
+    x_i = cam_geom_i.undistort(cam_i.param, z_i)
+    x_j = cam_geom_j.undistort(cam_j.param, z_j)
+
+    # Linear triangulate
+    p_Ci = linear_triangulation(P_i, P_j, x_i, x_j)
+
+    return p_Ci
+
+  def _reproj_filter(self, idx_i, idx_j, pts_i, pts_j):
+    """ Filter features by triangulating them via a stereo-pair and see if the
+    reprojection error is reasonable """
+    assert idx_i != idx_j
+    assert len(pts_i) == len(pts_j)
+
+    # Reject outliers based on reprojection error
+    reproj_inliers = []
+    cam_i = self.cam_params[idx_i]
+    cam_geom_i = cam_i.data
+
+    nb_pts = len(pts_i)
+    for n in range(nb_pts):
+      # Triangulate
+      z_i = pts_i[n]
+      z_j = pts_j[n]
+      p_Ci = self._triangulate(idx_i, idx_j, z_i, z_j)
+      if p_Ci[2] < 0.0:
+        reproj_inliers.append(False)
+        continue
+
+      # Reproject
+      status, z_i_hat = cam_geom_i.project(cam_i.param, p_Ci)
+      if status is False:
+        reproj_inliers.append(False)
+      else:
+        reproj_error = norm(z_i - z_i_hat)
+        if reproj_error > self.reproj_threshold:
+          reproj_inliers.append(False)
+        else:
+          reproj_inliers.append(True)
+
+    return reproj_inliers
+
+  def _add_features(self, cam_idxs, mcam_imgs, cam_kps, fids):
+    """ Add features """
+    # Pre-check
+    assert cam_idxs
+    assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
+    assert all(cam_idx in cam_kps for cam_idx in cam_idxs)
+
+    # Add camera data
+    for idx in cam_idxs:
+      img = mcam_imgs[idx]
+      kps = cam_kps[idx]
+      assert len(kps) == len(fids)
+      if self.cam_data[idx] is None:
+        self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
+      else:
+        self.cam_data[idx].update(img, fids, kps)
+
+    # Update overlapping features
+    if len(cam_idxs) > 1:
+      for fid in fids:
+        self.feature_overlaps[fid] = 2
+
+  def _update_features(self, cam_idxs, mcam_imgs, cam_kps, fids):
+    """ Update features """
+    # Pre-check
+    assert cam_idxs
+    assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
+    assert all(cam_idx in cam_kps for cam_idx in cam_idxs)
+
+    # Update camera data
+    for idx in cam_idxs:
+      img = mcam_imgs[idx]
+      kps = cam_kps[idx]
+      self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
+
+    # # Update lost features
+    # fids_out = set(fids)
+    # fids_lost = [x for x in fids_in if x not in fids_out]
+    # for fid in fids_lost:
+    #   # feature overlaps
+    #   if fid in self.feature_overlaps:
+    #     self.feature_overlaps[fid] -= 1
+    #     if self.feature_overlaps[fid] == 0:
+    #       del self.feature_overlaps[fid]
+
+  def _detect(self, image, prev_kps=None):
+    """ Detect """
+    assert image is not None
+    kwargs = {'prev_kps': prev_kps, 'optflow_mode': True}
+    kps = grid_detect(self.detector, image, **kwargs)
+    self.kp_size = kps[0].size if kps else 0
+    return kps
+
+  def _detect_overlaps(self, mcam_imgs):
+    """ Detect overlapping features """
+    # Loop through camera overlaps
+    for idx_i, overlaps in self.cam_overlaps.items():
+      # Detect keypoints observed from idx_i (primary camera)
+      cam_i = self.cam_params[idx_i]
+      img_i = mcam_imgs[idx_i]
+      prev_kps = self._get_keypoints(idx_i)
+      kps_i = self._detect(img_i, prev_kps=prev_kps)
+      pts_i = np.array([kp.pt for kp in kps_i], dtype=np.float32)
+      fids_new = self._form_feature_ids(len(kps_i))
+      if not kps_i:
+        continue
+
+      # Track feature from camera idx_i to idx_j (primary to secondary camera)
+      for idx_j in overlaps:
+        # Optical flow
+        img_j = mcam_imgs[idx_j]
+        (_, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
+
+        # RANSAC
+        ransac_inliers = []
+        if len(kps_i) < 10:
+          ransac_inliers = np.array([True for _, _ in enumerate(kps_i)])
+        else:
+          cam_j = self.cam_params[idx_j]
+          ransac_inliers = ransac(pts_i, pts_j, cam_i, cam_j)
+
+        # Reprojection filter
+        reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
+
+        # Filter outliers
+        inliers = optflow_inliers & ransac_inliers & reproj_inliers
+        kps_j = [cv2.KeyPoint(p[0], p[1], self.kp_size) for p in pts_j]
+        fids = []
+        cam_kps = {idx_i: [], idx_j: []}
+        for i, inlier in enumerate(inliers):
+          if inlier:
+            fids.append(fids_new[i])
+            cam_kps[idx_i].append(kps_i[i])
+            cam_kps[idx_j].append(kps_j[i])
+
+        # Add features
+        cam_idxs = [idx_i, idx_j]
+        cam_imgs = {idx_i: img_i, idx_j: img_j}
+        self._add_features(cam_idxs, cam_imgs, cam_kps, fids)
+
+  def _detect_nonoverlaps(self, mcam_imgs):
+    """ Detect non-overlapping features """
+    for idx in self.cam_params:
+      # Detect keypoints
+      img = mcam_imgs[idx]
+      prev_kps = self._get_keypoints(idx)
+      kps = self._detect(img, prev_kps=prev_kps)
+      if not kps:
+        return
+
+      # Add features
+      fids = self._form_feature_ids(len(kps))
+      self._add_features([idx], {idx: img}, {idx: kps}, fids)
+
+  def _detect_new(self, mcam_imgs):
+    """ Detect new features """
+
+    # Detect new features
+    if self.mode == "TRACK_DEFAULT":
+      self._detect_overlaps(mcam_imgs)
+      self._detect_nonoverlaps(mcam_imgs)
+    elif self.mode == "TRACK_OVERLAPS":
+      self._detect_overlaps(mcam_imgs)
+    elif self.mode == "TRACK_INDEPENDENT":
+      self._detect_nonoverlaps(mcam_imgs)
+    else:
+      raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
+
+  def _track_through_time(self, mcam_imgs, cam_idx):
+    """ Track features through time """
+
+    # Setup images
+    img_km1 = self.prev_mcam_imgs[cam_idx]
+    img_k = mcam_imgs[cam_idx]
+
+    # Setup keypoints and feature_ids
+    kps_km1 = self._get_keypoints(cam_idx)
+    feature_ids = self._get_feature_ids(cam_idx)
+    pts_km1 = np.array([kp.pt for kp in kps_km1], dtype=np.float32)
+
+    # Optical flow
+    (pts_km1, pts_k, optflow_inliers) = optflow_track(img_km1, img_k, pts_km1)
+
+    # RANSAC
+    ransac_inliers = []
+    if len(kps_km1) < 10:
+      ransac_inliers = np.array([True for _, _ in enumerate(kps_km1)])
+    else:
+      cam = self.cam_params[cam_idx]
+      ransac_inliers = ransac(pts_km1, pts_k, cam, cam)
+
+    # Form inliers list
+    optflow_inliers = np.array(optflow_inliers)
+    ransac_inliers = np.array(ransac_inliers)
+    inliers = optflow_inliers & ransac_inliers
+
+    return (pts_km1, pts_k, feature_ids, inliers)
+
+  def _track_stereo(self, mcam_imgs, idx_i, idx_j, pts_i):
+    """ Track feature through stereo-pair """
+    # Optical flow
+    img_i = mcam_imgs[idx_i]
+    img_j = mcam_imgs[idx_j]
+    (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
+
+    # RANSAC
+    cam_i = self.cam_params[idx_i]
+    cam_j = self.cam_params[idx_j]
+    ransac_inliers = ransac(pts_i, pts_j, cam_i, cam_j)
+
+    # Reject outliers based on reprojection error
+    reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
+
+    # Logical AND optflow_inliers and reproj_inliers
+    ransac_inliers = np.array(ransac_inliers)
+    optflow_inliers = np.array(optflow_inliers)
+    reproj_inliers = np.array(reproj_inliers)
+    inliers = optflow_inliers & ransac_inliers & reproj_inliers
+
+    return (pts_i, pts_j, inliers)
+
+  def _track_features(self, mcam_imgs):
+    """ Track features """
+    # Track features in each camera
+    for idx in self.cam_idxs:
+      # Track through time
+      track_results = self._track_through_time(mcam_imgs, idx)
+      (_, pts_k, fids_old, inliers) = track_results
+
+      fids = []
+      kps = []
+      for i, inlier in enumerate(inliers):
+        if inlier:
+          pt = pts_k[i]
+          fids.append(fids_old[i])
+          kps.append(cv2.KeyPoint(pt[0], pt[1], self.kp_size))
+
+      # Update features
+      cam_idxs = [idx]
+      cam_imgs = {idx: mcam_imgs[idx]}
+      cam_kps = {idx: kps}
+      self._update_features(cam_idxs, cam_imgs, cam_kps, fids)
+
+  def update(self, ts, mcam_imgs):
+    """ Update Feature Tracker """
+    # Track features
+    if self.frame_idx == 0:
+      self._detect_new(mcam_imgs)
+      self.features_tracking = self.num_tracking()
+    else:
+      self._track_features(mcam_imgs)
+      if (self.num_tracking() / self.features_tracking) < 0.8:
+        self._detect_new(mcam_imgs)
+
+    # Update
+    self.frame_idx += 1
+    self.prev_ts = ts
+    self.prev_mcam_imgs = mcam_imgs
+
+    return self.cam_data
+
+
+def visualize_tracking(ft_data):
+  """ Visualize feature tracking data """
+  viz = []
+
+  radius = 4
+  green = (0, 255, 0)
+  yellow = (0, 255, 255)
+  thickness = 1
+  linetype = cv2.LINE_AA
+
+  # Find overlaps
+  fids = {}
+  feature_overlaps = set()
+  for _, cam_data in ft_data.items():
+    for n, _ in enumerate(cam_data.keypoints):
+      fid = cam_data.feature_ids[n]
+      fids[fid] = (fids[fid] + 1) if fid in fids else 1
+
+      if fids[fid] > 1:
+        feature_overlaps.add(fid)
+
+  # Draw features being tracked in each camera
+  for _, cam_data in ft_data.items():
+    img = cam_data.image
+    cam_viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+
+    for n, kp in enumerate(cam_data.keypoints):
+      fid = cam_data.feature_ids[n]
+      color = green if fid in feature_overlaps else yellow
+      p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
+      cv2.circle(cam_viz, p, radius, color, thickness, lineType=linetype)
+
+    viz.append(cam_viz)
+
+  return cv2.hconcat(viz)
+
+
 class TestFeatureTracking(unittest.TestCase):
   """ Test feature tracking functions """
   @classmethod
   def setUpClass(cls):
     super(TestFeatureTracking, cls).setUpClass()
-    cls.dataset = EurocDataset(euroc_data_path)
+    cls.dataset = EurocDataset(EUROC_DATA_PATH)
 
   def setUp(self):
     # Setup test images
@@ -11895,7 +9555,7 @@ class TestFeatureTracker(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     super(TestFeatureTracker, cls).setUpClass()
-    cls.dataset = EurocDataset(euroc_data_path)
+    cls.dataset = EurocDataset(EUROC_DATA_PATH)
 
   def setUp(self):
     # Setup test images
@@ -12049,13 +9709,329 @@ class TestFeatureTracker(unittest.TestCase):
     cv2.destroyAllWindows()
 
 
+# STATE-ESTIMATOR #############################################################
+
+
+class KeyFrame:
+  """ Key Frame """
+  def __init__(self, ts, images, pose, vision_factors):
+    self.ts = ts
+    self.images = images
+    self.pose = pose
+    self.vision_factors = vision_factors
+
+
+class Tracker:
+  """ Tracker """
+  def __init__(self, feature_tracker):
+    # Feature tracker
+    self.feature_tracker = feature_tracker
+
+    # Flags
+    self.imu_started = False
+    self.cams_started = False
+
+    # Data
+    self.graph = FactorGraph()
+    self.pose_init = None
+
+    self.imu_buf = ImuBuffer()
+    self.imu_params = None
+
+    self.cam_params = {}
+    self.cam_geoms = {}
+    self.cam_exts = {}
+    self.features = {}
+    self.keyframes = []
+
+    # Settings
+    self.window_size = 10
+
+  def nb_cams(self):
+    """ Return number of cameras """
+    return len(self.cam_params)
+
+  def nb_keyframes(self):
+    """ Return number of keyframes """
+    return len(self.keyframes)
+
+  def nb_features(self):
+    """ Return number of keyframes """
+    return len(self.features)
+
+  def add_imu(self, imu_params):
+    """ Add imu """
+    self.imu_params = imu_params
+
+  def add_camera(self, cam_idx, cam_params, cam_exts):
+    """ Add camera """
+    self.cam_params[cam_idx] = cam_params
+    self.cam_geoms[cam_idx] = cam_params.data
+    self.cam_exts[cam_idx] = cam_exts
+    self.graph.add_param(cam_params)
+    self.graph.add_param(cam_exts)
+    self.feature_tracker.add_camera(cam_idx, cam_params, cam_exts)
+
+  def add_overlap(self, cam_i, cam_j):
+    """ Add overlap """
+    self.feature_tracker.add_overlap(cam_i, cam_j)
+
+  def set_initial_pose(self, T_WB):
+    """ Set initial pose """
+    assert self.pose_init is None
+    self.pose_init = T_WB
+
+  def inertial_callback(self, ts, acc, gyr):
+    """ Inertial callback """
+    if self.imu_params is None:
+      raise RuntimeError("Forgot to add imu to tracker?")
+    self.imu_buf.add(ts, acc, gyr)
+    self.imu_started = True
+
+  def _triangulate(self, cam_i, cam_j, z_i, z_j, T_WB):
+    """ Triangulate feature """
+    # Setup
+    cam_params_i = self.cam_params[cam_i]
+    cam_params_j = self.cam_params[cam_j]
+    cam_geom_i = cam_params_i.data
+    cam_geom_j = cam_params_j.data
+    cam_exts_i = self.cam_exts[cam_i]
+    cam_exts_j = self.cam_exts[cam_j]
+
+    # Form projection matrices P_i and P_j
+    T_BCi = pose2tf(cam_exts_i.param)
+    T_BCj = pose2tf(cam_exts_j.param)
+    T_CiCj = inv(T_BCi) @ T_BCj
+    P_i = pinhole_P(cam_geom_i.proj_params(cam_params_i.param), eye(4))
+    P_j = pinhole_P(cam_geom_j.proj_params(cam_params_j.param), T_CiCj)
+
+    # Undistort image points z_i and z_j
+    x_i = cam_geom_i.undistort(cam_params_i.param, z_i)
+    x_j = cam_geom_j.undistort(cam_params_j.param, z_j)
+
+    # Linear triangulate
+    p_Ci = linear_triangulation(P_i, P_j, x_i, x_j)
+    if p_Ci[2] < 0.0:
+      return None
+
+    # Transform feature from camera frame to world frame
+    T_BCi = pose2tf(self.cam_exts[cam_i].param)
+    p_W = tf_point(T_WB @ T_BCi, p_Ci)
+    return p_W
+
+  def _add_pose(self, ts, T_WB):
+    """
+    Add pose
+
+    Args:
+
+      T_WB (np.array): Body pose in world frame
+
+    """
+    pose = pose_setup(ts, T_WB)
+    self.graph.add_param(pose)
+    return pose
+
+  def _get_last_pose(self):
+    """ Get last pose """
+    return pose2tf(self.keyframes[-1].pose.param)
+
+  def _add_feature(self, fid, ts, cam_idx, kp):
+    """
+    Add feature
+
+    Args:
+
+      fid (int): Feature id
+      ts (int): Timestamp
+      cam_idx (int): Camera index
+      kp (cv2.KeyPoint): Key point
+
+    """
+    assert hasattr(kp, 'pt')
+    self.features[fid] = feature_setup(zeros((3,)))
+    self.features[fid].data.update(ts, cam_idx, kp.pt)
+    feature_pid = self.graph.add_param(self.features[fid])
+    return feature_pid
+
+  def _update_feature(self, fid, ts, cam_idx, kp, T_WB):
+    """
+    Update feature
+
+    Args:
+
+      fid (int): Feature id
+      ts (int): Timestamp
+      cam_idx (int): Camera index
+      kp (cv2.KeyPoint): Key point
+      T_WB (np.array): Body pose in world frame
+
+    """
+    # Update feature
+    self.features[fid].data.update(ts, cam_idx, kp.pt)
+
+    # Initialize overlapping features
+    has_inited = self.features[fid].data.initialized()
+    has_overlap = self.features[fid].data.has_overlap(ts)
+    if has_inited is False and has_overlap is True:
+      overlaps = self.features[fid].data.get_overlaps(ts)
+      cam_i, z_i = overlaps[0]
+      cam_j, z_j = overlaps[1]
+      p_W = self._triangulate(cam_i, cam_j, z_i, z_j, T_WB)
+      if p_W is not None:
+        self.features[fid].param = p_W
+        self.features[fid].data.set_initialized()
+
+  def _process_features(self, ts, ft_data, pose):
+    """ Process features
+
+    Args:
+
+      ts (int): Timestamp
+      ft_data (Dict[int, FeatureTrackerData]): Multi-camera feature tracker data
+      pose (StateVariable): Body pose in world frame
+
+    """
+    # Add or update feature
+    T_WB = pose2tf(pose.param)
+
+    for cam_idx, cam_data in ft_data.items():
+      for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
+        if fid not in self.features:
+          self._add_feature(fid, ts, cam_idx, kp)
+        else:
+          self._update_feature(fid, ts, cam_idx, kp, T_WB)
+
+  def _add_keyframe(self, ts, mcam_imgs, ft_data, pose):
+    """
+    Add keyframe
+
+    Args:
+
+      ts (int): Timestamp
+      mcam_imgs (Dict[int, np.array]): Multi-camera images
+      ft_data (Dict[int, FeatureTrackerData]): Multi-camera features
+      pose (Pose): Body pose in world frame
+
+    """
+    vision_factors = []
+
+    for cam_idx, cam_data in ft_data.items():
+      # camera params, geometry and extrinsics
+      cam_params = self.cam_params[cam_idx]
+      cam_geom = self.cam_geoms[cam_idx]
+      cam_exts = self.cam_exts[cam_idx]
+
+      # Form vision factors
+      for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
+        feature = self.features[fid]
+        if feature.data.initialized() is False:
+          continue
+
+        # Form vision factor
+        param_ids = []
+        param_ids.append(pose.param_id)
+        param_ids.append(cam_exts.param_id)
+        param_ids.append(feature.param_id)
+        param_ids.append(cam_params.param_id)
+        factor = VisionFactor(cam_geom, param_ids, kp.pt)
+        vision_factors.append(factor)
+        self.graph.add_factor(factor)
+
+    # Form keyframe
+    self.keyframes.append(KeyFrame(ts, mcam_imgs, pose, vision_factors))
+
+  def _pop_old_keyframe(self):
+    """ Pop old keyframe """
+    # Remove pose parameter and vision factors
+    kf = self.keyframes[0]
+    self.graph.remove_param(kf.pose)
+    for factor in kf.vision_factors:
+      self.graph.remove_factor(factor)
+
+    # Pop the front of the queue
+    self.keyframes.pop(0)
+
+  def _filter_keyframe_factors(self, filter_from=0):
+    """ Filter keyframe factors """
+    removed = 0
+
+    for kf in self.keyframes[filter_from:]:
+      # Calculate reprojection error
+      reproj_errors = []
+      for factor in list(kf.vision_factors):
+        # factor_params = self.graph._get_factor_params(factor)
+        params = [self.graph.params[pid].param for pid in factor.param_ids]
+        r, _ = factor.eval(params)
+        reproj_errors.append(norm(r))
+
+      # Filter factors
+      threshold = 3.0 * np.std(reproj_errors)
+      filtered_factors = []
+
+      for reproj_error, factor in zip(reproj_errors, kf.vision_factors):
+        if reproj_error >= threshold:
+          self.graph.remove_factor(factor)
+          removed += 1
+        else:
+          filtered_factors.append(factor)
+      kf.vision_factors = filtered_factors
+
+  def vision_callback(self, ts, mcam_imgs):
+    """
+    Vision callback
+
+    Args:
+
+      ts (int): Timestamp
+      mcam_imgs (Dict[int, np.array]): Multi-camera images
+
+    """
+    assert self.pose_init is not None
+
+    # Has IMU?
+    if self.imu_params is not None and self.imu_started is False:
+      return
+
+    # Perform feature tracking
+    ft_data = self.feature_tracker.update(ts, mcam_imgs)
+
+    # Add pose
+    pose = None
+    if self.nb_keyframes() == 0:
+      pose = self._add_pose(ts, self.pose_init)
+    else:
+      T_WB = self._get_last_pose()
+      pose = self._add_pose(ts, T_WB)
+
+    # Process features, add keyframe and solve
+    self._process_features(ts, ft_data, pose)
+    self._add_keyframe(ts, mcam_imgs, ft_data, pose)
+
+    if self.nb_keyframes() != 1:
+      self.graph.solve(True)
+      self._filter_keyframe_factors()
+
+    if len(self.keyframes) > self.window_size:
+      self._pop_old_keyframe()
+
+    errors = self.graph.get_reproj_errors()
+    print(f"reproj_error:", end=" [")
+    print(f"mean: {np.mean(errors):.2f}", end=", ")
+    print(f"median: {np.median(errors):.2f}", end=", ")
+    print(f"rms: {rmse(errors):.2f}", end=", ")
+    print(f"max: {np.max(errors):.2f}", end="]\n")
+    print(f"nb_keyframes: {self.nb_keyframes()}")
+    print()
+
+
 class TestTracker(unittest.TestCase):
   """ Test Tracker """
   @classmethod
   def setUpClass(cls):
     super(TestTracker, cls).setUpClass()
     # Load dataset
-    cls.dataset = EurocDataset(euroc_data_path)
+    cls.dataset = EurocDataset(EUROC_DATA_PATH)
     ts0 = cls.dataset.cam0_data.timestamps[0]
     cls.img0 = cls.dataset.get_camera_image(0, ts0)
     cls.img1 = cls.dataset.get_camera_image(1, ts0)
@@ -12356,7 +10332,580 @@ class TestTracker(unittest.TestCase):
     plt.show()
 
 
-# CALIBRATION #################################################################
+###############################################################################
+# CALIBRATION
+###############################################################################
+
+
+class AprilGrid:
+  """ AprilGrid """
+  def __init__(self, **kwargs):
+    self.tag_rows = kwargs.get("tag_rows", 6)
+    self.tag_cols = kwargs.get("tag_cols", 6)
+    self.tag_size = kwargs.get("tag_size", 0.088)
+    self.tag_spacing = kwargs.get("tag_spacing", 0.3)
+    self.nb_tags = self.tag_rows * self.tag_cols
+    self.ts = None
+    self.data = {}
+
+  @staticmethod
+  def load(csv_file):
+    """ Load AprilGrid """
+    import pandas
+
+    # Load csv file
+    dtype = {
+        "#ts": int,
+        "tag_rows": int,
+        "tag_cols": int,
+        "tag_size": float,
+        "tag_spacing": float,
+        "tag_id": int,
+        "corner_idx": int,
+        "kp_x": float,
+        "kp_y": float,
+    }
+    csv_data = pandas.read_csv(csv_file, dtype=dtype)
+    if csv_data.shape[0] == 0:
+      return None
+
+    # AprilGrid properties
+    ts = csv_data['#ts'][0]
+    tag_rows = csv_data['tag_rows'][0]
+    tag_cols = csv_data['tag_cols'][0]
+    tag_size = csv_data['tag_size'][0]
+    tag_spacing = csv_data['tag_spacing'][0]
+
+    # AprilGrid measurements
+    tag_indices = csv_data['tag_id']
+    corner_indices = csv_data['corner_idx']
+    kps = np.array([csv_data['kp_x'], csv_data['kp_y']]).T
+
+    # Form AprilGrid
+    grid_conf = {
+        "tag_rows": tag_rows,
+        "tag_cols": tag_cols,
+        "tag_size": tag_size,
+        "tag_spacing": tag_spacing
+    }
+    grid = AprilGrid(**grid_conf)
+    for tag_id, corner_idx, kp in zip(tag_indices, corner_indices, kps):
+      grid.add_keypoint(ts, tag_id, corner_idx, kp)
+
+    return grid
+
+  def get_object_point(self, tag_id, corner_idx):
+    """ Form object point """
+    # Calculate the AprilGrid index using tag id
+    [i, j] = self.get_grid_index(tag_id)
+
+    # Calculate the x and y of the tag origin (bottom left corner of tag)
+    # relative to grid origin (bottom left corner of entire grid)
+    x = j * (self.tag_size + self.tag_size * self.tag_spacing)
+    y = i * (self.tag_size + self.tag_size * self.tag_spacing)
+
+    # Corners from bottom left in counter-clockwise fashion
+    if corner_idx == 0:
+      # Bottom left
+      return np.array([x, y, 0])
+    elif corner_idx == 1:
+      # Bottom right
+      return np.array([x + self.tag_size, y, 0])
+    elif corner_idx == 2:
+      # Top right
+      return np.array([x + self.tag_size, y + self.tag_size, 0])
+    elif corner_idx == 3:
+      # Top left
+      return np.array([x, y + self.tag_size, 0])
+
+    raise RuntimeError(f"Invalid tag_id[{tag_id}] corner_idx[{corner_idx}]!")
+
+  def get_object_points(self):
+    """ Form object points """
+    object_points = []
+    for tag_id in range(self.nb_tags):
+      for corner_idx in range(4):
+        pt = self.get_object_point(tag_id, corner_idx)
+        object_points.append((tag_id, corner_idx, pt))
+    return object_points
+
+  def get_dimensions(self):
+    """ Get AprilGrid dimensions """
+    spacing_x = (self.tag_cols - 1) * self.tag_spacing * self.tag_size
+    spacing_y = (self.tag_rows - 1) * self.tag_spacing * self.tag_size
+    width = self.tag_cols * self.tag_size + spacing_x
+    height = self.tag_rows * self.tag_size + spacing_y
+    return (width, height)
+
+  def get_center(self):
+    """ Calculate center of aprilgrid """
+    x = (self.tag_cols / 2.0) * self.tag_size
+    x += ((self.tag_cols / 2.0) - 1) * self.tag_spacing * self.tag_size
+    x += 0.5 * self.tag_spacing * self.tag_size
+
+    y = (self.tag_rows / 2.0) * self.tag_size
+    y += ((self.tag_rows / 2.0) - 1) * self.tag_spacing * self.tag_size
+    y += 0.5 * self.tag_spacing * self.tag_size
+
+    return np.array([x, y, 0.0])
+
+  def get_grid_index(self, tag_id):
+    """ Calculate grid index from tag id """
+    assert tag_id < (self.nb_tags) and tag_id >= 0
+    i = int(tag_id / self.tag_cols)
+    j = int(tag_id % self.tag_cols)
+    return (i, j)
+
+  def add_keypoint(self, ts, tag_id, corner_idx, kp):
+    """ Add keypoint """
+    self.ts = ts
+    if tag_id not in self.data:
+      self.data[tag_id] = {}
+    self.data[tag_id][corner_idx] = kp
+
+  def remove_keypoint(self, tag_id, corner_idx):
+    """ Remove keypoint """
+    assert tag_id in self.data
+    assert corner_idx in self.data[tag_id]
+    del self.data[tag_id][corner_idx]
+
+  def add_tag_data(self, ts, tag_data):
+    """ Add tag data """
+    for (tag_id, corner_idx, kp_x, kp_y) in tag_data:
+      self.add_keypoint(ts, tag_id, corner_idx, np.array([kp_x, kp_y]))
+
+  def get_measurements(self):
+    """ Get measurements """
+    data = []
+    for tag_id, tag_data in self.data.items():
+      for corner_idx, kp in tag_data.items():
+        obj_point = self.get_object_point(tag_id, corner_idx)
+        data.append((tag_id, corner_idx, obj_point, kp))
+
+    return data
+
+  def solvepnp(self, cam_params):
+    """ Estimate relative transform between camera and aprilgrid """
+    # Check if we actually have data to work with
+    if not self.data:
+      return None
+
+    # Create object points (counter-clockwise, from bottom left)
+    cam_geom = cam_params.data
+    obj_pts = []
+    img_pts = []
+    for (_, _, r_FFi, z) in self.get_measurements():
+      img_pts.append(cam_geom.undistort(cam_params.param, z))
+      obj_pts.append(r_FFi)
+    obj_pts = np.array(obj_pts)
+    img_pts = np.array(img_pts)
+
+    # Solve pnp
+    K = pinhole_K(cam_params.param[0:4])
+    D = np.array([0.0, 0.0, 0.0, 0.0])
+    flags = cv2.SOLVEPNP_ITERATIVE
+    _, rvec, tvec = cv2.solvePnP(obj_pts, img_pts, K, D, False, flags=flags)
+
+    # Form relative tag pose as a 4x4 transform matrix
+    C, _ = cv2.Rodrigues(rvec)
+    r = tvec.flatten()
+    T_CF = tf(C, r)
+
+    return T_CF
+
+  def plot(self, ax, T_WF, **kwargs):
+    """ Plot """
+    pt_colors = kwargs.get("pt_colors", "#0000ff")
+    tf_colors = kwargs.get("tf_colors", ["r-", "g-", "b-"])
+
+    points = []
+    for data in self.get_object_points():
+      _, _, r_FFi = data
+      r_WFi = tf_point(T_WF, r_FFi)
+      points.append(r_WFi)
+    points = np.array(points)
+
+    ax.scatter(points[:, 0],
+               points[:, 1],
+               points[:, 2],
+               color=pt_colors,
+               alpha=0.2)
+    plot_tf(ax, T_WF, size=self.tag_size, colors=tf_colors)
+
+
+def calib_generate_poses(calib_target, **kwargs):
+  """ Generate calibration poses infront of the calibration target """
+  # Pose settings
+  x_range = kwargs.get('x_range', np.linspace(-0.3, 0.3, 5))
+  y_range = kwargs.get('y_range', np.linspace(-0.3, 0.3, 5))
+  z_range = kwargs.get('z_range', np.linspace(0.3, 0.5, 5))
+
+  # Generate camera positions infront of the calib target r_FC
+  calib_center = calib_target.get_center()
+  cam_pos = []
+  pos_idx = 0
+  for x in x_range:
+    for y in y_range:
+      for z in z_range:
+        r_FC = np.array([x, y, z]) + calib_center
+        cam_pos.append(r_FC)
+        pos_idx += 1
+
+  # For each position create a camera pose that "looks at" the calib
+  # center in the target frame, T_FC.
+  return [lookat(r_FC, calib_center) for r_FC in cam_pos]
+
+
+def calib_generate_random_poses(calib_target, **kwargs):
+  """ Generate random calibration poses infront of the calibration target """
+  # Settings
+  nb_poses = kwargs.get('nb_poses', 30)
+  att_range = kwargs.get('att_range', [deg2rad(-10.0), deg2rad(10.0)])
+  x_range = kwargs.get('x_range', [-0.5, 0.5])
+  y_range = kwargs.get('y_range', [-0.5, 0.5])
+  z_range = kwargs.get('z_range', [0.5, 0.7])
+
+  # For each position create a camera pose that "looks at" the calibration
+  # center in the target frame, T_FC.
+  calib_center = calib_target.get_center()
+  poses = []
+
+  for _ in range(nb_poses):
+    # Generate random pose
+    x = np.random.uniform(x_range[0], x_range[1])
+    y = np.random.uniform(y_range[0], y_range[1])
+    z = np.random.uniform(z_range[0], z_range[1])
+    r_FC = calib_center + np.array([x, y, z])
+    T_FC = lookat(r_FC, calib_center)
+
+    # Perturb the pose a little so it doesn't look at the center directly
+    yaw = np.random.uniform(*att_range)
+    pitch = np.random.uniform(*att_range)
+    roll = np.random.uniform(*att_range)
+    C_perturb = euler321(yaw, pitch, roll)
+    r_perturb = zeros((3,))
+    T_perturb = tf(C_perturb, r_perturb)
+
+    poses.append(T_FC @ T_perturb)
+
+  return poses
+
+
+class CalibView:
+  """ Calibration View """
+  def __init__(self, pose, cam_params, cam_exts, grid):
+    self.ts = grid.ts
+    self.pose = pose
+    self.cam_idx = cam_params.data.cam_idx
+    self.cam_params = cam_params
+    self.cam_geom = cam_params.data
+    self.cam_exts = cam_exts
+    self.grid = grid
+    self.factors = []
+
+    pids = [pose.param_id, cam_exts.param_id, cam_params.param_id]
+    for grid_data in grid.get_measurements():
+      self.factors.append(CalibVisionFactor(self.cam_geom, pids, grid_data))
+
+  def get_reproj_errors(self):
+    """ Get reprojection errors """
+    reproj_errors = []
+
+    factor_params = [self.pose, self.cam_exts, self.cam_params]
+    for factor in self.factors:
+      status, reproj_error = factor.get_reproj_error(*factor_params)
+      if status:
+        reproj_errors.append(reproj_error)
+
+    return reproj_errors
+
+
+class Calibrator:
+  """ Calibrator """
+  def __init__(self):
+    self.verbose = False
+
+    # Parameters
+    self.cam_geoms = {}
+    self.cam_params = {}
+    self.cam_exts = {}
+    self.imu_params = None
+
+    # Data
+    self.graph = FactorGraph()
+    self.poses = {}
+    self.calib_views = {}
+
+  def get_num_cams(self):
+    """ Return number of cameras """
+    return len(self.cam_params)
+
+  def get_num_views(self):
+    """ Return number of views """
+    return len(self.calib_views)
+
+  def add_camera(self, cam_idx, cam_res, proj_model, dist_model):
+    """ Add camera """
+    fx = focal_length(cam_res[0], 90.0)
+    fy = focal_length(cam_res[1], 90.0)
+    cx = cam_res[0] / 2.0
+    cy = cam_res[1] / 2.0
+    params = [fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0]
+    args = [cam_idx, cam_res, proj_model, dist_model, params]
+    cam_params = camera_params_setup(*args)
+
+    fix_exts = (cam_idx == 0)
+    self.cam_geoms[cam_idx] = cam_params.data
+    self.cam_params[cam_idx] = cam_params
+    self.cam_exts[cam_idx] = extrinsics_setup(eye(4), fix=fix_exts)
+
+    self.graph.add_param(self.cam_params[cam_idx])
+    self.graph.add_param(self.cam_exts[cam_idx])
+
+  def add_imu(self, imu_params):
+    """ Add imu """
+    self.imu_params = imu_params
+
+  def add_camera_view(self, ts, cam_idx, grid):
+    """ Add camera view """
+    # Estimate relative pose T_BF
+    cam_params = self.cam_params[cam_idx]
+    cam_exts = self.cam_exts[cam_idx]
+    T_CiF = grid.solvepnp(cam_params)
+    T_BCi = pose2tf(cam_exts.param)
+    T_BF = T_BCi @ T_CiF
+    self.poses[ts] = pose_setup(ts, T_BF)
+
+    # CalibView
+    self.graph.add_param(self.poses[ts])
+    self.calib_views[ts] = CalibView(self.poses[ts], cam_params, cam_exts, grid)
+    for factor in self.calib_views[ts].factors:
+      self.graph.add_factor(factor)
+
+    # # Solve
+    # if len(self.calib_views) >= 5:
+    #   self.graph.solver_max_iter = 10
+    #   self.graph.solve(True)
+    #
+    #   # Calculate reprojection error
+    #   reproj_errors = self.graph.get_reproj_errors()
+    #   print(f"nb_reproj_errors: {len(reproj_errors)}")
+    #   print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
+    #   print()
+    #   # plt.hist(reproj_errors)
+    #   # plt.show()
+
+  def solve(self):
+    """ Solve """
+    self.graph.solver_max_iter = 30
+    self.graph.solve(self.verbose)
+
+    if self.verbose:
+      reproj_errors = self.graph.get_reproj_errors()
+      print(f"num_cams: {self.get_num_cams()}")
+      print(f"num_views: {self.get_num_views()}")
+      print(f"num_reproj_errors: {len(reproj_errors)}")
+      print(f"rms_reproj_errors: {rmse(reproj_errors):.4f} [px]")
+      sys.stdout.flush()
+
+
+class GimbalCalibrator:
+  """ Gimbal Calibrator """
+  def __init__(self):
+    # Factor graph
+    self.graph = FactorGraph()
+
+    # Variable ids
+    self.fiducial_id = None
+    self.body_pose_ids = []
+    self.gimbal_ext_id = None
+    self.gimbal_link_ids = {}
+    self.gimbal_joint_ids = {}
+    self.cam_params_ids = {}
+    self.cam_ext_ids = {}
+
+    # Factor ids
+    self.pose_factor_ids = []
+    self.link_factor_ids = []
+    self.joint_factor_ids = []
+    self.calib_factor_ids = []
+
+    # Variables
+    self.fiducial = None
+    self.body_poses = []
+    self.gimbal_ext = None
+    self.gimbal_links = {}
+    self.gimbal_joints = {}
+    self.cam_params = {}
+    self.cam_exts = {}
+
+  def add_fiducial(self, T_WF, fix=True):
+    """ Add fiducial """
+    self.fiducial = extrinsics_setup(T_WF, fix=fix)
+    self.fiducial_id = self.graph.add_param(self.fiducial)
+    return self.fiducial_id
+
+  def add_body_pose(self, ts, T_WB, **kwargs):
+    """ Add body pose """
+    fix = kwargs.get("fix", False)
+    covar = kwargs.get("covar", eye(6) * 0.1)
+
+    pose = pose_setup(ts, T_WB, fix=fix)
+    pose_id = self.graph.add_param(pose)
+    self.body_pose_ids.append(pose_id)
+    self.body_poses.append(pose)
+
+    if fix is False:
+      pids = [pose_id]
+      pose_factor = PoseFactor(pids, T_WB, covar)
+      self.pose_factor_ids.append(self.graph.add_factor(pose_factor))
+
+    return pose_id
+
+  def add_gimbal_extrinsic(self, T_BM0, **kwargs):
+    """ Add gimbal extrinsic """
+    fix = kwargs.get("fix", False)
+    covar = kwargs.get("covar", eye(6) * 0.1)
+
+    ext = extrinsics_setup(T_BM0, fix=fix)
+    ext_id = self.graph.add_param(ext)
+    self.gimbal_ext_id = ext_id
+    self.gimbal_ext = ext
+
+    if fix is False:
+      pids = [ext_id]
+      pose_factor = PoseFactor(pids, T_BM0, covar)
+      self.pose_factor_ids.append(self.graph.add_factor(pose_factor))
+
+    return ext_id
+
+  def add_gimbal_link(self, link_idx, T_link, **kwargs):
+    """ Add gimbal link """
+    fix = kwargs.get("fix", False)
+    covar = kwargs.get("covar", eye(6) * 0.5)
+
+    link = extrinsics_setup(T_link, fix=fix)
+    link_id = self.graph.add_param(link)
+    self.gimbal_link_ids[link_idx] = link_id
+    self.gimbal_links[link_idx] = link
+
+    if fix is False:
+      pids = [link_id]
+      link_factor = PoseFactor(pids, T_link, covar)
+      self.link_factor_ids.append(self.graph.add_factor(link_factor))
+
+    return link_id
+
+  def add_gimbal_joint(self, view_idx, joint_idx, joint_angle, **kwargs):
+    """ Add gimbal joint """
+    fix = kwargs.get("fix", False)
+    covar = kwargs.get("covar", np.deg2rad(5))
+
+    if view_idx not in self.gimbal_joint_ids:
+      self.gimbal_joint_ids[view_idx] = {}
+      self.gimbal_joints[view_idx] = {}
+
+    joint = joint_angle_setup(joint_angle, fix=fix)
+    joint_id = self.graph.add_param(joint)
+    self.gimbal_joint_ids[view_idx][joint_idx] = joint_id
+    self.gimbal_joints[view_idx][joint_idx] = joint
+
+    if fix is False:
+      pids = [joint_id]
+      joint_factor = MeasurementFactor(pids, joint_angle, covar)
+      self.joint_factor_ids.append(self.graph.add_factor(joint_factor))
+
+    return joint_id
+
+  def add_camera(self, **kwargs):
+    """ Add camera """
+    cam_params = kwargs.get("cam_params")
+    fix = kwargs.get("fix", False)
+
+    if cam_params is not None:
+      cam_idx = cam_params.data.cam_idx
+      cam_params_id = self.graph.add_param(cam_params)
+      self.cam_params_ids[cam_idx] = cam_params_id
+      self.cam_params[cam_idx] = cam_params
+      self.cam_params[cam_idx].fix = fix
+      return cam_params_id
+
+    cam_idx = kwargs["cam_idx"]
+    cam_res = kwargs["cam_res"]
+    proj_model = kwargs["proj_model"]
+    dist_model = kwargs["dist_model"]
+    params = kwargs["params"]
+    cam_params = camera_params_setup(cam_idx, cam_res, proj_model, dist_model,
+                                     params)
+    cam_params_id = self.graph.add_param(cam_params)
+    self.cam_params_ids[cam_idx] = cam_params_id
+    self.cam_params[cam_idx] = cam_params
+    self.cam_params[cam_idx].fix = fix
+    return cam_params_id
+
+  def add_camera_extrinsic(self, cam_idx, cam_ext, fix=False):
+    """ Add camera extrinsic """
+    ext = extrinsics_setup(cam_ext, fix=fix)
+    ext_id = self.graph.add_param(ext)
+    self.cam_ext_ids[cam_idx] = ext_id
+    self.cam_exts[cam_idx] = ext
+    return ext_id
+
+  def add_camera_view_set(self, view_idx, view_set):
+    """ Add multi-camera data """
+    for cam_idx, cam_view in enumerate(view_set):
+      cam_params_id = self.cam_params_ids[cam_idx]
+      cam_params = self.graph.params[cam_params_id]
+      cam_geom = cam_params.data
+      pids = [
+          self.fiducial_id,
+          self.body_pose_ids[-1],
+          self.gimbal_ext_id,
+          self.gimbal_link_ids[0],
+          self.gimbal_link_ids[1],
+          self.gimbal_joint_ids[view_idx][0],
+          self.gimbal_joint_ids[view_idx][1],
+          self.gimbal_joint_ids[view_idx][2],
+          self.cam_ext_ids[cam_idx],
+          self.cam_params_ids[cam_idx],
+      ]
+
+      for i in range(cam_view["num_measurements"]):
+        tag_id = cam_view["tag_ids"][i]
+        corner_idx = cam_view["corner_idxs"][i]
+        pt = cam_view["object_points"][i]
+        kp = cam_view["keypoints"][i]
+        grid_data = tag_id, corner_idx, pt, kp
+        factor = CalibGimbalFactor(cam_geom, pids, grid_data)
+        self.calib_factor_ids.append(self.graph.add_factor(factor))
+
+  def solve(self, **kwargs):
+    """ Solve """
+    debug = kwargs.get("debug", True)
+    max_iter = kwargs.get("max_iter", 10)
+    self.graph.solver_max_iter = max_iter
+    self.graph.solve(debug)
+
+  def results(self):
+    """ Results """
+    joint_data = []
+    for _, joints in self.gimbal_joints.items():
+      joint_data.append([joint.param[0] for _, joint in joints.items()])
+
+    calib = GimbalProblem(
+        pose2tf(self.fiducial.param),
+        pose2tf(self.gimbal_ext.param),
+        pose2tf(self.body_poses[0].param),
+        pose2tf(self.gimbal_links[0].param),
+        pose2tf(self.gimbal_links[1].param),
+        self.cam_params[0],
+        self.cam_params[1],
+        pose2tf(self.cam_exts[0].param),
+        pose2tf(self.cam_exts[1].param),
+        joint_data,
+    )
+
+    return calib
 
 
 class TestCalibration(unittest.TestCase):
@@ -12371,7 +10920,7 @@ class TestCalibration(unittest.TestCase):
   #       "/tmp/aprilgrid_test/mono/cam0/1403709383937837056.csv")
   #   self.assertTrue(grid is not None)
 
-  #   dataset = EurocDataset(euroc_data_path)
+  #   dataset = EurocDataset(EUROC_DATA_PATH)
   #   cam_idx = 0
   #   res = dataset.cam0_data.config.resolution
   #   proj_params = dataset.cam0_data.config.intrinsics
@@ -12512,7 +11061,433 @@ class TestCalibration(unittest.TestCase):
       print(ts, pose.param)
 
 
-# SIMULATION  #################################################################
+###############################################################################
+# SIMULATION
+###############################################################################
+
+# UTILS #######################################################################
+
+
+def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
+  """ Create 3D features randomly """
+  features = zeros((nb_features, 3))
+  for i in range(nb_features):
+    features[i, 0] = random.uniform(*x_bounds)
+    features[i, 1] = random.uniform(*y_bounds)
+    features[i, 2] = random.uniform(*z_bounds)
+  return features
+
+
+def create_3d_features_perimeter(origin, dim, nb_features):
+  """ Create 3D features in a square """
+  assert len(origin) == 3
+  assert len(dim) == 3
+  assert nb_features > 0
+
+  # Dimension of the outskirt
+  w, l, h = dim
+
+  # Features per side
+  nb_fps = int(nb_features / 4.0)
+
+  # Features in the east side
+  x_bounds = [origin[0] - w, origin[0] + w]
+  y_bounds = [origin[1] + l, origin[1] + l]
+  z_bounds = [origin[2] - h, origin[2] + h]
+  east = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+
+  # Features in the north side
+  x_bounds = [origin[0] + w, origin[0] + w]
+  y_bounds = [origin[1] - l, origin[1] + l]
+  z_bounds = [origin[2] - h, origin[2] + h]
+  north = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+
+  # Features in the west side
+  x_bounds = [origin[0] - w, origin[0] + w]
+  y_bounds = [origin[1] - l, origin[1] - l]
+  z_bounds = [origin[2] - h, origin[2] + h]
+  west = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+
+  # Features in the south side
+  x_bounds = [origin[0] - w, origin[0] - w]
+  y_bounds = [origin[1] - l, origin[1] + l]
+  z_bounds = [origin[2] - h, origin[2] + h]
+  south = create_3d_features(x_bounds, y_bounds, z_bounds, nb_fps)
+
+  # Stack features and return
+  return np.block([[east], [north], [west], [south]])
+
+
+# SIMULATION ##################################################################
+
+
+class SimCameraFrame:
+  """ Sim camera frame """
+  def __init__(self, ts, cam_idx, camera, T_WCi, features):
+    assert T_WCi.shape == (4, 4)
+    assert features.shape[0] > 0
+    assert features.shape[1] == 3
+
+    self.ts = ts
+    self.cam_idx = cam_idx
+    self.T_WCi = T_WCi
+    self.cam_geom = camera.data
+    self.cam_params = camera.param
+    self.feature_ids = []
+    self.measurements = []
+
+    # Simulate camera frame
+    nb_points = features.shape[0]
+    T_CiW = tf_inv(self.T_WCi)
+
+    for i in range(nb_points):
+      # Project point from world frame to camera frame
+      p_W = features[i, :]
+      p_C = tf_point(T_CiW, p_W)
+      status, z = self.cam_geom.project(self.cam_params, p_C)
+      if status:
+        self.measurements.append(z)
+        self.feature_ids.append(i)
+
+  def num_measurements(self):
+    """ Return number of measurements """
+    return len(self.measurements)
+
+  def draw_measurements(self):
+    """ Returns camera measurements in an image """
+    # kps = [kp for kp in self.measurements]
+    kps = self.measurements
+    img_w, img_h = self.cam_geom.resolution
+    img = np.zeros((img_h, img_w), dtype=np.uint8)
+    return draw_keypoints(img, kps)
+
+
+class SimCameraData:
+  """ Sim camera data """
+  def __init__(self, cam_idx, camera, features):
+    self.cam_idx = cam_idx
+    self.camera = camera
+    self.features = features
+    self.timestamps = []
+    self.poses = {}
+    self.frames = {}
+
+
+class SimImuData:
+  """ Sim imu data """
+  def __init__(self, imu_idx):
+    self.imu_idx = imu_idx
+    self.timestamps = []
+    self.poses = {}
+    self.vel = {}
+    self.acc = {}
+    self.gyr = {}
+
+  def form_imu_buffer(self, start_idx, end_idx):
+    """ Form ImuBuffer """
+    imu_ts = self.timestamps[start_idx:end_idx]
+    imu_acc = []
+    imu_gyr = []
+    for ts in self.timestamps:
+      imu_acc.append(self.acc[ts])
+      imu_gyr.append(self.gyr[ts])
+
+    return ImuBuffer(imu_ts, imu_acc, imu_gyr)
+
+
+class SimData:
+  """ Sim data """
+  def __init__(self, circle_r, circle_v, **kwargs):
+    # Settings
+    self.circle_r = circle_r
+    self.circle_v = circle_v
+    self.cam_rate = 10.0
+    self.imu_rate = 200.0
+    self.nb_features = 200
+
+    # Trajectory data
+    self.g = np.array([0.0, 0.0, 9.81])
+    self.circle_dist = 2.0 * pi * circle_r
+    self.time_taken = self.circle_dist / self.circle_v
+    self.w = -2.0 * pi * (1.0 / self.time_taken)
+    self.theta_init = pi
+    self.yaw_init = pi / 2.0
+    self.features = self._setup_features()
+
+    # print(f"circle_r: {self.circle_r}")
+    # print(f"circle_v: {self.circle_v}")
+    # print(f"circle_dist: {self.circle_dist}")
+    # print(f"time_taken: {self.time_taken}")
+
+    # Simulate IMU
+    self.imu0_data = None
+    if kwargs.get("sim_imu", True):
+      self.imu0_data = self._sim_imu(0)
+
+    # Simulate camera
+    self.mcam_data = {}
+    self.cam_exts = {}
+    if kwargs.get("sim_cams", True):
+      # -- cam0
+      self.cam0_params = self._setup_camera(0)
+      C_BC0 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
+      r_BC0 = np.array([0.0, 0.0, 0.0])
+      self.T_BC0 = tf(C_BC0, r_BC0)
+      self.mcam_data[0] = self._sim_cam(0, self.cam0_params, self.T_BC0)
+      self.cam_exts[0] = extrinsics_setup(self.T_BC0)
+      # -- cam1
+      self.cam1_params = self._setup_camera(1)
+      C_BC1 = euler321(*deg2rad([-90.0, 0.0, -90.0]))
+      r_BC1 = np.array([0.0, 0.0, 0.0])
+      self.T_BC1 = tf(C_BC1, r_BC1)
+      # -- Multicam data
+      self.mcam_data[1] = self._sim_cam(1, self.cam1_params, self.T_BC1)
+      self.cam_exts[1] = extrinsics_setup(self.T_BC1)
+
+    # Timeline
+    self.timeline = self._form_timeline()
+
+  def get_camera_data(self, cam_idx):
+    """ Get camera data """
+    return self.mcam_data[cam_idx]
+
+  def get_camera_params(self, cam_idx):
+    """ Get camera parameters """
+    return self.mcam_data[cam_idx].camera
+
+  def get_camera_geometry(self, cam_idx):
+    """ Get camera geometry """
+    return self.mcam_data[cam_idx].camera.data
+
+  def get_camera_extrinsics(self, cam_idx):
+    """ Get camera extrinsics """
+    return self.cam_exts[cam_idx]
+
+  def plot_scene(self):
+    """ Plot 3D Scene """
+    # Setup
+    plt.figure()
+    ax = plt.axes(projection='3d')
+
+    # Plot features
+    features = self.features
+    ax.scatter3D(features[:, 0], features[:, 1], features[:, 2])
+
+    # Plot camera frames
+    idx = 0
+    for _, T_WB in self.imu0_data.poses.items():
+      if idx % 100 == 0:
+        T_BC0 = pose2tf(self.cam_exts[0].param)
+        T_BC1 = pose2tf(self.cam_exts[1].param)
+        plot_tf(ax, T_WB @ T_BC0)
+        plot_tf(ax, T_WB @ T_BC1)
+      if idx > 3000:
+        break
+      idx += 1
+
+    # Show
+    plt.show()
+
+  @staticmethod
+  def create_or_load(circle_r, circle_v, pickle_path):
+    """ Create or load SimData """
+    sim_data = None
+
+    if os.path.exists(pickle_path):
+      with open(pickle_path, 'rb') as f:
+        sim_data = pickle.load(f)
+    else:
+      sim_data = SimData(circle_r, circle_v)
+      with open(pickle_path, 'wb') as f:
+        pickle.dump(sim_data, f)
+        f.flush()
+
+    return sim_data
+
+  @staticmethod
+  def _setup_camera(cam_idx):
+    """ Setup camera """
+    res = [640, 480]
+    fov = 120.0
+    fx = focal_length(res[0], fov)
+    fy = focal_length(res[0], fov)
+    cx = res[0] / 2.0
+    cy = res[1] / 2.0
+
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    proj_params = [fx, fy, cx, cy]
+    dist_params = [0.0, 0.0, 0.0, 0.0]
+    params = np.block([*proj_params, *dist_params])
+
+    return camera_params_setup(cam_idx, res, proj_model, dist_model, params)
+
+  def _setup_features(self):
+    """ Setup features """
+    origin = [0, 0, 0]
+    dim = [self.circle_r * 2.0, self.circle_r * 2.0, self.circle_r * 1.5]
+    return create_3d_features_perimeter(origin, dim, self.nb_features)
+
+  def _sim_imu(self, imu_idx):
+    """ Simulate IMU """
+    sim_data = SimImuData(imu_idx)
+
+    ts = 0
+    dt_ns = sec2ts(1.0 / self.imu_rate)
+    theta = self.theta_init
+    yaw = self.yaw_init
+
+    while ts <= sec2ts(self.time_taken):
+      # IMU pose
+      rx = self.circle_r * cos(theta)
+      ry = self.circle_r * sin(theta)
+      rz = 0.0
+      r_WS = np.array([rx, ry, rz])
+      C_WS = euler321(yaw, 0.0, 0.0)
+      T_WS = tf(C_WS, r_WS)
+
+      # IMU velocity
+      vx = -self.circle_r * self.w * sin(theta)
+      vy = self.circle_r * self.w * cos(theta)
+      vz = 0.0
+      v_WS = np.array([vx, vy, vz])
+
+      # IMU acceleration
+      ax = -self.circle_r * self.w**2 * cos(theta)
+      ay = -self.circle_r * self.w**2 * sin(theta)
+      az = 0.0
+      a_WS = np.array([ax, ay, az])
+
+      # IMU angular velocity
+      wx = 0.0
+      wy = 0.0
+      wz = self.w
+      w_WS = np.array([wx, wy, wz])
+
+      # IMU measurements
+      acc = C_WS.T @ (a_WS + self.g)
+      gyr = C_WS.T @ w_WS
+
+      # Update
+      sim_data.timestamps.append(ts)
+      sim_data.poses[ts] = T_WS
+      sim_data.vel[ts] = v_WS
+      sim_data.acc[ts] = acc
+      sim_data.gyr[ts] = gyr
+
+      theta += self.w * ts2sec(dt_ns)
+      yaw += self.w * ts2sec(dt_ns)
+      ts += dt_ns
+
+    return sim_data
+
+  def _sim_cam(self, cam_idx, cam_params, T_BCi):
+    """ Simulate camera """
+    sim_data = SimCameraData(cam_idx, cam_params, self.features)
+
+    ts = 0
+    dt_ns = sec2ts(1.0 / self.cam_rate)
+    theta = self.theta_init
+    yaw = self.yaw_init
+
+    while ts <= sec2ts(self.time_taken):
+      # Body pose
+      rx = self.circle_r * cos(theta)
+      ry = self.circle_r * sin(theta)
+      rz = 0.0
+      r_WB = [rx, ry, rz]
+      C_WB = euler321(yaw, 0.0, 0.0)
+      T_WB = tf(C_WB, r_WB)
+
+      # Simulate camera pose and camera frame
+      T_WCi = T_WB @ T_BCi
+      cam_frame = SimCameraFrame(ts, cam_idx, cam_params, T_WCi, self.features)
+      sim_data.timestamps.append(ts)
+      sim_data.poses[ts] = T_WCi
+      sim_data.frames[ts] = cam_frame
+
+      # Update
+      theta += self.w * ts2sec(dt_ns)
+      yaw += self.w * ts2sec(dt_ns)
+      ts += dt_ns
+
+    return sim_data
+
+  def _form_timeline(self):
+    """ Form timeline """
+    # Form timeline
+    timeline = Timeline()
+
+    # -- Add imu events
+    imu_idx = self.imu0_data.imu_idx
+    for ts in self.imu0_data.timestamps:
+      acc = self.imu0_data.acc[ts]
+      gyr = self.imu0_data.gyr[ts]
+      imu_event = ImuEvent(ts, imu_idx, acc, gyr)
+      timeline.add_event(ts, imu_event)
+
+    # -- Add camera events
+    for cam_idx, cam_data in self.mcam_data.items():
+      for ts in cam_data.timestamps:
+        frame = cam_data.frames[ts]
+        fids = frame.feature_ids
+        kps = frame.measurements
+
+        sim_img = []
+        for i, fid in enumerate(fids):
+          sim_img.append([fid, kps[i]])
+
+        cam_event = CameraEvent(ts, cam_idx, sim_img)
+        timeline.add_event(ts, cam_event)
+
+    return timeline
+
+
+class SimFeatureTracker(FeatureTracker):
+  """ Sim Feature Tracker """
+  def __init__(self):
+    FeatureTracker.__init__(self)
+
+  def update(self, ts, mcam_imgs):
+    """ Update Sim Feature Tracker """
+    for cam_idx, cam_data in mcam_imgs.items():
+      kps = [data[1] for data in cam_data]
+      fids = [data[0] for data in cam_data]
+      ft_data = FeatureTrackerData(cam_idx, None, kps, fids)
+      self.cam_data[cam_idx] = ft_data
+
+    # Update
+    self.frame_idx += 1
+    self.prev_ts = ts
+    self.prev_mcam_imgs = mcam_imgs
+
+    return self.cam_data
+
+  def visualize(self):
+    """ Visualize """
+    # Image size
+    # cam_res = cam0_params.data.resolution
+    # img_w, img_h = cam_res
+    # img0 = np.zeros((img_h, img_w), dtype=np.uint8)
+    # kps = [kp for kp in ft_data[0].keypoints]
+    # viz = draw_keypoints(img0, kps)
+    # cv2.imshow('viz', viz)
+    # cv2.waitKey(0)
+    pass
+
+
+def dh_matrix(theta, d, a, alpha):
+  """ Denavit-Hartenburg Matrix """
+  ctheta = np.cos(theta)
+  stheta = np.sin(theta)
+  calpha = np.cos(alpha)
+  salpha = np.sin(alpha)
+
+  row0 = [ctheta, -stheta * calpha, stheta * salpha, a * ctheta]
+  row1 = [stheta, ctheta * calpha, -ctheta * salpha, a * stheta]
+  row2 = [0.0, salpha, calpha, d]
+  row3 = [0.0, 0.0, 0.0, 1.0]
+  return np.array([row0, row1, row2, row3])
 
 
 class TestSimulation(unittest.TestCase):
@@ -12761,7 +11736,756 @@ class TestSimulation(unittest.TestCase):
     self.assertTrue(True)
 
 
-# VISUALIZER ###################################################################
+###############################################################################
+# CONTROL
+###############################################################################
+
+
+class PID:
+  """ PID controller """
+  def __init__(self, k_p, k_i, k_d):
+    self.k_p = k_p
+    self.k_i = k_i
+    self.k_d = k_d
+
+    self.error_p = 0.0
+    self.error_i = 0.0
+    self.error_d = 0.0
+    self.error_prev = 0.0
+    self.error_sum = 0.0
+
+  def update(self, setpoint, actual, dt):
+    """ Update """
+    # Calculate errors
+    error = setpoint - actual
+    self.error_sum += error * dt
+
+    # Calculate output
+    self.error_p = self.k_p * error
+    self.error_i = self.k_i * self.error_sum
+    self.error_d = self.k_d * (error - self.error_prev) / dt
+    output = self.error_p + self.error_i + self.error_d
+
+    # Keep track of error
+    self.error_prev = error
+
+    return output
+
+  def reset(self):
+    """ Reset """
+    self.error_prev = 0
+    self.error_sum = 0
+    self.error_p = 0
+    self.error_i = 0
+    self.error_d = 0
+
+
+class CarrotController:
+  """ Carrot Controller """
+  def __init__(self):
+    self.waypoints = []
+    self.wp_start = None
+    self.wp_end = None
+    self.wp_index = None
+    self.look_ahead_dist = 0.0
+
+  def _calculate_closest_point(self, pos):
+    """ Calculate closest point """
+    v1 = pos - self.wp_start
+    v2 = self.wp_end - self.wp_start
+    t = v1 @ v2 / v2.squaredNorm()
+    pt = self.wp_start + t * v2
+
+    return (t, pt)
+
+  def _calculate_carrot_point(self, pos):
+    """ Calculate carrot point """
+    assert len(pos) == 3
+
+    t, closest_pt = self._calculate_closest_point(pos)
+    carrot_pt = None
+
+    if t == -1:
+      # Closest point is before wp_start
+      carrot_pt = self.wp_start
+
+    elif t == 0:
+      # Closest point is between wp_start wp_end
+      u = self.wp_end - self.wp_start
+      v = u / norm(u)
+      carrot_pt = closest_pt + self.look_ahead_dist * v
+
+    elif t == 1:
+      # Closest point is after wp_end
+      carrot_pt = self.wp_end
+
+    return (t, carrot_pt)
+
+  def update(self, pos):
+    """ Update """
+    assert len(pos) == 3
+    # Calculate new carot point
+    status, carrot_pt = self._calculate_carrot_point(pos)
+
+    # Check if there are more waypoints
+    if (self.wp_index + 1) == len(self.waypoints):
+      return None
+
+    # Update waypoints
+    if status == 1:
+      self.wp_index += 1
+      self.wp_start = self.wp_end
+      self.wp_end = self.waypoints[self.wp_index]
+
+    return carrot_pt
+
+
+###############################################################################
+# MAV
+###############################################################################
+
+
+class MavModel:
+  def __init__(self):
+    self.x = np.zeros((12,))
+    self.inertia = [0.0963, 0.0963, 0.1927]
+    self.kr = 0.1  # Rotation drag constant
+    self.kt = 0.2  # Translation drag constant
+    self.l = 0.9  # Arm length
+    self.d = 1.0  # Drag co-efficient
+    self.m = 1.0  # Mass
+    self.g = 9.81  # Gravitational constant
+
+  def set_attitude(self, rpy):
+    """ Set attitude """
+    self.x[0] = rpy[0]
+    self.x[1] = rpy[1]
+    self.x[2] = rpy[2]
+
+  def set_angular_velocity(self, vel):
+    """ Set angular velocity """
+    self.x[3] = vel[0]
+    self.x[4] = vel[1]
+    self.x[5] = vel[2]
+
+  def set_position(self, pos):
+    """ Set position """
+    self.x[6] = pos[0]
+    self.x[7] = pos[1]
+    self.x[8] = pos[2]
+
+  def set_velocity(self, vel):
+    """ Set velocity """
+    self.x[9] = vel[0]
+    self.x[10] = vel[1]
+    self.x[11] = vel[2]
+
+  def get_attitude(self):
+    """ Get attitude """
+    return np.array([self.x[0], self.x[1], self.x[2]])
+
+  def get_angular_velocity(self):
+    """ Get angular velocity """
+    return np.array([self.x[3], self.x[4], self.x[5]])
+
+  def get_position(self):
+    """ Get position """
+    return np.array([self.x[6], self.x[7], self.x[8]])
+
+  def get_velocity(self):
+    """ Get velocity """
+    return np.array([self.x[9], self.x[10], self.x[11]])
+
+  def update(self, u, dt):
+    """ Update mav model """
+    # -- Attitude
+    ph = self.x[0]
+    th = self.x[1]
+    ps = self.x[2]
+    # -- Angular velocity
+    p = self.x[3]
+    q = self.x[4]
+    r = self.x[5]
+    # -- Velocity
+    vx = self.x[9]
+    vy = self.x[10]
+    vz = self.x[11]
+
+    # Map out constants
+    Ix = self.inertia[0]
+    Iy = self.inertia[1]
+    Iz = self.inertia[2]
+    kr = self.kr
+    kt = self.kt
+    m = self.m
+    mr = 1.0 / m
+    g = self.g
+
+    # Convert motor inputs to angular p, q, r and total thrust
+    # yapf:disable
+    A = np.array([
+      1.0, 1.0, 1.0, 1.0,
+      0.0, -self.l, 0.0, self.l,
+      -self.l, 0.0, self.l, 0.0,
+      -self.d, self.d, -self.d, self.d
+    ]).reshape((4, 4))
+    # yapf:enable
+
+    # tau = A * u
+    mt = 5.0  # Max-thrust
+    s = np.array([mt * u[0], mt * u[1], mt * u[2], mt * u[3]])
+    tauf, taup, tauq, taur = A @ s
+
+    # Update state
+    cph = np.cos(ph)
+    sph = np.sin(ph)
+    cth = np.cos(th)
+    sth = np.sin(th)
+    tth = np.tan(th)
+    cps = np.cos(ps)
+    sps = np.sin(ps)
+
+    # yapf:disable
+    # -- Attitude
+    self.x[0] += (p + q * sph * tth + r * cph * tth) * dt
+    self.x[1] += (q * cph - r * sph) * dt
+    self.x[2] += ((1 / cth) * (q * sph + r * cph)) * dt
+    # -- Angular velocity
+    self.x[3] += (-((Iz - Iy) / Ix) * q * r - (kr * p / Ix) + (1 / Ix) * taup) * dt
+    self.x[4] += (-((Ix - Iz) / Iy) * p * r - (kr * q / Iy) + (1 / Iy) * tauq) * dt
+    self.x[5] += (-((Iy - Ix) / Iz) * p * q - (kr * r / Iz) + (1 / Iz) * taur) * dt
+    # -- Position
+    self.x[6] += vx * dt
+    self.x[7] += vy * dt
+    self.x[8] += vz * dt
+    # -- Linear velocity
+    self.x[9] += ((-kt * vx / m) + mr * (cph * sth * cps + sph * sps) * tauf) * dt
+    self.x[10] += ((-kt * vy / m) + mr * (cph * sth * sps - sph * cps) * tauf) * dt
+    self.x[11] += (-(kt * vz / m) + mr * (cph * cth) * tauf - g) * dt
+    # yapf:enable
+
+
+class AttitudeControl:
+  def __init__(self):
+    self.dt = 0
+    self.pid_roll = PID(100.0, 0.0, 5.0)
+    self.pid_pitch = PID(100.0, 0.0, 5.0)
+    self.pid_yaw = PID(10.0, 0.0, 1.0)
+    self.u = [0.0, 0.0, 0.0, 0.0]
+
+  def update(self, sp, pv, dt):
+    """ Update """
+    # Check rate
+    self.dt += dt
+    if self.dt < 0.001:
+      return self.u  # Return previous command
+
+    # Roll, pitch, yaw and thrust
+    error_yaw = wrap_pi(sp[2] - pv[2])
+    r = self.pid_roll.update(sp[0], pv[0], self.dt)
+    p = self.pid_pitch.update(sp[1], pv[1], self.dt)
+    y = self.pid_yaw.update(error_yaw, 0.0, self.dt)
+    t = clip_value(sp[3], 0.0, 1.0)
+
+    # Map roll, pitch, yaw and thrust to motor outputs
+    self.u[0] = clip_value(-p - y + t, 0.0, 1.0)
+    self.u[1] = clip_value(-r + y + t, 0.0, 1.0)
+    self.u[2] = clip_value(p - y + t, 0.0, 1.0)
+    self.u[3] = clip_value(r + y + t, 0.0, 1.0)
+
+    # Keep track of control action
+    self.dt = 0.0  # Reset dt
+
+    return self.u
+
+  def reset(self):
+    """ Reset """
+    self.dt = 0.0
+    self.pid_roll.reset()
+    self.pid_pitch.reset()
+    self.pid_yaw.reset()
+    self.u = [0.0, 0.0, 0.0, 0.0]
+
+
+class VelocityControl:
+  def __init__(self):
+    self.dt = 0
+    self.pid_vx = PID(1.0, 0.0, 0.05)
+    self.pid_vy = PID(1.0, 0.0, 0.05)
+    self.pid_vz = PID(10.0, 0.0, 1.0)
+    self.u = [0.0, 0.0, 0.0, 0.0]
+
+  def update(self, sp, pv, dt):
+    """ Update """
+    # Check rate
+    self.dt += dt
+    if self.dt < 0.001:
+      return self.u  # Return previous command
+
+    # Calculate RPY errors relative to quadrotor by incorporating yaw
+    errors_W = np.array([sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]])
+    C_WS = euler321(pv[3], 0.0, 0.0)
+    errors = C_WS.T @ errors_W
+
+    # Roll, pitch, yaw and thrust
+    r = -self.pid_vy.update(errors[1], 0.0, dt)
+    p = self.pid_vx.update(errors[0], 0.0, dt)
+    y = sp[3]
+    t = 0.5 + self.pid_vz.update(errors[2], 0.0, dt)
+
+    self.u[0] = clip_value(r, deg2rad(-20.0), deg2rad(20.0))
+    self.u[1] = clip_value(p, deg2rad(-20.0), deg2rad(20.0))
+    self.u[2] = y
+    self.u[3] = clip_value(t, 0.0, 1.0)
+
+    # # Yaw first if threshold reached
+    # if (fabs(sp[3] - pv[3]) > deg2rad(2)) {
+    #   outputs[0] = 0.0;
+    #   outputs[1] = 0.0;
+    # }
+
+    # Keep track of control action
+    self.dt = 0.0  # Reset dt
+
+    return self.u
+
+  def reset(self):
+    """ Reset """
+    self.dt = 0.0
+    self.pid_vx.reset()
+    self.pid_vy.reset()
+    self.pid_vz.reset()
+    self.u = [0.0, 0.0, 0.0, 0.0]
+
+
+class PositionControl:
+  def __init__(self):
+    self.dt = 0
+    self.pid_x = PID(0.5, 0.0, 0.05)
+    self.pid_y = PID(0.5, 0.0, 0.05)
+    self.pid_z = PID(1.0, 0.0, 0.1)
+    self.u = [0.0, 0.0, 0.0, 0.0]
+
+  def update(self, sp, pv, dt):
+    """ Update """
+    # Check rate
+    self.dt += dt
+    if self.dt < 0.01:
+      return self.u  # Return previous command
+
+    # Calculate RPY errors relative to quadrotor by incorporating yaw
+    errors_W = [sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]]
+    C_WS = euler321(pv[3], 0.0, 0.0)
+    errors = C_WS.T @ errors_W
+
+    # Velocity commands
+    vx = self.pid_x.update(errors[0], 0.0, self.dt)
+    vy = self.pid_y.update(errors[1], 0.0, self.dt)
+    vz = self.pid_z.update(errors[2], 0.0, self.dt)
+    yaw = sp[3]
+
+    self.u[0] = clip_value(vx, -2.5, 2.5)
+    self.u[1] = clip_value(vy, -2.5, 2.5)
+    self.u[2] = clip_value(vz, -5.0, 5.0)
+    self.u[3] = yaw
+
+    # Keep track of control action
+    self.dt = 0.0
+
+    return self.u
+
+  def reset(self):
+    """ Reset """
+    self.dt = 0.0
+    self.pid_vx.reset()
+    self.pid_vy.reset()
+    self.pid_vz.reset()
+    self.u = [0.0, 0.0, 0.0, 0.0]
+
+
+class TestMav(unittest.TestCase):
+  """ Test Mav """
+  def test_mav_attitude_control(self):
+    att_sp = np.array([0.1, 0.2, -0.2, 0.0])  # roll, pitch, yaw, thrust
+    dt = 0.001
+    t_end = 0.5
+    t = 0.0
+
+    idx = 0
+    N = t_end / dt
+    mav = MavModel()
+    att_ctrl = AttitudeControl()
+
+    time_data = []
+    att_data = []
+    pos_data = []
+    vel_data = []
+    while idx < N:
+      att_pv = [mav.x[0], mav.x[1], mav.x[2]]
+      u = att_ctrl.update(att_sp, att_pv, dt)
+      mav.update(u, dt)
+
+      time_data.append(t)
+      att_data.append(mav.get_attitude())
+      pos_data.append(mav.get_position())
+      vel_data.append(mav.get_velocity())
+
+      t += dt
+      idx += 1
+
+    time_data = np.array(time_data)
+    att_data = np.array(att_data)
+    pos_data = np.array(pos_data)
+    vel_data = np.array(vel_data)
+
+    plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
+    plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
+    plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Attitude [deg]")
+    plt.show()
+
+  def test_mav_velocity_control(self):
+    vel_sp = np.array([0.1, 0.2, 1.0, 0.0])  # vx, vy, vz, yaw
+    dt = 0.001
+    t_end = 10.0
+    t = 0.0
+
+    idx = 0
+    N = t_end / dt
+    mav = MavModel()
+    att_ctrl = AttitudeControl()
+    vel_ctrl = VelocityControl()
+
+    time_data = []
+    att_data = []
+    pos_data = []
+    vel_data = []
+    while idx < N:
+      vel_pv = [mav.x[9], mav.x[10], mav.x[11], mav.x[2]]
+      att_pv = [mav.x[0], mav.x[1], mav.x[2]]
+
+      att_sp = vel_ctrl.update(vel_sp, vel_pv, dt)
+      u = att_ctrl.update(att_sp, att_pv, dt)
+      mav.update(u, dt)
+
+      time_data.append(t)
+      att_data.append(mav.get_attitude())
+      pos_data.append(mav.get_position())
+      vel_data.append(mav.get_velocity())
+
+      t += dt
+      idx += 1
+
+    time_data = np.array(time_data)
+    att_data = np.array(att_data)
+    pos_data = np.array(pos_data)
+    vel_data = np.array(vel_data)
+
+    plt.subplot(211)
+    plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
+    plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
+    plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Attitude [deg]")
+
+    plt.subplot(212)
+    plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
+    plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
+    plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Velocity [ms^-1]")
+
+    plt.show()
+
+  def test_mav_position_control(self):
+    pos_sp = np.array([10.0, 10.0, 5.0, 0.5])  # x, y, z, yaw
+    dt = 0.001
+    t_end = 10.0
+    t = 0.0
+
+    idx = 0
+    N = t_end / dt
+    mav = MavModel()
+    att_ctrl = AttitudeControl()
+    vel_ctrl = VelocityControl()
+    pos_ctrl = PositionControl()
+
+    time_data = []
+    att_data = []
+    pos_data = []
+    vel_data = []
+    while idx < N:
+      pos_pv = [mav.x[6], mav.x[7], mav.x[8], mav.x[2]]
+      vel_pv = [mav.x[9], mav.x[10], mav.x[11], mav.x[2]]
+      att_pv = [mav.x[0], mav.x[1], mav.x[2]]
+
+      vel_sp = pos_ctrl.update(pos_sp, pos_pv, dt)
+      att_sp = vel_ctrl.update(vel_sp, vel_pv, dt)
+      u = att_ctrl.update(att_sp, att_pv, dt)
+      mav.update(u, dt)
+
+      time_data.append(t)
+      att_data.append(mav.get_attitude())
+      pos_data.append(mav.get_position())
+      vel_data.append(mav.get_velocity())
+
+      t += dt
+      idx += 1
+
+    time_data = np.array(time_data)
+    att_data = np.array(att_data)
+    pos_data = np.array(pos_data)
+    vel_data = np.array(vel_data)
+
+    plt.subplot(311)
+    plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
+    plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
+    plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Attitude [deg]")
+
+    plt.subplot(312)
+    plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
+    plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
+    plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Velocity [ms^-1]")
+
+    plt.subplot(313)
+    plt.plot(time_data, pos_data[:, 0], "r-", label="x")
+    plt.plot(time_data, pos_data[:, 1], "g-", label="y")
+    plt.plot(time_data, pos_data[:, 2], "b-", label="z")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Position [m]")
+
+    plt.show()
+
+
+###############################################################################
+# Visualizer
+###############################################################################
+
+import websockets
+import asyncio
+
+from subprocess import Popen, PIPE
+
+
+class DevServer:
+  """ Dev server """
+  def __init__(self, loop_fn):
+    self.host = "127.0.0.1"
+    self.port = 5000
+    self.loop_fn = loop_fn
+
+  def __del__(self):
+    process = Popen([f"lsof", "-i", ":{self.port}"], stdout=PIPE, stderr=PIPE)
+    stdout, _ = process.communicate()
+    for process in str(stdout.decode("utf-8")).split("\n")[1:]:
+      data = [x for x in process.split(" ") if x != '']
+      if len(data) <= 1:
+        continue
+      print(f"killing {data[1]}")
+      os.kill(int(data[1]), signal.SIGKILL)
+
+  def run(self):
+    """ Run server """
+    kwargs = {"ping_timeout": 1, "close_timeout": 1}
+    server = websockets.serve(self.loop_fn, self.host, self.port, **kwargs)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(server)
+    loop.run_forever()
+
+  @staticmethod
+  def stop():
+    """ Stop server """
+    asyncio.get_event_loop().stop()
+
+
+class MultiPlot:
+  """ MultiPlot """
+  def __init__(self, has_gnd=False):
+    self.plots = []
+    self.add_pos_xy_plot(has_gnd=has_gnd)
+    self.add_pos_z_plot(has_gnd=has_gnd)
+    self.add_roll_plot(has_gnd=has_gnd)
+    self.add_pitch_plot(has_gnd=has_gnd)
+    self.add_yaw_plot(has_gnd=has_gnd)
+    self.add_pos_error_plot()
+    self.add_att_error_plot()
+    self.add_reproj_error_plot()
+
+    self.plot_data = {}
+    self.emit_rate = 8.0  # Hz
+    self.last_updated = datetime.now()
+
+  def _add_plot(self, title, xlabel, ylabel, trace_names, **kwargs):
+    conf = {}
+    conf["title"] = title
+    conf["width"] = kwargs.get("width", 300)
+    conf["height"] = kwargs.get("height", 280)
+    conf["buf_size"] = kwargs.get("buf_size", 100)
+    conf["trace_names"] = trace_names
+    conf["xlabel"] = xlabel
+    conf["ylabel"] = ylabel
+    conf["show_legend"] = (len(trace_names) > 1)
+    self.plots.append(conf)
+
+  def add_pos_xy_plot(self, **kwargs):
+    """ Add Position X-Y Data """
+    title = "Position X-Y"
+    xlabel = "x [m]"
+    ylabel = "y [m]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot(title, xlabel, ylabel, trace_names)
+
+  def add_pos_z_plot(self, **kwargs):
+    """ Add Position Z Data """
+    xlabel = "Time [s]"
+    ylabel = "y [m]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot("Position Z", xlabel, ylabel, trace_names)
+
+  def add_roll_plot(self, **kwargs):
+    """ Add Roll Data """
+    xlabel = "Time [s]"
+    ylabel = "Attitude [deg]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot("Roll", xlabel, ylabel, trace_names)
+
+  def add_pitch_plot(self, **kwargs):
+    """ Add Roll Data """
+    xlabel = "Time [s]"
+    ylabel = "Attitude [deg]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot("Pitch", xlabel, ylabel, trace_names)
+
+  def add_yaw_plot(self, **kwargs):
+    """ Add Yaw Data """
+    xlabel = "Time [s]"
+    ylabel = "Attitude [deg]"
+    trace_names = ["Estimate"]
+    if kwargs.get("has_gnd"):
+      trace_names.append("Ground-Truth")
+
+    self._add_plot("Yaw", xlabel, ylabel, trace_names)
+
+  def add_pos_error_plot(self):
+    """ Add Position Error Data """
+    title = "Position Error"
+    xlabel = "Time [s]"
+    ylabel = "Position Error [m]"
+    trace_names = ["Error"]
+    self._add_plot(title, xlabel, ylabel, trace_names)
+
+  def add_att_error_plot(self):
+    """ Add Attitude Error Data """
+    title = "Attitude Error"
+    xlabel = "Time [s]"
+    ylabel = "Position Error [m]"
+    trace_names = ["Error"]
+    self._add_plot(title, xlabel, ylabel, trace_names)
+
+  def add_reproj_error_plot(self):
+    """ Add Reprojection Error Data """
+    title = "Reprojection Error"
+    xlabel = "Time [s]"
+    ylabel = "Reprojection Error [px]"
+    trace_names = ["Mean", "RMSE"]
+    self._add_plot(title, xlabel, ylabel, trace_names)
+
+  def _form_plot_data(self, plot_title, time_s, **kwargs):
+    gnd = kwargs.get("gnd")
+    est = kwargs.get("est")
+    err = kwargs.get("err")
+
+    conf = {plot_title: {}}
+    if gnd:
+      conf[plot_title]["Ground-Truth"] = {"x": time_s, "y": gnd}
+
+    if est:
+      conf[plot_title]["Estimate"] = {"x": time_s, "y": est}
+
+    if err:
+      conf[plot_title]["Error"] = {"x": time_s, "y": err}
+
+    self.plot_data.update(conf)
+
+  def add_pos_xy_data(self, **kwargs):
+    """ Add Position X-Y Data """
+    plot_title = "Position X-Y"
+    conf = {plot_title: {}}
+
+    if "gnd" in kwargs:
+      gnd = kwargs["gnd"]
+      conf[plot_title]["Ground-Truth"] = {"x": gnd[0], "y": gnd[1]}
+
+    if "est" in kwargs:
+      est = kwargs["est"]
+      conf[plot_title]["Estimate"] = {"x": est[0], "y": est[1]}
+
+    self.plot_data.update(conf)
+
+  def add_pos_z_data(self, time_s, **kwargs):
+    """ Add Position Z Data """
+    self._form_plot_data("Position Z", time_s, **kwargs)
+
+  def add_roll_data(self, time_s, **kwargs):
+    """ Add Roll Data """
+    self._form_plot_data("Roll", time_s, **kwargs)
+
+  def add_pitch_data(self, time_s, **kwargs):
+    """ Add Roll Data """
+    self._form_plot_data("Pitch", time_s, **kwargs)
+
+  def add_yaw_data(self, time_s, **kwargs):
+    """ Add Yaw Data """
+    self._form_plot_data("Yaw", time_s, **kwargs)
+
+  def add_pos_error_data(self, time_s, error):
+    """ Add Position Error Data """
+    self._form_plot_data("Position Error", time_s, err=error)
+
+  def add_att_error_data(self, time_s, error):
+    """ Add Attitude Error Data """
+    self._form_plot_data("Attitude Error", time_s, err=error)
+
+  def add_reproj_error_data(self, time_s, reproj_rmse, reproj_mean):
+    """ Add Reprojection Error Data """
+    plot_title = "Reprojection Error"
+    conf = {plot_title: {}}
+    conf[plot_title]["Mean"] = {"x": time_s, "y": reproj_rmse}
+    conf[plot_title]["RMSE"] = {"x": time_s, "y": reproj_mean}
+    self.plot_data.update(conf)
+
+  def get_plots(self):
+    """ Get plots """
+    return json.dumps(self.plots)
+
+  def get_plot_data(self):
+    """ Get plot data """
+    return json.dumps(self.plot_data)
+
+  async def emit_data(self, ws):
+    """ Emit data """
+    time_now = datetime.now()
+    time_diff = (time_now - self.last_updated).total_seconds()
+    if time_diff > (1.0 / self.emit_rate):
+      await ws.send(self.get_plot_data())
+      self.last_updated = time_now
 
 
 async def fake_loop(ws, _):
@@ -12829,6 +12553,717 @@ class TestViz(unittest.TestCase):
     viz_server = DevServer(fake_loop)
     viz_server.run()
     self.assertTrue(viz_server is not None)
+
+
+###############################################################################
+# Sandbox
+###############################################################################
+
+
+@dataclass
+class GimbalProblem:
+  """ Gimbal Problem """
+  fiducial: np.ndarray
+  gimbal_ext: np.ndarray
+  gimbal_poses: np.ndarray
+  gimbal_link0: np.ndarray
+  gimbal_link1: np.ndarray
+  cam0_params: np.ndarray
+  cam1_params: np.ndarray
+  cam0_ext: np.ndarray
+  cam1_ext: np.ndarray
+  joint_angles: list
+
+  @staticmethod
+  def _compare_poses(name, sv0, sv1):
+    """ Compare poses """
+    dr, dtheta = pose_diff(sv0, sv1)
+    print(
+        f"{name} dr: [{dr[0]:.2e}, {dr[1]:.2e}, {dr[2]:.2e}] [m], dtheta: {rad2deg(dtheta):.2e} [deg]"
+    )
+
+  @staticmethod
+  def _compare_tfs(name, sv0, sv1):
+    """ Compare poses """
+    pose0 = tf2pose(sv0)
+    pose1 = tf2pose(sv1)
+    GimbalProblem._compare_poses(name, pose0, pose1)
+
+  @staticmethod
+  def _compare_vectors(name, sv0, sv1):
+    """ Comapre vectors """
+    dr = sv0.param - sv1.param
+    print(f"{name} dr: [", end="")
+    for _, val in enumerate(dr):
+      print(f"{val:.2e} ", end="")
+    print("]")
+
+  @staticmethod
+  def _compare_joints(joint_sets0, joint_sets1):
+    """ Comapre joints """
+    diff = 0.0
+    for _, (j0, j1) in enumerate(zip(joint_sets0, joint_sets1)):
+      dr = np.array([j0[0] - j1[0], j0[1] - j1[1], j0[2] - j1[2]])
+      diff += np.sum(np.fabs(dr))
+
+    print(f"joints diff: {diff:.4f} [deg]")
+
+  def get_joint_pose(self, view_idx, joint_idx):
+    """ Get joint pose """
+    links = [
+        tf2pose(self.gimbal_link0),
+        tf2pose(self.gimbal_link1),
+    ]
+    joint_angles = [
+        self.joint_angles[view_idx][0],
+        self.joint_angles[view_idx][1],
+        self.joint_angles[view_idx][2],
+    ]
+    gimbal = GimbalKinematics(links, joint_angles)
+    T_M0L = gimbal.forward_kinematics(joint_idx=joint_idx)
+    T_WL = self.gimbal_poses[0] @ self.gimbal_ext @ T_M0L
+    return T_WL
+
+  def get_camera_pose(self, view_idx, cam_idx):
+    """ Get camera pose """
+    T_WL2 = self.get_joint_pose(view_idx, 2)
+    if cam_idx == 0:
+      T_L2Ci = self.cam0_ext
+      return T_WL2 @ T_L2Ci
+    elif cam_idx == 1:
+      T_L2Ci = self.cam1_ext
+      return T_WL2 @ T_L2Ci
+
+    return None
+
+  def get_fiducial_pose(self):
+    """ Get fiducial pose """
+    return self.fiducial
+
+  def compare(self, data):
+    """ Compare against another gimbal problem """
+    self._compare_tfs("fiducial", self.fiducial, data.fiducial)
+    self._compare_tfs("gimbal_ext", self.gimbal_ext, data.gimbal_ext)
+    # self._compare_tfs("gimbal_pose", self.gimbal_pose, data.gimbal_pose)
+    self._compare_tfs("gimbal_link0", self.gimbal_link0, data.gimbal_link0)
+    self._compare_tfs("gimbal_link1", self.gimbal_link1, data.gimbal_link1)
+    self._compare_vectors("cam0_params", self.cam0_params, data.cam0_params)
+    self._compare_vectors("cam1_params", self.cam1_params, data.cam1_params)
+    self._compare_tfs("cam0_ext", self.cam0_ext, data.cam0_ext)
+    self._compare_tfs("cam1_ext", self.cam1_ext, data.cam1_ext)
+    self._compare_joints(self.joint_angles, data.joint_angles)
+
+
+class SimGimbal:
+  """ Gimbal Simulation """
+  def __init__(self):
+    self.T_WB = None
+    self.T_BM0 = None
+    self.links = []
+    self.joint_angles = []
+    self.cam_params = []
+    self.end_ext = None
+    self.cam_exts = []
+
+    # Setup
+    self._setup_calib_target()
+    self._setup_gimbal()
+    self._setup_camera_params()
+    self._setup_camera_extrinsics()
+
+  def _setup_calib_target(self):
+    """ Setup calibration target """
+    self.calib_target = AprilGrid()
+    C_WF = euler321(-pi / 2.0, 0.0, pi / 2.0)
+    r_WF = np.array([0.3, 0.0, 0.0])
+    self.T_WF = tf(C_WF, r_WF)
+
+  def _setup_gimbal(self):
+    # Gimbal pose
+    # offset_x = 0.0
+    # offset_y = -self.calib_target.get_dimensions()[0] / 2.0
+    # offset_z = self.calib_target.get_dimensions()[1] / 2.0 - 0.2
+    # C_WB = euler321(0.01, 0.01, 0.01)
+    # r_WB = np.array([offset_x, offset_y, offset_z])
+    # self.T_WB = tf(C_WB, r_WB)
+    self.T_WB = np.eye(4)
+
+    # Body to gimbal extrinsics
+    C_BM0 = euler321(0.01, 0.01, 0.01)
+    r_BM0 = np.array([0.001, 0.001, 0.001])
+    self.T_BM0 = tf(C_BM0, r_BM0)
+
+    # Gimbal links
+    # -- Roll link
+    C_L0M1 = euler321(0.0, deg2rad(90.0), 0.0)
+    r_L0M1 = np.array([-0.1, 0.0, 0.15])
+    T_L0M1 = tf(C_L0M1, r_L0M1)
+    self.links.append(tf2pose(T_L0M1))
+    # -- Pitch link
+    C_L1M2 = euler321(0.0, 0.0, deg2rad(-90.0))
+    r_L1M2 = np.array([0.0, -0.05, 0.1])
+    T_L1M2 = tf(C_L1M2, r_L1M2)
+    self.links.append(tf2pose(T_L1M2))
+
+    # Gimbal joint angles
+    self.joint_angles = [0.0, 0.0, 0.0]
+
+    # Gimbal
+    self.gimbal = GimbalKinematics(self.links, self.joint_angles)
+
+  def _setup_camera_params(self):
+    """ Setup Camera Parameters """
+    res = [640, 480]
+    fov = 120.0
+    fx = focal_length(res[0], fov)
+    fy = focal_length(res[0], fov)
+    cx = res[0] / 2.0
+    cy = res[1] / 2.0
+
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    proj_params = [fx, fy, cx, cy]
+    dist_params = [0.0, 0.0, 0.0, 0.0]
+    params = np.block([*proj_params, *dist_params])
+
+    cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
+    cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
+
+    self.cam_params.append(cam0)
+    self.cam_params.append(cam1)
+
+  def _setup_camera_extrinsics(self):
+    """ Setup camera extrinsics """
+    # End effector extrinsic
+    C_L2E = euler321(deg2rad(-90.0), deg2rad(90.0), 0.0)
+    r_L2E = np.array([0.0, -0.05, 0.12])
+    T_L2E = tf(C_L2E, r_L2E)
+    self.end_ext = T_L2E
+
+    # cam0-cam1 extrinsics
+    C_C0C1 = euler321(deg2rad(0.0), deg2rad(0.0), 0.0)
+    r_C0C1 = np.array([0.1, 0.0, 0.0])
+    T_C0C1 = tf(C_C0C1, r_C0C1)
+    self.cam_exts.append(np.eye(4))  # T_C0C0
+    self.cam_exts.append(T_C0C1)  # T_C0C1
+
+  def get_camera_measurements(self, cam_idx):
+    """ Simulate camera frame """
+    cam_geom = self.cam_params[cam_idx].data
+    T_M0L2 = self.gimbal.forward_kinematics(joint_idx=2)
+    T_L2E = self.end_ext
+    T_ECi = self.cam_exts[cam_idx]
+    T_WCi = self.T_WB @ self.T_BM0 @ T_M0L2 @ T_L2E @ T_ECi
+    T_CiW = np.linalg.inv(T_WCi)
+
+    tag_ids = []
+    corner_idxs = []
+    object_points = []
+    keypoints = []
+    for (tag_id, corner_idx, p_FFi) in self.calib_target.get_object_points():
+      p_CiFi = tf_point(T_CiW @ self.T_WF, p_FFi)
+      status, z = cam_geom.project(self.cam_params[cam_idx].param, p_CiFi)
+      if status:
+        tag_ids.append(tag_id)
+        corner_idxs.append(corner_idx)
+        object_points.append(p_FFi)
+        keypoints.append(z)
+
+    cam_data = {
+        "num_measurements": len(tag_ids),
+        "tag_ids": tag_ids,
+        "corner_idxs": corner_idxs,
+        "object_points": np.array(object_points),
+        "keypoints": np.array(keypoints),
+    }
+
+    return cam_data
+
+  def visualize(self):
+    """ Visualize """
+    T_M0L0 = self.gimbal.forward_kinematics(joint_idx=0)
+    T_M0L1 = self.gimbal.forward_kinematics(joint_idx=1)
+    T_M0L2 = self.gimbal.forward_kinematics(joint_idx=2)
+    T_WL0 = self.T_WB @ self.T_BM0 @ T_M0L0
+    T_WL1 = self.T_WB @ self.T_BM0 @ T_M0L1
+    T_WL2 = self.T_WB @ self.T_BM0 @ T_M0L2
+    T_L2E = self.end_ext
+    T_WC0 = T_WL2 @ T_L2E @ self.cam_exts[0]
+    T_WC1 = T_WL2 @ T_L2E @ self.cam_exts[1]
+
+    # Visualize
+    plt.figure()
+    ax = plt.axes(projection='3d')
+
+    # Plot transforms
+    self.calib_target.plot(ax, self.T_WF)
+    plot_tf(ax, T_WL0, name="Link0", size=0.05)
+    plot_tf(ax, T_WL1, name="Link1", size=0.05)
+    plot_tf(ax, T_WL2, name="Link2", size=0.05)
+    plot_tf(ax, T_WC0, name="cam0", size=0.05)
+    plot_tf(ax, T_WC1, name="cam1", size=0.05)
+
+    # Plot settings
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
+
+  def plot_camera_frame(self, **kwargs):
+    """ Plot camera frame """
+    figsize = kwargs.get("figsize", (1200, 600))
+    dpi = kwargs.get("dpi", 96)
+
+    # Camera resolution and measurements
+    cam0_res = self.cam_params[0].data.resolution
+    cam1_res = self.cam_params[1].data.resolution
+    cam0_data = self.get_camera_measurements(0)["keypoints"]
+    cam1_data = self.get_camera_measurements(1)["keypoints"]
+
+    # Setup plot
+    figsize = (figsize[0] / dpi, figsize[1] / dpi)
+    plt.figure(figsize=figsize, dpi=dpi)
+
+    # -- Plot cam0
+    ax0 = plt.subplot(121)
+    ax0.plot(cam0_data[:, 0], cam0_data[:, 1], 'r.')
+    ax0.axis([0, cam0_res[0], cam0_res[1], 0])
+    ax0.set_xlabel('pixel')
+    ax0.set_ylabel('pixel')
+    ax0.xaxis.tick_top()
+    ax0.xaxis.set_label_position('top')
+    ax0.set_title("Camera 0")
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    # -- Plot cam1
+    ax1 = plt.subplot(122)
+    ax1.plot(cam1_data[:, 0], cam1_data[:, 1], 'r.')
+    ax1.axis([0, cam1_res[0], cam1_res[1], 0])
+    ax1.set_xlabel('pixel')
+    ax1.set_ylabel('pixel')
+    ax1.xaxis.tick_top()
+    ax1.xaxis.set_label_position('top')
+    ax1.set_title("Camera 1")
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    plt.show()
+
+  def simulate(self, **kwargs):
+    """ Simulate """
+    # Settings
+    num_views = kwargs.get("num_views", 50)
+    fix_gimbal = kwargs.get("fix_gimbal", True)
+
+    # Simulation data
+    pose_data = []
+    view_data = []
+    joint_data = []
+
+    # Fix gimbal pose?
+    if fix_gimbal is True:
+      pose_data.append(copy.deepcopy(self.T_WB))
+
+    # # Perturb Yaw
+    # yaw_start = deg2rad(-45)
+    # yaw_end = deg2rad(45)
+    # yaw_diff = deg2rad(10)
+    # yaw = yaw_start
+
+    # while yaw <= yaw_end:
+    #   # Perturb joint angles for a different view
+    #   self.gimbal.joint_angles[0] = yaw
+    #   self.gimbal.joint_angles[1] = 0.0
+    #   self.gimbal.joint_angles[2] = 0.0
+    #   joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+
+    #   # Get camera data
+    #   cam_data = []
+    #   for cam_idx in range(len(self.cam_params)):
+    #     cam_data.append(self.get_camera_measurements(cam_idx))
+    #   view_data.append(cam_data)
+
+    #   # Update
+    #   yaw += yaw_diff
+
+    # # Perturb Roll
+    # roll_start = deg2rad(-45)
+    # roll_end = deg2rad(45)
+    # roll_diff = deg2rad(10)
+    # roll = roll_start
+
+    # while roll <= roll_end:
+    #   # Perturb joint angles for a different view
+    #   self.gimbal.joint_angles[0] = 0.0
+    #   self.gimbal.joint_angles[1] = roll
+    #   self.gimbal.joint_angles[2] = 0.0
+    #   joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+
+    #   # Get camera data
+    #   cam_data = []
+    #   for cam_idx in range(len(self.cam_params)):
+    #     cam_data.append(self.get_camera_measurements(cam_idx))
+    #   view_data.append(cam_data)
+
+    #   # Update
+    #   roll += roll_diff
+
+    # # Perturb pitch
+    # pitch_start = deg2rad(-45)
+    # pitch_end = deg2rad(45)
+    # pitch_diff = deg2rad(10)
+    # pitch = pitch_start
+
+    # while pitch <= pitch_end:
+    #   # Perturb joint angles for a different view
+    #   self.gimbal.joint_angles[0] = 0.0
+    #   self.gimbal.joint_angles[1] = pitch
+    #   self.gimbal.joint_angles[2] = 0.0
+    #   joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+
+    #   # Get camera data
+    #   cam_data = []
+    #   for cam_idx in range(len(self.cam_params)):
+    #     cam_data.append(self.get_camera_measurements(cam_idx))
+    #   view_data.append(cam_data)
+
+    #   # Update
+    #   pitch += pitch_diff
+
+    # Simulate Random joint angles
+    for _ in range(num_views):
+      # Perturb joint angles for a different view
+      self.gimbal.joint_angles[0] = np.random.uniform(-1.0, 1.0)
+      self.gimbal.joint_angles[1] = np.random.uniform(-1.5, 1.5)
+      self.gimbal.joint_angles[2] = np.random.uniform(-1.5, 1.5)
+      joint_data.append(copy.deepcopy(self.gimbal.joint_angles))
+
+      # Perturb body pose
+      if fix_gimbal is False:
+        self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
+        self.T_WB = tf_perturb(self.T_WB, 3, np.random.uniform(-0.01, 0.01))
+        self.T_WB = tf_perturb(self.T_WB, 4, np.random.uniform(-0.01, 0.01))
+        self.T_WB = tf_perturb(self.T_WB, 5, np.random.uniform(-0.01, 0.01))
+        pose_data.append(copy.deepcopy(self.T_WB))
+
+      # Get camera data
+      cam_data = []
+      for cam_idx in range(len(self.cam_params)):
+        cam_data.append(self.get_camera_measurements(cam_idx))
+      view_data.append(cam_data)
+
+    return (pose_data, view_data, joint_data)
+
+  @staticmethod
+  def _setup_save_dir():
+    """ Setup save dir """
+    os.system("rm -rf /tmp/sim_gimbal")
+    os.system("mkdir -p /tmp/sim_gimbal")
+    os.system("mkdir -p /tmp/sim_gimbal/grid0/cam0")
+    os.system("mkdir -p /tmp/sim_gimbal/grid0/cam1")
+
+  def _save_calib_file(self):
+    """ Save calib file """
+    # Save calib file
+    calib_file = open(f"/tmp/sim_gimbal/calib.config", "w")
+    # -- Save camera parameters
+    calib_file.write(f"num_cams: {len(self.cam_params)}\n")
+    calib_file.write(f"num_links: {len(self.links)}\n")
+    calib_file.write("\n")
+    for cam_idx, cam_params in enumerate(self.cam_params):
+      cam_geom = cam_params.data
+      cam_res = cam_geom.resolution
+      proj_params = [str(x) for x in cam_geom.proj_params(cam_params.param)]
+      dist_params = [str(x) for x in cam_geom.dist_params(cam_params.param)]
+
+      calib_file.write(f"cam{cam_idx}:\n")
+      calib_file.write(f"  resolution: [{cam_res[0]}, {cam_res[1]}]\n")
+      calib_file.write(f"  proj_model: \"{cam_geom.proj_model}\"\n")
+      calib_file.write(f"  dist_model: \"{cam_geom.dist_model}\"\n")
+      calib_file.write(f"  proj_params: [{', '.join(proj_params)}]\n")
+      calib_file.write(f"  dist_params: [{', '.join(dist_params)}]\n")
+      calib_file.write(f"\n")
+    # -- Save camera extrinsics
+    for cam_idx, cam_ext in enumerate(self.cam_exts):
+      rx, ry, rz = tf_trans(cam_ext)
+      qw, qx, qy, qz = tf_quat(cam_ext)
+      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+      calib_file.write(f"cam{cam_idx}_ext: [{tf_str}]\n")
+    # -- Save end effector
+    rx, ry, rz = tf_trans(self.end_ext)
+    qw, qx, qy, qz = tf_quat(self.end_ext)
+    tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+    calib_file.write(f"end_ext: [{tf_str}]\n")
+    # -- Save gimbal links
+    for link_idx, link_ext in enumerate(self.links):
+      rx, ry, rz = tf_trans(pose2tf(link_ext))
+      qw, qx, qy, qz = tf_quat(pose2tf(link_ext))
+      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+      calib_file.write(f"link{link_idx}_ext: [{tf_str}]\n")
+    # -- Save gimbal extrinsics
+    rx, ry, rz = tf_trans(self.T_BM0)
+    qw, qx, qy, qz = tf_quat(self.T_BM0)
+    tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+    calib_file.write(f"gimbal_ext: [{tf_str}]\n")
+    # -- Save fiducial extrinsics
+    rx, ry, rz = tf_trans(self.T_WF)
+    qw, qx, qy, qz = tf_quat(self.T_WF)
+    tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+    calib_file.write(f"fiducial_pose: [{tf_str}]\n")
+    # -- Clean up
+    calib_file.close()
+
+  def _save_camera_data(self, view_data):
+    """ Save camera data """
+    # Save camera data
+    for view_idx, view_set in enumerate(view_data):
+      for cam_idx, cam_data in enumerate(view_set):
+        view_file = open(f"/tmp/sim_gimbal/grid0/cam{cam_idx}/{view_idx}.dat",
+                         "w")
+        view_file.write(f"timestamp: {view_idx}\n")
+        view_file.write(f"num_rows: {self.calib_target.tag_rows}\n")
+        view_file.write(f"num_cols: {self.calib_target.tag_cols}\n")
+        view_file.write(f"tag_size: {self.calib_target.tag_size}\n")
+        view_file.write(f"tag_spacing: {self.calib_target.tag_spacing}\n")
+        view_file.write("\n")
+        view_file.write(f"corners_detected: {cam_data['num_measurements']}\n")
+
+        view_file.write(f"#tag_id,corner_idx,kp_x,kp_y,px,py,pz\n")
+        for i in range(cam_data["num_measurements"]):
+          tag_id = cam_data["tag_ids"][i]
+          corner_idx = cam_data["corner_idxs"][i]
+          pt = cam_data["object_points"][i]
+          kp = cam_data["keypoints"][i]
+
+          view_file.write(f"{tag_id},")
+          view_file.write(f"{corner_idx},")
+          view_file.write(f"{kp[0]},{kp[1]},")
+          view_file.write(f"{pt[0]},{pt[1]},{pt[2]}")
+          view_file.write("\n")
+        view_file.close()
+
+  def _save_poses_data(self, pose_data):
+    """ Save pose data """
+    poses_file = open(f"/tmp/sim_gimbal/poses.dat", "w")
+    poses_file.write(f"num_poses: {len(pose_data)}\n")
+    poses_file.write(f"\n")
+    poses_file.write(f"#ts,x,y,z,qw,qx,qy,qz\n")
+    view_idx = 0
+    for pose in pose_data:
+      rx, ry, rz = tf_trans(pose)
+      qw, qx, qy, qz = tf_quat(pose)
+      tf_str = ", ".join([str(x) for x in [rx, ry, rz, qw, qx, qy, qz]])
+      poses_file.write(f"{view_idx},{tf_str}\n")
+      view_idx += 1
+    poses_file.close()
+
+  def _save_joints_data(self, view_data, joint_data):
+    """ Save joints data """
+    num_joints = len(self.joint_angles)
+    joints_file = open(f"/tmp/sim_gimbal/joint_angles.dat", "w")
+    joints_file.write(f"num_views: {len(view_data)}\n")
+    joints_file.write(f"num_joints: {num_joints}\n")
+    joints_file.write(f"\n")
+    joints_str = ','.join([f"joint{i}" for i in range(num_joints)])
+    joints_file.write(f"#ts,{joints_str}\n")
+    for i, data in enumerate(joint_data):
+      joints_str = ','.join([str(x) for x in data])
+      joints_file.write(f"{i},{joints_str}\n")
+    joints_file.close()
+
+  def save(self, sim_data):
+    """ Save """
+    pose_data, view_data, joint_data = sim_data
+    self._setup_save_dir()
+    self._save_calib_file()
+    self._save_camera_data(view_data)
+    self._save_poses_data(pose_data)
+    self._save_joints_data(view_data, joint_data)
+
+  def plot(self, gnd, init, est, **kwargs):
+    """ Plot """
+    figsize = kwargs.get("figsize", (1200, 600))
+    dpi = kwargs.get("dpi", 96)
+    num_views = len(gnd.joint_angles)
+
+    for view_idx in range(num_views):
+      # Visualize
+      _ = plt.figure(figsize=(figsize[0] / dpi, figsize[1] / dpi), dpi=dpi)
+
+      # Plot data
+      # -- Ground truth
+      T_WF_gnd = gnd.get_fiducial_pose()
+      T_WL0_gnd = gnd.get_joint_pose(view_idx, 0)
+      T_WL1_gnd = gnd.get_joint_pose(view_idx, 1)
+      T_WL2_gnd = gnd.get_joint_pose(view_idx, 2)
+      T_WC0_gnd = gnd.get_camera_pose(view_idx, 0)
+      T_WC1_gnd = gnd.get_camera_pose(view_idx, 1)
+      # -- Initial
+      T_WF_init = init.get_fiducial_pose()
+      T_WL0_init = init.get_joint_pose(view_idx, 0)
+      T_WL1_init = init.get_joint_pose(view_idx, 1)
+      T_WL2_init = init.get_joint_pose(view_idx, 2)
+      T_WC0_init = init.get_camera_pose(view_idx, 0)
+      T_WC1_init = init.get_camera_pose(view_idx, 1)
+      # -- Estimated
+      T_WF_est = est.get_fiducial_pose()
+      T_WL0_est = est.get_joint_pose(view_idx, 0)
+      T_WL1_est = est.get_joint_pose(view_idx, 1)
+      T_WL2_est = est.get_joint_pose(view_idx, 2)
+      T_WC0_est = est.get_camera_pose(view_idx, 0)
+      T_WC1_est = est.get_camera_pose(view_idx, 1)
+
+      # Before optimisation
+      ax = plt.subplot(121, projection='3d')
+      # -- Plot ground Truth
+      gnd_c = ('r-', 'r-', 'r-')
+      gnd_pt = '#ff0000'
+      self.calib_target.plot(ax, T_WF_gnd, tf_colors=gnd_c, pt_colors=gnd_pt)
+      plot_tf(ax, T_WL0_gnd, name="Link0", size=0.05, colors=gnd_c)
+      plot_tf(ax, T_WL1_gnd, name="Link1", size=0.05, colors=gnd_c)
+      plot_tf(ax, T_WL2_gnd, name="Link2", size=0.05, colors=gnd_c)
+      plot_tf(ax, T_WC0_gnd, name="cam0", size=0.05, colors=gnd_c)
+      plot_tf(ax, T_WC1_gnd, name="cam1", size=0.05, colors=gnd_c)
+      # -- Plot initial
+      init_c = ('b-', 'b-', 'b-')
+      init_pt = "#0000ff"
+      self.calib_target.plot(ax, T_WF_init, tf_colors=init_c, pt_colors=init_pt)
+      plot_tf(ax, T_WL0_init, name="Link0", size=0.05, colors=init_c)
+      plot_tf(ax, T_WL1_init, name="Link1", size=0.05, colors=init_c)
+      plot_tf(ax, T_WL2_init, name="Link2", size=0.05, colors=init_c)
+      plot_tf(ax, T_WC0_init, name="cam0", size=0.05, colors=init_c)
+      plot_tf(ax, T_WC1_init, name="cam1", size=0.05, colors=init_c)
+      # -- Plot settings
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plot_set_axes_equal(ax)
+      ax.set_title("Before Optimisation")
+
+      # After optimisation
+      ax = plt.subplot(122, projection='3d')
+      # -- Plot ground Truth
+      gnd_c = ('r-', 'r-', 'r-')
+      gnd_pt = '#ff0000'
+      self.calib_target.plot(ax, T_WF_gnd, tf_colors=gnd_c, pt_colors=gnd_pt)
+      plot_tf(ax, T_WL0_gnd, name="Link0", size=0.05, colors=gnd_c)
+      plot_tf(ax, T_WL1_gnd, name="Link1", size=0.05, colors=gnd_c)
+      plot_tf(ax, T_WL2_gnd, name="Link2", size=0.05, colors=gnd_c)
+      plot_tf(ax, T_WC0_gnd, name="cam0", size=0.05, colors=gnd_c)
+      plot_tf(ax, T_WC1_gnd, name="cam1", size=0.05, colors=gnd_c)
+      # -- Plot Estimate
+      est_c = ('b-', 'b-', 'b-')
+      est_pt = "#0000ff"
+      self.calib_target.plot(ax, T_WF_est, tf_colors=est_c, pt_colors=est_pt)
+      plot_tf(ax, T_WL0_est, name="Link0", size=0.05, colors=est_c)
+      plot_tf(ax, T_WL1_est, name="Link1", size=0.05, colors=est_c)
+      plot_tf(ax, T_WL2_est, name="Link2", size=0.05, colors=est_c)
+      plot_tf(ax, T_WC0_est, name="cam0", size=0.05, colors=est_c)
+      plot_tf(ax, T_WC1_est, name="cam1", size=0.05, colors=est_c)
+      # -- Plot settings
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      ax.set_title("After Optimisation")
+      plot_set_axes_equal(ax)
+
+      plt.subplots_adjust(left=0.05,
+                          right=0.95,
+                          top=0.95,
+                          bottom=0.05,
+                          wspace=0.05)
+      plt.show()
+
+  def solve(self, sim_data):
+    """ Solve """
+    (pose_data, view_data, joint_data) = sim_data
+    print(f"num_poses: {len(pose_data)}")
+
+    # Ground-truth
+    gnd = GimbalProblem(self.T_WF,
+                        self.T_BM0, pose_data, pose2tf(self.links[0]),
+                        pose2tf(self.links[1]), self.cam_params[0],
+                        self.cam_params[1], self.cam_exts[0], self.cam_exts[1],
+                        joint_data)
+
+    # Estimation
+    est = copy.deepcopy(gnd)
+
+    # -- Perturb gimbal pose
+    # dpos = [-0.1, 0.1]
+    # drot = [-0.1, 0.1]
+    # for i, pose in enumerate(est.gimbal_poses):
+    #   pose = perturb_tf_random(pose, dpos, drot)
+    #   est.gimbal_poses[i] = pose
+
+    # -- Perturb gimbal links
+    dpos = [-0.01, 0.01]
+    drot = [-0.0, 0.0]
+    est.gimbal_link0 = perturb_tf_random(est.gimbal_link0, dpos, drot)
+    est.gimbal_link1 = perturb_tf_random(est.gimbal_link1, dpos, drot)
+
+    # -- Perturb gimbal joints
+    for view_idx, joints in enumerate(est.joint_angles):
+      drot = np.random.uniform(-0.01, 0.01, size=(3,))
+      est.joint_angles[view_idx] = joints + drot
+    init = copy.deepcopy(est)
+
+    fix_fiducial = True
+    fix_body_pose = True
+    fix_gimbal_ext = True
+    fix_gimbal_links = [False, False]
+    fix_gimbal_joints = [False, False, False]
+    fix_cam_params = [True, True]
+    fix_cam_exts = [True, True]
+
+    calib = GimbalCalibrator()
+    calib.add_fiducial(est.fiducial, fix=fix_fiducial)
+    calib.add_body_pose(0, est.gimbal_poses[0], fix=fix_body_pose)
+    calib.add_gimbal_extrinsic(est.gimbal_ext, fix=fix_gimbal_ext)
+    calib.add_gimbal_link(0, est.gimbal_link0, fix=fix_gimbal_links[0])
+    calib.add_gimbal_link(1, est.gimbal_link1, fix=fix_gimbal_links[1])
+    calib.add_camera(cam_params=est.cam0_params, fix=fix_cam_params[0])
+    calib.add_camera(cam_params=est.cam1_params, fix=fix_cam_params[1])
+    calib.add_camera_extrinsic(0, est.cam0_ext, fix=fix_cam_exts[0])
+    calib.add_camera_extrinsic(1, est.cam1_ext, fix=fix_cam_exts[1])
+
+    # Add camera views
+    est_data = zip(view_data, est.joint_angles)
+    for view_idx, (view_set, joints) in enumerate(est_data):
+      # Add pose
+      if len(est.gimbal_poses) > 1 and view_idx >= 1:
+        calib.add_body_pose(view_idx,
+                            est.gimbal_poses[view_idx],
+                            fix=fix_body_pose)
+
+      # Add views
+      calib.add_gimbal_joint(view_idx, 0, joints[0], fix=fix_gimbal_joints[0])
+      calib.add_gimbal_joint(view_idx, 1, joints[1], fix=fix_gimbal_joints[1])
+      calib.add_gimbal_joint(view_idx, 2, joints[2], fix=fix_gimbal_joints[2])
+      calib.add_camera_view_set(view_idx, view_set)
+
+    # Solve
+    print(f"fix_fiducial: {fix_fiducial}")
+    print(f"fix_body_pose: {fix_body_pose}")
+    print(f"fix_gimbal_ext: {fix_gimbal_ext}")
+    print(f"fix_gimbal_links: {fix_gimbal_links}")
+    print(f"fix_gimbal_joints: {fix_gimbal_joints}")
+    print(f"fix_cam_params: {fix_cam_params}")
+    print(f"fix_cam_exts:  {fix_cam_exts}")
+    print("")
+    calib.solve(max_iter=10)
+
+    # Compare results
+    print("\ngnd - init")
+    gnd.compare(init)
+
+    print("\ngnd - est")
+    est = calib.results()
+    gnd.compare(est)
+
+    # self.plot(gnd, init, est)
 
 
 class TestSandbox(unittest.TestCase):
