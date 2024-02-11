@@ -3441,6 +3441,7 @@ void dot(const real_t *A,
   size_t m = A_m;
   size_t n = B_n;
 
+  memset(C, 0, sizeof(real_t) * A_m * B_n);
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
       for (size_t k = 0; k < A_n; k++) {
@@ -7149,11 +7150,23 @@ void linear_triangulation(const real_t P_i[3 * 4],
   dot(A_t, 4, 4, A, 4, 4, A2);
   svd(A2, 4, 4, U, s, V);
 
-  // Get last row of V_t and normalize the scale to obtain the 3D point
-  const real_t x = V[3];
-  const real_t y = V[7];
-  const real_t z = V[11];
-  const real_t w = V[15];
+  // Get best row of V_t
+  real_t min_s = s[0];
+  real_t x = V[0];
+  real_t y = V[4];
+  real_t z = V[8];
+  real_t w = V[12];
+  for (int i = 1; i < 4; i++) {
+    if (s[i] < min_s) {
+      min_s = s[i];
+      x = V[i + 0];
+      y = V[i + 4];
+      z = V[i + 8];
+      w = V[i + 12];
+    }
+  }
+
+  // Normalize the scale to obtain the 3D point
   p[0] = x / w;
   p[1] = y / w;
   p[2] = z / w;
