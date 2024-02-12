@@ -4918,14 +4918,19 @@ class KalmanFilter:
     K = self.P @ self.H.T @ np.linalg.inv(S)
     self.x = self.x + K @ y
     self.P = (I - K @ self.H) @ self.P
+    return self.x
 
 
 class TestKalmanFilter(unittest.TestCase):
   """ Test Kalman Filter """
-  def test_kalman_filter(self):
+  def test_constant_acceleration_example(self):
+    # Simulation parameters
     dt = 0.01
     dt_sq = dt * dt
+    t = 0.0
+    t_end = 5.0
 
+    # -- Initial state
     rx = 0.0
     ry = 0.0
     vx = 9.0
@@ -4957,8 +4962,11 @@ class TestKalmanFilter(unittest.TestCase):
     R = 10.0 * np.eye(2)
     # yapf:enable
 
-    t = 0.0
-    t_end = 5.0
+    # -- Setup Kalman Filter
+    kwargs = {"x0": x0, "F": F, "H": H, "B": B, "Q": Q, "R": R}
+    kf = KalmanFilter(**kwargs)
+
+    # Simulate
     time = []
     gnd_rx = []
     gnd_ry = []
@@ -4971,16 +4979,14 @@ class TestKalmanFilter(unittest.TestCase):
     est_rx = []
     est_ry = []
 
-    kwargs = {"x0": x0, "F": F, "H": H, "B": B, "Q": Q, "R": R}
-    kf = KalmanFilter(**kwargs)
-
     while t <= t_end:
-      # Ground-truth
+      # Simulate Ground-truth
       rx += (vx * dt) + (0.5 * ax * dt_sq)
       ry += (vy * dt) + (0.5 * ay * dt_sq)
       vx += ax * dt
       vy += ay * dt
 
+      # Simulate input and noisy measurements
       u = np.array([0.0])
       noise_zx = np.random.normal(0.0, 1.0)
       noise_zy = np.random.normal(0.0, 1.0)
@@ -4988,6 +4994,7 @@ class TestKalmanFilter(unittest.TestCase):
       meas_zx.append(z[0])
       meas_zy.append(z[1])
 
+      # Kalman filter prediction and update
       kf.predict(u)
       kf.update(z)
       est_rx.append(kf.x[0])
@@ -5003,28 +5010,14 @@ class TestKalmanFilter(unittest.TestCase):
       gnd_ay.append(ay)
       t += dt
 
-    plt.subplot(311)
+    # Plot X-Y
     plt.plot(gnd_rx, gnd_ry, "k--", label="Ground-Truth")
     plt.plot(meas_zx, meas_zy, "r.", label="Measurement")
     plt.plot(est_rx, est_ry, "b-", label="Estimate")
     plt.axis("equal")
+    plt.legend(loc=0)
     plt.xlabel("x [m]")
     plt.ylabel("y [m]")
-
-    plt.subplot(312)
-    plt.plot(time, gnd_rx, "k--", label="Ground-Truth")
-    plt.plot(time, meas_zx, "r.", label="Measurement")
-    plt.plot(time, est_rx, "b-", label="Estimate")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Position [m]")
-
-    plt.subplot(313)
-    plt.plot(time, gnd_ry, "k--", label="Ground-Truth")
-    plt.plot(time, meas_zy, "r.", label="Measurement")
-    plt.plot(time, est_ry, "b-", label="Estimate")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Position [m]")
-
     plt.show()
 
 
