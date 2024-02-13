@@ -4939,30 +4939,25 @@ class TestKalmanFilter(unittest.TestCase):
     ay = -12.0
     x0 = np.array([rx, ry, vx, vy, ax, ay])
 
+    # -- Setup Kalman Filter
     # yapf:disable
-    # Transition Matrix
-    F = np.array([
-      [1.0, 0.0,  dt,         0.0, 0.5 * dt**2,         0.0],
-      [0.0, 1.0, 0.0,          dt,         0.0, 0.5 * dt**2],
-      [0.0, 0.0, 1.0,         0.0,          dt,         0.0],
-      [0.0, 0.0, 0.0,         1.0,         0.0,          dt],
-      [0.0, 0.0, 0.0,         0.0,         1.0,         0.0],
-      [0.0, 0.0, 0.0,         0.0,         0.0,         1.0]
-    ])
-    # Measurement Matrix
-    H = np.array([
-      [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-      [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
-    ])
-    # Input Matrix
+    # ---- Transition Matrix
+    F = np.array([[1.0, 0.0, dt, 0.0, 0.5 * dt**2, 0.0],
+                  [0.0, 1.0, 0.0, dt, 0.0, 0.5 * dt**2],
+                  [0.0, 0.0, 1.0, 0.0, dt, 0.0], [0.0, 0.0, 0.0, 1.0, 0.0, dt],
+                  [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                  [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]])
+    # ---- Measurement Matrix
+    H = np.array([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                  [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]])
+    # ---- Input Matrix
     B = np.array([0])
-    # Process Noise Matrix
+    # ---- Process Noise Matrix
     Q = 0.1 * np.eye(6)
-    # Measurement Noise Matrix
+    # ---- Measurement Noise Matrix
     R = 10.0 * np.eye(2)
     # yapf:enable
-
-    # -- Setup Kalman Filter
+    # ---- Kalman Filter
     kwargs = {"x0": x0, "F": F, "H": H, "B": B, "Q": Q, "R": R}
     kf = KalmanFilter(**kwargs)
 
