@@ -11994,8 +11994,21 @@ class CarrotController:
 
 
 class MavModel:
-  def __init__(self):
+  def __init__(self, **kwargs):
     self.x = np.zeros((12,))
+    self.x[0] = kwargs.get("roll", 0.0)
+    self.x[1] = kwargs.get("pitch", 0.0)
+    self.x[2] = kwargs.get("yaw", 0.0)
+    self.x[3] = kwargs.get("wx", 0.0)
+    self.x[4] = kwargs.get("wy", 0.0)
+    self.x[5] = kwargs.get("wz", 0.0)
+    self.x[6] = kwargs.get("rx", 0.0)
+    self.x[7] = kwargs.get("ry", 0.0)
+    self.x[8] = kwargs.get("rz", 0.0)
+    self.x[9] = kwargs.get("vx", 0.0)
+    self.x[10] = kwargs.get("vy", 0.0)
+    self.x[11] = kwargs.get("vz", 0.0)
+
     self.inertia = [0.0963, 0.0963, 0.1927]
     self.kr = 0.1  # Rotation drag constant
     self.kt = 0.2  # Translation drag constant
@@ -12043,6 +12056,13 @@ class MavModel:
   def get_velocity(self):
     """ Get velocity """
     return np.array([self.x[9], self.x[10], self.x[11]])
+
+  def get_pose(self):
+    """ Get Pose """
+    C_WB = euler321(self.x[2], self.x[1], self.x[0])
+    r_WB = np.array([self.x[6], self.x[7], self.x[8]])
+    T_WB = tf(C_WB, r_WB)
+    return T_WB
 
   def update(self, u, dt):
     """ Update mav model """
@@ -12116,8 +12136,8 @@ class MavModel:
 class MavAttitudeControl:
   def __init__(self):
     self.dt = 0
-    self.pid_roll = PID(100.0, 0.0, 5.0)
-    self.pid_pitch = PID(100.0, 0.0, 5.0)
+    self.pid_roll = PID(10.0, 0.0, 5.0)
+    self.pid_pitch = PID(10.0, 0.0, 5.0)
     self.pid_yaw = PID(10.0, 0.0, 1.0)
     self.u = [0.0, 0.0, 0.0, 0.0]
 
@@ -12157,17 +12177,23 @@ class MavAttitudeControl:
 
 class MavVelocityControl:
   def __init__(self):
+    self.period = 0.0011
+    self.roll_min = deg2rad(-30.0)
+    self.roll_max = deg2rad(30.0)
+    self.pitch_min = deg2rad(-30.0)
+    self.pitch_max = deg2rad(30.0)
+
     self.dt = 0
-    self.pid_vx = PID(1.0, 0.0, 0.05)
-    self.pid_vy = PID(1.0, 0.0, 0.05)
-    self.pid_vz = PID(10.0, 0.0, 1.0)
+    self.pid_vx = PID(10.0, 0.0, 0.5)
+    self.pid_vy = PID(10.0, 0.0, 0.5)
+    self.pid_vz = PID(10.0, 0.0, 0.5)
     self.u = [0.0, 0.0, 0.0, 0.0]
 
   def update(self, sp, pv, dt):
     """ Update """
     # Check rate
     self.dt += dt
-    if self.dt < 0.001:
+    if self.dt < self.period:
       return self.u  # Return previous command
 
     # Calculate RPY errors relative to quadrotor by incorporating yaw
@@ -12181,16 +12207,10 @@ class MavVelocityControl:
     y = sp[3]
     t = 0.5 + self.pid_vz.update(errors[2], 0.0, dt)
 
-    self.u[0] = clip_value(r, deg2rad(-20.0), deg2rad(20.0))
-    self.u[1] = clip_value(p, deg2rad(-20.0), deg2rad(20.0))
+    self.u[0] = clip_value(r, self.roll_min, self.roll_max)
+    self.u[1] = clip_value(p, self.pitch_min, self.pitch_max)
     self.u[2] = y
     self.u[3] = clip_value(t, 0.0, 1.0)
-
-    # # Yaw first if threshold reached
-    # if (fabs(sp[3] - pv[3]) > deg2rad(2)) {
-    #   outputs[0] = 0.0;
-    #   outputs[1] = 0.0;
-    # }
 
     # Keep track of control action
     self.dt = 0.0  # Reset dt
@@ -12208,6 +12228,14 @@ class MavVelocityControl:
 
 class MavPositionControl:
   def __init__(self):
+    self.period = 0.011
+    self.vx_min = -5.0
+    self.vx_max = 5.0
+    self.vy_min = -5.0
+    self.vy_max = 5.0
+    self.vz_min = -5.0
+    self.vz_max = 5.0
+
     self.dt = 0
     self.pid_x = PID(0.5, 0.0, 0.05)
     self.pid_y = PID(0.5, 0.0, 0.05)
@@ -12223,8 +12251,8 @@ class MavPositionControl:
 
     # Calculate RPY errors relative to quadrotor by incorporating yaw
     errors_W = [sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]]
-    C_WS = euler321(pv[3], 0.0, 0.0)
-    errors = C_WS.T @ errors_W
+    C_WB = euler321(pv[3], 0.0, 0.0)
+    errors = C_WB.T @ errors_W
 
     # Velocity commands
     vx = self.pid_x.update(errors[0], 0.0, self.dt)
@@ -12232,12 +12260,12 @@ class MavPositionControl:
     vz = self.pid_z.update(errors[2], 0.0, self.dt)
     yaw = sp[3]
 
-    self.u[0] = clip_value(vx, -2.5, 2.5)
-    self.u[1] = clip_value(vy, -2.5, 2.5)
-    self.u[2] = clip_value(vz, -5.0, 5.0)
+    self.u[0] = clip_value(vx, self.vx_min, self.vx_max)
+    self.u[1] = clip_value(vy, self.vy_min, self.vy_max)
+    self.u[2] = clip_value(vz, self.vz_min, self.vz_max)
     self.u[3] = yaw
 
-    # Keep track of control action
+    # Reset dt
     self.dt = 0.0
 
     return self.u
@@ -12251,23 +12279,107 @@ class MavPositionControl:
     self.u = [0.0, 0.0, 0.0, 0.0]
 
 
+class MavTrajectoryControl:
+  def __init__(self, **kwargs):
+    self.A = kwargs.get("A", 2.0)
+    self.B = kwargs.get("B", 2.0)
+    self.a = kwargs.get("a", 3.0)
+    self.b = kwargs.get("b", 2.0)
+    self.z = kwargs["z"]
+    self.T = kwargs["T"]
+    self.f = 1.0 / self.T
+    self.delta = kwargs.get("delta", np.pi)
+
+  def symdiff_velocity(self):
+    import sympy
+    f, t = sympy.symbols("f t")
+    a, A, delta = sympy.symbols("a A delta")
+    b, B = sympy.symbols("b B")
+
+    x = A * sympy.sin(a * 2.0 * sympy.pi * f * t + delta)
+    y = B * sympy.sin(b * 2.0 * sympy.pi * f * t)
+    vx = sympy.diff(x, t)
+    vy = sympy.diff(y, t)
+    print(vx)
+    print(vy)
+
+  def get_traj(self):
+    """ Return trajectory """
+    pos_data = np.zeros((3, 1000))
+    time = np.linspace(0.0, self.T, 1000)
+    for i, t in enumerate(time):
+      pos_data[:, i] = self.get_position(t).T
+    return pos_data.T
+
+  def get_position(self, t):
+    """ Get position """
+    x = self.A * np.sin(self.a * 2.0 * np.pi * self.f * t + self.delta)
+    y = self.B * np.sin(self.b * 2.0 * np.pi * self.f * t)
+    z = self.z
+    return np.array([x, y, z])
+
+  def get_velocity(self, t):
+    ka = 2.0 * np.pi * self.a * self.f
+    kb = 2.0 * np.pi * self.b * self.f
+    vx = ka * self.A * np.cos(ka * t + self.delta)
+    vy = kb * self.B * np.cos(kb * t)
+    vz = 0.0
+    return np.array([vx, vy, vz])
+
+  def plot(self):
+    """ Plot """
+    pos_data = np.zeros((3, 1000))
+    vel_data = np.zeros((3, 1000))
+    time = np.linspace(0.0, self.T, 1000)
+    for i, t in enumerate(time):
+      pos_data[:, i] = self.get_position(t).T
+      vel_data[:, i] = self.get_velocity(t).T
+
+    plt.subplot(311)
+    plt.plot(pos_data[0, :], pos_data[1, :])
+    plt.xlabel("x [m]")
+    plt.ylabel("y [m]")
+
+    plt.subplot(312)
+    plt.plot(time, pos_data[0, :], "r-", label="Position - x")
+    plt.plot(time, pos_data[1, :], "g-", label="Position - y")
+    plt.plot(time, pos_data[2, :], "b-", label="Position - z")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Positions [m]")
+    plt.legend(loc=0)
+
+    plt.subplot(313)
+    plt.plot(time, vel_data[0, :], "r-", label="Velocity - x")
+    plt.plot(time, vel_data[1, :], "g-", label="Velocity - y")
+    plt.plot(time, vel_data[2, :], "b-", label="Velocity - z")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Velocity [ms^-1]")
+    plt.legend(loc=0)
+
+    plt.show()
+
+
 class TestMav(unittest.TestCase):
   """ Test Mav """
   def test_mav_attitude_control(self):
-    att_sp = np.array([0.1, 0.2, -0.2, 0.0])  # roll, pitch, yaw, thrust
+    # Simulation parameters
     dt = 0.001
     t_end = 0.5
     t = 0.0
+    att_sp = np.array([0.1, 0.2, -0.2, 0.0])  # roll, pitch, yaw, thrust
 
+    # Setup model and controllers
     idx = 0
     N = t_end / dt
     mav = MavModel()
     att_ctrl = MavAttitudeControl()
 
+    # Simulate
     time_data = []
     att_data = []
     pos_data = []
     vel_data = []
+
     while idx < N:
       att_pv = [mav.x[0], mav.x[1], mav.x[2]]
       u = att_ctrl.update(att_sp, att_pv, dt)
@@ -12281,34 +12393,38 @@ class TestMav(unittest.TestCase):
       t += dt
       idx += 1
 
+    # Plot results
     time_data = np.array(time_data)
     att_data = np.array(att_data)
     pos_data = np.array(pos_data)
     vel_data = np.array(vel_data)
-
     plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
     plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
     plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
     plt.xlabel("Time [s]")
     plt.ylabel("Attitude [deg]")
-    plt.show()
+    # plt.show()
 
   def test_mav_velocity_control(self):
-    vel_sp = np.array([0.1, 0.2, 1.0, 0.0])  # vx, vy, vz, yaw
+    # Simulation parameters
     dt = 0.001
-    t_end = 10.0
     t = 0.0
+    t_end = 10.0
+    vel_sp = np.array([0.1, 0.2, 1.0, 0.0])  # vx, vy, vz, yaw
 
+    # Setup model and controllers
     idx = 0
     N = t_end / dt
     mav = MavModel()
     att_ctrl = MavAttitudeControl()
     vel_ctrl = MavVelocityControl()
 
+    # Simulate
     time_data = []
     att_data = []
     pos_data = []
     vel_data = []
+
     while idx < N:
       vel_pv = [mav.x[9], mav.x[10], mav.x[11], mav.x[2]]
       att_pv = [mav.x[0], mav.x[1], mav.x[2]]
@@ -12325,11 +12441,13 @@ class TestMav(unittest.TestCase):
       t += dt
       idx += 1
 
+    # Plot results
     time_data = np.array(time_data)
     att_data = np.array(att_data)
     pos_data = np.array(pos_data)
     vel_data = np.array(vel_data)
 
+    # -- Plot attitude
     plt.subplot(211)
     plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
     plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
@@ -12337,6 +12455,7 @@ class TestMav(unittest.TestCase):
     plt.xlabel("Time [s]")
     plt.ylabel("Attitude [deg]")
 
+    # -- Plot velocity
     plt.subplot(212)
     plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
     plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
@@ -12344,14 +12463,16 @@ class TestMav(unittest.TestCase):
     plt.xlabel("Time [s]")
     plt.ylabel("Velocity [ms^-1]")
 
-    plt.show()
+    # plt.show()
 
   def test_mav_position_control(self):
-    pos_sp = np.array([10.0, 10.0, 5.0, 0.5])  # x, y, z, yaw
+    # Simulation parameters
     dt = 0.001
-    t_end = 10.0
     t = 0.0
+    t_end = 10.0
+    pos_sp = np.array([5.0, 5.0, 5.0, 0.0])  # x, y, z, yaw
 
+    # Setup models and controller
     idx = 0
     N = t_end / dt
     mav = MavModel()
@@ -12359,33 +12480,73 @@ class TestMav(unittest.TestCase):
     vel_ctrl = MavVelocityControl()
     pos_ctrl = MavPositionControl()
 
+    # Setup plot
+    plot_anim = False
+    self.keep_plotting = True
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+
+    def on_key(event, fig):
+      if event.key == 'escape' or event.key == 'q':
+        self.keep_plotting = False
+        plt.close(fig)
+
+    cid = fig.canvas.mpl_connect(
+        'key_press_event', lambda event: on_key(event, self.keep_plotting))
+
+    # Simulate
     time_data = []
     att_data = []
     pos_data = []
     vel_data = []
-    while idx < N:
+
+    t = 0.0
+    idx = 0
+    while idx < N and self.keep_plotting:
+      if plot_anim and idx % 50 == 0:
+        ax.cla()
+        T_WB = mav.get_pose()
+        tf_data = plot_tf(ax, T_WB, size=0.5)
+        ax.set_xlim([-5.0, 5.0])
+        ax.set_ylim([-5.0, 5.0])
+        ax.set_zlim([0.0, 10.0])
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        ax.set_zlabel("z [m]")
+        plt.draw()
+        plt.pause(0.05)
+
+      # Position, velocity and attitude process variables
       pos_pv = [mav.x[6], mav.x[7], mav.x[8], mav.x[2]]
       vel_pv = [mav.x[9], mav.x[10], mav.x[11], mav.x[2]]
       att_pv = [mav.x[0], mav.x[1], mav.x[2]]
 
+      # Update controllers and model
       vel_sp = pos_ctrl.update(pos_sp, pos_pv, dt)
       att_sp = vel_ctrl.update(vel_sp, vel_pv, dt)
       u = att_ctrl.update(att_sp, att_pv, dt)
       mav.update(u, dt)
 
+      # Record
       time_data.append(t)
       att_data.append(mav.get_attitude())
       pos_data.append(mav.get_position())
       vel_data.append(mav.get_velocity())
 
+      # Update
       t += dt
       idx += 1
 
+    # Disconnect figure event callback
+    fig.canvas.mpl_disconnect(cid)
+
+    # Plot results
     time_data = np.array(time_data)
     att_data = np.array(att_data)
     pos_data = np.array(pos_data)
     vel_data = np.array(vel_data)
 
+    # -- Plot attitude
     plt.subplot(311)
     plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
     plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
@@ -12393,6 +12554,7 @@ class TestMav(unittest.TestCase):
     plt.xlabel("Time [s]")
     plt.ylabel("Attitude [deg]")
 
+    # -- Plot velocity
     plt.subplot(312)
     plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
     plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
@@ -12400,6 +12562,7 @@ class TestMav(unittest.TestCase):
     plt.xlabel("Time [s]")
     plt.ylabel("Velocity [ms^-1]")
 
+    # -- Plot position
     plt.subplot(313)
     plt.plot(time_data, pos_data[:, 0], "r-", label="x")
     plt.plot(time_data, pos_data[:, 1], "g-", label="y")
@@ -12407,7 +12570,117 @@ class TestMav(unittest.TestCase):
     plt.xlabel("Time [s]")
     plt.ylabel("Position [m]")
 
-    plt.show()
+    # plt.show()
+
+  def test_mav_trajectory_control(self):
+    # Simulation parameters
+    dt = 0.001
+    z_sp = 5.0
+    t_end = 20.0
+    N = t_end / dt
+
+    # Setup models and controller
+    att_ctrl = MavAttitudeControl()
+    vel_ctrl = MavVelocityControl()
+    traj_ctrl = MavTrajectoryControl(a=3, b=2, z=z_sp, T=t_end)
+    r0 = traj_ctrl.get_position(0.0)
+    v0 = traj_ctrl.get_velocity(0.0)
+    mav = MavModel(rx=r0[0], ry=r0[1], rz=z_sp, vx=v0[0], vy=v0[1], vz=v0[2])
+
+    # Setup plot
+    plot_anim = False
+    self.keep_plotting = True
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+
+    def on_key(event, fig):
+      if event.key == 'escape' or event.key == 'q':
+        self.keep_plotting = False
+        plt.close(fig)
+
+    cid = fig.canvas.mpl_connect(
+        'key_press_event', lambda event: on_key(event, self.keep_plotting))
+
+    # Simulate
+    time_data = []
+    att_data = []
+    pos_data = []
+    vel_data = []
+
+    t = 0.0
+    idx = 0
+    while idx < N and self.keep_plotting:
+      if plot_anim and idx % 50 == 0:
+        ax.cla()
+        T_WB = mav.get_pose()
+        tf_data = plot_tf(ax, T_WB, size=0.5)
+        ax.set_xlim([-5.0, 5.0])
+        ax.set_ylim([-5.0, 5.0])
+        ax.set_zlim([0.0, 10.0])
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        ax.set_zlabel("z [m]")
+        plt.draw()
+        plt.pause(0.05)
+
+      # Velocity and attitude process variables
+      vel_pv = [mav.x[9], mav.x[10], mav.x[11], mav.x[2]]
+      att_pv = [mav.x[0], mav.x[1], mav.x[2]]
+
+      # Update controllers and model
+      vel = traj_ctrl.get_velocity(t)
+      vel_sp = [vel[0], vel[1], vel[2], 0.0]
+      att_sp = vel_ctrl.update(vel_sp, vel_pv, dt)
+      u = att_ctrl.update(att_sp, att_pv, dt)
+      mav.update(u, dt)
+
+      # Record
+      time_data.append(t)
+      att_data.append(mav.get_attitude())
+      pos_data.append(mav.get_position())
+      vel_data.append(mav.get_velocity())
+
+      # Update
+      t += dt
+      idx += 1
+
+    # Disconnect figure event callback
+    fig.canvas.mpl_disconnect(cid)
+
+    # Plot results
+    time_data = np.array(time_data)
+    att_data = np.array(att_data)
+    pos_data = np.array(pos_data)
+    vel_data = np.array(vel_data)
+    traj_data = traj_ctrl.get_traj()
+
+    # -- Plot actual vs planned trajectory
+    plt.subplot(311)
+    plt.plot(pos_data[:, 0], pos_data[:, 1], "r-", label="Actual")
+    plt.plot(traj_data[:, 0], traj_data[:, 1], "k--", label="Trajectory")
+    plt.xlabel("x [m]")
+    plt.ylabel("y [m]")
+    plt.legend(loc=0)
+
+    # -- Plot velocity
+    plt.subplot(312)
+    plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
+    plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
+    plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Velocity [ms^-1]")
+    plt.legend(loc=0)
+
+    # -- Plot attitude
+    plt.subplot(313)
+    plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
+    plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
+    plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Attitude [deg]")
+    plt.legend(loc=0)
+
+    # plt.show()
 
 
 ###############################################################################
