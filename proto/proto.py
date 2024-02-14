@@ -2430,6 +2430,70 @@ def plot_tf(ax, T, **kwargs):
   return (xaxis, yaxis, zaxis)
 
 
+def plot_mav(ax, T, **kwargs):
+  """
+  Plot MAV
+
+  Args:
+
+    ax (matplotlib.axes.Axes): Plot axes object
+    T (np.array): 4x4 homogeneous transform (i.e. Pose in the world frame)
+
+  Keyword args:
+
+    size (float): Size of the coordinate-axes
+    linewidth (float): Thickness of the coordinate-axes
+    name (str): Frame name
+    name_offset (np.array or list): Position offset for displaying the frame's name
+    fontsize (float): Frame font size
+    fontweight (float): Frame font weight
+    colors (tuple of floats): Axes colors in x, y and z
+
+  """
+  assert T.shape == (4, 4)
+  arm_length = kwargs.get('arm_length', 1.0)
+  linewidth = kwargs.get('linewidth', 3)
+  name = kwargs.get('name', None)
+  name_offset = kwargs.get('name_offset', [0, 0, -0.01])
+  fontsize = kwargs.get('fontsize', 10)
+  fontweight = kwargs.get('fontweight', 'bold')
+  color = kwargs.get('color', 'k-')
+  kwargs["size"] = arm_length / 2.0
+
+  # Plot body frame
+  plot_tf(ax, T, **kwargs)
+
+  # Plot mav
+  origin = tf_trans(T)
+
+  fl = tf_point(T, np.array([arm_length / 2.0, arm_length / 2.0, 0.0]))
+  fr = tf_point(T, np.array([arm_length / 2.0, -arm_length / 2.0, 0.0]))
+  bl = tf_point(T, np.array([-arm_length / 2.0, arm_length / 2.0, 0.0]))
+  br = tf_point(T, np.array([-arm_length / 2.0, -arm_length / 2.0, 0.0]))
+
+  px = [origin[0], fl[0]]
+  py = [origin[1], fl[1]]
+  pz = [origin[2], fl[2]]
+  fl_axis = ax.plot(px, py, pz, color, linewidth=linewidth)[0]
+
+  px = [origin[0], fr[0]]
+  py = [origin[1], fr[1]]
+  pz = [origin[2], fr[2]]
+  fr_axis = ax.plot(px, py, pz, color, linewidth=linewidth)[0]
+
+  px = [origin[0], bl[0]]
+  py = [origin[1], bl[1]]
+  pz = [origin[2], bl[2]]
+  bl_axis = ax.plot(px, py, pz, color, linewidth=linewidth)[0]
+
+  px = [origin[0], br[0]]
+  py = [origin[1], br[1]]
+  pz = [origin[2], br[2]]
+  br_axis = ax.plot(px, py, pz, color, linewidth=linewidth)[0]
+
+  return (fl_axis, fr_axis, bl_axis, br_axis)
+
+
 def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
   """
   Plot XYZ plot
