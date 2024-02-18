@@ -42,6 +42,7 @@ from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass
 from collections import namedtuple
+from collections import defaultdict
 from types import FunctionType
 from typing import Optional
 
@@ -4968,7 +4969,7 @@ class KalmanFilter:
     self.R = kwargs.get("R", np.eye(self.H.shape[0]))
     self.P = kwargs.get("P", np.eye(self.F.shape[1]))
 
-  def predict(self, u):
+  def predict(self, u=np.array([0.0])):
     """ Predict """
     self.x = self.F @ self.x + self.B @ u
     self.P = self.F @ self.P @ self.F.T + self.Q
@@ -8848,10 +8849,11 @@ def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs):
 
   nb_kps = len(kps_i)
   viz = cv2.hconcat([img_i, img_j])
-  viz = cv2.cvtColor(viz, cv2.COLOR_GRAY2RG)
+  if len(viz.shape) != 3:
+    viz = cv2.cvtColor(viz, cv2.COLOR_GRAY2RGB)
 
   color = (0, 255, 0)
-  radius = 3
+  radius = 1
   thickness = kwargs.get('thickness', cv2.FILLED)
   linetype = kwargs.get('linetype', cv2.LINE_AA)
 
@@ -8901,12 +8903,95 @@ def draw_keypoints(img, kps, inliers=None, **kwargs):
   return viz
 
 
-def sort_keypoints(kps):
+def sort_keypoints(kps, des=None):
   """ Sort a list of cv2.KeyPoint based on their response """
   responses = [kp.response for kp in kps]
   indices = range(len(responses))
   indices = sorted(indices, key=lambda i: responses[i], reverse=True)
-  return [kps[i] for i in indices]
+  if des is None:
+    return [kps[i] for i in indices]
+
+  kps_sorted = []
+  des_sorted = np.zeros(des.shape)
+  for i in range(des.shape[0]):
+    des_sorted[i, :] = des[indices[i], :]
+    kps_sorted.append(kps[indices[i]])
+
+  return kps_sorted, des_sorted
+
+
+def spread_corners(img, corners, min_dist, **kwargs):
+  """
+  Given a set of corners `corners` make sure they are atleast `min_dist` pixels
+  away from each other, if they are not remove them.
+  """
+  # Pre-check
+  if not corners:
+    return corners
+
+  # Setup
+  debug = kwargs.get('debug', False)
+  prev_corners = kwargs.get('prev_corners', [])
+  min_dist = int(min_dist)
+  img_h, img_w = img.shape
+  A = np.zeros(img.shape)  # Allowable areas are marked 0 else not allowed
+
+  # Loop through previous keypoints
+  for c in prev_corners:
+    # Convert from keypoint to tuple
+    p = (int(c[0]), int(c[1]))
+
+    # Fill the area of the matrix where the next keypoint cannot be around
+    rs = int(max(p[1] - min_dist, 0.0))
+    re = int(min(p[1] + min_dist + 1, img_h))
+    cs = int(max(p[0] - min_dist, 0.0))
+    ce = int(min(p[0] + min_dist + 1, img_w))
+    A[rs:re, cs:ce] = np.ones((re - rs, ce - cs))
+
+  # Loop through keypoints
+  corners_results = []
+  for c in corners:
+    # Convert from keypoint to tuple
+    p = (int(c[0]), int(c[1]))
+
+    # Check if point is ok to be added to results
+    if A[p[1], p[0]] > 0.0:
+      continue
+
+    # Fill the area of the matrix where the next keypoint cannot be around
+    rs = int(max(p[1] - min_dist, 0.0))
+    re = int(min(p[1] + min_dist + 1, img_h))
+    cs = int(max(p[0] - min_dist, 0.0))
+    ce = int(min(p[0] + min_dist + 1, img_w))
+    A[rs:re, cs:ce] = np.ones((re - rs, ce - cs))
+    A[p[1], p[0]] = 2
+
+    # Add to results
+    corners_results.append(c)
+
+  # Debug
+  if debug:
+    img = draw_keypoints(img, corners_results, radius=3)
+
+    plt.figure()
+
+    ax = plt.subplot(121)
+    ax.imshow(A)
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+
+    ax = plt.subplot(122)
+    ax.imshow(img)
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+
+    plt.show()
+
+  return corners_results
 
 
 def spread_keypoints(img, kps, min_dist, **kwargs):
@@ -8920,6 +9005,7 @@ def spread_keypoints(img, kps, min_dist, **kwargs):
 
   # Setup
   debug = kwargs.get('debug', False)
+  des = kwargs.get('des', [])
   prev_kps = kwargs.get('prev_kps', [])
   min_dist = int(min_dist)
   img_h, img_w = img.shape
@@ -8981,6 +9067,83 @@ def spread_keypoints(img, kps, min_dist, **kwargs):
     plt.show()
 
   return kps_results
+
+
+def spread_features(img, kps, des, min_dist, **kwargs):
+  """
+  Given a set of keypoints `kps` and descriptors are atleast `min_dist` pixels
+  away from each other, if they are not remove them.
+  """
+  # Pre-check
+  if not kps:
+    return kps
+
+  # Setup
+  debug = kwargs.get('debug', False)
+  prev_kps = kwargs.get('prev_kps', [])
+  min_dist = int(min_dist)
+  img_h, img_w = img.shape
+  A = np.zeros(img.shape)  # Allowable areas are marked 0 else not allowed
+
+  # Loop through previous keypoints
+  for kp in prev_kps:
+    # Convert from keypoint to tuple
+    p = (int(kp.pt[0]), int(kp.pt[1]))
+
+    # Fill the area of the matrix where the next keypoint cannot be around
+    rs = int(max(p[1] - min_dist, 0.0))
+    re = int(min(p[1] + min_dist + 1, img_h))
+    cs = int(max(p[0] - min_dist, 0.0))
+    ce = int(min(p[0] + min_dist + 1, img_w))
+    A[rs:re, cs:ce] = np.ones((re - rs, ce - cs))
+
+  # Loop through keypoints and descriptors
+  kps_results = []
+  des_results = []
+  kps, des = sort_keypoints(kps, des)
+  for kp, des in zip(kps, des):
+    # Convert from keypoint to tuple
+    p = (int(kp.pt[0]), int(kp.pt[1]))
+
+    # Check if point is ok to be added to results
+    if A[p[1], p[0]] > 0.0:
+      continue
+
+    # Fill the area of the matrix where the next keypoint cannot be around
+    rs = int(max(p[1] - min_dist, 0.0))
+    re = int(min(p[1] + min_dist + 1, img_h))
+    cs = int(max(p[0] - min_dist, 0.0))
+    ce = int(min(p[0] + min_dist + 1, img_w))
+    A[rs:re, cs:ce] = np.ones((re - rs, ce - cs))
+    A[p[1], p[0]] = 2
+
+    # Add to results
+    kps_results.append(kp)
+    des_results.append(des)
+
+  # Debug
+  if debug:
+    img = draw_keypoints(img, kps_results, radius=3)
+
+    plt.figure()
+
+    ax = plt.subplot(121)
+    ax.imshow(A)
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+
+    ax = plt.subplot(122)
+    ax.imshow(img)
+    ax.set_xlabel('pixel')
+    ax.set_ylabel('pixel')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position('top')
+
+    plt.show()
+
+  return kps_results, np.array(des_results)
 
 
 class FeatureGrid:
@@ -9046,7 +9209,7 @@ def grid_detect(detector, image, **kwargs):
   Detect features uniformly using a grid system.
   """
   optflow_mode = kwargs.get('optflow_mode', False)
-  max_keypoints = kwargs.get('max_keypoints', 240)
+  max_keypoints = kwargs.get('max_keypoints', 2000)
   grid_rows = kwargs.get('grid_rows', 3)
   grid_cols = kwargs.get('grid_cols', 4)
   prev_kps = kwargs.get('prev_kps', [])
@@ -9079,13 +9242,12 @@ def grid_detect(detector, image, **kwargs):
       kps = None
       des = None
       if optflow_mode:
-        detector.setNonmaxSuppression(1)
         kps = detector.detect(roi_image)
         kps = sort_keypoints(kps)
 
       else:
-        kps = detector.detect(roi_image, None)
-        kps, des = detector.compute(roi_image, kps)
+        # kps = detector.detect(roi_image, None)
+        kps, des = detector.detectAndCompute(roi_image, kps)
 
       # Offset keypoints
       cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
@@ -9153,6 +9315,113 @@ def grid_detect(detector, image, **kwargs):
   return kps_all, np.array(des_all)
 
 
+def good_grid(image, **kwargs):
+  """
+  Detect features uniformly using a grid system.
+  """
+  max_keypoints = kwargs.get('max_keypoints', 2000)
+  quality_level = kwargs.get('quality_level', 0.01)
+  use_harris = kwargs.get('use_harris', False)
+  min_dist = kwargs.get('min_dist', 5)
+  grid_rows = kwargs.get('grid_rows', 2)
+  grid_cols = kwargs.get('grid_cols', 3)
+  prev_kps = kwargs.get('prev_kps', [])
+  if prev_kps is None:
+    prev_kps = []
+
+  # Calculate number of grid cells and max corners per cell
+  image_height, image_width = image.shape
+  dx = int(math.ceil(float(image_width) / float(grid_cols)))
+  dy = int(math.ceil(float(image_height) / float(grid_rows)))
+  nb_cells = grid_rows * grid_cols
+  max_per_cell = math.floor(max_keypoints / nb_cells)
+
+  # Detect corners in each grid cell
+  feature_grid = FeatureGrid(grid_rows, grid_cols, image.shape, prev_kps)
+  kps_new = []
+
+  cell_idx = 0
+  for y in range(0, image_height, dy):
+    for x in range(0, image_width, dx):
+      # Make sure roi width and height are not out of bounds
+      w = image_width - x if (x + dx > image_width) else dx
+      h = image_height - y if (y + dy > image_height) else dy
+
+      # Calculate cell vacancy
+      cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
+      if cell_vacancy <= 0:
+        continue
+
+      # Detect corners in grid cell
+      cs, ce, rs, re = (x, x + w, y, y + h)
+      roi_image = image[rs:re, cs:ce]
+      corners = cv2.goodFeaturesToTrack(roi_image,
+                                        cell_vacancy,
+                                        quality_level,
+                                        min_dist,
+                                        useHarrisDetector=use_harris)
+      if corners is None:
+        cell_idx += 1
+        continue
+
+      # Add to results
+      for corner in corners:
+        if corner is None:
+          break
+        cx, cy = corner[0]
+        pt = (cx + x, cy + y)
+        kps_new.append(pt)
+
+      # Update cell_idx
+      cell_idx += 1
+
+  # Spread
+  kps_new = spread_corners(image, kps_new, min_dist, prev_corners=prev_kps)
+
+  # Debug
+  if kwargs.get('debug', False):
+    # Setup
+    viz = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    kps_grid = FeatureGrid(grid_rows, grid_cols, image.shape, kps_new)
+
+    # Visualization properties
+    red = (0, 0, 255)
+    yellow = (0, 255, 255)
+    linetype = cv2.LINE_AA
+    font = cv2.FONT_HERSHEY_SIMPLEX
+
+    # -- Draw horizontal lines
+    for x in range(0, image_width, dx):
+      cv2.line(viz, (x, 0), (x, image_height), red, 1, linetype)
+
+    # -- Draw vertical lines
+    for y in range(0, image_height, dy):
+      cv2.line(viz, (0, y), (image_width, y), red, 1, linetype)
+
+    # -- Draw bin numbers
+    cell_idx = 0
+    for y in range(0, image_height, dy):
+      for x in range(0, image_width, dx):
+        text = str(kps_grid.count(cell_idx))
+        origin = (x + 10, y + 20)
+        viz = cv2.putText(viz, text, origin, font, 0.5, red, 1, linetype)
+
+        text = str(feature_grid.count(cell_idx))
+        origin = (x + 10, y + 40)
+        viz = cv2.putText(viz, text, origin, font, 0.5, yellow, 1, linetype)
+
+        cell_idx += 1
+
+    # -- Draw keypoints
+    viz = draw_keypoints(viz, kps_new, color=red)
+    viz = draw_keypoints(viz, prev_kps, color=yellow)
+    cv2.imshow("good_grid", viz)
+    cv2.waitKey(1)
+
+  # Return
+  return np.array(kps_new)
+
+
 def optflow_track(img_i, img_j, pts_i, **kwargs):
   """
   Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
@@ -9160,9 +9429,10 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
   vector of inliers.
   """
   # Setup
-  patch_size = kwargs.get('patch_size', 50)
+  patch_size = kwargs.get('patch_size', 30)
   max_iter = kwargs.get('max_iter', 100)
   epsilon = kwargs.get('epsilon', 0.001)
+  pts_j = kwargs.get('pts_j', np.array(pts_i))
   crit = (cv2.TermCriteria_COUNT | cv2.TermCriteria_EPS, max_iter, epsilon)
 
   # Optical flow settings
@@ -9173,7 +9443,6 @@ def optflow_track(img_i, img_j, pts_i, **kwargs):
   config['flags'] = cv2.OPTFLOW_USE_INITIAL_FLOW
 
   # Track using optical flow
-  pts_j = np.array(pts_i)
   track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, pts_i, pts_j, **config)
   (pts_j, optflow_inliers, _) = track_results
 
@@ -9232,12 +9501,44 @@ def ransac(pts_i, pts_j, cam_i, cam_j):
 
   # Ransac via OpenCV's find fundamental matrix
   method = cv2.FM_RANSAC
-  reproj_thresh = 0.75
-  confidence = 0.99
+  reproj_thresh = 0.5
+  confidence = 0.999
   args = [pts_i_ud, pts_j_ud, method, reproj_thresh, confidence]
   _, inliers = cv2.findFundamentalMat(*args)
 
   return inliers.flatten()
+
+
+class FeatureTrack:
+  """
+  Feature Track
+  """
+  def __init__(self, feature_id, cam_params, cam_exts):
+    self.feature_id = feature_id
+    self.cam_params = cam_params
+    self.cam_exts = cam_exts
+    self.data = {}
+
+  def timestamps(self):
+    """ Get timestamps """
+    return list(self.data.keys())
+
+  def lifetime(self):
+    """ Get lifetime """
+    return len(self.timestamps())
+
+  def add(self, ts, cam_idx, kp, des=None):
+    """ Add observation """
+    if ts not in self.data:
+      self.data[ts] = {}
+    if cam_idx not in self.data[ts]:
+      self.data[ts][cam_idx] = {"kp": None, "desc": None}
+
+    self.data[ts][cam_idx]["kp"] = kp
+    self.data[ts][cam_idx]["des"] = des
+
+  # def triangulate(self):
+  #   """ Triangulate """
 
 
 class FeatureTrackerData:
@@ -9689,6 +9990,32 @@ class TestFeatureTracking(unittest.TestCase):
     self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
     self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
 
+    # -- cam0 intrinsic
+    res = self.dataset.cam0_data.config.resolution
+    proj_params = self.dataset.cam0_data.config.intrinsics
+    dist_params = self.dataset.cam0_data.config.distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    cam0 = np.block([*proj_params, *dist_params])
+    self.cam0_params = camera_params_setup(0, res, proj_model, dist_model, cam0)
+
+    # -- cam1 intrinsic
+    res = self.dataset.cam1_data.config.resolution
+    proj_params = self.dataset.cam1_data.config.intrinsics
+    dist_params = self.dataset.cam1_data.config.distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    cam1 = np.block([*proj_params, *dist_params])
+    self.cam1_params = camera_params_setup(1, res, proj_model, dist_model, cam1)
+
+    # -- cam0 extrinsic
+    T_BC0 = self.dataset.cam0_data.config.T_BS
+    self.cam0_ext = extrinsics_setup(T_BC0)
+
+    # -- cam1 extrinsic
+    T_BC1 = self.dataset.cam1_data.config.T_BS
+    self.cam1_ext = extrinsics_setup(T_BC1)
+
   def test_spread_keypoints(self):
     """ Test spread_keypoints() """
     # img = np.zeros((140, 160))
@@ -9700,7 +10027,7 @@ class TestFeatureTracking(unittest.TestCase):
     detector = cv2.FastFeatureDetector_create(threshold=50)
     kwargs = {'optflow_mode': True, 'debug': False}
     kps = grid_detect(detector, self.img0, **kwargs)
-    kps = spread_keypoints(self.img0, kps, 20, debug=False)
+    kps = spread_keypoints(self.img0, kps, 20, debug=True)
 
     self.assertTrue(len(kps))
 
@@ -9744,6 +10071,13 @@ class TestFeatureTracking(unittest.TestCase):
     kps = grid_detect(detector, self.img0, **kwargs)
     self.assertTrue(len(kps) > 0)
 
+  def test_good_grid(self):
+    """ Test grid_detect() """
+    debug = True
+    kwargs = {'debug': debug}
+    kps = good_grid(self.img0, **kwargs)
+    self.assertTrue(len(kps) > 0)
+
   def test_optflow_track(self):
     """ Test optflow_track() """
     debug = False
@@ -9760,6 +10094,160 @@ class TestFeatureTracking(unittest.TestCase):
 
     self.assertTrue(len(pts_i) == len(pts_j))
     self.assertTrue(len(pts_i) == len(inliers))
+
+  def test_feature_track(self):
+    feature_id = 123
+    intrinsics = {0: self.cam0_params, 1: self.cam1_params}
+    extrinsics = {0: self.cam0_ext, 1: self.cam1_ext}
+    track = FeatureTrack(feature_id, intrinsics, extrinsics)
+
+    track.add(0, 0, [0, 0])
+    track.add(0, 1, [0, 0])
+
+    track.add(1, 0, [0, 0])
+    track.add(1, 1, [0, 0])
+
+    track.add(2, 0, [0, 0])
+    track.add(2, 1, [0, 0])
+
+    print(track.timestamps())
+    print(track.lifetime())
+
+  def test_euroc(self):
+    # Setup test images
+    self.dataset = TestFeatureTracking.dataset
+    ts = self.dataset.cam0_data.timestamps[0]
+    img0_path = self.dataset.cam0_data.image_paths[ts]
+    img1_path = self.dataset.cam1_data.image_paths[ts]
+    self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
+    self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
+
+    # Setup cameras
+    # -- cam0
+    res = self.dataset.cam0_data.config.resolution
+    proj_params = self.dataset.cam0_data.config.intrinsics
+    dist_params = self.dataset.cam0_data.config.distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    cam0 = np.block([*proj_params, *dist_params])
+    cam0_geom = camera_params_setup(0, res, proj_model, dist_model, cam0)
+    # -- cam1
+    res = self.dataset.cam1_data.config.resolution
+    proj_params = self.dataset.cam1_data.config.intrinsics
+    dist_params = self.dataset.cam1_data.config.distortion_coefficients
+    proj_model = "pinhole"
+    dist_model = "radtan4"
+    cam1 = np.block([*proj_params, *dist_params])
+    cam1_geom = camera_params_setup(1, res, proj_model, dist_model, cam1)
+
+    # Setup camera extrinsics
+    # -- cam0
+    T_BC0 = self.dataset.cam0_data.config.T_BS
+    cam0_ext = extrinsics_setup(T_BC0)
+    # -- cam1
+    T_BC1 = self.dataset.cam1_data.config.T_BS
+    cam1_ext = extrinsics_setup(T_BC1)
+    # -- cam0 cam1 extrinsic
+    T_C0C1 = inv(T_BC0) @ T_BC1
+    P0 = pinhole_P(cam0[0:4], eye(4))
+    P1 = pinhole_P(cam1[0:4], T_C0C1)
+
+    imshow_wait = 0
+    max_keypoints = 200
+    kps0 = []
+    kps1 = []
+    prev_kps0 = None
+    prev_kps1 = None
+    prev_frame0 = None
+    prev_frame1 = None
+
+    red = (0, 0, 255)
+    yellow = (0, 255, 255)
+
+    # for ts in self.dataset.cam0_data.timestamps[1000:2000]:
+    for ts in self.dataset.cam0_data.timestamps:
+      # Load images
+      frame0_path = self.dataset.cam0_data.image_paths[ts]
+      frame1_path = self.dataset.cam1_data.image_paths[ts]
+      frame0 = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
+      frame1 = cv2.imread(frame1_path, cv2.IMREAD_GRAYSCALE)
+
+      # -- Detect features
+      kwargs = {"max_keypoints": max_keypoints, "prev_kps": kps0, "debug": True}
+      kps0_new = good_grid(frame0, **kwargs)
+      if len(kps0_new) > 10:
+        # -- Track in space
+        pts0 = np.array(kps0_new, dtype=np.float32)
+        pts0, pts1, inliers = optflow_track(frame0, frame1, pts0)
+        kps0_optflow = []
+        kps1_optflow = []
+        for i, status in enumerate(inliers):
+          if status:
+            kps0_optflow.append(pts0[i, :])
+            kps1_optflow.append(pts1[i, :])
+
+        # -- Ransac in space
+        kps0_ransac = []
+        kps1_ransac = []
+        if len(kps0_optflow) > 10:
+          pts_i = kps0_optflow
+          pts_j = kps1_optflow
+          inliers = ransac(pts_i, pts_j, cam0_geom, cam1_geom)
+          for i, status in enumerate(inliers):
+            if status:
+              kps0_ransac.append(kps0_optflow[i])
+              kps1_ransac.append(kps1_optflow[i])
+
+        # -- Append to keypoints
+        for kp0, kp1 in zip(kps0_ransac, kps1_ransac):
+          kps0.append(kp0)
+          kps1.append(kp1)
+
+      # -- Track features
+      if prev_frame0 is not None and prev_frame1 is not None:
+        # -- Track in time [cam0]
+        pts0_km1 = np.array(kps0, dtype=np.float32)
+        pts0_km1, pts0_k, in0 = optflow_track(prev_frame0, frame0, pts0_km1)
+
+        # -- Track in time [cam1]
+        pts1_km1 = np.array(kps1, dtype=np.float32)
+        pts1_km1, pts1_k, in1 = optflow_track(prev_frame1, frame1, pts1_km1)
+
+        # -- Track in space [cam0 - cam1]
+        pts0_k, pts1_k, in01 = optflow_track(frame0, frame1, pts0_k, pts_j=pts1_k)
+
+        # -- Ransac in time [cam0]
+        ransac0 = ransac(pts0_km1, pts0_k, cam0_geom, cam0_geom)
+        ransac1 = ransac(pts1_km1, pts1_k, cam1_geom, cam1_geom)
+        ransac01 = ransac(pts0_k, pts1_k, cam0_geom, cam1_geom)
+
+        prev_kps0 = np.array(kps0)
+        prev_kps1 = np.array(kps1)
+        kps0.clear()
+        kps1.clear()
+        for i, data in enumerate(zip(pts0_k, pts1_k, in0, in1, in01, ransac0, ransac1, ransac01)):
+          pt0, pt1, inlier0, inlier1, inlier01, r0, r1, r01 = data
+          if inlier0 and inlier1 and inlier01 and r0 and r1 and r01:
+            kps0.append(pt0)
+            kps1.append(pt1)
+
+      # Visualize
+      viz = None
+      viz_i = draw_keypoints(frame0, kps0)
+      viz_j = draw_keypoints(frame1, kps1)
+      viz = cv2.hconcat([viz_i, viz_j])
+      # viz = cv2.vconcat([viz_top, viz_bottom])
+
+      cv2.imshow("Viz", viz)
+      key_pressed = cv2.waitKey(imshow_wait)
+      if key_pressed == ord('q'):
+        break
+      elif key_pressed == ord(' '):
+        imshow_wait = 1 if imshow_wait == 0 else 0
+
+      # Update
+      prev_frame0 = frame0
+      prev_frame1 = frame1
 
 
 class TestFeatureTracker(unittest.TestCase):
@@ -12260,7 +12748,7 @@ class MavVelocityControl:
     if self.dt < self.period:
       return self.u  # Return previous command
 
-    # Calculate RPY errors relative to quadrotor by incorporating yaw
+    # Calculate transform velocity commands in world frame to body frame
     errors_W = np.array([sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]])
     C_WS = euler321(pv[3], 0.0, 0.0)
     errors = C_WS.T @ errors_W
@@ -12313,10 +12801,8 @@ class MavPositionControl:
     if self.dt < 0.01:
       return self.u  # Return previous command
 
-    # Calculate RPY errors relative to quadrotor by incorporating yaw
-    errors_W = [sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]]
-    C_WB = euler321(pv[3], 0.0, 0.0)
-    errors = C_WB.T @ errors_W
+    # Calculate position errors in world frame
+    errors = np.array([sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]])
 
     # Velocity commands
     vx = self.pid_x.update(errors[0], 0.0, self.dt)
@@ -12382,6 +12868,20 @@ class MavTrajectoryControl:
     z = self.z
     return np.array([x, y, z])
 
+  def get_yaw(self, t):
+    """ Get yaw """
+    p0 = self.get_position(t)
+    p1 = self.get_position(t + 0.1)
+    dx, dy, dz = p1 - p0
+
+    heading = np.arctan2(dy, dx)
+    if heading > np.pi:
+      heading -= 2.0 * np.pi
+    elif heading < -np.pi:
+      heading += 2.0 * np.pi
+
+    return heading
+
   def get_velocity(self, t):
     ka = 2.0 * np.pi * self.a * self.f
     kb = 2.0 * np.pi * self.b * self.f
@@ -12401,6 +12901,7 @@ class MavTrajectoryControl:
 
     plt.subplot(311)
     plt.plot(pos_data[0, :], pos_data[1, :])
+    plt.axis("equal")
     plt.xlabel("x [m]")
     plt.ylabel("y [m]")
 
@@ -12534,7 +13035,9 @@ class TestMav(unittest.TestCase):
     dt = 0.001
     t = 0.0
     t_end = 10.0
-    pos_sp = np.array([5.0, 5.0, 5.0, 0.0])  # x, y, z, yaw
+    pos_sp = np.array([2.0, 1.0, 5.0, np.deg2rad(135)])  # x, y, z, yaw
+    plot_anim = True
+    self.keep_plotting = True
 
     # Setup models and controller
     idx = 0
@@ -12545,10 +13048,9 @@ class TestMav(unittest.TestCase):
     pos_ctrl = MavPositionControl()
 
     # Setup plot
-    plot_anim = False
-    self.keep_plotting = True
     fig = plt.figure()
-    ax = plt.axes(projection='3d')
+    ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
+    ax_xy = fig.add_subplot(1, 2, 2)
 
     def on_key(event, fig):
       if event.key == 'escape' or event.key == 'q':
@@ -12568,17 +13070,26 @@ class TestMav(unittest.TestCase):
     idx = 0
     while idx < N and self.keep_plotting:
       if plot_anim and idx % 50 == 0:
-        ax.cla()
+        ax_3d.cla()
         T_WB = mav.get_pose()
-        tf_data = plot_tf(ax, T_WB, size=0.5)
-        ax.set_xlim([-5.0, 5.0])
-        ax.set_ylim([-5.0, 5.0])
-        ax.set_zlim([0.0, 10.0])
-        ax.set_xlabel("x [m]")
-        ax.set_ylabel("y [m]")
-        ax.set_zlabel("z [m]")
+        tf_data = plot_tf(ax_3d, T_WB, size=0.5)
+        ax_3d.set_xlim([-5.0, 5.0])
+        ax_3d.set_ylim([-5.0, 5.0])
+        ax_3d.set_zlim([0.0, 10.0])
+        ax_3d.set_xlabel("x [m]")
+        ax_3d.set_ylabel("y [m]")
+        ax_3d.set_zlabel("z [m]")
         plt.draw()
         plt.pause(0.05)
+
+        if len(pos_data) > 100:
+          pos = np.array(pos_data).T
+          ax_xy.cla()
+          ax_xy.plot(pos[0, -1], pos[1, -1], "rx")
+          ax_xy.set_xlim([-5.0, 5.0])
+          ax_xy.set_ylim([-5.0, 5.0])
+          ax_xy.set_xlabel("x [m]")
+          ax_xy.set_ylabel("y [m]")
 
       # Position, velocity and attitude process variables
       pos_pv = [mav.x[6], mav.x[7], mav.x[8], mav.x[2]]
@@ -12646,16 +13157,24 @@ class TestMav(unittest.TestCase):
     # Setup models and controller
     att_ctrl = MavAttitudeControl()
     vel_ctrl = MavVelocityControl()
-    traj_ctrl = MavTrajectoryControl(a=3, b=2, z=z_sp, T=t_end)
+    traj_ctrl = MavTrajectoryControl(a=2, b=2, z=z_sp, T=t_end, delta=np.pi / 2)
+    yaw0 = traj_ctrl.get_yaw(0.0)
     r0 = traj_ctrl.get_position(0.0)
     v0 = traj_ctrl.get_velocity(0.0)
-    mav = MavModel(rx=r0[0], ry=r0[1], rz=z_sp, vx=v0[0], vy=v0[1], vz=v0[2])
+    mav = MavModel(rx=r0[0],
+                   ry=r0[1],
+                   rz=z_sp,
+                   vx=v0[0],
+                   vy=v0[1],
+                   vz=v0[2],
+                   yaw=yaw0)
 
     # Setup plot
-    plot_anim = False
+    plot_anim = True
     self.keep_plotting = True
     fig = plt.figure()
-    ax = plt.axes(projection='3d')
+    ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
+    ax_xy = fig.add_subplot(1, 2, 2)
 
     def on_key(event, fig):
       if event.key == 'escape' or event.key == 'q':
@@ -12675,25 +13194,35 @@ class TestMav(unittest.TestCase):
     idx = 0
     while idx < N and self.keep_plotting:
       if plot_anim and idx % 50 == 0:
-        ax.cla()
+        ax_3d.cla()
         T_WB = mav.get_pose()
-        tf_data = plot_tf(ax, T_WB, size=0.5)
-        ax.set_xlim([-5.0, 5.0])
-        ax.set_ylim([-5.0, 5.0])
-        ax.set_zlim([0.0, 10.0])
-        ax.set_xlabel("x [m]")
-        ax.set_ylabel("y [m]")
-        ax.set_zlabel("z [m]")
+        plot_mav(ax_3d, T_WB, size=0.5)
+        ax_3d.set_xlim([-5.0, 5.0])
+        ax_3d.set_ylim([-5.0, 5.0])
+        ax_3d.set_zlim([0.0, 10.0])
+        ax_3d.set_xlabel("x [m]")
+        ax_3d.set_ylabel("y [m]")
+        ax_3d.set_zlabel("z [m]")
+
+        if len(pos_data) > 100:
+          pos = np.array(pos_data).T
+          ax_xy.plot(pos[0, ::100], pos[1, ::100], "r-")
+          ax_xy.set_xlim([-5.0, 5.0])
+          ax_xy.set_ylim([-5.0, 5.0])
+          ax_xy.set_xlabel("x [m]")
+          ax_xy.set_ylabel("y [m]")
+
         plt.draw()
-        plt.pause(0.05)
+        plt.pause(0.01)
 
       # Velocity and attitude process variables
       vel_pv = [mav.x[9], mav.x[10], mav.x[11], mav.x[2]]
       att_pv = [mav.x[0], mav.x[1], mav.x[2]]
 
       # Update controllers and model
+      yaw_sp = traj_ctrl.get_yaw(t)
       vel = traj_ctrl.get_velocity(t)
-      vel_sp = [vel[0], vel[1], vel[2], 0.0]
+      vel_sp = [vel[0], vel[1], vel[2], yaw_sp]
       att_sp = vel_ctrl.update(vel_sp, vel_pv, dt)
       u = att_ctrl.update(att_sp, att_pv, dt)
       mav.update(u, dt)
@@ -12724,6 +13253,7 @@ class TestMav(unittest.TestCase):
     plt.plot(traj_data[:, 0], traj_data[:, 1], "k--", label="Trajectory")
     plt.xlabel("x [m]")
     plt.ylabel("y [m]")
+    plt.axis("equal")
     plt.legend(loc=0)
 
     # -- Plot velocity
@@ -12744,7 +13274,7 @@ class TestMav(unittest.TestCase):
     plt.ylabel("Attitude [deg]")
     plt.legend(loc=0)
 
-    # plt.show()
+    plt.show()
 
 
 ###############################################################################
