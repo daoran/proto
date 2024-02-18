@@ -1481,6 +1481,9 @@ int test_dot() {
 
   /* Multiply matrix A and B */
   dot(A, 3, 3, B, 3, 1, C);
+  // print_matrix("A", A, 3, 3);
+  // print_matrix("B", B, 3, 1);
+  // print_matrix("C", C, 3, 1);
 
   MU_ASSERT(fltcmp(C[0], 14.0) == 0);
   MU_ASSERT(fltcmp(C[1], 32.0) == 0);
@@ -2955,6 +2958,7 @@ int test_linear_triangulation() {
     // print_vector("p_W [gnd]", p_W, 3);
     // print_vector("p_W [est]", p_W_est, 3);
     MU_ASSERT(norm < 1e-4);
+    // break;
   }
 
   return 0;
