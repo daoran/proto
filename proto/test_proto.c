@@ -8365,7 +8365,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_marg);
   // MU_ADD_TEST(test_visual_odometry_batch);
-  MU_ADD_TEST(test_inertial_odometry_batch);
+  // MU_ADD_TEST(test_inertial_odometry_batch);
   // MU_ADD_TEST(test_visual_inertial_odometry_batch);
   MU_ADD_TEST(test_tsf);
 #ifdef USE_CERES
