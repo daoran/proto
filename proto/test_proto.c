@@ -7079,7 +7079,6 @@ int test_calib_imucam_batch() {
 
   // Solve
   calib->max_iter = 10;
-  calib->verbose = 1;
   calib->verbose = 0;
   calib_imucam_solve(calib);
   MU_ASSERT((calib->num_cam_factors + calib->num_imu_factors) > 0);
