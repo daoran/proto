@@ -21,6 +21,8 @@ run_memcheck() {
 # PYTHON
 ###############################################################################
 
+# python3 scripts/plot_frames.py
+
 # ctags proto/proto.c proto/proto.py
 # python3 proto.py
 # python3 proto.py TestNetwork.test_http_parse_request
@@ -37,6 +39,11 @@ run_memcheck() {
 # python3 proto.py TestTransform.test_quat_inv
 # python3 proto.py TestTransform.test_quat_conj
 # python3 proto.py TestTransform.test_quat_slerp
+# python3 proto.py TestMav
+# python3 proto.py TestMav.test_mav_attitude_control
+# python3 proto.py TestMav.test_mav_velocity_control
+# python3 proto.py TestMav.test_mav_position_control
+# python3 proto.py TestMav.test_mav_trajectory_control
 # python3 proto.py TestCV
 # python3 proto.py TestCV.test_linear_triangulation
 # python3 proto.py TestCV.test_homography_find
@@ -72,7 +79,10 @@ run_memcheck() {
 # python3 proto.py TestFeatureTracking.test_feature_grid_count
 # python3 proto.py TestFeatureTracking.test_spread_keypoints
 # python3 proto.py TestFeatureTracking.test_grid_detect
+# python3 proto.py TestFeatureTracking.test_good_grid
 # python3 proto.py TestFeatureTracking.test_optflow_track
+# python3 proto.py TestFeatureTracking.test_feature_track
+python3 proto.py TestFeatureTracking.test_euroc
 # python3 proto.py TestFeatureTracker
 # python3 proto.py TestFeatureTracker.test_detect
 # python3 proto.py TestFeatureTracker.test_detect_overlaps
@@ -87,6 +97,7 @@ run_memcheck() {
 # python3 proto.py TestCalibration.test_calibrator
 # python3 proto.py TestEuroc
 # python3 proto.py TestKitti
+# python3 proto.py TestKalmanFilter
 # python3 proto.py TestSimulation
 # python3 proto.py TestSimulation.test_create_3d_features
 # python3 proto.py TestSimulation.test_create_3d_features_perimeter
@@ -96,7 +107,7 @@ run_memcheck() {
 # python3 proto.py TestSimulation.test_sim_arm
 # python3 proto.py TestViz.test_multiplot
 # python3 proto.py TestViz.test_server
-python3 proto.py TestSandbox.test_gimbal
+# python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestPoE.test_scene
 
 # tmux send-keys -t dev -R C-l C-m
@@ -137,7 +148,6 @@ run_all_tests() {
     cd ~/projects/proto/proto \
       && clear \
       && make test_proto -j \
-      && ./build/test_proto
   " C-m C-m
   exit
 }
@@ -149,8 +159,7 @@ run_test() {
   tmux send-keys -t $TARGET -R "\
     cd ~/projects/proto/proto \
       && clear \
-      && time make test_proto -j \
-      && ./build/test_proto --target $1
+      && time make test_proto TEST_TARGET=$1 \
   " C-m C-m
   exit
   # python3 proto.py TestFactors.test_imu_factor2
@@ -213,17 +222,22 @@ dev_gui() {
   exit
 }
 
+dev_avs() {
+  tmux send-keys -t dev -R C-l C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
+  exit
+}
+
 # dev_sbgc
 # dev_arducam
 # dev_aprilgrid
 # dev_euroc
 # dev_gui
+# dev_avs
 # python3 scripts/plot_gimbal_calib.py
 # python3 scripts/plot_inertial_odometry.py
+# python3 scripts/plot_map.py
 
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
-# exit
 
 # PROTO
 # run_all_tests
@@ -352,6 +366,7 @@ dev_gui() {
 # run_test test_tf_hpoint
 # run_test test_tf_perturb_rot
 # run_test test_tf_perturb_trans
+# run_test test_tf_chain
 # run_test test_quat2rot
 # PROTO-POSE
 # run_test test_pose_init
