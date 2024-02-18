@@ -964,11 +964,11 @@ int sbgc_update(sbgc_t *sbgc) {
   sbgc->encoder_angles[1] = encoder_pitch;
   sbgc->encoder_angles[2] = encoder_yaw;
 
-  printf("\n");
-  printf("timestamp: %ld\n", timestamp);
-  printf("imu:     %f, %f, %f\n", imu_roll, imu_pitch, imu_yaw);
-  printf("target:  %f, %f, %f\n", target_roll, target_pitch, target_yaw);
-  printf("encoder: %f, %f, %f\n", encoder_roll, encoder_pitch, encoder_yaw);
+  // printf("\n");
+  // printf("timestamp: %ld\n", timestamp);
+  // printf("imu:     %f, %f, %f\n", imu_roll, imu_pitch, imu_yaw);
+  // printf("target:  %f, %f, %f\n", target_roll, target_pitch, target_yaw);
+  // printf("encoder: %f, %f, %f\n", encoder_roll, encoder_pitch, encoder_yaw);
 
   return 0;
 }
