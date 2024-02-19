@@ -9583,12 +9583,16 @@ class FeatureTrackerData:
 class TSIF:
   """ Two State Implicit Filter """
   def __init__(self, cam0_params, cam1_params, cam0_ext, cam1_ext, **kwargs):
+    # Settings
+    self.max_keypoints = kwargs.get("max_keypoints", 100)
+
+    # Calibrations
     self.cam0_params = cam0_params
     self.cam1_params = cam1_params
     self.cam0_exts = cam0_ext
     self.cam1_exts = cam1_ext
 
-    self.max_keypoints = kwargs.get("max_keypoints", 100)
+    # Data
     self.kps0 = []
     self.kps1 = []
     self.prev_kps0 = None
@@ -9646,23 +9650,18 @@ class TSIF:
     if self.prev_frame0 is None or self.prev_frame1 is None:
       return
 
-    # Track in time [cam0]
+    # Track in time and space
     pts0_km1 = np.array(self.kps0, dtype=np.float32)
-    pts0_km1, pts0_k, track0 = optflow_track(self.prev_frame0, frame0, pts0_km1)
-
-    # Track in time [cam1]
     pts1_km1 = np.array(self.kps1, dtype=np.float32)
+    pts0_km1, pts0_k, track0 = optflow_track(self.prev_frame0, frame0, pts0_km1)
     pts1_km1, pts1_k, track1 = optflow_track(self.prev_frame1, frame1, pts1_km1)
-
-    # Track in space [cam0 - cam1]
     pts0_k, pts1_k, track01 = optflow_track(frame0, frame1, pts0_k, pts_j=pts1_k)
 
     # Ransac in time [cam0]
     ransac0 = ransac(pts0_km1, pts0_k, self.cam0_params, self.cam0_params)
     ransac1 = ransac(pts1_km1, pts1_k, self.cam1_params, self.cam1_params)
-    # ransac01 = ransac(pts0_k, pts1_k, self.cam0_params, self.cam1_params)
 
-    # Filter outliers
+    # Remove outliers
     self.prev_kps0 = np.array(self.kps0)
     self.prev_kps1 = np.array(self.kps1)
     self.kps0.clear()
