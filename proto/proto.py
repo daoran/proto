@@ -9580,6 +9580,111 @@ class FeatureTrackerData:
     assert len(self.keypoints) == len(self.feature_ids)
 
 
+class TSIF:
+  """ Two State Implicit Filter """
+  def __init__(self, cam0_params, cam1_params, cam0_ext, cam1_ext, **kwargs):
+    self.cam0_params = cam0_params
+    self.cam1_params = cam1_params
+    self.cam0_exts = cam0_ext
+    self.cam1_exts = cam1_ext
+
+    self.max_keypoints = kwargs.get("max_keypoints", 100)
+    self.kps0 = []
+    self.kps1 = []
+    self.prev_kps0 = None
+    self.prev_kps1 = None
+    self.prev_frame0 = None
+    self.prev_frame1 = None
+
+  def detect(self, frame0, frame1, debug=False):
+    """ Detect new features """
+    # Detect new
+    kwargs = {
+        "max_keypoints": self.max_keypoints,
+        "prev_kps": self.kps0,
+        "debug": debug,
+    }
+    kps0_new = good_grid(frame0, **kwargs)
+    if len(kps0_new) < 10:
+      return
+
+    # Track in space
+    pts0 = np.array(kps0_new, dtype=np.float32)
+    pts0, pts1, inliers = optflow_track(frame0, frame1, pts0)
+    if np.sum(inliers) < 10:
+      return
+
+    kps0_optflow = []
+    kps1_optflow = []
+    for i, status in enumerate(inliers):
+      if status:
+        kps0_optflow.append(pts0[i, :])
+        kps1_optflow.append(pts1[i, :])
+
+    # Ransac in space
+    kps0_ransac = []
+    kps1_ransac = []
+    pts_i = kps0_optflow
+    pts_j = kps1_optflow
+    inliers = ransac(pts_i, pts_j, self.cam0_params, self.cam1_params)
+    if np.sum(inliers) < 10:
+      return
+
+    for i, status in enumerate(inliers):
+      if status:
+        kps0_ransac.append(kps0_optflow[i])
+        kps1_ransac.append(kps1_optflow[i])
+
+    # Append to keypoints
+    for kp0, kp1 in zip(kps0_ransac, kps1_ransac):
+      self.kps0.append(kp0)
+      self.kps1.append(kp1)
+
+  def track(self, frame0, frame1):
+    """ Track features """
+    # Pre-check
+    if self.prev_frame0 is None or self.prev_frame1 is None:
+      return
+
+    # Track in time [cam0]
+    pts0_km1 = np.array(self.kps0, dtype=np.float32)
+    pts0_km1, pts0_k, track0 = optflow_track(self.prev_frame0, frame0, pts0_km1)
+
+    # Track in time [cam1]
+    pts1_km1 = np.array(self.kps1, dtype=np.float32)
+    pts1_km1, pts1_k, track1 = optflow_track(self.prev_frame1, frame1, pts1_km1)
+
+    # Track in space [cam0 - cam1]
+    pts0_k, pts1_k, track01 = optflow_track(frame0, frame1, pts0_k, pts_j=pts1_k)
+
+    # Ransac in time [cam0]
+    ransac0 = ransac(pts0_km1, pts0_k, self.cam0_params, self.cam0_params)
+    ransac1 = ransac(pts1_km1, pts1_k, self.cam1_params, self.cam1_params)
+    # ransac01 = ransac(pts0_k, pts1_k, self.cam0_params, self.cam1_params)
+
+    # Filter outliers
+    self.prev_kps0 = np.array(self.kps0)
+    self.prev_kps1 = np.array(self.kps1)
+    self.kps0.clear()
+    self.kps1.clear()
+
+    inliers = [track0, track1, track01, ransac0, ransac1]
+    for i, data in enumerate(zip(pts0_k, pts1_k, *inliers)):
+      pt0, pt1, t0, t1, t01, r0, r1, = data
+      if t0 and t1 and t01 and r0 and r1:
+        self.kps0.append(pt0)
+        self.kps1.append(pt1)
+
+  def update(self, frame0, frame1, debug=False):
+    # Detect and track features
+    self.detect(frame0, frame1, debug)
+    self.track(frame0, frame1)
+
+    # Update
+    self.prev_frame0 = frame0
+    self.prev_frame1 = frame1
+
+
 class FeatureTracker:
   """ Feature tracker """
   def __init__(self):
@@ -10122,119 +10227,24 @@ class TestFeatureTracking(unittest.TestCase):
     self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
     self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
 
-    # Setup cameras
-    # -- cam0
-    res = self.dataset.cam0_data.config.resolution
-    proj_params = self.dataset.cam0_data.config.intrinsics
-    dist_params = self.dataset.cam0_data.config.distortion_coefficients
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    cam0 = np.block([*proj_params, *dist_params])
-    cam0_geom = camera_params_setup(0, res, proj_model, dist_model, cam0)
-    # -- cam1
-    res = self.dataset.cam1_data.config.resolution
-    proj_params = self.dataset.cam1_data.config.intrinsics
-    dist_params = self.dataset.cam1_data.config.distortion_coefficients
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    cam1 = np.block([*proj_params, *dist_params])
-    cam1_geom = camera_params_setup(1, res, proj_model, dist_model, cam1)
-
-    # Setup camera extrinsics
-    # -- cam0
-    T_BC0 = self.dataset.cam0_data.config.T_BS
-    cam0_ext = extrinsics_setup(T_BC0)
-    # -- cam1
-    T_BC1 = self.dataset.cam1_data.config.T_BS
-    cam1_ext = extrinsics_setup(T_BC1)
-    # -- cam0 cam1 extrinsic
-    T_C0C1 = inv(T_BC0) @ T_BC1
-    P0 = pinhole_P(cam0[0:4], eye(4))
-    P1 = pinhole_P(cam1[0:4], T_C0C1)
-
     imshow_wait = 0
-    max_keypoints = 200
-    kps0 = []
-    kps1 = []
-    prev_kps0 = None
-    prev_kps1 = None
-    prev_frame0 = None
-    prev_frame1 = None
-
     red = (0, 0, 255)
     yellow = (0, 255, 255)
+    ft = TSIF(self.cam0_params, self.cam1_params, self.cam0_ext, self.cam1_ext)
 
-    # for ts in self.dataset.cam0_data.timestamps[1000:2000]:
-    for ts in self.dataset.cam0_data.timestamps:
+    for ts in self.dataset.cam0_data.timestamps[1000:2000]:
+    # for ts in self.dataset.cam0_data.timestamps:
       # Load images
       frame0_path = self.dataset.cam0_data.image_paths[ts]
       frame1_path = self.dataset.cam1_data.image_paths[ts]
       frame0 = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
       frame1 = cv2.imread(frame1_path, cv2.IMREAD_GRAYSCALE)
-
-      # -- Detect features
-      kwargs = {"max_keypoints": max_keypoints, "prev_kps": kps0, "debug": True}
-      kps0_new = good_grid(frame0, **kwargs)
-      if len(kps0_new) > 10:
-        # -- Track in space
-        pts0 = np.array(kps0_new, dtype=np.float32)
-        pts0, pts1, inliers = optflow_track(frame0, frame1, pts0)
-        kps0_optflow = []
-        kps1_optflow = []
-        for i, status in enumerate(inliers):
-          if status:
-            kps0_optflow.append(pts0[i, :])
-            kps1_optflow.append(pts1[i, :])
-
-        # -- Ransac in space
-        kps0_ransac = []
-        kps1_ransac = []
-        if len(kps0_optflow) > 10:
-          pts_i = kps0_optflow
-          pts_j = kps1_optflow
-          inliers = ransac(pts_i, pts_j, cam0_geom, cam1_geom)
-          for i, status in enumerate(inliers):
-            if status:
-              kps0_ransac.append(kps0_optflow[i])
-              kps1_ransac.append(kps1_optflow[i])
-
-        # -- Append to keypoints
-        for kp0, kp1 in zip(kps0_ransac, kps1_ransac):
-          kps0.append(kp0)
-          kps1.append(kp1)
-
-      # -- Track features
-      if prev_frame0 is not None and prev_frame1 is not None:
-        # -- Track in time [cam0]
-        pts0_km1 = np.array(kps0, dtype=np.float32)
-        pts0_km1, pts0_k, in0 = optflow_track(prev_frame0, frame0, pts0_km1)
-
-        # -- Track in time [cam1]
-        pts1_km1 = np.array(kps1, dtype=np.float32)
-        pts1_km1, pts1_k, in1 = optflow_track(prev_frame1, frame1, pts1_km1)
-
-        # -- Track in space [cam0 - cam1]
-        pts0_k, pts1_k, in01 = optflow_track(frame0, frame1, pts0_k, pts_j=pts1_k)
-
-        # -- Ransac in time [cam0]
-        ransac0 = ransac(pts0_km1, pts0_k, cam0_geom, cam0_geom)
-        ransac1 = ransac(pts1_km1, pts1_k, cam1_geom, cam1_geom)
-        ransac01 = ransac(pts0_k, pts1_k, cam0_geom, cam1_geom)
-
-        prev_kps0 = np.array(kps0)
-        prev_kps1 = np.array(kps1)
-        kps0.clear()
-        kps1.clear()
-        for i, data in enumerate(zip(pts0_k, pts1_k, in0, in1, in01, ransac0, ransac1, ransac01)):
-          pt0, pt1, inlier0, inlier1, inlier01, r0, r1, r01 = data
-          if inlier0 and inlier1 and inlier01 and r0 and r1 and r01:
-            kps0.append(pt0)
-            kps1.append(pt1)
+      ft.update(frame0, frame1)
 
       # Visualize
       viz = None
-      viz_i = draw_keypoints(frame0, kps0)
-      viz_j = draw_keypoints(frame1, kps1)
+      viz_i = draw_keypoints(frame0, ft.kps0)
+      viz_j = draw_keypoints(frame1, ft.kps1)
       viz = cv2.hconcat([viz_i, viz_j])
       # viz = cv2.vconcat([viz_top, viz_bottom])
 
@@ -10244,10 +10254,6 @@ class TestFeatureTracking(unittest.TestCase):
         break
       elif key_pressed == ord(' '):
         imshow_wait = 1 if imshow_wait == 0 else 0
-
-      # Update
-      prev_frame0 = frame0
-      prev_frame1 = frame1
 
 
 class TestFeatureTracker(unittest.TestCase):
