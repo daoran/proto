@@ -12787,41 +12787,79 @@ class MavVelocityControl:
 
 
 class MavPositionControl:
-  def __init__(self):
-    self.period = 0.011
-    self.vx_min = -5.0
-    self.vx_max = 5.0
-    self.vy_min = -5.0
-    self.vy_max = 5.0
-    self.vz_min = -5.0
-    self.vz_max = 5.0
-
+  def __init__(self, output_mode="VELOCITY"):
+    self.output_mode = output_mode
     self.dt = 0
-    self.pid_x = PID(0.5, 0.0, 0.05)
-    self.pid_y = PID(0.5, 0.0, 0.05)
-    self.pid_z = PID(1.0, 0.0, 0.1)
     self.u = [0.0, 0.0, 0.0, 0.0]
+
+    if self.output_mode == "VELOCITY":
+      self.period = 0.011
+      self.vx_min = -5.0
+      self.vx_max = 5.0
+      self.vy_min = -5.0
+      self.vy_max = 5.0
+      self.vz_min = -5.0
+      self.vz_max = 5.0
+
+      self.pid_x = PID(0.5, 0.0, 0.05)
+      self.pid_y = PID(0.5, 0.0, 0.05)
+      self.pid_z = PID(1.0, 0.0, 0.1)
+
+    elif self.output_mode == "ATTITUDE":
+      self.period = 0.011
+      self.roll_min = deg2rad(-35.0)
+      self.roll_max = deg2rad(35.0)
+      self.pitch_min = deg2rad(-35.0)
+      self.pitch_max = deg2rad(35.0)
+      self.hover_thrust = 0.5
+
+      self.pid_x = PID(1.0, 0.0, 0.0)
+      self.pid_y = PID(1.0, 0.0, 0.0)
+      self.pid_z = PID(1.0, 0.0, 0.0)
+
+    else:
+      raise NotImplementedError()
 
   def update(self, sp, pv, dt):
     """ Update """
     # Check rate
     self.dt += dt
-    if self.dt < 0.01:
+    if self.dt < self.period:
       return self.u  # Return previous command
 
-    # Calculate position errors in world frame
-    errors = np.array([sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]])
+    if self.output_mode == "VELOCITY":
+      # Calculate position errors in world frame
+      errors = np.array([sp[0] - pv[0], sp[1] - pv[1], sp[2] - pv[2]])
 
-    # Velocity commands
-    vx = self.pid_x.update(errors[0], 0.0, self.dt)
-    vy = self.pid_y.update(errors[1], 0.0, self.dt)
-    vz = self.pid_z.update(errors[2], 0.0, self.dt)
-    yaw = sp[3]
+      # Velocity commands
+      vx = self.pid_x.update(errors[0], 0.0, self.dt)
+      vy = self.pid_y.update(errors[1], 0.0, self.dt)
+      vz = self.pid_z.update(errors[2], 0.0, self.dt)
+      yaw = sp[3]
 
-    self.u[0] = clip_value(vx, self.vx_min, self.vx_max)
-    self.u[1] = clip_value(vy, self.vy_min, self.vy_max)
-    self.u[2] = clip_value(vz, self.vz_min, self.vz_max)
-    self.u[3] = yaw
+      # Velocity command (vx, vy, vz, yaw)
+      self.u[0] = clip_value(vx, self.vx_min, self.vx_max)
+      self.u[1] = clip_value(vy, self.vy_min, self.vy_max)
+      self.u[2] = clip_value(vz, self.vz_min, self.vz_max)
+      self.u[3] = yaw
+
+    elif self.output_mode == "ATTITUDE":
+      # Calculate position errors in mav frame
+      errors = euler321(pv[3], 0.0, 0.0).T @ (sp[0:3] - pv[0:3])
+
+      # Attitude commands
+      roll = -self.pid_y.update(errors[1], 0.0, dt)
+      pitch = self.pid_x.update(errors[0], 0.0, dt)
+      thrust = self.hover_thrust + self.pid_z.update(errors[2], 0.0, dt)
+
+      # Attitude command (roll, pitch, yaw, thrust)
+      self.u[0] = clip_value(roll, self.roll_min, self.roll_max)
+      self.u[1] = clip_value(pitch, self.pitch_min, self.pitch_max)
+      self.u[2] = sp[3]
+      self.u[3] = clip_value(thrust, 0.0, 1.0)
+
+    else:
+      raise NotImplementedError()
 
     # Reset dt
     self.dt = 0.0
@@ -12851,14 +12889,8 @@ class MavTrajectoryControl:
 
     # Position and velocity controller
     self.last_ts = None
-    self.pos_ctrl_dt = 0.0
-    self.pos_ctrl_period = 0.0011
-    self.pid_x = PID(1.0, 0.0, 0.0)
-    self.pid_y = PID(1.0, 0.0, 0.0)
-    self.pid_z = PID(1.0, 0.0, 0.0)
+    self.pos_ctrl = MavPositionControl("ATTITUDE")
     self.vel_ctrl = MavVelocityControl()
-    self.att_pos_sp = np.array([0.0, 0.0, 0.0, 0.0])
-    self.att_vel_sp = np.array([0.0, 0.0, 0.0, 0.0])
 
   def symdiff_velocity(self):
     import sympy
@@ -12927,22 +12959,18 @@ class MavTrajectoryControl:
     vel_sp = [traj_vel[0], traj_vel[1], traj_vel[2], traj_yaw]
 
     # Position control
-    if self.pos_ctrl_dt >= self.pos_ctrl_period:
-      errors = euler321(pos_pv[3], 0.0, 0.0).T @ (pos_sp[0:3] - pos_pv[0:3])
-      roll = -self.pid_y.update(errors[1], 0.0, dt)
-      pitch = self.pid_x.update(errors[0], 0.0, dt)
-      thrust = self.hover_thrust + self.pid_z.update(errors[2], 0.0, dt)
-      self.att_pos_sp[0] = clip_value(roll, deg2rad(-35.0), deg2rad(35.0))
-      self.att_pos_sp[1] = clip_value(pitch, deg2rad(-35.0), deg2rad(35.0))
-      self.att_pos_sp[2] = traj_yaw
-      self.att_pos_sp[3] = clip_value(thrust, 0.0, 1.0)
-      self.pos_ctrl_dt = 0.0
+    att_pos_sp = self.pos_ctrl.update(pos_sp, pos_pv, dt)
 
     # Velocity control
-    self.att_vel_sp = self.vel_ctrl.update(vel_sp, vel_pv, dt)
+    att_vel_sp = self.vel_ctrl.update(vel_sp, vel_pv, dt)
 
     # Mix both position and velocity control into a single attitude setpoint
-    att_sp = self.att_vel_sp + self.att_pos_sp
+    att_sp = np.array([0.0, 0.0, 0.0, 0.0])
+    att_sp[0] = att_vel_sp[0] + att_pos_sp[0]
+    att_sp[1] = att_vel_sp[1] + att_pos_sp[1]
+    att_sp[2] = traj_yaw
+    att_sp[3] = att_vel_sp[3] + att_pos_sp[3]
+
     att_sp[0] = clip_value(att_sp[0], deg2rad(-35.0), deg2rad(35.0))
     att_sp[1] = clip_value(att_sp[1], deg2rad(-35.0), deg2rad(35.0))
     att_sp[2] = att_sp[2]
@@ -12950,7 +12978,6 @@ class MavTrajectoryControl:
 
     # Update
     self.last_ts = t
-    self.pos_ctrl_dt += dt
 
     return att_sp
 
@@ -13224,8 +13251,8 @@ class TestMav(unittest.TestCase):
     yaw0 = traj_ctrl.get_yaw(0.0)
     r0 = traj_ctrl.get_position(0.0)
     v0 = traj_ctrl.get_velocity(0.0)
-    mav = MavModel(rx=r0[0] + 0.1,
-                   ry=r0[1] - 0.1,
+    mav = MavModel(rx=r0[0] + 0.2,
+                   ry=r0[1] - 0.2,
                    rz=z_sp,
                    vx=v0[0],
                    vy=v0[1],
