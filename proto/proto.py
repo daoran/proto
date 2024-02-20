@@ -12813,9 +12813,9 @@ class MavPositionControl:
       self.pitch_max = deg2rad(35.0)
       self.hover_thrust = 0.5
 
-      self.pid_x = PID(1.0, 0.0, 0.0)
-      self.pid_y = PID(1.0, 0.0, 0.0)
-      self.pid_z = PID(1.0, 0.0, 0.0)
+      self.pid_x = PID(5.0, 0.0, 0.1)
+      self.pid_y = PID(5.0, 0.0, 0.1)
+      self.pid_z = PID(5.0, 0.0, 0.1)
 
     else:
       raise NotImplementedError()
@@ -13251,8 +13251,8 @@ class TestMav(unittest.TestCase):
     yaw0 = traj_ctrl.get_yaw(0.0)
     r0 = traj_ctrl.get_position(0.0)
     v0 = traj_ctrl.get_velocity(0.0)
-    mav = MavModel(rx=r0[0] + 0.2,
-                   ry=r0[1] - 0.2,
+    mav = MavModel(rx=r0[0] + 1.0,
+                   ry=r0[1] - 1.0,
                    rz=z_sp,
                    vx=v0[0],
                    vy=v0[1],
@@ -13260,7 +13260,7 @@ class TestMav(unittest.TestCase):
                    yaw=yaw0)
 
     # Setup plot
-    plot_anim = False
+    plot_anim = True
     self.keep_plotting = True
     fig = plt.figure()
     ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
