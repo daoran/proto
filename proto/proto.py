@@ -9541,45 +9541,6 @@ class FeatureTrack:
   #   """ Triangulate """
 
 
-class FeatureTrackerData:
-  """
-  Feature tracking data *per camera*
-
-  This data structure keeps track of:
-
-  - Image
-  - Keypoints
-  - Descriptors
-  - Feature ids (optional)
-
-  """
-  def __init__(self, cam_idx, image, keypoints, feature_ids=None):
-    self.cam_idx = cam_idx
-    self.image = image
-    self.keypoints = list(keypoints)
-    self.feature_ids = list(feature_ids)
-
-  def add(self, fid, kp):
-    """ Add measurement """
-    assert isinstance(fid, int)
-    assert hasattr(kp, 'pt')
-    self.keypoints.append(kp)
-    self.feature_ids.append(fid)
-    assert len(self.keypoints) == len(self.feature_ids)
-
-  def update(self, image, fids, kps):
-    """ Extend measurements """
-    assert len(kps) == len(fids)
-    self.image = np.array(image)
-
-    if kps:
-      assert hasattr(kps[0], 'pt')
-
-    self.feature_ids.extend(fids)
-    self.keypoints.extend(kps)
-    assert len(self.keypoints) == len(self.feature_ids)
-
-
 class TSIF:
   """ Two State Implicit Filter """
   def __init__(self, cam0_params, cam1_params, cam0_ext, cam1_ext, **kwargs):
@@ -9655,9 +9616,12 @@ class TSIF:
     pts1_km1 = np.array(self.kps1, dtype=np.float32)
     pts0_km1, pts0_k, track0 = optflow_track(self.prev_frame0, frame0, pts0_km1)
     pts1_km1, pts1_k, track1 = optflow_track(self.prev_frame1, frame1, pts1_km1)
-    pts0_k, pts1_k, track01 = optflow_track(frame0, frame1, pts0_k, pts_j=pts1_k)
+    pts0_k, pts1_k, track01 = optflow_track(frame0,
+                                            frame1,
+                                            pts0_k,
+                                            pts_j=pts1_k)
 
-    # Ransac in time [cam0]
+    # Ransac in time
     ransac0 = ransac(pts0_km1, pts0_k, self.cam0_params, self.cam0_params)
     ransac1 = ransac(pts1_km1, pts1_k, self.cam1_params, self.cam1_params)
 
@@ -9682,6 +9646,45 @@ class TSIF:
     # Update
     self.prev_frame0 = frame0
     self.prev_frame1 = frame1
+
+
+class FeatureTrackerData:
+  """
+  Feature tracking data *per camera*
+
+  This data structure keeps track of:
+
+  - Image
+  - Keypoints
+  - Descriptors
+  - Feature ids (optional)
+
+  """
+  def __init__(self, cam_idx, image, keypoints, feature_ids=None):
+    self.cam_idx = cam_idx
+    self.image = image
+    self.keypoints = list(keypoints)
+    self.feature_ids = list(feature_ids)
+
+  def add(self, fid, kp):
+    """ Add measurement """
+    assert isinstance(fid, int)
+    assert hasattr(kp, 'pt')
+    self.keypoints.append(kp)
+    self.feature_ids.append(fid)
+    assert len(self.keypoints) == len(self.feature_ids)
+
+  def update(self, image, fids, kps):
+    """ Extend measurements """
+    assert len(kps) == len(fids)
+    self.image = np.array(image)
+
+    if kps:
+      assert hasattr(kps[0], 'pt')
+
+    self.feature_ids.extend(fids)
+    self.keypoints.extend(kps)
+    assert len(self.keypoints) == len(self.feature_ids)
 
 
 class FeatureTracker:
@@ -10232,7 +10235,7 @@ class TestFeatureTracking(unittest.TestCase):
     ft = TSIF(self.cam0_params, self.cam1_params, self.cam0_ext, self.cam1_ext)
 
     for ts in self.dataset.cam0_data.timestamps[1000:2000]:
-    # for ts in self.dataset.cam0_data.timestamps:
+      # for ts in self.dataset.cam0_data.timestamps:
       # Load images
       frame0_path = self.dataset.cam0_data.image_paths[ts]
       frame1_path = self.dataset.cam1_data.image_paths[ts]
@@ -12696,7 +12699,7 @@ class MavAttitudeControl:
     self.pid_roll = PID(10.0, 0.0, 5.0)
     self.pid_pitch = PID(10.0, 0.0, 5.0)
     self.pid_yaw = PID(10.0, 0.0, 1.0)
-    self.u = [0.0, 0.0, 0.0, 0.0]
+    self.u = np.array([0.0, 0.0, 0.0, 0.0])
 
   def update(self, sp, pv, dt):
     """ Update """
@@ -12729,22 +12732,22 @@ class MavAttitudeControl:
     self.pid_roll.reset()
     self.pid_pitch.reset()
     self.pid_yaw.reset()
-    self.u = [0.0, 0.0, 0.0, 0.0]
+    self.u = np.array([0.0, 0.0, 0.0, 0.0])
 
 
 class MavVelocityControl:
   def __init__(self):
     self.period = 0.0011
-    self.roll_min = deg2rad(-30.0)
-    self.roll_max = deg2rad(30.0)
-    self.pitch_min = deg2rad(-30.0)
-    self.pitch_max = deg2rad(30.0)
+    self.roll_min = deg2rad(-35.0)
+    self.roll_max = deg2rad(35.0)
+    self.pitch_min = deg2rad(-35.0)
+    self.pitch_max = deg2rad(35.0)
 
     self.dt = 0
     self.pid_vx = PID(10.0, 0.0, 0.5)
     self.pid_vy = PID(10.0, 0.0, 0.5)
     self.pid_vz = PID(10.0, 0.0, 0.5)
-    self.u = [0.0, 0.0, 0.0, 0.0]
+    self.u = np.array([0.0, 0.0, 0.0, 0.0])
 
   def update(self, sp, pv, dt):
     """ Update """
@@ -12780,7 +12783,7 @@ class MavVelocityControl:
     self.pid_vx.reset()
     self.pid_vy.reset()
     self.pid_vz.reset()
-    self.u = [0.0, 0.0, 0.0, 0.0]
+    self.u = np.array([0.0, 0.0, 0.0, 0.0])
 
 
 class MavPositionControl:
@@ -12844,6 +12847,18 @@ class MavTrajectoryControl:
     self.T = kwargs["T"]
     self.f = 1.0 / self.T
     self.delta = kwargs.get("delta", np.pi)
+    self.hover_thrust = kwargs.get("hover_thrust", 0.5)
+
+    # Position and velocity controller
+    self.last_ts = None
+    self.pos_ctrl_dt = 0.0
+    self.pos_ctrl_period = 0.0011
+    self.pid_x = PID(1.0, 0.0, 0.0)
+    self.pid_y = PID(1.0, 0.0, 0.0)
+    self.pid_z = PID(1.0, 0.0, 0.0)
+    self.vel_ctrl = MavVelocityControl()
+    self.att_pos_sp = np.array([0.0, 0.0, 0.0, 0.0])
+    self.att_vel_sp = np.array([0.0, 0.0, 0.0, 0.0])
 
   def symdiff_velocity(self):
     import sympy
@@ -12894,6 +12909,50 @@ class MavTrajectoryControl:
     vy = kb * self.B * np.cos(kb * t)
     vz = 0.0
     return np.array([vx, vy, vz])
+
+  def update(self, pos_pv, vel_pv, t):
+    # Pre-check
+    if self.last_ts is None:
+      self.last_ts = t
+      return np.array([0.0, 0.0, 0.0, 0.0])
+    dt = t - self.last_ts
+
+    # Get trajectory position, velocity and yaw
+    traj_pos = self.get_position(t)
+    traj_vel = self.get_velocity(t)
+    traj_yaw = self.get_yaw(t)
+
+    # Form position and velocity setpoints
+    pos_sp = np.array([traj_pos[0], traj_pos[1], traj_pos[2], traj_yaw])
+    vel_sp = [traj_vel[0], traj_vel[1], traj_vel[2], traj_yaw]
+
+    # Position control
+    if self.pos_ctrl_dt >= self.pos_ctrl_period:
+      errors = euler321(pos_pv[3], 0.0, 0.0).T @ (pos_sp[0:3] - pos_pv[0:3])
+      roll = -self.pid_y.update(errors[1], 0.0, dt)
+      pitch = self.pid_x.update(errors[0], 0.0, dt)
+      thrust = self.hover_thrust + self.pid_z.update(errors[2], 0.0, dt)
+      self.att_pos_sp[0] = clip_value(roll, deg2rad(-35.0), deg2rad(35.0))
+      self.att_pos_sp[1] = clip_value(pitch, deg2rad(-35.0), deg2rad(35.0))
+      self.att_pos_sp[2] = traj_yaw
+      self.att_pos_sp[3] = clip_value(thrust, 0.0, 1.0)
+      self.pos_ctrl_dt = 0.0
+
+    # Velocity control
+    self.att_vel_sp = self.vel_ctrl.update(vel_sp, vel_pv, dt)
+
+    # Mix both position and velocity control into a single attitude setpoint
+    att_sp = self.att_vel_sp + self.att_pos_sp
+    att_sp[0] = clip_value(att_sp[0], deg2rad(-35.0), deg2rad(35.0))
+    att_sp[1] = clip_value(att_sp[1], deg2rad(-35.0), deg2rad(35.0))
+    att_sp[2] = att_sp[2]
+    att_sp[3] = clip_value(att_sp[3], 0.0, 1.0)
+
+    # Update
+    self.last_ts = t
+    self.pos_ctrl_dt += dt
+
+    return att_sp
 
   def plot(self):
     """ Plot """
@@ -13161,13 +13220,12 @@ class TestMav(unittest.TestCase):
 
     # Setup models and controller
     att_ctrl = MavAttitudeControl()
-    vel_ctrl = MavVelocityControl()
-    traj_ctrl = MavTrajectoryControl(a=2, b=2, z=z_sp, T=t_end, delta=np.pi / 2)
+    traj_ctrl = MavTrajectoryControl(a=1, b=2, z=z_sp, T=t_end, delta=np.pi / 2)
     yaw0 = traj_ctrl.get_yaw(0.0)
     r0 = traj_ctrl.get_position(0.0)
     v0 = traj_ctrl.get_velocity(0.0)
-    mav = MavModel(rx=r0[0],
-                   ry=r0[1],
+    mav = MavModel(rx=r0[0] + 0.1,
+                   ry=r0[1] - 0.1,
                    rz=z_sp,
                    vx=v0[0],
                    vy=v0[1],
@@ -13175,7 +13233,7 @@ class TestMav(unittest.TestCase):
                    yaw=yaw0)
 
     # Setup plot
-    plot_anim = True
+    plot_anim = False
     self.keep_plotting = True
     fig = plt.figure()
     ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
@@ -13221,14 +13279,12 @@ class TestMav(unittest.TestCase):
         plt.pause(0.01)
 
       # Velocity and attitude process variables
+      pos_pv = [mav.x[6], mav.x[7], mav.x[8], mav.x[2]]
       vel_pv = [mav.x[9], mav.x[10], mav.x[11], mav.x[2]]
       att_pv = [mav.x[0], mav.x[1], mav.x[2]]
 
       # Update controllers and model
-      yaw_sp = traj_ctrl.get_yaw(t)
-      vel = traj_ctrl.get_velocity(t)
-      vel_sp = [vel[0], vel[1], vel[2], yaw_sp]
-      att_sp = vel_ctrl.update(vel_sp, vel_pv, dt)
+      att_sp = traj_ctrl.update(pos_pv, vel_pv, t)
       u = att_ctrl.update(att_sp, att_pv, dt)
       mav.update(u, dt)
 
