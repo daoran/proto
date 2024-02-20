@@ -12898,10 +12898,18 @@ class MavTrajectoryControl:
     a, A, delta = sympy.symbols("a A delta")
     b, B = sympy.symbols("b B")
 
-    x = A * sympy.sin(a * 2.0 * sympy.pi * f * t + delta)
-    y = B * sympy.sin(b * 2.0 * sympy.pi * f * t)
+    w = 2.0 * sympy.pi * f
+    theta = sympy.sin(0.25 * w * t)**2
+
+    ka = 2.0 * sympy.pi * a
+    kb = 2.0 * sympy.pi * b
+
+    x = A * sympy.sin(ka * theta + delta)
+    y = B * sympy.sin(kb * theta)
+
     vx = sympy.diff(x, t)
     vy = sympy.diff(y, t)
+
     print(vx)
     print(vy)
 
@@ -12915,9 +12923,16 @@ class MavTrajectoryControl:
 
   def get_position(self, t):
     """ Get position """
-    x = self.A * np.sin(self.a * 2.0 * np.pi * self.f * t + self.delta)
-    y = self.B * np.sin(self.b * 2.0 * np.pi * self.f * t)
+    w = 2.0 * np.pi * self.f
+    theta = np.sin(0.25 * w * t)**2
+
+    ka = 2.0 * np.pi * self.a
+    kb = 2.0 * np.pi * self.b
+
+    x = self.A * np.sin(ka * theta + self.delta)
+    y = self.B * np.sin(kb * theta)
     z = self.z
+
     return np.array([x, y, z])
 
   def get_yaw(self, t):
@@ -12935,11 +12950,20 @@ class MavTrajectoryControl:
     return heading
 
   def get_velocity(self, t):
-    ka = 2.0 * np.pi * self.a * self.f
-    kb = 2.0 * np.pi * self.b * self.f
-    vx = ka * self.A * np.cos(ka * t + self.delta)
-    vy = kb * self.B * np.cos(kb * t)
+    w = 2.0 * np.pi * self.f
+    theta = np.sin(0.25 * w * t)**2
+
+    ka = 2.0 * np.pi * self.a
+    kb = 2.0 * np.pi * self.b
+    kpift = 0.5 * np.pi * self.f * t
+    kx = 2.0 * np.pi**2 * self.A * self.a * self.f
+    ky = 2.0 * np.pi**2 * self.B * self.b * self.f
+    ksincos = np.sin(kpift) * np.cos(kpift)
+
+    vx = kx * ksincos * np.cos(ka * np.sin(kpift)**2 + self.delta)
+    vy = ky * ksincos * np.cos(kb * np.sin(kpift)**2)
     vz = 0.0
+
     return np.array([vx, vy, vz])
 
   def update(self, pos_pv, vel_pv, t):
@@ -13017,6 +13041,14 @@ class MavTrajectoryControl:
 
 class TestMav(unittest.TestCase):
   """ Test Mav """
+  def test_symdiff_velocity(self):
+    traj_ctrl = MavTrajectoryControl(z=2.0, T=10.0)
+    traj_ctrl.symdiff_velocity()
+
+  def test_plot(self):
+    traj_ctrl = MavTrajectoryControl(z=2.0, T=20.0)
+    traj_ctrl.plot()
+
   def test_mav_attitude_control(self):
     # Simulation parameters
     dt = 0.001
@@ -13252,7 +13284,7 @@ class TestMav(unittest.TestCase):
     r0 = traj_ctrl.get_position(0.0)
     v0 = traj_ctrl.get_velocity(0.0)
     mav = MavModel(rx=r0[0] + 1.0,
-                   ry=r0[1] - 1.0,
+                   ry=r0[1],
                    rz=z_sp,
                    vx=v0[0],
                    vy=v0[1],
