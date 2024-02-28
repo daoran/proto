@@ -2725,6 +2725,28 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   return p
 
 
+def parallax(a, b):
+  """
+  Calculate the parallax between two vectors `a` and `b`.
+
+  This is useful for example checking the parallax of two vectors before
+  triangulating a feature. If the parallax is too small then the depth of the
+  feature will be uncertain.
+
+  Args:
+
+    a (np.array): First vector
+    b (np.array): Second vector
+
+  Returns:
+
+    Parallax between two vectors in degrees.
+
+  """
+  angle = np.arccos((a @ b) / (norm(a) * norm(b)))
+  return np.rad2deg()
+
+
 def homography_find(pts_i, pts_j):
   """
   A Homography is a transformation (a 3x3 matrix) that maps the normalized
@@ -3993,6 +4015,47 @@ class TestCV(unittest.TestCase):
       # Triangulate
       p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
       self.assertTrue(np.allclose(p_Ci_est, p_Ci_gnd))
+
+  def test_parallax(self):
+    """ Test parallax """
+    # Camera 0 pose in world frame
+    C_WCi = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WCi = np.array([0.0, 0.1, 0.0])
+    T_WCi = tf(C_WCi, r_WCi)
+
+    # Camera 1 pose in world frame
+    C_WCj = euler321(-pi / 2, 0.0, -pi / 2)
+    r_WCj = np.array([0.0, -0.1, 0.0])
+    T_WCj = tf(C_WCj, r_WCj)
+
+    # Projection matrices P_i and P_j
+    T_CiCj = inv(T_WCi) @ T_WCj
+    P_i = pinhole_P(self.proj_params, eye(4))
+    P_j = pinhole_P(self.proj_params, T_CiCj)
+
+    # Triangulate
+    p_W = np.array([0.2, 0, 0])
+    p_Ci_gnd = tf_point(inv(T_WCi), p_W)
+    p_Cj_gnd = tf_point(inv(T_WCj), p_W)
+    z_i = pinhole_project(self.proj_params, p_Ci_gnd)
+    z_j = pinhole_project(self.proj_params, p_Cj_gnd)
+    p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
+
+    a = p_Ci_gnd
+    b = p_Cj_gnd
+    angle = np.rad2deg(np.arccos((a @ b) / (norm(a) * norm(b))))
+
+    # Visualize
+    plt.figure()
+    ax = plt.axes(projection='3d')
+    plot_tf(ax, T_WCi, size=0.1)
+    plot_tf(ax, T_WCj, size=0.1)
+    ax.plot(*p_W, 'r.')
+    plot_set_axes_equal(ax)
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plt.show()
 
   def test_homography_find(self):
     """ Test homography_find() """
