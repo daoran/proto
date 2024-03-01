@@ -1,22 +1,25 @@
 FROM ros:kinetic-perception
 SHELL ["/bin/bash", "-c"]
 
+# Settings
+ENV ARCH=amd64
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Permissions
-ARG USER_ID
-ARG GROUP_ID
-ARG USERNAME="slam_bench"
-RUN addgroup --gid $GROUP_ID $USERNAME
-RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID $USERNAME
-ADD sudoers.txt /etc/sudoers
-RUN chmod 440 /etc/sudoers
-ENV HOME /home/$USERNAME
+RUN apt-get update && apt-get install -y sudo
+ARG USER=docker
+ARG PASS=docker
+ARG UID=1000
+ARG GID=1000
+RUN useradd -m ${USER} --uid=${UID} && echo "${USER}:${PASS}" | chpasswd
+RUN adduser ${USER} sudo
+ENV HOME /home/$USER
 
 # Settings
 ENV CERES_VERSION="1.12.0"
-ENV CATKIN_WS=/home/$USERNAME/catkin_ws
+ENV CATKIN_WS=$HOME/catkin_ws
 
 # Install base dependencies
-USER root
 RUN apt-get update -yq
 RUN apt-get install -qq -y \
   cmake \
@@ -50,8 +53,13 @@ RUN catkin config \
     -DCMAKE_BUILD_TYPE=Release
 RUN catkin build
 
-# Switch to $USERNAME
-USER $USERNAME
+# Install tools
+RUN apt-get install -qq -y \
+  tmux \
+  vim
+
+# Switch to $USER
+USER $USER
 RUN echo 'export PS1="[\u@docker] \W # "' >> $HOME/.bashrc
 
 # Entry point script
