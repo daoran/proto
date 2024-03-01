@@ -8939,7 +8939,7 @@ def draw_keypoints(img, kps, inliers=None, **kwargs):
   should be drawn or not.
   """
   inliers = [1 for i in range(len(kps))] if inliers is None else inliers
-  radius = kwargs.get('radius', 2)
+  radius = kwargs.get('radius', 1)
   color = kwargs.get('color', (0, 255, 0))
   thickness = kwargs.get('thickness', cv2.FILLED)
   linetype = kwargs.get('linetype', cv2.LINE_AA)
@@ -9072,7 +9072,11 @@ def spread_keypoints(img, kps, min_dist, **kwargs):
   # Loop through previous keypoints
   for kp in prev_kps:
     # Convert from keypoint to tuple
-    p = (int(kp.pt[0]), int(kp.pt[1]))
+    p = None
+    if hasattr(kp, "pt"):
+      p = (int(kp.pt[0]), int(kp.pt[1]))
+    else:
+      p = (int(kp[0]), int(kp[1]))
 
     # Fill the area of the matrix where the next keypoint cannot be around
     rs = int(max(p[1] - min_dist, 0.0))
