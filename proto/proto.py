@@ -9421,6 +9421,7 @@ def good_grid(image, **kwargs):
                                         cell_vacancy,
                                         quality_level,
                                         min_dist,
+                                        blockSize=3,
                                         useHarrisDetector=use_harris)
       if corners is None:
         cell_idx += 1
@@ -9439,6 +9440,12 @@ def good_grid(image, **kwargs):
 
   # Spread
   kps_new = spread_corners(image, kps_new, min_dist, prev_corners=prev_kps)
+  kps_new = np.array(kps_new, dtype=np.float32)
+
+  # Subpixel refinement
+  if len(kps_new):
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
+    kps_new = cv2.cornerSubPix(image, kps_new, (5, 5), (-1, -1), criteria)
 
   # Debug
   if kwargs.get('debug', False):
@@ -9543,6 +9550,7 @@ def filter_outliers(pts_i, pts_j, inliers):
   """ Filter outliers """
   pts_out_i = []
   pts_out_j = []
+
   for n, status in enumerate(inliers):
     if status:
       pts_out_i.append(pts_i[n])
