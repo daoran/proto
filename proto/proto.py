@@ -9382,9 +9382,9 @@ def good_grid(image, **kwargs):
   Detect features uniformly using a grid system.
   """
   max_keypoints = kwargs.get('max_keypoints', 2000)
-  quality_level = kwargs.get('quality_level', 0.01)
-  use_harris = kwargs.get('use_harris', False)
-  min_dist = kwargs.get('min_dist', 5)
+  quality_level = kwargs.get('quality_level', 0.001)
+  use_harris = kwargs.get('use_harris', True)
+  min_dist = kwargs.get('min_dist', 20)
   grid_rows = kwargs.get('grid_rows', 2)
   grid_cols = kwargs.get('grid_cols', 3)
   prev_kps = kwargs.get('prev_kps', [])
