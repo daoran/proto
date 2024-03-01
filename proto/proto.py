@@ -4033,17 +4033,12 @@ class TestCV(unittest.TestCase):
     P_i = pinhole_P(self.proj_params, eye(4))
     P_j = pinhole_P(self.proj_params, T_CiCj)
 
-    # Triangulate
+    # Calculate parallax
     p_W = np.array([0.2, 0, 0])
     p_Ci_gnd = tf_point(inv(T_WCi), p_W)
     p_Cj_gnd = tf_point(inv(T_WCj), p_W)
-    z_i = pinhole_project(self.proj_params, p_Ci_gnd)
-    z_j = pinhole_project(self.proj_params, p_Cj_gnd)
-    p_Ci_est = linear_triangulation(P_i, P_j, z_i, z_j)
-
-    a = p_Ci_gnd
-    b = p_Cj_gnd
-    angle = np.rad2deg(np.arccos((a @ b) / (norm(a) * norm(b))))
+    angle = parallax(p_Ci_gnd, p_Cj_gnd)
+    print(angle)
 
     # Visualize
     plt.figure()
