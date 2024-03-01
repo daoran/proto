@@ -9589,25 +9589,33 @@ class FeatureTrack:
     self.feature_id = feature_id
     self.cam_params = cam_params
     self.cam_exts = cam_exts
+    self.timestamps = []
     self.data = {}
 
-  def timestamps(self):
+  def get_timestamps(self):
     """ Get timestamps """
-    return list(self.data.keys())
+    return self.timestamps
 
-  def lifetime(self):
+  def get_lifetime(self):
     """ Get lifetime """
-    return len(self.timestamps())
+    return len(self.timestamps)
+
+  def get_keypoints(self, ts=None):
+    """ Get Keypoints """
+    ts = self.timestamps[-1] if ts is None else ts
+    return self.data[ts]
 
   def add(self, ts, cam_idx, kp, des=None):
     """ Add observation """
     if ts not in self.data:
       self.data[ts] = {}
+
     if cam_idx not in self.data[ts]:
       self.data[ts][cam_idx] = {"kp": None, "desc": None}
 
     self.data[ts][cam_idx]["kp"] = kp
     self.data[ts][cam_idx]["des"] = des
+    self.timestamps.append(ts)
 
   # def triangulate(self):
   #   """ Triangulate """
