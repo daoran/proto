@@ -10396,14 +10396,15 @@ class TestFeatureTracking(unittest.TestCase):
       frame1_path = self.dataset.cam1_data.image_paths[ts]
       frame0 = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
       frame1 = cv2.imread(frame1_path, cv2.IMREAD_GRAYSCALE)
-      ft.update(frame0, frame1)
+
+      ft.update(ts, frame0, frame1)
 
       # Visualize
       viz = None
-      viz_i = draw_keypoints(frame0, ft.kps0)
-      viz_j = draw_keypoints(frame1, ft.kps1)
+      feature_ids, kps0, kps1 = ft.get_keypoints()
+      viz_i = draw_keypoints(frame0, kps0)
+      viz_j = draw_keypoints(frame1, kps1)
       viz = cv2.hconcat([viz_i, viz_j])
-      # viz = cv2.vconcat([viz_top, viz_bottom])
 
       cv2.imshow("Viz", viz)
       key_pressed = cv2.waitKey(imshow_wait)
