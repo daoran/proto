@@ -2744,7 +2744,7 @@ def parallax(a, b):
 
   """
   angle = np.arccos((a @ b) / (norm(a) * norm(b)))
-  return np.rad2deg()
+  return np.rad2deg(angle)
 
 
 def homography_find(pts_i, pts_j):
