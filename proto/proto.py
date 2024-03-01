@@ -12848,6 +12848,12 @@ class MavModel:
     self.x[11] += (-(kt * vz / m) + mr * (cph * cth) * tauf - g) * dt
     # yapf:enable
 
+    # Wrap yaw
+    if self.x[2] > np.pi:
+      self.x[2] -= 2.0 * np.pi
+    elif self.x[2] < -np.pi:
+      self.x[2] += 2.0 * np.pi
+
 
 class MavAttitudeControl:
   def __init__(self):
