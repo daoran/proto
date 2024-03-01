@@ -9555,6 +9555,8 @@ def filter_outliers(pts_i, pts_j, inliers):
     if status:
       pts_out_i.append(pts_i[n])
       pts_out_j.append(pts_j[n])
+  pts_out_i = np.array(pts_out_i)
+  pts_out_j = np.array(pts_out_j)
 
   return (pts_out_i, pts_out_j)
 
