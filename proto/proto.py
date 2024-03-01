@@ -10314,6 +10314,67 @@ class TestFeatureTracking(unittest.TestCase):
     print(track.timestamps())
     print(track.lifetime())
 
+  def test_euroc_mono(self):
+    kps0_km1 = []
+    frame0_km1 = None
+
+    imshow_wait = 0
+    red = (0, 0, 255)
+    yellow = (0, 255, 255)
+
+    # for ts in self.dataset.cam0_data.timestamps[2000:3000]:
+    for ts in self.dataset.cam0_data.timestamps:
+      frame0_path = self.dataset.cam0_data.image_paths[ts]
+      frame0_k = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
+
+      # Track
+      kps0_k = np.array([])
+      if frame0_km1 is not None:
+        kps0_km1, kps0_k, optflow_inliers = optflow_track(
+            frame0_km1, frame0_k, kps0_km1)
+        kps0_km1, kps0_k = filter_outliers(kps0_km1, kps0_k, optflow_inliers)
+
+        # ransac_inliers = ransac(kps0_km1, kps0_k, self.cam0_params, self.cam0_params)
+        # kps0_km1, kps0_k = filter_outliers(kps0_km1, kps0_k, ransac_inliers)
+
+      # Detect new
+      kwargs = {
+          "max_keypoints": 200,
+          "prev_kps": kps0_k,
+          "optflow_mode": True,
+      }
+      kps_new = good_grid(frame0_k, **kwargs)
+
+      if len(kps_new):
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100,
+                    0.001)
+        kps_new = cv2.cornerSubPix(frame0_k, kps_new, (5, 5), (-1, -1),
+                                   criteria)
+
+      if len(kps0_k) and len(kps_new):
+        kps0_k = np.append(kps0_k, kps_new, axis=0)
+
+      elif len(kps_new):
+        kps0_k = kps_new
+
+      # Visualize
+      if frame0_km1 is not None:
+        viz = None
+        viz_km1 = draw_keypoints(frame0_km1, kps0_km1)
+        viz_k = draw_keypoints(frame0_k, kps0_k)
+        viz = cv2.hconcat([viz_km1, viz_k])
+        cv2.imshow("Viz", viz)
+
+        key_pressed = cv2.waitKey(imshow_wait)
+        if key_pressed == ord('q'):
+          break
+        elif key_pressed == ord(' '):
+          imshow_wait = 1 if imshow_wait == 0 else 0
+
+      # Update
+      kps0_km1 = kps0_k
+      frame0_km1 = frame0_k
+
   def test_euroc(self):
     # Setup test images
     self.dataset = TestFeatureTracking.dataset
