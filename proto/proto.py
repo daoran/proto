@@ -9625,107 +9625,121 @@ class TSIF:
   """ Two State Implicit Filter """
   def __init__(self, cam0_params, cam1_params, cam0_ext, cam1_ext, **kwargs):
     # Settings
-    self.max_keypoints = kwargs.get("max_keypoints", 100)
+    self.max_keypoints = kwargs.get("max_keypoints", 300)
+    self.apply_clahe = kwargs.get("apply_clahe", True)
 
     # Calibrations
-    self.cam0_params = cam0_params
-    self.cam1_params = cam1_params
-    self.cam0_exts = cam0_ext
-    self.cam1_exts = cam1_ext
+    self.cam_params = {0: cam0_params, 1: cam1_params}
+    self.cam_exts = {0: cam0_ext, 1: cam1_ext}
 
     # Data
-    self.kps0 = []
-    self.kps1 = []
-    self.prev_kps0 = None
-    self.prev_kps1 = None
+    self.next_feature_id = 0
+    self.features = {}
+    self.old_features = {}
     self.prev_frame0 = None
     self.prev_frame1 = None
 
-  def detect(self, frame0, frame1, debug=False):
+  def add_feature(self, ts, kp0, kp1):
+    """ Add Feature """
+    feature_id = self.next_feature_id
+    feature = FeatureTrack(feature_id, self.cam_params, self.cam_exts)
+    feature.add(ts, 0, kp0)
+    feature.add(ts, 1, kp1)
+    self.features[feature_id] = feature
+    self.next_feature_id += 1
+
+  def update_feature(self, feature_id, ts, kp0, kp1):
+    """ Update Feature """
+    self.features[feature_id].add(ts, 0, kp0)
+    self.features[feature_id].add(ts, 1, kp1)
+
+  def remove_feature(self, feature_id):
+    """ Remove feature """
+    self.old_features[feature_id] = self.features[feature_id]
+    self.features.pop(feature_id)
+
+  def get_keypoints(self):
+    """ Get keypoints """
+    feature_ids = []
+    kps0 = []
+    kps1 = []
+
+    for feature_id, feature in self.features.items():
+      keypoints = feature.get_keypoints()
+      feature_ids.append(feature_id)
+      kps0.append(keypoints[0]["kp"])
+      kps1.append(keypoints[1]["kp"])
+
+    return feature_ids, np.array(kps0), np.array(kps1)
+
+  def detect(self, ts, frame0, frame1, debug=False):
     """ Detect new features """
+    _, prev_kps0, _ = self.get_keypoints()
     # Detect new
     kwargs = {
         "max_keypoints": self.max_keypoints,
-        "prev_kps": self.kps0,
+        "prev_kps": prev_kps0,
         "debug": debug,
+        "optflow_mode": True,
     }
     kps0_new = good_grid(frame0, **kwargs)
+    kps0_new = np.array(kps0_new, dtype=np.float32)
     if len(kps0_new) < 10:
       return
 
     # Track in space
     pts0 = np.array(kps0_new, dtype=np.float32)
     pts0, pts1, inliers = optflow_track(frame0, frame1, pts0)
+    pts0, pts1 = filter_outliers(pts0, pts1, inliers)
     if np.sum(inliers) < 10:
       return
-
-    kps0_optflow = []
-    kps1_optflow = []
-    for i, status in enumerate(inliers):
-      if status:
-        kps0_optflow.append(pts0[i, :])
-        kps1_optflow.append(pts1[i, :])
 
     # Ransac in space
-    kps0_ransac = []
-    kps1_ransac = []
-    pts_i = kps0_optflow
-    pts_j = kps1_optflow
-    inliers = ransac(pts_i, pts_j, self.cam0_params, self.cam1_params)
+    inliers = ransac(pts0, pts1, self.cam_params[0], self.cam_params[1])
+    pts0, pts1 = filter_outliers(pts0, pts1, inliers)
     if np.sum(inliers) < 10:
       return
 
-    for i, status in enumerate(inliers):
-      if status:
-        kps0_ransac.append(kps0_optflow[i])
-        kps1_ransac.append(kps1_optflow[i])
+    for pt0, pt1 in zip(pts0, pts1):
+      self.add_feature(ts, pt0, pt1)
 
-    # Append to keypoints
-    for kp0, kp1 in zip(kps0_ransac, kps1_ransac):
-      self.kps0.append(kp0)
-      self.kps1.append(kp1)
-
-  def track(self, frame0, frame1):
+  def track(self, ts, frame0, frame1):
     """ Track features """
     # Pre-check
     if self.prev_frame0 is None or self.prev_frame1 is None:
       return
 
     # Track in time and space
-    pts0_km1 = np.array(self.kps0, dtype=np.float32)
-    pts1_km1 = np.array(self.kps1, dtype=np.float32)
-    pts0_km1, pts0_k, track0 = optflow_track(self.prev_frame0, frame0, pts0_km1)
-    pts1_km1, pts1_k, track1 = optflow_track(self.prev_frame1, frame1, pts1_km1)
-    pts0_k, pts1_k, track01 = optflow_track(frame0,
-                                            frame1,
-                                            pts0_k,
-                                            pts_j=pts1_k)
+    feature_ids, kps0_km1, kps1_km1 = self.get_keypoints()
+    kps0_km1, kps0_k, track0 = optflow_track(self.prev_frame0, frame0, kps0_km1)
+    kps1_km1, kps1_k, track1 = optflow_track(self.prev_frame1, frame1, kps1_km1)
+    kps0_k, kps_1, track01 = optflow_track(frame0, frame1, kps0_k, pts_j=kps1_k)
 
     # Ransac in time
-    ransac0 = ransac(pts0_km1, pts0_k, self.cam0_params, self.cam0_params)
-    ransac1 = ransac(pts1_km1, pts1_k, self.cam1_params, self.cam1_params)
+    ransac0 = ransac(kps0_km1, kps0_k, self.cam_params[0], self.cam_params[0])
+    ransac1 = ransac(kps1_km1, kps1_k, self.cam_params[1], self.cam_params[1])
 
-    # Remove outliers
-    self.prev_kps0 = np.array(self.kps0)
-    self.prev_kps1 = np.array(self.kps1)
-    self.kps0.clear()
-    self.kps1.clear()
-
+    # Update inliers and remove outliers
     inliers = [track0, track1, track01, ransac0, ransac1]
-    for i, data in enumerate(zip(pts0_k, pts1_k, *inliers)):
-      pt0, pt1, t0, t1, t01, r0, r1, = data
+    for i, data in enumerate(zip(kps0_k, kps1_k, *inliers)):
+      feature_id = feature_ids[i]
+      pt0, pt1, t0, t1, t01, r0, r1 = data
       if t0 and t1 and t01 and r0 and r1:
-        self.kps0.append(pt0)
-        self.kps1.append(pt1)
+        self.update_feature(feature_id, ts, pt0, pt1)
+      else:
+        self.remove_feature(feature_id)
 
-  def update(self, frame0, frame1, debug=False):
-    # Detect and track features
-    self.detect(frame0, frame1, debug)
-    self.track(frame0, frame1)
+  def update(self, ts, frame0, frame1, debug=False):
+    if self.apply_clahe:
+      clahe = cv2.createCLAHE(3.0, (8, 8))
+      frame0 = clahe.apply(frame0)
+      frame1 = clahe.apply(frame1)
 
-    # Update
-    self.prev_frame0 = frame0
-    self.prev_frame1 = frame1
+    # Detect and track
+    self.detect(ts, frame0, frame1, debug)
+    self.track(ts, frame0, frame1)
+    self.prev_frame0 = np.array(frame0)  # Make a copy
+    self.prev_frame1 = np.array(frame1)  # Make a copy
 
 
 class FeatureTrackerData:
