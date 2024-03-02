@@ -10486,6 +10486,69 @@ class TestFeatureTracking(unittest.TestCase):
     print(track.lifetime())
 
   def test_estimate_pose(self):
+    """ Test estimate_pose() """
+    # Detect
+    kwargs = {"max_keypoints": 200, "optflow_mode": True}
+    kps0 = good_grid(self.img0, **kwargs)
+
+    # Track
+    kps0, kps1, inliers = optflow_track(self.img0, self.img1, kps0)
+    kps0, kps1 = filter_outliers(kps0, kps1, inliers)
+
+    # RANSAC
+    inliers = ransac(kps0, kps1, self.cam0_params, self.cam1_params)
+    kps0, kps1 = filter_outliers(kps0, kps1, inliers)
+
+    # Visualize
+    # viz_i = draw_keypoints(self.img0, kps0)
+    # viz_j = draw_keypoints(self.img1, kps1)
+    # viz = cv2.hconcat([viz_i, viz_j])
+    # cv2.imshow("Viz", viz)
+    # cv2.waitKey(0)
+
+    # Triangulate
+    features = []
+    T_WB = eye(4)
+    for z0, z1 in zip(kps0, kps1):
+      # -- Form projection matrices P0 and P1
+      param0 = self.cam0_params.param
+      param1 = self.cam1_params.param
+      T_BC0 = pose2tf(self.cam0_ext.param)
+      T_BC1 = pose2tf(self.cam1_ext.param)
+      T_C0C1 = inv(T_BC0) @ T_BC1
+      P0 = pinhole_P(self.cam0_params.data.proj_params(param0), eye(4))
+      P1 = pinhole_P(self.cam1_params.data.proj_params(param1), T_C0C1)
+
+      # -- Undistort image points z0 and z1
+      z0 = self.cam0_params.data.undistort(param0, z0)
+      z1 = self.cam1_params.data.undistort(param1, z1)
+
+      # -- Triangulate
+      p_C0 = linear_triangulation(P0, P1, z0, z1)
+      # p_W = tf_point(T_WB @ T_BC0, p_C0)
+      # features.append(p_W)
+      features.append(p_C0)
+
+    # Estimate relative pose
+    pose_i = pose_setup(0, T_WB, fix=True)
+    pose_j = estimate_pose(
+        self.cam0_params,
+        self.cam1_params,
+        extrinsics_setup(eye(4), fix=True),
+        extrinsics_setup(eye(4), fix=True),
+        kps0,
+        kps1,
+        features,
+        pose_i,
+    )
+    T_WB_k = pose2tf(pose_j.param)
+    print(np.round(T_WB_k, 3))
+
+    T_BC0 = pose2tf(self.cam0_ext.param)
+    T_BC1 = pose2tf(self.cam1_ext.param)
+    T_C0C1 = inv(T_BC0) @ T_BC1
+    print(np.round(T_C0C1, 3))
+
   def test_euroc_mono(self):
     kps0_km1 = []
     frame0_km1 = None
