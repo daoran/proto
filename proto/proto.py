@@ -4037,6 +4037,17 @@ class TestCV(unittest.TestCase):
     p_W = np.array([0.2, 0, 0])
     p_Ci_gnd = tf_point(inv(T_WCi), p_W)
     p_Cj_gnd = tf_point(inv(T_WCj), p_W)
+
+    # z_i = pinhole_project(self.proj_params, p_Ci_gnd)
+    # z_j = pinhole_project(self.proj_params, p_Cj_gnd)
+    # pt_i = pinhole_back_project(self.proj_params, z_i)
+    # pt_j = pinhole_back_project(self.proj_params, z_j)
+    # a = np.array([pt_i[0], pt_i[1], 1.0])
+    # b = np.array([pt_j[0], pt_j[1], 1.0])
+
+    angle = parallax(a, b)
+    print(angle)
+
     angle = parallax(p_Ci_gnd, p_Cj_gnd)
     print(angle)
 
