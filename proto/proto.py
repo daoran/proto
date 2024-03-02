@@ -9725,6 +9725,55 @@ class FeatureTrack:
     return True
 
 
+def estimate_pose(param_i, param_j, ext_i, ext_j, kps_i, kps_j, features,
+                  pose_i, **kwargs):
+  """ Estimate pose """
+  # Settings
+  verbose = kwargs.get("verbose", True)
+  max_iter = kwargs.get("max_iter", 10)
+
+  # Setup
+  cam_geom_i = param_i.data
+  cam_geom_j = param_j.data
+  fgraph = FactorGraph()
+  fgraph.solver_max_iter = max_iter
+
+  # Add params
+  param_i_id = fgraph.add_param(param_i)
+  param_j_id = fgraph.add_param(param_j)
+  ext_i_id = fgraph.add_param(ext_i)
+  ext_j_id = fgraph.add_param(ext_j)
+  pose_i_id = fgraph.add_param(pose_i)
+  pose_j_id = fgraph.add_param(pose_setup(1, pose_i.param))
+
+  # Add factors
+  for z_i, z_j, p_W in zip(kps_i, kps_j, features):
+    feature = feature_setup(p_W, fix=True)
+    feature_id = fgraph.add_param(feature)
+
+    param_ids = [pose_i_id, ext_i_id, feature_id, param_i_id]
+    factor_i = VisionFactor(cam_geom_i, param_ids, z_i)
+    fgraph.add_factor(factor_i)
+
+    param_ids = [pose_j_id, ext_j_id, feature_id, param_j_id]
+    factor_j = VisionFactor(cam_geom_j, param_ids, z_j)
+    fgraph.add_factor(factor_j)
+
+  # Solve
+  fgraph.solve(verbose)
+  reproj_error = fgraph.get_reproj_errors()
+
+  if verbose:
+    print(f"reproj_error: {np.linalg.norm(reproj_error):.4f}")
+    print(f"max:    {np.max(reproj_error):.4f}")
+    print(f"min:    {np.min(reproj_error):.4f}")
+    print(f"mean:   {np.mean(reproj_error):.4f}")
+    print(f"median: {np.median(reproj_error):.4f}")
+    print(f"std:    {np.std(reproj_error):.4f}")
+
+  return fgraph.params[pose_j_id]
+
+
 class TSIF:
   """ Two State Implicit Filter """
   def __init__(self, cam0_params, cam1_params, cam0_ext, cam1_ext, **kwargs):
