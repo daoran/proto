@@ -4052,16 +4052,16 @@ class TestCV(unittest.TestCase):
     print(angle)
 
     # Visualize
-    plt.figure()
-    ax = plt.axes(projection='3d')
-    plot_tf(ax, T_WCi, size=0.1)
-    plot_tf(ax, T_WCj, size=0.1)
-    ax.plot(*p_W, 'r.')
-    plot_set_axes_equal(ax)
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
-    plt.show()
+    # plt.figure()
+    # ax = plt.axes(projection='3d')
+    # plot_tf(ax, T_WCi, size=0.1)
+    # plot_tf(ax, T_WCj, size=0.1)
+    # ax.plot(*p_W, 'r.')
+    # plot_set_axes_equal(ax)
+    # ax.set_xlabel("x [m]")
+    # ax.set_ylabel("y [m]")
+    # ax.set_zlabel("z [m]")
+    # plt.show()
 
   def test_homography_find(self):
     """ Test homography_find() """
