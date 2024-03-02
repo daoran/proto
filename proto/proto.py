@@ -9631,12 +9631,19 @@ class FeatureTrack:
   """
   Feature Track
   """
-  def __init__(self, feature_id, cam_params, cam_exts):
+  def __init__(self, feature_id, cam_params, cam_exts, **kwargs):
     self.feature_id = feature_id
     self.cam_params = cam_params
     self.cam_exts = cam_exts
+    self.max_length = kwargs.get("max_length", 30)
+    self.min_length = kwargs.get("min_length", 5)
+
     self.timestamps = []
     self.data = {}
+
+    self.init = False
+    self.init_ts = None
+    self.param = None
 
   def get_timestamps(self):
     """ Get timestamps """
@@ -9663,8 +9670,59 @@ class FeatureTrack:
     self.data[ts][cam_idx]["des"] = des
     self.timestamps.append(ts)
 
-  # def triangulate(self):
-  #   """ Triangulate """
+  def _triangulate(self, ts, T_WB, measurements):
+    # Triangulate
+    cam0 = self.cam_params[0]
+    cam1 = self.cam_params[1]
+    cam0_ext = self.cam_exts[0]
+    cam1_ext = self.cam_exts[1]
+
+    # -- Form projection matrices P0 and P1
+    T_BC0 = pose2tf(cam0_ext.param)
+    T_BC1 = pose2tf(cam1_ext.param)
+    T_C0C1 = inv(T_BC0) @ T_BC1
+    cam0_geom = cam0.data
+    cam1_geom = cam1.data
+    P0 = pinhole_P(cam0_geom.proj_params(cam0.param), eye(4))
+    P1 = pinhole_P(cam1_geom.proj_params(cam1.param), T_C0C1)
+
+    # -- Undistort image points z0 and z1
+    z0 = measurements[0]["kp"]
+    z1 = measurements[1]["kp"]
+    z0 = cam0_geom.undistort(cam0.param, z0)
+    z1 = cam1_geom.undistort(cam1.param, z1)
+
+    # -- Triangulate
+    p_C0 = linear_triangulation(P0, P1, z0, z1)
+    p_W = tf_point(T_WB @ T_BC0, p_C0)
+
+    # Update
+    self.init = True
+    self.init_ts = ts
+    self.param = np.array([p_W[0], p_W[1], p_W[2]])
+
+  def initialize(self, ts, T_WB):
+    """ Initialize """
+    # Initialized?
+    if self.init:
+      return True
+
+    # Do we have data?
+    if ts not in self.data:
+      return False
+
+    # Is the feature tracked long enough?
+    if self.get_lifetime() < self.min_length:
+      return False
+
+    # Two or more measurements?
+    measurements = self.data[ts]
+    if len(measurements) < 2:
+      return False
+
+    # Triangulate
+    self._triangulate(ts, T_WB, measurements)
+    return True
 
 
 class TSIF:
