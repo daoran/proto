@@ -9779,7 +9779,8 @@ class TSIF:
   def __init__(self, cam0_params, cam1_params, cam0_ext, cam1_ext, **kwargs):
     # Settings
     self.max_keypoints = kwargs.get("max_keypoints", 300)
-    self.apply_clahe = kwargs.get("apply_clahe", True)
+    self.enable_clahe = kwargs.get("enable_clahe", True)
+    self.parallax_threshold = kwargs.get("parallax_threshold", 1.0)
 
     # Calibrations
     self.cam_params = {0: cam0_params, 1: cam1_params}
@@ -9791,6 +9792,8 @@ class TSIF:
     self.old_features = {}
     self.prev_frame0 = None
     self.prev_frame1 = None
+    self.pose_km1 = None
+    self.pose_k = None
 
   def add_feature(self, ts, kp0, kp1):
     """ Add Feature """
@@ -9827,7 +9830,9 @@ class TSIF:
 
   def detect(self, ts, frame0, frame1, debug=False):
     """ Detect new features """
+    # Get previous keypoints from cam0
     _, prev_kps0, _ = self.get_keypoints()
+
     # Detect new
     kwargs = {
         "max_keypoints": self.max_keypoints,
@@ -9836,25 +9841,32 @@ class TSIF:
         "optflow_mode": True,
     }
     kps0_new = good_grid(frame0, **kwargs)
-    kps0_new = np.array(kps0_new, dtype=np.float32)
     if len(kps0_new) < 10:
       return
 
     # Track in space
-    pts0 = np.array(kps0_new, dtype=np.float32)
-    pts0, pts1, inliers = optflow_track(frame0, frame1, pts0)
-    pts0, pts1 = filter_outliers(pts0, pts1, inliers)
+    kps0, kps1, inliers = optflow_track(frame0, frame1, kps0_new)
+    kps0, kps1 = filter_outliers(kps0, kps1, inliers)
     if np.sum(inliers) < 10:
       return
 
     # Ransac in space
-    inliers = ransac(pts0, pts1, self.cam_params[0], self.cam_params[1])
-    pts0, pts1 = filter_outliers(pts0, pts1, inliers)
+    inliers = ransac(kps0, kps1, self.cam_params[0], self.cam_params[1])
+    kps0, kps1 = filter_outliers(kps0, kps1, inliers)
     if np.sum(inliers) < 10:
       return
 
-    for pt0, pt1 in zip(pts0, pts1):
-      self.add_feature(ts, pt0, pt1)
+    # Check paralax
+    inliers = check_parallax(self.cam_params[0], self.cam_params[1],
+                             self.cam_exts[0], self.cam_exts[1], kps0, kps1,
+                             self.parallax_threshold)
+    kps0, kps1 = filter_outliers(kps0, kps1, inliers)
+    if np.sum(inliers) < 10:
+      return
+
+    # Add new features
+    for kp0, kp1 in zip(kps0, kps1):
+      self.add_feature(ts, kp0, kp1)
 
   def track(self, ts, frame0, frame1):
     """ Track features """
@@ -9882,8 +9894,13 @@ class TSIF:
       else:
         self.remove_feature(feature_id)
 
+    # Initialize features (if they're not already)
+    # for feature_id, feature in self.features.items():
+    #   feature.initialize(ts, pose_k)
+
   def update(self, ts, frame0, frame1, debug=False):
-    if self.apply_clahe:
+    # Apply CLAHE
+    if self.enable_clahe:
       clahe = cv2.createCLAHE(3.0, (8, 8))
       frame0 = clahe.apply(frame0)
       frame1 = clahe.apply(frame1)
@@ -10450,6 +10467,7 @@ class TestFeatureTracking(unittest.TestCase):
     self.assertTrue(len(pts_i) == len(inliers))
 
   def test_feature_track(self):
+    """ Test FeatureTrack """
     feature_id = 123
     intrinsics = {0: self.cam0_params, 1: self.cam1_params}
     extrinsics = {0: self.cam0_ext, 1: self.cam1_ext}
@@ -10467,6 +10485,7 @@ class TestFeatureTracking(unittest.TestCase):
     print(track.timestamps())
     print(track.lifetime())
 
+  def test_estimate_pose(self):
   def test_euroc_mono(self):
     kps0_km1 = []
     frame0_km1 = None
