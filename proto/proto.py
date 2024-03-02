@@ -9572,6 +9572,41 @@ def filter_outliers(pts_i, pts_j, inliers):
   return (pts_out_i, pts_out_j)
 
 
+def check_parallax(cam0_params, cam1_params, cam0_exts, cam1_exts, kps0, kps1,
+                   parallax_threshold):
+  """ Check Parallax """
+  cam0_geom = cam0_params.data
+  cam1_geom = cam1_params.data
+  cam0_intrinsic = cam0_params.param
+  cam1_intrinsic = cam1_params.param
+
+  # Form projection matrices P_i and P_j
+  T_BC0 = pose2tf(cam0_exts.param)
+  T_BC1 = pose2tf(cam1_exts.param)
+  T_C0C1 = inv(T_BC0) @ T_BC1
+  P0 = pinhole_P(cam0_geom.proj_params(cam0_intrinsic), eye(4))
+  P1 = pinhole_P(cam1_geom.proj_params(cam1_intrinsic), T_C0C1)
+
+  # Check parallax
+  inliers = []
+  for pt0, pt1 in zip(kps0, kps1):
+    # Undistort
+    z0 = cam0_geom.undistort(cam0_intrinsic, pt0)
+    z1 = cam1_geom.undistort(cam1_intrinsic, pt1)
+
+    # Triangulate and check parallax
+    p_C0 = linear_triangulation(P0, P1, z0, z1)
+    p_C1 = tf_point(inv(T_C0C1), p_C0)
+    angle = parallax(p_C0, p_C1)
+
+    if angle < parallax_threshold:
+      inliers.append(False)
+    else:
+      inliers.append(True)
+
+  return inliers
+
+
 def ransac(pts_i, pts_j, cam_i, cam_j):
   """ RANSAC """
   # Setup
