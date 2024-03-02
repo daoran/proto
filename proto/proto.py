@@ -13671,17 +13671,17 @@ class TestMav(unittest.TestCase):
     # Simulation parameters
     dt = 0.001
     z_sp = 5.0
-    t_end = 20.0
+    t_end = 30.0
     N = t_end / dt
 
     # Setup models and controller
     att_ctrl = MavAttitudeControl()
-    traj_ctrl = MavTrajectoryControl(a=1, b=2, z=z_sp, T=t_end, delta=np.pi / 2)
+    traj_ctrl = MavTrajectoryControl(a=3, b=2, z=z_sp, T=t_end, delta=np.pi / 2)
     yaw0 = traj_ctrl.get_yaw(0.0)
     r0 = traj_ctrl.get_position(0.0)
     v0 = traj_ctrl.get_velocity(0.0)
-    mav = MavModel(rx=r0[0] + 1.0,
-                   ry=r0[1],
+    mav = MavModel(rx=r0[0] + 0.5,
+                   ry=r0[1] - 0.5,
                    rz=z_sp,
                    vx=v0[0],
                    vy=v0[1],
@@ -13689,7 +13689,7 @@ class TestMav(unittest.TestCase):
                    yaw=yaw0)
 
     # Setup plot
-    plot_anim = True
+    plot_anim = False
     self.keep_plotting = True
     fig = plt.figure()
     ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
