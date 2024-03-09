@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-ctags proto.c proto.h test_proto.c
-# ctags proto.py
+# ctags proto.c proto.h test_proto.c
+ctags proto.py
 
 run_gdb() {
   gdb \
@@ -40,12 +40,15 @@ run_memcheck() {
 # python3 proto.py TestTransform.test_quat_conj
 # python3 proto.py TestTransform.test_quat_slerp
 # python3 proto.py TestMav
+# python3 proto.py TestMav.test_symdiff_velocity
+# python3 proto.py TestMav.test_plot
 # python3 proto.py TestMav.test_mav_attitude_control
 # python3 proto.py TestMav.test_mav_velocity_control
 # python3 proto.py TestMav.test_mav_position_control
 # python3 proto.py TestMav.test_mav_trajectory_control
 # python3 proto.py TestCV
 # python3 proto.py TestCV.test_linear_triangulation
+# python3 proto.py TestCV.test_parallax
 # python3 proto.py TestCV.test_homography_find
 # python3 proto.py TestCV.test_homography_pose
 # python3 proto.py TestCV.test_dlt_pose
@@ -82,7 +85,9 @@ run_memcheck() {
 # python3 proto.py TestFeatureTracking.test_good_grid
 # python3 proto.py TestFeatureTracking.test_optflow_track
 # python3 proto.py TestFeatureTracking.test_feature_track
-python3 proto.py TestFeatureTracking.test_euroc
+# python3 proto.py TestFeatureTracking.test_estimate_pose
+# python3 proto.py TestFeatureTracking.test_euroc_mono
+# python3 proto.py TestFeatureTracking.test_euroc
 # python3 proto.py TestFeatureTracker
 # python3 proto.py TestFeatureTracker.test_detect
 # python3 proto.py TestFeatureTracker.test_detect_overlaps
@@ -233,7 +238,7 @@ dev_avs() {
 # dev_aprilgrid
 # dev_euroc
 # dev_gui
-# dev_avs
+dev_avs
 # python3 scripts/plot_gimbal_calib.py
 # python3 scripts/plot_inertial_odometry.py
 # python3 scripts/plot_map.py
