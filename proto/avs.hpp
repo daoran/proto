@@ -24,6 +24,14 @@ typedef std::map<int, std::vector<cv::KeyPoint>> TrackerKeypoints;
 ///////////
 
 /**
+ * Extend a std::vector with another
+ */
+template <typename T>
+void extend_vector(std::vector<T> &destination, const std::vector<T> &source) {
+  destination.insert(destination.end(), source.begin(), source.end());
+}
+
+/**
  * Convert cv::Mat type to string
  */
 std::string type2str(const int type) {
@@ -189,19 +197,38 @@ void inlier_stats(const std::vector<uchar> inliers,
   inlier_ratio = (float) num_inliers / (float) num_total;
 }
 
+// /**
+//  * Filter Outliers
+//  */
+// std::vector<cv::KeyPoint>
+// filter_outliers(const std::vector<cv::KeyPoint> &keypoints,
+//                 const std::vector<uchar> inliers) {
+//   std::vector<cv::KeyPoint> kps_inliers;
+//   for (size_t i = 0; i < keypoints.size(); i++) {
+//     if (inliers[i]) {
+//       kps_inliers.push_back(keypoints[i]);
+//     }
+//   }
+//   return kps_inliers;
+// }
+
 /**
  * Filter Outliers
  */
-std::vector<cv::KeyPoint>
-filter_outliers(const std::vector<cv::KeyPoint> &keypoints,
-                const std::vector<uchar> inliers) {
-  std::vector<cv::KeyPoint> kps_inliers;
-  for (size_t i = 0; i < keypoints.size(); i++) {
+void filter_outliers(std::vector<cv::KeyPoint> &kps_i,
+                     std::vector<cv::KeyPoint> &kps_j,
+                     const std::vector<uchar> &inliers) {
+  std::vector<cv::KeyPoint> a;
+  std::vector<cv::KeyPoint> b;
+
+  for (size_t i = 0; i < inliers.size(); i++) {
     if (inliers[i]) {
-      kps_inliers.push_back(keypoints[i]);
+      a.push_back(kps_i[i]);
+      b.push_back(kps_j[i]);
     }
   }
-  return kps_inliers;
+  kps_i = a;
+  kps_j = b;
 }
 
 /**
@@ -358,6 +385,90 @@ void ransac(const std::vector<cv::KeyPoint> &kps0,
 }
 
 /**
+ * Perform RANSAC on keypoints `kps0` and `kps1` to reject outliers.
+ */
+void ransac(const std::vector<cv::KeyPoint> &kps0,
+            const std::vector<cv::KeyPoint> &kps1,
+            const undistort_func_t undist_func,
+            const real_t cam_params[8],
+            std::vector<uchar> &inliers,
+            const double reproj_threshold = 0.75,
+            const double confidence = 0.99) {
+  ransac(kps0,
+         kps1,
+         undist_func,
+         undist_func,
+         cam_params,
+         cam_params,
+         inliers,
+         reproj_threshold,
+         confidence);
+}
+
+/**
+ * Check parallax
+ */
+std::vector<bool> check_parallax(const camera_params_t &cam0_params,
+                                 const camera_params_t &cam1_params,
+                                 const extrinsic_t &cam0_ext,
+                                 const extrinsic_t &cam1_ext,
+                                 const std::vector<cv::KeyPoint> &kps0,
+                                 const std::vector<cv::KeyPoint> &kps1,
+                                 const real_t parallax_threshold) {
+  assert(parallax_threshold > 0);
+  assert(kps0.size() == kps1.size());
+
+  // Form projection matrices P_i and P_j
+  const real_t *params0 = cam0_params.data;
+  const real_t *params1 = cam1_params.data;
+
+  real_t I4[4 * 4] = {0};
+  eye(I4, 4, 4);
+
+  POSE2TF(cam0_ext.data, T_BC0);
+  POSE2TF(cam1_ext.data, T_BC1);
+  TF_INV(T_BC0, T_C0B);
+  TF_CHAIN(T_C0C1, 2, T_C0B, T_BC1);
+  TF_INV(T_C0C1, T_C1C0);
+
+  real_t P0[4 * 4] = {0};
+  real_t P1[4 * 4] = {0};
+  pinhole_projection_matrix(params0, I4, P0);
+  pinhole_projection_matrix(params1, T_C0C1, P1);
+
+  // Check parallax
+  const size_t N = kps0.size();
+  std::vector<bool> inliers;
+  for (size_t i = 0; i < N; i++) {
+    // Undistort
+    const real_t z0_in[2] = {kps0[i].pt.x, kps0[i].pt.y};
+    const real_t z1_in[2] = {kps1[i].pt.x, kps1[i].pt.y};
+    real_t z0[2] = {0};
+    real_t z1[2] = {0};
+    cam0_params.undistort_func(params0, z0_in, z0);
+    cam1_params.undistort_func(params1, z1_in, z1);
+
+    // Triangulate
+    real_t p_C0[3] = {0};
+    real_t p_C1[3] = {0};
+    linear_triangulation(P0, P1, z0, z1, p_C0);
+    tf_point(T_C1C0, p_C0, p_C1);
+
+    // Check parallax
+    DOT(p_C0, 1, 3, p_C1, 3, 1, numerator);
+    const double denominator = vec3_norm(p_C0) * vec3_norm(p_C1);
+    const double parallax = acos(numerator[0] / denominator);
+    if (parallax < parallax_threshold) {
+      inliers.push_back(false);
+    } else {
+      inliers.push_back(true);
+    }
+  }
+
+  return inliers;
+}
+
+/**
  * Filter features by triangulating them via a stereo-pair and see if the
  * reprojection error is reasonable.
  */
@@ -498,9 +609,7 @@ struct FeatureGrid {
   }
 
   /** Return cell count */
-  int count(const int cell_idx) const {
-    return cells[cell_idx];
-  }
+  int count(const int cell_idx) const { return cells[cell_idx]; }
 
   /** Debug */
   void debug(const bool imshow = true) const {
@@ -533,12 +642,20 @@ struct FeatureGrid {
  * Grid detector
  */
 struct GridDetector {
-  // cv::Ptr<cv::Feature2D> detector = cv::ORB::create();
-  cv::Ptr<cv::Feature2D> detector = cv::FastFeatureDetector::create();
-  bool optflow_mode = true;
   int max_keypoints = 200;
   int grid_rows = 3;
   int grid_cols = 4;
+
+  // cv::Ptr<cv::Feature2D> detector = cv::ORB::create();
+  // cv::Ptr<cv::Feature2D> detector = cv::FastFeatureDetector::create();
+  cv::Ptr<cv::GFTTDetector> detector = cv::GFTTDetector::create();
+
+  double quality_level = 0.01;
+  double min_distance = 20;
+  cv::Mat mask;
+  int block_size = 3;
+  bool use_harris = false;
+  double k = 0.04;
 
   GridDetector() = default;
   virtual ~GridDetector() = default;
@@ -547,7 +664,6 @@ struct GridDetector {
   void detect(
       const cv::Mat &image,
       std::vector<cv::KeyPoint> &kps_new,
-      cv::Mat &des_new,
       const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
       bool debug = false) const {
     // Asserts
@@ -571,25 +687,11 @@ struct GridDetector {
 
     // Detect corners in each grid cell
     int cell_idx = 0;
-
     for (int y = 0; y < img_h; y += dy) {
       for (int x = 0; x < img_w; x += dx) {
         // Make sure roi width and height are not out of bounds
         const int w = (x + dx > img_w) ? img_w - x : dx;
         const int h = (y + dy > img_h) ? img_h - y : dy;
-
-        // Detect corners in grid cell
-        cv::Rect roi(x, y, w, h);
-        std::vector<cv::KeyPoint> kps_roi;
-        detector->detect(image(roi), kps_roi);
-        sort_keypoints(kps_roi);
-        kps_roi = spread_keypoints(image(roi), kps_roi, 10, kps_prev);
-
-        // Extract feature descriptors
-        cv::Mat des_roi;
-        if (optflow_mode == false) {
-          detector->compute(image(roi), kps_roi, des_roi);
-        }
 
         // Offset keypoints
         const int vacancy = max_per_cell - grid.count(cell_idx);
@@ -597,20 +699,49 @@ struct GridDetector {
           continue;
         }
 
+        // Detect corners in grid cell
+        cv::Rect roi(x, y, w, h);
+        std::vector<cv::KeyPoint> kps_roi;
+
+        detector->setMaxFeatures(vacancy);
+        detector->setQualityLevel(quality_level);
+        detector->setMinDistance(min_distance);
+        detector->setBlockSize(block_size);
+        detector->setHarrisDetector(use_harris);
+        detector->setK(k);
+        detector->detect(image(roi), kps_roi);
+
+        std::vector<cv::Point2f> corners;
+        for (const auto kp : kps_roi) {
+          corners.emplace_back(kp.pt.x, kp.pt.y);
+        }
+
+        cv::Size win_size{5, 5};
+        cv::Size mask{-1, -1};
+        cv::TermCriteria criteria{cv::TermCriteria::EPS +
+                                      cv::TermCriteria::COUNT,
+                                  40,
+                                  0.001};
+        cv::cornerSubPix(image(roi), corners, win_size, mask, criteria);
+
+        for (size_t i = 0; i < corners.size(); i++) {
+          const auto &corner = corners[i];
+          kps_roi[i].pt.x = corner.x;
+          kps_roi[i].pt.y = corner.y;
+        }
+        sort_keypoints(kps_roi);
+
         for (int i = 0; i < std::min((int) kps_roi.size(), vacancy); i++) {
           cv::KeyPoint kp = kps_roi[i];
           kp.pt.x += x;
           kp.pt.y += y;
 
-          kps_new.push_back(kp);
-          if (optflow_mode == false) {
-            if (des_new.empty()) {
-              des_new = des_roi.row(i);
-            } else {
-              cv::vconcat(des_roi.row(i), des_new, des_new);
-            }
-          }
+          kp.pt.x = (kp.pt.x > 0) ? kp.pt.x : 0;
+          kp.pt.x = (kp.pt.x < image.cols) ? kp.pt.x : image.cols - 1;
+          kp.pt.y = (kp.pt.y > 0) ? kp.pt.y : 0;
+          kp.pt.y = (kp.pt.y < image.rows) ? kp.pt.y : image.rows - 1;
 
+          kps_new.push_back(kp);
           grid.add(kp.pt.x, kp.pt.y);
         }
 
@@ -618,21 +749,12 @@ struct GridDetector {
         cell_idx += 1;
       }
     }
+    kps_new = spread_keypoints(image, kps_new, min_distance, kps_prev);
 
     // Debug
     if (debug) {
       visualize(image, grid, kps_new, kps_prev);
     }
-  }
-
-  void detect(
-      const cv::Mat &image,
-      std::vector<cv::KeyPoint> &kps_new,
-      const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
-      bool debug = false) const {
-    assert(optflow_mode == true);
-    cv::Mat des_new;
-    detect(image, kps_new, des_new, kps_prev, debug);
   }
 
   /** Visualize **/
@@ -685,72 +807,54 @@ struct GridDetector {
   }
 };
 
-//////////////////
-// FEATURE-INFO //
-//////////////////
+/******************************************************************************
+ * STATE-ESTIMATION
+ *****************************************************************************/
 
-struct FeatureInfo {
+/* Feature */
+struct Feature {
   size_t feature_id = 0;
+  std::map<int, camera_params_t> &cam_ints;
+  std::map<int, extrinsic_t> &cam_exts;
+
+  double data[3] = {0};
   std::vector<timestamp_t> timestamps;
-  std::map<int, std::vector<cv::KeyPoint>> keypoints;
+  std::map<timestamp_t, std::map<int, cv::KeyPoint>> keypoints;
+  int max_length = 30;
+  int min_length = 30;
 
-  FeatureInfo() = default;
-  FeatureInfo(const size_t feature_id_,
-              const timestamp_t ts_,
-              const std::map<int, cv::KeyPoint> &keypoints_)
-      : feature_id{feature_id_} {
-    timestamps.push_back(ts_);
-    for (const auto &[cam_idx, kp] : keypoints_) {
-      keypoints[cam_idx].push_back(kp);
-    }
-  }
-  virtual ~FeatureInfo() = default;
-
-  /** Return Feature ID **/
-  size_t featureId() const {
-    return feature_id;
-  }
+  Feature(const size_t feature_id_,
+          std::map<int, camera_params_t> &cam_ints_,
+          std::map<int, extrinsic_t> &cam_exts_)
+      : feature_id{feature_id_}, cam_ints{cam_ints_}, cam_exts{cam_exts_} {}
+  virtual ~Feature() = default;
 
   /** Return Timestamp **/
-  timestamp_t timestamp(const size_t idx) const {
-    return timestamps.at(idx);
-  }
+  timestamp_t timestamp(const size_t idx) const { return timestamps.at(idx); }
 
   /** Return First Timestamp **/
-  timestamp_t first_timestamp() const {
-    return timestamps.front();
-  }
+  timestamp_t first_timestamp() const { return timestamps.front(); }
 
   /** Return Last Timestamp **/
-  timestamp_t last_timestamp() const {
-    return timestamps.back();
-  }
+  timestamp_t last_timestamp() const { return timestamps.back(); }
 
   /** Return Camera Keypoints **/
-  std::vector<cv::KeyPoint> get_keypoints(const int cam_idx) const {
-    return keypoints.at(cam_idx);
-  }
-
-  /** Return Last Camera Keypoints **/
-  cv::KeyPoint last_keypoint(const int cam_idx) const {
-    return keypoints.at(cam_idx).back();
+  std::map<int, cv::KeyPoint> get_keypoints() const {
+    const auto last_ts = timestamps.back();
+    return keypoints.at(last_ts);
   }
 
   /** Update feature with new measurement **/
   void update(const timestamp_t ts, const int cam_idx, const cv::KeyPoint &kp) {
     timestamps.push_back(ts);
-    keypoints[cam_idx].push_back(kp);
+    keypoints[ts][cam_idx] = kp;
   }
 };
 
-/******************************************************************************
- * STATE-ESTIMATION
- *****************************************************************************/
-
 // /** Estimate Relative Pose **/
 // real_t estimate_relpose(const Mapper &mapper,
-//                         CameraIntrinsics &cam_ints,
-//                         CameraExtrinsics &cam_exts,
+//                         camera_params_ts &cam_ints,
+//                         extrinsic_ts &cam_exts,
 //                         TrackerData tracking_km1,
 //                         TrackerData tracking_k,
 //                         Features &features,
@@ -876,6 +980,212 @@ struct FeatureInfo {
 //   // printf("var reproj error: %f\n", var(reproj_errors));
 //   return rmse(reproj_errors);
 // }
+
+/** Two State Implicit Filter **/
+struct TSIF {
+  // Settings
+  int max_keypoints = 300;
+  bool enable_clahe = true;
+  int parallax_threshold = 1.0;
+  int max_length = 30;
+  int min_length = 5;
+
+  // Calibrations
+  std::map<int, camera_params_t> cam_ints;
+  std::map<int, extrinsic_t> cam_exts;
+
+  // Features
+  size_t next_feature_id = 0;
+  std::unordered_map<size_t, std::shared_ptr<Feature>> features;
+  std::unordered_map<size_t, std::shared_ptr<Feature>> old_features;
+
+  // Data
+  bool initialized = false;
+  timestamp_t prev_ts = -1;
+  cv::Mat prev_frame0;
+  cv::Mat prev_frame1;
+  size_t frame_index = 0;
+
+  GridDetector detector;
+  cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+
+  // Poses
+  // pose_init = pose_setup(0, eye(4))
+  // pose_km1 = None
+  // pose_k = None
+
+  /** Constructor **/
+  TSIF(std::map<int, camera_params_t> &cam_ints_,
+       std::map<int, extrinsic_t> &cam_exts_)
+      : cam_ints{cam_ints_}, cam_exts{cam_exts_} {}
+
+  /** Destructor **/
+  virtual ~TSIF() = default;
+
+  /** Add Feature **/
+  void add_feature(const timestamp_t ts,
+                   const cv::KeyPoint &kp0,
+                   const cv::KeyPoint &kp1) {
+    const auto fid = next_feature_id;
+    features[fid] = std::make_shared<Feature>(fid, cam_ints, cam_exts);
+    features[fid]->update(ts, 0, kp0);
+    features[fid]->update(ts, 1, kp1);
+    next_feature_id += 1;
+  }
+
+  /** Update Feature **/
+  void update_feature(const size_t fid,
+                      const timestamp_t ts,
+                      const cv::KeyPoint &kp0,
+                      const cv::KeyPoint &kp1) {
+    features[fid]->update(ts, 0, kp0);
+    features[fid]->update(ts, 1, kp1);
+  }
+
+  /** Remove Feature **/
+  void remove_feature(const size_t fid) {
+    old_features[fid] = features[fid];
+    features.erase(fid);
+  }
+
+  /** Get keypoints **/
+  void get_keypoints(std::vector<size_t> &feature_ids,
+                     std::vector<cv::KeyPoint> &kps0,
+                     std::vector<cv::KeyPoint> &kps1) {
+    for (const auto &[fid, feature] : features) {
+      auto keypoints = feature->get_keypoints();
+      feature_ids.push_back(fid);
+      kps0.push_back(keypoints[0]);
+      kps1.push_back(keypoints[1]);
+    }
+  }
+
+  /** Detect Features **/
+  void detect(const timestamp_t ts,
+              const cv::Mat &frame0,
+              const cv::Mat &frame1) {
+    // Get previous keypoints from cam0
+    std::vector<size_t> feature_ids;
+    std::vector<cv::KeyPoint> kps0;
+    std::vector<cv::KeyPoint> kps1;
+    get_keypoints(feature_ids, kps0, kps1);
+
+    // Detect new
+    std::vector<cv::KeyPoint> kps0_new;
+    std::vector<cv::KeyPoint> kps1_new;
+    detector.detect(frame0, kps0_new, kps0);
+    if (kps0_new.size() < 10) {
+      return;
+    }
+
+    // Track in space
+    std::vector<uchar> optflow_inliers;
+    optflow_track(frame0, frame1, kps0_new, kps1_new, optflow_inliers);
+    filter_outliers(kps0_new, kps1_new, optflow_inliers);
+
+    // Ransac in space
+    std::vector<uchar> ransac_inliers;
+    ransac(kps0_new,
+           kps1_new,
+           cam_ints[0].undistort_func,
+           cam_ints[1].undistort_func,
+           cam_ints[0].data,
+           cam_ints[1].data,
+           ransac_inliers);
+    filter_outliers(kps0_new, kps1_new, ransac_inliers);
+
+    // Check paralax
+    // inliers = check_parallax(self.cam_params[0], self.cam_params[1],
+    //                          self.cam_exts[0], self.cam_exts[1], kps0, kps1,
+    //                          self.parallax_threshold)
+    // kps0, kps1 = filter_outliers(kps0, kps1, inliers)
+    // if np.sum(inliers) < 10:
+    //   return
+
+    // Add new features
+    for (size_t i = 0; i < kps0_new.size(); i++) {
+      add_feature(ts, kps0_new[i], kps1_new[i]);
+    }
+  }
+
+  /** Track features **/
+  void track(const timestamp_t ts,
+             const cv::Mat &frame0,
+             const cv::Mat &frame1) {
+    // Pre-check
+    if (prev_frame0.empty() || prev_frame1.empty()) {
+      return;
+    }
+
+    // Get previous keypoints from cam0
+    std::vector<size_t> feature_ids;
+    std::vector<cv::KeyPoint> kps0_km1;
+    std::vector<cv::KeyPoint> kps1_km1;
+    get_keypoints(feature_ids, kps0_km1, kps1_km1);
+
+    // Track in time and space
+    std::vector<uchar> in0;
+    std::vector<uchar> in1;
+    std::vector<cv::KeyPoint> kps0_k;
+    std::vector<cv::KeyPoint> kps1_k;
+    optflow_track(prev_frame0, frame0, kps0_km1, kps0_k, in0);
+    optflow_track(prev_frame1, frame1, kps1_km1, kps1_k, in1);
+
+    // Ransac in time
+    std::vector<uchar> rs0;
+    std::vector<uchar> rs1;
+    auto cam0_undistort_func = cam_ints[0].undistort_func;
+    auto cam1_undistort_func = cam_ints[1].undistort_func;
+    auto cam0_params = cam_ints[0].data;
+    auto cam1_params = cam_ints[1].data;
+    ransac(kps0_km1, kps0_k, cam0_undistort_func, cam0_params, rs0);
+    ransac(kps1_km1, kps1_k, cam1_undistort_func, cam1_params, rs1);
+
+    // Update inliers and remove outliers
+    for (size_t i = 0; i < in0.size(); i++) {
+      const auto fid = feature_ids[i];
+      if (in0[i] && in1[i] && rs0[i] && rs1[i]) {
+        update_feature(fid, ts, kps0_k[i], kps1_k[i]);
+      } else {
+        remove_feature(fid);
+      }
+    }
+  }
+
+  /** Update **/
+  void update(const timestamp_t ts,
+              const cv::Mat &frame0,
+              const cv::Mat &frame1) {
+    // Apply CLAHE
+    if (enable_clahe) {
+      clahe->apply(frame0, frame0);
+      clahe->apply(frame1, frame1);
+    }
+
+    // Detect and track
+    detect(ts, frame0, frame1);
+    track(ts, frame0, frame1);
+
+    // Get previous keypoints from cam0
+    std::vector<size_t> feature_ids;
+    std::vector<cv::KeyPoint> kps0_k;
+    std::vector<cv::KeyPoint> kps1_k;
+    get_keypoints(feature_ids, kps0_k, kps1_k);
+
+    // Visualize
+    const cv::Scalar red{0, 0, 255};
+    cv::Mat viz;
+    cv::cvtColor(frame0, viz, cv::COLOR_GRAY2RGB);
+    cv::drawKeypoints(viz, kps0_k, viz, red);
+    cv::imshow("viz", viz);
+
+    // Update
+    prev_ts = ts;
+    prev_frame0 = frame0.clone(); //  Make a copy
+    prev_frame1 = frame1.clone(); //  Make a copy
+    frame_index += 1;
+  }
+};
 
 #endif // AVS_HPP
 
@@ -1007,9 +1317,9 @@ int test_grid_detect() {
 
   std::vector<cv::KeyPoint> kps_prev;
   std::vector<cv::KeyPoint> kps_new;
-  cv::Mat des_new;
   GridDetector detector;
-  detector.detect(img, kps_new, des_new, kps_prev, true);
+  detector.detect(img, kps_new, kps_prev, true);
+  cv::waitKey(0);
 
   return 0;
 }
@@ -1129,11 +1439,6 @@ public:
 
   EuRoCParams() {
     // clang-format off
-    // camera_params_t cam0_params;
-    // camera_params_t cam1_params;
-    // extrinsic_t cam0_ext;
-    // extrinsic_t cam1_ext;
-
     const int cam_res[2] = {752, 480};
     const char *proj_model = "pinhole";
     const char *dist_model = "radtan4";
@@ -1171,57 +1476,130 @@ public:
   }
 };
 
-// int test_front_end() {
-//   // const auto img0_path = "./test_data/frontend/cam0/1403715297312143104.jpg";
-//   // const auto img1_path = "./test_data/frontend/cam1/1403715297312143104.jpg";
-//   // const auto img0 = cv::imread(img0_path, cv::IMREAD_GRAYSCALE);
-//   // const auto img1 = cv::imread(img1_path, cv::IMREAD_GRAYSCALE);
+int test_tracking() {
+  // Setup
+  const char *data_path = "/data/euroc/V1_01";
+  euroc_data_t *data = euroc_data_load(data_path);
+  euroc_timeline_t *timeline = data->timeline;
 
-//   // Feature Tracker
-//   EuRoCParams euroc;
-//   FeatureTracker ft;
-//   ft.add_camera(euroc.cam0_params, euroc.cam0_ext);
-//   ft.add_camera(euroc.cam1_params, euroc.cam1_ext);
-//   ft.add_overlap({0, 1});
+  const cv::Scalar red{0, 0, 255};
+  EuRoCParams euroc;
+  GridDetector detector;
+  cv::Mat frame0_km1;
+  std::vector<cv::KeyPoint> kps0_km1;
 
-//   // Setup
-//   const char *data_path = "/data/euroc/V1_01";
-//   euroc_data_t *data = euroc_data_load(data_path);
-//   euroc_timeline_t *timeline = data->timeline;
+  int imshow_wait = 1;
+  for (size_t k = 0; k < timeline->num_timestamps; k++) {
+    const timestamp_t ts = timeline->timestamps[k];
+    const euroc_event_t *event = &timeline->events[k];
 
-//   int imshow_wait = 1;
-//   for (size_t k = 0; k < timeline->num_timestamps; k++) {
-//     const timestamp_t ts = timeline->timestamps[k];
-//     const euroc_event_t *event = &timeline->events[k];
+    if (event->has_cam0 && event->has_cam1) {
+      struct timespec t_start = tic();
+      const auto frame0_k = cv::imread(event->cam0_image, cv::IMREAD_GRAYSCALE);
+      assert(frame0_k.empty() == false);
 
-//     if (event->has_cam0 && event->has_cam1) {
-//       const cv::Mat img0 = cv::imread(event->cam0_image, cv::IMREAD_GRAYSCALE);
-//       const cv::Mat img1 = cv::imread(event->cam1_image, cv::IMREAD_GRAYSCALE);
-//       assert(img0.empty() == false);
-//       assert(img1.empty() == false);
-//       struct timespec t_start = tic();
-//       // tracker.track({{0, img0}, {1, img1}}, true);
-//       ft.track(ts, {{0, img0}, {1, img1}}, true);
-//       printf("track elasped: %f [s]\n", toc(&t_start));
+      // Track
+      std::vector<cv::KeyPoint> kps0_k;
+      if (k > 0) {
+        std::vector<uchar> inliers;
+        optflow_track(frame0_km1, frame0_k, kps0_km1, kps0_k, inliers);
+        filter_outliers(kps0_km1, kps0_k, inliers);
 
-//       char key = cv::waitKey(imshow_wait);
-//       if (key == 'q') {
-//         k = timeline->num_timestamps;
-//       } else if (key == 's') {
-//         imshow_wait = 0;
-//       } else if (key == ' ' && imshow_wait == 1) {
-//         imshow_wait = 0;
-//       } else if (key == ' ' && imshow_wait == 0) {
-//         imshow_wait = 1;
-//       }
-//     }
-//   }
+        ransac(kps0_km1,
+               kps0_k,
+               euroc.cam0_params.undistort_func,
+               euroc.cam0_params.undistort_func,
+               euroc.cam0_params.data,
+               euroc.cam0_params.data,
+               inliers);
+        filter_outliers(kps0_km1, kps0_k, inliers);
+      }
 
-//   // Clean up
-//   euroc_data_free(data);
+      // Detect
+      std::vector<cv::KeyPoint> kps_new;
+      detector.detect(frame0_k, kps_new, kps0_km1);
+      if (kps_new.size()) {
+        extend_vector(kps0_k, kps_new);
+      }
 
-//   return 0;
-// }
+      // Visualize
+      cv::Mat viz;
+      cv::cvtColor(frame0_k, viz, cv::COLOR_GRAY2RGB);
+      cv::drawKeypoints(viz, kps0_k, viz, red);
+      cv::imshow("viz", viz);
+
+      // Update
+      frame0_km1 = frame0_k.clone();
+      kps0_km1 = kps0_k;
+      printf("track elasped: %f [s]\n", toc(&t_start));
+
+      char key = cv::waitKey(imshow_wait);
+      if (key == 'q') {
+        k = timeline->num_timestamps;
+      } else if (key == 's') {
+        imshow_wait = 0;
+      } else if (key == ' ' && imshow_wait == 1) {
+        imshow_wait = 0;
+      } else if (key == ' ' && imshow_wait == 0) {
+        imshow_wait = 1;
+      }
+    }
+  }
+
+  // Clean up
+  euroc_data_free(data);
+
+  return 0;
+}
+
+int test_tsif() {
+  // Setup
+  const char *data_path = "/data/euroc/V1_01";
+  euroc_data_t *data = euroc_data_load(data_path);
+  euroc_timeline_t *timeline = data->timeline;
+  EuRoCParams euroc;
+
+  std::map<int, camera_params_t> cam_ints;
+  std::map<int, extrinsic_t> cam_exts;
+  cam_ints[0] = euroc.cam0_params;
+  cam_ints[1] = euroc.cam1_params;
+  cam_exts[0] = euroc.cam0_ext;
+  cam_exts[1] = euroc.cam1_ext;
+  TSIF tsif{cam_ints, cam_exts};
+
+  int imshow_wait = 1;
+  for (size_t k = 0; k < timeline->num_timestamps; k++) {
+    const timestamp_t ts = timeline->timestamps[k];
+    const euroc_event_t *event = &timeline->events[k];
+
+    if (event->has_cam0 && event->has_cam1) {
+      const cv::Mat img0 = cv::imread(event->cam0_image, cv::IMREAD_GRAYSCALE);
+      const cv::Mat img1 = cv::imread(event->cam1_image, cv::IMREAD_GRAYSCALE);
+      assert(img0.empty() == false);
+      assert(img1.empty() == false);
+
+      struct timespec t_start = tic();
+      tsif.update(ts, img0, img1);
+      printf("track elasped: %f [s]\n", toc(&t_start));
+
+      char key = cv::waitKey(imshow_wait);
+      if (key == 'q') {
+        k = timeline->num_timestamps;
+      } else if (key == 's') {
+        imshow_wait = 0;
+      } else if (key == ' ' && imshow_wait == 1) {
+        imshow_wait = 0;
+      } else if (key == ' ' && imshow_wait == 0) {
+        imshow_wait = 1;
+      }
+    }
+  }
+
+  // Clean up
+  euroc_data_free(data);
+
+  return 0;
+}
 
 void run_unittests() {
   // TEST(test_feature_grid);
@@ -1229,7 +1607,8 @@ void run_unittests() {
   // TEST(test_grid_detect);
   // TEST(test_optflow_track);
   // TEST(test_reproj_filter);
-  // TEST(test_front_end);
+  // TEST(test_tracking);
+  TEST(test_tsif);
 }
 
 #endif // AVS_UNITTESTS
