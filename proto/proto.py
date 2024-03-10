@@ -10727,7 +10727,6 @@ class TestFeatureTracking(unittest.TestCase):
       frame1_path = self.dataset.cam1_data.image_paths[ts]
       frame0 = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
       frame1 = cv2.imread(frame1_path, cv2.IMREAD_GRAYSCALE)
-
       ft.update(ts, frame0, frame1)
 
       # Visualize
