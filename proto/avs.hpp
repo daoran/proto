@@ -1519,12 +1519,16 @@ real_t estimate_pose(std::map<int, camera_params_t> cam_ints,
   }
 
   eval_residuals();
-  printf("Estimate pose\n");
-  printf("-----------------------\n");
-  printf("mean reproj error: %f\n", mean(reproj_errors));
-  printf("median reproj error: %f\n", median(reproj_errors));
-  printf("rmse reproj error: %f\n", rmse(reproj_errors));
-  printf("var reproj error: %f\n", var(reproj_errors));
+  if (reproj_errors.size() < 10) {
+    return std::numeric_limits<double>::max();
+  }
+
+  // printf("Estimate pose\n");
+  // printf("-----------------------\n");
+  // printf("mean reproj error: %f\n", mean(reproj_errors));
+  // printf("median reproj error: %f\n", median(reproj_errors));
+  // printf("rmse reproj error: %f\n", rmse(reproj_errors));
+  // printf("var reproj error: %f\n", var(reproj_errors));
 
   const auto threshold = 3.0 * std::sqrt(var(reproj_errors));
   std::vector<size_t> outliers;
@@ -1533,13 +1537,10 @@ real_t estimate_pose(std::map<int, camera_params_t> cam_ints,
       outliers.push_back(fid);
     }
   }
-  printf("removed %ld outliers out of %ld\n", outliers.size(), features.size());
+  // printf("removed %ld outliers out of %ld\n", outliers.size(), features.size());
   for (const auto fid : outliers) {
     features.erase(fid);
   }
-
-  printf("\n");
-  printf("\n");
 
   return rmse(reproj_errors);
 }
@@ -1554,7 +1555,7 @@ struct TSIF {
   int max_keypoints = 1000;
   bool enable_clahe = true;
   int parallax_threshold = 1.0;
-  int max_length = 30;
+  int max_length = 40;
   int min_length = 5;
 
   // Calibrations
@@ -1747,14 +1748,14 @@ struct TSIF {
     };
     eval_residuals();
 
-    printf("\n");
-    printf("Initialize Features:\n");
-    printf("--------------------\n");
-    printf("mean reproj error: %f\n", mean(reproj_errors));
-    printf("median reproj error: %f\n", median(reproj_errors));
-    printf("rmse reproj error: %f\n", rmse(reproj_errors));
-    printf("var reproj error: %f\n", var(reproj_errors));
-    printf("\n");
+    // printf("\n");
+    // printf("Initialize Features:\n");
+    // printf("--------------------\n");
+    // printf("mean reproj error: %f\n", mean(reproj_errors));
+    // printf("median reproj error: %f\n", median(reproj_errors));
+    // printf("rmse reproj error: %f\n", rmse(reproj_errors));
+    // printf("var reproj error: %f\n", var(reproj_errors));
+    // printf("\n");
 
     const auto threshold = 3.0 * std::sqrt(var(reproj_errors));
     std::vector<size_t> outliers;
@@ -1837,12 +1838,12 @@ struct TSIF {
   }
 
   /** Track features **/
-  void track(const timestamp_t ts,
+  bool track(const timestamp_t ts,
              const cv::Mat &frame0,
              const cv::Mat &frame1) {
     // Pre-check
     if (prev_frame0.empty() || prev_frame1.empty()) {
-      return;
+      return false;
     }
 
     // Get previous keypoints from cam0
@@ -1869,13 +1870,10 @@ struct TSIF {
     ransac(kps0_km1, kps0_k, cam0_undistort_func, cam0_params, rs0);
     ransac(kps1_km1, kps1_k, cam1_undistort_func, cam1_params, rs1);
 
-    std::vector<uchar> in01;
-    optflow_track(frame0, frame1, kps0_k, kps1_k, in01);
-
     // Update inliers and remove outliers
     for (size_t i = 0; i < in0.size(); i++) {
       const auto fid = feature_ids[i];
-      if (in0[i] && in1[i] && in01[i] && rs0[i] && rs1[i]) {
+      if (in0[i] && in1[i] && rs0[i] && rs1[i]) {
         _update_feature(fid, ts, kps0_k[i], kps1_k[i]);
       } else {
         _remove_feature(fid);
@@ -1885,14 +1883,27 @@ struct TSIF {
     // Initialize or track
     if (initialized == false && frame_index >= min_length) {
       _initialize(ts);
+      return true;
 
     } else if (initialized) {
-      // Estimate current pose
+      // Step 1. Estimate current pose
       pose_setup(&pose_k, ts, pose_km1.data);
-
       const int max_iter = 10;
       const int max_num_threads = 2;
-      const bool verbose = false;
+      const bool verbose = true;
+      const auto rmse = estimate_pose(cam_ints,
+                                      cam_exts,
+                                      features,
+                                      pose_km1,
+                                      pose_k,
+                                      max_iter,
+                                      max_num_threads,
+                                      verbose);
+
+      // Step 2. Initialize new features with current pose estimate
+      _initialize_features(ts);
+
+      // Step 3. Refine poses and features currently tracking
       estimate_pose(cam_ints,
                     cam_exts,
                     features,
@@ -1900,21 +1911,11 @@ struct TSIF {
                     pose_k,
                     max_iter,
                     max_num_threads,
-                    verbose);
-
-      // Initialize new features
-      _initialize_features(ts);
-
-      // estimate_pose(cam_ints,
-      //               cam_exts,
-      //               features,
-      //               pose_km1,
-      //               pose_k,
-      //               max_iter,
-      //               max_num_threads,
-      //               verbose,
-      //               false);
+                    verbose,
+                    false);
     }
+
+    return true;
   }
 
   /** Visualize **/
@@ -1945,17 +1946,22 @@ struct TSIF {
 
     // Detect and track
     detect(ts, frame0, frame1);
-    track(ts, frame0, frame1);
+    bool status = track(ts, frame0, frame1);
+
+    // Visualize
     _visualize(frame0, frame1);
     if (initialized) {
       pose_hist.emplace_back(pose_k);
     }
 
     // Update
-    prev_ts = ts;
-    prev_frame0 = frame0.clone();
-    prev_frame1 = frame1.clone();
-    frame_index += 1;
+    if (frame_index == 0 || status) {
+      pose_setup(&pose_km1, ts, pose_k.data);
+      prev_ts = ts;
+      prev_frame0 = frame0.clone();
+      prev_frame1 = frame1.clone();
+      frame_index += 1;
+    }
   }
 };
 
@@ -2338,13 +2344,12 @@ int test_tsif() {
   cam_exts[1] = euroc.cam1_ext;
   TSIF tsif{cam_ints, cam_exts};
 
-  // clang-format off
-  const int start_index = 2500;
+  // const int start_index = 2500;
+  const int start_index = 0;
   const timestamp_t start_ts = data->ground_truth->timestamps[start_index];
   const real_t *r_WB = data->ground_truth->p_RS_R[start_index];
   const real_t *q_WB = data->ground_truth->q_RS[start_index];
   TF_QR(q_WB, r_WB, T_WB);
-  // clang-format on
   tsif.set_initial_pose(T_WB);
 
   FILE *gnuplot = gnuplot_init();
@@ -2401,10 +2406,16 @@ int test_tsif() {
       assert(img0.empty() == false);
       assert(img1.empty() == false);
 
+      printf("\n");
+      printf("\n");
+      printf("----------------------------------------\n");
       struct timespec t_start = tic();
       tsif.update(ts, img0, img1);
       plot(ts);
       printf("track elasped: %f [s]\n", toc(&t_start));
+      printf("----------------------------------------\n");
+      printf("\n");
+      printf("\n");
 
       char key = cv::waitKey(imshow_wait);
       if (key == 'q') {
