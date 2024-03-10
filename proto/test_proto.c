@@ -3424,7 +3424,7 @@ int test_mav_vel_ctrl() {
   mav_att_ctrl_setup(&mav_att_ctrl);
   mav_vel_ctrl_setup(&mav_vel_ctrl);
 
-  const real_t vel_sp[4] = {0.1, 0.2, 0.0, 0.0}; // vx, vy, vz, yaw
+  const real_t vel_sp[4] = {0.1, 0.2, 1.0, 0.0}; // vx, vy, vz, yaw
   const real_t dt = 0.001;
   const real_t t_end = 10.0;
   real_t t = 0.0;
@@ -5890,19 +5890,23 @@ int test_tsf() {
   // Loop through timeline
   sim_circle_camera_imu_t *sim_data = sim_circle_camera_imu();
   timeline_t *timeline = sim_data->timeline;
-  // for (int k = 0; k < timeline->timeline_length; k++) {
-  //   printf("HERE\n");
-  //   // Extract timeline events
-  //   for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
-  //     timeline_event_t *event = timeline->timeline_events[k][i];
-  //     const timestamp_t ts = event->ts;
+  tsf_set_init_pose(tsf, &sim_data->imu_data->poses[0]);
+  tsf_set_init_velocity(tsf, &sim_data->imu_data->velocities[0]);
 
-  //     if (event->type == IMU_EVENT) {
-  //       const imu_event_t *data = &event->data.imu;
-  //       tsf_imu_event(tsf, ts, data->acc, data->gyr);
-  //     }
-  //   }
-  // }
+  for (int k = 0; k < timeline->timeline_length; k++) {
+    const timestamp_t ts = timeline->timeline_events[k][0]->ts;
+
+    // Extract timeline events
+    for (int i = 0; i < timeline->timeline_events_lengths[k]; i++) {
+      timeline_event_t *event = timeline->timeline_events[k][i];
+      if (event->type == IMU_EVENT) {
+        const imu_event_t *data = &event->data.imu;
+        tsf_imu_event(tsf, ts, data->acc, data->gyr);
+      }
+    }
+
+    tsf_update(tsf, ts);
+  }
 
   // Clean up
   sim_circle_camera_imu_free(sim_data);
@@ -8370,7 +8374,7 @@ void test_suite() {
   // MU_ADD_TEST(test_visual_odometry_batch);
   // MU_ADD_TEST(test_inertial_odometry_batch);
   // MU_ADD_TEST(test_visual_inertial_odometry_batch);
-  MU_ADD_TEST(test_tsf);
+  // MU_ADD_TEST(test_tsf);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES

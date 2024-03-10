@@ -9799,6 +9799,7 @@ class TSIF:
     """ Add Feature """
     feature_id = self.next_feature_id
     feature = FeatureTrack(feature_id, self.cam_params, self.cam_exts)
+    feature = FeatureTrack(feature_id, self.cam_params, self.cam_exts, **kwargs)
     feature.add(ts, 0, kp0)
     feature.add(ts, 1, kp1)
     self.features[feature_id] = feature
@@ -9868,6 +9869,23 @@ class TSIF:
     for kp0, kp1 in zip(kps0, kps1):
       self.add_feature(ts, kp0, kp1)
 
+  def _initialize(self, ts):
+    """ Initialize """
+    # Pre-checks
+    if self.initialized:
+      return
+    elif self.frame_index < self.min_length:
+      return
+
+    # Initialize features
+    T_WB = pose2tf(self.pose_init.param)
+    for feature_id, feature in self.features.items():
+      feature.initialize(ts, T_WB)
+
+    self.pose_km1 = self.pose_init
+    self.initialized = True
+
+  def _estimate_pose(self, ts_km1, ts_k):
   def track(self, ts, frame0, frame1):
     """ Track features """
     # Pre-check
