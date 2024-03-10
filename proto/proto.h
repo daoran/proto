@@ -3429,10 +3429,10 @@ typedef struct tsf_t {
   int fix_time_delay;
 
   // IMU
-  imu_params_t *imu_params;
+  imu_params_t imu_params;
   imu_buffer_t imu_buf;
-  extrinsic_t *imu_ext;
-  time_delay_t *time_delay;
+  extrinsic_t imu_ext;
+  time_delay_t time_delay;
 
   // Vision
   camera_params_t *cam_params;
@@ -3442,7 +3442,7 @@ typedef struct tsf_t {
   feature_map_t *feature_map;
 
   // Factors
-  imu_factor_t *imu_factor;
+  imu_factor_t imu_factor;
   marg_factor_t *marg;
 
   // State
@@ -3465,10 +3465,11 @@ void tsf_frameset_reset(tsf_frameset_t *fs);
 
 tsf_t *tsf_malloc();
 void tsf_free(tsf_t *tsf);
-void tsf_print(const tsf_t *tsif);
+void tsf_print(const tsf_t *tsf);
 
-void tsf_set_initial_pose(tsf_t *tsif, real_t pose[7]);
-void tsf_add_camera(tsf_t *tsif,
+void tsf_set_init_pose(tsf_t *tsf, real_t pose[7]);
+void tsf_set_init_velocity(tsf_t *tsf, real_t vel[3]);
+void tsf_add_camera(tsf_t *tsf,
                     const int cam_idx,
                     const int cam_res[2],
                     const char *proj_model,

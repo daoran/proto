@@ -14877,6 +14877,7 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
       LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
       LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
     }
+    printf("J' * J != H_marg. Diff is %.2e\n", diff);
 
     free(Jt);
     free(H_);
@@ -19629,10 +19630,10 @@ tsf_t *tsf_malloc() {
   tsf->fix_time_delay = 0;
 
   // IMU
-  tsf->imu_params = NULL;
+  // tsf->imu_params = NULL;
   imu_buffer_setup(&tsf->imu_buf);
-  tsf->imu_ext = NULL;
-  tsf->time_delay = NULL;
+  // tsf->imu_ext = NULL;
+  // tsf->time_delay = NULL;
 
   // Vision
   tsf->cam_params = NULL;
@@ -19640,7 +19641,7 @@ tsf_t *tsf_malloc() {
   tsf->feature_map = NULL;
 
   // Factors
-  tsf->imu_factor = NULL;
+  // tsf->imu_factor = NULL;
   tsf->marg = NULL;
 
   // State
@@ -19665,9 +19666,9 @@ tsf_t *tsf_malloc() {
  */
 void tsf_free(tsf_t *tsf) {
   // IMU
-  free(tsf->imu_params);
-  free(tsf->imu_ext);
-  free(tsf->time_delay);
+  // free(tsf->imu_params);
+  // free(tsf->imu_ext);
+  // free(tsf->time_delay);
 
   // VISION
   free(tsf->cam_params);
@@ -19676,7 +19677,7 @@ void tsf_free(tsf_t *tsf) {
 
   // FACTORS
   // free(tsf->imu_factor);
-  // marg_factor_free(tsf->marg);
+  marg_factor_free(tsf->marg);
 
   // STATE
   // free(tsf->pose_i);
@@ -19709,7 +19710,20 @@ void tsf_print(const tsf_t *tsf) {
 /**
  * Set TSF initial pose.
  */
-void tsf_set_initial_pose(tsf_t *tsif, real_t pose[7]);
+void tsf_set_init_pose(tsf_t *tsf, real_t pose[7]) {
+  for (int i = 0; i < 7; i++) {
+    tsf->pose_init[i] = pose[i];
+  }
+}
+
+/**
+ * Set TSF initial velocity.
+ */
+void tsf_set_init_velocity(tsf_t *tsf, real_t vel[3]) {
+  tsf->vel_init[0] = vel[0];
+  tsf->vel_init[1] = vel[1];
+  tsf->vel_init[2] = vel[2];
+}
 
 /**
  * Add camera to TSF.
@@ -19765,27 +19779,24 @@ void tsf_add_imu(tsf_t *tsf,
   assert(g > 9.0);
   assert(imu_ext);
 
-  if (tsf->imu_params) {
+  if (tsf->num_imus == 1) {
     LOG_ERROR("Currently only supports 1 IMU!\n");
     return;
   }
 
-  tsf->imu_params = MALLOC(imu_params_t, 1);
-  tsf->imu_params->imu_idx = 0;
-  tsf->imu_params->rate = imu_rate;
-  tsf->imu_params->sigma_aw = sigma_aw;
-  tsf->imu_params->sigma_gw = sigma_gw;
-  tsf->imu_params->sigma_a = sigma_a;
-  tsf->imu_params->sigma_g = sigma_g;
-  tsf->imu_params->g = g;
+  tsf->imu_params.imu_idx = 0;
+  tsf->imu_params.rate = imu_rate;
+  tsf->imu_params.sigma_aw = sigma_aw;
+  tsf->imu_params.sigma_gw = sigma_gw;
+  tsf->imu_params.sigma_a = sigma_a;
+  tsf->imu_params.sigma_g = sigma_g;
+  tsf->imu_params.g = g;
 
-  tsf->imu_ext = MALLOC(extrinsic_t, 1);
-  extrinsic_setup(tsf->imu_ext, imu_ext);
-  tsf->imu_ext->fix = tsf->fix_imu_ext;
+  extrinsic_setup(&tsf->imu_ext, imu_ext);
+  tsf->imu_ext.fix = tsf->fix_imu_ext;
 
-  tsf->time_delay = MALLOC(time_delay_t, 1);
-  time_delay_setup(tsf->time_delay, 0.0);
-  tsf->time_delay->fix = tsf->fix_time_delay;
+  time_delay_setup(&tsf->time_delay, 0.0);
+  tsf->time_delay.fix = tsf->fix_time_delay;
 
   tsf->num_imus = 1;
 }
@@ -19805,18 +19816,6 @@ void tsf_imu_event(tsf_t *tsf,
   // Add IMU measurement to buffer
   imu_buffer_add(&tsf->imu_buf, ts, acc, gyr);
   tsf->imu_started = 1;
-
-  const timestamp_t ts_i = imu_buffer_first_ts(&tsf->imu_buf);
-  const timestamp_t ts_j = imu_buffer_last_ts(&tsf->imu_buf);
-  const real_t dt = ts2sec(ts_j - ts_i);
-  if (dt > 0.5) {
-    pose_setup(&tsf->pose_i, ts_i, tsf->pose_init);
-    pose_setup(&tsf->pose_j, ts_j, tsf->pose_init);
-    velocity_setup(&tsf->vel_i, ts_i, tsf->vel_init);
-    velocity_setup(&tsf->vel_j, ts_j, tsf->vel_init);
-    imu_biases_setup(&tsf->biases_i, ts_i, tsf->ba_init, tsf->bg_init);
-    imu_biases_setup(&tsf->biases_j, ts_j, tsf->ba_init, tsf->bg_init);
-  }
 }
 
 static void tsf_extract_stereo_keypoints(const size_t *fids0,
@@ -20016,97 +20015,103 @@ void tsf_camera_event(tsf_t *tsf,
 //   return fids_unique;
 // }
 
-// /**
-//  * Form parameter order.
-//  */
-// param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
-//   // Setup parameter order
-//   tsf_t *tsf = (tsf_t *) data;
-//   param_order_t *hash = NULL;
-//   int col_idx = 0;
+/**
+ * Form parameter order.
+ */
+param_order_t *tsf_param_order(const void *data, int *sv_size, int *r_size) {
+  // Setup parameter order
+  tsf_t *tsf = (tsf_t *) data;
+  param_order_t *hash = NULL;
+  int col_idx = 0;
 
-//   // Add state at timestep k - 1
-//   param_order_add_pose(&hash, tsf->pose_i, &col_idx);
-//   if (tsf->num_imus) {
-//     param_order_add_velocity(&hash, tsf->vel_i, &col_idx);
-//     param_order_add_imu_biases(&hash, tsf->biases_i, &col_idx);
-//   }
+  // Add state at timestep k - 1
+  param_order_add_pose(&hash, &tsf->pose_i, &col_idx);
+  if (tsf->num_imus) {
+    param_order_add_velocity(&hash, &tsf->vel_i, &col_idx);
+    param_order_add_imu_biases(&hash, &tsf->biases_i, &col_idx);
+  }
 
-//   // Add state at timestep k
-//   param_order_add_pose(&hash, tsf->pose_j, &col_idx);
-//   if (tsf->num_imus) {
-//     param_order_add_velocity(&hash, tsf->vel_j, &col_idx);
-//     param_order_add_imu_biases(&hash, tsf->biases_j, &col_idx);
-//   }
+  // Add state at timestep k
+  param_order_add_pose(&hash, &tsf->pose_j, &col_idx);
+  if (tsf->num_imus) {
+    param_order_add_velocity(&hash, &tsf->vel_j, &col_idx);
+    param_order_add_imu_biases(&hash, &tsf->biases_j, &col_idx);
+  }
 
-//   // Add camera extrinsic
-//   for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
-//     param_order_add_extrinsic(&hash, &tsf->cam_exts[cam_idx], &col_idx);
-//   }
+  // // Add camera extrinsic
+  // for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
+  //   param_order_add_extrinsic(&hash, &tsf->cam_exts[cam_idx], &col_idx);
+  // }
 
-//   // Add camera parameters
-//   for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
-//     param_order_add_camera(&hash, &tsf->cam_params[cam_idx], &col_idx);
-//   }
+  // // Add camera parameters
+  // for (int cam_idx = 0; cam_idx < tsf->num_cams; cam_idx++) {
+  //   param_order_add_camera(&hash, &tsf->cam_params[cam_idx], &col_idx);
+  // }
 
-//   // Add features
-//   size_t n = 0;
-//   size_t *fids = tsf_unique_feature_ids(tsf, &n);
-//   for (size_t i = 0; i < n; i++) {
-//     feature_t *idf_param = NULL;
-//     pos_t *idf_pos = NULL;
-//     features_get_idf(tsf->features, fids[i], &idf_param, &idf_pos);
+  // // Add features
+  // size_t n = 0;
+  // size_t *fids = tsf_unique_feature_ids(tsf, &n);
+  // for (size_t i = 0; i < n; i++) {
+  //   feature_t *idf_param = NULL;
+  //   pos_t *idf_pos = NULL;
+  //   features_get_idf(tsf->features, fids[i], &idf_param, &idf_pos);
 
-//     param_order_add(&hash, IDF_BEARING_PARAM, 0, idf_param->data, &col_idx);
-//     if (param_order_exists(&hash, idf_pos->data) == 0) {
-//       param_order_add(&hash, POSITION_PARAM, 0, idf_pos->data, &col_idx);
-//     }
-//   }
+  //   param_order_add(&hash, IDF_BEARING_PARAM, 0, idf_param->data, &col_idx);
+  //   if (param_order_exists(&hash, idf_pos->data) == 0) {
+  //     param_order_add(&hash, POSITION_PARAM, 0, idf_pos->data, &col_idx);
+  //   }
+  // }
+  // free(fids);
 
-//   // Set state-vector and residual size
-//   *sv_size = col_idx;
-//   *r_size = 0;
-//   *r_size += tsf->num_factors_i * 2;
-//   *r_size += tsf->num_factors_j * 2;
-//   *r_size += tsf->num_imus * 15;
-//   if (tsf->marg) {
-//     *r_size += tsf->marg->r_size;
-//   }
+  // Set state-vector and residual size
+  *sv_size = col_idx;
+  *r_size = 0;
+  // *r_size += tsf->num_factors_i * 2;
+  // *r_size += tsf->num_factors_j * 2;
+  *r_size += tsf->num_imus * 15;
+  if (tsf->marg) {
+    *r_size += tsf->marg->r_size;
+  }
 
-//   // Clean up
-//   free(fids);
+  return hash;
+}
 
-//   return hash;
-// }
+/**
+ * Calculate problem cost.
+ */
+void tsf_cost(const void *data, real_t *r) {
+  // Evaluate factors
+  tsf_t *tsf = (tsf_t *) data;
+  int r_idx = 0;
 
-// /**
-//  * Calculate problem cost.
-//  */
-// void tsf_cost(const void *data, real_t *r) {
-//   // Evaluate factors
-//   tsf_t *tsf = (tsf_t *) data;
-//   int r_idx = 0;
+  // -- Evaluate IDF factors
+  // for (int i = 0; i < tsf->num_factors_i; i++) {
+  //   idf_factor_t *factor = &tsf->idf_factors_i[i];
+  //   idf_factor_eval(factor);
+  //   vec_copy(factor->r, factor->r_size, &r[r_idx]);
+  //   r_idx += factor->r_size;
+  // }
+  // for (int j = 0; j < tsf->num_factors_j; j++) {
+  //   idf_factor_t *factor = &tsf->idf_factors_j[j];
+  //   idf_factor_eval(factor);
+  //   vec_copy(factor->r, factor->r_size, &r[r_idx]);
+  //   r_idx += factor->r_size;
+  // }
 
-//   // -- Evaluate IDF factors
-//   for (int i = 0; i < tsf->num_factors_i; i++) {
-//     idf_factor_t *factor = &tsf->idf_factors_i[i];
-//     idf_factor_eval(factor);
-//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
-//     r_idx += factor->r_size;
-//   }
-//   for (int j = 0; j < tsf->num_factors_j; j++) {
-//     idf_factor_t *factor = &tsf->idf_factors_j[j];
-//     idf_factor_eval(factor);
-//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
-//     r_idx += factor->r_size;
-//   }
+  // -- Evaluate Imu factor
+  {
+    imu_factor_t *factor = &tsf->imu_factor;
+    imu_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[r_idx]);
+    r_idx += factor->r_size;
+  }
 
-//   // -- Evaluate marginalization factor
-//   if (tsf->marg) {
-//     marg_factor_eval(tsf->marg);
-//     vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
-//   }
-// }
+  // -- Evaluate marginalization factor
+  if (tsf->marg) {
+    marg_factor_eval(tsf->marg);
+    vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
+  }
+}
 
 // /**
 //  * TSF reprojection errors.
@@ -20157,82 +20162,82 @@ void tsf_camera_event(tsf_t *tsf,
 //   free(r);
 // }
 
-// /**
-//  * Linearize SF Non-linear Least Square Problem.
-//  */
-// void tsf_linearize_compact(const void *data,
-//                            const int sv_size,
-//                            param_order_t *hash,
-//                            real_t *H,
-//                            real_t *g,
-//                            real_t *r) {
-//   // Evaluate factors
-//   tsf_t *tsf = (tsf_t *) data;
-//   size_t r_idx = 0;
+/**
+ * Linearize SF Non-linear Least Square Problem.
+ */
+void tsf_linearize_compact(const void *data,
+                           const int sv_size,
+                           param_order_t *hash,
+                           real_t *H,
+                           real_t *g,
+                           real_t *r) {
+  // Evaluate factors
+  tsf_t *tsf = (tsf_t *) data;
+  size_t r_idx = 0;
 
-//   // // -- IMU factor
-//   // if (sf->num_imus) {
-//   //   imu_factor_t *factor = &sf->imu_factor;
-//   //   SOLVER_EVAL_FACTOR_COMPACT(hash,
-//   //                              sv_size,
-//   //                              H,
-//   //                              g,
-//   //                              imu_factor_eval,
-//   //                              factor,
-//   //                              r,
-//   //                              r_idx);
-//   // }
+  // -- IMU factor
+  if (tsf->num_imus) {
+    imu_factor_t *factor = &tsf->imu_factor;
+    SOLVER_EVAL_FACTOR_COMPACT(hash,
+                               sv_size,
+                               H,
+                               g,
+                               imu_factor_eval,
+                               factor,
+                               r,
+                               r_idx);
+  }
 
-//   // -- IDF factors
-//   for (int i = 0; i < tsf->num_factors_i; i++) {
-//     idf_factor_t *factor = &tsf->idf_factors_i[i];
-//     idf_factor_eval(factor);
-//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
+  // // -- IDF factors
+  // for (int i = 0; i < tsf->num_factors_i; i++) {
+  //   idf_factor_t *factor = &tsf->idf_factors_i[i];
+  //   idf_factor_eval(factor);
+  //   vec_copy(factor->r, factor->r_size, &r[r_idx]);
 
-//     solver_fill_hessian(hash,
-//                         factor->num_params,
-//                         factor->params,
-//                         factor->jacs,
-//                         factor->r,
-//                         factor->r_size,
-//                         sv_size,
-//                         H,
-//                         g);
-//     r_idx += factor->r_size;
-//   }
-//   for (int j = 0; j < tsf->num_factors_j; j++) {
-//     idf_factor_t *factor = &tsf->idf_factors_j[j];
-//     idf_factor_eval(factor);
-//     vec_copy(factor->r, factor->r_size, &r[r_idx]);
+  //   solver_fill_hessian(hash,
+  //                       factor->num_params,
+  //                       factor->params,
+  //                       factor->jacs,
+  //                       factor->r,
+  //                       factor->r_size,
+  //                       sv_size,
+  //                       H,
+  //                       g);
+  //   r_idx += factor->r_size;
+  // }
+  // for (int j = 0; j < tsf->num_factors_j; j++) {
+  //   idf_factor_t *factor = &tsf->idf_factors_j[j];
+  //   idf_factor_eval(factor);
+  //   vec_copy(factor->r, factor->r_size, &r[r_idx]);
 
-//     solver_fill_hessian(hash,
-//                         factor->num_params,
-//                         factor->params,
-//                         factor->jacs,
-//                         factor->r,
-//                         factor->r_size,
-//                         sv_size,
-//                         H,
-//                         g);
-//     r_idx += factor->r_size;
-//   }
+  //   solver_fill_hessian(hash,
+  //                       factor->num_params,
+  //                       factor->params,
+  //                       factor->jacs,
+  //                       factor->r,
+  //                       factor->r_size,
+  //                       sv_size,
+  //                       H,
+  //                       g);
+  //   r_idx += factor->r_size;
+  // }
 
-//   // -- Marginalization factor
-//   if (tsf->marg) {
-//     marg_factor_eval(tsf->marg);
-//     vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
+  // -- Marginalization factor
+  if (tsf->marg) {
+    marg_factor_eval(tsf->marg);
+    vec_copy(tsf->marg->r, tsf->marg->r_size, &r[r_idx]);
 
-//     solver_fill_hessian(hash,
-//                         tsf->marg->num_params,
-//                         tsf->marg->params,
-//                         tsf->marg->jacs,
-//                         tsf->marg->r,
-//                         tsf->marg->r_size,
-//                         sv_size,
-//                         H,
-//                         g);
-//   }
-// }
+    solver_fill_hessian(hash,
+                        tsf->marg->num_params,
+                        tsf->marg->params,
+                        tsf->marg->jacs,
+                        tsf->marg->r,
+                        tsf->marg->r_size,
+                        sv_size,
+                        H,
+                        g);
+  }
+}
 
 // static int tsf_process_data(tsf_t *tsf) {
 //   // Map out frame data
@@ -20333,11 +20338,11 @@ static void tsf_solve(tsf_t *tsf) {
   // Solve
   solver_t solver;
   solver_setup(&solver);
-  solver.verbose = 0;
+  solver.verbose = 1;
   solver.max_iter = 5;
-  // solver.cost_func = &tsf_cost;
-  // solver.param_order_func = &tsf_param_order;
-  // solver.linearize_func = &tsf_linearize_compact;
+  solver.cost_func = &tsf_cost;
+  solver.param_order_func = &tsf_param_order;
+  solver.linearize_func = &tsf_linearize_compact;
   solver_solve(&solver, tsf);
 
   // Print reprojection errors
@@ -20352,69 +20357,101 @@ static void tsf_solve(tsf_t *tsf) {
   // printf("\n");
 }
 
-// static void tsf_marginalize(tsf_t *tsf) {
-//   assert(tsf != NULL);
+static void tsf_marginalize(tsf_t *tsf) {
+  assert(tsf != NULL);
 
-//   // Pre-check
-//   if (tsf->frame_idx == 0) {
-//     return;
-//   }
+  // Pre-check
+  if (tsf->frame_idx == 0) {
+    return;
+  }
 
-//   // Setup
-//   marg_factor_t *marg = marg_factor_malloc();
+  // Setup
+  marg_factor_t *marg = marg_factor_malloc();
 
-//   // Mark variables to be marginalized
-//   tsf->pose_i->marginalize = 1;
+  // Mark variables to be marginalized
+  tsf->pose_i.marginalize = 1;
+  tsf->vel_i.marginalize = 1;
+  tsf->biases_i.marginalize = 1;
 
-//   // Add factors to be marginalized
-//   for (int i = 0; i < tsf->num_factors_i; i++) {
-//     marg_factor_add(marg, IDF_FACTOR, &tsf->idf_factors_i[i]);
-//   }
-//   if (tsf->marg) {
-//     marg_factor_add(marg, MARG_FACTOR, tsf->marg);
-//   }
+  // Add factors to be marginalized
+  // for (int i = 0; i < tsf->num_factors_i; i++) {
+  //   marg_factor_add(marg, IDF_FACTOR, &tsf->idf_factors_i[i]);
+  // }
+  marg_factor_add(marg, IMU_FACTOR, &tsf->imu_factor);
+  if (tsf->marg) {
+    marg_factor_add(marg, MARG_FACTOR, tsf->marg);
+  }
 
-//   // Marginalize
-//   marg_factor_marginalize(marg);
+  // Marginalize
+  marg_factor_marginalize(marg);
 
-//   // Free previous and set new marginalization factor
-//   marg_factor_free(tsf->marg);
-//   tsf->marg = marg;
-// }
+  // Free previous and set new marginalization factor
+  marg_factor_free(tsf->marg);
+  tsf->marg = marg;
+}
 
 /**
  * Update TSF.
  */
 void tsf_update(tsf_t *tsf, const timestamp_t ts) {
+  const timestamp_t ts_i = imu_buffer_first_ts(&tsf->imu_buf);
+  const timestamp_t ts_j = imu_buffer_last_ts(&tsf->imu_buf);
+  const real_t dt = ts2sec(ts_j - ts_i);
+  if (dt > 0.1) {
+    pose_setup(&tsf->pose_i, ts_i, tsf->pose_init);
+    pose_setup(&tsf->pose_j, ts_j, tsf->pose_init);
+    velocity_setup(&tsf->vel_i, ts_i, tsf->vel_init);
+    velocity_setup(&tsf->vel_j, ts_j, tsf->vel_init);
+    imu_biases_setup(&tsf->biases_i, ts_i, tsf->ba_init, tsf->bg_init);
+    imu_biases_setup(&tsf->biases_j, ts_j, tsf->ba_init, tsf->bg_init);
+
+    imu_factor_setup(&tsf->imu_factor,
+                     &tsf->imu_params,
+                     &tsf->imu_buf,
+                     &tsf->pose_i,
+                     &tsf->vel_i,
+                     &tsf->biases_i,
+                     &tsf->pose_j,
+                     &tsf->vel_j,
+                     &tsf->biases_j);
+    imu_buffer_clear(&tsf->imu_buf);
+    imu_factor_eval(&tsf->imu_factor);
+
+    tsf_solve(tsf);
+    tsf_marginalize(tsf);
+    exit(0);
+  }
+
   // tsf_process_data(tsf);
   // tsf_solve(tsf);
+  // exit(0);
   // tsf_marginalize(tsf);
 
   // Update book-keeping
   // - Move current frame to previous
   // - Move current factors to previous
   // - Move current pose to previous
-  if (tsf->frame_idx > 0) {
-    // Frameset
-    // tsf_frameset_free(tsf->frame_sets[0]);
-    // tsf->frame_sets[0] = tsf->frame_sets[1];
-    // tsf->frame_sets[1] = NULL;
+  // if (tsf->frame_idx > 0) {
+  // Frameset
+  // tsf_frameset_free(tsf->frame_sets[0]);
+  // tsf->frame_sets[0] = tsf->frame_sets[1];
+  // tsf->frame_sets[1] = NULL;
 
-    // Factors
-    // free(tsf->idf_factors_i);
-    // tsf->idf_factors_i = tsf->idf_factors_j;
-    // tsf->num_factors_i = tsf->num_factors_j;
-    // tsf->idf_factors_j = NULL;
-    // tsf->num_factors_j = 0;
+  // Factors
+  // free(tsf->idf_factors_i);
+  // tsf->idf_factors_i = tsf->idf_factors_j;
+  // tsf->num_factors_i = tsf->num_factors_j;
+  // tsf->idf_factors_j = NULL;
+  // tsf->num_factors_j = 0;
 
-    // Poses
-    // free(tsf->pose_i);
-    // tsf->pose_i = tsf->pose_j;
-    // tsf->pose_j = NULL;
-  }
+  // Poses
+  // free(tsf->pose_i);
+  // tsf->pose_i = tsf->pose_j;
+  // tsf->pose_j = NULL;
+  // }
 
   // Increment frame index
-  tsf->frame_idx++;
+  // tsf->frame_idx++;
 }
 
 /******************************************************************************
