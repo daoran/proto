@@ -9730,7 +9730,7 @@ def estimate_pose(param_i, param_j, ext_i, ext_j, kps_i, kps_j, features,
   """ Estimate pose """
   # Settings
   verbose = kwargs.get("verbose", True)
-  max_iter = kwargs.get("max_iter", 10)
+  max_iter = kwargs.get("max_iter", 5)
 
   # Setup
   cam_geom_i = param_i.data
@@ -9781,24 +9781,33 @@ class TSIF:
     self.max_keypoints = kwargs.get("max_keypoints", 300)
     self.enable_clahe = kwargs.get("enable_clahe", True)
     self.parallax_threshold = kwargs.get("parallax_threshold", 1.0)
+    self.max_length = kwargs.get("max_length", 30)
+    self.min_length = kwargs.get("min_length", 5)
 
     # Calibrations
     self.cam_params = {0: cam0_params, 1: cam1_params}
     self.cam_exts = {0: cam0_ext, 1: cam1_ext}
 
-    # Data
+    # Features
     self.next_feature_id = 0
     self.features = {}
     self.old_features = {}
+
+    # Data
+    self.initialized = False
+    self.prev_ts = None
     self.prev_frame0 = None
     self.prev_frame1 = None
+    self.frame_index = 0
+
+    self.pose_init = pose_setup(0, eye(4))
     self.pose_km1 = None
     self.pose_k = None
 
   def add_feature(self, ts, kp0, kp1):
     """ Add Feature """
     feature_id = self.next_feature_id
-    feature = FeatureTrack(feature_id, self.cam_params, self.cam_exts)
+    kwargs = {"max_length": self.max_length, "min_length": self.min_length}
     feature = FeatureTrack(feature_id, self.cam_params, self.cam_exts, **kwargs)
     feature.add(ts, 0, kp0)
     feature.add(ts, 1, kp1)
@@ -9886,6 +9895,64 @@ class TSIF:
     self.initialized = True
 
   def _estimate_pose(self, ts_km1, ts_k):
+    """ Estimate current pose """
+    fgraph = FactorGraph()
+    fgraph.solver_max_iter = 3
+
+    # Add params
+    cam0_geom = self.cam_params[0].data
+    cam1_geom = self.cam_params[1].data
+    cam0_id = fgraph.add_param(self.cam_params[0])
+    cam1_id = fgraph.add_param(self.cam_params[1])
+    ext0_id = fgraph.add_param(self.cam_exts[0])
+    ext1_id = fgraph.add_param(self.cam_exts[1])
+    pose_km1_id = fgraph.add_param(pose_setup(self.prev_ts, self.pose_km1.param, fix=True))
+    pose_k_id = fgraph.add_param(pose_setup(ts_k, self.pose_km1.param))
+
+    # Add factors
+    for _, feature in self.features.items():
+      if feature.init is False:
+        continue
+      feature_id = fgraph.add_param(feature_setup(feature.param))
+      kps_km1 = feature.get_keypoints(ts_km1)
+      kps_k = feature.get_keypoints(ts_k)
+
+      z0_km1 = kps_km1[0]["kp"]
+      param_ids = [pose_km1_id, ext0_id, feature_id, cam0_id]
+      factor0_km1 = VisionFactor(cam0_geom, param_ids, z0_km1)
+      fgraph.add_factor(factor0_km1)
+
+      z1_km1 = kps_km1[1]["kp"]
+      param_ids = [pose_km1_id, ext1_id, feature_id, cam1_id]
+      factor1_km1 = VisionFactor(cam1_geom, param_ids, z1_km1)
+      fgraph.add_factor(factor1_km1)
+
+      z0_k = kps_k[0]["kp"]
+      param_ids = [pose_k_id, ext0_id, feature_id, cam0_id]
+      factor0_k = VisionFactor(cam0_geom, param_ids, z0_k)
+      fgraph.add_factor(factor0_k)
+
+      z1_k = kps_k[1]["kp"]
+      param_ids = [pose_k_id, ext1_id, feature_id, cam1_id]
+      factor1_k = VisionFactor(cam1_geom, param_ids, z1_k)
+      fgraph.add_factor(factor1_k)
+
+    # Solve
+    fgraph.solve(True)
+    reproj_error = fgraph.get_reproj_errors()
+
+    plt.boxplot(reproj_error)
+    plt.show()
+
+    print(f"reproj_error: {np.linalg.norm(reproj_error):.4f}")
+    print(f"max:    {np.max(reproj_error):.4f}")
+    print(f"min:    {np.min(reproj_error):.4f}")
+    print(f"mean:   {np.mean(reproj_error):.4f}")
+    print(f"median: {np.median(reproj_error):.4f}")
+    print(f"std:    {np.std(reproj_error):.4f}")
+
+    return fgraph.params[pose_k_id]
+
   def track(self, ts, frame0, frame1):
     """ Track features """
     # Pre-check
@@ -9912,11 +9979,20 @@ class TSIF:
       else:
         self.remove_feature(feature_id)
 
-    # Initialize features (if they're not already)
-    # for feature_id, feature in self.features.items():
-    #   feature.initialize(ts, pose_k)
+    # Initialize or track
+    if self.initialized is False and self.frame_index >= self.min_length:
+      self._initialize(ts)
+    elif self.initialized:
+      # Estimate current pose
+      self.pose_k = self._estimate_pose(self.prev_ts, ts)
+
+      # Initialize new features
+      T_WB = pose2tf(self.pose_k.param)
+      for feature_id, feature in self.features.items():
+        feature.initialize(ts, T_WB)
 
   def update(self, ts, frame0, frame1, debug=False):
+    """ Update """
     # Apply CLAHE
     if self.enable_clahe:
       clahe = cv2.createCLAHE(3.0, (8, 8))
@@ -9926,8 +10002,12 @@ class TSIF:
     # Detect and track
     self.detect(ts, frame0, frame1, debug)
     self.track(ts, frame0, frame1)
+
+    # Update
+    self.prev_ts = ts
     self.prev_frame0 = np.array(frame0)  # Make a copy
     self.prev_frame1 = np.array(frame1)  # Make a copy
+    self.frame_index += 1
 
 
 class FeatureTrackerData:
@@ -10527,13 +10607,14 @@ class TestFeatureTracking(unittest.TestCase):
     # Triangulate
     features = []
     T_WB = eye(4)
+    T_BC0 = pose2tf(self.cam0_ext.param)
+    T_BC1 = pose2tf(self.cam1_ext.param)
+    T_C0C1 = inv(T_BC0) @ T_BC1
+
     for z0, z1 in zip(kps0, kps1):
       # -- Form projection matrices P0 and P1
       param0 = self.cam0_params.param
       param1 = self.cam1_params.param
-      T_BC0 = pose2tf(self.cam0_ext.param)
-      T_BC1 = pose2tf(self.cam1_ext.param)
-      T_C0C1 = inv(T_BC0) @ T_BC1
       P0 = pinhole_P(self.cam0_params.data.proj_params(param0), eye(4))
       P1 = pinhole_P(self.cam1_params.data.proj_params(param1), T_C0C1)
 
@@ -10543,11 +10624,10 @@ class TestFeatureTracking(unittest.TestCase):
 
       # -- Triangulate
       p_C0 = linear_triangulation(P0, P1, z0, z1)
-      # p_W = tf_point(T_WB @ T_BC0, p_C0)
-      # features.append(p_W)
       features.append(p_C0)
 
     # Estimate relative pose
+    time_start = time.time()
     pose_i = pose_setup(0, T_WB, fix=True)
     pose_j = estimate_pose(
         self.cam0_params,
@@ -10559,13 +10639,12 @@ class TestFeatureTracking(unittest.TestCase):
         features,
         pose_i,
     )
-    T_WB_k = pose2tf(pose_j.param)
-    print(np.round(T_WB_k, 3))
+    elapsed = time.time() - time_start
+    T_C0C1_est = pose2tf(pose_j.param)
 
-    T_BC0 = pose2tf(self.cam0_ext.param)
-    T_BC1 = pose2tf(self.cam1_ext.param)
-    T_C0C1 = inv(T_BC0) @ T_BC1
-    print(np.round(T_C0C1, 3))
+    print(f"elapsed: {elapsed:.4f} [s]")
+    print(f"est:\n{np.round(T_C0C1_est, 3)}\n")
+    print(f"gnd:\n{np.round(T_C0C1, 3)}\n")
 
   def test_euroc_mono(self):
     kps0_km1 = []
@@ -10612,7 +10691,6 @@ class TestFeatureTracking(unittest.TestCase):
 
       # Visualize
       if frame0_km1 is not None:
-        viz = None
         viz_km1 = draw_keypoints(frame0_km1, kps0_km1)
         viz_k = draw_keypoints(frame0_k, kps0_k)
         viz = cv2.hconcat([viz_km1, viz_k])
@@ -10642,8 +10720,8 @@ class TestFeatureTracking(unittest.TestCase):
     yellow = (0, 255, 255)
     ft = TSIF(self.cam0_params, self.cam1_params, self.cam0_ext, self.cam1_ext)
 
-    for ts in self.dataset.cam0_data.timestamps[1000:2000]:
-      # for ts in self.dataset.cam0_data.timestamps:
+    # for ts in self.dataset.cam0_data.timestamps[2000:3000]:
+    for ts in self.dataset.cam0_data.timestamps:
       # Load images
       frame0_path = self.dataset.cam0_data.image_paths[ts]
       frame1_path = self.dataset.cam1_data.image_paths[ts]
