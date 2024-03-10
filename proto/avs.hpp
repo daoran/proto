@@ -17,8 +17,6 @@ extern "C" {
  * COMPUTER-VISION
  *****************************************************************************/
 
-typedef std::map<int, std::vector<cv::KeyPoint>> TrackerKeypoints;
-
 ///////////
 // UTILS //
 ///////////
@@ -29,6 +27,69 @@ typedef std::map<int, std::vector<cv::KeyPoint>> TrackerKeypoints;
 template <typename T>
 void extend_vector(std::vector<T> &destination, const std::vector<T> &source) {
   destination.insert(destination.end(), source.begin(), source.end());
+}
+
+/**
+ * Returns mean
+ */
+real_t mean(const std::vector<real_t> &x) {
+  real_t sum = 0.0;
+  for (const auto i : x) {
+    sum += i;
+  }
+
+  const real_t N = x.size();
+  return sum / N;
+}
+
+/**
+ * Returns median
+ */
+real_t median(const std::vector<real_t> &v) {
+  // sort values
+  std::vector<real_t> v_copy = v;
+  std::sort(v_copy.begin(), v_copy.end());
+
+  // obtain median
+  if (v_copy.size() % 2 == 1) {
+    // return middle value
+    return v_copy[v_copy.size() / 2];
+
+  } else {
+    // grab middle two values and calc mean
+    const real_t a = v_copy[v_copy.size() / 2];
+    const real_t b = v_copy[(v_copy.size() / 2) - 1];
+    return (a + b) / 2.0;
+  }
+}
+
+/**
+ * Returns RMSE
+ */
+real_t rmse(const std::vector<real_t> &residuals) {
+  real_t sse = 0.0;
+  for (const auto r : residuals) {
+    sse += r * r;
+  }
+
+  real_t n = residuals.size();
+  real_t mse = sse / n;
+  return sqrt(mse);
+}
+
+/**
+ * Returns variance
+ */
+real_t var(const std::vector<real_t> &x) {
+  const double mu = mean(x);
+  const double N = x.size();
+
+  double sum = 0.0;
+  for (const auto x_i : x) {
+    sum += pow(x_i - mu, 2);
+  }
+
+  return sum / (N - 1.0);
 }
 
 /**
@@ -197,21 +258,6 @@ void inlier_stats(const std::vector<uchar> inliers,
   inlier_ratio = (float) num_inliers / (float) num_total;
 }
 
-// /**
-//  * Filter Outliers
-//  */
-// std::vector<cv::KeyPoint>
-// filter_outliers(const std::vector<cv::KeyPoint> &keypoints,
-//                 const std::vector<uchar> inliers) {
-//   std::vector<cv::KeyPoint> kps_inliers;
-//   for (size_t i = 0; i < keypoints.size(); i++) {
-//     if (inliers[i]) {
-//       kps_inliers.push_back(keypoints[i]);
-//     }
-//   }
-//   return kps_inliers;
-// }
-
 /**
  * Filter Outliers
  */
@@ -348,7 +394,7 @@ void ransac(const std::vector<cv::KeyPoint> &kps0,
             const real_t cam0_params[8],
             const real_t cam1_params[8],
             std::vector<uchar> &inliers,
-            const double reproj_threshold = 0.75,
+            const double reproj_threshold = 0.5,
             const double confidence = 0.99) {
   assert(kps0.size() > 0 && kps1.size() > 0);
   assert(kps0.size() == kps1.size());
@@ -408,13 +454,14 @@ void ransac(const std::vector<cv::KeyPoint> &kps0,
 /**
  * Check parallax
  */
-std::vector<bool> check_parallax(const camera_params_t &cam0_params,
-                                 const camera_params_t &cam1_params,
-                                 const extrinsic_t &cam0_ext,
-                                 const extrinsic_t &cam1_ext,
-                                 const std::vector<cv::KeyPoint> &kps0,
-                                 const std::vector<cv::KeyPoint> &kps1,
-                                 const real_t parallax_threshold) {
+void check_parallax(const camera_params_t &cam0_params,
+                    const camera_params_t &cam1_params,
+                    const extrinsic_t &cam0_ext,
+                    const extrinsic_t &cam1_ext,
+                    const std::vector<cv::KeyPoint> &kps0,
+                    const std::vector<cv::KeyPoint> &kps1,
+                    const real_t parallax_threshold,
+                    std::vector<uchar> &inliers) {
   assert(parallax_threshold > 0);
   assert(kps0.size() == kps1.size());
 
@@ -437,8 +484,8 @@ std::vector<bool> check_parallax(const camera_params_t &cam0_params,
   pinhole_projection_matrix(params1, T_C0C1, P1);
 
   // Check parallax
+  inliers.clear();
   const size_t N = kps0.size();
-  std::vector<bool> inliers;
   for (size_t i = 0; i < N; i++) {
     // Undistort
     const real_t z0_in[2] = {kps0[i].pt.x, kps0[i].pt.y};
@@ -453,19 +500,21 @@ std::vector<bool> check_parallax(const camera_params_t &cam0_params,
     real_t p_C1[3] = {0};
     linear_triangulation(P0, P1, z0, z1, p_C0);
     tf_point(T_C1C0, p_C0, p_C1);
+    if (p_C0[2] < 0 && p_C1[2] < 0) {
+      inliers.push_back(false);
+      continue;
+    }
 
     // Check parallax
     DOT(p_C0, 1, 3, p_C1, 3, 1, numerator);
     const double denominator = vec3_norm(p_C0) * vec3_norm(p_C1);
-    const double parallax = acos(numerator[0] / denominator);
+    const double parallax = rad2deg(acos(numerator[0] / denominator));
     if (parallax < parallax_threshold) {
       inliers.push_back(false);
     } else {
       inliers.push_back(true);
     }
   }
-
-  return inliers;
 }
 
 /**
@@ -651,7 +700,7 @@ struct GridDetector {
   cv::Ptr<cv::GFTTDetector> detector = cv::GFTTDetector::create();
 
   double quality_level = 0.01;
-  double min_distance = 20;
+  double min_distance = 10;
   cv::Mat mask;
   int block_size = 3;
   bool use_harris = false;
@@ -817,11 +866,14 @@ struct Feature {
   std::map<int, camera_params_t> &cam_ints;
   std::map<int, extrinsic_t> &cam_exts;
 
-  double data[3] = {0};
   std::vector<timestamp_t> timestamps;
   std::map<timestamp_t, std::map<int, cv::KeyPoint>> keypoints;
-  int max_length = 30;
-  int min_length = 30;
+  int min_length = 5;
+  int max_length = 20;
+
+  bool initialized = false;
+  timestamp_t initialize_timestamp = 0;
+  double data[3] = {0};
 
   Feature(const size_t feature_id_,
           std::map<int, camera_params_t> &cam_ints_,
@@ -829,14 +881,14 @@ struct Feature {
       : feature_id{feature_id_}, cam_ints{cam_ints_}, cam_exts{cam_exts_} {}
   virtual ~Feature() = default;
 
-  /** Return Timestamp **/
-  timestamp_t timestamp(const size_t idx) const { return timestamps.at(idx); }
-
   /** Return First Timestamp **/
   timestamp_t first_timestamp() const { return timestamps.front(); }
 
   /** Return Last Timestamp **/
   timestamp_t last_timestamp() const { return timestamps.back(); }
+
+  /** Return length */
+  size_t length() const { return timestamps.size(); }
 
   /** Return Camera Keypoints **/
   std::map<int, cv::KeyPoint> get_keypoints() const {
@@ -849,142 +901,657 @@ struct Feature {
     timestamps.push_back(ts);
     keypoints[ts][cam_idx] = kp;
   }
+
+  /** Initialize */
+  bool initialize(const timestamp_t ts, const real_t T_WB[4 * 4]) {
+    if (initialized) {
+      return true;
+    }
+
+    // Do we have data?
+    if (keypoints.count(ts) == 0) {
+      return false;
+    }
+
+    // Is the feature tracked long enough?
+    if (length() < min_length) {
+      return false;
+    }
+
+    // Two or more measurements?
+    if (keypoints[ts].size() < 2) {
+      return false;
+    }
+
+    // Triangulate
+    // -- Form projection matrices P0 and P1
+    const real_t *params0 = cam_ints[0].data;
+    const real_t *params1 = cam_ints[1].data;
+
+    real_t I4[4 * 4] = {0};
+    eye(I4, 4, 4);
+
+    POSE2TF(cam_exts[0].data, T_BC0);
+    POSE2TF(cam_exts[1].data, T_BC1);
+    TF_INV(T_BC0, T_C0B);
+    TF_CHAIN(T_C0C1, 2, T_C0B, T_BC1);
+
+    real_t P0[4 * 4] = {0};
+    real_t P1[4 * 4] = {0};
+    pinhole_projection_matrix(params0, I4, P0);
+    pinhole_projection_matrix(params1, T_C0C1, P1);
+
+    // -- Undistort image points z0 and z1
+    const auto kp0 = keypoints[ts][0];
+    const auto kp1 = keypoints[ts][1];
+    const real_t z0_in[2] = {kp0.pt.x, kp0.pt.y};
+    const real_t z1_in[2] = {kp1.pt.x, kp1.pt.y};
+    real_t z0[2] = {0};
+    real_t z1[2] = {0};
+    cam_ints[0].undistort_func(params0, z0_in, z0);
+    cam_ints[1].undistort_func(params1, z1_in, z1);
+
+    // -- Triangulate
+    real_t p_C0[3] = {0};
+    real_t p_W[3] = {0};
+    linear_triangulation(P0, P1, z0, z1, p_C0);
+    if (p_C0[2] <= 0) {
+      return false;
+    }
+    TF_CHAIN(T_WC0, 2, T_WB, T_BC0);
+    tf_point(T_WC0, p_C0, p_W);
+
+    // Update
+    initialized = true;
+    initialize_timestamp = ts;
+    data[0] = p_W[0];
+    data[1] = p_W[1];
+    data[2] = p_W[2];
+
+    return true;
+  }
 };
 
-// /** Estimate Relative Pose **/
-// real_t estimate_relpose(const Mapper &mapper,
-//                         camera_params_ts &cam_ints,
-//                         extrinsic_ts &cam_exts,
-//                         TrackerData tracking_km1,
-//                         TrackerData tracking_k,
-//                         Features &features,
-//                         Pose &pose_km1,
-//                         Pose &pose_k,
-//                         const bool fix_features = true,
-//                         const bool fix_camera_intrinsics = true,
-//                         const bool fix_camera_extrinsics = true) {
-//   // Settings
-//   bool verbose = true;
-//   int max_iter = 10;
-//   int max_num_threads = 2;
+/**
+ * Pose local parameterization
+ */
+struct PoseLocalParameterization : public ceres::LocalParameterization {
+  /** Plus */
+  virtual bool Plus(const double *x,
+                    const double *dx,
+                    double *x_plus_dx) const {
+    x_plus_dx[0] = x[0] + dx[0];
+    x_plus_dx[1] = x[1] + dx[1];
+    x_plus_dx[2] = x[2] + dx[2];
 
-//   // Setup
-//   ceres::Problem::Options prob_options;
-//   ceres::Problem problem{prob_options};
-//   PoseLocalParameterization *pose_param = new PoseLocalParameterization();
-//   ceres::LossFunction *loss_fn = new ceres::CauchyLoss(1.0);
+    double dq[4] = {0};
+    quat_delta(dx + 3, dq);
+    quat_mul(x + 3, dq, x_plus_dx + 3);
+    quat_normalize(x_plus_dx + 3);
 
-//   // Update feature positions from mapper
-//   for (auto &[fid, feature] : features) {
-//     if (mapper.features.count(fid)) {
-//       feature = mapper.features.at(fid);
-//     }
-//   }
+    return true;
+  }
 
-//   // Add camera intrinsics and extrinsics to problem
-//   for (auto &[cam_id, cam_int] : cam_ints) {
-//     problem.AddParameterBlock(cam_int.data, 8);
-//     if (fix_camera_intrinsics) {
-//       problem.SetParameterBlockConstant(cam_int.data);
-//     }
-//   }
-//   for (auto &[cam_id, cam_ext] : cam_exts) {
-//     problem.AddParameterBlock(cam_ext.data, 7);
-//     problem.SetParameterization(cam_ext.data, pose_param);
-//     if (fix_camera_extrinsics) {
-//       problem.SetParameterBlockConstant(cam_ext.data);
-//     }
-//   }
+  /** Compute Jacobian */
+  virtual bool ComputeJacobian(const double *x, double *J) const {
+    // clang-format off
+    J[0]  = 1; J[1]  = 0; J[2]  = 0;  J[3] = 0; J[4]  = 0; J[5]  = 0;
+    J[6]  = 0; J[7]  = 1; J[8]  = 0;  J[9] = 0; J[10] = 0; J[11] = 0;
+    J[12] = 0; J[13] = 0; J[14] = 1; J[15] = 0; J[16] = 0; J[17] = 0;
+    J[18] = 0; J[19] = 0; J[20] = 0; J[21] = 1; J[22] = 0; J[23] = 0;
+    J[24] = 0; J[25] = 0; J[26] = 0; J[27] = 0; J[28] = 1; J[29] = 0;
+    J[30] = 0; J[31] = 0; J[32] = 0; J[33] = 0; J[34] = 0; J[35] = 1;
+    J[36] = 0; J[37] = 0; J[38] = 0; J[39] = 0; J[40] = 0; J[41] = 0;
+    // clang-format on
+    return true;
+  }
 
-//   // Add poses at km1 and k, fix pose at km1
-//   problem.AddParameterBlock(pose_km1.data, 7);
-//   problem.AddParameterBlock(pose_k.data, 7);
-//   problem.SetParameterization(pose_km1.data, pose_param);
-//   problem.SetParameterization(pose_k.data, pose_param);
-//   problem.SetParameterBlockConstant(pose_km1.data);
+  /** Return global size */
+  virtual int GlobalSize() const { return 7; }
 
-//   // Add vision factors
-//   std::set<size_t> feature_ids;
-//   std::map<size_t, CameraFactor *> factors;
-//   auto add_factors =
-//       [&](const int ts_idx, TrackerData &tracking_data, Pose &pose) {
-//         for (auto &[cam_id, cam_data] : tracking_data) {
-//           for (const auto &[fid, kp] : cam_data) {
-//             // Add feature to problem
-//             if (feature_ids.count(fid) == 0) {
-//               problem.AddParameterBlock(features.at(fid).data, 3);
-//               if (fix_features) {
-//                 problem.SetParameterBlockConstant(features.at(fid).data);
-//               }
-//               feature_ids.insert(fid);
-//             }
+  /** Return local size */
+  virtual int LocalSize() const { return 6; }
 
-//             // Form factor
-//             auto &feature = features.at(fid);
-//             const real_t z[2] = {kp.pt.x, kp.pt.y};
-//             auto res_fn = new CameraFactor{ts_idx, cam_id, fid, z};
-//             factors[fid] = res_fn;
+  /** Form delta quaternion `dq` from a small rotation vector `dalpha`. */
+  static void quat_delta(const double dalpha[3], double dq[4]) {
+    assert(dalpha != NULL);
+    assert(dq != NULL);
 
-//             // Add factor to problem
-//             std::vector<double *> param_blocks;
-//             param_blocks.push_back(pose.data);
-//             param_blocks.push_back(cam_exts.at(cam_id).data);
-//             param_blocks.push_back(feature.data);
-//             param_blocks.push_back(cam_ints.at(cam_id).data);
-//             problem.AddResidualBlock(res_fn, loss_fn, param_blocks);
-//           }
-//         }
-//       };
-//   add_factors(0, tracking_km1, pose_km1);
-//   add_factors(1, tracking_k, pose_k);
+    const double half_norm = 0.5 * vec_norm(dalpha, 3);
+    const double k = sinc(half_norm) * 0.5;
+    const double vector[3] = {k * dalpha[0], k * dalpha[1], k * dalpha[2]};
+    double scalar = cos(half_norm);
 
-//   // Solve
-//   ceres::Solver::Options options;
-//   options.minimizer_progress_to_stdout = verbose;
-//   options.max_num_iterations = max_iter;
-//   options.num_threads = max_num_threads;
-//   ceres::Solver::Summary summary;
-//   ceres::Solve(options, &problem, &summary);
-//   if (verbose) {
-//     std::cout << summary.FullReport() << std::endl << std::endl;
-//   }
+    dq[0] = scalar;
+    dq[1] = vector[0];
+    dq[2] = vector[1];
+    dq[3] = vector[2];
+  }
 
-//   // Evaluate reprojection errors
-//   std::vector<double> reproj_errors;
-//   std::map<size_t, double> feature_errors;
-//   auto eval_residuals = [&]() {
-//     for (auto &[fid, factor] : factors) {
-//       double r[2] = {0.0, 0.0};
+  /** Quaternion left-multiply `p` with `q`, results are outputted to `r`. */
+  static void quat_lmul(const double p[4], const double q[4], double r[4]) {
+    assert(p != NULL);
+    assert(q != NULL);
+    assert(r != NULL);
 
-//       std::vector<double *> params;
-//       if (factor->ts == 0) {
-//         params.push_back(pose_km1.data);
-//       } else {
-//         params.push_back(pose_k.data);
-//       }
-//       params.push_back(cam_exts.at(factor->cam_id).data);
-//       params.push_back(features[factor->feature_id].data);
-//       params.push_back(cam_ints.at(factor->cam_id).data);
-//       factor->Evaluate(params.data(), r, nullptr);
+    const double pw = p[0];
+    const double px = p[1];
+    const double py = p[2];
+    const double pz = p[3];
 
-//       const auto reproj_error = sqrt(r[0] * r[0] + r[1] * r[1]);
-//       reproj_errors.push_back(reproj_error);
-//       feature_errors[factor->feature_id] = reproj_error;
-//     }
-//   };
-//   eval_residuals();
+    r[0] = pw * q[0] - px * q[1] - py * q[2] - pz * q[3];
+    r[1] = px * q[0] + pw * q[1] - pz * q[2] + py * q[3];
+    r[2] = py * q[0] + pz * q[1] + pw * q[2] - px * q[3];
+    r[3] = pz * q[0] - py * q[1] + px * q[2] + pw * q[3];
+  }
 
-//   // printf("mean reproj error: %f\n", mean(reproj_errors));
-//   // printf("median reproj error: %f\n", median(reproj_errors));
-//   // printf("rmse reproj error: %f\n", rmse(reproj_errors));
-//   // printf("var reproj error: %f\n", var(reproj_errors));
-//   return rmse(reproj_errors);
-// }
+  /** Quaternion multiply `p` with `q`, results are outputted to `r`. */
+  static void quat_mul(const double p[4], const double q[4], double r[4]) {
+    assert(p != NULL);
+    assert(q != NULL);
+    assert(r != NULL);
+    quat_lmul(p, q, r);
+  }
+
+  /** Return Quaternion norm */
+  static double quat_norm(const double q[4]) {
+    return sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+  }
+
+  /** Normalize Quaternion */
+  static void quat_normalize(double q[4]) {
+    const double n = quat_norm(q);
+    q[0] = q[0] / n;
+    q[1] = q[1] / n;
+    q[2] = q[2] / n;
+    q[3] = q[3] / n;
+  }
+};
+
+struct VisionFactor : ceres::CostFunction {
+  timestamp_t ts;
+  int cam_id = -1;
+  size_t feature_id = 0;
+  real_t z[2] = {0};
+  real_t sqrt_info[2 * 2] = {0};
+
+  /** Constructor **/
+  VisionFactor() = delete;
+
+  /** Constructor **/
+  VisionFactor(const timestamp_t ts_,
+               const int cam_id_,
+               const size_t feature_id_,
+               const real_t z_[2])
+      : ts{ts_}, cam_id{cam_id_}, feature_id{feature_id_} {
+    z[0] = z_[0];
+    z[1] = z_[1];
+    sqrt_info[0] = 1;
+    sqrt_info[1] = 0;
+    sqrt_info[2] = 0;
+    sqrt_info[3] = 1;
+
+    set_num_residuals(2);
+    auto block_sizes = mutable_parameter_block_sizes();
+    block_sizes->push_back(7); // Body pose
+    block_sizes->push_back(7); // Camera extrinsic
+    block_sizes->push_back(3); // Feature position
+    block_sizes->push_back(8); // Camera intrinsic
+  }
+
+  /** Destructor **/
+  virtual ~VisionFactor() = default;
+
+  /** Evaluate **/
+  bool Evaluate(double const *const *params, double *res, double **jacs) const {
+    // Map parameters
+    TF(params[0], T_WB);
+    TF(params[1], T_BCi);
+    const double *p_W = params[2];
+    const double *cam = params[3];
+
+    // Transform feature from world to camera frame
+    TF_INV(T_BCi, T_CiB);
+    TF_INV(T_WB, T_BW);
+    TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
+    TF_POINT(T_CiW, p_W, p_Ci);
+
+    // Project to image plane
+    bool valid = true;
+    real_t z_hat[2] = {0};
+    const project_func_t proj_func = pinhole_radtan4_project;
+    proj_func(cam, p_Ci, z_hat);
+
+    bool x_ok = z_hat[0] > 0 && z_hat[0] < 752;
+    bool y_ok = z_hat[1] > 0 && z_hat[1] < 480;
+    if (p_Ci[2] < 0.01) {
+      valid = false;
+    } else if (!x_ok || !y_ok) {
+      valid = false;
+    }
+
+    // Calculate residuals
+    // -- Residual
+    double r[2] = {0};
+    r[0] = z[0] - z_hat[0];
+    r[1] = z[1] - z_hat[1];
+    // -- Weighted residual
+    dot(sqrt_info, 2, 2, r, 2, 1, res);
+
+    // Calculate jacobians
+    // -- Form: -1 * sqrt_info
+    real_t neg_sqrt_info[2 * 2] = {0};
+    mat_copy(sqrt_info, 2, 2, neg_sqrt_info);
+    neg_sqrt_info[0] *= -1.0;
+    neg_sqrt_info[3] *= -1.0;
+    // -- Form: Jh_ = -1 * sqrt_info * Jh
+    real_t Jh[2 * 3] = {0};
+    real_t Jh_[2 * 3] = {0};
+    pinhole_radtan4_project_jacobian(cam, p_Ci, Jh);
+    dot(neg_sqrt_info, 2, 2, Jh, 2, 3, Jh_);
+    // -- Form: J_cam_params
+    real_t J_cam_params[2 * 8] = {0};
+    pinhole_radtan4_params_jacobian(cam, p_Ci, J_cam_params);
+    // -- Form minimal Jacobians
+    double mJ0[2 * 6] = {0};
+    double mJ1[2 * 6] = {0};
+    double mJ2[2 * 3] = {0};
+    double mJ3[2 * 8] = {0};
+    if (valid) {
+      camera_factor_pose_jacobian(Jh_, T_WB, T_BCi, p_W, mJ0);
+      camera_factor_extrinsic_jacobian(Jh_, T_BCi, p_Ci, mJ1);
+      camera_factor_feature_jacobian(Jh_, T_WB, T_BCi, mJ2);
+      camera_factor_camera_jacobian(neg_sqrt_info, J_cam_params, mJ3);
+    }
+    // -- Form global Jacobians
+    if (jacs) {
+      if (jacs[0]) {
+        memset(jacs[0], 0, sizeof(double) * 2 * 7);
+        mat_block_set(jacs[0], 7, 0, 1, 0, 5, mJ0);
+      }
+
+      if (jacs[1]) {
+        memset(jacs[1], 0, sizeof(double) * 2 * 7);
+        mat_block_set(jacs[1], 7, 0, 1, 0, 5, mJ1);
+      }
+
+      if (jacs[2]) {
+        memset(jacs[2], 0, sizeof(double) * 2 * 3);
+        mat_copy(mJ2, 2, 3, jacs[2]);
+      }
+
+      if (jacs[3]) {
+        memset(jacs[3], 0, sizeof(double) * 2 * 8);
+        mat_copy(mJ3, 2, 3, jacs[3]);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Pose jacobian
+   */
+  static void camera_factor_pose_jacobian(const real_t Jh_w[2 * 3],
+                                          const real_t T_WB[3 * 3],
+                                          const real_t T_BC[3 * 3],
+                                          const real_t p_W[3],
+                                          real_t J[2 * 6]) {
+    assert(Jh_w != NULL);
+    assert(T_BC != NULL);
+    assert(T_WB != NULL);
+    assert(p_W != NULL);
+    assert(J != NULL);
+
+    // Jh_w = -1 * sqrt_info * Jh;
+    // J_pos = Jh_w * C_CB * -C_BW;
+    // J_rot = Jh_w * C_CB * C_BW * hat(p_W - r_WB) * -C_WB;
+    // J = [J_pos, J_rot];
+
+    // Setup
+    real_t C_BW[3 * 3] = {0};
+    real_t C_CB[3 * 3] = {0};
+    real_t C_CW[3 * 3] = {0};
+
+    TF_ROT(T_WB, C_WB);
+    TF_ROT(T_BC, C_BC);
+    mat_transpose(C_WB, 3, 3, C_BW);
+    mat_transpose(C_BC, 3, 3, C_CB);
+    dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
+
+    // Form: -C_BW
+    real_t neg_C_BW[3 * 3] = {0};
+    mat_copy(C_BW, 3, 3, neg_C_BW);
+    mat_scale(neg_C_BW, 3, 3, -1.0);
+
+    // Form: -C_CW
+    real_t neg_C_CW[3 * 3] = {0};
+    dot(C_CB, 3, 3, neg_C_BW, 3, 3, neg_C_CW);
+
+    // Form: -C_WB
+    real_t neg_C_WB[3 * 3] = {0};
+    mat_copy(C_WB, 3, 3, neg_C_WB);
+    mat_scale(neg_C_WB, 3, 3, -1.0);
+
+    // Form: C_CB * -C_BW * hat(p_W - r_WB) * -C_WB
+    real_t p[3] = {0};
+    real_t S[3 * 3] = {0};
+    TF_TRANS(T_WB, r_WB);
+    vec_sub(p_W, r_WB, p, 3);
+    hat(p, S);
+
+    real_t A[3 * 3] = {0};
+    real_t B[3 * 3] = {0};
+    dot(neg_C_CW, 3, 3, S, 3, 3, A);
+    dot(A, 3, 3, neg_C_WB, 3, 3, B);
+
+    // Form: J_pos = Jh_w * C_CB * -C_BW;
+    real_t J_pos[2 * 3] = {0};
+    dot(Jh_w, 2, 3, neg_C_CW, 3, 3, J_pos);
+
+    J[0] = J_pos[0];
+    J[1] = J_pos[1];
+    J[2] = J_pos[2];
+
+    J[6] = J_pos[3];
+    J[7] = J_pos[4];
+    J[8] = J_pos[5];
+
+    // Form: J_rot = Jh_w * C_CB * -C_BW * hat(p_W - r_WB) * -C_WB;
+    real_t J_rot[2 * 3] = {0};
+    dot(Jh_w, 2, 3, B, 3, 3, J_rot);
+
+    J[3] = J_rot[0];
+    J[4] = J_rot[1];
+    J[5] = J_rot[2];
+
+    J[9] = J_rot[3];
+    J[10] = J_rot[4];
+    J[11] = J_rot[5];
+  }
+
+  /**
+   * Body-camera extrinsic jacobian
+   */
+  static void camera_factor_extrinsic_jacobian(const real_t Jh_w[2 * 3],
+                                               const real_t T_BC[4 * 4],
+                                               const real_t p_C[3],
+                                               real_t J[2 * 6]) {
+    assert(Jh_w != NULL);
+    assert(T_BC != NULL);
+    assert(p_C != NULL);
+    assert(J != NULL);
+
+    // Jh_w = -1 * sqrt_info * Jh;
+    // J_pos = Jh_w * -C_CB;
+    // J_rot = Jh_w * C_CB * hat(C_BC * p_C);
+
+    // Setup
+    real_t C_BC[3 * 3] = {0};
+    real_t C_CB[3 * 3] = {0};
+    real_t C_BW[3 * 3] = {0};
+    real_t C_CW[3 * 3] = {0};
+
+    tf_rot_get(T_BC, C_BC);
+    mat_transpose(C_BC, 3, 3, C_CB);
+    dot(C_CB, 3, 3, C_BW, 3, 3, C_CW);
+
+    // Form: -C_CB
+    real_t neg_C_CB[3 * 3] = {0};
+    mat_copy(C_CB, 3, 3, neg_C_CB);
+    mat_scale(neg_C_CB, 3, 3, -1.0);
+
+    // Form: -C_BC
+    real_t neg_C_BC[3 * 3] = {0};
+    mat_copy(C_BC, 3, 3, neg_C_BC);
+    mat_scale(neg_C_BC, 3, 3, -1.0);
+
+    // Form: -C_CB * hat(C_BC * p_C) * -C_BC
+    real_t p[3] = {0};
+    real_t S[3 * 3] = {0};
+    dot(C_BC, 3, 3, p_C, 3, 1, p);
+    hat(p, S);
+
+    real_t A[3 * 3] = {0};
+    real_t B[3 * 3] = {0};
+    dot(neg_C_CB, 3, 3, S, 3, 3, A);
+    dot(A, 3, 3, neg_C_BC, 3, 3, B);
+
+    // Form: J_rot = Jh_w * -C_CB;
+    real_t J_pos[2 * 3] = {0};
+    dot(Jh_w, 2, 3, neg_C_CB, 3, 3, J_pos);
+
+    J[0] = J_pos[0];
+    J[1] = J_pos[1];
+    J[2] = J_pos[2];
+
+    J[6] = J_pos[3];
+    J[7] = J_pos[4];
+    J[8] = J_pos[5];
+
+    // Form: J_rot = Jh_w * -C_CB * hat(C_BC * p_C) * -C_BC;
+    real_t J_rot[2 * 3] = {0};
+    dot(Jh_w, 2, 3, B, 3, 3, J_rot);
+
+    J[3] = J_rot[0];
+    J[4] = J_rot[1];
+    J[5] = J_rot[2];
+
+    J[9] = J_rot[3];
+    J[10] = J_rot[4];
+    J[11] = J_rot[5];
+  }
+
+  /**
+   * Camera parameters jacobian
+   */
+  static void camera_factor_camera_jacobian(const real_t neg_sqrt_info[2 * 2],
+                                            const real_t J_cam_params[2 * 8],
+                                            real_t J[2 * 8]) {
+    assert(neg_sqrt_info != NULL);
+    assert(J_cam_params != NULL);
+    assert(J != NULL);
+
+    // J = -1 * sqrt_info * J_cam_params;
+    dot(neg_sqrt_info, 2, 2, J_cam_params, 2, 8, J);
+  }
+
+  /**
+   * Feature jacobian
+   */
+  static void camera_factor_feature_jacobian(const real_t Jh_w[2 * 3],
+                                             const real_t T_WB[4 * 4],
+                                             const real_t T_BC[4 * 4],
+                                             real_t J[2 * 3]) {
+    if (J == NULL) {
+      return;
+    }
+    assert(Jh_w != NULL);
+    assert(T_WB != NULL);
+    assert(T_BC != NULL);
+    assert(J != NULL);
+
+    // Jh_w = -1 * sqrt_info * Jh;
+    // J = Jh_w * C_CW;
+
+    // Setup
+    real_t T_WC[4 * 4] = {0};
+    real_t C_WC[3 * 3] = {0};
+    real_t C_CW[3 * 3] = {0};
+    dot(T_WB, 4, 4, T_BC, 4, 4, T_WC);
+    tf_rot_get(T_WC, C_WC);
+    mat_transpose(C_WC, 3, 3, C_CW);
+
+    // Form: J = -1 * sqrt_info * Jh * C_CW;
+    dot(Jh_w, 2, 3, C_CW, 3, 3, J);
+  }
+};
+
+/** Estimate Relative Pose **/
+real_t estimate_pose(std::map<int, camera_params_t> cam_ints,
+                     std::map<int, extrinsic_t> cam_exts,
+                     std::map<size_t, std::shared_ptr<Feature>> &features,
+                     pose_t &pose_km1,
+                     pose_t &pose_k,
+                     const int max_iter = 10,
+                     const int max_num_threads = 2,
+                     const bool verbose = true,
+                     const bool fix_features = true,
+                     const bool fix_camera_intrinsics = true,
+                     const bool fix_camera_extrinsics = true) {
+  // Setup
+  ceres::Problem::Options prob_options;
+  ceres::Problem problem{prob_options};
+  PoseLocalParameterization *pose_param = new PoseLocalParameterization();
+  ceres::LossFunction *loss_fn = new ceres::CauchyLoss(1.0);
+
+  // Add camera intrinsics and extrinsics to problem
+  for (auto &[cam_id, cam_int] : cam_ints) {
+    problem.AddParameterBlock(cam_int.data, 8);
+    if (fix_camera_intrinsics) {
+      problem.SetParameterBlockConstant(cam_int.data);
+    }
+  }
+  for (auto &[cam_id, cam_ext] : cam_exts) {
+    problem.AddParameterBlock(cam_ext.data, 7);
+    problem.SetParameterization(cam_ext.data, pose_param);
+    if (fix_camera_extrinsics) {
+      problem.SetParameterBlockConstant(cam_ext.data);
+    }
+  }
+
+  // Add poses at km1 and k, fix pose at km1
+  problem.AddParameterBlock(pose_km1.data, 7);
+  problem.AddParameterBlock(pose_k.data, 7);
+  problem.SetParameterization(pose_km1.data, pose_param);
+  problem.SetParameterization(pose_k.data, pose_param);
+  problem.SetParameterBlockConstant(pose_km1.data);
+
+  // Add vision factors
+  std::vector<VisionFactor *> factors;
+  for (auto &[fid, feature] : features) {
+    // Pre-check
+    if (feature->initialized == false) {
+      continue;
+    }
+
+    // Add feature to problem
+    problem.AddParameterBlock(feature->data, 3);
+    if (fix_features) {
+      problem.SetParameterBlockConstant(feature->data);
+    }
+
+    // Add camera factors at pose_k
+    for (const auto &[cam_idx, kp] : feature->keypoints[pose_k.ts]) {
+      // Form factor
+      const real_t z[2] = {kp.pt.x, kp.pt.y};
+      auto res_fn = new VisionFactor{pose_k.ts, cam_idx, fid, z};
+      factors.push_back(res_fn);
+
+      // Add factor to problem
+      std::vector<double *> param_blocks;
+      param_blocks.push_back(pose_k.data);
+      param_blocks.push_back(cam_exts.at(cam_idx).data);
+      param_blocks.push_back(feature->data);
+      param_blocks.push_back(cam_ints.at(cam_idx).data);
+      problem.AddResidualBlock(res_fn, loss_fn, param_blocks);
+    }
+
+    // Add camera factors at pose_km1
+    for (const auto &[cam_idx, kp] : feature->keypoints[pose_km1.ts]) {
+      // Form factor
+      const real_t z[2] = {kp.pt.x, kp.pt.y};
+      auto res_fn = new VisionFactor{pose_km1.ts, cam_idx, fid, z};
+      factors.push_back(res_fn);
+
+      // Add factor to problem
+      std::vector<double *> param_blocks;
+      param_blocks.push_back(pose_km1.data);
+      param_blocks.push_back(cam_exts.at(cam_idx).data);
+      param_blocks.push_back(feature->data);
+      param_blocks.push_back(cam_ints.at(cam_idx).data);
+      problem.AddResidualBlock(res_fn, loss_fn, param_blocks);
+    }
+  }
+
+  // Evaluate reprojection errors
+  std::vector<double> reproj_errors;
+  std::map<size_t, std::vector<double>> feature_errors;
+  auto eval_residuals = [&]() {
+    for (auto &factor : factors) {
+      double r[2] = {0.0, 0.0};
+
+      std::vector<double *> params;
+      if (factor->ts == pose_km1.ts) {
+        params.push_back(pose_km1.data);
+      } else {
+        params.push_back(pose_k.data);
+      }
+      params.push_back(cam_exts.at(factor->cam_id).data);
+      params.push_back(features[factor->feature_id]->data);
+      params.push_back(cam_ints.at(factor->cam_id).data);
+      factor->Evaluate(params.data(), r, nullptr);
+
+      const auto reproj_error = sqrt(r[0] * r[0] + r[1] * r[1]);
+      reproj_errors.push_back(reproj_error);
+      feature_errors[factor->feature_id].push_back(reproj_error);
+    }
+  };
+
+  // Solve
+  ceres::Solver::Options options;
+  options.minimizer_progress_to_stdout = verbose;
+  options.max_num_iterations = max_iter;
+  options.num_threads = max_num_threads;
+  ceres::Solver::Summary summary;
+
+  // eval_residuals();
+  // printf("Before\n");
+  // printf("-----------------------\n");
+  // printf("mean reproj error: %f\n", mean(reproj_errors));
+  // printf("median reproj error: %f\n", median(reproj_errors));
+  // printf("rmse reproj error: %f\n", rmse(reproj_errors));
+  // printf("var reproj error: %f\n", var(reproj_errors));
+
+  ceres::Solve(options, &problem, &summary);
+  if (verbose) {
+    std::cout << summary.BriefReport() << std::endl << std::endl;
+  }
+
+  eval_residuals();
+  printf("Estimate pose\n");
+  printf("-----------------------\n");
+  printf("mean reproj error: %f\n", mean(reproj_errors));
+  printf("median reproj error: %f\n", median(reproj_errors));
+  printf("rmse reproj error: %f\n", rmse(reproj_errors));
+  printf("var reproj error: %f\n", var(reproj_errors));
+
+  const auto threshold = 3.0 * std::sqrt(var(reproj_errors));
+  std::vector<size_t> outliers;
+  for (auto &[fid, feature] : features) {
+    if (mean(feature_errors[fid]) >= 5.0) {
+      outliers.push_back(fid);
+    }
+  }
+  printf("removed %ld outliers out of %ld\n", outliers.size(), features.size());
+  for (const auto fid : outliers) {
+    features.erase(fid);
+  }
+
+  printf("\n");
+  printf("\n");
+
+  return rmse(reproj_errors);
+}
 
 /** Two State Implicit Filter **/
 struct TSIF {
+  // Fronend
+  GridDetector detector;
+  cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+
   // Settings
-  int max_keypoints = 300;
+  int max_keypoints = 1000;
   bool enable_clahe = true;
   int parallax_threshold = 1.0;
   int max_length = 30;
@@ -996,8 +1563,8 @@ struct TSIF {
 
   // Features
   size_t next_feature_id = 0;
-  std::unordered_map<size_t, std::shared_ptr<Feature>> features;
-  std::unordered_map<size_t, std::shared_ptr<Feature>> old_features;
+  std::map<size_t, std::shared_ptr<Feature>> features;
+  std::map<size_t, std::shared_ptr<Feature>> old_features;
 
   // Data
   bool initialized = false;
@@ -1005,27 +1572,36 @@ struct TSIF {
   cv::Mat prev_frame0;
   cv::Mat prev_frame1;
   size_t frame_index = 0;
-
-  GridDetector detector;
-  cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+  std::vector<pose_t> pose_hist;
 
   // Poses
-  // pose_init = pose_setup(0, eye(4))
-  // pose_km1 = None
-  // pose_k = None
+  pose_t pose_init;
+  pose_t pose_km1;
+  pose_t pose_k;
 
   /** Constructor **/
   TSIF(std::map<int, camera_params_t> &cam_ints_,
        std::map<int, extrinsic_t> &cam_exts_)
-      : cam_ints{cam_ints_}, cam_exts{cam_exts_} {}
+      : cam_ints{cam_ints_}, cam_exts{cam_exts_} {
+    real_t pose0[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+    pose_setup(&pose_init, 0, pose0);
+    pose_setup(&pose_km1, 0, pose0);
+    pose_setup(&pose_k, 0, pose0);
+  }
 
   /** Destructor **/
   virtual ~TSIF() = default;
 
+  /** Set initial pose **/
+  void set_initial_pose(const real_t T_WB[4 * 4]) {
+    TF_VECTOR(T_WB, pose_vec);
+    pose_setup(&pose_init, 0, pose_vec);
+  }
+
   /** Add Feature **/
-  void add_feature(const timestamp_t ts,
-                   const cv::KeyPoint &kp0,
-                   const cv::KeyPoint &kp1) {
+  void _add_feature(const timestamp_t ts,
+                    const cv::KeyPoint &kp0,
+                    const cv::KeyPoint &kp1) {
     const auto fid = next_feature_id;
     features[fid] = std::make_shared<Feature>(fid, cam_ints, cam_exts);
     features[fid]->update(ts, 0, kp0);
@@ -1034,30 +1610,177 @@ struct TSIF {
   }
 
   /** Update Feature **/
-  void update_feature(const size_t fid,
-                      const timestamp_t ts,
-                      const cv::KeyPoint &kp0,
-                      const cv::KeyPoint &kp1) {
+  void _update_feature(const size_t fid,
+                       const timestamp_t ts,
+                       const cv::KeyPoint &kp0,
+                       const cv::KeyPoint &kp1) {
     features[fid]->update(ts, 0, kp0);
     features[fid]->update(ts, 1, kp1);
+
+    if (features[fid]->length() >= features[fid]->max_length) {
+      _remove_feature(fid);
+    }
   }
 
   /** Remove Feature **/
-  void remove_feature(const size_t fid) {
+  void _remove_feature(const size_t fid) {
     old_features[fid] = features[fid];
     features.erase(fid);
   }
 
   /** Get keypoints **/
-  void get_keypoints(std::vector<size_t> &feature_ids,
-                     std::vector<cv::KeyPoint> &kps0,
-                     std::vector<cv::KeyPoint> &kps1) {
+  void _get_keypoints(std::vector<size_t> &feature_ids,
+                      std::vector<cv::KeyPoint> &kps0,
+                      std::vector<cv::KeyPoint> &kps1) {
     for (const auto &[fid, feature] : features) {
       auto keypoints = feature->get_keypoints();
       feature_ids.push_back(fid);
       kps0.push_back(keypoints[0]);
       kps1.push_back(keypoints[1]);
     }
+  }
+
+  void _initialize_features(const timestamp_t ts) {
+    const int max_iter = 5;
+    const int max_num_threads = 2;
+    const bool verbose = false;
+    const bool fix_features = false;
+    const bool fix_camera_intrinsics = true;
+    const bool fix_camera_extrinsics = true;
+
+    // Initialize features
+    POSE2TF(pose_k.data, T_WB);
+    std::set<size_t> new_fids;
+    for (auto &[fid, feature] : features) {
+      if (feature->initialized) {
+        continue;
+      }
+      if (feature->initialize(ts, T_WB) == true) {
+        new_fids.insert(feature->feature_id);
+      }
+    }
+
+    // Refine initialized features
+    // -- Setup
+    ceres::Problem::Options prob_options;
+    ceres::Problem problem{prob_options};
+    PoseLocalParameterization *pose_param = new PoseLocalParameterization();
+    ceres::LossFunction *loss_fn = nullptr;
+
+    // -- Add camera intrinsics and extrinsics to problem
+    for (auto &[cam_id, cam_int] : cam_ints) {
+      problem.AddParameterBlock(cam_int.data, 8);
+      if (fix_camera_intrinsics) {
+        problem.SetParameterBlockConstant(cam_int.data);
+      }
+    }
+    for (auto &[cam_id, cam_ext] : cam_exts) {
+      problem.AddParameterBlock(cam_ext.data, 7);
+      problem.SetParameterization(cam_ext.data, pose_param);
+      if (fix_camera_extrinsics) {
+        problem.SetParameterBlockConstant(cam_ext.data);
+      }
+    }
+
+    // -- Add poses at km1 and k, fix pose at km1
+    problem.AddParameterBlock(pose_k.data, 7);
+    problem.SetParameterization(pose_k.data, pose_param);
+    problem.SetParameterBlockConstant(pose_k.data);
+
+    // -- Add vision factors
+    std::map<size_t, VisionFactor *> factors;
+    for (auto &[fid, feature] : features) {
+      // Pre-check
+      if (feature->initialized == false) {
+        continue;
+      }
+
+      // Add feature to problem
+      problem.AddParameterBlock(feature->data, 3);
+
+      // Add camera factors at pose_k
+      for (const auto &[cam_idx, kp] : feature->keypoints[pose_k.ts]) {
+        // Form factor
+        const real_t z[2] = {kp.pt.x, kp.pt.y};
+        auto res_fn = new VisionFactor{pose_k.ts, cam_idx, fid, z};
+        factors[fid] = res_fn;
+
+        // Add factor to problem
+        std::vector<double *> param_blocks;
+        param_blocks.push_back(pose_k.data);
+        param_blocks.push_back(cam_exts.at(cam_idx).data);
+        param_blocks.push_back(feature->data);
+        param_blocks.push_back(cam_ints.at(cam_idx).data);
+        problem.AddResidualBlock(res_fn, loss_fn, param_blocks);
+      }
+    }
+
+    // Solve
+    ceres::Solver::Options options;
+    options.minimizer_progress_to_stdout = verbose;
+    options.max_num_iterations = max_iter;
+    options.num_threads = max_num_threads;
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+    if (verbose) {
+      std::cout << summary.FullReport() << std::endl << std::endl;
+    }
+
+    // Evaluate reprojection errors
+    std::vector<double> reproj_errors;
+    std::map<size_t, double> feature_errors;
+    auto eval_residuals = [&]() {
+      for (auto &[fid, factor] : factors) {
+        double r[2] = {0.0, 0.0};
+
+        std::vector<double *> params;
+        params.push_back(pose_k.data);
+        params.push_back(cam_exts.at(factor->cam_id).data);
+        params.push_back(features[factor->feature_id]->data);
+        params.push_back(cam_ints.at(factor->cam_id).data);
+        factor->Evaluate(params.data(), r, nullptr);
+
+        const auto reproj_error = sqrt(r[0] * r[0] + r[1] * r[1]);
+        reproj_errors.push_back(reproj_error);
+        feature_errors[factor->feature_id] = reproj_error;
+      }
+    };
+    eval_residuals();
+
+    printf("\n");
+    printf("Initialize Features:\n");
+    printf("--------------------\n");
+    printf("mean reproj error: %f\n", mean(reproj_errors));
+    printf("median reproj error: %f\n", median(reproj_errors));
+    printf("rmse reproj error: %f\n", rmse(reproj_errors));
+    printf("var reproj error: %f\n", var(reproj_errors));
+    printf("\n");
+
+    const auto threshold = 3.0 * std::sqrt(var(reproj_errors));
+    std::vector<size_t> outliers;
+    for (auto &[fid, feature] : features) {
+      if (feature_errors[fid] >= threshold) {
+        outliers.push_back(fid);
+      }
+    }
+    for (const auto fid : outliers) {
+      features.erase(fid);
+    }
+  }
+
+  void _initialize(const timestamp_t ts) {
+    // Pre-checks
+    if (initialized) {
+      return;
+    } else if (frame_index < min_length) {
+      return;
+    }
+
+    // Initialize features
+    pose_setup(&pose_k, ts, pose_init.data);
+    pose_setup(&pose_km1, ts, pose_init.data);
+    _initialize_features(ts);
+    initialized = true;
   }
 
   /** Detect Features **/
@@ -1068,7 +1791,7 @@ struct TSIF {
     std::vector<size_t> feature_ids;
     std::vector<cv::KeyPoint> kps0;
     std::vector<cv::KeyPoint> kps1;
-    get_keypoints(feature_ids, kps0, kps1);
+    _get_keypoints(feature_ids, kps0, kps1);
 
     // Detect new
     std::vector<cv::KeyPoint> kps0_new;
@@ -1094,17 +1817,22 @@ struct TSIF {
            ransac_inliers);
     filter_outliers(kps0_new, kps1_new, ransac_inliers);
 
-    // Check paralax
-    // inliers = check_parallax(self.cam_params[0], self.cam_params[1],
-    //                          self.cam_exts[0], self.cam_exts[1], kps0, kps1,
-    //                          self.parallax_threshold)
-    // kps0, kps1 = filter_outliers(kps0, kps1, inliers)
-    // if np.sum(inliers) < 10:
-    //   return
+    // Check parallax
+    std::vector<uchar> parallax_inliers;
+    const real_t parallax_threshold = 1.0;
+    check_parallax(cam_ints[0],
+                   cam_ints[1],
+                   cam_exts[0],
+                   cam_exts[1],
+                   kps0_new,
+                   kps1_new,
+                   parallax_threshold,
+                   parallax_inliers);
+    filter_outliers(kps0_new, kps1_new, parallax_inliers);
 
     // Add new features
     for (size_t i = 0; i < kps0_new.size(); i++) {
-      add_feature(ts, kps0_new[i], kps1_new[i]);
+      _add_feature(ts, kps0_new[i], kps1_new[i]);
     }
   }
 
@@ -1121,7 +1849,7 @@ struct TSIF {
     std::vector<size_t> feature_ids;
     std::vector<cv::KeyPoint> kps0_km1;
     std::vector<cv::KeyPoint> kps1_km1;
-    get_keypoints(feature_ids, kps0_km1, kps1_km1);
+    _get_keypoints(feature_ids, kps0_km1, kps1_km1);
 
     // Track in time and space
     std::vector<uchar> in0;
@@ -1141,15 +1869,68 @@ struct TSIF {
     ransac(kps0_km1, kps0_k, cam0_undistort_func, cam0_params, rs0);
     ransac(kps1_km1, kps1_k, cam1_undistort_func, cam1_params, rs1);
 
+    std::vector<uchar> in01;
+    optflow_track(frame0, frame1, kps0_k, kps1_k, in01);
+
     // Update inliers and remove outliers
     for (size_t i = 0; i < in0.size(); i++) {
       const auto fid = feature_ids[i];
-      if (in0[i] && in1[i] && rs0[i] && rs1[i]) {
-        update_feature(fid, ts, kps0_k[i], kps1_k[i]);
+      if (in0[i] && in1[i] && in01[i] && rs0[i] && rs1[i]) {
+        _update_feature(fid, ts, kps0_k[i], kps1_k[i]);
       } else {
-        remove_feature(fid);
+        _remove_feature(fid);
       }
     }
+
+    // Initialize or track
+    if (initialized == false && frame_index >= min_length) {
+      _initialize(ts);
+
+    } else if (initialized) {
+      // Estimate current pose
+      pose_setup(&pose_k, ts, pose_km1.data);
+
+      const int max_iter = 10;
+      const int max_num_threads = 2;
+      const bool verbose = false;
+      estimate_pose(cam_ints,
+                    cam_exts,
+                    features,
+                    pose_km1,
+                    pose_k,
+                    max_iter,
+                    max_num_threads,
+                    verbose);
+
+      // Initialize new features
+      _initialize_features(ts);
+
+      // estimate_pose(cam_ints,
+      //               cam_exts,
+      //               features,
+      //               pose_km1,
+      //               pose_k,
+      //               max_iter,
+      //               max_num_threads,
+      //               verbose,
+      //               false);
+    }
+  }
+
+  /** Visualize **/
+  void _visualize(const cv::Mat &frame0, const cv::Mat &frame1) {
+    // Get previous keypoints from cam0
+    std::vector<size_t> feature_ids;
+    std::vector<cv::KeyPoint> kps0_k;
+    std::vector<cv::KeyPoint> kps1_k;
+    _get_keypoints(feature_ids, kps0_k, kps1_k);
+
+    // Visualize
+    const cv::Scalar red{0, 0, 255};
+    cv::Mat viz;
+    cv::cvtColor(frame0, viz, cv::COLOR_GRAY2RGB);
+    cv::drawKeypoints(viz, kps0_k, viz, red);
+    cv::imshow("viz", viz);
   }
 
   /** Update **/
@@ -1165,24 +1946,15 @@ struct TSIF {
     // Detect and track
     detect(ts, frame0, frame1);
     track(ts, frame0, frame1);
-
-    // Get previous keypoints from cam0
-    std::vector<size_t> feature_ids;
-    std::vector<cv::KeyPoint> kps0_k;
-    std::vector<cv::KeyPoint> kps1_k;
-    get_keypoints(feature_ids, kps0_k, kps1_k);
-
-    // Visualize
-    const cv::Scalar red{0, 0, 255};
-    cv::Mat viz;
-    cv::cvtColor(frame0, viz, cv::COLOR_GRAY2RGB);
-    cv::drawKeypoints(viz, kps0_k, viz, red);
-    cv::imshow("viz", viz);
+    _visualize(frame0, frame1);
+    if (initialized) {
+      pose_hist.emplace_back(pose_k);
+    }
 
     // Update
     prev_ts = ts;
-    prev_frame0 = frame0.clone(); //  Make a copy
-    prev_frame1 = frame1.clone(); //  Make a copy
+    prev_frame0 = frame0.clone();
+    prev_frame1 = frame1.clone();
     frame_index += 1;
   }
 };
@@ -1404,7 +2176,7 @@ int test_reproj_filter() {
   PRINT_TOC("Reproj Filter", reproj_filter_time);
 
   // Filter keypoints
-  TrackerKeypoints keypoints;
+  std::map<int, std::vector<cv::KeyPoint>> keypoints;
   keypoints[0] = std::vector<cv::KeyPoint>();
   keypoints[1] = std::vector<cv::KeyPoint>();
   for (size_t n = 0; n < kps_i.size(); n++) {
@@ -1464,9 +2236,8 @@ public:
       -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
       0.0, 0.0, 0.0, 1.0
     };
-    TF_INV(T_SC0, T_C0S);
-    TF_CHAIN(T_C0C1, 2, T_C0S, T_SC1);
-    tf_vector(T_C0C1, cam1_ext_data);
+    tf_vector(T_SC0, cam0_ext_data);
+    tf_vector(T_SC1, cam1_ext_data);
 
     camera_params_setup(&cam0_params, 0, cam_res, proj_model, dist_model, cam0_data);
     camera_params_setup(&cam1_params, 1, cam_res, proj_model, dist_model, cam1_data);
@@ -1567,10 +2338,62 @@ int test_tsif() {
   cam_exts[1] = euroc.cam1_ext;
   TSIF tsif{cam_ints, cam_exts};
 
-  int imshow_wait = 1;
+  // clang-format off
+  const int start_index = 2500;
+  const timestamp_t start_ts = data->ground_truth->timestamps[start_index];
+  const real_t *r_WB = data->ground_truth->p_RS_R[start_index];
+  const real_t *q_WB = data->ground_truth->q_RS[start_index];
+  TF_QR(q_WB, r_WB, T_WB);
+  // clang-format on
+  tsif.set_initial_pose(T_WB);
+
+  FILE *gnuplot = gnuplot_init();
+  gnuplot_send(gnuplot, "set title 'Plot XY'");
+
+  auto plot = [&](const timestamp_t ts) {
+    if (tsif.initialized == false) {
+      return;
+    }
+
+    // Plot estimate
+    // clang-format off
+    std::vector<double> xvals;
+    std::vector<double> yvals;
+    int n = tsif.pose_hist.size();
+    for (int i = 0; i < n; i++) {
+      xvals.push_back(tsif.pose_hist[i].data[0]);
+      yvals.push_back(tsif.pose_hist[i].data[1]);
+    }
+    gnuplot_send_xy(gnuplot, "$DATA1", xvals.data(), yvals.data(), n);
+    fflush(gnuplot);
+    // clang-format on
+
+    // Plot ground-truth
+    // clang-format off
+    std::vector<double> xvals_gnd;
+    std::vector<double> yvals_gnd;
+    for (int i = 0; i < data->ground_truth->num_timestamps; i++) {
+      if (data->ground_truth->timestamps[i] > ts) {
+        break;
+      }
+
+      const real_t *r_WB = data->ground_truth->p_RS_R[i];
+      xvals_gnd.push_back(r_WB[0]);
+      yvals_gnd.push_back(r_WB[1]);
+    }
+    gnuplot_send_xy(gnuplot, "$DATA2", xvals_gnd.data(), yvals_gnd.data(), xvals_gnd.size());
+    gnuplot_send(gnuplot, "plot $DATA1 with lines title 'Est', $DATA2 with lines title 'Gnd'");
+    fflush(gnuplot);
+    // clang-format on
+  };
+
+  int imshow_wait = 0;
   for (size_t k = 0; k < timeline->num_timestamps; k++) {
     const timestamp_t ts = timeline->timestamps[k];
     const euroc_event_t *event = &timeline->events[k];
+    if (ts < start_ts) {
+      continue;
+    }
 
     if (event->has_cam0 && event->has_cam1) {
       const cv::Mat img0 = cv::imread(event->cam0_image, cv::IMREAD_GRAYSCALE);
@@ -1580,6 +2403,7 @@ int test_tsif() {
 
       struct timespec t_start = tic();
       tsif.update(ts, img0, img1);
+      plot(ts);
       printf("track elasped: %f [s]\n", toc(&t_start));
 
       char key = cv::waitKey(imshow_wait);
