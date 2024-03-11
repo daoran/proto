@@ -21,32 +21,32 @@ install_docker: ## Install Docker
 build_all: $(BUILD_TARGETS) ## Build all
 
 build_kalibr:  ## Build Kalibr
-	@cd kalibr && docker build -t slam_bench/kalibr \
+	@cd kalibr && docker build -t benchmark/kalibr \
 		--build-arg USER_ID=`id -u` \
 		--build-arg GROUP_ID=`id -g` .
 
 build_msckf:  ## Build MSCKF-VIO
-	@cd msckf_vio && docker build -t slam_bench/msckf \
+	@cd msckf_vio && docker build -t benchmark/msckf \
 		--build-arg USER_ID=`id -u` \
 		--build-arg GROUP_ID=`id -g` .
 
 build_okvis:  ## Build OKVIS
-	@cd okvis && docker build -t slam_bench/okvis \
+	@cd okvis && docker build -t benchmark/okvis \
 		--build-arg USER_ID=`id -u` \
 		--build-arg GROUP_ID=`id -g` .
 
 build_orbslam3: ## Build ORBSLAM3
-	@cd orbslam3 && docker build -t slam_bench/orbslam3 \
+	@cd orbslam3 && docker build -t benchmark/orbslam3 \
 		--build-arg USER_ID=`id -u` \
 		--build-arg GROUP_ID=`id -g` .
 
 build_vins_mono: ## Build VINS-Mono
-	@cd vins-mono && docker build -t slam_bench/vins-mono \
+	@cd vins-mono && docker build -t benchmark/vins-mono \
 		--build-arg USER_ID=`id -u` \
 		--build-arg GROUP_ID=`id -g` .
 
 build_vins_fusion: ## Build VINS-Fusion
-	@cd vins-fusion && docker build -t slam_bench/vins-fusion \
+	@cd vins-fusion && docker build -t benchmark/vins-fusion \
 		--build-arg USER_ID=`id -u` \
 		--build-arg GROUP_ID=`id -g` .
 
@@ -56,9 +56,9 @@ run_kalibr: build_kalibr  ## Run Kalibr
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:$(HOME_PATH)/configs \
+		-v $(PWD)/configs:~/configs \
 		--network="host" \
-		-it --rm slam_bench/kalibr /bin/bash
+		-it --rm benchmark/kalibr /bin/bash
 
 run_msckf: build_msckf  ## Run MSKCF
 	@xhost +local:docker
@@ -66,9 +66,9 @@ run_msckf: build_msckf  ## Run MSKCF
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:$(HOME_PATH)/configs \
+		-v $(PWD)/configs:~/configs \
 		--network="host" \
-		-it --rm slam_bench/msckf /bin/bash
+		-it --rm benchmark/msckf /bin/bash
 
 run_okvis: build_okvis ## RUN OKVIS
 	@xhost +local:docker
@@ -76,9 +76,9 @@ run_okvis: build_okvis ## RUN OKVIS
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:$(HOME_PATH)/configs \
+		-v $(PWD)/configs:~/configs \
 		--network="host" \
-		-it --rm slam_bench/okvis /bin/bash
+		-it --rm benchmark/okvis /bin/bash
 
 run_orbslam3: build_orbslam3  ## Run ORBSLAM3
 	@xhost +local:docker
@@ -86,9 +86,9 @@ run_orbslam3: build_orbslam3  ## Run ORBSLAM3
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:$(HOME_PATH)/configs \
+		-v $(PWD)/configs:~/configs \
 		--network="host" \
-		-it --rm slam_bench/orbslam3 /bin/bash
+		-it --rm benchmark/orbslam3 /bin/bash
 
 run_vins_mono: build_vins_mono  ## Run VINS-Mono
 	@xhost +local:docker
@@ -96,9 +96,9 @@ run_vins_mono: build_vins_mono  ## Run VINS-Mono
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:$(HOME_PATH)/configs \
+		-v $(PWD)/configs:~/configs \
 		--network="host" \
-		-it --rm slam_bench/vins-mono /bin/bash
+		-it --rm benchmark/vins-mono /bin/bash
 
 run_vins_fusion: build_vins_fusion  ## Run VINS-Fusion
 	@xhost +local:docker
@@ -106,6 +106,6 @@ run_vins_fusion: build_vins_fusion  ## Run VINS-Fusion
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:$(HOME_PATH)/configs \
+		-v $(PWD)/configs:~/configs \
 		--network="host" \
-		-it --rm slam_bench/vins-fusion /bin/bash
+		-it --rm benchmark/vins-fusion /bin/bash

@@ -18,11 +18,11 @@ import bag2csv
 
 # Setup Logger
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("slam_bench")
+logger = logging.getLogger("benchmark")
 
 # Global settings
 DATA_DIR = "/data"
-CONFIGS_DIR = "/home/chutsu/projects/slam_bench/configs"
+CONFIGS_DIR = "/home/chutsu/projects/benchmark/configs"
 
 
 def docker_command(docker_image, command):
@@ -32,7 +32,7 @@ xhost +local:docker; \
 docker run -e DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v {DATA_DIR}:{DATA_DIR} \
-  -v {CONFIGS_DIR}:/home/slam_bench/configs \
+  -v {CONFIGS_DIR}:/home/benchmark/configs \
   --network="host" \
   -it \
   --rm \
@@ -104,8 +104,8 @@ def run_orbslam3(mode, ds_path, run_name, calib_file, res_dir, **kwargs):
 
   # ORBSLAM3 settings
   timestamps_path = f"/tmp/orbslam3-{uuid_str}-timestamps.txt"
-  orbslam3_path = "/home/slam_bench/ORB_SLAM3"
-  docker_image = "slam_bench/orbslam3"
+  orbslam3_path = "/home/benchmark/ORB_SLAM3"
+  docker_image = "benchmark/orbslam3"
 
   # Create a timestamp file for ORBSLAM3
   # -- Get timestamps from camera images
@@ -204,7 +204,7 @@ def run_vins_fusion(mode, ds_path, run_name, calib_file, output, **kwargs):
   """ Run VINS-Fusion """
   # Setup
   retries = kwargs.get("retries", 3)
-  docker_image = kwargs.get("docker_image", "slam_bench/vins-fusion")
+  docker_image = kwargs.get("docker_image", "benchmark/vins-fusion")
   uuid_str = str(uuid.uuid4())
 
   # Run VINS-Fusion
@@ -251,7 +251,7 @@ def run_okvis(mode, ds_path, run_name, calib_file, output, **kwargs):
   """ Run OKVIS """
   # Setup
   retries = kwargs.get("retries", 3)
-  docker_image = kwargs.get("docker_image", "slam_bench/okvis")
+  docker_image = kwargs.get("docker_image", "benchmark/okvis")
   uuid_str = str(uuid.uuid4())
 
   # Run VINS-Fusion

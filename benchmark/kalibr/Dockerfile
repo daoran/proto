@@ -1,14 +1,18 @@
 FROM ros:melodic-perception-bionic
 SHELL ["/bin/bash", "-c"]
 
+# Settings
+ENV ARCH=amd64
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Permissions
-ARG USER_ID
-ARG GROUP_ID
-ARG USERNAME="slam_bench"
-RUN addgroup --gid $GROUP_ID $USERNAME
-RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID $USERNAME
-ADD sudoers.txt /etc/sudoers
-RUN chmod 440 /etc/sudoers
+RUN apt-get update && apt-get install -y sudo
+ARG USERNAME=docker
+ARG PASSWORD=docker
+ARG UID=1000
+ARG GID=1000
+RUN useradd -m ${USERNAME} --uid=${UID} && echo "${USERNAME}:${PASSWORD}" | chpasswd
+RUN adduser ${USERNAME} sudo
 ENV HOME /home/$USERNAME
 
 # Install basic things
@@ -51,6 +55,7 @@ RUN apt-get update && apt-get install -q -y \
 # Switch to $USERNAME
 USER $USERNAME
 RUN echo 'export PS1="[\u@docker] \W # "' >> $HOME/.bashrc
+RUN echo 'source /opt/ros/melodic/setup.bash' >> $HOME/.bashrc
 
 # Install Kalibr
 WORKDIR $HOME
@@ -61,7 +66,9 @@ RUN mkdir -p $HOME/kalibr_ws/src \
   && source /opt/ros/melodic/setup.bash \
   && catkin build -j1
 
-# Entry point script
-WORKDIR $HOME
-COPY entry.sh /
-ENTRYPOINT ["/entry.sh"]
+# Entry point
+RUN echo '#!/bin/bash' >> $HOME/entry.bash
+RUN echo 'source /opt/ros/melodic/setup.bash' >> $HOME/entry.bash
+RUN echo 'exec "$@"' >> $HOME/entry.bash
+RUN chmod +x $HOME/entry.bash
+ENTRYPOINT ["/home/docker/entry.bash"]

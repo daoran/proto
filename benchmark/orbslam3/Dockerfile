@@ -1,14 +1,18 @@
 FROM ros:melodic-perception-bionic
 SHELL ["/bin/bash", "-c"]
 
+# Settings
+ENV ARCH=amd64
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Permissions
-ARG USER_ID
-ARG GROUP_ID
-ARG USERNAME="slam_bench"
-RUN addgroup --gid $GROUP_ID $USERNAME
-RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID $USERNAME
-ADD sudoers.txt /etc/sudoers
-RUN chmod 440 /etc/sudoers
+RUN apt-get update && apt-get install -y sudo
+ARG USERNAME=docker
+ARG PASSWORD=docker
+ARG UID=1000
+ARG GID=1000
+RUN useradd -m ${USERNAME} --uid=${UID} && echo "${USERNAME}:${PASSWORD}" | chpasswd
+RUN adduser ${USERNAME} sudo
 ENV HOME /home/$USERNAME
 
 # Install basic things

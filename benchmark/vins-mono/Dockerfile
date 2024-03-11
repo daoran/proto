@@ -7,13 +7,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Permissions
 RUN apt-get update && apt-get install -y sudo
-ARG USER=docker
-ARG PASS=docker
+ARG USERNAME=docker
+ARG PASSWORD=docker
 ARG UID=1000
 ARG GID=1000
-RUN useradd -m ${USER} --uid=${UID} && echo "${USER}:${PASS}" | chpasswd
-RUN adduser ${USER} sudo
-ENV HOME /home/$USER
+RUN useradd -m ${USERNAME} --uid=${UID} && echo "${USERNAME}:${PASSWORD}" | chpasswd
+RUN adduser ${USERNAME} sudo
+ENV HOME /home/$USERNAME
 
 # Settings
 ENV CERES_VERSION="1.12.0"
@@ -58,11 +58,18 @@ RUN apt-get install -qq -y \
   tmux \
   vim
 
-# Switch to $USER
-USER $USER
+# Switch to $USERNAME
+USER $USERNAME
 RUN echo 'export PS1="[\u@docker] \W # "' >> $HOME/.bashrc
+RUN echo 'source /opt/ros/kinetic/setup.bash' >> $HOME/.bashrc
+RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/.bashrc
 
 # Entry point script
 WORKDIR $HOME
-COPY entry.sh /
-ENTRYPOINT ["/entry.sh"]
+RUN echo '#!/bin/bash' >> $HOME/entry.sh
+RUN echo 'export LD_LIBRARY_PATH=/usr/local/lib' >> $HOME/entry.sh
+RUN echo 'source /opt/ros/kinetic/setup.bash' >> $HOME/entry.sh
+RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/entry.sh
+RUN echo 'exec "$@"' >> $HOME/entry.sh
+RUN chmod +x $HOME/entry.sh
+ENTRYPOINT ["/home/docker/entry.sh"]
