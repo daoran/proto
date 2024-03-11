@@ -4,13 +4,14 @@ BLD_DIR := build
 INC_DIR := $(realpath $(PWD))
 DEPS_DIR := $(realpath ../third_party)
 PREFIX := /opt/proto
+PYTHON3_PATH := $(shell python3 -c "import site; print(site.getsitepackages()[0])")
 
 
 # COMPILER SETTINGS
-BUILD_TYPE := debug
-ADDRESS_SANITIZER := 1
-# BUILD_TYPE := release
-# ADDRESS_SANITIZER := 0
+# BUILD_TYPE := debug
+# ADDRESS_SANITIZER := 1
+BUILD_TYPE := release
+ADDRESS_SANITIZER := 0
 # CC := clang
 CC := gcc
 # CC := tcc
@@ -136,7 +137,6 @@ clean:  ## Clean build directory
 libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
 
 install: ## Install libproto
-	echo $(MKFILE_PATH)
 	mkdir -p $(PREFIX)
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
@@ -149,6 +149,7 @@ install: ## Install libproto
 	ln -sf $(CUR_DIR)/proto.h $(PREFIX)/include/proto.h
 	ln -sf $(CUR_DIR)/sbgc.h $(PREFIX)/include/sbgc.h
 	ln -sf $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
+	ln -sf $(CUR_DIR)/proto.py $(PYTHON3_PATH)/proto.py
 
 uninstall: ## Uninstall libproto
 	rm $(PREFIX)/lib/libproto.a
@@ -159,13 +160,14 @@ uninstall: ## Uninstall libproto
 	rm $(PREFIX)/include/proto.h
 	rm $(PREFIX)/include/sbgc.h
 	rm $(PREFIX)/include/stb_image.h
+	rm $(PYTHON3_PATH)/proto.py
 
 # -fsanitize=address -static-libasan
 avs: $(BLD_DIR)/libproto.a
 	@g++ \
 		-std=c++17 \
-		-fsanitize=address -static-libasan \
 		-fopenmp \
+		-O3 \
 		-I$(DEPS_DIR)/include \
 		-I/usr/include/eigen3 \
 		$(shell pkg-config opencv4 --cflags) \
