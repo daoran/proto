@@ -4044,24 +4044,25 @@ class TestCV(unittest.TestCase):
     # pt_j = pinhole_back_project(self.proj_params, z_j)
     # a = np.array([pt_i[0], pt_i[1], 1.0])
     # b = np.array([pt_j[0], pt_j[1], 1.0])
-
-    angle = parallax(a, b)
-    print(angle)
+    # angle = parallax(a, b)
+    # print(angle)
 
     angle = parallax(p_Ci_gnd, p_Cj_gnd)
-    print(angle)
+    self.assertTrue(angle > 0)
 
     # Visualize
-    # plt.figure()
-    # ax = plt.axes(projection='3d')
-    # plot_tf(ax, T_WCi, size=0.1)
-    # plot_tf(ax, T_WCj, size=0.1)
-    # ax.plot(*p_W, 'r.')
-    # plot_set_axes_equal(ax)
-    # ax.set_xlabel("x [m]")
-    # ax.set_ylabel("y [m]")
-    # ax.set_zlabel("z [m]")
-    # plt.show()
+    debug = False
+    if debug:
+      plt.figure()
+      ax = plt.axes(projection='3d')
+      plot_tf(ax, T_WCi, size=0.1)
+      plot_tf(ax, T_WCj, size=0.1)
+      ax.plot(*p_W, 'r.')
+      plot_set_axes_equal(ax)
+      ax.set_xlabel("x [m]")
+      ax.set_ylabel("y [m]")
+      ax.set_zlabel("z [m]")
+      plt.show()
 
   def test_homography_find(self):
     """ Test homography_find() """
@@ -5140,14 +5141,16 @@ class TestKalmanFilter(unittest.TestCase):
       t += dt
 
     # Plot X-Y
-    plt.plot(gnd_rx, gnd_ry, "k--", label="Ground-Truth")
-    plt.plot(meas_zx, meas_zy, "r.", label="Measurement")
-    plt.plot(est_rx, est_ry, "b-", label="Estimate")
-    plt.axis("equal")
-    plt.legend(loc=0)
-    plt.xlabel("x [m]")
-    plt.ylabel("y [m]")
-    plt.show()
+    debug = False
+    if debug:
+      plt.plot(gnd_rx, gnd_ry, "k--", label="Ground-Truth")
+      plt.plot(meas_zx, meas_zy, "r.", label="Measurement")
+      plt.plot(est_rx, est_ry, "b-", label="Estimate")
+      plt.axis("equal")
+      plt.legend(loc=0)
+      plt.xlabel("x [m]")
+      plt.ylabel("y [m]")
+      plt.show()
 
 
 ###############################################################################
@@ -7676,22 +7679,22 @@ class TestIMUFactor(unittest.TestCase):
     H = J.T @ J
 
     # Perform Schur Complement
-    m = 6 + 9
-    Hmm = H[0:m, 0:m]
-    Hmr = H[0:m, m:]
-    Hrm = H[m:, 0:m]
-    Hrr = H[m:, m:]
-    Hmm_inv = inv(Hmm)
-    H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
-    print(f"rank(Hmm): {rank(Hmm)}")
-    print(f"rank(H_marg): {rank(H_marg)}")
+    # m = 6 + 9
+    # Hmm = H[0:m, 0:m]
+    # Hmr = H[0:m, m:]
+    # Hrm = H[m:, 0:m]
+    # Hrr = H[m:, m:]
+    # Hmm_inv = inv(Hmm)
+    # H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+    # print(f"rank(Hmm): {rank(Hmm)}")
+    # print(f"rank(H_marg): {rank(H_marg)}")
 
     # Check inverse Hmm_inv
-    check_inverse = True
-    if check_inverse:
-      inv_norm = np.linalg.norm((Hmm @ Hmm_inv) - np.eye(Hmm.shape[0]))
-      if inv_norm > 1e-8:
-        print("Hmmm... inverse check failed!")
+    # check_inverse = True
+    # if check_inverse:
+    #   inv_norm = np.linalg.norm((Hmm @ Hmm_inv) - np.eye(Hmm.shape[0]))
+    #   if inv_norm > 1e-8:
+    #     print("Hmmm... inverse check failed!")
 
     # Test jacobians
     factor.sqrt_info = np.eye(15)
@@ -7859,22 +7862,22 @@ class TestIMUFactor(unittest.TestCase):
     H = J.T @ J
 
     # Perform Schur Complement
-    m = 6 + 9
-    Hmm = H[0:m, 0:m]
-    Hmr = H[0:m, m:]
-    Hrm = H[m:, 0:m]
-    Hrr = H[m:, m:]
-    Hmm_inv = inv(Hmm)
-    H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
-    print(f"rank(Hmm): {rank(Hmm)}")
-    print(f"rank(H_marg): {rank(H_marg)}")
+    # m = 6 + 9
+    # Hmm = H[0:m, 0:m]
+    # Hmr = H[0:m, m:]
+    # Hrm = H[m:, 0:m]
+    # Hrr = H[m:, m:]
+    # Hmm_inv = inv(Hmm)
+    # H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
+    # print(f"rank(Hmm): {rank(Hmm)}")
+    # print(f"rank(H_marg): {rank(H_marg)}")
 
     # Check inverse Hmm_inv
-    check_inverse = True
-    if check_inverse:
-      inv_norm = np.linalg.norm((Hmm @ Hmm_inv) - np.eye(Hmm.shape[0]))
-      if inv_norm > 1e-8:
-        print("Hmmm... inverse check failed!")
+    # check_inverse = True
+    # if check_inverse:
+    #   inv_norm = np.linalg.norm((Hmm @ Hmm_inv) - np.eye(Hmm.shape[0]))
+    #   if inv_norm > 1e-8:
+    #     print("Hmmm... inverse check failed!")
 
     # Test jacobians
     factor.sqrt_info = np.eye(15)
@@ -8679,8 +8682,8 @@ class TestFactorGraph(unittest.TestCase):
       sb_i = sb_j
 
     # Solve
-    debug = True
     # debug = True
+    debug = False
     # prof = profile_start()
     graph.solver_max_iter = 10
     graph.solve(debug)
@@ -9778,6 +9781,7 @@ class TSIF:
   """ Two State Implicit Filter """
   def __init__(self, cam0_params, cam1_params, cam0_ext, cam1_ext, **kwargs):
     # Settings
+    self.debug = False
     self.max_keypoints = kwargs.get("max_keypoints", 300)
     self.enable_clahe = kwargs.get("enable_clahe", True)
     self.parallax_threshold = kwargs.get("parallax_threshold", 1.0)
@@ -9906,7 +9910,8 @@ class TSIF:
     cam1_id = fgraph.add_param(self.cam_params[1])
     ext0_id = fgraph.add_param(self.cam_exts[0])
     ext1_id = fgraph.add_param(self.cam_exts[1])
-    pose_km1_id = fgraph.add_param(pose_setup(self.prev_ts, self.pose_km1.param, fix=True))
+    pose_km1_id = fgraph.add_param(
+        pose_setup(self.prev_ts, self.pose_km1.param, fix=True))
     pose_k_id = fgraph.add_param(pose_setup(ts_k, self.pose_km1.param))
 
     # Add factors
@@ -9938,18 +9943,19 @@ class TSIF:
       fgraph.add_factor(factor1_k)
 
     # Solve
-    fgraph.solve(True)
+    fgraph.solve(False)
     reproj_error = fgraph.get_reproj_errors()
 
-    plt.boxplot(reproj_error)
-    plt.show()
+    if self.debug:
+      plt.boxplot(reproj_error)
+      plt.show()
 
-    print(f"reproj_error: {np.linalg.norm(reproj_error):.4f}")
-    print(f"max:    {np.max(reproj_error):.4f}")
-    print(f"min:    {np.min(reproj_error):.4f}")
-    print(f"mean:   {np.mean(reproj_error):.4f}")
-    print(f"median: {np.median(reproj_error):.4f}")
-    print(f"std:    {np.std(reproj_error):.4f}")
+      print(f"reproj_error: {np.linalg.norm(reproj_error):.4f}")
+      print(f"max:    {np.max(reproj_error):.4f}")
+      print(f"min:    {np.min(reproj_error):.4f}")
+      print(f"mean:   {np.mean(reproj_error):.4f}")
+      print(f"median: {np.median(reproj_error):.4f}")
+      print(f"std:    {np.std(reproj_error):.4f}")
 
     return fgraph.params[pose_k_id]
 
@@ -10049,363 +10055,6 @@ class FeatureTrackerData:
     assert len(self.keypoints) == len(self.feature_ids)
 
 
-class FeatureTracker:
-  """ Feature tracker """
-  def __init__(self):
-    # Settings
-    self.mode = "TRACK_DEFAULT"
-    # self.mode = "TRACK_OVERLAPS"
-    # self.mode = "TRACK_INDEPENDENT"
-
-    # Settings
-    self.reproj_threshold = 5.0
-
-    # Data
-    self.prev_ts = None
-    self.frame_idx = 0
-    self.detector = cv2.FastFeatureDetector_create(threshold=50)
-    self.features_detected = 0
-    self.features_tracking = 0
-    self.feature_overlaps = {}
-    self.prev_mcam_imgs = None
-    self.kp_size = 0
-
-    self.cam_idxs = []
-    self.cam_params = {}
-    self.cam_exts = {}
-    self.cam_overlaps = {}
-    self.cam_data = {}
-
-  def add_camera(self, cam_idx, cam_params, cam_exts):
-    """ Add camera """
-    self.cam_idxs.append(cam_idx)
-    self.cam_data[cam_idx] = None
-    self.cam_params[cam_idx] = cam_params
-    self.cam_exts[cam_idx] = cam_exts
-
-  def add_overlap(self, cam_i_idx, cam_j_idx):
-    """ Add overlap """
-    if cam_i_idx not in self.cam_overlaps:
-      self.cam_overlaps[cam_i_idx] = []
-    self.cam_overlaps[cam_i_idx].append(cam_j_idx)
-
-  def num_tracking(self):
-    """ Return number of features tracking """
-    feature_ids = []
-    for _, cam_data in self.cam_data.items():
-      if cam_data is not None:
-        feature_ids.extend(cam_data.feature_ids)
-    return len(set(feature_ids))
-
-  def _get_camera_indices(self):
-    """ Get camera indices """
-    return [cam_idx for cam_idx, _ in self.cam_params]
-
-  def _get_keypoints(self, cam_idx):
-    """ Get keypoints observed by camera `cam_idx` """
-    keypoints = None
-    if self.cam_data[cam_idx] is not None:
-      keypoints = self.cam_data[cam_idx].keypoints
-
-    return keypoints
-
-  def _get_feature_ids(self, cam_idx):
-    """ Get feature ids observed by camera `cam_idx` """
-    feature_ids = None
-    if self.cam_data[cam_idx] is not None:
-      feature_ids = self.cam_data[cam_idx].feature_ids
-
-    return feature_ids
-
-  def _form_feature_ids(self, nb_kps):
-    """ Form list of feature ids for new features to be added """
-    self.features_detected += nb_kps
-    start_idx = self.features_detected - nb_kps
-    end_idx = start_idx + nb_kps
-    return list(range(start_idx, end_idx))
-
-  def _triangulate(self, idx_i, idx_j, z_i, z_j):
-    """ Triangulate feature """
-    # Setup
-    cam_i = self.cam_params[idx_i]
-    cam_j = self.cam_params[idx_j]
-    cam_geom_i = cam_i.data
-    cam_geom_j = cam_j.data
-    cam_exts_i = self.cam_exts[idx_i]
-    cam_exts_j = self.cam_exts[idx_j]
-
-    # Form projection matrices P_i and P_j
-    T_BCi = pose2tf(cam_exts_i.param)
-    T_BCj = pose2tf(cam_exts_j.param)
-    T_CiCj = inv(T_BCi) @ T_BCj
-    P_i = pinhole_P(cam_geom_i.proj_params(cam_i.param), eye(4))
-    P_j = pinhole_P(cam_geom_j.proj_params(cam_j.param), T_CiCj)
-
-    # Undistort image points z_i and z_j
-    x_i = cam_geom_i.undistort(cam_i.param, z_i)
-    x_j = cam_geom_j.undistort(cam_j.param, z_j)
-
-    # Linear triangulate
-    p_Ci = linear_triangulation(P_i, P_j, x_i, x_j)
-
-    return p_Ci
-
-  def _reproj_filter(self, idx_i, idx_j, pts_i, pts_j):
-    """ Filter features by triangulating them via a stereo-pair and see if the
-    reprojection error is reasonable """
-    assert idx_i != idx_j
-    assert len(pts_i) == len(pts_j)
-
-    # Reject outliers based on reprojection error
-    reproj_inliers = []
-    cam_i = self.cam_params[idx_i]
-    cam_geom_i = cam_i.data
-
-    nb_pts = len(pts_i)
-    for n in range(nb_pts):
-      # Triangulate
-      z_i = pts_i[n]
-      z_j = pts_j[n]
-      p_Ci = self._triangulate(idx_i, idx_j, z_i, z_j)
-      if p_Ci[2] < 0.0:
-        reproj_inliers.append(False)
-        continue
-
-      # Reproject
-      status, z_i_hat = cam_geom_i.project(cam_i.param, p_Ci)
-      if status is False:
-        reproj_inliers.append(False)
-      else:
-        reproj_error = norm(z_i - z_i_hat)
-        if reproj_error > self.reproj_threshold:
-          reproj_inliers.append(False)
-        else:
-          reproj_inliers.append(True)
-
-    return reproj_inliers
-
-  def _add_features(self, cam_idxs, mcam_imgs, cam_kps, fids):
-    """ Add features """
-    # Pre-check
-    assert cam_idxs
-    assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
-    assert all(cam_idx in cam_kps for cam_idx in cam_idxs)
-
-    # Add camera data
-    for idx in cam_idxs:
-      img = mcam_imgs[idx]
-      kps = cam_kps[idx]
-      assert len(kps) == len(fids)
-      if self.cam_data[idx] is None:
-        self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
-      else:
-        self.cam_data[idx].update(img, fids, kps)
-
-    # Update overlapping features
-    if len(cam_idxs) > 1:
-      for fid in fids:
-        self.feature_overlaps[fid] = 2
-
-  def _update_features(self, cam_idxs, mcam_imgs, cam_kps, fids):
-    """ Update features """
-    # Pre-check
-    assert cam_idxs
-    assert all(cam_idx in mcam_imgs for cam_idx in cam_idxs)
-    assert all(cam_idx in cam_kps for cam_idx in cam_idxs)
-
-    # Update camera data
-    for idx in cam_idxs:
-      img = mcam_imgs[idx]
-      kps = cam_kps[idx]
-      self.cam_data[idx] = FeatureTrackerData(idx, img, kps, fids)
-
-    # # Update lost features
-    # fids_out = set(fids)
-    # fids_lost = [x for x in fids_in if x not in fids_out]
-    # for fid in fids_lost:
-    #   # feature overlaps
-    #   if fid in self.feature_overlaps:
-    #     self.feature_overlaps[fid] -= 1
-    #     if self.feature_overlaps[fid] == 0:
-    #       del self.feature_overlaps[fid]
-
-  def _detect(self, image, prev_kps=None):
-    """ Detect """
-    assert image is not None
-    kwargs = {'prev_kps': prev_kps, 'optflow_mode': True}
-    kps = grid_detect(self.detector, image, **kwargs)
-    self.kp_size = kps[0].size if kps else 0
-    return kps
-
-  def _detect_overlaps(self, mcam_imgs):
-    """ Detect overlapping features """
-    # Loop through camera overlaps
-    for idx_i, overlaps in self.cam_overlaps.items():
-      # Detect keypoints observed from idx_i (primary camera)
-      cam_i = self.cam_params[idx_i]
-      img_i = mcam_imgs[idx_i]
-      prev_kps = self._get_keypoints(idx_i)
-      kps_i = self._detect(img_i, prev_kps=prev_kps)
-      pts_i = np.array([kp.pt for kp in kps_i], dtype=np.float32)
-      fids_new = self._form_feature_ids(len(kps_i))
-      if not kps_i:
-        continue
-
-      # Track feature from camera idx_i to idx_j (primary to secondary camera)
-      for idx_j in overlaps:
-        # Optical flow
-        img_j = mcam_imgs[idx_j]
-        (_, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
-
-        # RANSAC
-        ransac_inliers = []
-        if len(kps_i) < 10:
-          ransac_inliers = np.array([True for _, _ in enumerate(kps_i)])
-        else:
-          cam_j = self.cam_params[idx_j]
-          ransac_inliers = ransac(pts_i, pts_j, cam_i, cam_j)
-
-        # Reprojection filter
-        reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
-
-        # Filter outliers
-        inliers = optflow_inliers & ransac_inliers & reproj_inliers
-        kps_j = [cv2.KeyPoint(p[0], p[1], self.kp_size) for p in pts_j]
-        fids = []
-        cam_kps = {idx_i: [], idx_j: []}
-        for i, inlier in enumerate(inliers):
-          if inlier:
-            fids.append(fids_new[i])
-            cam_kps[idx_i].append(kps_i[i])
-            cam_kps[idx_j].append(kps_j[i])
-
-        # Add features
-        cam_idxs = [idx_i, idx_j]
-        cam_imgs = {idx_i: img_i, idx_j: img_j}
-        self._add_features(cam_idxs, cam_imgs, cam_kps, fids)
-
-  def _detect_nonoverlaps(self, mcam_imgs):
-    """ Detect non-overlapping features """
-    for idx in self.cam_params:
-      # Detect keypoints
-      img = mcam_imgs[idx]
-      prev_kps = self._get_keypoints(idx)
-      kps = self._detect(img, prev_kps=prev_kps)
-      if not kps:
-        return
-
-      # Add features
-      fids = self._form_feature_ids(len(kps))
-      self._add_features([idx], {idx: img}, {idx: kps}, fids)
-
-  def _detect_new(self, mcam_imgs):
-    """ Detect new features """
-
-    # Detect new features
-    if self.mode == "TRACK_DEFAULT":
-      self._detect_overlaps(mcam_imgs)
-      self._detect_nonoverlaps(mcam_imgs)
-    elif self.mode == "TRACK_OVERLAPS":
-      self._detect_overlaps(mcam_imgs)
-    elif self.mode == "TRACK_INDEPENDENT":
-      self._detect_nonoverlaps(mcam_imgs)
-    else:
-      raise RuntimeError("Invalid FeatureTracker mode [%s]!" % self.mode)
-
-  def _track_through_time(self, mcam_imgs, cam_idx):
-    """ Track features through time """
-
-    # Setup images
-    img_km1 = self.prev_mcam_imgs[cam_idx]
-    img_k = mcam_imgs[cam_idx]
-
-    # Setup keypoints and feature_ids
-    kps_km1 = self._get_keypoints(cam_idx)
-    feature_ids = self._get_feature_ids(cam_idx)
-    pts_km1 = np.array([kp.pt for kp in kps_km1], dtype=np.float32)
-
-    # Optical flow
-    (pts_km1, pts_k, optflow_inliers) = optflow_track(img_km1, img_k, pts_km1)
-
-    # RANSAC
-    ransac_inliers = []
-    if len(kps_km1) < 10:
-      ransac_inliers = np.array([True for _, _ in enumerate(kps_km1)])
-    else:
-      cam = self.cam_params[cam_idx]
-      ransac_inliers = ransac(pts_km1, pts_k, cam, cam)
-
-    # Form inliers list
-    optflow_inliers = np.array(optflow_inliers)
-    ransac_inliers = np.array(ransac_inliers)
-    inliers = optflow_inliers & ransac_inliers
-
-    return (pts_km1, pts_k, feature_ids, inliers)
-
-  def _track_stereo(self, mcam_imgs, idx_i, idx_j, pts_i):
-    """ Track feature through stereo-pair """
-    # Optical flow
-    img_i = mcam_imgs[idx_i]
-    img_j = mcam_imgs[idx_j]
-    (pts_i, pts_j, optflow_inliers) = optflow_track(img_i, img_j, pts_i)
-
-    # RANSAC
-    cam_i = self.cam_params[idx_i]
-    cam_j = self.cam_params[idx_j]
-    ransac_inliers = ransac(pts_i, pts_j, cam_i, cam_j)
-
-    # Reject outliers based on reprojection error
-    reproj_inliers = self._reproj_filter(idx_i, idx_j, pts_i, pts_j)
-
-    # Logical AND optflow_inliers and reproj_inliers
-    ransac_inliers = np.array(ransac_inliers)
-    optflow_inliers = np.array(optflow_inliers)
-    reproj_inliers = np.array(reproj_inliers)
-    inliers = optflow_inliers & ransac_inliers & reproj_inliers
-
-    return (pts_i, pts_j, inliers)
-
-  def _track_features(self, mcam_imgs):
-    """ Track features """
-    # Track features in each camera
-    for idx in self.cam_idxs:
-      # Track through time
-      track_results = self._track_through_time(mcam_imgs, idx)
-      (_, pts_k, fids_old, inliers) = track_results
-
-      fids = []
-      kps = []
-      for i, inlier in enumerate(inliers):
-        if inlier:
-          pt = pts_k[i]
-          fids.append(fids_old[i])
-          kps.append(cv2.KeyPoint(pt[0], pt[1], self.kp_size))
-
-      # Update features
-      cam_idxs = [idx]
-      cam_imgs = {idx: mcam_imgs[idx]}
-      cam_kps = {idx: kps}
-      self._update_features(cam_idxs, cam_imgs, cam_kps, fids)
-
-  def update(self, ts, mcam_imgs):
-    """ Update Feature Tracker """
-    # Track features
-    if self.frame_idx == 0:
-      self._detect_new(mcam_imgs)
-      self.features_tracking = self.num_tracking()
-    else:
-      self._track_features(mcam_imgs)
-      if (self.num_tracking() / self.features_tracking) < 0.8:
-        self._detect_new(mcam_imgs)
-
-    # Update
-    self.frame_idx += 1
-    self.prev_ts = ts
-    self.prev_mcam_imgs = mcam_imgs
-
-    return self.cam_data
-
-
 def visualize_tracking(ft_data):
   """ Visualize feature tracking data """
   viz = []
@@ -10496,7 +10145,7 @@ class TestFeatureTracking(unittest.TestCase):
     detector = cv2.FastFeatureDetector_create(threshold=50)
     kwargs = {'optflow_mode': True, 'debug': False}
     kps = grid_detect(detector, self.img0, **kwargs)
-    kps = spread_keypoints(self.img0, kps, 20, debug=True)
+    kps = spread_keypoints(self.img0, kps, 20, debug=False)
 
     self.assertTrue(len(kps))
 
@@ -10542,7 +10191,7 @@ class TestFeatureTracking(unittest.TestCase):
 
   def test_good_grid(self):
     """ Test grid_detect() """
-    debug = True
+    debug = False
     kwargs = {'debug': debug}
     kps = good_grid(self.img0, **kwargs)
     self.assertTrue(len(kps) > 0)
@@ -10579,9 +10228,6 @@ class TestFeatureTracking(unittest.TestCase):
 
     track.add(2, 0, [0, 0])
     track.add(2, 1, [0, 0])
-
-    print(track.timestamps())
-    print(track.lifetime())
 
   def test_estimate_pose(self):
     """ Test estimate_pose() """
@@ -10646,6 +10292,7 @@ class TestFeatureTracking(unittest.TestCase):
     print(f"est:\n{np.round(T_C0C1_est, 3)}\n")
     print(f"gnd:\n{np.round(T_C0C1, 3)}\n")
 
+  @unittest.skip("")
   def test_euroc_mono(self):
     kps0_km1 = []
     frame0_km1 = None
@@ -10706,6 +10353,7 @@ class TestFeatureTracking(unittest.TestCase):
       kps0_km1 = kps0_k
       frame0_km1 = frame0_k
 
+  @unittest.skip("")
   def test_euroc(self):
     # Setup test images
     self.dataset = TestFeatureTracking.dataset
@@ -10742,788 +10390,6 @@ class TestFeatureTracking(unittest.TestCase):
         break
       elif key_pressed == ord(' '):
         imshow_wait = 1 if imshow_wait == 0 else 0
-
-
-class TestFeatureTracker(unittest.TestCase):
-  """ Test FeatureTracker """
-  @classmethod
-  def setUpClass(cls):
-    super(TestFeatureTracker, cls).setUpClass()
-    cls.dataset = EurocDataset(EUROC_DATA_PATH)
-
-  def setUp(self):
-    # Setup test images
-    self.dataset = TestFeatureTracker.dataset
-    ts = self.dataset.cam0_data.timestamps[0]
-    img0_path = self.dataset.cam0_data.image_paths[ts]
-    img1_path = self.dataset.cam1_data.image_paths[ts]
-    self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
-    self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
-
-    # Setup cameras
-    # -- cam0
-    res = self.dataset.cam0_data.config.resolution
-    proj_params = self.dataset.cam0_data.config.intrinsics
-    dist_params = self.dataset.cam0_data.config.distortion_coefficients
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    params = np.block([*proj_params, *dist_params])
-    cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
-    # -- cam1
-    res = self.dataset.cam1_data.config.resolution
-    proj_params = self.dataset.cam1_data.config.intrinsics
-    dist_params = self.dataset.cam1_data.config.distortion_coefficients
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    params = np.block([*proj_params, *dist_params])
-    cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
-
-    # Setup camera extrinsics
-    # -- cam0
-    T_BC0 = self.dataset.cam0_data.config.T_BS
-    cam0_ext = extrinsics_setup(T_BC0)
-    # -- cam1
-    T_BC1 = self.dataset.cam1_data.config.T_BS
-    cam1_ext = extrinsics_setup(T_BC1)
-
-    # Setup feature tracker
-    self.feature_tracker = FeatureTracker()
-    self.feature_tracker.add_camera(0, cam0, cam0_ext)
-    self.feature_tracker.add_camera(1, cam1, cam1_ext)
-    self.feature_tracker.add_overlap(0, 1)
-
-  def test_detect(self):
-    """ Test FeatureTracker._detect() """
-    # Load and detect features from single image
-    kps = self.feature_tracker._detect(self.img0)
-    self.assertTrue(len(kps) > 0)
-
-  def test_detect_overlaps(self):
-    """ Test FeatureTracker._detect_overlaps() """
-    debug = False
-    # debug = True
-
-    # Feed camera images to feature tracker
-    mcam_imgs = {0: self.img0, 1: self.img1}
-    self.feature_tracker._detect_overlaps(mcam_imgs)
-
-    # Assert
-    data_i = self.feature_tracker.cam_data[0]
-    data_j = self.feature_tracker.cam_data[1]
-    kps_i = data_i.keypoints
-    kps_j = data_j.keypoints
-    overlapping_ids = self.feature_tracker.feature_overlaps
-
-    self.assertTrue(len(kps_i) == len(kps_j))
-    self.assertTrue(len(kps_i) == len(overlapping_ids))
-
-    # Visualize
-    for cam_i, overlaps in self.feature_tracker.cam_overlaps.items():
-      cam_j = overlaps[0]
-      img_i = mcam_imgs[cam_i]
-      img_j = mcam_imgs[cam_j]
-      data_i = self.feature_tracker.cam_data[cam_i]
-      data_j = self.feature_tracker.cam_data[cam_j]
-      kps_i = data_i.keypoints
-      kps_j = data_j.keypoints
-      # viz = draw_matches(img_i, img_j, kps_i, kps_j)
-
-      matches = []
-      for i in range(len(kps_i)):
-        matches.append(cv2.DMatch(i, i, 0))
-      viz = cv2.drawMatches(img_i, kps_i, img_j, kps_j, matches, None)
-
-      if debug:
-        cv2.imshow('viz', viz)
-        cv2.waitKey(0)
-
-  def test_detect_nonoverlaps(self):
-    """ Test FeatureTracker._detect_nonoverlaps() """
-    # Feed camera images to feature tracker
-    mcam_imgs = {0: self.img0, 1: self.img1}
-    self.feature_tracker._detect_nonoverlaps(mcam_imgs)
-
-    # Visualize
-    for cam_i, overlaps in self.feature_tracker.cam_overlaps.items():
-      cam_j = overlaps[0]
-      img_i = mcam_imgs[cam_i]
-      img_j = mcam_imgs[cam_j]
-      data_i = self.feature_tracker.cam_data[cam_i]
-      data_j = self.feature_tracker.cam_data[cam_j]
-      kps_i = data_i.keypoints
-      kps_j = data_j.keypoints
-
-      viz_i = cv2.drawKeypoints(img_i, kps_i, None)
-      viz_j = cv2.drawKeypoints(img_j, kps_j, None)
-      viz = cv2.hconcat([viz_i, viz_j])
-
-      debug = False
-      # debug = True
-      if debug:
-        cv2.imshow('viz', viz)
-        cv2.waitKey(0)
-
-  def test_detect_new(self):
-    """ Test FeatureTracker.detect_new() """
-    mcam_imgs = {0: self.img0, 1: self.img1}
-    self.feature_tracker._detect_new(mcam_imgs)
-    ft_data = self.feature_tracker.cam_data
-    viz = visualize_tracking(ft_data)
-
-    debug = False
-    # debug = True
-    if debug:
-      cv2.imshow('viz', viz)
-      cv2.waitKey(0)
-
-  # @unittest.skip("")
-  def test_update(self):
-    """ Test FeatureTracker.update() """
-    for ts in self.dataset.cam0_data.timestamps[1000:1200]:
-      # for ts in self.dataset.cam0_data.timestamps:
-      # Load images
-      img0_path = self.dataset.cam0_data.image_paths[ts]
-      img1_path = self.dataset.cam1_data.image_paths[ts]
-      img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
-      img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
-
-      # Feed camera images to feature tracker
-      mcam_imgs = {0: img0, 1: img1}
-      ft_data = self.feature_tracker.update(ts, mcam_imgs)
-
-      # Visualize
-      # debug = False
-      debug = True
-      if debug:
-        sys.stdout.flush()
-        viz = visualize_tracking(ft_data)
-        cv2.imshow('viz', viz)
-        if cv2.waitKey(1) == ord('q'):
-          break
-    cv2.destroyAllWindows()
-
-
-# STATE-ESTIMATOR #############################################################
-
-
-class KeyFrame:
-  """ Key Frame """
-  def __init__(self, ts, images, pose, vision_factors):
-    self.ts = ts
-    self.images = images
-    self.pose = pose
-    self.vision_factors = vision_factors
-
-
-class Tracker:
-  """ Tracker """
-  def __init__(self, feature_tracker):
-    # Feature tracker
-    self.feature_tracker = feature_tracker
-
-    # Flags
-    self.imu_started = False
-    self.cams_started = False
-
-    # Data
-    self.graph = FactorGraph()
-    self.pose_init = None
-
-    self.imu_buf = ImuBuffer()
-    self.imu_params = None
-
-    self.cam_params = {}
-    self.cam_geoms = {}
-    self.cam_exts = {}
-    self.features = {}
-    self.keyframes = []
-
-    # Settings
-    self.window_size = 10
-
-  def nb_cams(self):
-    """ Return number of cameras """
-    return len(self.cam_params)
-
-  def nb_keyframes(self):
-    """ Return number of keyframes """
-    return len(self.keyframes)
-
-  def nb_features(self):
-    """ Return number of keyframes """
-    return len(self.features)
-
-  def add_imu(self, imu_params):
-    """ Add imu """
-    self.imu_params = imu_params
-
-  def add_camera(self, cam_idx, cam_params, cam_exts):
-    """ Add camera """
-    self.cam_params[cam_idx] = cam_params
-    self.cam_geoms[cam_idx] = cam_params.data
-    self.cam_exts[cam_idx] = cam_exts
-    self.graph.add_param(cam_params)
-    self.graph.add_param(cam_exts)
-    self.feature_tracker.add_camera(cam_idx, cam_params, cam_exts)
-
-  def add_overlap(self, cam_i, cam_j):
-    """ Add overlap """
-    self.feature_tracker.add_overlap(cam_i, cam_j)
-
-  def set_initial_pose(self, T_WB):
-    """ Set initial pose """
-    assert self.pose_init is None
-    self.pose_init = T_WB
-
-  def inertial_callback(self, ts, acc, gyr):
-    """ Inertial callback """
-    if self.imu_params is None:
-      raise RuntimeError("Forgot to add imu to tracker?")
-    self.imu_buf.add(ts, acc, gyr)
-    self.imu_started = True
-
-  def _triangulate(self, cam_i, cam_j, z_i, z_j, T_WB):
-    """ Triangulate feature """
-    # Setup
-    cam_params_i = self.cam_params[cam_i]
-    cam_params_j = self.cam_params[cam_j]
-    cam_geom_i = cam_params_i.data
-    cam_geom_j = cam_params_j.data
-    cam_exts_i = self.cam_exts[cam_i]
-    cam_exts_j = self.cam_exts[cam_j]
-
-    # Form projection matrices P_i and P_j
-    T_BCi = pose2tf(cam_exts_i.param)
-    T_BCj = pose2tf(cam_exts_j.param)
-    T_CiCj = inv(T_BCi) @ T_BCj
-    P_i = pinhole_P(cam_geom_i.proj_params(cam_params_i.param), eye(4))
-    P_j = pinhole_P(cam_geom_j.proj_params(cam_params_j.param), T_CiCj)
-
-    # Undistort image points z_i and z_j
-    x_i = cam_geom_i.undistort(cam_params_i.param, z_i)
-    x_j = cam_geom_j.undistort(cam_params_j.param, z_j)
-
-    # Linear triangulate
-    p_Ci = linear_triangulation(P_i, P_j, x_i, x_j)
-    if p_Ci[2] < 0.0:
-      return None
-
-    # Transform feature from camera frame to world frame
-    T_BCi = pose2tf(self.cam_exts[cam_i].param)
-    p_W = tf_point(T_WB @ T_BCi, p_Ci)
-    return p_W
-
-  def _add_pose(self, ts, T_WB):
-    """
-    Add pose
-
-    Args:
-
-      T_WB (np.array): Body pose in world frame
-
-    """
-    pose = pose_setup(ts, T_WB)
-    self.graph.add_param(pose)
-    return pose
-
-  def _get_last_pose(self):
-    """ Get last pose """
-    return pose2tf(self.keyframes[-1].pose.param)
-
-  def _add_feature(self, fid, ts, cam_idx, kp):
-    """
-    Add feature
-
-    Args:
-
-      fid (int): Feature id
-      ts (int): Timestamp
-      cam_idx (int): Camera index
-      kp (cv2.KeyPoint): Key point
-
-    """
-    assert hasattr(kp, 'pt')
-    self.features[fid] = feature_setup(zeros((3,)))
-    self.features[fid].data.update(ts, cam_idx, kp.pt)
-    feature_pid = self.graph.add_param(self.features[fid])
-    return feature_pid
-
-  def _update_feature(self, fid, ts, cam_idx, kp, T_WB):
-    """
-    Update feature
-
-    Args:
-
-      fid (int): Feature id
-      ts (int): Timestamp
-      cam_idx (int): Camera index
-      kp (cv2.KeyPoint): Key point
-      T_WB (np.array): Body pose in world frame
-
-    """
-    # Update feature
-    self.features[fid].data.update(ts, cam_idx, kp.pt)
-
-    # Initialize overlapping features
-    has_inited = self.features[fid].data.initialized()
-    has_overlap = self.features[fid].data.has_overlap(ts)
-    if has_inited is False and has_overlap is True:
-      overlaps = self.features[fid].data.get_overlaps(ts)
-      cam_i, z_i = overlaps[0]
-      cam_j, z_j = overlaps[1]
-      p_W = self._triangulate(cam_i, cam_j, z_i, z_j, T_WB)
-      if p_W is not None:
-        self.features[fid].param = p_W
-        self.features[fid].data.set_initialized()
-
-  def _process_features(self, ts, ft_data, pose):
-    """ Process features
-
-    Args:
-
-      ts (int): Timestamp
-      ft_data (Dict[int, FeatureTrackerData]): Multi-camera feature tracker data
-      pose (StateVariable): Body pose in world frame
-
-    """
-    # Add or update feature
-    T_WB = pose2tf(pose.param)
-
-    for cam_idx, cam_data in ft_data.items():
-      for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
-        if fid not in self.features:
-          self._add_feature(fid, ts, cam_idx, kp)
-        else:
-          self._update_feature(fid, ts, cam_idx, kp, T_WB)
-
-  def _add_keyframe(self, ts, mcam_imgs, ft_data, pose):
-    """
-    Add keyframe
-
-    Args:
-
-      ts (int): Timestamp
-      mcam_imgs (Dict[int, np.array]): Multi-camera images
-      ft_data (Dict[int, FeatureTrackerData]): Multi-camera features
-      pose (Pose): Body pose in world frame
-
-    """
-    vision_factors = []
-
-    for cam_idx, cam_data in ft_data.items():
-      # camera params, geometry and extrinsics
-      cam_params = self.cam_params[cam_idx]
-      cam_geom = self.cam_geoms[cam_idx]
-      cam_exts = self.cam_exts[cam_idx]
-
-      # Form vision factors
-      for fid, kp in zip(cam_data.feature_ids, cam_data.keypoints):
-        feature = self.features[fid]
-        if feature.data.initialized() is False:
-          continue
-
-        # Form vision factor
-        param_ids = []
-        param_ids.append(pose.param_id)
-        param_ids.append(cam_exts.param_id)
-        param_ids.append(feature.param_id)
-        param_ids.append(cam_params.param_id)
-        factor = VisionFactor(cam_geom, param_ids, kp.pt)
-        vision_factors.append(factor)
-        self.graph.add_factor(factor)
-
-    # Form keyframe
-    self.keyframes.append(KeyFrame(ts, mcam_imgs, pose, vision_factors))
-
-  def _pop_old_keyframe(self):
-    """ Pop old keyframe """
-    # Remove pose parameter and vision factors
-    kf = self.keyframes[0]
-    self.graph.remove_param(kf.pose)
-    for factor in kf.vision_factors:
-      self.graph.remove_factor(factor)
-
-    # Pop the front of the queue
-    self.keyframes.pop(0)
-
-  def _filter_keyframe_factors(self, filter_from=0):
-    """ Filter keyframe factors """
-    removed = 0
-
-    for kf in self.keyframes[filter_from:]:
-      # Calculate reprojection error
-      reproj_errors = []
-      for factor in list(kf.vision_factors):
-        # factor_params = self.graph._get_factor_params(factor)
-        params = [self.graph.params[pid].param for pid in factor.param_ids]
-        r, _ = factor.eval(params)
-        reproj_errors.append(norm(r))
-
-      # Filter factors
-      threshold = 3.0 * np.std(reproj_errors)
-      filtered_factors = []
-
-      for reproj_error, factor in zip(reproj_errors, kf.vision_factors):
-        if reproj_error >= threshold:
-          self.graph.remove_factor(factor)
-          removed += 1
-        else:
-          filtered_factors.append(factor)
-      kf.vision_factors = filtered_factors
-
-  def vision_callback(self, ts, mcam_imgs):
-    """
-    Vision callback
-
-    Args:
-
-      ts (int): Timestamp
-      mcam_imgs (Dict[int, np.array]): Multi-camera images
-
-    """
-    assert self.pose_init is not None
-
-    # Has IMU?
-    if self.imu_params is not None and self.imu_started is False:
-      return
-
-    # Perform feature tracking
-    ft_data = self.feature_tracker.update(ts, mcam_imgs)
-
-    # Add pose
-    pose = None
-    if self.nb_keyframes() == 0:
-      pose = self._add_pose(ts, self.pose_init)
-    else:
-      T_WB = self._get_last_pose()
-      pose = self._add_pose(ts, T_WB)
-
-    # Process features, add keyframe and solve
-    self._process_features(ts, ft_data, pose)
-    self._add_keyframe(ts, mcam_imgs, ft_data, pose)
-
-    if self.nb_keyframes() != 1:
-      self.graph.solve(True)
-      self._filter_keyframe_factors()
-
-    if len(self.keyframes) > self.window_size:
-      self._pop_old_keyframe()
-
-    errors = self.graph.get_reproj_errors()
-    print(f"reproj_error:", end=" [")
-    print(f"mean: {np.mean(errors):.2f}", end=", ")
-    print(f"median: {np.median(errors):.2f}", end=", ")
-    print(f"rms: {rmse(errors):.2f}", end=", ")
-    print(f"max: {np.max(errors):.2f}", end="]\n")
-    print(f"nb_keyframes: {self.nb_keyframes()}")
-    print()
-
-
-class TestTracker(unittest.TestCase):
-  """ Test Tracker """
-  @classmethod
-  def setUpClass(cls):
-    super(TestTracker, cls).setUpClass()
-    # Load dataset
-    cls.dataset = EurocDataset(EUROC_DATA_PATH)
-    ts0 = cls.dataset.cam0_data.timestamps[0]
-    cls.img0 = cls.dataset.get_camera_image(0, ts0)
-    cls.img1 = cls.dataset.get_camera_image(1, ts0)
-
-    # Imu params
-    noise_acc = 0.08  # accelerometer measurement noise stddev.
-    noise_gyr = 0.004  # gyroscope measurement noise stddev.
-    noise_ba = 0.00004  # accelerometer bias random work noise stddev.
-    noise_bg = 2.0e-6  # gyroscope bias random work noise stddev.
-    cls.imu_params = ImuParams(noise_acc, noise_gyr, noise_ba, noise_bg)
-
-    # Setup cameras
-    # -- cam0
-    res = cls.dataset.cam0_data.config.resolution
-    proj_params = cls.dataset.cam0_data.config.intrinsics
-    dist_params = cls.dataset.cam0_data.config.distortion_coefficients
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    params = np.block([*proj_params, *dist_params])
-    cls.cam0 = camera_params_setup(0, res, proj_model, dist_model, params)
-    cls.cam0.fix = True
-    # -- cam1
-    res = cls.dataset.cam1_data.config.resolution
-    proj_params = cls.dataset.cam1_data.config.intrinsics
-    dist_params = cls.dataset.cam1_data.config.distortion_coefficients
-    proj_model = "pinhole"
-    dist_model = "radtan4"
-    params = np.block([*proj_params, *dist_params])
-    cls.cam1 = camera_params_setup(1, res, proj_model, dist_model, params)
-    cls.cam1.fix = True
-
-    # Setup camera extrinsics
-    # -- cam0
-    T_BC0 = cls.dataset.cam0_data.config.T_BS
-    cls.cam0_ext = extrinsics_setup(T_BC0)
-    cls.cam0_ext.fix = True
-    # -- cam1
-    T_BC1 = cls.dataset.cam1_data.config.T_BS
-    cls.cam1_ext = extrinsics_setup(T_BC1)
-    cls.cam1_ext.fix = True
-
-  def setUp(self):
-    # Setup test dataset
-    self.dataset = TestTracker.dataset
-    self.imu_params = TestTracker.imu_params
-    self.cam0 = TestTracker.cam0
-    self.cam1 = TestTracker.cam1
-    self.cam0_ext = TestTracker.cam0_ext
-    self.cam1_ext = TestTracker.cam1_ext
-
-    # Setup tracker
-    ts0 = self.dataset.ground_truth.timestamps[0]
-    T_WB = self.dataset.ground_truth.T_WB[ts0]
-
-    feature_tracker = FeatureTracker()
-    self.tracker = Tracker(feature_tracker)
-    self.tracker.add_imu(self.imu_params)
-    self.tracker.add_camera(0, self.cam0, self.cam0_ext)
-    self.tracker.add_camera(1, self.cam1, self.cam1_ext)
-    self.tracker.add_overlap(0, 1)
-    self.tracker.set_initial_pose(T_WB)
-
-  def test_tracker_add_camera(self):
-    """ Test Tracker.add_camera() """
-    self.assertTrue(len(self.tracker.cam_params), 2)
-    self.assertTrue(len(self.tracker.cam_geoms), 2)
-    self.assertTrue(len(self.tracker.cam_exts), 2)
-
-  def test_tracker_set_initial_pose(self):
-    """ Test Tracker.set_initial_pose() """
-    self.assertTrue(self.tracker.pose_init is not None)
-
-  def test_tracker_inertial_callback(self):
-    """ Test Tracker.inertial_callback() """
-    ts = 0
-    acc = np.array([0.0, 0.0, 10.0])
-    gyr = np.array([0.0, 0.0, 0.0])
-    self.tracker.inertial_callback(ts, acc, gyr)
-    self.assertEqual(self.tracker.imu_buf.length(), 1)
-    self.assertTrue(self.tracker.imu_started)
-
-  def test_tracker_triangulate(self):
-    """ Test Tracker._triangulate() """
-    # Feature in world frame
-    p_W = np.array([1.0, 0.01, 0.02])
-
-    # Body pose in world frame
-    C_WB = euler321(*deg2rad([-90.0, 0.0, -90.0]))
-    r_WB = np.array([0.0, 0.0, 0.0])
-    T_WB = tf(C_WB, r_WB)
-
-    # Camera parameters and geometry
-    cam_i = 0
-    cam_j = 1
-    cam_params_i = self.tracker.cam_params[cam_i]
-    cam_params_j = self.tracker.cam_params[cam_j]
-    cam_geom_i = self.tracker.cam_geoms[cam_i]
-    cam_geom_j = self.tracker.cam_geoms[cam_j]
-
-    # Camera extrinsics
-    T_BCi = pose2tf(self.tracker.cam_exts[cam_i].param)
-    T_BCj = pose2tf(self.tracker.cam_exts[cam_j].param)
-
-    # Point relative to cam_i and cam_j
-    p_Ci = tf_point(inv(T_WB @ T_BCi), p_W)
-    p_Cj = tf_point(inv(T_WB @ T_BCj), p_W)
-
-    # Image point z_i and z_j
-    status_i, z_i = cam_geom_i.project(cam_params_i.param, p_Ci)
-    status_j, z_j = cam_geom_j.project(cam_params_j.param, p_Cj)
-
-    # Triangulate
-    p_W_est = self.tracker._triangulate(cam_i, cam_j, z_i, z_j, T_WB)
-
-    # Assert
-    self.assertTrue(status_i)
-    self.assertTrue(status_j)
-    self.assertTrue(np.allclose(p_W_est, p_W))
-
-  def test_tracker_add_pose(self):
-    """ Test Tracker._add_pose() """
-    # Timestamp
-    ts = 0
-
-    # Body pose in world frame
-    C_WB = euler321(*deg2rad([-90.0, 0.0, -90.0]))
-    r_WB = np.array([0.0, 0.0, 0.0])
-    T_WB = tf(C_WB, r_WB)
-
-    # Add pose
-    pose = self.tracker._add_pose(ts, T_WB)
-    self.assertTrue(pose is not None)
-
-  def test_tracker_add_feature(self):
-    """ Test Tracker._add_feature() """
-    # Feature in world frame
-    p_W = np.array([1.0, 0.01, 0.02])
-
-    # Body pose in world frame
-    C_WB = euler321(*deg2rad([-90.0, 0.0, -90.0]))
-    r_WB = np.array([0.0, 0.0, 0.0])
-    T_WB = tf(C_WB, r_WB)
-
-    # Project world point to image plane
-    cam_idx = 0
-    cam_params = self.tracker.cam_params[cam_idx]
-    cam_geom = self.tracker.cam_geoms[cam_idx]
-    T_BC = pose2tf(self.tracker.cam_exts[cam_idx].param)
-    p_C = tf_point(inv(T_WB @ T_BC), p_W)
-    status, z = cam_geom.project(cam_params.param, p_C)
-
-    # Add feature
-    fid = 0
-    ts = 0
-    kp = cv2.KeyPoint(z[0], z[1], 0)
-    self.tracker._add_feature(fid, ts, cam_idx, kp)
-
-    # Assert
-    self.assertTrue(status)
-    self.assertTrue(fid in self.tracker.features)
-    self.assertEqual(len(self.tracker.features), 1)
-
-  def test_tracker_update_feature(self):
-    """ Test Tracker._update_feature() """
-    # Feature in world frame
-    p_W = np.array([1.0, 0.01, 0.02])
-
-    # Body pose in world frame
-    C_WB = euler321(*deg2rad([-90.0, 0.0, -90.0]))
-    r_WB = np.array([0.0, 0.0, 0.0])
-    T_WB = tf(C_WB, r_WB)
-
-    # Camera parameters and geometry
-    cam_i = 0
-    cam_j = 1
-    cam_params_i = self.tracker.cam_params[cam_i]
-    cam_params_j = self.tracker.cam_params[cam_j]
-    cam_geom_i = self.tracker.cam_geoms[cam_i]
-    cam_geom_j = self.tracker.cam_geoms[cam_j]
-
-    # Project p_W to image point z_i and z_j
-    T_BCi = pose2tf(self.tracker.cam_exts[cam_i].param)
-    T_BCj = pose2tf(self.tracker.cam_exts[cam_j].param)
-    p_Ci = tf_point(inv(T_WB @ T_BCi), p_W)
-    p_Cj = tf_point(inv(T_WB @ T_BCj), p_W)
-    status_i, z_i = cam_geom_i.project(cam_params_i.param, p_Ci)
-    status_j, z_j = cam_geom_j.project(cam_params_j.param, p_Cj)
-
-    # Add feature
-    fid = 0
-    ts = 0
-    kp_i = cv2.KeyPoint(z_i[0], z_i[1], 0)
-    kp_j = cv2.KeyPoint(z_j[0], z_j[1], 0)
-    self.tracker._add_feature(fid, ts, cam_i, kp_i)
-    self.tracker._update_feature(fid, ts, cam_j, kp_j, T_WB)
-
-    # Assert
-    feature = self.tracker.features[fid]
-    p_W_est = feature.param
-    self.assertTrue(status_i)
-    self.assertTrue(status_j)
-    self.assertTrue(fid in self.tracker.features)
-    self.assertEqual(len(self.tracker.features), 1)
-    self.assertTrue(feature.data.initialized())
-    self.assertTrue(np.allclose(p_W_est, p_W))
-
-  def test_tracker_process_features(self):
-    """ Test Tracker._process_features() """
-
-    for ts in self.dataset.cam0_data.timestamps:
-      # Get ground truth pose
-      T_WB = self.dataset.get_ground_truth_pose(ts)
-      if T_WB is None:
-        continue
-
-      # Feed camera images to feature tracker
-      img0 = self.dataset.get_camera_image(0, ts)
-      img1 = self.dataset.get_camera_image(1, ts)
-      ft_data = self.tracker.feature_tracker.update(ts, {0: img0, 1: img1})
-
-      # Process features
-      pose = self.tracker._add_pose(ts, T_WB)
-      self.tracker._process_features(ts, ft_data, pose)
-      self.assertTrue(self.tracker.nb_features() > 0)
-      break
-
-  def test_tracker_add_keyframe(self):
-    """ Test Tracker._add_keyframe() """
-    for ts in self.dataset.cam0_data.timestamps:
-      # Get ground truth pose
-      T_WB = self.dataset.get_ground_truth_pose(ts)
-      if T_WB is None:
-        continue
-
-      # Feed camera images to feature tracker
-      img0 = self.dataset.get_camera_image(0, ts)
-      img1 = self.dataset.get_camera_image(1, ts)
-      mcam_imgs = {0: img0, 1: img1}
-      ft_data = self.tracker.feature_tracker.update(ts, mcam_imgs)
-
-      # Process features
-      pose = self.tracker._add_pose(ts, T_WB)
-      self.tracker._process_features(ts, ft_data, pose)
-      self.tracker._add_keyframe(ts, mcam_imgs, ft_data, pose)
-      self.assertTrue(self.tracker.nb_features() > 0)
-      self.assertEqual(self.tracker.nb_keyframes(), 1)
-      break
-
-  @unittest.skip("")
-  def test_tracker_vision_callback(self):
-    """ Test Tracker.vision_callback() """
-    import pandas
-
-    # Disable imu in Tracker
-    self.tracker.imu_params = None
-
-    # Create csv files
-    pose_est_csv = open("/tmp/poses_est.csv", "w")
-    pose_gnd_csv = open("/tmp/poses_gnd.csv", "w")
-    pose_est_csv.write("ts,rx,ry,rz,qw,qx,qy,qz\n")
-    pose_gnd_csv.write("ts,rx,ry,rz,qw,qx,qy,qz\n")
-    poses_est = []
-    poses_gnd = []
-
-    # Loop through timestamps
-    for k, ts in enumerate(self.dataset.cam0_data.timestamps[0:300]):
-      # Get ground truth pose
-      T_WB = self.dataset.get_ground_truth_pose(ts)
-      if T_WB is None:
-        continue
-
-      # Vision callback
-      img0 = self.dataset.get_camera_image(0, ts)
-      img1 = self.dataset.get_camera_image(1, ts)
-      self.tracker.vision_callback(ts, {0: img0, 1: img1})
-
-      # print(f"{ts}, {self.tracker.nb_features()}")
-      # self.assertTrue(self.tracker.nb_features() > 0)
-      # self.assertEqual(self.tracker.nb_keyframes(), 1)
-
-      last_kf = self.tracker.keyframes[-1]
-      poses_est.append(tf2pose(pose2tf(last_kf.pose.param)))
-      poses_gnd.append(tf2pose(T_WB))
-      print(f"frame_idx: {k}")
-      pose_est_csv.write("%ld,%f,%f,%f,%f,%f,%f,%f\n" % (ts, *poses_est[-1]))
-      pose_gnd_csv.write("%ld,%f,%f,%f,%f,%f,%f,%f\n" % (ts, *poses_gnd[-1]))
-
-    # Close csv files
-    pose_est_csv.close()
-    pose_gnd_csv.close()
-
-    # Plot
-    poses_gnd = pandas.read_csv("/tmp/poses_gnd.csv")
-    poses_est = pandas.read_csv("/tmp/poses_est.csv")
-    title = "Displacement"
-    data = {"Ground Truth": poses_gnd, "Estimate": poses_est}
-    plot_xyz(title, data, 'ts', 'rx', 'ry', 'rz', 'Displacement [m]')
-    plt.show()
 
 
 ###############################################################################
@@ -12637,39 +11503,6 @@ class SimData:
     return timeline
 
 
-class SimFeatureTracker(FeatureTracker):
-  """ Sim Feature Tracker """
-  def __init__(self):
-    FeatureTracker.__init__(self)
-
-  def update(self, ts, mcam_imgs):
-    """ Update Sim Feature Tracker """
-    for cam_idx, cam_data in mcam_imgs.items():
-      kps = [data[1] for data in cam_data]
-      fids = [data[0] for data in cam_data]
-      ft_data = FeatureTrackerData(cam_idx, None, kps, fids)
-      self.cam_data[cam_idx] = ft_data
-
-    # Update
-    self.frame_idx += 1
-    self.prev_ts = ts
-    self.prev_mcam_imgs = mcam_imgs
-
-    return self.cam_data
-
-  def visualize(self):
-    """ Visualize """
-    # Image size
-    # cam_res = cam0_params.data.resolution
-    # img_w, img_h = cam_res
-    # img0 = np.zeros((img_h, img_w), dtype=np.uint8)
-    # kps = [kp for kp in ft_data[0].keypoints]
-    # viz = draw_keypoints(img0, kps)
-    # cv2.imshow('viz', viz)
-    # cv2.waitKey(0)
-    pass
-
-
 def dh_matrix(theta, d, a, alpha):
   """ Denavit-Hartenburg Matrix """
   ctheta = np.cos(theta)
@@ -12848,42 +11681,6 @@ class TestSimulation(unittest.TestCase):
 
       plt.subplots_adjust(hspace=0.9)
       plt.show()
-
-  def test_sim_feature_tracker(self):
-    """ Test SimFeatureTracker """
-    # Sim data
-    circle_r = 5.0
-    circle_v = 1.0
-    pickle_path = '/tmp/sim_data.pickle'
-    sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
-    cam0_params = sim_data.get_camera_params(0)
-    cam1_params = sim_data.get_camera_params(1)
-    cam0_ext = sim_data.get_camera_extrinsics(0)
-    cam1_ext = sim_data.get_camera_extrinsics(1)
-
-    # Sim feature tracker
-    feature_tracker = SimFeatureTracker()
-    feature_tracker.add_camera(0, cam0_params, cam0_ext)
-    feature_tracker.add_camera(1, cam1_params, cam1_ext)
-    feature_tracker.add_overlap(0, 1)
-
-    # Loop through timeline events
-    mcam_buf = MultiCameraBuffer(2)
-    for ts in sim_data.timeline.get_timestamps():
-      for event in sim_data.timeline.get_events(ts):
-        if isinstance(event, CameraEvent):
-
-          mcam_buf.add(event.ts, event.cam_idx, event.image)
-          if mcam_buf.ready():
-            mcam_data = mcam_buf.get_data()
-            ft_data = feature_tracker.update(ts, mcam_data)
-            mcam_buf.reset()
-
-            self.assertTrue(ft_data is not None)
-            self.assertTrue(ft_data[0].keypoints)
-            self.assertTrue(ft_data[1].keypoints)
-            self.assertTrue(ft_data[0].feature_ids)
-            self.assertTrue(ft_data[1].feature_ids)
 
   def test_sim_arm(self):
     """ Plot Sim Arm """
@@ -13534,15 +12331,18 @@ class MavTrajectoryControl:
 class TestMav(unittest.TestCase):
   """ Test Mav """
   def test_symdiff_velocity(self):
+    """ Test symbolic differentiate velocity """
     traj_ctrl = MavTrajectoryControl(z=2.0, T=10.0)
     traj_ctrl.symdiff_velocity()
 
   def test_plot(self):
+    """ Test Plot """
     traj_ctrl = MavTrajectoryControl(z=2.0, T=20.0)
-    traj_ctrl.plot()
+    # traj_ctrl.plot()
 
   def test_mav_attitude_control(self):
     # Simulation parameters
+    debug = False
     dt = 0.001
     t_end = 0.5
     t = 0.0
@@ -13574,19 +12374,21 @@ class TestMav(unittest.TestCase):
       idx += 1
 
     # Plot results
-    time_data = np.array(time_data)
-    att_data = np.array(att_data)
-    pos_data = np.array(pos_data)
-    vel_data = np.array(vel_data)
-    plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
-    plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
-    plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Attitude [deg]")
-    # plt.show()
+    if debug:
+      time_data = np.array(time_data)
+      att_data = np.array(att_data)
+      pos_data = np.array(pos_data)
+      vel_data = np.array(vel_data)
+      plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
+      plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
+      plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Attitude [deg]")
+      # plt.show()
 
   def test_mav_velocity_control(self):
     # Simulation parameters
+    debug = False
     dt = 0.001
     t = 0.0
     t_end = 10.0
@@ -13622,36 +12424,38 @@ class TestMav(unittest.TestCase):
       idx += 1
 
     # Plot results
-    time_data = np.array(time_data)
-    att_data = np.array(att_data)
-    pos_data = np.array(pos_data)
-    vel_data = np.array(vel_data)
+    if debug:
+      time_data = np.array(time_data)
+      att_data = np.array(att_data)
+      pos_data = np.array(pos_data)
+      vel_data = np.array(vel_data)
 
-    # -- Plot attitude
-    plt.subplot(211)
-    plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
-    plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
-    plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Attitude [deg]")
+      # -- Plot attitude
+      plt.subplot(211)
+      plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
+      plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
+      plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Attitude [deg]")
 
-    # -- Plot velocity
-    plt.subplot(212)
-    plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
-    plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
-    plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Velocity [ms^-1]")
+      # -- Plot velocity
+      plt.subplot(212)
+      plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
+      plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
+      plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Velocity [ms^-1]")
 
-    # plt.show()
+      plt.show()
 
   def test_mav_position_control(self):
     # Simulation parameters
+    debug = False
     dt = 0.001
     t = 0.0
     t_end = 10.0
     pos_sp = np.array([2.0, 1.0, 5.0, np.deg2rad(135)])  # x, y, z, yaw
-    plot_anim = True
+    plot_anim = False
     self.keep_plotting = True
 
     # Setup models and controller
@@ -13663,17 +12467,18 @@ class TestMav(unittest.TestCase):
     pos_ctrl = MavPositionControl()
 
     # Setup plot
-    fig = plt.figure()
-    ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
-    ax_xy = fig.add_subplot(1, 2, 2)
+    if debug:
+      fig = plt.figure()
+      ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
+      ax_xy = fig.add_subplot(1, 2, 2)
 
-    def on_key(event, fig):
-      if event.key == 'escape' or event.key == 'q':
-        self.keep_plotting = False
-        plt.close(fig)
+      def on_key(event, fig):
+        if event.key == 'escape' or event.key == 'q':
+          self.keep_plotting = False
+          plt.close(fig)
 
-    cid = fig.canvas.mpl_connect(
-        'key_press_event', lambda event: on_key(event, self.keep_plotting))
+      cid = fig.canvas.mpl_connect(
+          'key_press_event', lambda event: on_key(event, self.keep_plotting))
 
     # Simulate
     time_data = []
@@ -13728,42 +12533,45 @@ class TestMav(unittest.TestCase):
       idx += 1
 
     # Disconnect figure event callback
-    fig.canvas.mpl_disconnect(cid)
+    if debug:
+      fig.canvas.mpl_disconnect(cid)
 
     # Plot results
-    time_data = np.array(time_data)
-    att_data = np.array(att_data)
-    pos_data = np.array(pos_data)
-    vel_data = np.array(vel_data)
+    if debug:
+      time_data = np.array(time_data)
+      att_data = np.array(att_data)
+      pos_data = np.array(pos_data)
+      vel_data = np.array(vel_data)
 
-    # -- Plot attitude
-    plt.subplot(311)
-    plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
-    plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
-    plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Attitude [deg]")
+      # -- Plot attitude
+      plt.subplot(311)
+      plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
+      plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
+      plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Attitude [deg]")
 
-    # -- Plot velocity
-    plt.subplot(312)
-    plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
-    plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
-    plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Velocity [ms^-1]")
+      # -- Plot velocity
+      plt.subplot(312)
+      plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
+      plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
+      plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Velocity [ms^-1]")
 
-    # -- Plot position
-    plt.subplot(313)
-    plt.plot(time_data, pos_data[:, 0], "r-", label="x")
-    plt.plot(time_data, pos_data[:, 1], "g-", label="y")
-    plt.plot(time_data, pos_data[:, 2], "b-", label="z")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Position [m]")
+      # -- Plot position
+      plt.subplot(313)
+      plt.plot(time_data, pos_data[:, 0], "r-", label="x")
+      plt.plot(time_data, pos_data[:, 1], "g-", label="y")
+      plt.plot(time_data, pos_data[:, 2], "b-", label="z")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Position [m]")
 
-    # plt.show()
+      plt.show()
 
   def test_mav_trajectory_control(self):
     # Simulation parameters
+    debug = False
     dt = 0.001
     z_sp = 5.0
     t_end = 30.0
@@ -13786,17 +12594,18 @@ class TestMav(unittest.TestCase):
     # Setup plot
     plot_anim = False
     self.keep_plotting = True
-    fig = plt.figure()
-    ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
-    ax_xy = fig.add_subplot(1, 2, 2)
+    if debug:
+      fig = plt.figure()
+      ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
+      ax_xy = fig.add_subplot(1, 2, 2)
 
-    def on_key(event, fig):
-      if event.key == 'escape' or event.key == 'q':
-        self.keep_plotting = False
-        plt.close(fig)
+      def on_key(event, fig):
+        if event.key == 'escape' or event.key == 'q':
+          self.keep_plotting = False
+          plt.close(fig)
 
-    cid = fig.canvas.mpl_connect(
-        'key_press_event', lambda event: on_key(event, self.keep_plotting))
+      cid = fig.canvas.mpl_connect(
+          'key_press_event', lambda event: on_key(event, self.keep_plotting))
 
     # Simulate
     time_data = []
@@ -13850,43 +12659,45 @@ class TestMav(unittest.TestCase):
       idx += 1
 
     # Disconnect figure event callback
-    fig.canvas.mpl_disconnect(cid)
+    if debug:
+      fig.canvas.mpl_disconnect(cid)
 
     # Plot results
-    time_data = np.array(time_data)
-    att_data = np.array(att_data)
-    pos_data = np.array(pos_data)
-    vel_data = np.array(vel_data)
-    traj_data = traj_ctrl.get_traj()
+    if debug:
+      time_data = np.array(time_data)
+      att_data = np.array(att_data)
+      pos_data = np.array(pos_data)
+      vel_data = np.array(vel_data)
+      traj_data = traj_ctrl.get_traj()
 
-    # -- Plot actual vs planned trajectory
-    plt.subplot(311)
-    plt.plot(pos_data[:, 0], pos_data[:, 1], "r-", label="Actual")
-    plt.plot(traj_data[:, 0], traj_data[:, 1], "k--", label="Trajectory")
-    plt.xlabel("x [m]")
-    plt.ylabel("y [m]")
-    plt.axis("equal")
-    plt.legend(loc=0)
+      # -- Plot actual vs planned trajectory
+      plt.subplot(311)
+      plt.plot(pos_data[:, 0], pos_data[:, 1], "r-", label="Actual")
+      plt.plot(traj_data[:, 0], traj_data[:, 1], "k--", label="Trajectory")
+      plt.xlabel("x [m]")
+      plt.ylabel("y [m]")
+      plt.axis("equal")
+      plt.legend(loc=0)
 
-    # -- Plot velocity
-    plt.subplot(312)
-    plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
-    plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
-    plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Velocity [ms^-1]")
-    plt.legend(loc=0)
+      # -- Plot velocity
+      plt.subplot(312)
+      plt.plot(time_data, vel_data[:, 0], "r-", label="vx")
+      plt.plot(time_data, vel_data[:, 1], "g-", label="vy")
+      plt.plot(time_data, vel_data[:, 2], "b-", label="vz")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Velocity [ms^-1]")
+      plt.legend(loc=0)
 
-    # -- Plot attitude
-    plt.subplot(313)
-    plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
-    plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
-    plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Attitude [deg]")
-    plt.legend(loc=0)
+      # -- Plot attitude
+      plt.subplot(313)
+      plt.plot(time_data, rad2deg(att_data[:, 0]), "r-", label="Roll")
+      plt.plot(time_data, rad2deg(att_data[:, 1]), "g-", label="Pitch")
+      plt.plot(time_data, rad2deg(att_data[:, 2]), "b-", label="Yaw")
+      plt.xlabel("Time [s]")
+      plt.ylabel("Attitude [deg]")
+      plt.legend(loc=0)
 
-    plt.show()
+      plt.show()
 
 
 ###############################################################################
@@ -14926,11 +13737,13 @@ class TestPoE(unittest.TestCase):
     T_WB = tf(C_WB, r_WB)
     T_BE = fwdkinspace(M, s_list, theta_list)
 
-    ax = plt.axes(projection='3d')
-    plot_tf(ax, T_WB, name="Base", size=0.1)
-    plot_tf(ax, T_WB @ T_BE, name="End", size=0.1)
-    plot_set_axes_equal(ax)
-    plt.show()
+    debug = False
+    if debug:
+      ax = plt.axes(projection='3d')
+      plot_tf(ax, T_WB, name="Base", size=0.1)
+      plot_tf(ax, T_WB @ T_BE, name="End", size=0.1)
+      plot_set_axes_equal(ax)
+      plt.show()
 
   def test_fwdkinspace(self):
     M = np.array([[-1, 0, 0, 0], [0, 1, 0, 6], [0, 0, -1, 2], [0, 0, 0, 1]])
