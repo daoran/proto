@@ -691,7 +691,7 @@ struct FeatureGrid {
  * Grid detector
  */
 struct GridDetector {
-  int max_keypoints = 200;
+  int max_keypoints = 100;
   int grid_rows = 3;
   int grid_cols = 4;
 
@@ -1545,14 +1545,20 @@ real_t estimate_pose(std::map<int, camera_params_t> cam_ints,
   return rmse(reproj_errors);
 }
 
-/** Two State Implicit Filter **/
-struct TSIF {
+struct FrameSet {
+  timestamp_t ts;
+  std::vector<size_t> feature_ids;
+  pose_t pose;
+};
+
+/** Two State Filter **/
+struct TSF {
   // Fronend
   GridDetector detector;
   cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
 
   // Settings
-  int max_keypoints = 1000;
+  int max_keypoints = 500;
   bool enable_clahe = true;
   int parallax_threshold = 1.0;
   int max_length = 40;
@@ -1581,8 +1587,8 @@ struct TSIF {
   pose_t pose_k;
 
   /** Constructor **/
-  TSIF(std::map<int, camera_params_t> &cam_ints_,
-       std::map<int, extrinsic_t> &cam_exts_)
+  TSF(std::map<int, camera_params_t> &cam_ints_,
+      std::map<int, extrinsic_t> &cam_exts_)
       : cam_ints{cam_ints_}, cam_exts{cam_exts_} {
     real_t pose0[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     pose_setup(&pose_init, 0, pose0);
@@ -1591,7 +1597,7 @@ struct TSIF {
   }
 
   /** Destructor **/
-  virtual ~TSIF() = default;
+  virtual ~TSF() = default;
 
   /** Set initial pose **/
   void set_initial_pose(const real_t T_WB[4 * 4]) {
@@ -1642,8 +1648,8 @@ struct TSIF {
   }
 
   void _initialize_features(const timestamp_t ts) {
-    const int max_iter = 5;
-    const int max_num_threads = 2;
+    const int max_iter = 2;
+    const int max_num_threads = 4;
     const bool verbose = false;
     const bool fix_features = false;
     const bool fix_camera_intrinsics = true;
@@ -1728,25 +1734,25 @@ struct TSIF {
     }
 
     // Evaluate reprojection errors
-    std::vector<double> reproj_errors;
-    std::map<size_t, double> feature_errors;
-    auto eval_residuals = [&]() {
-      for (auto &[fid, factor] : factors) {
-        double r[2] = {0.0, 0.0};
+    // std::vector<double> reproj_errors;
+    // std::map<size_t, double> feature_errors;
+    // auto eval_residuals = [&]() {
+    //   for (auto &[fid, factor] : factors) {
+    //     double r[2] = {0.0, 0.0};
 
-        std::vector<double *> params;
-        params.push_back(pose_k.data);
-        params.push_back(cam_exts.at(factor->cam_id).data);
-        params.push_back(features[factor->feature_id]->data);
-        params.push_back(cam_ints.at(factor->cam_id).data);
-        factor->Evaluate(params.data(), r, nullptr);
+    //     std::vector<double *> params;
+    //     params.push_back(pose_k.data);
+    //     params.push_back(cam_exts.at(factor->cam_id).data);
+    //     params.push_back(features[factor->feature_id]->data);
+    //     params.push_back(cam_ints.at(factor->cam_id).data);
+    //     factor->Evaluate(params.data(), r, nullptr);
 
-        const auto reproj_error = sqrt(r[0] * r[0] + r[1] * r[1]);
-        reproj_errors.push_back(reproj_error);
-        feature_errors[factor->feature_id] = reproj_error;
-      }
-    };
-    eval_residuals();
+    //     const auto reproj_error = sqrt(r[0] * r[0] + r[1] * r[1]);
+    //     reproj_errors.push_back(reproj_error);
+    //     feature_errors[factor->feature_id] = reproj_error;
+    //   }
+    // };
+    // eval_residuals();
 
     // printf("\n");
     // printf("Initialize Features:\n");
@@ -1757,16 +1763,16 @@ struct TSIF {
     // printf("var reproj error: %f\n", var(reproj_errors));
     // printf("\n");
 
-    const auto threshold = 3.0 * std::sqrt(var(reproj_errors));
-    std::vector<size_t> outliers;
-    for (auto &[fid, feature] : features) {
-      if (feature_errors[fid] >= threshold) {
-        outliers.push_back(fid);
-      }
-    }
-    for (const auto fid : outliers) {
-      features.erase(fid);
-    }
+    // const auto threshold = 3.0 * std::sqrt(var(reproj_errors));
+    // std::vector<size_t> outliers;
+    // for (auto &[fid, feature] : features) {
+    //   if (feature_errors[fid] >= threshold) {
+    //     outliers.push_back(fid);
+    //   }
+    // }
+    // for (const auto fid : outliers) {
+    //   features.erase(fid);
+    // }
   }
 
   void _initialize(const timestamp_t ts) {
@@ -1888,9 +1894,9 @@ struct TSIF {
     } else if (initialized) {
       // Step 1. Estimate current pose
       pose_setup(&pose_k, ts, pose_km1.data);
-      const int max_iter = 10;
-      const int max_num_threads = 2;
-      const bool verbose = true;
+      const int max_iter = 2;
+      const int max_num_threads = 4;
+      const bool verbose = false;
       const auto rmse = estimate_pose(cam_ints,
                                       cam_exts,
                                       features,
@@ -1946,22 +1952,20 @@ struct TSIF {
 
     // Detect and track
     detect(ts, frame0, frame1);
-    bool status = track(ts, frame0, frame1);
+    track(ts, frame0, frame1);
 
     // Visualize
-    _visualize(frame0, frame1);
+    // _visualize(frame0, frame1);
     if (initialized) {
       pose_hist.emplace_back(pose_k);
     }
 
     // Update
-    if (frame_index == 0 || status) {
-      pose_setup(&pose_km1, ts, pose_k.data);
-      prev_ts = ts;
-      prev_frame0 = frame0.clone();
-      prev_frame1 = frame1.clone();
-      frame_index += 1;
-    }
+    pose_setup(&pose_km1, ts, pose_k.data);
+    prev_ts = ts;
+    prev_frame0 = frame0.clone();
+    prev_frame1 = frame1.clone();
+    frame_index += 1;
   }
 };
 
@@ -2342,7 +2346,7 @@ int test_tsif() {
   cam_ints[1] = euroc.cam1_params;
   cam_exts[0] = euroc.cam0_ext;
   cam_exts[1] = euroc.cam1_ext;
-  TSIF tsif{cam_ints, cam_exts};
+  TSF tsif{cam_ints, cam_exts};
 
   // const int start_index = 2500;
   const int start_index = 0;
@@ -2392,7 +2396,7 @@ int test_tsif() {
     // clang-format on
   };
 
-  int imshow_wait = 0;
+  int imshow_wait = 1;
   for (size_t k = 0; k < timeline->num_timestamps; k++) {
     const timestamp_t ts = timeline->timestamps[k];
     const euroc_event_t *event = &timeline->events[k];
@@ -2411,11 +2415,11 @@ int test_tsif() {
       printf("----------------------------------------\n");
       struct timespec t_start = tic();
       tsif.update(ts, img0, img1);
-      plot(ts);
       printf("track elasped: %f [s]\n", toc(&t_start));
       printf("----------------------------------------\n");
       printf("\n");
       printf("\n");
+      plot(ts);
 
       char key = cv::waitKey(imshow_wait);
       if (key == 'q') {
