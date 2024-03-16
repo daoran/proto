@@ -8,10 +8,10 @@ PYTHON3_PATH := $(shell python3 -c "import site; print(site.getsitepackages()[0]
 
 
 # COMPILER SETTINGS
-# BUILD_TYPE := debug
-# ADDRESS_SANITIZER := 1
-BUILD_TYPE := release
-ADDRESS_SANITIZER := 0
+BUILD_TYPE := debug
+ADDRESS_SANITIZER := 1
+# BUILD_TYPE := release
+# ADDRESS_SANITIZER := 0
 # CC := clang
 CC := gcc
 # CC := tcc
@@ -162,12 +162,12 @@ uninstall: ## Uninstall libproto
 	rm $(PREFIX)/include/stb_image.h
 	rm $(PYTHON3_PATH)/proto.py
 
-# -fsanitize=address -static-libasan
 avs: $(BLD_DIR)/libproto.a
 	@g++ \
 		-std=c++17 \
+		-fsanitize=address -static-libasan \
 		-fopenmp \
-		-O3 \
+		-g \
 		-I$(DEPS_DIR)/include \
 		-I/usr/include/eigen3 \
 		$(shell pkg-config opencv4 --cflags) \
@@ -175,17 +175,6 @@ avs: $(BLD_DIR)/libproto.a
 		-o $(BLD_DIR)/avs \
 		$(LDFLAGS) \
 		-lproto \
-		$(shell pkg-config opencv4 --libs)
-
-arducam:
-	@g++ \
-		-Wall \
-		-std=c++11 \
-		-O2 \
-		$(shell pkg-config opencv4 --cflags) \
-		arducam.cpp \
-		-o $(BLD_DIR)/arducam \
-		-lArduCamLib -lusb-1.0 -lpthread \
 		$(shell pkg-config opencv4 --libs)
 
 test_proto: libproto  ## Compile test_proto
