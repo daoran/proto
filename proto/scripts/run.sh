@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-# ctags proto.c proto.h test_proto.c
-ctags proto.py
+ctags proto.c proto.h test_proto.c
+# ctags proto.py
 
 run_gdb() {
   gdb \
@@ -55,22 +55,21 @@ run_memcheck() {
 # python3 proto.py TestCV.test_solvepnp
 # python3 proto.py TestCV.test_harris_corner
 # python3 proto.py TestCV.test_shi_tomasi_corner
-# python3 proto.py TestFactors
-# python3 proto.py TestFactors.test_pose_factor
-# python3 proto.py TestFactors.test_ba_factor
-# python3 proto.py TestFactors.test_vision_factor
-# python3 proto.py TestFactors.test_camera_factor
-# python3 proto.py TestFactors.test_calib_vision_factor
-# python3 proto.py TestFactors.test_two_state_vision_factor
-# python3 proto.py TestFactors.test_calib_gimbal_factor
-# python3 proto.py TestFactors.test_imu_buffer
-# python3 proto.py TestFactors.test_imu_buffer_with_interpolation
-# python3 proto.py TestFactors.test_imu_factor_propagate
-# python3 proto.py TestFactors.test_imu_factor
-# python3 proto.py TestFactors.test_imu_propagation_jacobians
-# python3 proto.py TestFactors.test_imu_factor2_propagate
-# python3 proto.py TestFactors.test_imu_factor2
-# python3 proto.py TestFactors.test_marg_factor
+# python3 proto.py TestPoseFactor
+# python3 proto.py TestBAFactor
+# python3 proto.py TestVisionFactor
+# python3 proto.py TestCameraFactor
+# python3 proto.py TestCalibVisionFactor
+# python3 proto.py TestTwoStateVisionFactor
+# python3 proto.py TestCalibGimbalFactor
+# python3 proto.py TestIMUFactor
+# python3 proto.py TestIMUFactor.test_imu_buffer_with_interpolation
+# python3 proto.py TestIMUFactor.test_imu_factor_propagate
+# python3 proto.py TestIMUFactor.test_imu_factor
+# python3 proto.py TestIMUFactor.test_imu_propagation_jacobians
+# python3 proto.py TestIMUFactor.test_imu_factor2_propagate
+# python3 proto.py TestIMUFactor.test_imu_factor2
+# python3 proto.py TestMargFactor
 # python3 proto.py TestFactorGraph
 # python3 proto.py TestFactorGraph.test_factor_graph_add_param
 # python3 proto.py TestFactorGraph.test_factor_graph_add_factor
@@ -88,15 +87,6 @@ run_memcheck() {
 # python3 proto.py TestFeatureTracking.test_estimate_pose
 # python3 proto.py TestFeatureTracking.test_euroc_mono
 # python3 proto.py TestFeatureTracking.test_euroc
-# python3 proto.py TestFeatureTracker
-# python3 proto.py TestFeatureTracker.test_detect
-# python3 proto.py TestFeatureTracker.test_detect_overlaps
-# python3 proto.py TestFeatureTracker.test_detect_nonoverlaps
-# python3 proto.py TestFeatureTracker.test_detect_new
-# python3 proto.py TestFeatureTracker.test_update
-# python3 proto.py TestTracker
-# python3 proto.py TestTracker.test_tracker_process_features
-# python3 proto.py TestTracker.test_tracker_vision_callback
 # python3 proto.py TestCalibration
 # python3 proto.py TestCalibration.test_aprilgrid
 # python3 proto.py TestCalibration.test_calibrator
@@ -114,20 +104,6 @@ run_memcheck() {
 # python3 proto.py TestViz.test_server
 # python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestPoE.test_scene
-
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "\
-#   cd ~/projects/proto/proto \
-#   && python3 proto.py TestSandbox.test_gimbal
-# " C-m C-m
-# exit
-
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "\
-#   cd ~/projects/proto/proto \
-#   && python3 proto.py TestTracker.test_tracker_vision_callback
-# " C-m C-m
-# exit
 
 ###############################################################################
 # C
