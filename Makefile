@@ -2,7 +2,7 @@ MKFILE_PATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
 CATKIN_WS=~/catkin_ws
 
-.PHONY: third_party docs proto ros
+.PHONY: third_party docs build install tests ci run_test_proto clean
 
 help:
 	@echo "\033[1;34m[make targets]:\033[0m"
@@ -32,15 +32,5 @@ tests: ## Run unittests
 ci: ## Run CI tests
 	@cd proto && make -s ci
 
-run_test_proto:
-	@cd proto && make -s run_test_proto
-
 clean: ## Clean
 	@cd proto && make -s clean
-
-# ros: ## Build proto_ros
-# 	@mkdir -p ${CATKIN_WS}/src
-# 	@cd ${CATKIN_WS}/src && ln -sf ${PROJ_PATH}/proto_ros . \
-# 		&& . /opt/ros/melodic/setup.sh \
-# 		&& cd .. \
-# 		&& catkin build proto_ros -DCMAKE_BUILD_TYPE=RELEASE -j2
