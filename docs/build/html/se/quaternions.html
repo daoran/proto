@@ -1,19 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quaternions &mdash; proto alpha documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=1f169f65"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -28,11 +32,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> proto
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            proto
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -40,9 +48,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html">Pinhole Camera Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html#radial-tangential-distortion">Radial-Tangential Distortion</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html#equi-distant-distortion">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html">Camera Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
@@ -83,11 +89,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html">Mean</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#variance">Variance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#standard-deviation">Standard Deviation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#standard-error">Standard Error</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#bayes-theorem">Bayes Theorem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html">Statistics Reference</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
 <ul>
@@ -118,8 +120,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Quaternions</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quaternions</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/se/quaternions.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -129,8 +131,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="quaternions">
-<h1>Quaternions<a class="headerlink" href="#quaternions" title="Permalink to this headline"></a></h1>
+  <section id="quaternions">
+<h1>Quaternions<a class="headerlink" href="#quaternions" title="Link to this heading"></a></h1>
 <p>A quaternion, <span class="math notranslate nohighlight">\(\Vec{q} \in \real^{4}\)</span>, generally has the following form</p>
 <div class="math notranslate nohighlight">
 \[\quat = q_{w} + q_{x} \mathbf{i} + q_{y} \mathbf{j} + q_{z} \mathbf{k},\]</div>
@@ -158,10 +160,10 @@ as,</p>
 <p>There are other quaternion conventions, for example, the JPL convention. A more
 detailed discussion between Hamiltonian and JPL quaternion convention is
 discussed in cite{Sola2017}.</p>
-<div class="section" id="main-quaternion-properties">
-<h2>Main Quaternion Properties<a class="headerlink" href="#main-quaternion-properties" title="Permalink to this headline"></a></h2>
-<div class="section" id="sum">
-<h3>Sum<a class="headerlink" href="#sum" title="Permalink to this headline"></a></h3>
+<section id="main-quaternion-properties">
+<h2>Main Quaternion Properties<a class="headerlink" href="#main-quaternion-properties" title="Link to this heading"></a></h2>
+<section id="sum">
+<h3>Sum<a class="headerlink" href="#sum" title="Link to this heading"></a></h3>
 <p>Let <span class="math notranslate nohighlight">\(\Vec{p}\)</span> and <span class="math notranslate nohighlight">\(\Vec{q}\)</span> be two quaternions, the sum of both
 quaternions is,</p>
 <div class="math notranslate nohighlight">
@@ -176,10 +178,10 @@ quaternions is,</p>
 \[\Vec{p} + \Vec{q} = \Vec{q} + \Vec{p}\]</div>
 <div class="math notranslate nohighlight">
 \[\Vec{p} + (\Vec{q} + \Vec{r}) = (\Vec{p} + \Vec{q}) + \Vec{r}\]</div>
-</div>
-</div>
-<div class="section" id="product">
-<h2>Product<a class="headerlink" href="#product" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+<section id="product">
+<h2>Product<a class="headerlink" href="#product" title="Link to this heading"></a></h2>
 <p>The quaternion multiplication (or product) of two quaternions <span class="math notranslate nohighlight">\(\Vec{p}\)</span>
 and <span class="math notranslate nohighlight">\(\Vec{q}\)</span>, denoted by <span class="math notranslate nohighlight">\(\otimes\)</span> is defined as</p>
 <div class="math notranslate nohighlight">
@@ -278,9 +280,9 @@ product matrix, and is defined as,</p>
 \end{bmatrix},
 \quad
 \Vec{v} \in \Real{3}\end{split}\]</div>
-</div>
-<div class="section" id="conjugate">
-<h2>Conjugate<a class="headerlink" href="#conjugate" title="Permalink to this headline"></a></h2>
+</section>
+<section id="conjugate">
+<h2>Conjugate<a class="headerlink" href="#conjugate" title="Link to this heading"></a></h2>
 <p>The conjugate operator for quaternion, <span class="math notranslate nohighlight">\({(\bullet)}^{\ast}\)</span>, is defined
 as</p>
 <div class="math notranslate nohighlight">
@@ -311,9 +313,9 @@ as</p>
 <div class="math notranslate nohighlight">
 \[(\Vec{p} \otimes \Vec{q})^{\ast}
 = \Vec{q}^{\ast} \otimes \Vec{p}^{\ast}.\]</div>
-</div>
-<div class="section" id="norm">
-<h2>Norm<a class="headerlink" href="#norm" title="Permalink to this headline"></a></h2>
+</section>
+<section id="norm">
+<h2>Norm<a class="headerlink" href="#norm" title="Link to this heading"></a></h2>
 <p>The norm of a quaternion is defined by</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
@@ -327,9 +329,9 @@ as</p>
 \[\Norm{\Vec{p} \otimes \Vec{q}} =
 \Norm{\Vec{q} \otimes \Vec{p}} =
 \Norm{\Vec{p}} \Norm{\Vec{q}}\]</div>
-</div>
-<div class="section" id="quaternion-from-two-vectors">
-<h2>Quaternion from Two Vectors<a class="headerlink" href="#quaternion-from-two-vectors" title="Permalink to this headline"></a></h2>
+</section>
+<section id="quaternion-from-two-vectors">
+<h2>Quaternion from Two Vectors<a class="headerlink" href="#quaternion-from-two-vectors" title="Link to this heading"></a></h2>
 <p>TODO: Need to reword the beginning.
 Using the properties of the cross and dot product</p>
 <div class="math notranslate nohighlight">
@@ -340,7 +342,7 @@ Using the properties of the cross and dot product</p>
 <p>the axis angle, <span class="math notranslate nohighlight">\(\boldsymbol{\theta} \in \Real{3}\)</span>, can be obtained from
 <span class="math notranslate nohighlight">\(\Vec{u}\)</span> and <span class="math notranslate nohighlight">\(\Vec{v}\)</span> with</p>
 <div class="math notranslate nohighlight" id="equation-axis-angle">
-<span class="eqno">(1)<a class="headerlink" href="#equation-axis-angle" title="Permalink to this equation"></a></span>\[\begin{split}\begin{align}
+<span class="eqno">(1)<a class="headerlink" href="#equation-axis-angle" title="Link to this equation"></a></span>\[\begin{split}\begin{align}
   %-- Axis-angle
   \boldsymbol{\theta} &amp;= \theta \Vec{e} \\
   % -- Angle
@@ -357,13 +359,13 @@ Using the properties of the cross and dot product</p>
 is the rotation angle about <span class="math notranslate nohighlight">\(\Vec{e}\)</span>. Once the axis angle,
 <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, is obtained a quaternion can be formed</p>
 <div class="math notranslate nohighlight" id="equation-axis-angle-to-quaternion">
-<span class="eqno">(2)<a class="headerlink" href="#equation-axis-angle-to-quaternion" title="Permalink to this equation"></a></span>\[\quat =
+<span class="eqno">(2)<a class="headerlink" href="#equation-axis-angle-to-quaternion" title="Link to this equation"></a></span>\[\quat =
   \cos \dfrac{\theta}{2}
   + \Vec{i} \sin \dfrac{\theta}{2} e_{x}
   + \Vec{j} \sin \dfrac{\theta}{2} e_{y}
   + \Vec{k} \sin \dfrac{\theta}{2} e_{z}\]</div>
-<div class="section" id="example-attitude-from-gravity-and-accelerometer-vectors">
-<h3>Example: Attitude from gravity and accelerometer vectors<a class="headerlink" href="#example-attitude-from-gravity-and-accelerometer-vectors" title="Permalink to this headline"></a></h3>
+<section id="example-attitude-from-gravity-and-accelerometer-vectors">
+<h3>Example: Attitude from gravity and accelerometer vectors<a class="headerlink" href="#example-attitude-from-gravity-and-accelerometer-vectors" title="Link to this heading"></a></h3>
 <p>In robotics knowing the attitude of the system is often required. An Inertial
 Measurement Unit (IMU) is commonly used to obtain this information. Using the
 method described previously, a gravity vector along with an accelerometer
@@ -424,10 +426,10 @@ is:</p>
     0.00000
   \end{bmatrix}
 } \enspace .\]</div>
-</div>
-</div>
-<div class="section" id="quaternion-to-rotation-matrix">
-<h2>Quaternion to Rotation Matrix<a class="headerlink" href="#quaternion-to-rotation-matrix" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+<section id="quaternion-to-rotation-matrix">
+<h2>Quaternion to Rotation Matrix<a class="headerlink" href="#quaternion-to-rotation-matrix" title="Link to this heading"></a></h2>
 <div class="math notranslate nohighlight">
 \[\begin{split}\rot\{\quat \} = \begin{bmatrix}
   q_w^2 + q_x^2 - q_y^2 - q_z^2
@@ -440,9 +442,9 @@ is:</p>
   &amp; 2(q_y q_z + q_w q_x)
   &amp; q_w^2 - q_x^2 - q_y^2 + q_z^2
 \end{bmatrix}\end{split}\]</div>
-</div>
-<div class="section" id="rotation-matrix-to-quaternion">
-<h2>Rotation Matrix to Quaternion<a class="headerlink" href="#rotation-matrix-to-quaternion" title="Permalink to this headline"></a></h2>
+</section>
+<section id="rotation-matrix-to-quaternion">
+<h2>Rotation Matrix to Quaternion<a class="headerlink" href="#rotation-matrix-to-quaternion" title="Link to this heading"></a></h2>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
   q_w &amp;= \dfrac{\sqrt{1 + m_{11} + m_{22} + m_{33}}}{2} \\
@@ -452,8 +454,8 @@ is:</p>
 \end{align}\end{split}\]</div>
 <p>Note, while the equations seems straight forward in practice, however,the trace
 of the rotation matrix need to be checked inorder to guarantee correctness.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

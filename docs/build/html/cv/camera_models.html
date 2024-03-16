@@ -1,19 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Camera Models &mdash; proto alpha documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=1f169f65"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -28,11 +32,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> proto
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            proto
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -82,11 +90,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html">Mean</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#variance">Variance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#standard-deviation">Standard Deviation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#standard-error">Standard Error</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#bayes-theorem">Bayes Theorem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html">Statistics Reference</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
 <ul>
@@ -117,8 +121,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Camera Models</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Camera Models</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/cv/camera_models.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -128,10 +132,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="camera-models">
-<h1>Camera Models<a class="headerlink" href="#camera-models" title="Permalink to this headline"></a></h1>
-<div class="section" id="pinhole-camera-model">
-<h2>Pinhole Camera Model<a class="headerlink" href="#pinhole-camera-model" title="Permalink to this headline"></a></h2>
+  <section id="camera-models">
+<h1>Camera Models<a class="headerlink" href="#camera-models" title="Link to this heading"></a></h1>
+<section id="pinhole-camera-model">
+<h2>Pinhole Camera Model<a class="headerlink" href="#pinhole-camera-model" title="Link to this heading"></a></h2>
 <p id="id1">The pinhole camera model describes how 3D scene points are projected onto the
 2D image plane of an ideal pinhole camera. The model makes the assumption that
 light rays emitted from an object in the scene pass through the pinhole of the
@@ -171,14 +175,14 @@ camera model includes:</p>
 <li><p><a class="reference internal" href="#radial-tangential-distortion"><span class="std std-ref">Radial-Tangential Distortion</span></a></p></li>
 <li><p><a class="reference internal" href="#equi-distant-distortion"><span class="std std-ref">Equi-Distant Distortion</span></a></p></li>
 </ul>
-<div class="section" id="guessing-the-focal-length-from-the-camera-s-field-of-view">
-<h3>Guessing the focal length from the camera’s field of view<a class="headerlink" href="#guessing-the-focal-length-from-the-camera-s-field-of-view" title="Permalink to this headline"></a></h3>
+<section id="guessing-the-focal-length-from-the-camera-s-field-of-view">
+<h3>Guessing the focal length from the camera’s field of view<a class="headerlink" href="#guessing-the-focal-length-from-the-camera-s-field-of-view" title="Link to this heading"></a></h3>
 <p>Using basic trigonometry, if we know the len’s field of views we can obtain the
 focal length in the <span class="math notranslate nohighlight">\(x\)</span> and/or <span class="math notranslate nohighlight">\(y\)</span> direction.</p>
-</div>
-</div>
-<div class="section" id="radial-tangential-distortion">
-<h2>Radial-Tangential Distortion<a class="headerlink" href="#radial-tangential-distortion" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+<section id="radial-tangential-distortion">
+<h2>Radial-Tangential Distortion<a class="headerlink" href="#radial-tangential-distortion" title="Link to this heading"></a></h2>
 <p id="radtan-distortion">Lens distortion generally exist in all camera lenses, therefore it is vital the
 distortions observed are modelled. The most common distortion model is the
 radial-tangential (or simply as radtan) distortion model. The two main
@@ -187,15 +191,15 @@ distortion.</p>
 <p>Radial distortion occurs due to the shape of the lens, where light passing
 through the center undergoes no refraction, and light passing through the edges
 of the lens, undergoes through severe bending causing the radial distortion.</p>
-<div class="figure align-center">
+<figure class="align-center">
 <img alt="../_images/radial_distortion.png" src="../_images/radial_distortion.png" />
-</div>
+</figure>
 <p>Tangential distortion, on the other hand, is mainly due to camera sensor
 mis-alignment during the manufacturing process. It occurs when the camera
 sensor is not in parallel with the lens.</p>
-<div class="figure align-center">
+<figure class="align-center">
 <img alt="../_images/tangential_distortion.png" src="../_images/tangential_distortion.png" />
-</div>
+</figure>
 <p>The combined radial-tangential distortion is modelled using a polynomial
 approximation with parameters <span class="math notranslate nohighlight">\(k_{1}, k_{2}\)</span> and <span class="math notranslate nohighlight">\(p_{1}, p_{2}\)</span>
 respectively.  To apply the distortion the observed 3D point <span class="math notranslate nohighlight">\(\Vec{p} =
@@ -211,8 +215,8 @@ finally scaled and offset in the image plane <span class="math notranslate nohig
   x'' &amp;= x' + (2 p_1 x y + p_2 (r^2 + 2 x^2)) \\
   y'' &amp;= y' + (p_1 (r^2 + 2 y^2) + 2 p_2 x y)
 \end{align}\end{split}\]</div>
-<div class="section" id="radial-tangential-point-jacobian">
-<h3>Radial Tangential Point Jacobian<a class="headerlink" href="#radial-tangential-point-jacobian" title="Permalink to this headline"></a></h3>
+<section id="radial-tangential-point-jacobian">
+<h3>Radial Tangential Point Jacobian<a class="headerlink" href="#radial-tangential-point-jacobian" title="Link to this heading"></a></h3>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
   \dfrac{\partial{\Vec{x}'}}{\partial{\Vec{x}}} &amp;=
@@ -228,9 +232,9 @@ finally scaled and offset in the image plane <span class="math notranslate nohig
     J_{22} &amp;= k_1 r^2 + k_2 r^4 + 6 p_1 y + 2 p_2 x
       + y (2 k_1 y + 4 k_2 y r^2) + 1
 \end{align}\end{split}\]</div>
-</div>
-<div class="section" id="radial-tangential-parameter-jacobian">
-<h3>Radial Tangential Parameter Jacobian<a class="headerlink" href="#radial-tangential-parameter-jacobian" title="Permalink to this headline"></a></h3>
+</section>
+<section id="radial-tangential-parameter-jacobian">
+<h3>Radial Tangential Parameter Jacobian<a class="headerlink" href="#radial-tangential-parameter-jacobian" title="Link to this heading"></a></h3>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
   \dfrac{\partial{\Vec{x}'}}{\partial{\Vec{d}}} &amp;=
@@ -248,10 +252,10 @@ finally scaled and offset in the image plane <span class="math notranslate nohig
     J_{23} &amp;= x^2 + 3 y^2 \\
     J_{24} &amp;= 2 x y
 \end{align}\end{split}\]</div>
-</div>
-</div>
-<div class="section" id="equi-distant-distortion">
-<h2>Equi-Distant Distortion<a class="headerlink" href="#equi-distant-distortion" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+<section id="equi-distant-distortion">
+<h2>Equi-Distant Distortion<a class="headerlink" href="#equi-distant-distortion" title="Link to this heading"></a></h2>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
   r &amp;= \sqrt{x^{2} + y^{2}} \\
@@ -261,8 +265,8 @@ finally scaled and offset in the image plane <span class="math notranslate nohig
   x' &amp;= (\theta_d / r) \cdot x \\
   y' &amp;= (\theta_d / r) \cdot y
 \end{align}\end{split}\]</div>
-<div class="section" id="equi-distant-point-jacobian">
-<h3>Equi-distant Point Jacobian<a class="headerlink" href="#equi-distant-point-jacobian" title="Permalink to this headline"></a></h3>
+<section id="equi-distant-point-jacobian">
+<h3>Equi-distant Point Jacobian<a class="headerlink" href="#equi-distant-point-jacobian" title="Link to this heading"></a></h3>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
   \dfrac{\partial{\Vec{x}'}}{\partial{\Vec{x}}} &amp;=
@@ -290,9 +294,9 @@ finally scaled and offset in the image plane <span class="math notranslate nohig
     J_{21} &amp;= y s_r r_x \\
     J_{22} &amp;= s + y s_r r_y
 \end{align}\end{split}\]</div>
-</div>
-<div class="section" id="equi-distant-parameter-jacobian">
-<h3>Equi-distant Parameter Jacobian<a class="headerlink" href="#equi-distant-parameter-jacobian" title="Permalink to this headline"></a></h3>
+</section>
+<section id="equi-distant-parameter-jacobian">
+<h3>Equi-distant Parameter Jacobian<a class="headerlink" href="#equi-distant-parameter-jacobian" title="Link to this heading"></a></h3>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{align}
   \dfrac{\partial{\Vec{x}'}}{\partial{\Vec{d}}} &amp;=
@@ -311,9 +315,9 @@ finally scaled and offset in the image plane <span class="math notranslate nohig
   J_{23} &amp;= y \theta^7 / r \\
   J_{24} &amp;= y \theta^9 / r
 \end{align}\end{split}\]</div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>

@@ -1,19 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gauge Freedom &mdash; proto alpha documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=1f169f65"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script>window.MathJax = {"tex": {"macros": {"Vec": ["\\mathbf{#1}", 1], "Mat": ["\\mathbf{#1}", 1], "real": "\\rm I\\!R", "Real": ["{\\real^{#1}}", 1], "ones": "{\\Vec{1}}", "Ones": ["{\\Vec{1}_{#1\\times#2}}", 2], "zeros": "{\\Vec{0}}", "Zeros": ["{\\Vec{0}_{#1\\times#2}}", 2], "Norm": ["{\\left\\lVert{#1}\\right\\rVert}", 1], "Det": ["{\\text{det}(#1)}", 1], "I": "{\\Mat{I}}", "Skew": ["{\\left(#1\\right)^{\\times}}", 1], "Min": ["\\text{min}(#1, #2)", 2], "Max": ["\\text{max}(#1, #2)", 2], "argmin": "\\mathop{\\mathrm{argmin}", "Argmin": ["\\underset{#1}{\\text{argmin }}", 1], "transpose": "T", "Transpose": ["{#1^{\\transpose}}", 1], "Inv": ["{#1^{-1}}", 1], "Trace": ["\\text{tr}(#1)", 1], "Rank": ["\\text{rank}(#1)", 1], "E": ["\\mathbb{E}\\left[#1\\right]", 1], "Bigslant": ["{\\left#1/#2\\right}", 2], "cost": "J", "error": "{\\Vec{e}}", "SO": ["\\text{SO}(#1)", 1], "so": ["\\mathfrak{so}(#1)", 1], "jac": "\\text{J}", "RV": ["\\mathbf{#1}", 1, ""], "covar": "\\mathbf{\\Sigma}", "frame": "{\\mathcal{F}}", "rot": "{\\Mat{C}}", "trans": "{\\Vec{r}}", "quat": "{{\\Vec{q}}}", "tf": "{\\Mat{T}}", "pt": "{\\Vec{r}}", "Rot": ["{\\rot_{#1#2}}", 2], "Trans": ["{\\trans_{#1#2}}", 2], "Quat": ["{\\quat_{#1#2}}", 2], "Tf": ["{\\tf_{#1#2}}", 2], "Pt": ["{\\pt_{#1#2}}", 2], "state": "{\\Vec{x}}", "pos": "{\\Vec{r}}", "vel": "{\\Vec{v}}", "acc": "{\\Vec{a}}", "dalpha": "{\\delta\\boldsymbol{\\alpha}}", "dbeta": "{\\delta\\boldsymbol{\\beta}}", "dgamma": "{\\delta\\boldsymbol{\\gamma}}", "dtheta": "{\\delta\\boldsymbol{\\theta}}", "dotdalpha": "{\\delta\\dot{\\boldsymbol{\\alpha}}}", "dotdbeta": "{\\delta\\dot{\\boldsymbol{\\beta}}}", "dotdgamma": "{\\delta\\dot{\\boldsymbol{\\gamma}}}", "dotdtheta": "{\\delta\\dot{\\boldsymbol{\\theta}}}", "dPos": "{\\dot{\\Vec{r}}}", "dVel": "{\\dot{\\Vec{v}}}", "angvel": "{\\boldsymbol{\\omega}}", "gravity": "{\\Vec{g}_{W}}", "noise": "{\\Vec{n}}", "bias": "{\\Vec{b}}", "u": "{\\Vec{u}}", "gyr": "{\\angvel}", "gyrMeas": "{\\angvel_{m}}", "gyrNoise": "{\\noise_{\\omega}}", "gyrBias": "{\\bias_{\\omega}}", "gyrBiasNoise": "{\\noise_{\\bias_{\\omega}}}", "accMeas": "{\\acc_{m}}", "accNoise": "{\\noise_{a}}", "accBias": "{\\bias_{a}}", "accBiasNoise": "{\\noise_{\\bias_{a}}}"}}, "packages": ["base", "ams", "noerrors", "noundefined"], "loader": {"load": ["[tex]/ams", "[tex]/noerrors", "[tex]/noundefined"]}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -28,11 +32,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> proto
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            proto
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -40,9 +48,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Computer Vision</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html">Pinhole Camera Model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html#radial-tangential-distortion">Radial-Tangential Distortion</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html#equi-distant-distortion">Equi-Distant Distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cv/camera_models.html">Camera Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/illum_invar.html">Illumination Invariant Transform</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/optical_flow.html">Optical Flow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cv/twoview.html">Two-View Geometry</a></li>
@@ -73,11 +79,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Statistics</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html">Mean</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#variance">Variance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#standard-deviation">Standard Deviation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#standard-error">Standard Error</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html#bayes-theorem">Bayes Theorem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../stats/stats.html">Statistics Reference</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Linear Algebra</span></p>
 <ul>
@@ -108,8 +110,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Gauge Freedom</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Gauge Freedom</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/se/gauge.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -119,8 +121,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="gauge-freedom">
-<h1>Gauge Freedom<a class="headerlink" href="#gauge-freedom" title="Permalink to this headline"></a></h1>
+  <section id="gauge-freedom">
+<h1>Gauge Freedom<a class="headerlink" href="#gauge-freedom" title="Link to this heading"></a></h1>
 <p>Gauge theory is borrowed from physics.</p>
 <p>Accurate structure from motion or vision based state estimation is hard. One
 hurdle is addressing the accuracy quantitatively. There are two main problems
@@ -143,8 +145,8 @@ They are:</p>
 <li><p>Gauge prior</p></li>
 <li><p>Free gauge</p></li>
 </ul>
-<div class="section" id="gauge-fixation">
-<h2>Gauge fixation<a class="headerlink" href="#gauge-fixation" title="Permalink to this headline"></a></h2>
+<section id="gauge-fixation">
+<h2>Gauge fixation<a class="headerlink" href="#gauge-fixation" title="Link to this heading"></a></h2>
 <p>Gauge fixation method works by decreasing the number of optimization parameters
 to where there are no unobservable states left for the opitmization problem to
 optimize. This is to ensure the Hessian is well conditioned and invertable.
@@ -153,7 +155,7 @@ This approach enforces hard constraints to the solution.</p>
 <span class="math notranslate nohighlight">\(\rot\)</span>, during the iterations of a non-linear least squares solver is to
 use local coordinates, where at the <cite>k</cite>-th iteration, the update is</p>
 <div class="math notranslate nohighlight" id="equation-opt-rot-std-update">
-<span class="eqno">(1)<a class="headerlink" href="#equation-opt-rot-std-update" title="Permalink to this equation"></a></span>\[\rot^{k + 1} = \text{Exp}(\delta \boldsymbol{\phi}^{k}) \rot^{k} .\]</div>
+<span class="eqno">(1)<a class="headerlink" href="#equation-opt-rot-std-update" title="Link to this equation"></a></span>\[\rot^{k + 1} = \text{Exp}(\delta \boldsymbol{\phi}^{k}) \rot^{k} .\]</div>
 <p>Setting the <span class="math notranslate nohighlight">\(z\)</span> component of <span class="math notranslate nohighlight">\(\boldsymbol{\phi}^{k}\)</span> to 0 allows
 fixating the yaw with respect to <span class="math notranslate nohighlight">\(\rot^{k}\)</span>. However, concatenating
 several such updates over <span class="math notranslate nohighlight">\(K\)</span>-iterations,</p>
@@ -181,9 +183,9 @@ used.</p>
 \[\rot_{0} = \text{Exp}(\Delta \boldsymbol{\phi}_{0}) \rot^{0}_{0} \, ,\]</div>
 <p>where the rotation vector <span class="math notranslate nohighlight">\(\Delta \boldsymbol{\phi}_{0}\)</span> is initialized
 to zero and updated.</p>
-</div>
-<div class="section" id="gauge-prior">
-<h2>Gauge prior<a class="headerlink" href="#gauge-prior" title="Permalink to this headline"></a></h2>
+</section>
+<section id="gauge-prior">
+<h2>Gauge prior<a class="headerlink" href="#gauge-prior" title="Link to this heading"></a></h2>
 <p>Gauge prior augments the objective function with an additional penalty to favor
 a solution that satisfies certain constraints in a soft manner.</p>
 <div class="math notranslate nohighlight">
@@ -192,15 +194,15 @@ a solution that satisfies certain constraints in a soft manner.</p>
 \Vec{e}^{\pos}_{0}(\boldsymbol{\theta})
   \enspace \dot{=} \enspace
   (\pos_{0} - \pos^{0}_{0}, \enspace \Delta \phi_{0 z})\]</div>
-</div>
-<div class="section" id="free-gauge">
-<h2>Free gauge<a class="headerlink" href="#free-gauge" title="Permalink to this headline"></a></h2>
+</section>
+<section id="free-gauge">
+<h2>Free gauge<a class="headerlink" href="#free-gauge" title="Link to this heading"></a></h2>
 <p>Free gauge is the most general, lets the optimization parameters evolve freely.
 In order to deal with the singularity with the Hessian, the pseudo inverse is
 used or some preconditioning method inorder to make the Hessian
 well-conditioned and invertible.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
