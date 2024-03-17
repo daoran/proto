@@ -2177,7 +2177,7 @@ module gimbal_yaw_frame(show_roll_frame=1, show_yaw_motor=1, show_sbgc_frame=1) 
 
     translate([0, 0, frame_thickness])
       rotate(80)
-      #gimbal_yaw_limiter();
+      gimbal_yaw_limiter();
 
   }
 
@@ -2305,7 +2305,7 @@ module nuc_frame(mount_w, mount_d, show_nuc=0) {
 
   // Show NUC
   if (show_nuc) {
-    color([0.0, 0.0, 1.0])
+    color([0.0, 1.0, 0.0])
       translate([0, 0, -28 + nuc_standoff_h])
         rotate([90.0, 0.0, 0.0])
           import("../../proto_parts/Intel_NUC7i5DN/NUC7i5DN.STL");
@@ -2926,7 +2926,8 @@ module f450_nuc_frame(show_nuc=1) {
 
 module gimbal_assembly() {
   // Gimbal frame
-  gimbal_frame(nuc_mount_w, nuc_mount_d, 0);
+  rotate(90)
+    gimbal_frame(nuc_mount_w, nuc_mount_d, 0);
 
   // GM4008
   yaw_motor_r = 46.0 / 2;
@@ -2943,12 +2944,13 @@ module gimbal_assembly() {
 
 module perception_module_assembly() {
   // Gimbal
-  translate([0, 0, 56]) {
+  translate([0, 0, 60]) {
     gimbal_assembly();
   }
 
   // NUC
-  translate([0, 0, 20]) {
+  translate([0, 0, 24])
+  rotate(90) {
     // NUC frame
     nuc_frame(nuc_mount_w, nuc_mount_d, show_nuc=1);
 
@@ -2963,7 +2965,16 @@ module perception_module_assembly() {
     translate([-nuc_mount_w / 2, -nuc_mount_d / 2, nuc_standoff_h + 2])
       spacer(M3_SCREW_W + 3, 18.0, M3_SCREW_W);
   }
-  utility_frame(nuc_mount_w, nuc_mount_d, show_components=1);
+
+  // Utility frame
+  translate([0, 0, 24])
+    rotate([180, 0, 90])
+      utility_frame(nuc_mount_w, nuc_mount_d, show_components=1);
+
+  // Second camera
+  translate([43, 0, 10])
+    rotate([0, 90, 0])
+      intel_realsense_frame2(show_camera=1);
 }
 
 module f450_assembly() {
@@ -3038,7 +3049,7 @@ module f450_assembly() {
 }
 
 // gimbal_assembly();
-// perception_module_assembly();
+perception_module_assembly();
 // f450_assembly();
 // f450_nuc_frame(1);
 
@@ -3097,4 +3108,4 @@ module f450_assembly() {
 // mav_top_plate(show_arms=1, show_nuc=0);
 // mav_bottom_plate(show_arms=0);
 // f450_fmu_frame();
-f450_nuc_frame(0);
+// f450_nuc_frame(0);
