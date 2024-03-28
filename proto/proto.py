@@ -45,6 +45,10 @@ from collections import namedtuple
 from collections import defaultdict
 from types import FunctionType
 from typing import Optional
+import asyncio
+import subprocess
+from subprocess import Popen
+from subprocess import PIPE
 
 import cv2
 import yaml
@@ -59,6 +63,16 @@ from pstats import Stats
 SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 EUROC_DATA_PATH = '/data/euroc/V1_01'
+
+###############################################################################
+# PIP
+###############################################################################
+
+
+def pip_install(package):
+  """ Install package via pip """
+  subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
 
 ###############################################################################
 # YAML
@@ -2547,6 +2561,12 @@ def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
 
 def pyqtgraph_mesh(widget):
   """ Plot mesh """
+  try:
+    import pyqtgraph
+  except:
+    pip_install("pyqtgraph")
+    pip_install("pyopengl")
+
   import pyqtgraph.opengl as gl  # Lazy importing
   g = gl.GLGridItem()
   g.scale(1, 1, 1)
@@ -2556,9 +2576,14 @@ def pyqtgraph_mesh(widget):
 
 def pyqtgraph_axes(widget, T, **kwargs):
   """ Plot axes """
-  import pyqtgraph.opengl as gl  # Lazy importing
+  try:
+    import pyqtgraph
+  except:
+    pip_install("pyqtgraph")
+    pip_install("pyopengl")
 
   # Settings
+  import pyqtgraph.opengl as gl  # Lazy importing
   w = kwargs.get("width", 2.0)
   s = kwargs.get("scale", 1.0)
   a = kwargs.get("antialias", False)
@@ -2592,9 +2617,14 @@ def pyqtgraph_axes(widget, T, **kwargs):
 
 def pyqtgraph_example(sys):
   """ Run Qt plot """
+  try:
+    import pyqtgraph
+  except:
+    pip_install("pyqtgraph")
+    pip_install("pyopengl")
+
   from pyqtgraph.Qt import QtWidgets  # Lazy importing
   import pyqtgraph.opengl as gl  # Lazy importing
-
   app = QtWidgets.QApplication(sys.argv)
   widget = gl.GLViewWidget()
 
@@ -12704,10 +12734,10 @@ class TestMav(unittest.TestCase):
 # Visualizer
 ###############################################################################
 
-import websockets
-import asyncio
-
-from subprocess import Popen, PIPE
+try:
+  import websockets
+except:
+  pip_install("websockets")
 
 
 class DevServer:
