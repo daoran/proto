@@ -76,6 +76,7 @@ LDFLAGS= \
 	$(OPENSSL_LDFLAGS) \
 	$(ASSIMP_LDFLAGS) \
 	$(YAML_LDFLAGS) \
+	-lglfw \
 	-lstdc++ \
 	-lpthread \
   -lm
