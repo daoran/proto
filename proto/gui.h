@@ -14,10 +14,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
-
-#define SDL_DISABLE_IMMINTRIN_H 1
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <GLFW/glfw3.h>
 
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -352,8 +349,7 @@ typedef struct gui_t {
   int screen_width;
   int screen_height;
 
-  SDL_Window *window;
-  SDL_Renderer *renderer;
+  GLFWwindow *window;
   char *window_title;
   int window_width;
   int window_height;
@@ -363,16 +359,16 @@ typedef struct gui_t {
   GLfloat movement_speed;
   GLfloat mouse_sensitivity;
 
+  double cursor_x;
+  double cursor_y;
   int left_click;
   int right_click;
+
   int last_cursor_set;
   float last_cursor_x;
   float last_cursor_y;
 } gui_t;
 
-void gui_window_callback(gui_t *gui, const SDL_Event event);
-void gui_keyboard_callback(gui_t *gui, const SDL_Event event);
-void gui_mouse_callback(gui_t *gui, const SDL_Event event);
 void gui_event_handler(gui_t *gui);
 void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);
@@ -382,34 +378,34 @@ void gui_loop(gui_t *gui);
  * IMSHOW
  *****************************************************************************/
 
-typedef struct imshow_t {
-  SDL_Window *window;
-  SDL_Renderer *renderer;
+// typedef struct imshow_t {
+//   SDL_Window *window;
+//   SDL_Renderer *renderer;
 
-  char *window_title;
-  int window_width;
-  int window_height;
-  int loop;
+//   char *window_title;
+//   int window_width;
+//   int window_height;
+//   int loop;
 
-  SDL_Surface *image_surface;
+//   SDL_Surface *image_surface;
 
-  gl_camera_t camera;
-  GLfloat movement_speed;
-  GLfloat mouse_sensitivity;
+//   gl_camera_t camera;
+//   GLfloat movement_speed;
+//   GLfloat mouse_sensitivity;
 
-  int left_click;
-  int right_click;
-  int last_cursor_set;
-  float last_cursor_x;
-  float last_cursor_y;
-} imshow_t;
+//   int left_click;
+//   int right_click;
+//   int last_cursor_set;
+//   float last_cursor_x;
+//   float last_cursor_y;
+// } imshow_t;
 
-void imshow_window_callback(imshow_t *imshow, const SDL_Event event);
-void imshow_keyboard_callback(imshow_t *imshow, const SDL_Event event);
-void imshow_event_handler(imshow_t *gui);
-void imshow_setup(imshow_t *imshow, const char *fp);
-void imshow_reset(imshow_t *imshow);
-void imshow_loop(imshow_t *imshow);
+// void imshow_window_callback(imshow_t *imshow, const SDL_Event event);
+// void imshow_keyboard_callback(imshow_t *imshow, const SDL_Event event);
+// void imshow_event_handler(imshow_t *gui);
+// void imshow_setup(imshow_t *imshow, const char *fp);
+// void imshow_reset(imshow_t *imshow);
+// void imshow_loop(imshow_t *imshow);
 
 #endif // GUI_H
 
@@ -430,6 +426,9 @@ void imshow_loop(imshow_t *imshow);
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #endif
+
+// #define GLAD_GL_IMPLEMENTATION
+// #include "glad.h"
 
 // /**
 //  * Tic, start timer.
@@ -492,13 +491,9 @@ static char *load_file(const char *fp) {
   return buf;
 }
 
-GLfloat gl_deg2rad(const GLfloat d) {
-  return d * M_PI / 180.0f;
-}
+GLfloat gl_deg2rad(const GLfloat d) { return d * M_PI / 180.0f; }
 
-GLfloat gl_rad2deg(const GLfloat r) {
-  return r * 180.0f / M_PI;
-}
+GLfloat gl_rad2deg(const GLfloat r) { return r * 180.0f / M_PI; }
 
 void gl_print_vector(const char *prefix, const GLfloat *x, const int length) {
   printf("%s: [", prefix);
@@ -2064,33 +2059,38 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
  * GUI
  *****************************************************************************/
 
-void gui_window_callback(gui_t *gui, const SDL_Event event) {
-  if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-    const GLsizei width = event.window.data1;
-    const GLsizei height = (event.window.data2 > 0) ? event.window.data2 : 1;
-    glViewport(0, 0, width, height);
-  }
-}
+// void gui_window_callback(gui_t *gui, const SDL_Event event) {
+//   if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+//     const GLsizei width = event.window.data1;
+//     const GLsizei height = (event.window.data2 > 0) ? event.window.data2 : 1;
+//     glViewport(0, 0, width, height);
+//   }
+// }
 
-void gui_keyboard_callback(gui_t *gui, const SDL_Event event) {
+void gui_keyboard_callback(GLFWwindow *window,
+                           int key,
+                           int scancode,
+                           int action,
+                           int mods) {
   const float camera_speed = 0.5f;
+  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
 
-  if (event.type == SDL_KEYDOWN) {
-    switch (event.key.keysym.sym) {
-      case SDLK_ESCAPE:
+  if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+    switch (key) {
+      case GLFW_KEY_ESCAPE:
         gui->loop = 0;
         break;
-      case SDLK_w:
+      case GLFW_KEY_W:
         gui->camera.position[0] += camera_speed * gui->camera.front[0];
         gui->camera.position[1] += camera_speed * gui->camera.front[1];
         gui->camera.position[2] += camera_speed * gui->camera.front[2];
         break;
-      case SDLK_s:
+      case GLFW_KEY_S:
         gui->camera.position[0] -= camera_speed * gui->camera.front[0];
         gui->camera.position[1] -= camera_speed * gui->camera.front[1];
         gui->camera.position[2] -= camera_speed * gui->camera.front[2];
         break;
-      case SDLK_a: {
+      case GLFW_KEY_A: {
         GLfloat camera_left[3] = {0};
         gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
         gl_normalize(camera_left, 3);
@@ -2099,7 +2099,7 @@ void gui_keyboard_callback(gui_t *gui, const SDL_Event event) {
         gui->camera.position[2] -= camera_left[2] * camera_speed;
         break;
       }
-      case SDLK_d: {
+      case GLFW_KEY_D: {
         GLfloat camera_left[3] = {0};
         gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
         gl_normalize(camera_left, 3);
@@ -2108,7 +2108,7 @@ void gui_keyboard_callback(gui_t *gui, const SDL_Event event) {
         gui->camera.position[2] += camera_left[2] * camera_speed;
         break;
       }
-      case SDLK_q:
+      case GLFW_KEY_Q:
         gui->loop = 0;
         break;
     }
@@ -2117,17 +2117,15 @@ void gui_keyboard_callback(gui_t *gui, const SDL_Event event) {
   gl_camera_update(&gui->camera);
 }
 
-void gui_mouse_callback(gui_t *gui, const SDL_Event event) {
-  const float x = event.motion.x;
-  const float y = event.motion.y;
+void gui_cursor_position_callback(GLFWwindow *window, double x, double y) {
+  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
+  gui->cursor_x = x;
+  gui->cursor_y = x;
+
   const float dx = x - gui->last_cursor_x;
   const float dy = y - gui->last_cursor_y;
   gui->last_cursor_x = x;
   gui->last_cursor_y = y;
-
-  gui->left_click = (event.button.button == SDL_BUTTON_LEFT);
-  gui->right_click = (event.button.button == SDL_BUTTON_RIGHT ||
-                      event.button.button == SDL_BUTTON_X1);
 
   if (gui->left_click) {
     // Rotate camera
@@ -2143,8 +2141,8 @@ void gui_mouse_callback(gui_t *gui, const SDL_Event event) {
     } else if (gui->last_cursor_set) {
       gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy);
     }
-  } else if (event.wheel.type == SDL_MOUSEWHEEL && event.wheel.y) {
-    gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, 0, event.wheel.y);
+  // } else if (event.wheel.type == SDL_MOUSEWHEEL && event.wheel.y) {
+  //   gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, 0, event.wheel.y);
   } else {
     // Reset cursor
     gui->left_click = 0;
@@ -2155,61 +2153,44 @@ void gui_mouse_callback(gui_t *gui, const SDL_Event event) {
   }
 }
 
-void gui_event_handler(gui_t *gui) {
-  SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    switch (event.type) {
-      case SDL_WINDOWEVENT:
-        gui_window_callback(gui, event);
-        break;
-      case SDL_KEYUP:
-      case SDL_KEYDOWN:
-        gui_keyboard_callback(gui, event);
-        break;
-      case SDL_MOUSEMOTION:
-      case SDL_MOUSEBUTTONDOWN:
-      case SDL_MOUSEBUTTONUP:
-      case SDL_MOUSEWHEEL:
-        gui_mouse_callback(gui, event);
-        break;
-    }
+void gui_mouse_button_callback(GLFWwindow *window,
+                               int button,
+                               int action,
+                               int mods) {
+  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
+
+  if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    gui->left_click = (action == GLFW_PRESS) ? 1 : 0;
+  }
+  if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+    gui->right_click = (action == GLFW_PRESS) ? 1 : 0;
   }
 }
 
 void gui_setup(gui_t *gui) {
-  // SDL init
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    FATAL("SDL_Init Error: %s/n", SDL_GetError());
+  // GLFW
+  if (!glfwInit()) {
+    printf("Failed to initialize glfw!\n");
+    exit(EXIT_FAILURE);
   }
-
-  // Get display size
-  SDL_DisplayMode disp_mode;
-  SDL_GetCurrentDisplayMode(0, &disp_mode);
-  const int disp_w = disp_mode.w;
-  const int disp_h = disp_mode.h;
-
-  // Window
-  const char *title = "Hello World!";
-  const int w = 640;
-  const int h = 480;
-  const int x = disp_w / 2 - w / 2;
-  const int y = disp_h / 2 - h / 2;
-  const uint32_t flags = SDL_WINDOW_OPENGL;
-  gui->window = SDL_CreateWindow(title, x, y, w, h, flags);
-  if (gui->window == NULL) {
-    FATAL("SDL_CreateWindow Error: %s/n", SDL_GetError());
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  gui->window = glfwCreateWindow(gui->window_width,
+                                 gui->window_height,
+                                 gui->window_title,
+                                 NULL,
+                                 NULL);
+  if (!gui->window) {
+    printf("Failed to create glfw window!\n");
+    glfwTerminate();
+    exit(EXIT_FAILURE);
   }
-  SDL_SetWindowResizable(gui->window, 0);
-
-  gui->renderer = SDL_CreateRenderer(gui->window, -1, SDL_RENDERER_ACCELERATED);
-
-  // OpenGL context
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_GLContext context = SDL_GL_CreateContext(gui->window);
-  SDL_GL_SetSwapInterval(1);
-  UNUSED(context);
+  glfwMakeContextCurrent(gui->window);
+  glfwSetWindowUserPointer(gui->window, gui);
+  glfwSetKeyCallback(gui->window, gui_keyboard_callback);
+  glfwSetCursorPosCallback(gui->window, gui_cursor_position_callback);
+  glfwSetMouseButtonCallback(gui->window, gui_mouse_button_callback);
 
   // GLEW
   GLenum err = glewInit();
@@ -2217,14 +2198,11 @@ void gui_setup(gui_t *gui) {
     FATAL("glewInit failed: %s", glewGetErrorString(err));
   }
 
-  // GL Settings
-  glEnable(GL_DEPTH_TEST);
-
   // Camera
   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
   gui->camera.position[0] = 0;
   gui->camera.position[1] = 1;
-  gui->camera.position[2] = 0;
+  gui->camera.position[2] = -1;
   gui->movement_speed = 50.0f;
   gui->mouse_sensitivity = 0.02f;
 
@@ -2254,82 +2232,46 @@ void gui_loop(gui_t *gui) {
   GLfloat cube_pos[3] = {0.0, 0.0, 0.0};
   gl_cube_setup(&cube, cube_pos);
 
-  gl_entity_t cube2;
-  GLfloat cube2_pos[3] = {2.0, 0.0, 0.0};
-  gl_cube_setup(&cube2, cube2_pos);
-
-  gl_entity_t cube3;
-  GLfloat cube3_pos[3] = {-2.0, 0.0, 0.0};
-  gl_cube_setup(&cube3, cube3_pos);
-
   gl_entity_t cf;
   gl_camera_frame_setup(&cf);
 
-  gl_entity_t frame;
-  gl_axis_frame_setup(&frame);
+  // gl_entity_t frame;
+  // gl_axis_frame_setup(&frame);
 
   gl_entity_t grid;
   gl_grid_setup(&grid);
 
-  // gl_model_t *model = gl_model_load("/home/chutsu/planet/planet.obj");
-  // gl_model_t *mav_model = gl_model_load("/home/chutsu/mav.dae");
-  // gl_model_t *model = gl_model_load("/home/chutsu/aprilgrid/aprilgrid.obj");
-  // gl_model_t *model = gl_model_load("/home/chutsu/aprilgrid.dae");
-  // gl_model_t *model = gl_model_load("/home/chutsu/projects/LearnOpenGL/"
-  //                                   "resources/objects/nanosuit/nanosuit.obj");
-  // gl_model_t *model = gl_model_load("/home/chutsu/castle.dae");
-
-  printf("window_width: %d\n", gui->window_width);
-  printf("window_height: %d\n", gui->window_height);
+  gl_model_t *model = gl_model_load(
+      "/home/chutsu/projects/LearnOpenGL/resources/objects/planet/planet.obj");
 
   gui->loop = 1;
+  glfwMakeContextCurrent(gui->window);
+  glEnable(GL_DEPTH_TEST);
+
   while (gui->loop) {
     // Clear rendering states
     glClear(GL_DEPTH_BUFFER_BIT);
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // glViewport(0, 0, gui->window_width / 2, gui->window_height / 2);
-    // gl_cube_draw(&cube, &gui->camera);
-    // gl_cube_draw(&cube2, &gui->camera);
-    // gl_cube_draw(&cube3, &gui->camera);
-    // gl_camera_frame_draw(&cf, &gui->camera);
+    gl_cube_draw(&cube, &gui->camera);
+    gl_camera_frame_draw(&cf, &gui->camera);
     // gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
     // gl_model_draw(model, &gui->camera);
-    // gl_model_draw(mav_model, &gui->camera);
-
-    // glViewport(gui->window_width / 2,
-    //            0,
-    //            gui->window_width / 2,
-    //            gui->window_height / 2);
-    // glDisable(GL_DEPTH_TEST);
-    // glBegin(GL_LINES);
-    // glVertex2f(-1,01);
-    // glVertex2f(1,1);
-    // glEnd();
-    // glEnable(GL_DEPTH_TEST);
-
-    // int width, height;
-    // SDL_GetWindowSize(gui->window, &width, &height);
-    // gl_save_frame_buffer(width, height, "/tmp/frame.png");
 
     // Update
-    gui_event_handler(gui);
-    SDL_GL_SwapWindow(gui->window);
-    SDL_Delay(1);
+    glfwSwapBuffers(gui->window);
+    glfwPollEvents();
   }
 
   gl_cube_cleanup(&cube);
-  gl_cube_cleanup(&cube2);
-  gl_cube_cleanup(&cube3);
+  // gl_cube_cleanup(&cube2);
+  // gl_cube_cleanup(&cube3);
   gl_camera_frame_cleanup(&cf);
   gl_grid_cleanup(&grid);
-  // gl_model_free(model);
-  // gl_model_free(mav_model);
-
-  SDL_DestroyWindow(gui->window);
-  SDL_Quit();
+  gl_model_free(model);
+  glfwTerminate();
 }
 
 /******************************************************************************
@@ -2883,31 +2825,22 @@ int test_gl_lookat() {
 // TEST SHADER ///////////////////////////////////////////////////////////////
 
 int test_gl_shader_compile() {
-  // SDL init
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    printf("SDL_Init Error: %s/n", SDL_GetError());
-    return -1;
+  // GLFW
+  if (!glfwInit()) {
+    printf("Failed to initialize GLFW!\n");
+    exit(EXIT_FAILURE);
   }
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  // Window
-  const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-  if (window == NULL) {
-    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-    return -1;
+  GLFWwindow *window = glfwCreateWindow(640, 480, "Window", NULL, NULL);
+  if (!window) {
+    printf("Failed to create GLFW window!\n");
+    glfwTerminate();
+    exit(EXIT_FAILURE);
   }
-
-  // OpenGL context
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  SDL_GL_SetSwapInterval(1);
-  UNUSED(context);
+  glfwMakeContextCurrent(window);
 
   // GLEW
   GLenum err = glewInit();
@@ -2929,54 +2862,54 @@ int test_gl_shader_compile() {
 }
 
 int test_gl_shaders_link() {
-  // SDL init
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    printf("SDL_Init Error: %s/n", SDL_GetError());
-    return -1;
-  }
+  // // SDL init
+  // if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+  //   printf("SDL_Init Error: %s/n", SDL_GetError());
+  //   return -1;
+  // }
 
-  // Window
-  const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-  if (window == NULL) {
-    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-    return -1;
-  }
+  // // Window
+  // const char *title = "Hello World!";
+  // const int x = 100;
+  // const int y = 100;
+  // const int w = 640;
+  // const int h = 480;
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  // SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
+  // if (window == NULL) {
+  //   printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
+  //   return -1;
+  // }
 
-  // OpenGL context
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  SDL_GL_SetSwapInterval(1);
-  UNUSED(context);
+  // // OpenGL context
+  // SDL_GLContext context = SDL_GL_CreateContext(window);
+  // SDL_GL_SetSwapInterval(1);
+  // UNUSED(context);
 
-  // GLEW
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    FATAL("glewInit failed: %s", glewGetErrorString(err));
-  }
+  // // GLEW
+  // GLenum err = glewInit();
+  // if (err != GLEW_OK) {
+  //   FATAL("glewInit failed: %s", glewGetErrorString(err));
+  // }
 
-  // Cube vertex shader
-  char *glcube_vs = load_file("./shaders/cube.vert");
-  const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
-  free(glcube_vs);
-  TEST_ASSERT(vs != GL_FALSE);
+  // // Cube vertex shader
+  // char *glcube_vs = load_file("./shaders/cube.vert");
+  // const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
+  // free(glcube_vs);
+  // TEST_ASSERT(vs != GL_FALSE);
 
-  // Cube fragment shader
-  char *glcube_fs = load_file("./shaders/cube.frag");
-  const GLuint fs = gl_shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
-  free(glcube_fs);
-  TEST_ASSERT(fs != GL_FALSE);
+  // // Cube fragment shader
+  // char *glcube_fs = load_file("./shaders/cube.frag");
+  // const GLuint fs = gl_shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
+  // free(glcube_fs);
+  // TEST_ASSERT(fs != GL_FALSE);
 
-  // Link shakders
-  const GLuint gs = GL_FALSE;
-  const GLuint prog = gl_shaders_link(vs, fs, gs);
-  TEST_ASSERT(prog != GL_FALSE);
+  // // Link shakders
+  // const GLuint gs = GL_FALSE;
+  // const GLuint prog = gl_shaders_link(vs, fs, gs);
+  // TEST_ASSERT(prog != GL_FALSE);
 
   return 0;
 }
@@ -2984,45 +2917,45 @@ int test_gl_shaders_link() {
 // TEST GL PROGRAM ///////////////////////////////////////////////////////////
 
 int test_gl_prog_setup() {
-  // SDL init
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    printf("SDL_Init Error: %s/n", SDL_GetError());
-    return -1;
-  }
+  // // SDL init
+  // if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+  //   printf("SDL_Init Error: %s/n", SDL_GetError());
+  //   return -1;
+  // }
 
-  // Window
-  const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-  if (window == NULL) {
-    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-    return -1;
-  }
+  // // Window
+  // const char *title = "Hello World!";
+  // const int x = 100;
+  // const int y = 100;
+  // const int w = 640;
+  // const int h = 480;
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  // SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
+  // if (window == NULL) {
+  //   printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
+  //   return -1;
+  // }
 
-  // OpenGL context
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  SDL_GL_SetSwapInterval(1);
-  UNUSED(context);
+  // // OpenGL context
+  // SDL_GLContext context = SDL_GL_CreateContext(window);
+  // SDL_GL_SetSwapInterval(1);
+  // UNUSED(context);
 
-  // GLEW
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    FATAL("glewInit failed: %s", glewGetErrorString(err));
-  }
+  // // GLEW
+  // GLenum err = glewInit();
+  // if (err != GLEW_OK) {
+  //   FATAL("glewInit failed: %s", glewGetErrorString(err));
+  // }
 
-  // Shader program
-  char *glcube_vs = load_file("./shaders/cube.vert");
-  char *glcube_fs = load_file("./shaders/cube.frag");
-  const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL);
-  free(glcube_vs);
-  free(glcube_fs);
-  TEST_ASSERT(program_id != GL_FALSE);
+  // // Shader program
+  // char *glcube_vs = load_file("./shaders/cube.vert");
+  // char *glcube_fs = load_file("./shaders/cube.frag");
+  // const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL);
+  // free(glcube_vs);
+  // free(glcube_fs);
+  // TEST_ASSERT(program_id != GL_FALSE);
 
   return 0;
 }
@@ -3070,41 +3003,41 @@ int test_gl_camera_setup() {
 // TEST GL-MODEL /////////////////////////////////////////////////////////////
 
 int test_gl_model_load() {
-  // SDL init
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    printf("SDL_Init Error: %s/n", SDL_GetError());
-    return -1;
-  }
+  // // SDL init
+  // if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+  //   printf("SDL_Init Error: %s/n", SDL_GetError());
+  //   return -1;
+  // }
 
-  // Window
-  const char *title = "Hello World!";
-  const int x = 100;
-  const int y = 100;
-  const int w = 640;
-  const int h = 480;
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-  if (window == NULL) {
-    printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-    return -1;
-  }
+  // // Window
+  // const char *title = "Hello World!";
+  // const int x = 100;
+  // const int y = 100;
+  // const int w = 640;
+  // const int h = 480;
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  // SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
+  // if (window == NULL) {
+  //   printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
+  //   return -1;
+  // }
 
-  // OpenGL context
-  SDL_GLContext context = SDL_GL_CreateContext(window);
-  SDL_GL_SetSwapInterval(1);
-  UNUSED(context);
+  // // OpenGL context
+  // SDL_GLContext context = SDL_GL_CreateContext(window);
+  // SDL_GL_SetSwapInterval(1);
+  // UNUSED(context);
 
   // GLEW
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    FATAL("glewInit failed: %s", glewGetErrorString(err));
-  }
+  // GLenum err = glewInit();
+  // if (err != GLEW_OK) {
+  //   FATAL("glewInit failed: %s", glewGetErrorString(err));
+  // }
 
   // GL MODEL
-  gl_model_t *model = gl_model_load("/home/chutsu/planet/planet.obj");
-  gl_model_free(model);
+  // gl_model_t *model = gl_model_load("/home/chutsu/monkey.obj");
+  // gl_model_free(model);
 
   return 0;
 }
@@ -3113,7 +3046,7 @@ int test_gl_model_load() {
 
 int test_gui() {
   gui_t gui;
-  gui.window_title = "Test";
+  gui.window_title = "viz";
   gui.window_width = 640;
   gui.window_height = 480;
 
@@ -3147,39 +3080,31 @@ int test_gui() {
 
 // TEST GLFW /////////////////////////////////////////////////////////////////
 
-// #include <glad/gl.h>
 // #include <GLFW/glfw3.h>
 
-// int test_glfw() {
-//   if (!glfwInit()) {
-//     exit(EXIT_FAILURE);
-//   }
+int test_glfw() {
+  if (!glfwInit()) {
+    exit(EXIT_FAILURE);
+  }
 
-//   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-//   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-//   GLFWwindow *window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+  GLFWwindow *window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
+  if (!window) {
+    glfwTerminate();
+    exit(EXIT_FAILURE);
+  }
 
-//   if (!window) {
-//     glfwTerminate();
-//     exit(EXIT_FAILURE);
-//   }
+  while (!glfwWindowShouldClose(window)) {
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+  }
+  glfwTerminate();
 
-//   // glad: load all OpenGL function pointers
-//   if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
-//     printf("Failed to initialize GLAD");
-//     return -1;
-//   }
-
-//   while (!glfwWindowShouldClose(window)) {
-//     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-//     glClear(GL_COLOR_BUFFER_BIT);
-//     glfwSwapBuffers(window);
-//     glfwPollEvents();
-//   }
-//   glfwTerminate();
-
-//   return 0;
-// }
+  return 0;
+}
 
 int main(int argc, char *argv[]) {
   // TEST(test_gl_zeros);
