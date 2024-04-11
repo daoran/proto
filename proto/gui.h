@@ -2059,13 +2059,12 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
  * GUI
  *****************************************************************************/
 
-// void gui_window_callback(gui_t *gui, const SDL_Event event) {
-//   if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-//     const GLsizei width = event.window.data1;
-//     const GLsizei height = (event.window.data2 > 0) ? event.window.data2 : 1;
-//     glViewport(0, 0, width, height);
-//   }
-// }
+void gui_window_size_callback(GLFWwindow *window, int width, int height) {
+  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
+  gui->window_width = width;
+  gui->window_height = height;
+  glViewport(0, 0, width, height);
+}
 
 void gui_keyboard_callback(GLFWwindow *window,
                            int key,
@@ -2141,8 +2140,8 @@ void gui_cursor_position_callback(GLFWwindow *window, double x, double y) {
     } else if (gui->last_cursor_set) {
       gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy);
     }
-  // } else if (event.wheel.type == SDL_MOUSEWHEEL && event.wheel.y) {
-  //   gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, 0, event.wheel.y);
+    // } else if (event.wheel.type == SDL_MOUSEWHEEL && event.wheel.y) {
+    //   gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, 0, event.wheel.y);
   } else {
     // Reset cursor
     gui->left_click = 0;
@@ -2188,6 +2187,7 @@ void gui_setup(gui_t *gui) {
   }
   glfwMakeContextCurrent(gui->window);
   glfwSetWindowUserPointer(gui->window, gui);
+  glfwSetWindowSizeCallback(gui->window, gui_window_size_callback);
   glfwSetKeyCallback(gui->window, gui_keyboard_callback);
   glfwSetCursorPosCallback(gui->window, gui_cursor_position_callback);
   glfwSetMouseButtonCallback(gui->window, gui_mouse_button_callback);
@@ -2202,7 +2202,7 @@ void gui_setup(gui_t *gui) {
   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
   gui->camera.position[0] = 0;
   gui->camera.position[1] = 1;
-  gui->camera.position[2] = -1;
+  gui->camera.position[2] = -2;
   gui->movement_speed = 50.0f;
   gui->mouse_sensitivity = 0.02f;
 
@@ -2262,12 +2262,12 @@ void gui_loop(gui_t *gui) {
 
     // Update
     glfwSwapBuffers(gui->window);
+    glfwSetWindowAspectRatio(gui->window, 16, 9);
     glfwPollEvents();
+    gl_camera_update(&gui->camera);
   }
 
   gl_cube_cleanup(&cube);
-  // gl_cube_cleanup(&cube2);
-  // gl_cube_cleanup(&cube3);
   gl_camera_frame_cleanup(&cf);
   gl_grid_cleanup(&grid);
   gl_model_free(model);
