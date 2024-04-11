@@ -264,6 +264,10 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GL-PRIMITIVES
  *****************************************************************************/
 
+void gl_triangle_setup(gl_entity_t *entity, GLfloat pos[3]);
+void gl_triangle_cleanup(const gl_entity_t *entity);
+void gl_triangle_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+
 void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]);
 void gl_cube_cleanup(const gl_entity_t *entity);
 void gl_cube_draw(const gl_entity_t *entity, const gl_camera_t *camera);
@@ -373,39 +377,6 @@ void gui_event_handler(gui_t *gui);
 void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);
 void gui_loop(gui_t *gui);
-
-/******************************************************************************
- * IMSHOW
- *****************************************************************************/
-
-// typedef struct imshow_t {
-//   SDL_Window *window;
-//   SDL_Renderer *renderer;
-
-//   char *window_title;
-//   int window_width;
-//   int window_height;
-//   int loop;
-
-//   SDL_Surface *image_surface;
-
-//   gl_camera_t camera;
-//   GLfloat movement_speed;
-//   GLfloat mouse_sensitivity;
-
-//   int left_click;
-//   int right_click;
-//   int last_cursor_set;
-//   float last_cursor_x;
-//   float last_cursor_y;
-// } imshow_t;
-
-// void imshow_window_callback(imshow_t *imshow, const SDL_Event event);
-// void imshow_keyboard_callback(imshow_t *imshow, const SDL_Event event);
-// void imshow_event_handler(imshow_t *gui);
-// void imshow_setup(imshow_t *imshow, const char *fp);
-// void imshow_reset(imshow_t *imshow);
-// void imshow_loop(imshow_t *imshow);
 
 #endif // GUI_H
 
@@ -2255,10 +2226,21 @@ void gui_loop(gui_t *gui) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     gl_cube_draw(&cube, &gui->camera);
-    gl_camera_frame_draw(&cf, &gui->camera);
+    // gl_camera_frame_draw(&cf, &gui->camera);
     // gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
     // gl_model_draw(model, &gui->camera);
+
+    glBegin(GL_QUADS);
+    glColor3d(1, 0, 0);
+    glVertex3f(-1, -1, -10);
+    glColor3d(1, 1, 0);
+    glVertex3f(1, -1, -10);
+    glColor3d(1, 1, 1);
+    glVertex3f(1, 1, -10);
+    glColor3d(0, 1, 1);
+    glVertex3f(-1, 1, -10);
+    glEnd();
 
     // Update
     glfwSwapBuffers(gui->window);
@@ -2273,201 +2255,6 @@ void gui_loop(gui_t *gui) {
   gl_model_free(model);
   glfwTerminate();
 }
-
-/******************************************************************************
- * IMSHOW
- *****************************************************************************/
-
-//void imshow_window_callback(imshow_t *imshow, const SDL_Event event) {
-//  if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-//    SDL_Surface *screen_surface = SDL_GetWindowSurface(imshow->window);
-
-//    Uint32 color = SDL_MapRGB(screen_surface->format, 0, 0, 0);
-//    SDL_FillRect(screen_surface, NULL, color);
-
-//    SDL_Rect stretch;
-//    stretch.x = 0;
-//    stretch.y = 0;
-//    stretch.w = event.window.data1;
-//    stretch.h = event.window.data2;
-//    SDL_BlitScaled(imshow->image_surface, NULL, screen_surface, &stretch);
-//  }
-//}
-
-//void imshow_keyboard_callback(imshow_t *imshow, const SDL_Event event) {
-//  if (event.type == SDL_KEYDOWN) {
-//    switch (event.key.keysym.sym) {
-//      case SDLK_ESCAPE:
-//        imshow->loop = 0;
-//        break;
-//      case SDLK_q:
-//        imshow->loop = 0;
-//        break;
-//    }
-//  }
-//}
-
-//void imshow_event_handler(imshow_t *imshow) {
-//  SDL_Event event;
-//  while (SDL_PollEvent(&event)) {
-//    switch (event.type) {
-//      case SDL_WINDOWEVENT:
-//        imshow_window_callback(imshow, event);
-//        break;
-//      case SDL_KEYUP:
-//      case SDL_KEYDOWN:
-//        imshow_keyboard_callback(imshow, event);
-//        break;
-//    }
-//  }
-//}
-
-//void draw_circle(SDL_Renderer *renderer,
-//                 const int cx,
-//                 const int cy,
-//                 const int radius,
-//                 const SDL_Color color) {
-//  SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-//  for (int x = cx - radius; x <= cx + radius; x++) {
-//    for (int y = cy - radius; y <= cy + radius; y++) {
-//      if ((pow(cy - y, 2) + pow(cx - x, 2)) <= pow(radius, 2)) {
-//        SDL_RenderDrawPoint(renderer, x, y);
-//      }
-//    }
-//  }
-//}
-
-//// void draw_circle(SDL_Renderer *renderer,
-////                  int32_t centreX,
-////                  int32_t centreY,
-////                  int32_t radius,
-////                  const SDL_Color color) {
-////   SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-////   const int32_t diameter = (radius * 2);
-////
-////   int32_t x = (radius - 1);
-////   int32_t y = 0;
-////   int32_t tx = 1;
-////   int32_t ty = 1;
-////   int32_t error = (tx - diameter);
-////
-////   while (x >= y) {
-////     //  Each of the following renders an octant of the circle
-////     SDL_RenderDrawPoint(renderer, centreX + x, centreY - y);
-////     SDL_RenderDrawPoint(renderer, centreX + x, centreY + y);
-////     SDL_RenderDrawPoint(renderer, centreX - x, centreY - y);
-////     SDL_RenderDrawPoint(renderer, centreX - x, centreY + y);
-////     SDL_RenderDrawPoint(renderer, centreX + y, centreY - x);
-////     SDL_RenderDrawPoint(renderer, centreX + y, centreY + x);
-////     SDL_RenderDrawPoint(renderer, centreX - y, centreY - x);
-////     SDL_RenderDrawPoint(renderer, centreX - y, centreY + x);
-////
-////     if (error <= 0) {
-////       ++y;
-////       error += ty;
-////       ty += 2;
-////     }
-////
-////     if (error > 0) {
-////       --x;
-////       tx += 2;
-////       error += (tx - diameter);
-////     }
-////   }
-//// }
-
-//void imshow_setup(imshow_t *im, const char *fp) {
-//  // SDL init
-//  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-//    FATAL("SDL_Init Error: %s/n", SDL_GetError());
-//  }
-
-//  // Load image
-//  im->image_surface = IMG_Load(fp);
-//  if (im->image_surface == NULL) {
-//    FATAL("Failed to load image [%s]!", fp);
-//  }
-//  const int img_w = im->image_surface->w;
-//  const int img_h = im->image_surface->h;
-
-//  // Get display size
-//  SDL_DisplayMode disp_mode;
-//  SDL_GetCurrentDisplayMode(0, &disp_mode);
-//  const int disp_w = disp_mode.w;
-//  const int disp_h = disp_mode.h;
-
-//  // Create window
-//  const int x = disp_w / 2 - img_w / 2;
-//  const int y = disp_h / 2 - img_h / 2;
-//  const int w = img_w;
-//  const int h = img_h;
-//  if (SDL_CreateWindowAndRenderer(w, h, 0, &im->window, &im->renderer) != 0) {
-//    FATAL("Failed to create window: %s\n", SDL_GetError());
-//  }
-//  SDL_SetWindowTitle(im->window, im->window_title);
-//  SDL_SetWindowPosition(im->window, x, y);
-//  SDL_SetWindowResizable(im->window, 1);
-
-//  // Clear render
-//  SDL_SetRenderDrawColor(im->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-//  SDL_RenderClear(im->renderer);
-
-//  // Show image
-//  SDL_Texture *texture =
-//      SDL_CreateTextureFromSurface(im->renderer, im->image_surface);
-//  SDL_RenderCopy(im->renderer, texture, NULL, NULL);
-//  SDL_RenderPresent(im->renderer);
-
-//  // Draw circles
-//  const int x_min = 0;
-//  const int y_min = 0;
-//  const int x_max = img_w;
-//  const int y_max = img_h;
-//  for (int i = 0; i < 200; i++) {
-//    const int x = (rand() % (x_max + 1 - x_min)) + x_min;
-//    const int y = (rand() % (y_max + 1 - y_min)) + y_min;
-//    const int radius = 5;
-//    SDL_Color color;
-//    color.r = 255;
-//    color.g = 0;
-//    color.b = 0;
-//    color.a = 255;
-//    draw_circle(im->renderer, x, y, radius, color);
-//  }
-//  SDL_RenderPresent(im->renderer);
-
-//  // Cursor
-//  im->left_click = 0;
-//  im->right_click = 0;
-//  im->last_cursor_set = 0;
-//  im->last_cursor_x = 0.0f;
-//  im->last_cursor_y = 0.0f;
-//}
-
-//void imshow_reset(imshow_t *imshow) {
-//  // Camera
-//  imshow->movement_speed = 50.0f;
-//  imshow->mouse_sensitivity = 0.02f;
-
-//  // Cursor
-//  imshow->left_click = 0;
-//  imshow->right_click = 0;
-//  imshow->last_cursor_set = 0;
-//  imshow->last_cursor_x = 0.0f;
-//  imshow->last_cursor_y = 0.0f;
-//}
-
-//void imshow_loop(imshow_t *imshow) {
-//  imshow->loop = 1;
-//  while (imshow->loop) {
-//    imshow_event_handler(imshow);
-//    SDL_UpdateWindowSurface(imshow->window);
-//    SDL_Delay(1);
-//  }
-
-//  SDL_DestroyWindow(imshow->window);
-//  SDL_Quit();
-//}
 
 #endif // GUI_IMPLEMENTATION
 
@@ -3056,31 +2843,7 @@ int test_gui() {
   return 0;
 }
 
-// TEST IMSHOW ///////////////////////////////////////////////////////////////
-
-// int test_imshow() {
-//   imshow_t imshow;
-//   imshow.window_title = "Test";
-//   imshow_setup(&imshow, "test_data/images/awesomeface.png");
-
-//   /* int x = 100; */
-//   /* int y = 100; */
-//   /* int radius = 10; */
-//   /* SDL_Color color; */
-//   /* color.r = 0; */
-//   /* color.g = 0; */
-//   /* color.b = 0; */
-//   /* color.a = 255; */
-//   /* draw_circle(imshow.renderer, x, y, radius, color); */
-
-//   imshow_loop(&imshow);
-
-//   return 0;
-// }
-
 // TEST GLFW /////////////////////////////////////////////////////////////////
-
-// #include <GLFW/glfw3.h>
 
 int test_glfw() {
   if (!glfwInit()) {
@@ -3127,7 +2890,6 @@ int main(int argc, char *argv[]) {
   // TEST(test_gl_model_load);
   TEST(test_gui);
   // TEST(test_glfw);
-  // TEST(test_imshow);
 
   return (nb_failed) ? -1 : 0;
 }
