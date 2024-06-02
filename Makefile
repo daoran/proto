@@ -16,6 +16,8 @@ third_party: ## Install dependencies
 	@make -s -C third_party
 
 docs: ## Build docs
+	@pip3 install sphinx
+	@pip3 install sphinx-autobuild
 	@sleep 3 && xdg-open http://127.0.0.1:8000 &
 	@rm -rf docs/build
 	@sphinx-autobuild docs/source docs/build/html
