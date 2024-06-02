@@ -54,7 +54,7 @@ install_apt_pkgs:
 	@sudo apt-get install -y -qqq libassimp-dev libassimp-doc
 	@sudo apt-get install -y -qqq libyaml-cpp-dev
 
-build_pkgs: build_apriltag build_stb build_dbow2
+build_pkgs: build_apriltag build_glfw build_stb build_dbow2
 
 build_apriltag:
 	@sudo apt-get install -y -qqq cmake libeigen3-dev libv4l-dev libopencv-*
