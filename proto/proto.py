@@ -2327,6 +2327,44 @@ class Arrow3D(FancyArrowPatch):
     return np.min(zs)
 
 
+def plot_bbox(ax, center, size):
+  """
+  Plot a 3D bounding box on the given axis.
+
+  Parameters
+  ----------
+
+    ax: The matplotlib 3D axis.
+    center: The center coordinates of the box (x, y, z).
+    size: A tuple or list containing the dimensions (size_x, size_y, size_z).
+
+  """
+
+  # Calculate box corners
+  lx, ly, lz = size
+  x, y, z = center
+  x1, y1, z1 = x - lx/2, y - ly/2, z - lz/2
+  x2, y2, z2 = x + lx/2, y + ly/2, z + lz/2
+
+  # Create box vertices
+  vertices = [
+      (x1, y1, z1), (x2, y1, z1), (x2, y2, z1), (x1, y2, z1),
+      (x1, y1, z2), (x2, y1, z2), (x2, y2, z2), (x1, y2, z2)
+  ]
+
+  # Create edges
+  edges = [
+      [0, 1], [1, 2], [2, 3], [3, 0],  # bottom face
+      [4, 5], [5, 6], [6, 7], [7, 4],  # top face
+      [0, 4], [1, 5], [2, 6], [3, 7]  # side edges
+  ]
+
+  # Plot edges
+  for edge in edges:
+      ax.plot3D(*zip(*[vertices[edge[0]], vertices[edge[1]]]), color='b')
+
+
+
 def plot_set_axes_equal(ax):
   """
   Make axes of 3D plot have equal scale so that spheres appear as spheres,
