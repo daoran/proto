@@ -15,6 +15,7 @@ Contains the following library code useful for prototyping robotic algorithms:
 - CV
 - DATASET
 - FILTER
+- OCTREE
 - STATE ESTIMATION
 - CALIBRATION
 - SIMULATION
@@ -5252,6 +5253,95 @@ class TestKalmanFilter(unittest.TestCase):
       plt.xlabel("x [m]")
       plt.ylabel("y [m]")
       plt.show()
+
+
+###############################################################################
+# OCTREE
+###############################################################################
+
+
+class OctreeNode:
+  def __init__(self, center, size, depth, max_depth):
+    self.center = center
+    self.size = size
+    self.depth = depth
+    self.max_depth = max_depth
+    self.children = [None for _ in range(8)]
+    self.data = []
+
+  def insert(self, point):
+    if self.depth == self.max_depth:
+      self.data.append(point)
+      return
+
+    index = 0
+    for i in range(3):
+      if point[i] < self.center[i]:
+        index |= (1 << i)
+
+    offset_x = (-1)**(index&1) * self.size / 4.0
+    offset_y = (-1)**((index>>1)&1) * self.size / 4.0
+    offset_z = (-1)**((index>>2)&1) * self.size / 4.0
+
+    child = self.children[index]
+    if child is None:
+      new_center = self.center + np.array([offset_x, offset_y, offset_z])
+      child = OctreeNode(new_center, self.size / 2.0, self.depth + 1, self.max_depth)
+      self.children[index] = child
+
+    self.children[index].insert(point)
+
+
+class Octree:
+  def __init__(self, points, max_depth=2):
+    self.center = np.array([0.0, 0.0, 0.0])
+    self.size = 2.0
+    self.root = OctreeNode(self.center, self.size, 0, max_depth)
+    for point in points:
+      self.root.insert(point)
+
+  def get_points_and_bboxes(self, node, points_list, bboxes_list):
+    # Get points
+    if node.data:
+      points_list.extend(node.data)
+
+    # Get bounding boxes
+    bboxes_list.append((node.center, node.size))
+
+    # DFS get points and bboxes
+    for child in node.children:
+      if child:
+        self.get_points_and_bboxes(child, points_list, bboxes_list)
+
+
+class TestOctree(unittest.TestCase):
+  """ Test Octree """
+
+  def test_octree(self):
+    points = [np.random.rand(3) for _ in range(100)]
+    center = [0.0, 0.0, 0.0]
+    size = 100.0
+    octree = Octree(points)
+
+    octree_points = []
+    octree_bboxes = []
+    octree.get_points_and_bboxes(octree.root, octree_points, octree_bboxes)
+
+    # Visualize octree
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # -- Plot bounding boxes
+    for center, size in octree_bboxes:
+      plot_bbox(ax, center, [size, size, size])
+
+    # -- Plot points
+    for p in octree_points:
+      ax.plot(p[0], p[1], p[2], 'r.')
+
+    plt.show()
+
+
 
 
 ###############################################################################
