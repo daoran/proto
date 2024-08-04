@@ -2473,11 +2473,12 @@ def plot_tf(ax, T, **kwargs):
   assert T.shape == (4, 4)
 
   size = kwargs.get('size', 1)
-  # linewidth = kwargs.get('linewidth', 3)
+  linewidth = kwargs.get('linewidth', 2)
   name = kwargs.get('name', None)
-  name_offset = kwargs.get('name_offset', [0, 0, -0.01])
+  nameoffset = kwargs.get('nameoffset', [0, 0, -0.01])
   fontsize = kwargs.get('fontsize', 10)
   fontweight = kwargs.get('fontweight', 'bold')
+  fontcolor = kwargs.get('fontcolor', 'k')
   colors = kwargs.get('colors', ['r-', 'g-', 'b-'])
 
   origin = tf_trans(T)
@@ -2489,20 +2490,21 @@ def plot_tf(ax, T, **kwargs):
   px = [origin[0], lx[0]]
   py = [origin[1], lx[1]]
   pz = [origin[2], lx[2]]
-  xaxis = ax.plot(px, py, pz, colors[0])[0]
+  xaxis = ax.plot(px, py, pz, colors[0], linewidth=linewidth)[0]
 
   # Draw y-axis
   px = [origin[0], ly[0]]
   py = [origin[1], ly[1]]
   pz = [origin[2], ly[2]]
-  yaxis = ax.plot(px, py, pz, colors[1])[0]
+  yaxis = ax.plot(px, py, pz, colors[1], linewidth=linewidth)[0]
 
   # Draw z-axis
   px = [origin[0], lz[0]]
   py = [origin[1], lz[1]]
   pz = [origin[2], lz[2]]
-  zaxis = ax.plot(px, py, pz, colors[2])[0]
+  zaxis = ax.plot(px, py, pz, colors[2], linewidth=linewidth)[0]
 
+  # rot = tf_rot(T)
   # Draw label
   if name is not None:
     x = origin[0] + name_offset[0]
