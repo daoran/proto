@@ -50,6 +50,7 @@ import asyncio
 import subprocess
 from subprocess import Popen
 from subprocess import PIPE
+from itertools import combinations
 
 import cv2
 import yaml
@@ -1009,9 +1010,9 @@ def sphere(rho, theta, phi):
 
 def circle_loss(c, x, y):
   """
-    Calculate the algebraic distance between the data points and the mean
-    circle centered at c=(xc, yc)
-    """
+  Calculate the algebraic distance between the data points and the mean
+  circle centered at c=(xc, yc)
+  """
   xc, yc = c
   # Euclidean dist from center (xc, yc)
   Ri = np.sqrt((x - xc)**2 + (y - yc)**2)
@@ -1020,8 +1021,8 @@ def circle_loss(c, x, y):
 
 def find_circle(x, y):
   """
-    Find the circle center and radius given (x, y) data points using least
-    squares. Returns `(circle_center, circle_radius, residual)`
+  Find the circle center and radius given (x, y) data points using least
+  squares. Returns `(circle_center, circle_radius, residual)`
   """
   x_m = np.mean(x)
   y_m = np.mean(y)
@@ -1038,21 +1039,21 @@ def find_circle(x, y):
 
 def bresenham(p0, p1):
   """
-    Bresenham's line algorithm is a line drawing algorithm that determines the
-    points of an n-dimensional raster that should be selected in order to form
-    a close approximation to a straight line between two points. It is commonly
-    used to draw line primitives in a bitmap image (e.g. on a computer screen),
-    as it uses only integer addition, subtraction and bit shifting, all of
-    which are very cheap operations in standard computer architectures.
+  Bresenham's line algorithm is a line drawing algorithm that determines the
+  points of an n-dimensional raster that should be selected in order to form
+  a close approximation to a straight line between two points. It is commonly
+  used to draw line primitives in a bitmap image (e.g. on a computer screen),
+  as it uses only integer addition, subtraction and bit shifting, all of
+  which are very cheap operations in standard computer architectures.
 
-    Args:
+  Args:
 
-      p0 (np.array): Starting point (x, y)
-      p1 (np.array): End point (x, y)
+    p0 (np.array): Starting point (x, y)
+    p1 (np.array): End point (x, y)
 
-    Returns:
+  Returns:
 
-      A list of (x, y) intermediate points from p0 to p1.
+    A list of (x, y) intermediate points from p0 to p1.
 
   """
   x0, y0 = p0
@@ -1078,6 +1079,44 @@ def bresenham(p0, p1):
       # overshot in the x direction
       err = err + dx
       y0 = y0 + sy
+
+
+def find_intersection(p1, p2, q1, q2):
+  """
+  Find the intersection between two lines formed by points p1, p2 and q1, q2
+  for line 1 and line 2 respectively.
+
+  Args:
+
+    p1 (np.array): Starting point for line 1
+    p2 (np.array): End point for line 1
+    q1 (np.array): Starting point for line 2
+    q2 (np.array): End point for line 2
+
+  Returns:
+
+    status (bool): To denote whether there is an intersection
+    intersection (np.array): Intersection point from line 1
+
+  """
+  # Direction vectors for line 1 and line 2
+  d1 = p2 - p1
+  d2 = q2 - q1
+
+  # Form Ax = b
+  A = np.array([d1, -d2]).T  # A 3x2 matrix
+  b = q1 - p1                # A 3x1 vector
+
+  # Use least squares to solve (since A is not square)
+  t_s, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
+  t, s = t_s
+
+  # Check if they intersect
+  line1_intersect = p1 + t * d1
+  line2_intersect = q1 + s * d2
+  status = np.allclose(line1_intersect, line2_intersect)
+
+  return status, p1 + t * d1
 
 
 ###############################################################################
@@ -2344,26 +2383,32 @@ def plot_bbox(ax, center, size):
   # Calculate box corners
   lx, ly, lz = size
   x, y, z = center
-  x1, y1, z1 = x - lx/2, y - ly/2, z - lz/2
-  x2, y2, z2 = x + lx/2, y + ly/2, z + lz/2
+  x1, y1, z1 = x - lx / 2, y - ly / 2, z - lz / 2
+  x2, y2, z2 = x + lx / 2, y + ly / 2, z + lz / 2
 
   # Create box vertices
-  vertices = [
-      (x1, y1, z1), (x2, y1, z1), (x2, y2, z1), (x1, y2, z1),
-      (x1, y1, z2), (x2, y1, z2), (x2, y2, z2), (x1, y2, z2)
-  ]
+  vertices = [(x1, y1, z1), (x2, y1, z1), (x2, y2, z1), (x1, y2, z1),
+              (x1, y1, z2), (x2, y1, z2), (x2, y2, z2), (x1, y2, z2)]
 
   # Create edges
   edges = [
-      [0, 1], [1, 2], [2, 3], [3, 0],  # bottom face
-      [4, 5], [5, 6], [6, 7], [7, 4],  # top face
-      [0, 4], [1, 5], [2, 6], [3, 7]  # side edges
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 0],  # bottom face
+      [4, 5],
+      [5, 6],
+      [6, 7],
+      [7, 4],  # top face
+      [0, 4],
+      [1, 5],
+      [2, 6],
+      [3, 7]  # side edges
   ]
 
   # Plot edges
   for edge in edges:
-      ax.plot3D(*zip(*[vertices[edge[0]], vertices[edge[1]]]), color='b')
-
+    ax.plot3D(*zip(*[vertices[edge[0]], vertices[edge[1]]]), color='b')
 
 
 def plot_set_axes_equal(ax):
@@ -2506,12 +2551,41 @@ def plot_tf(ax, T, **kwargs):
   zaxis = ax.plot(px, py, pz, colors[2], linewidth=linewidth)[0]
 
   # rot = tf_rot(T)
+  # tip_offset = 0.041
+  # arrow_x = Arrow3D(*origin,
+  #                   *(rot @ np.array([size + tip_offset, 0.0, 0.0])),
+  #                   mutation_scale=15,
+  #                   color="r",
+  #                   arrowstyle="-|>",
+  #                   linestyle="None")
+  # arrow_y = Arrow3D(*origin,
+  #                   *(rot @ np.array([0.0, size + tip_offset, 0.0])),
+  #                   mutation_scale=15,
+  #                   color="g",
+  #                   arrowstyle="-|>",
+  #                   linestyle="None")
+  # arrow_z = Arrow3D(*origin,
+  #                   *(rot @ np.array([0.0, 0.0, size + tip_offset])),
+  #                   mutation_scale=15,
+  #                   color="b",
+  #                   arrowstyle="-|>",
+  #                   linestyle="None")
+  # ax.add_artist(arrow_x)
+  # ax.add_artist(arrow_y)
+  # ax.add_artist(arrow_z)
+
   # Draw label
   if name is not None:
-    x = origin[0] + name_offset[0]
-    y = origin[1] + name_offset[1]
-    z = origin[2] + name_offset[2]
-    text = ax.text(x, y, z, name, fontsize=fontsize, fontweight=fontweight)
+    x = origin[0] + nameoffset[0]
+    y = origin[1] + nameoffset[1]
+    z = origin[2] + nameoffset[2]
+    text = ax.text(x,
+                   y,
+                   z,
+                   name,
+                   fontsize=fontsize,
+                   fontweight=fontweight,
+                   color=fontcolor)
     return (xaxis, yaxis, zaxis, text)
 
   return (xaxis, yaxis, zaxis)
@@ -5279,14 +5353,15 @@ class OctreeNode:
       if point[i] < self.center[i]:
         index |= (1 << i)
 
-    offset_x = (-1)**(index&1) * self.size / 4.0
-    offset_y = (-1)**((index>>1)&1) * self.size / 4.0
-    offset_z = (-1)**((index>>2)&1) * self.size / 4.0
+    offset_x = (-1)**(index & 1) * self.size / 4.0
+    offset_y = (-1)**((index >> 1) & 1) * self.size / 4.0
+    offset_z = (-1)**((index >> 2) & 1) * self.size / 4.0
 
     child = self.children[index]
     if child is None:
       new_center = self.center + np.array([offset_x, offset_y, offset_z])
-      child = OctreeNode(new_center, self.size / 2.0, self.depth + 1, self.max_depth)
+      child = OctreeNode(new_center, self.size / 2.0, self.depth + 1,
+                         self.max_depth)
       self.children[index] = child
 
     self.children[index].insert(point)
@@ -5316,7 +5391,6 @@ class Octree:
 
 class TestOctree(unittest.TestCase):
   """ Test Octree """
-
   def test_octree(self):
     points = [np.random.rand(3) for _ in range(100)]
     center = [0.0, 0.0, 0.0]
@@ -5341,6 +5415,208 @@ class TestOctree(unittest.TestCase):
 
     plt.show()
 
+  def test_point_plane(self):
+    # Define the coefficients of the plane
+    # ax + by + cz = d
+    point = np.array([0, 0, 0])  # Example point (x0, y0, z0)
+    normal = np.array([0, 0, 1])  # Example normal vector (a, b, c)
+    d = -point @ normal
+    a, b, c = normal
+
+    # Create a grid of x, y values
+    x = np.linspace(-10, 10, 10)
+    y = np.linspace(-10, 10, 10)
+    x, y = np.meshgrid(x, y)
+
+    # Calculate corresponding z values
+    z = (d - a * x - b * y) / c
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot the surface
+    ax.plot_surface(x, y, z, alpha=0.5, rstride=100, cstride=100)
+
+    # Set labels
+    ax.set_xlabel('X axis')
+    ax.set_ylabel('Y axis')
+    ax.set_zlabel('Z axis')
+
+    # Show the plot
+    plt.show()
+
+
+class Plane:
+  def __init__(self, point, normal):
+    self.point = point
+    self.normal = normal
+
+  def plot(self, ax, xrange, yrange):
+    d = -self.point @ self.normal
+    xx, yy = np.meshgrid(xrange + self.point[0], yrange + self.point[1])
+    z = (-self.normal[0] * xx - self.normal[1] * yy - d) * 1.0 / self.normal[2]
+    ax.plot_surface(xx, yy, z)
+
+
+class Frustum:
+  def __init__(self, fov, aspect_ratio, znear, zfar):
+    self.fov = fov
+    self.aspect_ratio = aspect_ratio
+    self.znear = znear
+    self.zfar = zfar
+
+    half_fov = np.tan(np.radians(self.fov) / 2.0)
+    near_h = 2.0 * half_fov * self.znear
+    near_w = near_h * self.aspect_ratio
+    far_h = 2.0 * half_fov * self.zfar
+    far_w = far_h * self.aspect_ratio
+
+    # Define corners of the frustum in camera coordinates
+    self.near = {
+        "top_left": np.array([-near_w / 2.0, -near_h / 2.0, self.znear]),
+        "top_right": np.array([near_w / 2.0, -near_h / 2.0, self.znear]),
+        "bottom_left": np.array([-near_w / 2.0, near_h / 2.0, self.znear]),
+        "bottom_right": np.array([near_w / 2.0, near_h / 2.0, self.znear]),
+    }
+    self.far = {
+        "top_left": np.array([-far_w / 2, -far_h / 2, self.zfar]),
+        "top_right": np.array([far_w / 2, -far_h / 2, self.zfar]),
+        "bottom_left": np.array([-far_w / 2, far_h / 2, self.zfar]),
+        "bottom_right": np.array([far_w / 2, far_h / 2, self.zfar]),
+    }
+
+    # Form near plane
+    A = self.near["top_right"] - self.near["top_left"]
+    B = self.near["bottom_left"] - self.near["top_left"]
+    status, point = find_intersection(self.near["top_left"],
+                      self.near["bottom_right"],
+                      self.near["top_right"],
+                      self.near["bottom_left"])
+    self.near_plane = Plane(point, np.cross(A, B))
+
+    # Form far plane
+    A = self.far["top_right"] - self.far["top_left"]
+    B = self.far["bottom_left"] - self.far["top_left"]
+    status, point = find_intersection(self.far["top_left"],
+                      self.far["bottom_right"],
+                      self.far["top_right"],
+                      self.far["bottom_left"])
+    self.far_plane = Plane(point, np.cross(A, B))
+
+    # Form left plane
+    A = self.near["top_left"] - self.far["top_left"]
+    B = self.near["bottom_left"] - self.far["top_left"]
+    point = np.array([
+        (self.far["top_left"][0] - self.near["top_left"][0]) / 2.0 + self.near["top_left"][0],
+        0.0,
+        (self.far["top_left"][2] - self.near["top_left"][2]) / 2.0 + self.near["top_left"][2]
+    ])
+    self.left_plane = Plane(point, np.cross(A, B))
+
+    # Form left plane
+    A = self.near["top_right"] - self.far["top_right"]
+    B = self.near["bottom_right"] - self.far["top_right"]
+    point = np.array([
+        (self.far["top_right"][0] - self.near["top_right"][0]) / 2.0 + self.near["top_right"][0],
+        0.0,
+        (self.far["top_right"][2] - self.near["top_right"][2]) / 2.0 + self.near["top_right"][2]
+    ])
+    self.right_plane = Plane(point, np.cross(A, B))
+
+    # Form top plane
+    A = self.far["top_left"] - self.near["top_left"]
+    B = self.near["top_right"] - self.near["top_left"]
+    point = np.array([
+        0.0,
+        (self.far["top_left"][1] - self.near["top_left"][1]) / 2.0 + self.near["top_right"][1],
+        (self.far["top_left"][2] - self.near["top_left"][2]) / 2.0 + self.near["top_right"][2]
+    ])
+    self.top_plane = Plane(point, np.cross(A, B))
+
+    # Form bottom plane
+    A = self.far["bottom_left"] - self.near["bottom_left"]
+    B = self.near["bottom_right"] - self.near["bottom_left"]
+    point = np.array([
+        0.0,
+        (self.far["bottom_left"][1] - self.near["bottom_left"][1]) / 2.0 + self.near["bottom_right"][1],
+        (self.far["bottom_left"][2] - self.near["bottom_left"][2]) / 2.0 + self.near["bottom_right"][2]
+    ])
+    self.bottom_plane = Plane(point, np.cross(A, B))
+
+
+  def plot(self, ax):
+    edges = [
+        [self.near["top_left"], self.near["top_right"]],
+        [self.near["top_right"], self.near["bottom_right"]],
+        [self.near["bottom_right"], self.near["bottom_left"]],
+        [self.near["bottom_left"], self.near["top_left"]],
+        [self.far["top_left"], self.far["top_right"]],
+        [self.far["top_right"], self.far["bottom_right"]],
+        [self.far["bottom_right"], self.far["bottom_left"]],
+        [self.far["bottom_left"], self.far["top_left"]],
+        [self.near["top_left"], self.far["top_left"]],
+        [self.near["top_right"], self.far["top_right"]],
+        [self.near["bottom_left"], self.far["bottom_left"]],
+        [self.near["bottom_right"], self.far["bottom_right"]],
+    ]
+    for edge in edges:
+        ax.plot(*zip(*edge), color='blue')
+
+    half_fov = np.tan(np.radians(self.fov) / 2.0)
+    near_h = 2.0 * half_fov * self.znear
+    near_w = near_h * self.aspect_ratio
+    far_h = 2.0 * half_fov * self.zfar
+    far_w = far_h * self.aspect_ratio
+
+    # Plot near plane
+    xrange = np.linspace(-near_w / 2, near_w / 2)
+    yrange = np.linspace(-near_h / 2, near_h / 2)
+    self.near_plane.plot(ax, xrange, yrange)
+
+    # Plot far plane
+    xrange = np.linspace(-far_w / 2, far_w / 2)
+    yrange = np.linspace(-far_h / 2, far_h / 2)
+    self.far_plane.plot(ax, xrange, yrange)
+
+    # Plot left plane
+    xrange = np.linspace(-1, 1)
+    yrange = np.linspace(-1, 1)
+    self.left_plane.plot(ax, xrange, yrange)
+
+    # Plot right plane
+    xrange = np.linspace(-1, 1)
+    yrange = np.linspace(-1, 1)
+    self.right_plane.plot(ax, xrange, yrange)
+
+    # Plot top plane
+    xrange = np.linspace(-1, 1)
+    yrange = np.linspace(-1, 1)
+    self.top_plane.plot(ax, xrange, yrange)
+
+    # Plot bottom plane
+    xrange = np.linspace(-1, 1)
+    yrange = np.linspace(-1, 1)
+    self.bottom_plane.plot(ax, xrange, yrange)
+
+
+class TestFrustum(unittest.TestCase):
+  """ Test Frustum"""
+  def test_frustum(self):
+    fov = 90.0  # Field of view in degrees
+    aspect_ratio = 16.0 / 9.0  # Aspect ratio (width/height)
+    znear = 5.0  # Near clipping plane
+    zfar = 10.0  # Far clipping plane
+    frustum = Frustum(fov, aspect_ratio, znear, zfar)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+    frustum.plot(ax)
+    ax.plot(*[0.0, 0.0, 0.0], "r.")
+    ax.set_xlabel('x [m]')
+    ax.set_ylabel('y [m]')
+    ax.set_zlabel('z [m]')
+    ax.set_box_aspect([1, 1, 1])
+    plt.show()
 
 
 
@@ -9461,8 +9737,8 @@ class FeatureGrid:
     """ Return cell index based on point `pt` """
     pixel_x, pixel_y = pt
     img_h, img_w = self.image_shape
-    grid_x = math.ceil((max(1, pixel_x) / img_w) * self.grid_cols) - 1.0
-    grid_y = math.ceil((max(1, pixel_y) / img_h) * self.grid_rows) - 1.0
+    grid_x = ceil((max(1, pixel_x) / img_w) * self.grid_cols) - 1.0
+    grid_y = ceil((max(1, pixel_y) / img_h) * self.grid_rows) - 1.0
     cell_id = int(grid_x + (grid_y * self.grid_cols))
     return cell_id
 
@@ -9485,10 +9761,10 @@ def grid_detect(detector, image, **kwargs):
 
   # Calculate number of grid cells and max corners per cell
   image_height, image_width = image.shape
-  dx = int(math.ceil(float(image_width) / float(grid_cols)))
-  dy = int(math.ceil(float(image_height) / float(grid_rows)))
+  dx = int(ceil(float(image_width) / float(grid_cols)))
+  dy = int(ceil(float(image_height) / float(grid_rows)))
   nb_cells = grid_rows * grid_cols
-  max_per_cell = math.floor(max_keypoints / nb_cells)
+  max_per_cell = floor(max_keypoints / nb_cells)
 
   # Detect corners in each grid cell
   feature_grid = FeatureGrid(grid_rows, grid_cols, image.shape, prev_kps)
@@ -9598,10 +9874,10 @@ def good_grid(image, **kwargs):
 
   # Calculate number of grid cells and max corners per cell
   image_height, image_width = image.shape
-  dx = int(math.ceil(float(image_width) / float(grid_cols)))
-  dy = int(math.ceil(float(image_height) / float(grid_rows)))
+  dx = int(ceil(float(image_width) / float(grid_cols)))
+  dy = int(ceil(float(image_height) / float(grid_rows)))
   nb_cells = grid_rows * grid_cols
-  max_per_cell = math.floor(max_keypoints / nb_cells)
+  max_per_cell = floor(max_keypoints / nb_cells)
 
   # Detect corners in each grid cell
   feature_grid = FeatureGrid(grid_rows, grid_cols, image.shape, prev_kps)
