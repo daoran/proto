@@ -55,6 +55,10 @@ run_memcheck() {
 # python3 proto.py TestCV.test_solvepnp
 # python3 proto.py TestCV.test_harris_corner
 # python3 proto.py TestCV.test_shi_tomasi_corner
+# python3 proto.py TestOctree
+# python3 proto.py TestOctree.test_octree
+# python3 proto.py TestOctree.test_point_plane
+python3 proto.py TestFrustum
 # python3 proto.py TestPoseFactor
 # python3 proto.py TestBAFactor
 # python3 proto.py TestVisionFactor
@@ -104,6 +108,10 @@ run_memcheck() {
 # python3 proto.py TestViz.test_server
 # python3 proto.py TestSandbox.test_gimbal
 # python3 proto.py TestPoE.test_scene
+
+# tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R "python3 proto.py TestOctree" C-m C-m
+# exit
 
 ###############################################################################
 # C
@@ -197,7 +205,7 @@ dev_euroc() {
 dev_gui() {
   touch proto.c;
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_gui && ./build/test_gui" C-m
+  tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make test_gui -j && ./build/test_gui" C-m
   # tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_gui && gdb -ex=run -ex=bt ./build/test_gui" C-m
   # tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_gui && gdb -ex=run -ex=bt -ex=quit ./build/test_gui" C-m
   exit
@@ -214,7 +222,7 @@ dev_avs() {
 # dev_aprilgrid
 # dev_euroc
 # dev_gui
-dev_avs
+# dev_avs
 # python3 scripts/plot_gimbal_calib.py
 # python3 scripts/plot_inertial_odometry.py
 # python3 scripts/plot_map.py
