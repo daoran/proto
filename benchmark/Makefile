@@ -56,7 +56,7 @@ run_kalibr: build_kalibr  ## Run Kalibr
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:~/configs \
+		-v $(PWD)/configs:/home/docker/configs \
 		--network="host" \
 		-it --rm benchmark/kalibr /bin/bash
 
@@ -66,7 +66,7 @@ run_msckf: build_msckf  ## Run MSKCF
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:~/configs \
+		-v $(PWD)/configs:/home/docker/configs \
 		--network="host" \
 		-it --rm benchmark/msckf /bin/bash
 
@@ -76,7 +76,7 @@ run_okvis: build_okvis ## RUN OKVIS
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:~/configs \
+		-v $(PWD)/configs:/home/docker/configs \
 		--network="host" \
 		-it --rm benchmark/okvis /bin/bash
 
@@ -86,7 +86,7 @@ run_orbslam3: build_orbslam3  ## Run ORBSLAM3
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:~/configs \
+		-v $(PWD)/configs:/home/docker/configs \
 		--network="host" \
 		-it --rm benchmark/orbslam3 /bin/bash
 
@@ -96,7 +96,7 @@ run_vins_mono: build_vins_mono  ## Run VINS-Mono
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:~/configs \
+		-v $(PWD)/configs:/home/docker/configs \
 		--network="host" \
 		-it --rm benchmark/vins-mono /bin/bash
 
@@ -106,6 +106,6 @@ run_vins_fusion: build_vins_fusion  ## Run VINS-Fusion
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
 		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:~/configs \
+		-v $(PWD)/configs:/home/docker/configs \
 		--network="host" \
 		-it --rm benchmark/vins-fusion /bin/bash
