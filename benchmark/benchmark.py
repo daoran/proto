@@ -14,7 +14,7 @@ import argparse
 from pathlib import Path
 
 import pandas
-import bag2csv
+# import bag2csv
 
 # Setup Logger
 logging.basicConfig(level=logging.INFO)
@@ -22,7 +22,7 @@ logger = logging.getLogger("benchmark")
 
 # Global settings
 DATA_DIR = "/data"
-CONFIGS_DIR = "/home/chutsu/projects/benchmark/configs"
+CONFIGS_DIR = "/home/chutsu/projects/proto/benchmark/configs"
 
 
 def docker_command(docker_image, command):
@@ -30,9 +30,9 @@ def docker_command(docker_image, command):
   return f"""\
 xhost +local:docker; \
 docker run -e DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v /tmp:/tmp \
   -v {DATA_DIR}:{DATA_DIR} \
-  -v {CONFIGS_DIR}:/home/benchmark/configs \
+  -v {CONFIGS_DIR}:/home/docker/configs \
   --network="host" \
   -it \
   --rm \
@@ -104,7 +104,7 @@ def run_orbslam3(mode, ds_path, run_name, calib_file, res_dir, **kwargs):
 
   # ORBSLAM3 settings
   timestamps_path = f"/tmp/orbslam3-{uuid_str}-timestamps.txt"
-  orbslam3_path = "/home/benchmark/ORB_SLAM3"
+  orbslam3_path = "/home/docker/ORB_SLAM3"
   docker_image = "benchmark/orbslam3"
 
   # Create a timestamp file for ORBSLAM3
@@ -140,64 +140,64 @@ dataset-{uuid_str}-{run_name}_mono"""
     f_file = f"f_dataset-{uuid_str}-{run_name}_mono.txt"
     kf_file = f"kf_dataset-{uuid_str}-{run_name}_mono.txt"
 
-  elif mode == "stereo":
-    run_cmd = f"""\
-{orbslam3_path}/Examples/Stereo/stereo_euroc \
-{orbslam3_path}/Vocabulary/ORBvoc.txt \
-{calib_file} \
-{ds_path} \
-{timestamps_path} \
-dataset-{uuid_str}-{run_name}_stereo"""
-    cmd = docker_command(docker_image, run_cmd)
-    f_file = f"f_dataset-{uuid_str}-{run_name}_stereo.txt"
-    kf_file = f"kf_dataset-{uuid_str}-{run_name}_stereo.txt"
-
-  elif mode == "stereo_imu":
-    run_cmd = f"""\
-{orbslam3_path}/Examples/Stereo-Inertial/stereo_inertial_euroc \
-{orbslam3_path}/Vocabulary/ORBvoc.txt \
-{calib_file} \
-{ds_path} \
-{timestamps_path} \
-dataset-{uuid_str}-{run_name}_stereo_imu"""
-    cmd = docker_command(docker_image, run_cmd)
-    f_file = f"f_dataset-{uuid_str}-{run_name}_stereo_imu.txt"
-    kf_file = f"kf_dataset-{uuid_str}-{run_name}_stereo_imu.txt"
-  else:
-    logger.error("ERROR! ORBSLAM3 [%s] mode not supported!", mode)
-    sys.exit(-1)
-
-  # Check if results already exists
-  f_dst = Path(res_dir, f_file.replace(f"-{uuid_str}", ""))
-  kf_dst = Path(res_dir, kf_file.replace(f"-{uuid_str}", ""))
-  if os.path.exists(f_dst) or os.path.exists(kf_dst):
-    return True
+#   elif mode == "stereo":
+#     run_cmd = f"""\
+# {orbslam3_path}/Examples/Stereo/stereo_euroc \
+# {orbslam3_path}/Vocabulary/ORBvoc.txt \
+# {calib_file} \
+# {ds_path} \
+# {timestamps_path} \
+# dataset-{uuid_str}-{run_name}_stereo"""
+#     cmd = docker_command(docker_image, run_cmd)
+#     f_file = f"f_dataset-{uuid_str}-{run_name}_stereo.txt"
+#     kf_file = f"kf_dataset-{uuid_str}-{run_name}_stereo.txt"
+#
+#   elif mode == "stereo_imu":
+#     run_cmd = f"""\
+# {orbslam3_path}/Examples/Stereo-Inertial/stereo_inertial_euroc \
+# {orbslam3_path}/Vocabulary/ORBvoc.txt \
+# {calib_file} \
+# {ds_path} \
+# {timestamps_path} \
+# dataset-{uuid_str}-{run_name}_stereo_imu"""
+#     cmd = docker_command(docker_image, run_cmd)
+#     f_file = f"f_dataset-{uuid_str}-{run_name}_stereo_imu.txt"
+#     kf_file = f"kf_dataset-{uuid_str}-{run_name}_stereo_imu.txt"
+#   else:
+#     logger.error("ERROR! ORBSLAM3 [%s] mode not supported!", mode)
+#     sys.exit(-1)
+#
+#   # Check if results already exists
+#   f_dst = Path(res_dir, f_file.replace(f"-{uuid_str}", ""))
+#   kf_dst = Path(res_dir, kf_file.replace(f"-{uuid_str}", ""))
+#   if os.path.exists(f_dst) or os.path.exists(kf_dst):
+#     return True
 
   # Run
-  for _ in range(retries):
-    # Run ORBSLAM3
-    time.sleep(2)
-    # print(f"{cmd}")
-    os.system(cmd)
-
-    # Check if result files exists
-    if os.path.exists(f_file) is False:
-      logger.error("ERROR! [%s] DOES NOT EXIST! RETRYING!", f_file)
-      continue
-    if os.path.exists(kf_file) is False:
-      logger.error("ERROR! [%s] DOES NOT EXIST! RETRYING!", kf_file)
-      continue
-
-    # Move results
-    os.system(f"mv {f_file} {f_dst}")
-    os.system(f"rm {kf_file}")  # Remove (not useful for evaluation)
-    return True
-
-  # Failed to run orbslam
-  logger.error("FAILED TO RUN ORBSLAM")
-  logger.error("COMMAND:")
-  logger.error("%s\n", cmd)
-  return False
+  # for _ in range(retries):
+  #   # Run ORBSLAM3
+  #   time.sleep(2)
+  #   # print(f"{cmd}")
+  #   os.system(cmd)
+  #
+  #   # Check if result files exists
+  #   if os.path.exists(f_file) is False:
+  #     logger.error("ERROR! [%s] DOES NOT EXIST! RETRYING!", f_file)
+  #     continue
+  #   if os.path.exists(kf_file) is False:
+  #     logger.error("ERROR! [%s] DOES NOT EXIST! RETRYING!", kf_file)
+  #     continue
+  #
+  #   # Move results
+  #   os.system(f"mv {f_file} {f_dst}")
+  #   os.system(f"rm {kf_file}")  # Remove (not useful for evaluation)
+  #   return True
+  #
+  # # Failed to run orbslam
+  # logger.error("FAILED TO RUN ORBSLAM")
+  # logger.error("COMMAND:")
+  # logger.error("%s\n", cmd)
+  # return False
 
 
 def run_vins_fusion(mode, ds_path, run_name, calib_file, output, **kwargs):
@@ -231,12 +231,12 @@ roslaunch configs/vins-fusion/vins-fusion.launch \
     # Run VINS-Fusion
     os.system(cmd)
 
-    # Convert recorded odometry ROS bag to csv
-    bag2csv.bag2csv(est_path, odom_topic, output)
+    # # Convert recorded odometry ROS bag to csv
+    # bag2csv.bag2csv(est_path, odom_topic, output)
 
-    # Remove ROS bag
-    if os.path.exists(est_path):
-      os.remove(est_path)
+    # # Remove ROS bag
+    # if os.path.exists(est_path):
+    #   os.remove(est_path)
 
     return True
 
@@ -282,30 +282,37 @@ def run_okvis(mode, ds_path, run_name, calib_file, output, **kwargs):
 
 
 if __name__ == "__main__":
-  # Parse command line arguments
-  prog_name = "benchmark"
-  prog_desc = "Benchmark SLAM algorithms"
-  parser = argparse.ArgumentParser(prog=prog_name, description=prog_desc)
-  parser.add_argument("-a", "--algo", required=True)
-  parser.add_argument("-m", "--mode", required=True)
-  parser.add_argument("-d", "--dataset", required=True)
-  parser.add_argument("-n", "--run_name", required=True)
-  parser.add_argument("-c", "--config", required=True)
-  parser.add_argument("-o", "--output", required=True)
+  # # Parse command line arguments
+  # prog_name = "benchmark"
+  # prog_desc = "Benchmark SLAM algorithms"
+  # parser = argparse.ArgumentParser(prog=prog_name, description=prog_desc)
+  # parser.add_argument("-a", "--algo", required=True)
+  # parser.add_argument("-m", "--mode", required=True)
+  # parser.add_argument("-d", "--dataset", required=True)
+  # parser.add_argument("-n", "--run_name", required=True)
+  # parser.add_argument("-c", "--config", required=True)
+  # parser.add_argument("-o", "--output", required=True)
+  #
+  # # Extract command line arguments
+  # args = parser.parse_args()
+  # mode = args.mode
+  # dataset = args.dataset
+  # run_name = args.run_name
+  # config = args.config
+  # output = args.output
 
-  # Extract command line arguments
-  args = parser.parse_args()
-  mode = args.mode
-  dataset = args.dataset
-  run_name = args.run_name
-  config = args.config
-  output = args.output
+  # if args.algo == "orbslam3":
+  #   run_orbslam3(mode, dataset, run_name, config, output)
+  # elif args.algo == "vins-fusion":
+  #   run_vins_fusion(mode, dataset, run_name, config, output)
+  # elif args.algo == "okvis":
+  #   run_okvis(mode, dataset, run_name, config, output)
+  # else:
+  #   logger.error("ERROR! algorithm [%s] not supported!", args.algo)
 
-  if args.algo == "orbslam3":
-    run_orbslam3(mode, dataset, run_name, config, output)
-  elif args.algo == "vins-fusion":
-    run_vins_fusion(mode, dataset, run_name, config, output)
-  elif args.algo == "okvis":
-    run_okvis(mode, dataset, run_name, config, output)
-  else:
-    logger.error("ERROR! algorithm [%s] not supported!", args.algo)
+  mode = "mono"
+  dataset = "/data/euroc/MH_01"
+  run_name = "euroc-mh01-mono"
+  config = "./configs/orbslam3/euroc/euroc-mono.yaml"
+  output = "/data/orbslam3-exp"
+  run_orbslam3(mode, dataset, run_name, config, output)
