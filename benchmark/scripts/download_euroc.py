@@ -4,13 +4,36 @@ import glob
 import urllib.request
 import zipfile
 
+from tqdm import tqdm
 
-def download(src, dst):
-    """ Download """
-    if not os.path.exists(dst):
-        print(f"Downloading [{src}] -> [{dst}]", flush=True)
-        urllib.request.urlretrieve(src, dst)
-        print("")
+
+def download(url, save_path):
+  # Get the size of the file first
+  response = urllib.request.urlopen(url)
+  total_size = int(response.info().get('Content-Length').strip())
+
+  # Initialize the progress bar
+  pbar = tqdm(total=total_size, unit='B', unit_scale=True, desc=save_path)
+
+  try:
+    # Open the URL and the output file
+    response = urllib.request.urlopen(url)
+    out_file = open(save_path, 'wb')
+
+    # Read and write the file in chunks
+    chunk_size = 1024
+    while True:
+      chunk = response.read(chunk_size)
+      if not chunk:
+        break
+      out_file.write(chunk)
+      pbar.update(len(chunk))
+
+  finally:
+    # Clean up: Close the file and the response
+    pbar.close()
+    out_file.close()
+    response.close()
 
 
 def download_sequences(dst_dir):
@@ -108,5 +131,4 @@ if __name__ == "__main__":
     bag_dir = "./rosbags"
     # download_sequences(dst_dir)
     # extract_zips(dst_dir, ".")
-
     download_rosbags(bag_dir)
