@@ -85,12 +85,16 @@ def download_euroc_sequences(dst_dir):
 
   # Make destination folder if it doesn't exist already
   ds_path = os.path.join(dst_dir, "euroc2")
+  archive_path = os.path.join(ds_path, "archive")
   os.makedirs(ds_path, exist_ok=True)
+  os.makedirs(archive_path, exist_ok=True)
 
   # Download sequences
   for seq in seqs:
-    download(os.path.join(base_url, seq), ds_path)
+    # Download
+    download(os.path.join(base_url, seq), archive_path)
 
+    # Create sequence directory
     seq_name = os.path.basename(seq).replace(".zip", "")
     seq_name = seq_name.replace("_easy", "")
     seq_name = seq_name.replace("_medium", "")
@@ -98,8 +102,9 @@ def download_euroc_sequences(dst_dir):
     seq_dir = os.path.join(ds_path, seq_name)
     os.makedirs(seq_dir, exist_ok=True)
 
-    zip_file = os.path.join(ds_path, os.path.basename(seq))
-    extract_zip(zip_file, seq_dir)
+    # Extract sequence into directory
+    zip_path = os.path.join(archive_path, os.path.basename(seq))
+    extract_zip(zip_path, seq_dir)
 
 
 def download_euroc_rosbags(dst_dir):
@@ -130,13 +135,16 @@ def download_euroc_rosbags(dst_dir):
 
   # Download sequences
   for bag in bags:
+    # Download
     download(os.path.join(base_url, bag), ds_path)
 
+    # Rename bag file without the easy, medium and difficult tags
     old_bag_path = os.path.join(ds_path, bag_name)
     new_bag_path = old_bag_path.replace("_easy", "")
     new_bag_path = new_bag_path.replace("_medium", "")
     new_bag_path = new_bag_path.replace("_difficult", "")
     os.rename(old_bag_path, new_bag_path)
+
 
 ################################################################################
 # KITTI ODOMETRY DATASET

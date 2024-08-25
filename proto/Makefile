@@ -9,8 +9,8 @@ PYTHON3_PATH := $(shell python3 -c "import site; print(site.getsitepackages()[0]
 
 # COMPILER SETTINGS
 BUILD_TYPE := debug
-ADDRESS_SANITIZER := 1
 # BUILD_TYPE := release
+ADDRESS_SANITIZER := 1
 # ADDRESS_SANITIZER := 0
 # CC := clang
 CC := gcc
