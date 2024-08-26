@@ -70,7 +70,7 @@ RUN mkdir -p $HOME/catkin_ws/src \
   && git clone https://github.com/KumarRobotics/msckf_vio \
   && cd .. \
   && source /opt/ros/melodic/setup.bash \
-  && catkin build -j1
+  && catkin build -DCMAKE_BUILD_TYPE=Release -j1
 
 # Entry point script
 WORKDIR $HOME

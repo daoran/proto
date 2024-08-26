@@ -64,7 +64,7 @@ RUN mkdir -p $HOME/kalibr_ws/src \
   && git clone https://github.com/ethz-asl/kalibr \
   && cd .. \
   && source /opt/ros/melodic/setup.bash \
-  && catkin build -j1
+  && catkin build -DCMAKE_BUILD_TYPE=Release -j1
 
 # Entry point
 RUN echo '#!/bin/bash' >> $HOME/entry.bash

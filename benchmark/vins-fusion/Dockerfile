@@ -52,7 +52,7 @@ RUN catkin config \
     --extend /opt/ros/$ROS_DISTRO \
     --cmake-args \
     -DCMAKE_BUILD_TYPE=Release
-RUN catkin build
+RUN catkin build -DCMAKE_BUILD_TYPE=Release
 
 # Switch to $USERNAME
 USER $USERNAME
