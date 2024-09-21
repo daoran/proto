@@ -351,88 +351,88 @@ print_matrix(const char *prefix, const double *A, const int m, const int n) {
   }
 }
 
-// /**
-//  * Print YAML Token
-//  */
-// static void yaml_print_token(const yaml_token_t token) {
-//   switch (token.type) {
-//     case YAML_NO_TOKEN:
-//       printf("YAML_NO_TOKEN\n");
-//       break;
-//     case YAML_STREAM_START_TOKEN:
-//       printf("YAML_STREAM_START_TOKEN\n");
-//       break;
-//     case YAML_STREAM_END_TOKEN:
-//       printf("YAML_STREAM_END_TOKEN\n");
-//       break;
+/**
+ * Print YAML Token
+ */
+inline void yaml_print_token(const yaml_token_t token) {
+  switch (token.type) {
+    case YAML_NO_TOKEN:
+      printf("YAML_NO_TOKEN\n");
+      break;
+    case YAML_STREAM_START_TOKEN:
+      printf("YAML_STREAM_START_TOKEN\n");
+      break;
+    case YAML_STREAM_END_TOKEN:
+      printf("YAML_STREAM_END_TOKEN\n");
+      break;
 
-//     case YAML_VERSION_DIRECTIVE_TOKEN:
-//       printf("YAML_VERSION_DIRECTIVE_TOKEN\n");
-//       break;
-//     case YAML_TAG_DIRECTIVE_TOKEN:
-//       printf("YAML_TAG_DIRECTIVE_TOKEN\n");
-//       break;
-//     case YAML_DOCUMENT_START_TOKEN:
-//       printf("YAML_DOCUMENT_START_TOKEN\n");
-//       break;
-//     case YAML_DOCUMENT_END_TOKEN:
-//       printf("YAML_DOCUMENT_END_TOKEN\n");
-//       break;
+    case YAML_VERSION_DIRECTIVE_TOKEN:
+      printf("YAML_VERSION_DIRECTIVE_TOKEN\n");
+      break;
+    case YAML_TAG_DIRECTIVE_TOKEN:
+      printf("YAML_TAG_DIRECTIVE_TOKEN\n");
+      break;
+    case YAML_DOCUMENT_START_TOKEN:
+      printf("YAML_DOCUMENT_START_TOKEN\n");
+      break;
+    case YAML_DOCUMENT_END_TOKEN:
+      printf("YAML_DOCUMENT_END_TOKEN\n");
+      break;
 
-//     case YAML_BLOCK_SEQUENCE_START_TOKEN:
-//       printf("YAML_BLOCK_SEQUENCE_START_TOKEN\n");
-//       break;
-//     case YAML_BLOCK_MAPPING_START_TOKEN:
-//       printf("YAML_BLOCK_MAPPING_START_TOKEN\n");
-//       break;
-//     case YAML_BLOCK_END_TOKEN:
-//       printf("YAML_BLOCK_END_TOKEN\n");
-//       break;
+    case YAML_BLOCK_SEQUENCE_START_TOKEN:
+      printf("YAML_BLOCK_SEQUENCE_START_TOKEN\n");
+      break;
+    case YAML_BLOCK_MAPPING_START_TOKEN:
+      printf("YAML_BLOCK_MAPPING_START_TOKEN\n");
+      break;
+    case YAML_BLOCK_END_TOKEN:
+      printf("YAML_BLOCK_END_TOKEN\n");
+      break;
 
-//     case YAML_FLOW_SEQUENCE_START_TOKEN:
-//       printf("YAML_FLOW_SEQUENCE_START_TOKEN\n");
-//       break;
-//     case YAML_FLOW_SEQUENCE_END_TOKEN:
-//       printf("YAML_FLOW_SEQUENCE_END_TOKEN\n");
-//       break;
-//     case YAML_FLOW_MAPPING_START_TOKEN:
-//       printf("YAML_FLOW_MAPPING_START_TOKEN\n");
-//       break;
-//     case YAML_FLOW_MAPPING_END_TOKEN:
-//       printf("YAML_FLOW_MAPPING_END_TOKEN\n");
-//       break;
+    case YAML_FLOW_SEQUENCE_START_TOKEN:
+      printf("YAML_FLOW_SEQUENCE_START_TOKEN\n");
+      break;
+    case YAML_FLOW_SEQUENCE_END_TOKEN:
+      printf("YAML_FLOW_SEQUENCE_END_TOKEN\n");
+      break;
+    case YAML_FLOW_MAPPING_START_TOKEN:
+      printf("YAML_FLOW_MAPPING_START_TOKEN\n");
+      break;
+    case YAML_FLOW_MAPPING_END_TOKEN:
+      printf("YAML_FLOW_MAPPING_END_TOKEN\n");
+      break;
 
-//     case YAML_BLOCK_ENTRY_TOKEN:
-//       printf("YAML_BLOCK_ENTRY_TOKEN\n");
-//       break;
-//     case YAML_FLOW_ENTRY_TOKEN:
-//       printf("YAML_FLOW_ENTRY_TOKEN\n");
-//       break;
-//     case YAML_KEY_TOKEN:
-//       printf("YAML_KEY_TOKEN\n");
-//       break;
-//     case YAML_VALUE_TOKEN:
-//       printf("YAML_VALUE_TOKEN\n");
-//       break;
+    case YAML_BLOCK_ENTRY_TOKEN:
+      printf("YAML_BLOCK_ENTRY_TOKEN\n");
+      break;
+    case YAML_FLOW_ENTRY_TOKEN:
+      printf("YAML_FLOW_ENTRY_TOKEN\n");
+      break;
+    case YAML_KEY_TOKEN:
+      printf("YAML_KEY_TOKEN\n");
+      break;
+    case YAML_VALUE_TOKEN:
+      printf("YAML_VALUE_TOKEN\n");
+      break;
 
-//     case YAML_ALIAS_TOKEN:
-//       printf("YAML_ALIAS_TOKEN\n");
-//       break;
-//     case YAML_ANCHOR_TOKEN:
-//       printf("YAML_ANCHOR_TOKEN\n");
-//       break;
-//     case YAML_TAG_TOKEN:
-//       printf("YAML_TAG_TOKEN\n");
-//       break;
-//     case YAML_SCALAR_TOKEN:
-//       printf("YAML_SCALAR_TOKEN [%s]\n", token.data.scalar.value);
-//       break;
+    case YAML_ALIAS_TOKEN:
+      printf("YAML_ALIAS_TOKEN\n");
+      break;
+    case YAML_ANCHOR_TOKEN:
+      printf("YAML_ANCHOR_TOKEN\n");
+      break;
+    case YAML_TAG_TOKEN:
+      printf("YAML_TAG_TOKEN\n");
+      break;
+    case YAML_SCALAR_TOKEN:
+      printf("YAML_SCALAR_TOKEN [%s]\n", token.data.scalar.value);
+      break;
 
-//     default:
-//       printf("-\n");
-//       break;
-//   }
-// }
+    default:
+      printf("-\n");
+      break;
+  }
+}
 
 /**
  * Get key-value from yaml file
