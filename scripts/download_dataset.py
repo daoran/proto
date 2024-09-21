@@ -17,7 +17,7 @@ def download(url, save_dir):
   total_size = int(response.info().get('Content-Length').strip())
 
   # Initialize the progress bar
-  desc = f"Downloading [{url}]"
+  desc = f"Downloading [{os.path.basename(url)}]"
   pbar = tqdm(total=total_size, unit='B', unit_scale=True, desc=desc)
 
   try:
@@ -83,7 +83,7 @@ def download_euroc_sequences(dst_dir):
   ]
 
   # Make destination folder if it doesn't exist already
-  ds_path = os.path.join(dst_dir, "euroc2")
+  ds_path = os.path.join(dst_dir, "euroc")
   archive_path = os.path.join(ds_path, "archive")
   os.makedirs(ds_path, exist_ok=True)
   os.makedirs(archive_path, exist_ok=True)
@@ -138,7 +138,7 @@ def download_euroc_rosbags(dst_dir):
     download(os.path.join(base_url, bag), ds_path)
 
     # Rename bag file without the easy, medium and difficult tags
-    old_bag_path = os.path.join(ds_path, bag_name)
+    old_bag_path = os.path.join(ds_path, os.path.basename(bag))
     new_bag_path = old_bag_path.replace("_easy", "")
     new_bag_path = new_bag_path.replace("_medium", "")
     new_bag_path = new_bag_path.replace("_difficult", "")
@@ -251,7 +251,7 @@ def download_kitti_raw(dst_dir):
 if __name__ == "__main__":
   dst_dir = "/data"
   # download_euroc_sequences(dst_dir)
-  # download_euroc_rosbags(dst_dir)
+  download_euroc_rosbags(dst_dir)
   # download_kitti_odometry(dst_dir)
-  download_kitti_raw(dst_dir)
+  # download_kitti_raw(dst_dir)
   pass
