@@ -5998,25 +5998,12 @@ void quat_left(const real_t q[4], real_t left[4 * 4]) {
   const real_t qy = q[2];
   const real_t qz = q[3];
 
-  left[0] = qw;
-  left[1] = -qx;
-  left[2] = -qy;
-  left[3] = -qz;
-
-  left[4] = qx;
-  left[5] = qw;
-  left[6] = -qz;
-  left[7] = qy;
-
-  left[8] = qy;
-  left[9] = qz;
-  left[10] = qw;
-  left[11] = -qx;
-
-  left[12] = qz;
-  left[13] = -qy;
-  left[14] = qx;
-  left[15] = qw;
+  // clang-format off
+  left[0]  = qw; left[1]  = -qx; left[2]  = -qy; left[3]  = -qz;
+  left[4]  = qx; left[5]  =  qw; left[6]  = -qz; left[7]  =  qy;
+  left[8]  = qy; left[9]  =  qz; left[10] =  qw; left[11] = -qx;
+  left[12] = qz; left[13] = -qy; left[14] =  qx; left[15] =  qw;
+  // clang-format on
 }
 
 /**
@@ -6029,15 +6016,9 @@ void quat_left_xyz(const real_t q[4], real_t left_xyz[3 * 3]) {
   const real_t qz = q[3];
 
   // clang-format off
-  left_xyz[0]  = qw;
-  left_xyz[1] = -qz;
-  left_xyz[2]  = qy;
-  left_xyz[3]  = qz;
-  left_xyz[4] = qw;
-  left_xyz[5] = -qx;
-  left_xyz[6] = -qy;
-  left_xyz[7] = qx;
-  left_xyz[8] = qw;
+  left_xyz[0] =  qw; left_xyz[1] = -qz; left_xyz[2]  =  qy;
+  left_xyz[3] =  qz; left_xyz[4] =  qw;  left_xyz[5] = -qx;
+  left_xyz[6] = -qy; left_xyz[7] =  qx;  left_xyz[8] =  qw;
   // clang-format on
 }
 
@@ -6051,22 +6032,10 @@ void quat_right(const real_t q[4], real_t right[4 * 4]) {
   const real_t qz = q[3];
 
   // clang-format off
-  right[0] = qw;
-  right[1] = -qx;
-  right[2] = -qy;
-  right[3] = -qz;
-  right[4] = qx;
-  right[5] = qw;
-  right[6] = qz;
-  right[7] = -qy;
-  right[8] = qy;
-  right[9] = -qz;
-  right[10] = qw;
-  right[11] = qx;
-  right[12] = qz;
-  right[13] = qy;
-  right[14] = -qx;
-  right[15] = qw;
+  right[0]  = qw; right[1]  = -qx; right[2]  = -qy; right[3]  = -qz;
+  right[4]  = qx; right[5]  =  qw; right[6]  =  qz; right[7]  = -qy;
+  right[8]  = qy; right[9]  = -qz; right[10] =  qw; right[11] =  qx;
+  right[12] = qz; right[13] =  qy; right[14] = -qx; right[15] =  qw;
   // clang-format on
 }
 
