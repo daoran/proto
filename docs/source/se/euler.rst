@@ -14,3 +14,4 @@ Z-Y-X rotation sequence:
     & s(\psi) s(\theta) c(\phi) - c(\psi) s(\phi) \\
     -s(\theta) & c(\theta) s(\phi) & c(\theta) c(\phi)
   \end{bmatrix}
+
