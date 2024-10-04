@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-ctags proto/proto.c proto/proto.h proto/test_proto.c
-# ctags proto/proto.py
+ctags xyz/xyz.c xyz/xyz.h xyz/test_xyz.c
+# ctags xyz/xyz.py
 
 run_gdb() {
   gdb \
@@ -23,93 +23,95 @@ run_memcheck() {
 
 # python3 scripts/plot_frames.py
 
-# python3 proto/proto.py
-# python3 proto/proto.py TestNetwork.test_http_parse_request
-# python3 proto/proto.py TestNetwork.test_websocket_hash
-# python3 proto/proto.py TestNetwork.test_websocket_encode_frame
-# python3 proto/proto.py TestNetwork.test_debug_server
-# python3 proto/proto.py TestLinearAlgebra
-# python3 proto/proto.py TestLie
-# python3 proto/proto.py TestLie.test_sandbox
-# python3 proto/proto.py TestTransform
-# python3 proto/proto.py TestTransform.test_quat2rot
-# python3 proto/proto.py TestTransform.test_rot2quat
-# python3 proto/proto.py TestTransform.test_rot2euler
-# python3 proto/proto.py TestTransform.test_quat_inv
-# python3 proto/proto.py TestTransform.test_quat_conj
-# python3 proto/proto.py TestTransform.test_quat_slerp
-# python3 proto/proto.py TestMav
-# python3 proto/proto.py TestMav.test_symdiff_velocity
-# python3 proto/proto.py TestMav.test_plot
-# python3 proto/proto.py TestMav.test_mav_attitude_control
-# python3 proto/proto.py TestMav.test_mav_velocity_control
-# python3 proto/proto.py TestMav.test_mav_position_control
-# python3 proto/proto.py TestMav.test_mav_trajectory_control
-# python3 proto/proto.py TestCV
-# python3 proto/proto.py TestCV.test_linear_triangulation
-# python3 proto/proto.py TestCV.test_parallax
-# python3 proto/proto.py TestCV.test_homography_find
-# python3 proto/proto.py TestCV.test_homography_pose
-# python3 proto/proto.py TestCV.test_dlt_pose
-# python3 proto/proto.py TestCV.test_solvepnp
-# python3 proto/proto.py TestCV.test_harris_corner
-# python3 proto/proto.py TestCV.test_shi_tomasi_corner
-# python3 proto/proto.py TestOctree
-# python3 proto/proto.py TestOctree.test_octree
-# python3 proto/proto.py TestOctree.test_point_plane
-# python3 proto/proto.py TestFrustum
-# python3 proto/proto.py TestPoseFactor
-# python3 proto/proto.py TestBAFactor
-# python3 proto/proto.py TestVisionFactor
-# python3 proto/proto.py TestCameraFactor
-# python3 proto/proto.py TestCalibVisionFactor
-# python3 proto/proto.py TestTwoStateVisionFactor
-# python3 proto/proto.py TestCalibGimbalFactor
-# python3 proto/proto.py TestIMUFactor
-# python3 proto/proto.py TestIMUFactor.test_imu_buffer_with_interpolation
-# python3 proto/proto.py TestIMUFactor.test_imu_factor_propagate
-# python3 proto/proto.py TestIMUFactor.test_imu_factor
-# python3 proto/proto.py TestIMUFactor.test_imu_propagation_jacobians
-# python3 proto/proto.py TestIMUFactor.test_imu_factor2_propagate
-# python3 proto/proto.py TestIMUFactor.test_imu_factor2
-# python3 proto/proto.py TestMargFactor
-# python3 proto/proto.py TestFactorGraph
-# python3 proto/proto.py TestFactorGraph.test_factor_graph_add_param
-# python3 proto/proto.py TestFactorGraph.test_factor_graph_add_factor
-# python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_vo
-# python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_io
-# python3 proto/proto.py TestFactorGraph.test_factor_graph_solve_vio
-# python3 proto/proto.py TestFeatureTracking
-# python3 proto/proto.py TestFeatureTracking.test_feature_grid_cell_index
-# python3 proto/proto.py TestFeatureTracking.test_feature_grid_count
-# python3 proto/proto.py TestFeatureTracking.test_spread_keypoints
-# python3 proto/proto.py TestFeatureTracking.test_grid_detect
-# python3 proto/proto.py TestFeatureTracking.test_good_grid
-# python3 proto/proto.py TestFeatureTracking.test_optflow_track
-# python3 proto/proto.py TestFeatureTracking.test_feature_track
-# python3 proto/proto.py TestFeatureTracking.test_estimate_pose
-# python3 proto/proto.py TestFeatureTracking.test_euroc_mono
-# python3 proto/proto.py TestFeatureTracking.test_euroc
-# python3 proto/proto.py TestCalibration
-# python3 proto/proto.py TestCalibration.test_aprilgrid
-# python3 proto/proto.py TestCalibration.test_calibrator
-# python3 proto/proto.py TestEuroc
-# python3 proto/proto.py TestKitti
-# python3 proto/proto.py TestKalmanFilter
-# python3 proto/proto.py TestSimulation
-# python3 proto/proto.py TestSimulation.test_create_3d_features
-# python3 proto/proto.py TestSimulation.test_create_3d_features_perimeter
-# python3 proto/proto.py TestSimulation.test_sim_camera_frame
-# python3 proto/proto.py TestSimulation.test_sim_data
-# python3 proto/proto.py TestSimulation.test_sim_feature_tracker
-# python3 proto/proto.py TestSimulation.test_sim_arm
-# python3 proto/proto.py TestViz.test_multiplot
-# python3 proto/proto.py TestViz.test_server
-# python3 proto/proto.py TestSandbox.test_gimbal
-# python3 proto/proto.py TestPoE.test_scene
+# python3 xyz/xyz.py
+# python3 xyz/xyz.py TestNetwork.test_http_parse_request
+# python3 xyz/xyz.py TestNetwork.test_websocket_hash
+# python3 xyz/xyz.py TestNetwork.test_websocket_encode_frame
+# python3 xyz/xyz.py TestNetwork.test_debug_server
+# python3 xyz/xyz.py TestLinearAlgebra
+# python3 xyz/xyz.py TestLie
+# python3 xyz/xyz.py TestLie.test_sandbox
+# python3 xyz/xyz.py TestTransform
+# python3 xyz/xyz.py TestTransform.test_quat2rot
+# python3 xyz/xyz.py TestTransform.test_rot2quat
+# python3 xyz/xyz.py TestTransform.test_rot2euler
+# python3 xyz/xyz.py TestTransform.test_quat_inv
+# python3 xyz/xyz.py TestTransform.test_quat_conj
+# python3 xyz/xyz.py TestTransform.test_quat_slerp
+# python3 xyz/xyz.py TestMav
+# python3 xyz/xyz.py TestMav.test_symdiff_velocity
+# python3 xyz/xyz.py TestMav.test_plot
+# python3 xyz/xyz.py TestMav.test_mav_attitude_control
+# python3 xyz/xyz.py TestMav.test_mav_velocity_control
+# python3 xyz/xyz.py TestMav.test_mav_position_control
+# python3 xyz/xyz.py TestMav.test_mav_trajectory_control
+# python3 xyz/xyz.py TestCV
+# python3 xyz/xyz.py TestCV.test_linear_triangulation
+# python3 xyz/xyz.py TestCV.test_parallax
+# python3 xyz/xyz.py TestCV.test_homography_find
+# python3 xyz/xyz.py TestCV.test_homography_pose
+# python3 xyz/xyz.py TestCV.test_dlt_pose
+# python3 xyz/xyz.py TestCV.test_solvepnp
+# python3 xyz/xyz.py TestCV.test_harris_corner
+# python3 xyz/xyz.py TestCV.test_shi_tomasi_corner
+# python3 xyz/xyz.py TestOctree
+# python3 xyz/xyz.py TestOctree.test_octree
+# python3 xyz/xyz.py TestOctree.test_point_plane
+# python3 xyz/xyz.py TestFrustum
+# python3 xyz/xyz.py TestFrustum.test_frustum
+# python3 xyz/xyz.py TestFrustum.test_livox
+# python3 xyz/xyz.py TestPoseFactor
+# python3 xyz/xyz.py TestBAFactor
+# python3 xyz/xyz.py TestVisionFactor
+# python3 xyz/xyz.py TestCameraFactor
+# python3 xyz/xyz.py TestCalibVisionFactor
+# python3 xyz/xyz.py TestTwoStateVisionFactor
+# python3 xyz/xyz.py TestCalibGimbalFactor
+# python3 xyz/xyz.py TestIMUFactor
+# python3 xyz/xyz.py TestIMUFactor.test_imu_buffer_with_interpolation
+# python3 xyz/xyz.py TestIMUFactor.test_imu_factor_propagate
+# python3 xyz/xyz.py TestIMUFactor.test_imu_factor
+# python3 xyz/xyz.py TestIMUFactor.test_imu_propagation_jacobians
+# python3 xyz/xyz.py TestIMUFactor.test_imu_factor2_propagate
+# python3 xyz/xyz.py TestIMUFactor.test_imu_factor2
+# python3 xyz/xyz.py TestMargFactor
+# python3 xyz/xyz.py TestFactorGraph
+# python3 xyz/xyz.py TestFactorGraph.test_factor_graph_add_param
+# python3 xyz/xyz.py TestFactorGraph.test_factor_graph_add_factor
+# python3 xyz/xyz.py TestFactorGraph.test_factor_graph_solve_vo
+# python3 xyz/xyz.py TestFactorGraph.test_factor_graph_solve_io
+# python3 xyz/xyz.py TestFactorGraph.test_factor_graph_solve_vio
+# python3 xyz/xyz.py TestFeatureTracking
+# python3 xyz/xyz.py TestFeatureTracking.test_feature_grid_cell_index
+# python3 xyz/xyz.py TestFeatureTracking.test_feature_grid_count
+# python3 xyz/xyz.py TestFeatureTracking.test_spread_keypoints
+# python3 xyz/xyz.py TestFeatureTracking.test_grid_detect
+# python3 xyz/xyz.py TestFeatureTracking.test_good_grid
+# python3 xyz/xyz.py TestFeatureTracking.test_optflow_track
+# python3 xyz/xyz.py TestFeatureTracking.test_feature_track
+# python3 xyz/xyz.py TestFeatureTracking.test_estimate_pose
+# python3 xyz/xyz.py TestFeatureTracking.test_euroc_mono
+# python3 xyz/xyz.py TestFeatureTracking.test_euroc
+# python3 xyz/xyz.py TestCalibration
+# python3 xyz/xyz.py TestCalibration.test_aprilgrid
+# python3 xyz/xyz.py TestCalibration.test_calibrator
+# python3 xyz/xyz.py TestEuroc
+# python3 xyz/xyz.py TestKitti
+# python3 xyz/xyz.py TestKalmanFilter
+# python3 xyz/xyz.py TestSimulation
+# python3 xyz/xyz.py TestSimulation.test_create_3d_features
+# python3 xyz/xyz.py TestSimulation.test_create_3d_features_perimeter
+# python3 xyz/xyz.py TestSimulation.test_sim_camera_frame
+# python3 xyz/xyz.py TestSimulation.test_sim_data
+# python3 xyz/xyz.py TestSimulation.test_sim_feature_tracker
+# python3 xyz/xyz.py TestSimulation.test_sim_arm
+# python3 xyz/xyz.py TestViz.test_multiplot
+# python3 xyz/xyz.py TestViz.test_server
+# python3 xyz/xyz.py TestSandbox.test_gimbal
+# python3 xyz/xyz.py TestPoE.test_scene
 
 # tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "python3 proto.py TestOctree" C-m C-m
+# tmux send-keys -t dev -R "python3 xyz.py TestOctree" C-m C-m
 # exit
 
 ###############################################################################
@@ -133,9 +135,9 @@ run_memcheck() {
 run_all_tests() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-    cd ~/projects/proto/proto \
+    cd ~/projects/xyz/xyz \
       && clear \
-      && make test_proto -j \
+      && make test_xyz -j \
   " C-m C-m
   exit
 }
@@ -145,18 +147,18 @@ run_test() {
   TARGET="dev"
   tmux send-keys -t $TARGET -R C-l C-m
   tmux send-keys -t $TARGET -R "\
-    cd ~/projects/proto/proto \
+    cd ~/projects/xyz/xyz \
       && clear \
-      && time make test_proto TEST_TARGET=$1 \
+      && time make test_xyz TEST_TARGET=$1 \
   " C-m C-m
   exit
-  # python3 proto.py TestFactors.test_imu_factor2
+  # python3 xyz.py TestFactors.test_imu_factor2
 }
 
 dev_sbgc() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-cd $HOME/projects/proto/proto \
+cd $HOME/projects/xyz/xyz \
   && time make test_sbgc \
   && cd ./build \
   && ./test_sbgc \
@@ -164,7 +166,7 @@ cd $HOME/projects/proto/proto \
 " C-m
   exit
 
-# cd $HOME/projects/proto/proto \
+# cd $HOME/projects/xyz/xyz \
 #   && time make test_sbgc \
 #   && cd ./build \
 #   && ./test_sbgc \
@@ -173,35 +175,35 @@ cd $HOME/projects/proto/proto \
 
 dev_tiscam() {
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_tis && ./build/test_tis " C-m
+  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_tis && ./build/test_tis " C-m
   exit
 }
 
 dev_aprilgrid() {
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_aprilgrid && ./build/test_aprilgrid" C-m
+  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_aprilgrid && ./build/test_aprilgrid" C-m
   exit
 }
 
 dev_euroc() {
-  touch proto.c;
+  touch xyz.c;
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_euroc && ./build/test_euroc" C-m
+  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_euroc && ./build/test_euroc" C-m
   exit
 }
 
 dev_gui() {
-  touch proto.c;
+  touch xyz.c;
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make test_gui -j && ./build/test_gui" C-m
-  # tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_gui && gdb -ex=run -ex=bt ./build/test_gui" C-m
-  # tmux send-keys -t dev -R "cd ~/projects/proto/proto && make test_gui && gdb -ex=run -ex=bt -ex=quit ./build/test_gui" C-m
+  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && time make test_gui -j && ./build/test_gui" C-m
+  # tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_gui && gdb -ex=run -ex=bt ./build/test_gui" C-m
+  # tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_gui && gdb -ex=run -ex=bt -ex=quit ./build/test_gui" C-m
   exit
 }
 
 dev_avs() {
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/proto/proto && time make avs -j && ./build/avs" C-m
+  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && time make avs -j && ./build/avs" C-m
   exit
 }
 
@@ -215,13 +217,13 @@ dev_avs() {
 # python3 scripts/plot_map.py
 
 
-# PROTO
+# xyz
 # run_all_tests
-# PROTO-LOGGING
+# XYZ-LOGGING
 # run_test test_debug
 # run_test test_log_error
 # run_test test_log_warn
-# PROTO-FILE_SYSTEM
+# XYZ-FILE_SYSTEM
 # run_test test_path_file_name
 # run_test test_path_file_ext
 # run_test test_path_dir_name
@@ -230,14 +232,14 @@ dev_avs() {
 # run_test test_list_files_free
 # run_test test_file_read
 #  run_test test_file_copy
-# PROTO-DATA
+# XYZ-DATA
 # run_test test_malloc_string
 # run_test test_dsv_rows
 # run_test test_dsv_cols
 # run_test test_dsv_fields
 # run_test test_dsv_data
 # run_test test_dsv_free
-# PROTO-DATA-STRUCTURE
+# XYZ-DATA-STRUCTURE
 # run_test test_darray_new_and_destroy
 # run_test test_darray_push_pop
 # run_test test_darray_contains
@@ -263,18 +265,18 @@ dev_avs() {
 # run_test test_hashmap_get_set
 # run_test test_hashmap_delete
 # run_test test_hashmap_traverse
-# PROTO-TIME
+# XYZ-TIME
 # run_test test_tic
 # run_test test_toc
 # run_test test_mtoc
 # run_test test_time_now
-# PROTO-NETWORK
+# XYZ-NETWORK
 # run_test test_tcp_server_setup
 # run_test test_http_parse_request
 # run_test test_websocket_hash
 # run_test test_ws_handshake_respond
 # run_test test_ws_server
-# PROTO-MATHS
+# XYZ-MATHS
 # run_test test_min
 # run_test test_max
 # run_test test_randf
@@ -296,10 +298,10 @@ dev_avs() {
 # run_test test_median
 # run_test test_var
 # run_test test_stddev
-# PROTO-LINEAR_ALGEBRA
+# XYZ-LINEAR_ALGEBRA
 # run_test test_eye
 # run_test test_ones
-# run_test test_protos
+# run_test test_xyzs
 # run_test test_mat_set
 # run_test test_mat_val
 # run_test test_mat_copy
@@ -330,8 +332,8 @@ dev_avs() {
 # run_test test_chol_solve
 # run_test test_qr
 # run_test test_suitesparse_chol_solve
-# PROTO-TIME
-# PROTO-TRANSFORMS
+# XYZ-TIME
+# XYZ-TRANSFORMS
 # run_test test_tf_set_rot
 # run_test test_tf_set_trans
 # run_test test_tf_trans
@@ -344,13 +346,13 @@ dev_avs() {
 # run_test test_tf_perturb_trans
 # run_test test_tf_chain
 # run_test test_quat2rot
-# PROTO-POSE
+# XYZ-POSE
 # run_test test_pose_init
 # run_test test_pose_set_get_quat
 # run_test test_pose_set_get_trans
 # run_test test_pose2tf
 # run_test test_load_poses
-# PROTO-CV
+# XYZ-CV
 # run_test test_lie_Exp_Log
 # run_test test_linear_triangulation
 # run_test test_homography_find
@@ -377,21 +379,21 @@ dev_avs() {
 # run_test test_pinhole_equi4_project
 # run_test test_pinhole_equi4_project_jacobian
 # run_test test_pinhole_equi4_params_jacobian
-# PROTO-SIM
+# XYZ-SIM
 # memcheck run_test test_load_sim_features
 # memcheck run_test test_load_sim_imu_data
 # memcheck run_test test_load_sim_cam_frame
 # memcheck run_test test_load_sim_cam_data
-# PROTO-CONTROL
+# XYZ-CONTROL
 # run_test test_pid_ctrl
-# PROTO-GIMBAL
+# XYZ-GIMBAL
 # run_test test_gimbal
-# PROTO-MAV
+# XYZ-MAV
 # run_test test_mav_att_ctrl
 # run_test test_mav_vel_ctrl
 # run_test test_mav_pos_ctrl
 # run_test test_mav_waypoints
-# PROTO-SENSOR_FUSION
+# XYZ-SENSOR_FUSION
 # run_test test_schur_complement
 # run_test test_timeline
 # run_test test_pose
@@ -461,12 +463,12 @@ dev_avs() {
 # run_test test_calib_gimbal_solve
 # python3 scripts/plot_gimbal_calib.py
 # run_test test_calib_gimbal_ceres_solve
-# PROTO-DATASET
+# XYZ-DATASET
 # run_test test_assoc_pose_data
-# PROTO-PLOTTING
+# XYZ-PLOTTING
 # run_test test_gnuplot_xyplot
 # run_test test_gnuplot_multiplot
-# PROTO-SIM
+# XYZ-SIM
 # run_test test_sim_features_load
 # run_test test_sim_imu_data_load
 # run_test test_sim_camera_frame_load
@@ -475,7 +477,7 @@ dev_avs() {
 # run_test test_sim_gimbal_malloc_free
 # run_test test_sim_gimbal_view
 # run_test test_sim_gimbal_solve
-# PROTO-GUI
+# XYZ-GUI
 # run_test test_gl_zeros
 # run_test test_gl_ones
 # run_test test_gl_eye
@@ -493,5 +495,5 @@ dev_avs() {
 # run_test test_gl_shaders_link
 # run_test test_gl_prog_setup
 # run_test test_gl_camera_setup
-# run_test test_gui
+run_test test_gui
 # run_test test_imshow
