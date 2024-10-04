@@ -23,16 +23,16 @@ docs: ## Build docs
 	@sphinx-autobuild docs/source docs/build/html
 
 build: ## Build libxyz
-	@cd xyz && make -s libxyz
+	@cd src && make -s libxyz
 
 install: build ## Install libxyz
-	@cd xyz && make -s install
+	@cd src && make -s install
 
 tests: ## Run unittests
-	@cd xyz && make -s tests
+	@cd src && make -s tests
 
 ci: ## Run CI tests
-	@cd xyz && make -s ci
+	@cd src && make -s ci
 
 clean: ## Clean
-	@cd xyz && make -s clean
+	@cd src && make -s clean

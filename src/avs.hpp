@@ -7,7 +7,7 @@
 #include <ceres/ceres.h>
 
 extern "C" {
-#include "proto.h"
+#include "xyz.h"
 #include "euroc.h"
 }
 
