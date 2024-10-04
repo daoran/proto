@@ -1,5 +1,5 @@
 """
-Proto
+xyz
 
 Contains the following library code useful for prototyping robotic algorithms:
 
@@ -1105,7 +1105,7 @@ def find_intersection(p1, p2, q1, q2):
 
   # Form Ax = b
   A = np.array([d1, -d2]).T  # A 3x2 matrix
-  b = q1 - p1                # A 3x1 vector
+  b = q1 - p1  # A 3x1 vector
 
   # Use least squares to solve (since A is not square)
   t_s, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
@@ -2518,7 +2518,7 @@ def plot_tf(ax, T, **kwargs):
   """
   assert T.shape == (4, 4)
 
-  size = kwargs.get('size', 1)
+  size = kwargs.get('size', 0.1)
   linewidth = kwargs.get('linewidth', 2)
   name = kwargs.get('name', None)
   nameoffset = kwargs.get('nameoffset', [0, 0, -0.01])
@@ -2549,30 +2549,6 @@ def plot_tf(ax, T, **kwargs):
   py = [origin[1], lz[1]]
   pz = [origin[2], lz[2]]
   zaxis = ax.plot(px, py, pz, colors[2], linewidth=linewidth)[0]
-
-  # rot = tf_rot(T)
-  # tip_offset = 0.041
-  # arrow_x = Arrow3D(*origin,
-  #                   *(rot @ np.array([size + tip_offset, 0.0, 0.0])),
-  #                   mutation_scale=15,
-  #                   color="r",
-  #                   arrowstyle="-|>",
-  #                   linestyle="None")
-  # arrow_y = Arrow3D(*origin,
-  #                   *(rot @ np.array([0.0, size + tip_offset, 0.0])),
-  #                   mutation_scale=15,
-  #                   color="g",
-  #                   arrowstyle="-|>",
-  #                   linestyle="None")
-  # arrow_z = Arrow3D(*origin,
-  #                   *(rot @ np.array([0.0, 0.0, size + tip_offset])),
-  #                   mutation_scale=15,
-  #                   color="b",
-  #                   arrowstyle="-|>",
-  #                   linestyle="None")
-  # ax.add_artist(arrow_x)
-  # ax.add_artist(arrow_y)
-  # ax.add_artist(arrow_z)
 
   # Draw label
   if name is not None:
@@ -5489,37 +5465,39 @@ class Frustum:
     A = self.near["top_right"] - self.near["top_left"]
     B = self.near["bottom_left"] - self.near["top_left"]
     status, point = find_intersection(self.near["top_left"],
-                      self.near["bottom_right"],
-                      self.near["top_right"],
-                      self.near["bottom_left"])
+                                      self.near["bottom_right"],
+                                      self.near["top_right"],
+                                      self.near["bottom_left"])
     self.near_plane = Plane(point, np.cross(A, B))
 
     # Form far plane
     A = self.far["top_right"] - self.far["top_left"]
     B = self.far["bottom_left"] - self.far["top_left"]
     status, point = find_intersection(self.far["top_left"],
-                      self.far["bottom_right"],
-                      self.far["top_right"],
-                      self.far["bottom_left"])
+                                      self.far["bottom_right"],
+                                      self.far["top_right"],
+                                      self.far["bottom_left"])
     self.far_plane = Plane(point, np.cross(A, B))
 
     # Form left plane
-    A = self.near["top_left"] - self.far["top_left"]
-    B = self.near["bottom_left"] - self.far["top_left"]
+    A = self.far["top_left"] - self.near["top_left"]
+    B = self.near["bottom_left"] - self.near["top_left"]
     point = np.array([
-        (self.far["top_left"][0] - self.near["top_left"][0]) / 2.0 + self.near["top_left"][0],
-        0.0,
-        (self.far["top_left"][2] - self.near["top_left"][2]) / 2.0 + self.near["top_left"][2]
+        (self.far["top_left"][0] - self.near["top_left"][0]) / 2.0 +
+        self.near["top_left"][0], 0.0,
+        (self.far["top_left"][2] - self.near["top_left"][2]) / 2.0 +
+        self.near["top_left"][2]
     ])
     self.left_plane = Plane(point, np.cross(A, B))
 
-    # Form left plane
-    A = self.near["top_right"] - self.far["top_right"]
-    B = self.near["bottom_right"] - self.far["top_right"]
+    # Form right plane
+    A = self.far["top_right"] - self.near["top_right"]
+    B = self.near["bottom_right"] - self.near["top_right"]
     point = np.array([
-        (self.far["top_right"][0] - self.near["top_right"][0]) / 2.0 + self.near["top_right"][0],
-        0.0,
-        (self.far["top_right"][2] - self.near["top_right"][2]) / 2.0 + self.near["top_right"][2]
+        (self.far["top_right"][0] - self.near["top_right"][0]) / 2.0 +
+        self.near["top_right"][0], 0.0,
+        (self.far["top_right"][2] - self.near["top_right"][2]) / 2.0 +
+        self.near["top_right"][2]
     ])
     self.right_plane = Plane(point, np.cross(A, B))
 
@@ -5527,9 +5505,10 @@ class Frustum:
     A = self.far["top_left"] - self.near["top_left"]
     B = self.near["top_right"] - self.near["top_left"]
     point = np.array([
-        0.0,
-        (self.far["top_left"][1] - self.near["top_left"][1]) / 2.0 + self.near["top_right"][1],
-        (self.far["top_left"][2] - self.near["top_left"][2]) / 2.0 + self.near["top_right"][2]
+        0.0, (self.far["top_left"][1] - self.near["top_left"][1]) / 2.0 +
+        self.near["top_right"][1],
+        (self.far["top_left"][2] - self.near["top_left"][2]) / 2.0 +
+        self.near["top_right"][2]
     ])
     self.top_plane = Plane(point, np.cross(A, B))
 
@@ -5537,12 +5516,12 @@ class Frustum:
     A = self.far["bottom_left"] - self.near["bottom_left"]
     B = self.near["bottom_right"] - self.near["bottom_left"]
     point = np.array([
-        0.0,
-        (self.far["bottom_left"][1] - self.near["bottom_left"][1]) / 2.0 + self.near["bottom_right"][1],
-        (self.far["bottom_left"][2] - self.near["bottom_left"][2]) / 2.0 + self.near["bottom_right"][2]
+        0.0, (self.far["bottom_left"][1] - self.near["bottom_left"][1]) / 2.0 +
+        self.near["bottom_right"][1],
+        (self.far["bottom_left"][2] - self.near["bottom_left"][2]) / 2.0 +
+        self.near["bottom_right"][2]
     ])
     self.bottom_plane = Plane(point, np.cross(A, B))
-
 
   def plot(self, ax):
     edges = [
@@ -5560,7 +5539,7 @@ class Frustum:
         [self.near["bottom_right"], self.far["bottom_right"]],
     ]
     for edge in edges:
-        ax.plot(*zip(*edge), color='blue')
+      ax.plot(*zip(*edge), color='blue')
 
     half_fov = np.tan(np.radians(self.fov) / 2.0)
     near_h = 2.0 * half_fov * self.znear
@@ -5593,10 +5572,10 @@ class Frustum:
     yrange = np.linspace(-1, 1)
     self.top_plane.plot(ax, xrange, yrange)
 
-    # Plot bottom plane
-    xrange = np.linspace(-1, 1)
-    yrange = np.linspace(-1, 1)
-    self.bottom_plane.plot(ax, xrange, yrange)
+    # # Plot bottom plane
+    # xrange = np.linspace(-1, 1)
+    # yrange = np.linspace(-1, 1)
+    # self.bottom_plane.plot(ax, xrange, yrange)
 
 
 class TestFrustum(unittest.TestCase):
@@ -5618,6 +5597,75 @@ class TestFrustum(unittest.TestCase):
     ax.set_box_aspect([1, 1, 1])
     plt.show()
 
+  def test_livox(self):
+    csv_path = "/data/livox/mid360.csv"
+    delimiter = ","
+    data = np.genfromtxt(csv_path, delimiter=delimiter, skip_header=1)
+
+    N = data.shape[0]
+    # N = 40000
+    radius = 1.0
+    time = np.array(data[:N, 0]).reshape(-1, 1)
+    zenith = np.deg2rad(data[:N, 1])
+    azimuth = np.deg2rad(data[:N, 2])
+
+    x = radius * np.sin(azimuth) * np.cos(zenith)
+    y = radius * np.sin(azimuth) * np.sin(zenith)
+    z = radius * np.cos(azimuth)
+
+    # plt.plot(x[:N], y[:N], "r-")
+    # plt.show()
+
+    # plt.subplot(211)
+    # plt.plot(zenith[:50000], "r-")
+    #
+    # plt.subplot(212)
+    # plt.plot(azimuth[:50000], "r-")
+    # plt.show()
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+
+    ax.set_xlim([-1.0, 1.0])
+    ax.set_ylim([-1.0, 1.0])
+    ax.set_zlim([0.0, 2.0])
+    ax.set_xlabel('x [m]')
+    ax.set_ylabel('y [m]')
+    ax.set_zlabel('z [m]')
+
+    L = 100
+    scan_line = ax.plot(x[:L], y[:L], z[:L], "r-")[0]
+    for s in range(0, N - L, L):
+      scan_line.set_data(x[s:s + L], y[s:s + L])
+      scan_line.set_3d_properties(z[s:s + L])
+
+      plt.draw()
+      plt.pause(0.001)
+
+    plt.show()
+
+    # plt.figure()
+    # y = np.cos(np.sin(np.sin(-0.082006))) - np.sin(((time - 1.584) * -0.0001056) - -0.30189)
+    # plt.plot(time, azimuth, color='blue')
+    # plt.plot(time, y, color='red')
+    # plt.show()
+
+    # from pysr import PySRRegressor
+    # model = PySRRegressor(
+    #     niterations=100,
+    #     binary_operators=["+", "*", "-", "/", "%"],
+    #     unary_operators=[ "cos", "sin", "exp", "log"],
+    #     model_selection="accuracy",
+    #     population_size=100
+    # )
+    # model.fit(time, zenith)
+
+    # plt.figure()
+    # plt.plot(time, zenith, 'k-', label="Ground Truth")
+    # y = (np.sin(np.sin(np.cos(time * 0.0057341))) * (1.5014 - ((np.sin(time * np.sin(0.0057341)) / 0.55249) - 0.84798))) + 3.1307
+    # plt.plot(time, y, 'b-', label="Estimate")
+    # plt.legend(loc=0)
+    # plt.show()
 
 
 ###############################################################################
@@ -8054,7 +8102,7 @@ class TestIMUFactor(unittest.TestCase):
 
     # Setup imu buffer
     start_idx = 0
-    end_idx = 10
+    end_idx = 20
     # end_idx = len(imu_data.timestamps) - 1
     imu_buf = imu_data.form_imu_buffer(start_idx, end_idx)
 
@@ -8240,7 +8288,8 @@ class TestIMUFactor(unittest.TestCase):
 
     # Setup imu buffer
     start_idx = 0
-    end_idx = 2
+    # end_idx = 100
+    end_idx = len(imu_data.timestamps) - 1
     imu_buf = imu_data.form_imu_buffer(start_idx, end_idx)
 
     # Pose i
@@ -8258,11 +8307,15 @@ class TestIMUFactor(unittest.TestCase):
     data = ImuFactor2.propagate(imu_buf, imu_params, sb_i)
 
     # Check propagation
-    ts_j = imu_data.timestamps[end_idx - 1]
+    ts_j = imu_data.timestamps[end_idx]
     T_WS_j_est = T_WS_i @ tf(data.dq, data.dr)
-    C_WS_j_est = tf_rot(T_WS_j_est)
     T_WS_j_gnd = imu_data.poses[ts_j]
-    C_WS_j_gnd = tf_rot(T_WS_j_gnd)
+    # C_WS_j_est = tf_rot(T_WS_j_est)
+    # C_WS_j_gnd = tf_rot(T_WS_j_gnd)
+    print(f"dr: {data.dr}")
+    print(f"dq: {data.dq}")
+    print(T_WS_j_est)
+    print(T_WS_j_gnd)
     # -- Position
     trans_diff = norm(tf_trans(T_WS_j_gnd) - tf_trans(T_WS_j_est))
     self.assertTrue(trans_diff < 0.05)
@@ -8324,9 +8377,16 @@ class TestIMUFactor(unittest.TestCase):
     params = [sv.param for sv in fvars]
     (r, [J0, J1, J2, J3]) = factor.eval(params)
 
-    # Form Hessian
-    J = np.block([J0, J1, J2, J3])
-    H = J.T @ J
+    # print(f"J1:\n{np.round(J1)}")
+    np.set_printoptions(threshold=4,
+                        suppress=True,
+                        linewidth=100000,
+                        edgeitems=10)
+    print(J1)
+
+    # # Form Hessian
+    # J = np.block([J0, J1, J2, J3])
+    # H = J.T @ J
 
     # Perform Schur Complement
     # m = 6 + 9
@@ -12077,11 +12137,11 @@ class TestSimulation(unittest.TestCase):
   def test_sim_data(self):
     """ Test SimData() """
     debug_cam = False
-    debug_imu = False
+    debug_imu = True
 
     # Sim data
-    circle_r = 5.0
-    circle_v = 1.0
+    circle_r = 1.0
+    circle_v = 0.1
     pickle_path = '/tmp/sim_data.pickle'
     sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
     cam0_data = sim_data.mcam_data[0]

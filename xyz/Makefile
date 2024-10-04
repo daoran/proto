@@ -3,7 +3,7 @@ CUR_DIR := $(shell pwd)
 BLD_DIR := build
 INC_DIR := $(realpath $(PWD))
 DEPS_DIR := $(realpath ../third_party)
-PREFIX := /opt/proto
+PREFIX := /opt/xyz
 PYTHON3_PATH := $(shell python3 -c "import site; print(site.getsitepackages()[0])")
 
 
@@ -34,7 +34,7 @@ ASSIMP_LDFLAGS := -lassimp
 
 APRILTAG_LDFLAGS := -L$(DEPS_DIR)/lib -lapriltag
 YAML_LDFLAGS := -lyaml
-PROTO_LDFLAGS := -L$(BLD_DIR) -lproto
+XYZ_LDFLAGS := -L$(BLD_DIR) -lxyz
 
 
 # CFLAGS
@@ -67,7 +67,7 @@ CFLAGS += \
 RPATH := -Wl,-rpath,$(DEPS_DIR)/lib
 LDFLAGS= \
 	$(RPATH) \
-  $(PROTO_LDFLAGS) \
+  $(XYZ_LDFLAGS) \
 	$(CERES_LDFLAGS) \
 	$(APRILTAG_LDFLAGS) \
 	$(OPENGL_LDFLAGS) \
@@ -88,9 +88,9 @@ ARFLAGS = rvs
 
 
 # TARGETS
-LIBPROTO := $(BLD_DIR)/libproto.a
-LIBPROTO_OBJS := \
-	$(BLD_DIR)/proto.o \
+LIBXYZ := $(BLD_DIR)/libxyz.a
+LIBXYZ_OBJS := \
+	$(BLD_DIR)/xyz.o \
 	$(BLD_DIR)/aprilgrid.o \
 	$(BLD_DIR)/euroc.o \
 	$(BLD_DIR)/gui.o \
@@ -98,7 +98,7 @@ LIBPROTO_OBJS := \
 	$(BLD_DIR)/ceres_bridge.o
 
 TESTS := \
-	test_proto \
+	test_xyz \
 	test_aprilgrid \
 	test_sbgc \
 	test_ubx
@@ -120,11 +120,11 @@ $(BLD_DIR)/ceres_bridge.o: ceres_bridge.cpp Makefile
 	@echo "CXX [ceres_bridge.c]"
 	@g++ -Wall -O3 -c ceres_bridge.cpp -o $(BLD_DIR)/ceres_bridge.o -I/usr/include/eigen3
 
-$(BLD_DIR)/libproto.a: $(LIBPROTO_OBJS)
-	@echo "AR [libproto.a]"
+$(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
+	@echo "AR [libxyz.a]"
 	@$(AR) $(ARFLAGS) \
-		$(BLD_DIR)/libproto.a \
-		$(LIBPROTO_OBJS) \
+		$(BLD_DIR)/libxyz.a \
+		$(LIBXYZ_OBJS) \
 		> /dev/null 2>&1
 
 setup:
@@ -135,35 +135,35 @@ setup:
 clean:  ## Clean build directory
 	@rm -rf $(BLD_DIR)
 
-libproto: setup $(BLD_DIR)/libproto.a  ## Compile libproto
+libxyz: setup $(BLD_DIR)/libxyz.a  ## Compile libxyz
 
-install: ## Install libproto
+install: ## Install libxyz
 	mkdir -p $(PREFIX)
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
-	ln -sf $(CUR_DIR)/build/libproto.a $(PREFIX)/lib/libproto.a
+	ln -sf $(CUR_DIR)/build/libxyz.a $(PREFIX)/lib/libxyz.a
 	ln -sf $(CUR_DIR)/aprilgrid.h $(PREFIX)/include/aprilgrid.h
 	ln -sf $(CUR_DIR)/ceres_bridge.h $(PREFIX)/include/ceres_bridge.h
 	ln -sf $(CUR_DIR)/euroc.h $(PREFIX)/include/euroc.h
 	ln -sf $(CUR_DIR)/gui.h $(PREFIX)/include/gui.h
 	ln -sf $(CUR_DIR)/http.h $(PREFIX)/include/http.h
-	ln -sf $(CUR_DIR)/proto.h $(PREFIX)/include/proto.h
+	ln -sf $(CUR_DIR)/xyz.h $(PREFIX)/include/xyz.h
 	ln -sf $(CUR_DIR)/sbgc.h $(PREFIX)/include/sbgc.h
 	ln -sf $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
-	ln -sf $(CUR_DIR)/proto.py $(PYTHON3_PATH)/proto.py
+	ln -sf $(CUR_DIR)/xyz.py $(PYTHON3_PATH)/xyz.py
 
-uninstall: ## Uninstall libproto
-	rm $(PREFIX)/lib/libproto.a
+uninstall: ## Uninstall libxyz
+	rm $(PREFIX)/lib/libxyz.a
 	rm $(PREFIX)/include/aprilgrid.h
 	rm $(PREFIX)/include/euroc.h
 	rm $(PREFIX)/include/gui.h
 	rm $(PREFIX)/include/http.h
-	rm $(PREFIX)/include/proto.h
+	rm $(PREFIX)/include/xyz.h
 	rm $(PREFIX)/include/sbgc.h
 	rm $(PREFIX)/include/stb_image.h
-	rm $(PYTHON3_PATH)/proto.py
+	rm $(PYTHON3_PATH)/xyz.py
 
-avs: $(BLD_DIR)/libproto.a
+avs: $(BLD_DIR)/libxyz.a
 	@g++ \
 		-std=c++17 \
 		-fsanitize=address -static-libasan \
@@ -175,13 +175,13 @@ avs: $(BLD_DIR)/libproto.a
 		avs.cpp \
 		-o $(BLD_DIR)/avs \
 		$(LDFLAGS) \
-		-lproto \
+		-lxyz \
 		$(shell pkg-config opencv4 --libs)
 
-test_proto: libproto  ## Compile test_proto
+test_xyz: libxyz  ## Compile test_xyz
 	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
-	./build/test_proto --target $(TEST_TARGET)
+	@$(CC) $(CFLAGS) test_xyz.c -o $(BLD_DIR)/test_xyz $(LDFLAGS)
+	./build/test_xyz --target $(TEST_TARGET)
 
 test_aprilgrid:  ## Compile test_aprilgrid
 	@echo "CC [$@]"
@@ -212,8 +212,8 @@ test_http:  ## Compile test_http
 	@$(CC) $(CFLAGS) test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
 	@./build/test_http
 
-tests: test_proto test_aprilgrid test_sbgc test_ubx
+tests: test_xyz test_aprilgrid test_sbgc test_ubx
 
 ci:
-	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 test_proto.c -o $(BLD_DIR)/test_proto $(LDFLAGS)
-	@./build/test_proto
+	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 test_xyz.c -o $(BLD_DIR)/test_xyz $(LDFLAGS)
+	@./build/test_xyz

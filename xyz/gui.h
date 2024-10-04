@@ -264,7 +264,7 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GL-PRIMITIVES
  *****************************************************************************/
 
-void gl_triangle_setup(gl_entity_t *entity, GLfloat pos[3]);
+void gl_triangle_setup(gl_entity_t *entity);
 void gl_triangle_cleanup(const gl_entity_t *entity);
 void gl_triangle_draw(const gl_entity_t *entity, const gl_camera_t *camera);
 
@@ -397,9 +397,6 @@ void gui_loop(gui_t *gui);
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #endif
-
-// #define GLAD_GL_IMPLEMENTATION
-// #include "glad.h"
 
 // /**
 //  * Tic, start timer.
@@ -1131,6 +1128,64 @@ void gl_camera_zoom(gl_camera_t *camera,
 /******************************************************************************
  * GL-PRIMITIVES
  *****************************************************************************/
+
+void gl_triangle_setup(gl_entity_t *entity) {
+  // Entity transform
+  gl_eye(entity->T, 4, 4);
+
+  // Shader program
+  char *vs = load_file("./shaders/triangle.vert");
+  char *fs = load_file("./shaders/triangle.frag");
+  entity->program_id = gl_prog_setup(vs, fs, NULL);
+  free(vs);
+  free(fs);
+  if (entity->program_id == GL_FALSE) {
+    FATAL("Failed to create shaders to draw cube!");
+  }
+
+  // Vertices
+  const float vertices[] = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
+  const int num_vertices = 3;
+  const size_t vertex_buffer_size = sizeof(float) * 3 * num_vertices;
+
+  // VAO
+  glGenVertexArrays(1, &entity->vao);
+  glBindVertexArray(entity->vao);
+
+  // VBO
+  glGenBuffers(1, &entity->vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, entity->vbo);
+  glBufferData(GL_ARRAY_BUFFER, vertex_buffer_size, vertices, GL_STATIC_DRAW);
+  // -- Position attribute
+  size_t vertex_size = 3 * sizeof(float);
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+  // -- Color attribute
+  // void *color_offset = (void *) (3 * sizeof(float));
+  // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
+  // glEnableVertexAttribArray(1);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+}
+
+void gl_triangle_cleanup(const gl_entity_t *entity) {
+  glDeleteVertexArrays(1, &entity->vao);
+  glDeleteBuffers(1, &entity->vbo);
+}
+
+void gl_triangle_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
+  glUseProgram(entity->program_id);
+  // gl_prog_set_mat4f(entity->program_id, "projection", camera->P);
+  // gl_prog_set_mat4f(entity->program_id, "view", camera->V);
+  // gl_prog_set_mat4f(entity->program_id, "model", entity->T);
+
+  glBindVertexArray(entity->vao);
+  glDrawArrays(GL_TRIANGLES, 0, 3);
+  glBindVertexArray(0);
+}
 
 void gl_cube_setup(gl_entity_t *entity, GLfloat pos[3]) {
   // Entity transform
@@ -2206,6 +2261,9 @@ void gui_loop(gui_t *gui) {
   gl_entity_t cf;
   gl_camera_frame_setup(&cf);
 
+  gl_entity_t triangle;
+  gl_triangle_setup(&triangle);
+
   // gl_entity_t frame;
   // gl_axis_frame_setup(&frame);
 
@@ -2229,6 +2287,7 @@ void gui_loop(gui_t *gui) {
     // gl_camera_frame_draw(&cf, &gui->camera);
     // gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
+    gl_triangle_draw(&triangle, &gui->camera);
     // gl_model_draw(model, &gui->camera);
 
     glBegin(GL_QUADS);

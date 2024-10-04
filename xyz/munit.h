@@ -31,7 +31,7 @@ static char *test_target_name = NULL;
 #endif
 
 #ifndef MU_ENABLE_PRINT
-#define MU_ENABLE_PRINT 0
+#define MU_ENABLE_PRINT 1
 #endif
 
 /* TERMINAL COLORS */

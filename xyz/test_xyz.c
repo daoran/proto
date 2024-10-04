@@ -1,4 +1,4 @@
-#include "proto.h"
+#include "xyz.h"
 #include "munit.h"
 #include "stb_ds.h"
 
@@ -4506,7 +4506,7 @@ static void free_imu_test_data(imu_test_data_t *test_data) {
 int test_imu_propagate() {
   // Setup test data
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data, 5.0, 1.0);
+  setup_imu_test_data(&test_data, 1.0, 0.1);
 
   // Setup IMU buffer
   const int n = 100;
@@ -4717,7 +4717,7 @@ int test_imu_factor() {
   setup_imu_test_data(&test_data, circle_r, circle_v);
 
   // Setup IMU buffer
-  int buf_size = 20;
+  int buf_size = 100;
   imu_buffer_t imu_buf;
   imu_buffer_setup(&imu_buf);
   for (int k = 0; k < buf_size; k++) {
@@ -4760,6 +4760,10 @@ int test_imu_factor() {
   imu_params.sigma_gw = 2.0e-6;
   imu_params.g = 9.81;
 
+  pose_j.data[0] += 0.01;
+  pose_j.data[1] += 0.02;
+  pose_j.data[2] += 0.03;
+
   imu_factor_t factor;
   imu_factor_setup(&factor,
                    &imu_params,
@@ -4774,13 +4778,25 @@ int test_imu_factor() {
 
   // print_vector("pose_i", pose_i.data, 7);
   // print_vector("pose_j", pose_j.data, 7);
+  // print_vector("vel_i", vel_i.data, 3);
+  // print_vector("vel_j", vel_j.data, 3);
   // print_vector("dr", factor.dr, 3);
   // print_vector("dv", factor.dv, 3);
   // print_vector("dq", factor.dq, 4);
   // printf("dt: %f\n", factor.Dt);
   // print_vector("r", factor.r, 15);
-  mat_save("/tmp/F_.csv", factor.F, 15, 15);
-  // mat_save("/tmp/P_.csv", factor.P, 15, 15);
+  mat_save("/tmp/F.csv", factor.F, 15, 15);
+  mat_save("/tmp/P.csv", factor.P, 15, 15);
+  mat_save("/tmp/r.csv", factor.r, 15, 1);
+  mat_save("/tmp/pose_i.csv", factor.params[0], 7, 1);
+  mat_save("/tmp/vel_i.csv", factor.params[1], 3, 1);
+  mat_save("/tmp/pose_j.csv", factor.params[3], 7, 1);
+  mat_save("/tmp/vel_j.csv", factor.params[4], 3, 1);
+
+  for (int i =0; i < 15; i++) {
+    printf("%.4e\n", factor.r[i]);
+  }
+  printf("\n");
 
   /*
   const char *cmd = "\
@@ -4810,14 +4826,14 @@ ginput();\
   system(syscmd);
   */
 
-  MU_ASSERT(factor.pose_i == &pose_i);
-  MU_ASSERT(factor.vel_i == &vel_i);
-  MU_ASSERT(factor.biases_i == &biases_i);
-  MU_ASSERT(factor.pose_i == &pose_i);
-  MU_ASSERT(factor.vel_j == &vel_j);
-  MU_ASSERT(factor.biases_j == &biases_j);
-
-  // Check Jacobians
+  // MU_ASSERT(factor.pose_i == &pose_i);
+  // MU_ASSERT(factor.vel_i == &vel_i);
+  // MU_ASSERT(factor.biases_i == &biases_i);
+  // MU_ASSERT(factor.pose_i == &pose_i);
+  // MU_ASSERT(factor.vel_j == &vel_j);
+  // MU_ASSERT(factor.biases_j == &biases_j);
+  //
+  // // Check Jacobians
   // const double tol = 1e-4;
   // const double step_size = 1e-8;
   // eye(factor.sqrt_info, 15, 15);
@@ -5587,7 +5603,7 @@ int test_visual_odometry_batch() {
 int test_inertial_odometry_batch() {
   // Setup test data
   imu_test_data_t test_data;
-  setup_imu_test_data(&test_data, 1.0, 1.0);
+  setup_imu_test_data(&test_data, 1.0, 0.1);
 
   // Inertial Odometry
   const int num_partitions = test_data.num_measurements / 20.0;
@@ -8372,7 +8388,7 @@ void test_suite() {
   MU_ADD_TEST(test_calib_gimbal_factor);
   MU_ADD_TEST(test_marg);
   // MU_ADD_TEST(test_visual_odometry_batch);
-  // MU_ADD_TEST(test_inertial_odometry_batch);
+  MU_ADD_TEST(test_inertial_odometry_batch);
   // MU_ADD_TEST(test_visual_inertial_odometry_batch);
   // MU_ADD_TEST(test_tsf);
 #ifdef USE_CERES

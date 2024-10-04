@@ -1,4 +1,4 @@
-#include "proto.h"
+#include "xyz.h"
 
 #ifdef USE_STB
 #ifndef STB_IMAGE_IMPLEMENTATION
@@ -204,9 +204,7 @@ void skip_line(FILE *fp) {
  * - 1 File exists
  * - 0 File does not exist
  */
-int file_exists(const char *fp) {
-  return (access(fp, F_OK) == 0) ? 1 : 0;
-}
+int file_exists(const char *fp) { return (access(fp, F_OK) == 0) ? 1 : 0; }
 
 /**
  * Get number of rows in file `fp`.
@@ -1420,9 +1418,7 @@ void *queue_last(queue_t *q) {
 // HASHMAP //
 /////////////
 
-static inline int default_cmp(void *a, void *b) {
-  return strcmp(a, b);
-}
+static inline int default_cmp(void *a, void *b) { return strcmp(a, b); }
 
 static uint32_t default_hash(void *a) {
   // Simple bob jenkins's hash algorithm
@@ -1771,23 +1767,17 @@ timestamp_t time_now() {
 /**
  * Convert string to timestamp
  */
-timestamp_t str2ts(const char *ts_str) {
-  return strtoll(ts_str, NULL, 10);
-}
+timestamp_t str2ts(const char *ts_str) { return strtoll(ts_str, NULL, 10); }
 
 /**
  * Convert timestamp to seconds
  */
-real_t ts2sec(const timestamp_t ts) {
-  return ts * 1e-9;
-}
+real_t ts2sec(const timestamp_t ts) { return ts * 1e-9; }
 
 /**
  * Convert seconds to timestamp
  */
-timestamp_t sec2ts(const real_t time_s) {
-  return time_s * 1e9;
-}
+timestamp_t sec2ts(const real_t time_s) { return time_s * 1e9; }
 
 /******************************************************************************
  * NETWORK
@@ -1992,17 +1982,13 @@ void randvec(const real_t a, const real_t b, const size_t n, real_t *v) {
  * Degrees to radians.
  * @returns Radians
  */
-real_t deg2rad(const real_t d) {
-  return d * (M_PI / 180.0);
-}
+real_t deg2rad(const real_t d) { return d * (M_PI / 180.0); }
 
 /**
  * Radians to degrees.
  * @returns Degrees
  */
-real_t rad2deg(const real_t r) {
-  return r * (180.0 / M_PI);
-}
+real_t rad2deg(const real_t r) { return r * (180.0 / M_PI); }
 
 /**
  * Wrap angle `d` in degrees to +- 180 degrees.
@@ -2030,16 +2016,12 @@ real_t wrap_360(const real_t d) {
 /**
  * Wrap angle `r` in radians to +- pi radians.
  */
-real_t wrap_pi(const real_t r) {
-  return deg2rad(wrap_180(rad2deg(r)));
-}
+real_t wrap_pi(const real_t r) { return deg2rad(wrap_180(rad2deg(r))); }
 
 /**
  * Wrap angle `r` in radians to 0 to 2pi radians.
  */
-real_t wrap_2pi(const real_t r) {
-  return deg2rad(wrap_360(rad2deg(r)));
-}
+real_t wrap_2pi(const real_t r) { return deg2rad(wrap_360(rad2deg(r))); }
 
 /**
  * Compare ints.
@@ -2117,9 +2099,7 @@ int flteqs(const real_t x, const real_t y) {
  * Check if strings are equal.
  * @returns 1 if x == y, 0 if x != y.
  */
-int streqs(const char *x, const char *y) {
-  return (strcmp(x, y) == 0) ? 1 : 0;
-}
+int streqs(const char *x, const char *y) { return (strcmp(x, y) == 0) ? 1 : 0; }
 
 /**
  * Cumulative Sum.
@@ -2347,8 +2327,8 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
 
   printf("%s: ", prefix);
   for (size_t i = 0; i < n; i++) {
-    // printf("%e ", v[i]);
-    printf("%f ", v[i]);
+    printf("%e ", v[i]);
+    // printf("%f ", v[i]);
     // printf("%.4f ", v[i]);
     // printf("%.10f ", v[i]);
   }
@@ -10378,9 +10358,7 @@ void joint_print(const char *prefix, const joint_t *joint) {
 /**
  * Free parameter order.
  */
-void param_order_free(param_order_t *hash) {
-  hmfree(hash);
-}
+void param_order_free(param_order_t *hash) { hmfree(hash); }
 
 /**
  * Return parameter type as a string
@@ -13122,7 +13100,7 @@ int imu_factor_ceres_eval(void *factor_ptr,
                           real_t **params,
                           real_t *r_out,
                           real_t **J_out) {
-  CERES_FACTOR_EVAL(imu_factor,
+  CERES_FACTOR_EVAL(imu_jactor,
                     ((imu_factor_t *) factor_ptr),
                     imu_factor_eval,
                     params,
@@ -19575,9 +19553,7 @@ void tsf_frameset_setup(tsf_frameset_t *fs) {
 /**
  * TSF reset
  */
-void tsf_frameset_reset(tsf_frameset_t *fs) {
-  tsf_frameset_setup(fs);
-}
+void tsf_frameset_reset(tsf_frameset_t *fs) { tsf_frameset_setup(fs); }
 
 /**
  * TSF Malloc.
@@ -20593,21 +20569,15 @@ int **assoc_pose_data(pose_t *gnd_poses,
  * PLOTTING
  *****************************************************************************/
 
-FILE *gnuplot_init() {
-  return popen("gnuplot -persistent", "w");
-}
+FILE *gnuplot_init() { return popen("gnuplot -persistent", "w"); }
 
-void gnuplot_close(FILE *pipe) {
-  fclose(pipe);
-}
+void gnuplot_close(FILE *pipe) { fclose(pipe); }
 
 void gnuplot_multiplot(FILE *pipe, const int num_rows, const int num_cols) {
   fprintf(pipe, "set multiplot layout %d, %d\n", num_rows, num_cols);
 }
 
-void gnuplot_send(FILE *pipe, const char *cmd) {
-  fprintf(pipe, "%s\n", cmd);
-}
+void gnuplot_send(FILE *pipe, const char *cmd) { fprintf(pipe, "%s\n", cmd); }
 
 void gnuplot_xrange(FILE *pipe, const real_t xmin, const real_t xmax) {
   fprintf(pipe, "set xrange [%f:%f]\n", xmin, xmax);
@@ -20777,9 +20747,7 @@ void sim_imu_data_free(sim_imu_data_t *imu_data) {
 /**
  * Load simulation imu data.
  */
-sim_imu_data_t *sim_imu_data_load(const char *csv_path) {
-  return NULL;
-}
+sim_imu_data_t *sim_imu_data_load(const char *csv_path) { return NULL; }
 
 /**
  * Simulate IMU circle trajectory.

@@ -2,7 +2,7 @@ MKFILE_PATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 PROJ_PATH=$(patsubst %/,%,$(dir $(MKFILE_PATH)))
 CATKIN_WS=~/catkin_ws
 
-.PHONY: third_party docs build install tests ci run_test_proto clean
+.PHONY: third_party docs build install tests ci run_test_xyz clean
 
 help:
 	@echo "\033[1;34m[make targets]:\033[0m"
@@ -22,17 +22,17 @@ docs: ## Build docs
 	@rm -rf docs/build
 	@sphinx-autobuild docs/source docs/build/html
 
-build: ## Build libproto
-	@cd proto && make -s libproto
+build: ## Build libxyz
+	@cd xyz && make -s libxyz
 
-install: build ## Install libproto
-	@cd proto && make -s install
+install: build ## Install libxyz
+	@cd xyz && make -s install
 
 tests: ## Run unittests
-	@cd proto && make -s tests
+	@cd xyz && make -s tests
 
 ci: ## Run CI tests
-	@cd proto && make -s ci
+	@cd xyz && make -s ci
 
 clean: ## Clean
-	@cd proto && make -s clean
+	@cd xyz && make -s clean
