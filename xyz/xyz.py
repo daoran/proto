@@ -1,5 +1,5 @@
 """
-xyz
+xyz.py
 
 Contains the following library code useful for prototyping robotic algorithms:
 
