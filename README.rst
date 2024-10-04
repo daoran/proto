@@ -1,10 +1,10 @@
-proto
+xyz
 =====
 
-.. image:: https://github.com/chutsu/proto/actions/workflows/ci.yml/badge.svg
-  :target: https://github.com/chutsu/proto/actions?query=ci
+.. image:: https://github.com/chutsu/xyz/actions/workflows/ci.yml/badge.svg
+  :target: https://github.com/chutsu/xyz/actions?query=ci
 
-``proto`` contain notes and code used to learn about different aspects of
+``xyz`` contain notes and code used to learn about different aspects of
 robotics.
 
 
@@ -12,8 +12,8 @@ Build
 -----
 
 For convenience there is a ``Makefile`` that automates the installation of
-dependencies and building of ``proto``. To install dependencies, build and test
-``proto`` simply issue the following commands:
+dependencies and building of ``xyz``. To install dependencies, build and test
+``xyz`` simply issue the following commands:
 
 .. code-block::
 
