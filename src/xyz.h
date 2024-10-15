@@ -77,8 +77,8 @@ extern "C" {
  * LOGGING / MACROS
  ******************************************************************************/
 
-#ifndef STATUS
-#define STATUS __attribute__((warn_unused_result)) int
+#ifndef status_t
+#define status_t __attribute__((warn_unused_result)) int
 #endif
 
 /** Terminal ANSI colors */
@@ -300,9 +300,9 @@ char **list_files(const char *path, int *num_files);
 void list_files_free(char **data, const int n);
 char *file_read(const char *fp);
 void skip_line(FILE *fp);
-STATUS file_exists(const char *fp);
-STATUS file_rows(const char *fp);
-STATUS file_copy(const char *src, const char *dest);
+status_t file_exists(const char *fp);
+status_t file_rows(const char *fp);
+status_t file_copy(const char *src, const char *dest);
 
 /*******************************************************************************
  * DATA
@@ -546,15 +546,15 @@ typedef struct tcp_client_t {
   int (*loop_cb)(struct tcp_client_t *);
 } tcp_client_t;
 
-STATUS ip_port_info(const int sockfd, char *ip, int *port);
+status_t ip_port_info(const int sockfd, char *ip, int *port);
 
-STATUS tcp_server_setup(tcp_server_t *server, const int port);
-STATUS tcp_server_loop(tcp_server_t *server);
+status_t tcp_server_setup(tcp_server_t *server, const int port);
+status_t tcp_server_loop(tcp_server_t *server);
 
-STATUS tcp_client_setup(tcp_client_t *client,
+status_t tcp_client_setup(tcp_client_t *client,
                         const char *server_ip,
                         const int server_port);
-STATUS tcp_client_loop(tcp_client_t *client);
+status_t tcp_client_loop(tcp_client_t *client);
 
 /*******************************************************************************
  * MATHS

@@ -22,11 +22,6 @@
 #include "gui.h"
 #endif
 
-// #ifdef USE_SBGC
-// #define SBGC_IMPLEMENTATION
-// #include "sbgc.h"
-// #endif
-
 /*****************************************************************************
  * FILE SYSTEM
  *****************************************************************************/
@@ -1790,7 +1785,7 @@ timestamp_t sec2ts(const real_t time_s) { return time_s * 1e9; }
  * - 0 for success
  * - -1 for failure
  */
-STATUS ip_port_info(const int sockfd, char *ip, int *port) {
+status_t ip_port_info(const int sockfd, char *ip, int *port) {
   assert(ip != NULL);
   assert(port != NULL);
 
@@ -1823,7 +1818,7 @@ STATUS ip_port_info(const int sockfd, char *ip, int *port) {
 /**
  * Configure TCP server
  */
-STATUS tcp_server_setup(tcp_server_t *server, const int port) {
+status_t tcp_server_setup(tcp_server_t *server, const int port) {
   assert(server != NULL);
 
   // Setup server struct
@@ -1869,7 +1864,7 @@ STATUS tcp_server_setup(tcp_server_t *server, const int port) {
  * Loop TCP server
  * @returns `0` for success, `-1` for failure
  */
-STATUS tcp_server_loop(tcp_server_t *server) {
+status_t tcp_server_loop(tcp_server_t *server) {
   assert(server != NULL);
 
   // Server is ready to listen
@@ -1901,7 +1896,7 @@ STATUS tcp_server_loop(tcp_server_t *server) {
 /**
  * Configure TCP client
  */
-STATUS tcp_client_setup(tcp_client_t *client,
+status_t tcp_client_setup(tcp_client_t *client,
                         const char *server_ip,
                         const int server_port) {
   assert(client != NULL);
@@ -1938,7 +1933,7 @@ STATUS tcp_client_setup(tcp_client_t *client,
 /**
  * Loop TCP client
  */
-STATUS tcp_client_loop(tcp_client_t *client) {
+status_t tcp_client_loop(tcp_client_t *client) {
   while (1) {
     if (client->loop_cb) {
       int retval = client->loop_cb(client);
