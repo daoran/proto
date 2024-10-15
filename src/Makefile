@@ -212,7 +212,7 @@ test_http:  ## Compile test_http
 	@$(CC) $(CFLAGS) test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
 	@./build/test_http
 
-tests: test_xyz test_aprilgrid test_sbgc test_ubx
+tests: test_aprilgrid test_gui test_http test_sbgc test_ubx test_xyz
 
 ci:
 	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 test_xyz.c -o $(BLD_DIR)/test_xyz $(LDFLAGS)
