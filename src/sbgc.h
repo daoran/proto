@@ -1051,7 +1051,7 @@ int sbgc_set_angle(sbgc_t *sbgc,
   }
 
   // Adjust roll, pitch and yaw
-  double yaw_error = yaw - sbgc->encoder_angles[2];
+  // double yaw_error = yaw - sbgc->encoder_angles[2];
   const int16_t roll_adjusted = roll / SBGC_DEG_PER_BIT;
   const int16_t pitch_adjusted = pitch / SBGC_DEG_PER_BIT;
   // const int16_t yaw_adjusted = yaw / SBGC_DEG_PER_BIT;
