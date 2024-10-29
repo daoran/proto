@@ -6,20 +6,26 @@ Contains the following library code useful for prototyping robotic algorithms:
 - YAML
 - TIME
 - PROFILING
+- NETWORK
 - MATHS
 - LINEAR ALGEBRA
 - GEOMETRY
 - LIE
 - TRANSFORM
+- QUATERNION
+- TF
 - MATPLOTLIB
+- PYQTGRAPH
 - CV
 - DATASET
+- MANIPULATOR
 - FILTER
 - OCTREE
 - STATE ESTIMATION
 - CALIBRATION
 - SIMULATION
-- UNITTESTS
+- CONTROL
+- Visualizer
 
 """
 import os
@@ -78,6 +84,7 @@ def pip_install(package):
 
 ###############################################################################
 # YAML
+# def load_yaml(yaml_path)
 ###############################################################################
 
 
@@ -102,6 +109,8 @@ def load_yaml(yaml_path):
 
 ###############################################################################
 # TIME
+# def sec2ts(time_s)
+# def ts2sec(ts)
 ###############################################################################
 
 
@@ -117,6 +126,8 @@ def ts2sec(ts):
 
 ###############################################################################
 # PROFILING
+# def profile_start()
+# def profile_stop(prof, **kwargs)
 ###############################################################################
 
 
@@ -139,6 +150,20 @@ def profile_stop(prof, **kwargs):
 
 ###############################################################################
 # NETWORK
+# def http_status_code_string(code)
+# def http_parse_request(msg_str)
+# def http_form_request(method, path, headers, protocol="HTTP/1.1")
+# def http_form_response(status_code, headers, protocol="HTTP/1.1")
+# def websocket_hash(ws_key)
+# def websocket_handshake_response(ws_key)
+# def websocket_frame_fin_bit(data_frame)
+# def websocket_frame_rsv_bit(data_frame)
+# def websocket_frame_op_code(data_frame)
+# def websocket_frame_mask_enabled(data_frame)
+# def websocket_apply_mask(data: bytes, mask: bytes)
+# def websocket_encode_frame(payload, **kwargs)
+# def websocket_decode_frame(reader, mask)
+# DebugServer
 ###############################################################################
 
 
@@ -545,6 +570,11 @@ class TestNetwork(unittest.TestCase):
 
 ###############################################################################
 # MATHS
+# def rmse(errors)
+# def clip_value(x, vmin, vmax)
+# def wrap_180(d)
+# def wrap_360(d)
+# def wrap_pi(r)
 ###############################################################################
 
 from numpy import deg2rad
@@ -598,6 +628,20 @@ def wrap_pi(r):
 
 ###############################################################################
 # LINEAR ALGEBRA
+# def pprint_matrix(mat, fmt="g")
+# def normalize(v)
+# def full_rank(A)
+# def hat(vec)
+# def vee(A)
+# def fwdsubs(L, b)
+# def bwdsubs(U, b)
+# def solve_svd(A, b)
+# def schurs_complement(H, g, m, r, precond=False)
+# def is_pd(B)
+# def nearest_pd(A)
+# def matrix_equal(A, B, tol=1e-8, verbose=False)
+# def plot_compare_matrices(title_A, A, title_B, B)
+# def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False)
 ###############################################################################
 
 from numpy import deg2rad
@@ -951,6 +995,15 @@ class TestLinearAlgebra(unittest.TestCase):
 
 ###############################################################################
 # GEOMETRY
+# def lerp(x0, x1, t)
+# def lerp2d(p0, p1, t)
+# def lerp3d(p0, p1, t)
+# def circle(r, theta)
+# def sphere(rho, theta, phi)
+# def circle_loss(c, x, y)
+# def find_circle(x, y)
+# def bresenham(p0, p1)
+# def find_intersection(p1, p2, q1, q2)
 ###############################################################################
 
 
@@ -1121,6 +1174,16 @@ def find_intersection(p1, p2, q1, q2):
 
 ###############################################################################
 # LIE
+# def Exp(phi)
+# def Log(C)
+# def Jr(theta)
+# def Jr_inv(theta)
+# def SO3_boxplus(C, alpha)
+# def SO3_boxminus(C_a, C_b)
+# def twistSE3(twist)
+# def so3_exp(so3mat, tol=1e-6)
+# def so3_Exp(w)
+# def poe(screw_axis, theta, tol=1e-6)
 ###############################################################################
 
 
@@ -1444,6 +1507,22 @@ class TestLie(unittest.TestCase):
 
 ###############################################################################
 # TRANSFORM
+# def homogeneous(p)
+# def dehomogeneous(hp)
+# def rotx(theta)
+# def roty(theta)
+# def rotz(theta)
+# def aa2quat(axis, angle)
+# def aa2rot(aa)
+# def aa_vec(axis, angle)
+# def aa_decomp(aa)
+# def vecs2aa(u, v)
+# def euler321(yaw, pitch, roll)
+# def euler2quat(yaw, pitch, roll)
+# def quat2euler(q)
+# def quat2rot(q)
+# def rot2euler(C)
+# def rot2quat(C)
 ###############################################################################
 
 
@@ -1838,6 +1917,20 @@ class TestTransform(unittest.TestCase):
 
 
 # QUATERNION ##################################################################
+# def quat_norm(q)
+# def quat_normalize(q)
+# def quat_conj(q)
+# def quat_inv(q)
+# def quat_left(q)
+# def quat_right(q)
+# def quat_lmul(p, q)
+# def quat_rmul(p, q)
+# def quat_mul(p, q)
+# def quat_rot(q, x)
+# def quat_omega(w)
+# def quat_delta(dalpha)
+# def quat_integrate(q_k, w, dt)
+# def quat_slerp(q_i, q_j, t)
 
 
 def quat_norm(q):
@@ -2063,6 +2156,25 @@ class TestQuaternion(unittest.TestCase):
 
 
 # TF ##########################################################################
+#  def tf(rot, trans)
+#  def tf_rot(T)
+#  def tf_quat(T)
+#  def tf_euler(T)
+#  def tf2pose(T)
+#  def pose2tf(pose_vec)
+#  def tf_trans(T)
+#  def tf_inv(T)
+#  def tf_point(T, p)
+#  def tf_hpoint(T, hp)
+#  def tf_decompose(T)
+#  def tf_lerp(pose_i, pose_j, t)
+#  def rot_perturb(C, i, step_size)
+#  def tf_perturb(T, i, step_size)
+#  def tf_update(T, dx)
+#  def tf_diff(T0, T1)
+#  def pose_diff(pose0, pose1)
+#  def load_extrinsics(csv_path)
+#  def load_poses(csv_path)
 
 
 def tf(rot, trans):
@@ -2329,6 +2441,13 @@ def load_poses(csv_path):
 
 ###############################################################################
 # MATPLOTLIB
+# Arrow3D
+# def plot_bbox(ax, center, size)
+# def plot_set_axes_equal(ax)
+# def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs)
+# def plot_tf(ax, T, **kwargs)
+# def plot_mav(ax, T, **kwargs)
+# def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs)
 ###############################################################################
 
 import matplotlib.pylab as plt
@@ -2678,6 +2797,9 @@ def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
 
 ###############################################################################
 # PYQTGRAPH
+# def pyqtgraph_mesh(widget)
+# def pyqtgraph_axes(widget, T, **kwargs)
+# def pyqtgraph_example(sys)
 ###############################################################################
 
 
@@ -2761,6 +2883,45 @@ def pyqtgraph_example(sys):
 
 ###############################################################################
 # CV
+# def illumination_invariant_transform(image, alpha=0.9)
+# def lookat(cam_pos, target_pos, **kwargs)
+# def linear_triangulation(P_i, P_j, z_i, z_j)
+# def parallax(a, b)
+# def homography_find(pts_i, pts_j)
+# def homography_pose(object_points, image_points, fx, fy, cx, cy)
+# def dlt_pose(object_points, image_points, fx, fy, cx, cy)
+# def solvepnp(obj_pts, img_pts, fx, fy, cx, cy, **kwargs)
+# def harris_corner(image_gray, **kwargs)
+# def shi_tomasi_corner(image_gray, **kwargs)
+# def focal_length(image_width, fov_deg)
+# def pinhole_K(params)
+# def pinhole_P(params, T_WC)
+# def pinhole_project(proj_params, p_C)
+# def pinhole_back_project(proj_params, z)
+# def pinhole_params_jacobian(x)
+# def pinhole_point_jacobian(proj_params)
+# def radtan4_distort(dist_params, p)
+# def radtan4_point_jacobian(dist_params, p)
+# def radtan4_undistort(dist_params, p0)
+# def radtan4_params_jacobian(dist_params, p)
+# def equi4_distort(dist_params, p)
+# def equi4_undistort(dist_params, p)
+# def equi4_params_jacobian(dist_params, p)
+# def equi4_point_jacobian(dist_params, p)
+# def pinhole_radtan4_project(proj_params, dist_params, p_C)
+# def pinhole_radtan4_backproject(proj_params, dist_params, z)
+# def pinhole_radtan4_undistort(proj_params, dist_params, z)
+# def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C)
+# def pinhole_radtan4_params_jacobian(proj_params, dist_params, p_C)
+# def pinhole_equi4_project(proj_params, dist_params, p_C)
+# def pinhole_equi4_backproject(proj_params, dist_params, z)
+# def pinhole_equi4_undistort(proj_params, dist_params, z)
+# def pinhole_equi4_project_jacobian(proj_params, dist_params, p_C)
+# def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C)
+# CameraGeometry
+# def pinhole_radtan4_setup(cam_idx, cam_res)
+# def pinhole_equi4_setup(cam_idx, cam_res)
+# def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model)
 ###############################################################################
 
 # UTILS #######################################################################
@@ -4676,9 +4837,19 @@ class TestCV(unittest.TestCase):
 
 ################################################################################
 # DATASET
+# CameraEvent
+# ImuEvent
+# Timeline
+# EurocSensor
+# EurocImuData
+# EurocCameraData
+# EurocGroundTruth
+# EurocDataset
+# KittiCameraData
+# KittiRawDataset
 ################################################################################
 
-# TIMELINE######################################################################
+# TIMELINE #####################################################################
 
 
 @dataclass
@@ -5107,6 +5278,7 @@ class TestKitti(unittest.TestCase):
 
 ###############################################################################
 # MANIPULATOR
+# def fwdkinspace(M, S_list, theta_list)
 ###############################################################################
 
 
@@ -5154,6 +5326,8 @@ def fwdkinspace(M, S_list, theta_list):
 
 ###############################################################################
 # FILTER
+# def compl_filter(gyro, accel, dt, roll, pitch)
+# KalmanFilter
 ###############################################################################
 
 
@@ -5307,6 +5481,8 @@ class TestKalmanFilter(unittest.TestCase):
 
 ###############################################################################
 # OCTREE
+# OctreeNode
+# Octree
 ###############################################################################
 
 
@@ -5670,6 +5846,67 @@ class TestFrustum(unittest.TestCase):
 
 ###############################################################################
 # STATE ESTIMATION
+# StateVariableType
+# StateVariable
+# FeatureMeasurements
+# def pose_setup(ts, param, **kwargs)
+# def extrinsics_setup(param, **kwargs)
+# def screw_axis_setup(param, **kwargs)
+# def camera_params_setup(cam_idx, res, proj_model, dist_model, param, **kwargs)
+# def feature_setup(param, **kwargs)
+# def speed_biases_setup(ts, vel, ba, bg, **kwargs)
+# def inverse_depth_setup(param, **kwargs)
+# def time_delay_setup(param, **kwargs)
+# def joint_angle_setup(param, **kwargs)
+# def perturb_state_variable(sv, i, step_size)
+# def perturb_pose(pose, dr, drot)
+# def perturb_pose_random(pose, pos_range, rot_range)
+# def perturb_tf_random(T, pos_range, rot_range)
+# def update_state_variable(sv, dx)
+# def idp_param(cam_params, T_WC, z)
+# def idp_param_jacobian(param)
+# def idp_point(param)
+#
+# Factor
+# MeasurementFactor(Factor)
+# PoseFactor(Factor)
+# MultiCameraBuffer
+# class BAFactor(Factor)
+# class VisionFactor(Factor)
+# class CameraFactor(Factor)
+# class CalibVisionFactor(Factor)
+# class TwoStateVisionFactor(Factor)
+# class GimbalKinematics:
+# class CalibGimbalFactor(Factor)
+# class ImuBuffer:
+# class ImuParams:
+# class ImuFactorData:
+# class ImuFactorData2:
+# class ImuFactor(Factor)
+# class ImuFactor2(Factor)
+# class MargFactor(Factor)
+# class Solver:
+# class FactorGraph:
+#
+# def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs)
+# def draw_keypoints(img, kps, inliers=None, **kwargs)
+# def sort_keypoints(kps, des=None)
+# def spread_corners(img, corners, min_dist, **kwargs)
+# def spread_keypoints(img, kps, min_dist, **kwargs)
+# def spread_features(img, kps, des, min_dist, **kwargs)
+# class FeatureGrid
+# def grid_detect(detector, image, **kwargs)
+# def good_grid(image, **kwargs)
+# def optflow_track(img_i, img_j, pts_i, **kwargs)
+# def filter_outliers(pts_i, pts_j, inliers)
+# def check_parallax(cam0_params, cam1_params, cam0_exts, cam1_exts, kps0, kps1,
+# def ransac(pts_i, pts_j, cam_i, cam_j)
+# class FeatureTrack
+# def estimate_pose(param_i, param_j, ext_i, ext_j, kps_i, kps_j, features,
+#                   pose_i, **kwargs)
+# class TSIF
+# class FeatureTrackerData
+# def visualize_tracking(ft_data)
 ###############################################################################
 
 # STATE VARIABLES #############################################################
@@ -10921,6 +11158,12 @@ class TestFeatureTracking(unittest.TestCase):
 
 ###############################################################################
 # CALIBRATION
+# class AprilGrid
+# def calib_generate_poses(calib_target, **kwargs)
+# def calib_generate_random_poses(calib_target, **kwargs)
+# class CalibView
+# class Calibrator
+# class GimbalCalibrator
 ###############################################################################
 
 
@@ -11650,6 +11893,13 @@ class TestCalibration(unittest.TestCase):
 
 ###############################################################################
 # SIMULATION
+# def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features)
+# def create_3d_features_perimeter(origin, dim, nb_features)
+# class SimCameraFrame
+# class SimCameraData
+# class SimImuData
+# class SimData
+# def dh_matrix(theta, d, a, alpha)
 ###############################################################################
 
 # UTILS #######################################################################
@@ -12256,6 +12506,13 @@ class TestSimulation(unittest.TestCase):
 
 ###############################################################################
 # CONTROL
+# class PID
+# class CarrotController
+# class MavModel
+# class MavAttitudeControl
+# class MavVelocityControl
+# class MavPositionControl
+# class MavTrajectoryControl
 ###############################################################################
 
 
@@ -13229,6 +13486,8 @@ class TestMav(unittest.TestCase):
 
 ###############################################################################
 # Visualizer
+# class DevServer
+# class MultiPlot
 ###############################################################################
 
 try:
