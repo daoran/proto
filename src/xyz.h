@@ -402,7 +402,7 @@ typedef struct list_t {
   list_node_t *last;
 } list_t;
 
-list_t *list_malloc();
+list_t *list_malloc(void);
 void list_free(list_t *list);
 void list_clear(list_t *list);
 void list_clear_free(list_t *list);
@@ -436,7 +436,7 @@ typedef struct mstack_t {
   mstack_node_t *end;
 } mstack_t;
 
-mstack_t *stack_new();
+mstack_t *stack_new(void);
 void mstack_destroy_traverse(mstack_node_t *n, void (*free_func)(void *));
 void mstack_clear_destroy(mstack_t *s, void (*free_func)(void *));
 void mstack_destroy(mstack_t *s);
@@ -452,7 +452,7 @@ typedef struct queue_t {
   list_t *queue;
 } queue_t;
 
-queue_t *queue_malloc();
+queue_t *queue_malloc(void);
 void queue_free(queue_t *q);
 int queue_enqueue(queue_t *q, void *data);
 void *queue_dequeue(queue_t *q);
@@ -488,7 +488,7 @@ typedef struct hashmap_t {
   void (*v_free)(void *);
 } hashmap_t;
 
-hashmap_t *hashmap_new();
+hashmap_t *hashmap_new(void);
 void hashmap_clear_destroy(hashmap_t *map);
 void hashmap_destroy(hashmap_t *map);
 int hashmap_set(hashmap_t *map, void *key, void *data);
@@ -513,10 +513,10 @@ typedef int64_t timestamp_t;
 #define PRINT_TOC(PREFIX, X) printf("[%s]: %.4fs\n", PREFIX, toc(&X))
 #define PRINT_MTOC(PREFIX, X) printf("[%s]: %.4fms\n", PREFIX, mtoc(&X))
 
-struct timespec tic();
+struct timespec tic(void);
 float toc(struct timespec *tic);
 float mtoc(struct timespec *tic);
-timestamp_t time_now();
+timestamp_t time_now(void);
 
 timestamp_t str2ts(const char *ts_str);
 real_t ts2sec(const timestamp_t ts);
@@ -1449,7 +1449,7 @@ typedef struct mav_model_telem_t {
 
 } mav_model_telem_t;
 
-mav_model_telem_t *mav_model_telem_malloc();
+mav_model_telem_t *mav_model_telem_malloc(void);
 void mav_model_telem_free(mav_model_telem_t *telem);
 void mav_model_telem_update(mav_model_telem_t *telem,
                             const mav_model_t *mav,
@@ -1519,7 +1519,7 @@ typedef struct mav_waypoints_t {
   real_t threshold_wait;
 } mav_waypoints_t;
 
-mav_waypoints_t *mav_waypoints_malloc();
+mav_waypoints_t *mav_waypoints_malloc(void);
 void mav_waypoints_free(mav_waypoints_t *ctrl);
 void mav_waypoints_print(const mav_waypoints_t *wps);
 int mav_waypoints_done(const mav_waypoints_t *wps);
@@ -1631,8 +1631,7 @@ void print_camera_event(const camera_event_t *event);
 void print_imu_event(const imu_event_t *event);
 void print_fiducial_event(const fiducial_event_t *event);
 
-timeline_t *timeline_malloc();
-void timeline_free(timeline_t *timeline);
+timeline_t *timeline_malloc(void); void timeline_free(timeline_t *timeline);
 timeline_t *timeline_load_data(const char *data_dir,
                                const int num_cams,
                                const int num_imus);
@@ -1721,8 +1720,7 @@ typedef struct fiducial_buffer_t {
   int capacity;
 } fiducial_buffer_t;
 
-fiducial_buffer_t *fiducial_buffer_malloc();
-void fiducial_buffer_clear(fiducial_buffer_t *buf);
+fiducial_buffer_t *fiducial_buffer_malloc(void); void fiducial_buffer_clear(fiducial_buffer_t *buf);
 void fiducial_buffer_free(fiducial_buffer_t *buf);
 int fiducial_buffer_total_corners(const fiducial_buffer_t *buf);
 void fiducial_buffer_add(fiducial_buffer_t *buf,
@@ -1881,8 +1879,7 @@ void feature_print(const feature_t *feature);
 //   size_t position_capacity;
 // } features_t;
 
-// features_t *features_malloc();
-// void features_free(features_t *features);
+// features_t *features_malloc(void); void features_free(features_t *features);
 // int features_exists(const features_t *features, const size_t feature_id);
 // void features_add_xyzs(features_t *features,
 //                        const size_t *feature_ids,
@@ -2804,8 +2801,7 @@ typedef struct marg_factor_t {
   real_t time_total;
 } marg_factor_t;
 
-marg_factor_t *marg_factor_malloc();
-void marg_factor_free(marg_factor_t *marg);
+marg_factor_t *marg_factor_malloc(void); void marg_factor_free(marg_factor_t *marg);
 void marg_factor_print_stats(const marg_factor_t *marg);
 void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr);
 void marg_factor_marginalize(marg_factor_t *marg);
@@ -3007,8 +3003,7 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
                                               camera_params_t *cam_params);
 void calib_camera_view_free(calib_camera_view_t *view);
 
-calib_camera_t *calib_camera_malloc();
-void calib_camera_free(calib_camera_t *calib);
+calib_camera_t *calib_camera_malloc(void); void calib_camera_free(calib_camera_t *calib);
 void calib_camera_print(calib_camera_t *calib);
 void calib_camera_add_camera(calib_camera_t *calib,
                              const int cam_idx,
@@ -3144,8 +3139,7 @@ calib_imucam_view_t *calib_imucam_view_malloc(const timestamp_t ts,
                                               time_delay_t *time_delay);
 void calib_imucam_view_free(calib_imucam_view_t *view);
 
-calib_imucam_t *calib_imucam_malloc();
-void calib_imucam_free(calib_imucam_t *calib);
+calib_imucam_t *calib_imucam_malloc(void); void calib_imucam_free(calib_imucam_t *calib);
 void calib_imucam_print(calib_imucam_t *calib);
 
 void calib_imucam_add_imu(calib_imucam_t *calib,
@@ -3283,8 +3277,7 @@ int calib_gimbal_view_equals(const calib_gimbal_view_t *v0,
                              const calib_gimbal_view_t *v1);
 
 void calib_gimbal_setup(calib_gimbal_t *calib);
-calib_gimbal_t *calib_gimbal_malloc();
-void calib_gimbal_free(calib_gimbal_t *calib);
+calib_gimbal_t *calib_gimbal_malloc(void); void calib_gimbal_free(calib_gimbal_t *calib);
 int calib_gimbal_equals(const calib_gimbal_t *calib0,
                         const calib_gimbal_t *calib1);
 calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src);
@@ -3364,8 +3357,7 @@ typedef struct inertial_odometry_t {
   imu_biases_t *biases;
 } inertial_odometry_t;
 
-inertial_odometry_t *inertial_odometry_malloc();
-void inertial_odometry_free(inertial_odometry_t *odom);
+inertial_odometry_t *inertial_odometry_malloc(void); void inertial_odometry_free(inertial_odometry_t *odom);
 void inertial_odometry_save(const inertial_odometry_t *odom,
                             const char *save_path);
 param_order_t *inertial_odometry_param_order(const void *data,
@@ -3463,8 +3455,7 @@ typedef struct tsf_t {
 void tsf_frameset_setup(tsf_frameset_t *fs);
 void tsf_frameset_reset(tsf_frameset_t *fs);
 
-tsf_t *tsf_malloc();
-void tsf_free(tsf_t *tsf);
+tsf_t *tsf_malloc(void); void tsf_free(tsf_t *tsf);
 void tsf_print(const tsf_t *tsf);
 
 void tsf_set_init_pose(tsf_t *tsf, real_t pose[7]);
@@ -3528,8 +3519,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
  * PLOTTING
  ******************************************************************************/
 
-FILE *gnuplot_init();
-void gnuplot_close(FILE *pipe);
+FILE *gnuplot_init(void); void gnuplot_close(FILE *pipe);
 void gnuplot_multiplot(FILE *pipe, const int num_rows, const int num_cols);
 void gnuplot_send(FILE *pipe, const char *cmd);
 void gnuplot_xrange(FILE *pipe, const real_t xmin, const real_t xmax);
@@ -3588,8 +3578,7 @@ typedef struct sim_imu_data_t {
 } sim_imu_data_t;
 
 void sim_imu_data_setup(sim_imu_data_t *imu_data);
-sim_imu_data_t *sim_imu_data_malloc();
-void sim_imu_data_free(sim_imu_data_t *imu_data);
+sim_imu_data_t *sim_imu_data_malloc(void); void sim_imu_data_free(sim_imu_data_t *imu_data);
 sim_imu_data_t *sim_imu_data_load(const char *csv_path);
 sim_imu_data_t *sim_imu_circle_trajectory(const sim_circle_t *conf);
 void sim_imu_measurements(const sim_imu_data_t *data,
@@ -3639,8 +3628,7 @@ typedef struct sim_camera_data_t {
 } sim_camera_data_t;
 
 void sim_camera_data_setup(sim_camera_data_t *data);
-sim_camera_data_t *sim_camerea_data_malloc();
-void sim_camera_data_free(sim_camera_data_t *cam_data);
+sim_camera_data_t *sim_camerea_data_malloc(void); void sim_camera_data_free(sim_camera_data_t *cam_data);
 sim_camera_data_t *sim_camera_data_load(const char *dir_path);
 
 sim_camera_data_t *
@@ -3673,8 +3661,7 @@ typedef struct sim_circle_camera_imu_t {
   timeline_t *timeline;
 } sim_circle_camera_imu_t;
 
-sim_circle_camera_imu_t *sim_circle_camera_imu();
-void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data);
+sim_circle_camera_imu_t *sim_circle_camera_imu(void); void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data);
 
 /////////////////////
 // SIM GIMBAL DATA //
@@ -3708,8 +3695,7 @@ sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners);
 void sim_gimbal_view_free(sim_gimbal_view_t *view);
 void sim_gimbal_view_print(const sim_gimbal_view_t *view);
 
-sim_gimbal_t *sim_gimbal_malloc();
-void sim_gimbal_free(sim_gimbal_t *sim);
+sim_gimbal_t *sim_gimbal_malloc(void); void sim_gimbal_free(sim_gimbal_t *sim);
 void sim_gimbal_print(const sim_gimbal_t *sim);
 void sim_gimbal_set_joint(sim_gimbal_t *sim,
                           const int joint_idx,

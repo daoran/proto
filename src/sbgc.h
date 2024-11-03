@@ -285,7 +285,7 @@ int sbgc_set_angle(sbgc_t *sbgc,
 /**
  * Get Unix timestamp since epoch in nano-seconds
  */
-int64_t timestamp_now() {
+int64_t timestamp_now(void) {
   struct timespec t;
   clock_gettime(CLOCK_REALTIME, &t);
   return t.tv_sec * 1000000000LL + t.tv_nsec;
@@ -1172,14 +1172,14 @@ void run_test(const char *test_name, int (*test_ptr)()) {
     }                                                                          \
   } while (0)
 
-int test_sbgc_connect_disconnect() {
+int test_sbgc_connect_disconnect(void) {
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_disconnect(&sbgc) == 0);
   return 0;
 }
 
-int test_sbgc_on_off() {
+int test_sbgc_on_off(void) {
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
   TEST_ASSERT(sbgc_on(&sbgc) == 0);
@@ -1187,7 +1187,7 @@ int test_sbgc_on_off() {
   return 0;
 }
 
-int test_sbgc_send() {
+int test_sbgc_send(void) {
   // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
@@ -1207,7 +1207,7 @@ int test_sbgc_send() {
   return 0;
 }
 
-int test_sbgc_read() {
+int test_sbgc_read(void) {
   // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
@@ -1227,7 +1227,7 @@ int test_sbgc_read() {
   return 0;
 }
 
-int test_sbgc_info() {
+int test_sbgc_info(void) {
   // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
@@ -1244,7 +1244,7 @@ int test_sbgc_info() {
   return 0;
 }
 
-int test_sbgc_calib() {
+int test_sbgc_calib(void) {
   // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
@@ -1255,7 +1255,7 @@ int test_sbgc_calib() {
   return 0;
 }
 
-int test_sbgc_update() {
+int test_sbgc_update(void) {
   // Connect
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);
@@ -1279,7 +1279,7 @@ int test_sbgc_update() {
   return 0;
 }
 
-int test_sbgc_get_status() {
+int test_sbgc_get_status(void) {
   // Connect
   sbgc_t sbgc;
   sbgc_status_t status;
@@ -1299,7 +1299,7 @@ int test_sbgc_get_status() {
   return 0;
 }
 
-int test_sbgc_set_angle() {
+int test_sbgc_set_angle(void) {
   // Connect and turn motors on
   sbgc_t sbgc;
   TEST_ASSERT(sbgc_connect(&sbgc, SBGC_DEV) == 0);

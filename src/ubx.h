@@ -1953,7 +1953,7 @@ static int nb_failed = 0;
  * @param[in] test_name Test name
  * @param[in] test_ptr Pointer to unittest
  */
-void run_test(const char *test_name, int (*test_ptr)()) {
+void run_test(const char *test_name, int (*test_ptr)(void)) {
   printf("-> [%s] ", test_name);
 
   if ((*test_ptr)() == 0) {
@@ -1998,7 +1998,7 @@ static void signal_handler(int sig) {
  * UBX Message
  ****************************************************************************/
 
-int test_ubx_msg_init() {
+int test_ubx_msg_init(void) {
   ubx_msg_t msg;
   ubx_msg_init(&msg);
 
@@ -2013,7 +2013,7 @@ int test_ubx_msg_init() {
   return 0;
 }
 
-int test_ubx_msg_checksum() {
+int test_ubx_msg_checksum(void) {
   // Create frame
   uint8_t data[10] = {0};
   data[0] = 0xB5; // SYNC 1
@@ -2037,11 +2037,11 @@ int test_ubx_msg_checksum() {
   return 0;
 }
 
-int test_ubx_msg_is_valid() {
+int test_ubx_msg_is_valid(void) {
   return 0;
 }
 
-int test_ubx_msg_build() {
+int test_ubx_msg_build(void) {
   ubx_msg_t msg;
   uint8_t msg_class = 0x01;
   uint8_t msg_id = 0x22;
@@ -2055,7 +2055,7 @@ int test_ubx_msg_build() {
   return 0;
 }
 
-int test_ubx_msg_parse_and_serialize() {
+int test_ubx_msg_parse_and_serialize(void) {
   // Create frame
   uint8_t data[10] = {0};
   data[0] = 0xB5; // SYNC 1
@@ -2095,7 +2095,7 @@ int test_ubx_msg_parse_and_serialize() {
   return 0;
 }
 
-int test_ubx_msg_print() {
+int test_ubx_msg_print(void) {
   ubx_msg_t msg;
 
   uint8_t msg_class = 0x01;
@@ -2111,7 +2111,7 @@ int test_ubx_msg_print() {
  * UBX Stream Parser
  ****************************************************************************/
 
-int test_ubx_parser_init() {
+int test_ubx_parser_init(void) {
   ubx_parser_t parser;
 
   ubx_parser_init(&parser);
@@ -2122,7 +2122,7 @@ int test_ubx_parser_init() {
   return 0;
 }
 
-int test_ubx_parser_reset() {
+int test_ubx_parser_reset(void) {
   ubx_parser_t parser;
 
   ubx_parser_reset(&parser);
@@ -2133,7 +2133,7 @@ int test_ubx_parser_reset() {
   return 0;
 }
 
-int test_ubx_parser_update() {
+int test_ubx_parser_update(void) {
   ubx_parser_t parser;
 
   ubx_parser_update(&parser, 0x0);
@@ -2145,7 +2145,7 @@ int test_ubx_parser_update() {
  * UBLOX
  ****************************************************************************/
 
-int test_ublox_init() {
+int test_ublox_init(void) {
   // Setup UART connection to UBlox
   ubx_uart_t uart;
   if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
@@ -2167,7 +2167,7 @@ int test_ublox_init() {
   return 0;
 }
 
-int test_ublox_version() {
+int test_ublox_version(void) {
   // Setup UART connection to UBlox
   ubx_uart_t uart;
   if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
@@ -2192,7 +2192,7 @@ int test_ublox_version() {
   return 0;
 }
 
-int test_ubx_set_and_get() {
+int test_ubx_set_and_get(void) {
   // Setup UART connection to UBlox
   ubx_uart_t uart;
   if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
@@ -2225,7 +2225,7 @@ int test_ubx_set_and_get() {
   return 0;
 }
 
-int test_ublox_parse_rtcm3() {
+int test_ublox_parse_rtcm3(void) {
   // Setup UART connection to UBlox
   ubx_uart_t uart;
   if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
@@ -2312,7 +2312,7 @@ int test_ublox_parse_rtcm3() {
   return 0;
 }
 
-int test_ublox_run() {
+int test_ublox_run(void) {
   // Setup UART connection to UBlox
   ubx_uart_t uart;
   if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
@@ -2334,7 +2334,7 @@ int test_ublox_run() {
   return 0;
 }
 
-int test_ublox_base() {
+int test_ublox_base(void) {
   // Setup UART connection to UBlox
   ubx_uart_t uart;
   if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {
@@ -2356,7 +2356,7 @@ int test_ublox_base() {
   return 0;
 }
 
-int test_ublox_rover() {
+int test_ublox_rover(void) {
   // Setup UART connection to UBlox
   ubx_uart_t uart;
   if (ubx_uart_connect(&uart, "/dev/ttyACM0") != 0) {

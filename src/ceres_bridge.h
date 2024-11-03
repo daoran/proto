@@ -33,14 +33,14 @@ typedef void (*ceres_loss_function_t)(void *user_data,
 /**
  * Initialize ceres
  */
-void ceres_init();
+void ceres_init(void);
 
 /* Create and destroy ceres::Problem */
-ceres_problem_t *ceres_create_problem();
+ceres_problem_t *ceres_create_problem(void);
 void ceres_free_problem(ceres_problem_t *problem);
 
 /* Create and destroy ceres::LocalParameterization */
-ceres_local_parameterization_t *ceres_create_pose_local_parameterization();
+ceres_local_parameterization_t *ceres_create_pose_local_parameterization(void);
 void ceres_free_local_parameterization(ceres_local_parameterization_t *p);
 
 // /**

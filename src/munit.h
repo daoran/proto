@@ -168,7 +168,7 @@ void mu_print_log(const char *log_path) {
 /**
  * Print test stats
  */
-void mu_print_stats() {
+void mu_print_stats(void) {
   printf("\n");
   printf(MU_WHT "Ran %d tests" MU_NRM "\n", nb_tests);
   printf(MU_GRN "- %d passed" MU_NRM "\n", nb_passed);
@@ -184,7 +184,7 @@ void mu_print_stats() {
  * @param[in] keep_logs Flag to keep log or not
  */
 void mu_run_test(const char *test_name,
-                 int (*test_ptr)(),
+                 int (*test_ptr)(void),
                  const int redirect,
                  const int keep_logs) {
   // Check if test target is set and current test is test target

@@ -402,7 +402,7 @@ void gui_loop(gui_t *gui);
 //  * Tic, start timer.
 //  * @returns A timespec encapsulating the time instance when tic() is called
 //  */
-// struct timespec tic() {
+// struct timespec tic(void) {
 //   struct timespec time_start;
 //   clock_gettime(CLOCK_MONOTONIC, &time_start);
 //   return time_start;
@@ -2348,7 +2348,7 @@ static int nb_failed = 0;
  * @param[in] test_name Test name
  * @param[in] test_ptr Pointer to unittest
  */
-void run_test(const char *test_name, int (*test_ptr)()) {
+void run_test(const char *test_name, int (*test_ptr)(void)) {
   if ((*test_ptr)() == 0) {
     printf("-> [%s] " TERM_GRN "OK!\n" TERM_NRM, test_name);
     fflush(stdout);
@@ -2384,7 +2384,7 @@ void run_test(const char *test_name, int (*test_ptr)()) {
 
 // TEST OPENGL UTILS /////////////////////////////////////////////////////////
 
-int test_gl_zeros() {
+int test_gl_zeros(void) {
   // clang-format off
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
@@ -2401,7 +2401,7 @@ int test_gl_zeros() {
   return 0;
 }
 
-int test_gl_ones() {
+int test_gl_ones(void) {
   // clang-format off
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
@@ -2418,7 +2418,7 @@ int test_gl_ones() {
   return 0;
 }
 
-int test_gl_eye() {
+int test_gl_eye(void) {
   /* Check 4x4 matrix */
   // clang-format off
   GLfloat A[4*4] = {0.0, 0.0, 0.0, 0.0,
@@ -2452,7 +2452,7 @@ int test_gl_eye() {
   return 0;
 }
 
-int test_gl_equals() {
+int test_gl_equals(void) {
   // clang-format off
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
@@ -2472,7 +2472,7 @@ int test_gl_equals() {
   return 0;
 }
 
-int test_gl_matf_set() {
+int test_gl_matf_set(void) {
   // clang-format off
   GLfloat A[3*4] = {0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
@@ -2489,7 +2489,7 @@ int test_gl_matf_set() {
   return 0;
 }
 
-int test_gl_matf_val() {
+int test_gl_matf_val(void) {
   // clang-format off
   GLfloat A[3*4] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
@@ -2517,7 +2517,7 @@ int test_gl_matf_val() {
   return 0;
 }
 
-int test_gl_transpose() {
+int test_gl_transpose(void) {
   /* Transpose a 3x3 matrix */
   // clang-format off
   GLfloat A[3*3] = {1.0, 2.0, 3.0,
@@ -2545,7 +2545,7 @@ int test_gl_transpose() {
   return 0;
 }
 
-int test_gl_vec3_cross() {
+int test_gl_vec3_cross(void) {
   const GLfloat u[3] = {1.0f, 2.0f, 3.0f};
   const GLfloat v[3] = {4.0f, 5.0f, 6.0f};
   GLfloat z[3] = {0};
@@ -2560,7 +2560,7 @@ int test_gl_vec3_cross() {
   return 0;
 }
 
-int test_gl_dot() {
+int test_gl_dot(void) {
   // clang-format off
   GLfloat A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
@@ -2585,7 +2585,7 @@ int test_gl_dot() {
   return 0;
 }
 
-int test_gl_norm() {
+int test_gl_norm(void) {
   const GLfloat x[3] = {1.0f, 2.0f, 3.0f};
   const GLfloat n = gl_norm(x, 3);
 
@@ -2596,7 +2596,7 @@ int test_gl_norm() {
   return 0;
 }
 
-int test_gl_normalize() {
+int test_gl_normalize(void) {
   GLfloat x[3] = {1.0f, 2.0f, 3.0f};
   gl_normalize(x, 3);
 
@@ -2607,7 +2607,7 @@ int test_gl_normalize() {
   return 0;
 }
 
-int test_gl_perspective() {
+int test_gl_perspective(void) {
   const GLfloat fov = gl_deg2rad(60.0);
   const GLfloat window_width = 1000.0f;
   const GLfloat window_height = 1000.0f;
@@ -2636,7 +2636,7 @@ int test_gl_perspective() {
   return 0;
 }
 
-int test_gl_lookat() {
+int test_gl_lookat(void) {
   const GLfloat yaw = -0.785398;
   const GLfloat pitch = 0.000000;
   const GLfloat radius = 10.000000;
@@ -2670,7 +2670,7 @@ int test_gl_lookat() {
 
 // TEST SHADER ///////////////////////////////////////////////////////////////
 
-int test_gl_shader_compile() {
+int test_gl_shader_compile(void) {
   // GLFW
   if (!glfwInit()) {
     printf("Failed to initialize GLFW!\n");
@@ -2707,7 +2707,7 @@ int test_gl_shader_compile() {
   return 0;
 }
 
-int test_gl_shaders_link() {
+int test_gl_shaders_link(void) {
   // // SDL init
   // if (SDL_Init(SDL_INIT_VIDEO) != 0) {
   //   printf("SDL_Init Error: %s/n", SDL_GetError());
@@ -2762,7 +2762,7 @@ int test_gl_shaders_link() {
 
 // TEST GL PROGRAM ///////////////////////////////////////////////////////////
 
-int test_gl_prog_setup() {
+int test_gl_prog_setup(void) {
   // // SDL init
   // if (SDL_Init(SDL_INIT_VIDEO) != 0) {
   //   printf("SDL_Init Error: %s/n", SDL_GetError());
@@ -2808,7 +2808,7 @@ int test_gl_prog_setup() {
 
 // TEST GL-CAMERA ////////////////////////////////////////////////////////////
 
-int test_gl_camera_setup() {
+int test_gl_camera_setup(void) {
   int window_width = 640;
   int window_height = 480;
 
@@ -2848,7 +2848,7 @@ int test_gl_camera_setup() {
 
 // TEST GL-MODEL /////////////////////////////////////////////////////////////
 
-int test_gl_model_load() {
+int test_gl_model_load(void) {
   // // SDL init
   // if (SDL_Init(SDL_INIT_VIDEO) != 0) {
   //   printf("SDL_Init Error: %s/n", SDL_GetError());
@@ -2890,7 +2890,7 @@ int test_gl_model_load() {
 
 // TEST GUI //////////////////////////////////////////////////////////////////
 
-int test_gui() {
+int test_gui(void) {
   gui_t gui;
   gui.window_title = "viz";
   gui.window_width = 640;
@@ -2904,7 +2904,7 @@ int test_gui() {
 
 // TEST GLFW /////////////////////////////////////////////////////////////////
 
-int test_glfw() {
+int test_glfw(void) {
   if (!glfwInit()) {
     exit(EXIT_FAILURE);
   }

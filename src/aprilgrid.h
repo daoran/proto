@@ -194,6 +194,7 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
 #endif
 #endif // APRILGRID_H
 
+
 //////////////////////////////////////////////////////////////////////////////
 //                             IMPLEMENTATION                               //
 //////////////////////////////////////////////////////////////////////////////
@@ -888,7 +889,7 @@ static int nb_failed = 0;
  * @param[in] test_name Test name
  * @param[in] test_ptr Pointer to unittest
  */
-void run_test(const char *test_name, int (*test_ptr)()) {
+void run_test(const char *test_name, int (*test_ptr)(void)) {
   if ((*test_ptr)() == 0) {
     printf("-> [%s] " TERM_GRN "OK!\n" TERM_NRM, test_name);
     fflush(stdout);
@@ -932,7 +933,7 @@ static int fltcmp(const float x, const float y) {
   return -1;
 }
 
-int test_aprilgrid_malloc_and_free() {
+int test_aprilgrid_malloc_and_free(void) {
   // Setup
   const int num_rows = 6;
   const int num_cols = 7;
@@ -952,7 +953,7 @@ int test_aprilgrid_malloc_and_free() {
   return 0;
 }
 
-int test_aprilgrid_center() {
+int test_aprilgrid_center(void) {
   // Setup
   int num_rows = 5;
   int num_cols = 2;
@@ -974,7 +975,7 @@ int test_aprilgrid_center() {
   return 0;
 }
 
-int test_aprilgrid_grid_index() {
+int test_aprilgrid_grid_index(void) {
   // Setup
   const int num_rows = 6;
   const int num_cols = 6;
@@ -1012,7 +1013,7 @@ int test_aprilgrid_grid_index() {
   return 0;
 }
 
-int test_aprilgrid_object_point() {
+int test_aprilgrid_object_point(void) {
   // Setup
   const int num_rows = 6;
   const int num_cols = 6;
@@ -1049,7 +1050,7 @@ int test_aprilgrid_object_point() {
   return 0;
 }
 
-int test_aprilgrid_add_and_remove_corner() {
+int test_aprilgrid_add_and_remove_corner(void) {
   // Setup
   const int num_rows = 6;
   const int num_cols = 6;
@@ -1084,7 +1085,7 @@ int test_aprilgrid_add_and_remove_corner() {
   return 0;
 }
 
-int test_aprilgrid_add_and_remove_tag() {
+int test_aprilgrid_add_and_remove_tag(void) {
   // Setup
   const int num_rows = 6;
   const int num_cols = 6;
@@ -1125,7 +1126,7 @@ int test_aprilgrid_add_and_remove_tag() {
   return 0;
 }
 
-int test_aprilgrid_save_and_load() {
+int test_aprilgrid_save_and_load(void) {
   // Setup
   const int num_rows = 6;
   const int num_cols = 6;
@@ -1176,7 +1177,7 @@ int test_aprilgrid_save_and_load() {
 
 #if ENABLE_APRILGRID_DETECTOR == 1
 
-int test_aprilgrid_detector_detect() {
+int test_aprilgrid_detector_detect(void) {
   // Load test image
   // -- Load JPG
   const char *test_image = "./test_data/images/aprilgrid_tag36h11.jpg";

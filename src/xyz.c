@@ -168,6 +168,7 @@ char *file_read(const char *fp) {
 
   char *buf = MALLOC(char, len + 1);
   if (buf == NULL) {
+    fclose(f);
     return NULL;
   }
   const ssize_t read = fread(buf, 1, len, f);
@@ -212,7 +213,6 @@ int file_rows(const char *fp) {
 
   FILE *file = fopen(fp, "rb");
   if (file == NULL) {
-    fclose(file);
     return -1;
   }
 
@@ -244,7 +244,6 @@ int file_copy(const char *src, const char *dst) {
 
   FILE *src_file = fopen(src, "rb");
   if (src_file == NULL) {
-    fclose(src_file);
     return -1;
   }
 
@@ -1057,7 +1056,7 @@ int darray_contract(darray_t *array) {
 // LIST //
 //////////
 
-list_t *list_malloc() {
+list_t *list_malloc(void) {
   list_t *list = calloc(1, sizeof(list_t));
   list->length = 0;
   list->first = NULL;
@@ -1280,7 +1279,7 @@ int list_remove_destroy(list_t *list,
 // STACK //
 ///////////
 
-mstack_t *stack_new() {
+mstack_t *stack_new(void) {
   mstack_t *s = MALLOC(mstack_t, 1);
   s->size = 0;
   s->root = NULL;
@@ -1359,7 +1358,7 @@ void *mstack_pop(mstack_t *s) {
 // QUEUE //
 ///////////
 
-queue_t *queue_malloc() {
+queue_t *queue_malloc(void) {
   queue_t *q = calloc(1, sizeof(queue_t));
   q->queue = list_malloc();
   q->count = 0;
@@ -1440,7 +1439,7 @@ static inline void *default_value_copy(void *target) {
   return string_malloc(target);
 }
 
-hashmap_t *hashmap_new() {
+hashmap_t *hashmap_new(void) {
   hashmap_t *map = MALLOC(hashmap_t, 1);
   if (map == NULL) {
     return NULL;
@@ -1713,7 +1712,7 @@ void *hashmap_delete(hashmap_t *map, void *k) {
  * Tic, start timer.
  * @returns A timespec encapsulating the time instance when tic() is called
  */
-struct timespec tic() {
+struct timespec tic(void) {
   struct timespec time_start;
   clock_gettime(CLOCK_MONOTONIC, &time_start);
   return time_start;
@@ -1748,7 +1747,7 @@ float mtoc(struct timespec *tic) {
  * Get time now since epoch.
  * @return Time now in nano-seconds since epoch
  */
-timestamp_t time_now() {
+timestamp_t time_now(void) {
   struct timespec spec;
   clock_gettime(CLOCK_REALTIME, &spec);
 
@@ -3166,7 +3165,6 @@ real_t *vec_load(const char *vec_path, int *m, int *n) {
     // Load file
     FILE *infile = fopen(vec_path, "r");
     if (infile == NULL) {
-      fclose(infile);
       return NULL;
     }
 
@@ -3195,7 +3193,6 @@ real_t *vec_load(const char *vec_path, int *m, int *n) {
   // Load file
   FILE *infile = fopen(vec_path, "r");
   if (infile == NULL) {
-    fclose(infile);
     free(x);
     return NULL;
   }
@@ -8522,7 +8519,7 @@ void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
   ctrl->dt = 0.0;
 }
 
-mav_waypoints_t *mav_waypoints_malloc() {
+mav_waypoints_t *mav_waypoints_malloc(void) {
   mav_waypoints_t *wps = MALLOC(mav_waypoints_t, 1);
 
   wps->num_waypoints = 0;
@@ -8844,7 +8841,7 @@ void print_fiducial_event(const fiducial_event_t *event) {
 /**
  * Malloc timeline.
  */
-timeline_t *timeline_malloc() {
+timeline_t *timeline_malloc(void) {
   timeline_t *timeline = MALLOC(timeline_t, 1);
 
   // Stats
@@ -8982,10 +8979,10 @@ timeline_event_t *timeline_load_imu(const char *csv_path, int *num_events) {
   // Open file for loading
   const int num_rows = file_rows(csv_path);
   FILE *fp = fopen(csv_path, "r");
-  skip_line(fp);
   if (fp == NULL) {
     FATAL("Failed to open [%s]!\n", csv_path);
   }
+  skip_line(fp);
 
   // Malloc
   assert(num_rows > 0);
@@ -9539,7 +9536,7 @@ void fiducial_print(const char *prefix, const fiducial_t *fiducial) {
 /**
  * Malloc fiducial buffer.
  */
-fiducial_buffer_t *fiducial_buffer_malloc() {
+fiducial_buffer_t *fiducial_buffer_malloc(void) {
   fiducial_buffer_t *buf = MALLOC(fiducial_buffer_t, 1);
   buf->data = CALLOC(fiducial_event_t *, 10);
   buf->size = 0;
@@ -10063,7 +10060,7 @@ void feature_print(const feature_t *f) {
 // /**
 //  * Malloc features.
 //  */
-// features_t *features_malloc() {
+// features_t *features_malloc(void) {
 //   features_t *features = MALLOC(features_t, 1);
 
 //   features->data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
@@ -10642,6 +10639,8 @@ int check_factor_jacobian(const void *factor,
 
   // Evaluate factor
   if (factor_eval(factor, params, r, NULL) != 0) {
+    free(r);
+    free(J_numdiff);
     return -2;
   }
 
@@ -10698,6 +10697,8 @@ int check_factor_so3_jacobian(const void *factor,
 
   // Evaluate factor
   if (factor_eval(factor, params, r, NULL) != 0) {
+    free(r);
+    free(J_numdiff);
     return -2;
   }
 
@@ -11157,8 +11158,8 @@ void camera_factor_setup(camera_factor_t *factor,
  * Pose jacobian
  */
 static void camera_factor_pose_jacobian(const real_t Jh_w[2 * 3],
-                                        const real_t T_WB[3 * 3],
-                                        const real_t T_BC[3 * 3],
+                                        const real_t T_WB[4 * 4],
+                                        const real_t T_BC[4 * 4],
                                         const real_t p_W[3],
                                         real_t J[2 * 6]) {
   assert(Jh_w != NULL);
@@ -12167,7 +12168,7 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
 }
 
 // F11 = eye(3)
-#define IMU_FACTOR_F11()                                                       \
+#define IMU_FACTOR_F11(void)                                                       \
   real_t F11[3 * 3] = {0};                                                     \
   eye(F11, 3, 3);
 
@@ -12243,7 +12244,7 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
   mat_add(F32_A, F32_B, F32, 3, 3);
 
 // F33 = eye(3)
-#define IMU_FACTOR_F33()                                                       \
+#define IMU_FACTOR_F33(void)                                                       \
   real_t F33[3 * 3] = {0};                                                     \
   F33[0] = 1.0;                                                                \
   F33[4] = 1.0;                                                                \
@@ -12264,14 +12265,14 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
   }
 
 // F44 = eye(3)
-#define IMU_FACTOR_F44()                                                       \
+#define IMU_FACTOR_F44(void)                                                       \
   real_t F44[3 * 3] = {0};                                                     \
   F44[0] = 1.0;                                                                \
   F44[4] = 1.0;                                                                \
   F44[8] = 1.0;
 
 // F55 = eye(3)
-#define IMU_FACTOR_F55()                                                       \
+#define IMU_FACTOR_F55(void)                                                       \
   real_t F55[3 * 3] = {0};                                                     \
   F55[0] = 1.0;                                                                \
   F55[4] = 1.0;                                                                \
@@ -14311,7 +14312,7 @@ error:
 /**
  * Malloc marginalization factor.
  */
-marg_factor_t *marg_factor_malloc() {
+marg_factor_t *marg_factor_malloc(void) {
   marg_factor_t *marg = MALLOC(marg_factor_t, 1);
 
   // Settings
@@ -14772,6 +14773,8 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
 
   // -- Eigen decomposition
   if (eig_sym(marg->H_marg, r, r, V, w) != 0) {
+    free(J);
+    free(J_inv);
     free(V);
     free(Vt);
     free(w);
@@ -15726,7 +15729,7 @@ void calib_camera_view_free(calib_camera_view_t *view) {
 /**
  * Malloc camera calibration problem
  */
-calib_camera_t *calib_camera_malloc() {
+calib_camera_t *calib_camera_malloc(void) {
   calib_camera_t *calib = MALLOC(calib_camera_t, 1);
 
   // Settings
@@ -16561,7 +16564,7 @@ void calib_imucam_view_free(calib_imucam_view_t *view) {
 /**
  * Malloc imu-cam calibration problem.
  */
-calib_imucam_t *calib_imucam_malloc() {
+calib_imucam_t *calib_imucam_malloc(void) {
   calib_imucam_t *calib = MALLOC(calib_imucam_t, 1);
 
   // Settings
@@ -17811,7 +17814,7 @@ void calib_gimbal_setup(calib_gimbal_t *calib) {
 /**
  * Malloc gimbal calibration
  */
-calib_gimbal_t *calib_gimbal_malloc() {
+calib_gimbal_t *calib_gimbal_malloc(void) {
   calib_gimbal_t *calib = MALLOC(calib_gimbal_t, 1);
   calib_gimbal_setup(calib);
   return calib;
@@ -19386,7 +19389,7 @@ void calib_gimbal_linearize_compact(const void *data,
 /**
  * Malloc inertial odometry.
  */
-inertial_odometry_t *inertial_odometry_malloc() {
+inertial_odometry_t *inertial_odometry_malloc(void) {
   inertial_odometry_t *io = MALLOC(inertial_odometry_t, 1);
 
   io->num_factors = 0;
@@ -19553,7 +19556,7 @@ void tsf_frameset_reset(tsf_frameset_t *fs) { tsf_frameset_setup(fs); }
 /**
  * TSF Malloc.
  */
-tsf_t *tsf_malloc() {
+tsf_t *tsf_malloc(void) {
   tsf_t *tsf = MALLOC(tsf_t, 1);
 
   // Flags
@@ -20442,7 +20445,6 @@ pose_t *load_poses(const char *fp, int *num_poses) {
   // Load file
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
-    fclose(infile);
     free(poses);
     return NULL;
   }
@@ -20564,7 +20566,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
  * PLOTTING
  *****************************************************************************/
 
-FILE *gnuplot_init() { return popen("gnuplot -persistent", "w"); }
+FILE *gnuplot_init(void) { return popen("gnuplot -persistent", "w"); }
 
 void gnuplot_close(FILE *pipe) { fclose(pipe); }
 
@@ -20715,7 +20717,7 @@ void sim_imu_data_setup(sim_imu_data_t *imu_data) {
 /**
  * Malloc sim imu data.
  */
-sim_imu_data_t *sim_imu_data_malloc() {
+sim_imu_data_t *sim_imu_data_malloc(void) {
   sim_imu_data_t *imu_data = MALLOC(sim_imu_data_t, 1);
   sim_imu_data_setup(imu_data);
   return imu_data;
@@ -21059,7 +21061,7 @@ void sim_camera_data_setup(sim_camera_data_t *data) {
 /**
  * Malloc simulated camera frames.
  */
-sim_camera_data_t *sim_camerea_data_malloc() {
+sim_camera_data_t *sim_camerea_data_malloc(void) {
   sim_camera_data_t *data = MALLOC(sim_camera_data_t, 1);
   sim_camera_data_setup(data);
   return data;
@@ -21267,7 +21269,7 @@ sim_camera_circle_trajectory(const sim_circle_t *conf,
 // SIM CAMERA IMU DATA //
 /////////////////////////
 
-sim_circle_camera_imu_t *sim_circle_camera_imu() {
+sim_circle_camera_imu_t *sim_circle_camera_imu(void) {
   // Malloc
   sim_circle_camera_imu_t *sim_data = MALLOC(sim_circle_camera_imu_t, 1);
 
@@ -21432,7 +21434,7 @@ void sim_gimbal_view_print(const sim_gimbal_view_t *view) {
 /**
  * Malloc gimbal simulation.
  */
-sim_gimbal_t *sim_gimbal_malloc() {
+sim_gimbal_t *sim_gimbal_malloc(void) {
   sim_gimbal_t *sim = MALLOC(sim_gimbal_t, 1);
 
   // Aprilgrid

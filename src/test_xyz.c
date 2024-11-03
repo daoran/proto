@@ -15,7 +15,7 @@
  * TEST MACROS
  ******************************************************************************/
 
-int test_median_value() {
+int test_median_value(void) {
   real_t median = 0.0f;
   real_t buf[5] = {4.0, 1.0, 0.0, 3.0, 2.0};
   MEDIAN_VALUE(real_t, fltcmp2, buf, 5, median);
@@ -24,7 +24,7 @@ int test_median_value() {
   return 0;
 }
 
-int test_mean_value() {
+int test_mean_value(void) {
   real_t mean = 0.0f;
   real_t buf[5] = {0.0, 1.0, 2.0, 3.0, 4.0};
   MEAN_VALUE(real_t, buf, 5, mean);
@@ -37,7 +37,7 @@ int test_mean_value() {
  * TEST FILESYSTEM
  ******************************************************************************/
 
-int test_path_file_name() {
+int test_path_file_name(void) {
   const char *path = "/tmp/hello_world.csv";
   char fname[128] = {0};
   path_file_name(path, fname);
@@ -46,7 +46,7 @@ int test_path_file_name() {
   return 0;
 }
 
-int test_path_file_ext() {
+int test_path_file_ext(void) {
   const char *path = "/tmp/hello_world.csv";
   char fext[128] = {0};
   path_file_ext(path, fext);
@@ -55,7 +55,7 @@ int test_path_file_ext() {
   return 0;
 }
 
-int test_path_dir_name() {
+int test_path_dir_name(void) {
   const char *path = "/tmp/hello_world.csv";
   char dir_name[128] = {0};
   path_dir_name(path, dir_name);
@@ -64,7 +64,7 @@ int test_path_dir_name() {
   return 0;
 }
 
-int test_path_join() {
+int test_path_join(void) {
   // Case A
   {
     const char *path_a = "/tmp/A";
@@ -86,7 +86,7 @@ int test_path_join() {
   return 0;
 }
 
-int test_list_files() {
+int test_list_files(void) {
   int num_files = 0;
   char **files = list_files("/tmp", &num_files);
   MU_ASSERT(files != NULL);
@@ -102,7 +102,7 @@ int test_list_files() {
   return 0;
 }
 
-int test_list_files_free() {
+int test_list_files_free(void) {
   int num_files = 0;
   char **files = list_files("/tmp", &num_files);
   list_files_free(files, num_files);
@@ -110,7 +110,7 @@ int test_list_files_free() {
   return 0;
 }
 
-int test_file_read() {
+int test_file_read(void) {
   char *text = file_read("test_data/poses.csv");
   /* printf("%s\n", text); */
   MU_ASSERT(text != NULL);
@@ -119,7 +119,7 @@ int test_file_read() {
   return 0;
 }
 
-int test_skip_line() {
+int test_skip_line(void) {
   FILE *fp = fopen("test_data/poses.csv", "r");
   skip_line(fp);
   fclose(fp);
@@ -127,13 +127,13 @@ int test_skip_line() {
   return 0;
 }
 
-int test_file_rows() {
+int test_file_rows(void) {
   int num_rows = file_rows("test_data/poses.csv");
   MU_ASSERT(num_rows > 0);
   return 0;
 }
 
-int test_file_copy() {
+int test_file_copy(void) {
   int retval = file_copy("test_data/poses.csv", "/tmp/poses.csv");
   char *text0 = file_read("test_data/poses.csv");
   char *text1 = file_read("/tmp/poses.csv");
@@ -149,26 +149,26 @@ int test_file_copy() {
  * TEST DATA
  ******************************************************************************/
 
-int test_string_malloc() {
+int test_string_malloc(void) {
   char *s = string_malloc("hello world!");
   MU_ASSERT(strcmp(s, "hello world!") == 0);
   free(s);
   return 0;
 }
 
-int test_dsv_rows() {
+int test_dsv_rows(void) {
   int num_rows = dsv_rows(TEST_CSV);
   MU_ASSERT(num_rows == 10);
   return 0;
 }
 
-int test_dsv_cols() {
+int test_dsv_cols(void) {
   int num_cols = dsv_cols(TEST_CSV, ',');
   MU_ASSERT(num_cols == 10);
   return 0;
 }
 
-int test_dsv_fields() {
+int test_dsv_fields(void) {
   int num_fields = 0;
   char **fields = dsv_fields(TEST_CSV, ',', &num_fields);
   const char *expected[10] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"};
@@ -187,7 +187,7 @@ int test_dsv_fields() {
   return 0;
 }
 
-int test_dsv_data() {
+int test_dsv_data(void) {
   int num_rows = 0;
   int num_cols = 0;
   real_t **data = dsv_data(TEST_CSV, ',', &num_rows, &num_cols);
@@ -204,7 +204,7 @@ int test_dsv_data() {
   return 0;
 }
 
-int test_dsv_free() {
+int test_dsv_free(void) {
   int num_rows = 0;
   int num_cols = 0;
   real_t **data = dsv_data(TEST_CSV, ',', &num_rows, &num_cols);
@@ -213,7 +213,7 @@ int test_dsv_free() {
   return 0;
 }
 
-int test_csv_data() {
+int test_csv_data(void) {
   int num_rows = 0;
   int num_cols = 0;
   real_t **data = csv_data(TEST_CSV, &num_rows, &num_cols);
@@ -913,21 +913,21 @@ int test_hashmap_traverse(void) {
  * TEST TIME
  ******************************************************************************/
 
-int test_tic_toc() {
+int test_tic_toc(void) {
   struct timespec t_start = tic();
   usleep(1);
   MU_ASSERT(fabs(toc(&t_start) - 1e-3) < 1e-2);
   return 0;
 }
 
-int test_mtoc() {
+int test_mtoc(void) {
   struct timespec t_start = tic();
   usleep(1);
   MU_ASSERT(fabs(mtoc(&t_start) - 1e-3) < 1);
   return 0;
 }
 
-int test_time_now() {
+int test_time_now(void) {
   timestamp_t t_now = time_now();
   // printf("t_now: %ld\n", t_now);
   MU_ASSERT(t_now > 0);
@@ -938,7 +938,7 @@ int test_time_now() {
  * TEST NETWORK
  ******************************************************************************/
 
-int test_tcp_server_setup() {
+int test_tcp_server_setup(void) {
   tcp_server_t server;
   const int port = 8080;
   int retval = tcp_server_setup(&server, port);
@@ -950,70 +950,70 @@ int test_tcp_server_setup() {
  * TEST MATHS
  ******************************************************************************/
 
-int test_min() {
+int test_min(void) {
   MU_ASSERT(MIN(1, 2) == 1);
   MU_ASSERT(MIN(2, 1) == 1);
   return 0;
 }
 
-int test_max() {
+int test_max(void) {
   MU_ASSERT(MAX(1, 2) == 2);
   MU_ASSERT(MAX(2, 1) == 2);
   return 0;
 }
 
-int test_randf() {
+int test_randf(void) {
   const real_t val = randf(0.0, 10.0);
   MU_ASSERT(val < 10.0);
   MU_ASSERT(val > 0.0);
   return 0;
 }
 
-int test_deg2rad() {
+int test_deg2rad(void) {
   MU_ASSERT(fltcmp(deg2rad(180.0f), M_PI) == 0);
   return 0;
 }
 
-int test_rad2deg() {
+int test_rad2deg(void) {
   MU_ASSERT(fltcmp(rad2deg(M_PI), 180.0f) == 0);
   return 0;
 }
 
-int test_wrap_180() {
+int test_wrap_180(void) {
   MU_ASSERT(fltcmp(wrap_180(181), -179) == 0);
   MU_ASSERT(fltcmp(wrap_180(90), 90) == 0);
   MU_ASSERT(fltcmp(wrap_180(-181), 179) == 0);
   return 0;
 }
 
-int test_wrap_360() {
+int test_wrap_360(void) {
   MU_ASSERT(fltcmp(wrap_360(-1), 359) == 0);
   MU_ASSERT(fltcmp(wrap_360(180), 180) == 0);
   MU_ASSERT(fltcmp(wrap_360(361), 1) == 0);
   return 0;
 }
 
-int test_wrap_pi() {
+int test_wrap_pi(void) {
   MU_ASSERT(fltcmp(wrap_pi(deg2rad(181)), deg2rad(-179)) == 0);
   MU_ASSERT(fltcmp(wrap_pi(deg2rad(90)), deg2rad(90)) == 0);
   MU_ASSERT(fltcmp(wrap_pi(deg2rad(-181)), deg2rad(179)) == 0);
   return 0;
 }
 
-int test_wrap_2pi() {
+int test_wrap_2pi(void) {
   MU_ASSERT(fltcmp(wrap_2pi(deg2rad(-1)), deg2rad(359)) == 0);
   MU_ASSERT(fltcmp(wrap_2pi(deg2rad(180)), deg2rad(180)) == 0);
   MU_ASSERT(fltcmp(wrap_2pi(deg2rad(361)), deg2rad(1)) == 0);
   return 0;
 }
 
-int test_fltcmp() {
+int test_fltcmp(void) {
   MU_ASSERT(fltcmp(1.0, 1.0) == 0);
   MU_ASSERT(fltcmp(1.0, 1.01) != 0);
   return 0;
 }
 
-int test_fltcmp2() {
+int test_fltcmp2(void) {
   const real_t x = 1.0f;
   const real_t y = 1.0f;
   const real_t z = 1.01f;
@@ -1022,7 +1022,7 @@ int test_fltcmp2() {
   return 0;
 }
 
-int test_cumsum() {
+int test_cumsum(void) {
   real_t x[10] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
   real_t s[10] = {0};
   cumsum(x, 10, s);
@@ -1041,7 +1041,7 @@ int test_cumsum() {
   return 0;
 }
 
-int test_logspace() {
+int test_logspace(void) {
   real_t x[10] = {0};
   logspace(1.0, 2.0, 10, x);
 
@@ -1059,18 +1059,18 @@ int test_logspace() {
   return 0;
 }
 
-int test_pythag() {
+int test_pythag(void) {
   MU_ASSERT(fltcmp(pythag(3.0, 4.0), 5.0) == 0);
   return 0;
 }
 
-int test_lerp() {
+int test_lerp(void) {
   MU_ASSERT(fltcmp(lerp(0.0, 1.0, 0.5), 0.5) == 0);
   MU_ASSERT(fltcmp(lerp(0.0, 10.0, 0.8), 8.0) == 0);
   return 0;
 }
 
-int test_lerp3() {
+int test_lerp3(void) {
   real_t a[3] = {0.0, 1.0, 2.0};
   real_t b[3] = {1.0, 2.0, 3.0};
   real_t c[3] = {0.0, 0.0, 0.0};
@@ -1084,18 +1084,18 @@ int test_lerp3() {
   return 0;
 }
 
-int test_sinc() {
+int test_sinc(void) {
   return 0;
 }
 
-int test_mean() {
+int test_mean(void) {
   real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
   MU_ASSERT(fltcmp(mean(vals, 4), 2.5) == 0);
 
   return 0;
 }
 
-int test_median() {
+int test_median(void) {
   {
     const real_t vals[5] = {2.0, 3.0, 1.0, 4.0, 5.0};
     const real_t retval = median(vals, 5);
@@ -1111,14 +1111,14 @@ int test_median() {
   return 0;
 }
 
-int test_var() {
+int test_var(void) {
   real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
   MU_ASSERT(fltcmp(var(vals, 4), 1.666666667) == 0);
 
   return 0;
 }
 
-int test_stddev() {
+int test_stddev(void) {
   real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
   MU_ASSERT(fltcmp(stddev(vals, 4), sqrt(1.666666667)) == 0);
 
@@ -1129,7 +1129,7 @@ int test_stddev() {
  * TEST LINEAR ALGEBRA
  ******************************************************************************/
 
-int test_eye() {
+int test_eye(void) {
   real_t A[25] = {0.0};
   eye(A, 5, 5);
 
@@ -1148,7 +1148,7 @@ int test_eye() {
   return 0;
 }
 
-int test_ones() {
+int test_ones(void) {
   real_t A[25] = {0.0};
   ones(A, 5, 5);
 
@@ -1166,7 +1166,7 @@ int test_ones() {
   return 0;
 }
 
-int test_zeros() {
+int test_zeros(void) {
   real_t A[25] = {0.0};
   zeros(A, 5, 5);
 
@@ -1184,7 +1184,7 @@ int test_zeros() {
   return 0;
 }
 
-int test_mat_set() {
+int test_mat_set(void) {
   real_t A[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   mat_set(A, 3, 0, 0, 1.0);
@@ -1199,7 +1199,7 @@ int test_mat_set() {
   return 0;
 }
 
-int test_mat_val() {
+int test_mat_val(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
 
   /* print_matrix("A", A, 3, 3); */
@@ -1211,7 +1211,7 @@ int test_mat_val() {
   return 0;
 }
 
-int test_mat_copy() {
+int test_mat_copy(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[9] = {0};
 
@@ -1223,7 +1223,7 @@ int test_mat_copy() {
   return 0;
 }
 
-int test_mat_row_set() {
+int test_mat_row_set(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[3] = {0.0, 0.0, 0.0};
 
@@ -1248,7 +1248,7 @@ int test_mat_row_set() {
   return 0;
 }
 
-int test_mat_col_set() {
+int test_mat_col_set(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[3] = {0.0, 0.0, 0.0};
 
@@ -1278,7 +1278,7 @@ int test_mat_col_set() {
   return 0;
 }
 
-int test_mat_block_get() {
+int test_mat_block_get(void) {
   // clang-format off
   real_t A[9] = {0.0, 1.0, 2.0,
                  3.0, 4.0, 5.0,
@@ -1306,7 +1306,7 @@ int test_mat_block_get() {
   return 0;
 }
 
-int test_mat_block_set() {
+int test_mat_block_set(void) {
   // clang-format off
   real_t A[4 * 4] = {0.0, 1.0, 2.0, 3.0,
                      4.0, 5.0, 6.0, 7.0,
@@ -1330,7 +1330,7 @@ int test_mat_block_set() {
   return 0;
 }
 
-int test_mat_diag_get() {
+int test_mat_diag_get(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t d[3] = {0.0, 0.0, 0.0};
   mat_diag_get(A, 3, 3, d);
@@ -1344,7 +1344,7 @@ int test_mat_diag_get() {
   return 0;
 }
 
-int test_mat_diag_set() {
+int test_mat_diag_set(void) {
   real_t A[9] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   real_t d[4] = {1.0, 2.0, 3.0};
   mat_diag_set(A, 3, 3, d);
@@ -1357,7 +1357,7 @@ int test_mat_diag_set() {
   return 0;
 }
 
-int test_mat_triu() {
+int test_mat_triu(void) {
   // clang-format off
   real_t A[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
@@ -1371,7 +1371,7 @@ int test_mat_triu() {
   return 0;
 }
 
-int test_mat_tril() {
+int test_mat_tril(void) {
   // clang-format off
   real_t A[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
@@ -1385,7 +1385,7 @@ int test_mat_tril() {
   return 0;
 }
 
-int test_mat_trace() {
+int test_mat_trace(void) {
   // clang-format off
   real_t A[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
@@ -1398,7 +1398,7 @@ int test_mat_trace() {
   return 0;
 }
 
-int test_mat_transpose() {
+int test_mat_transpose(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t At[9] = {0.0};
   real_t At_expected[9] = {1.0, 4.0, 7.0, 2.0, 5.0, 8.0, 3.0, 6.0, 9.0};
@@ -1416,7 +1416,7 @@ int test_mat_transpose() {
   return 0;
 }
 
-int test_mat_add() {
+int test_mat_add(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[9] = {9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0};
   real_t C[9] = {0.0};
@@ -1428,7 +1428,7 @@ int test_mat_add() {
   return 0;
 }
 
-int test_mat_sub() {
+int test_mat_sub(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t C[9] = {0.0};
@@ -1440,7 +1440,7 @@ int test_mat_sub() {
   return 0;
 }
 
-int test_mat_scale() {
+int test_mat_scale(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   mat_scale(A, 3, 3, 2.0);
   for (int i = 0; i < 9; i++) {
@@ -1450,7 +1450,7 @@ int test_mat_scale() {
   return 0;
 }
 
-int test_vec_add() {
+int test_vec_add(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[9] = {9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0};
   real_t C[9] = {0.0};
@@ -1462,7 +1462,7 @@ int test_vec_add() {
   return 0;
 }
 
-int test_vec_sub() {
+int test_vec_sub(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t C[9] = {0.0};
@@ -1474,7 +1474,7 @@ int test_vec_sub() {
   return 0;
 }
 
-int test_dot() {
+int test_dot(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
   real_t B[3] = {1.0, 2.0, 3.0};
   real_t C[3] = {0.0};
@@ -1492,7 +1492,7 @@ int test_dot() {
   return 0;
 }
 
-int test_bdiag_inv() {
+int test_bdiag_inv(void) {
   int num_rows = 0;
   int num_cols = 0;
   real_t *H = mat_load("/tmp/H.csv", &num_rows, &num_cols);
@@ -1529,7 +1529,7 @@ int test_bdiag_inv() {
   return 0;
 }
 
-int test_hat() {
+int test_hat(void) {
   real_t x[3] = {1.0, 2.0, 3.0};
   real_t S[3 * 3] = {0};
 
@@ -1550,7 +1550,7 @@ int test_hat() {
   return 0;
 }
 
-int test_check_jacobian() {
+int test_check_jacobian(void) {
   const size_t m = 2;
   const size_t n = 3;
   const real_t threshold = 1e-6;
@@ -1587,7 +1587,7 @@ int test_check_jacobian() {
   return 0;
 }
 
-int test_svd() {
+int test_svd(void) {
   // Matrix A
   // clang-format off
   real_t A[6 * 4] = {
@@ -1629,7 +1629,7 @@ int test_svd() {
   return 0;
 }
 
-int test_pinv() {
+int test_pinv(void) {
   // clang-format off
   const int m = 4;
   const int n = 4;
@@ -1653,7 +1653,7 @@ int test_pinv() {
   return 0;
 }
 
-int test_svd_det() {
+int test_svd_det(void) {
   // clang-format off
   const int m = 4;
   const int n = 4;
@@ -1671,7 +1671,7 @@ int test_svd_det() {
   return 0;
 }
 
-int test_chol() {
+int test_chol(void) {
   // clang-format off
   const int n = 3;
   real_t A[9] = {
@@ -1707,7 +1707,7 @@ int test_chol() {
   return 0;
 }
 
-int test_chol_solve() {
+int test_chol_solve(void) {
   // clang-format off
   const int n = 3;
   real_t A[9] = {
@@ -1733,7 +1733,7 @@ int test_chol_solve() {
   return 0;
 }
 
-int test_qr() {
+int test_qr(void) {
   // clang-format off
   const int m = 5;
   const int n = 5;
@@ -1768,7 +1768,7 @@ int test_qr() {
   return 0;
 }
 
-int test_eig_sym() {
+int test_eig_sym(void) {
   // clang-format off
   const int m = 5;
   const int n = 5;
@@ -1818,7 +1818,7 @@ int test_eig_sym() {
   return 0;
 }
 
-int test_eig_inv() {
+int test_eig_inv(void) {
   // clang-format off
   const int m = 5;
   const int n = 5;
@@ -1841,7 +1841,7 @@ int test_eig_inv() {
   return 0;
 }
 
-int test_suitesparse_chol_solve() {
+int test_suitesparse_chol_solve(void) {
   // clang-format off
   const int n = 3;
   real_t A[9] = {
@@ -1872,7 +1872,7 @@ int test_suitesparse_chol_solve() {
  * TEST TRANSFORMS
  ******************************************************************************/
 
-int test_tf_rot_set() {
+int test_tf_rot_set(void) {
   real_t C[9];
   for (int i = 0; i < 9; i++) {
     C[i] = 1.0;
@@ -1905,7 +1905,7 @@ int test_tf_rot_set() {
   return 0;
 }
 
-int test_tf_trans_set() {
+int test_tf_trans_set(void) {
   real_t r[3] = {1.0, 2.0, 3.0};
 
   real_t T[16] = {0.0};
@@ -1935,7 +1935,7 @@ int test_tf_trans_set() {
   return 0;
 }
 
-int test_tf_trans_get() {
+int test_tf_trans_get(void) {
   // clang-format off
   real_t T[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
@@ -1953,7 +1953,7 @@ int test_tf_trans_get() {
   return 0;
 }
 
-int test_tf_rot_get() {
+int test_tf_rot_get(void) {
   /* Transform */
   // clang-format off
   real_t T[16] = {1.0, 2.0, 3.0, 4.0,
@@ -1981,7 +1981,7 @@ int test_tf_rot_get() {
   return 0;
 }
 
-int test_tf_quat_get() {
+int test_tf_quat_get(void) {
   /* Transform */
   // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 0.0,
@@ -2011,7 +2011,7 @@ int test_tf_quat_get() {
   return 0;
 }
 
-int test_tf_inv() {
+int test_tf_inv(void) {
   /* Create Transform */
   // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 0.0,
@@ -2047,7 +2047,7 @@ int test_tf_inv() {
   return 0;
 }
 
-int test_tf_point() {
+int test_tf_point(void) {
   /* Transform */
   // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 1.0,
@@ -2066,7 +2066,7 @@ int test_tf_point() {
   return 0;
 }
 
-int test_tf_hpoint() {
+int test_tf_hpoint(void) {
   /* Transform */
   // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 1.0,
@@ -2085,7 +2085,7 @@ int test_tf_hpoint() {
   return 0;
 }
 
-int test_tf_perturb_rot() {
+int test_tf_perturb_rot(void) {
   /* Transform */
   // clang-format off
   real_t T[4 * 4] = {1.0, 0.0, 0.0, 1.0,
@@ -2106,7 +2106,7 @@ int test_tf_perturb_rot() {
   return 0;
 }
 
-int test_tf_perturb_trans() {
+int test_tf_perturb_trans(void) {
   /* Transform */
   // clang-format off
   real_t T[4 * 4] = {1.0, 0.0, 0.0, 1.0,
@@ -2127,7 +2127,7 @@ int test_tf_perturb_trans() {
   return 0;
 }
 
-int test_tf_chain() {
+int test_tf_chain(void) {
   /* First transform */
   const real_t r0[3] = {0.0, 0.0, 0.1};
   const real_t euler0[3] = {deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
@@ -2170,7 +2170,7 @@ int test_tf_chain() {
   return 0;
 }
 
-int test_euler321() {
+int test_euler321(void) {
   /* Euler to rotation matrix */
   const real_t euler[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
   real_t C[9] = {0};
@@ -2191,7 +2191,7 @@ int test_euler321() {
   return 0;
 }
 
-int test_rot2quat() {
+int test_rot2quat(void) {
   /* Rotation matrix to quaternion */
   const real_t C[9] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
   real_t q[4] = {0.0};
@@ -2205,7 +2205,7 @@ int test_rot2quat() {
   return 0;
 }
 
-int test_quat2euler() {
+int test_quat2euler(void) {
   const real_t C[9] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
 
   /* Rotation matrix to quaternion */
@@ -2223,7 +2223,7 @@ int test_quat2euler() {
   return 0;
 }
 
-int test_quat2rot() {
+int test_quat2rot(void) {
   /* Euler to rotation matrix */
   const real_t euler[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
   real_t C[9] = {0};
@@ -2249,7 +2249,7 @@ int test_quat2rot() {
  * TEST LIE
  ******************************************************************************/
 
-int test_lie_Exp_Log() {
+int test_lie_Exp_Log(void) {
   const real_t phi[3] = {0.1, 0.2, 0.3};
   real_t C[3 * 3] = {0};
   lie_Exp(phi, C);
@@ -2273,23 +2273,23 @@ int test_lie_Exp_Log() {
  * TEST CV
  ******************************************************************************/
 
-int test_image_setup() {
+int test_image_setup(void) {
   return 0;
 }
 
-int test_image_load() {
+int test_image_load(void) {
   return 0;
 }
 
-int test_image_print_properties() {
+int test_image_print_properties(void) {
   return 0;
 }
 
-int test_image_free() {
+int test_image_free(void) {
   return 0;
 }
 
-int test_radtan4_distort() {
+int test_radtan4_distort(void) {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
   real_t p_d[2] = {0};
@@ -2301,7 +2301,7 @@ int test_radtan4_distort() {
   return 0;
 }
 
-int test_radtan4_undistort() {
+int test_radtan4_undistort(void) {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
 
@@ -2322,7 +2322,7 @@ int test_radtan4_undistort() {
   return 0;
 }
 
-int test_radtan4_point_jacobian() {
+int test_radtan4_point_jacobian(void) {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
   real_t J_point[2 * 2] = {0};
@@ -2357,7 +2357,7 @@ int test_radtan4_point_jacobian() {
   return 0;
 }
 
-int test_radtan4_params_jacobian() {
+int test_radtan4_params_jacobian(void) {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
   real_t J_param[2 * 4] = {0};
@@ -2392,7 +2392,7 @@ int test_radtan4_params_jacobian() {
   return 0;
 }
 
-int test_equi4_distort() {
+int test_equi4_distort(void) {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
   real_t p_d[2] = {0};
@@ -2404,7 +2404,7 @@ int test_equi4_distort() {
   return 0;
 }
 
-int test_equi4_undistort() {
+int test_equi4_undistort(void) {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
   real_t p_d[2] = {0};
@@ -2423,7 +2423,7 @@ int test_equi4_undistort() {
   return 0;
 }
 
-int test_equi4_point_jacobian() {
+int test_equi4_point_jacobian(void) {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
   const real_t p[2] = {0.1, 0.2};
   real_t J_point[2 * 2] = {0};
@@ -2458,7 +2458,7 @@ int test_equi4_point_jacobian() {
   return 0;
 }
 
-int test_equi4_params_jacobian() {
+int test_equi4_params_jacobian(void) {
   const real_t params[4] = {0.01, 0.01, 0.01, 0.01};
   const real_t p[2] = {0.1, 0.2};
   real_t J_param[2 * 4] = {0};
@@ -2493,13 +2493,13 @@ int test_equi4_params_jacobian() {
   return 0;
 }
 
-int test_pinhole_focal() {
+int test_pinhole_focal(void) {
   const real_t focal = pinhole_focal(640, 90.0);
   MU_ASSERT(fltcmp(focal, 320.0) == 0);
   return 0;
 }
 
-int test_pinhole_K() {
+int test_pinhole_K(void) {
   const real_t params[4] = {1.0, 2.0, 3.0, 4.0};
   real_t K[3 * 3] = {0};
   pinhole_K(params, K);
@@ -2519,7 +2519,7 @@ int test_pinhole_K() {
   return 0;
 }
 
-int test_pinhole_projection_matrix() {
+int test_pinhole_projection_matrix(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2562,7 +2562,7 @@ int test_pinhole_projection_matrix() {
   return 0;
 }
 
-int test_pinhole_project() {
+int test_pinhole_project(void) {
   const real_t img_w = 640;
   const real_t img_h = 480;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -2582,7 +2582,7 @@ int test_pinhole_project() {
   return 0;
 }
 
-int test_pinhole_point_jacobian() {
+int test_pinhole_point_jacobian(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2620,7 +2620,7 @@ int test_pinhole_point_jacobian() {
   return 0;
 }
 
-int test_pinhole_params_jacobian() {
+int test_pinhole_params_jacobian(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2660,7 +2660,7 @@ int test_pinhole_params_jacobian() {
   return 0;
 }
 
-int test_pinhole_radtan4_project() {
+int test_pinhole_radtan4_project(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2685,7 +2685,7 @@ int test_pinhole_radtan4_project() {
   return 0;
 }
 
-int test_pinhole_radtan4_project_jacobian() {
+int test_pinhole_radtan4_project_jacobian(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2730,7 +2730,7 @@ int test_pinhole_radtan4_project_jacobian() {
   return 0;
 }
 
-int test_pinhole_radtan4_params_jacobian() {
+int test_pinhole_radtan4_params_jacobian(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2777,7 +2777,7 @@ int test_pinhole_radtan4_params_jacobian() {
   return 0;
 }
 
-int test_pinhole_equi4_project() {
+int test_pinhole_equi4_project(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2802,7 +2802,7 @@ int test_pinhole_equi4_project() {
   return 0;
 }
 
-int test_pinhole_equi4_project_jacobian() {
+int test_pinhole_equi4_project_jacobian(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2847,7 +2847,7 @@ int test_pinhole_equi4_project_jacobian() {
   return 0;
 }
 
-int test_pinhole_equi4_params_jacobian() {
+int test_pinhole_equi4_params_jacobian(void) {
   /* Camera parameters */
   const int img_w = 640;
   const int img_h = 320;
@@ -2894,7 +2894,7 @@ int test_pinhole_equi4_params_jacobian() {
   return 0;
 }
 
-int test_linear_triangulation() {
+int test_linear_triangulation(void) {
   // Setup camera
   const int image_width = 640;
   const int image_height = 480;
@@ -2964,7 +2964,7 @@ int test_linear_triangulation() {
   return 0;
 }
 
-int test_homography_find() {
+int test_homography_find(void) {
   // Setup camera
   const int image_width = 640;
   const int image_height = 480;
@@ -3054,7 +3054,7 @@ int test_homography_find() {
   return 0;
 }
 
-int test_homography_pose() {
+int test_homography_pose(void) {
   // Setup camera
   const int image_width = 640;
   const int image_height = 480;
@@ -3132,7 +3132,7 @@ int test_homography_pose() {
   return 0;
 }
 
-// int test_p3p_kneip() {
+// int test_p3p_kneip(void) {
 //   // Setup camera
 //   const int image_width = 640;
 //   const int image_height = 480;
@@ -3170,7 +3170,7 @@ int test_homography_pose() {
 //   return 0;
 // }
 
-int test_solvepnp() {
+int test_solvepnp(void) {
   // Setup camera
   const int image_width = 640;
   const int image_height = 480;
@@ -3265,7 +3265,7 @@ int test_solvepnp() {
  * TEST CONTROL
  ******************************************************************************/
 
-int test_pid_ctrl() {
+int test_pid_ctrl(void) {
   const real_t kp = 0.1;
   const real_t ki = 0.2;
   const real_t kd = 0.3;
@@ -3290,7 +3290,7 @@ int test_pid_ctrl() {
  * TEST GIMBAL MODEL
  ******************************************************************************/
 
-int test_gimbal() {
+int test_gimbal(void) {
   // Gimbal model
   gimbal_model_t model;
   gimbal_model_setup(&model);
@@ -3376,7 +3376,7 @@ static void test_setup_mav(mav_model_t *mav) {
   mav_model_setup(mav, x, inertia, kr, kt, l, d, m, g);
 }
 
-int test_mav_att_ctrl() {
+int test_mav_att_ctrl(void) {
   mav_model_t mav;
   test_setup_mav(&mav);
 
@@ -3415,7 +3415,7 @@ int test_mav_att_ctrl() {
   return 0;
 }
 
-int test_mav_vel_ctrl() {
+int test_mav_vel_ctrl(void) {
   mav_model_t mav;
   test_setup_mav(&mav);
 
@@ -3457,7 +3457,7 @@ int test_mav_vel_ctrl() {
   return 0;
 }
 
-int test_mav_pos_ctrl() {
+int test_mav_pos_ctrl(void) {
   mav_model_t mav;
   test_setup_mav(&mav);
 
@@ -3504,7 +3504,7 @@ int test_mav_pos_ctrl() {
   return 0;
 }
 
-int test_mav_waypoints() {
+int test_mav_waypoints(void) {
   // Setup MAV model
   mav_model_t mav;
   test_setup_mav(&mav);
@@ -3587,7 +3587,7 @@ int test_mav_waypoints() {
  * TEST SENSOR FUSION
  ******************************************************************************/
 
-int test_schur_complement() {
+int test_schur_complement(void) {
   // clang-format off
   real_t H[10 * 10] = {
     0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
@@ -3642,7 +3642,7 @@ int test_schur_complement() {
   return 0;
 }
 
-int test_timeline() {
+int test_timeline(void) {
   const char *data_dir = TEST_IMU_APRIL;
   const int num_cams = 2;
   const int num_imus = 1;
@@ -3707,7 +3707,7 @@ int test_timeline() {
   return 0;
 }
 
-int test_pose() {
+int test_pose(void) {
   timestamp_t ts = 1;
   pose_t pose;
 
@@ -3727,7 +3727,7 @@ int test_pose() {
   return 0;
 }
 
-int test_extrinsics() {
+int test_extrinsics(void) {
   extrinsic_t extrinsic;
 
   real_t data[7] = {1.0, 2.0, 3.0, 1.0, 0.1, 0.2, 0.3};
@@ -3744,7 +3744,7 @@ int test_extrinsics() {
   return 0;
 }
 
-int test_fiducial() {
+int test_fiducial(void) {
   fiducial_t fiducial;
 
   real_t data[7] = {1.0, 2.0, 3.0, 1.0, 0.1, 0.2, 0.3};
@@ -3761,7 +3761,7 @@ int test_fiducial() {
   return 0;
 }
 
-int test_fiducial_buffer() {
+int test_fiducial_buffer(void) {
   const timestamp_t ts = 0;
   const int cam_idx = 1;
   const int n = 2;
@@ -3786,7 +3786,7 @@ int test_fiducial_buffer() {
   return 0;
 }
 
-int test_imu_biases() {
+int test_imu_biases(void) {
   timestamp_t ts = 1;
   imu_biases_t biases;
 
@@ -3807,7 +3807,7 @@ int test_imu_biases() {
   return 0;
 }
 
-int test_feature() {
+int test_feature(void) {
   feature_t feature;
 
   size_t feature_id = 99;
@@ -3824,7 +3824,7 @@ int test_feature() {
   return 0;
 }
 
-// int test_idf() {
+// int test_idf(void) {
 //   // Body pose
 //   pose_t pose;
 //   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
@@ -3880,7 +3880,7 @@ int test_feature() {
 //   return 0;
 // }
 
-// int test_features() {
+// int test_features(void) {
 //   // XYZ Features
 //   // clang-format off
 //   size_t feature_ids[3] = {1, 2, 3};
@@ -3987,14 +3987,14 @@ int test_feature() {
 //   return 0;
 // }
 
-int test_time_delay() {
+int test_time_delay(void) {
   time_delay_t td;
   time_delay_setup(&td, 1.0);
   MU_ASSERT(fltcmp(td.data[0], 1.0) == 0);
   return 0;
 }
 
-int test_joint() {
+int test_joint(void) {
   joint_t joint;
   joint_setup(&joint, 101, 2, 1.0);
   MU_ASSERT(joint.ts == 101);
@@ -4003,7 +4003,7 @@ int test_joint() {
   return 0;
 }
 
-int test_camera_params() {
+int test_camera_params(void) {
   camera_params_t camera;
   const int cam_idx = 0;
   const int cam_res[2] = {752, 480};
@@ -4016,7 +4016,7 @@ int test_camera_params() {
   return 0;
 }
 
-int test_triangulation_batch() {
+int test_triangulation_batch(void) {
   // Setup camera
   const int image_width = 640;
   const int image_height = 480;
@@ -4123,7 +4123,7 @@ int test_triangulation_batch() {
   return 0;
 }
 
-int test_pose_factor() {
+int test_pose_factor(void) {
   /* Pose */
   timestamp_t ts = 1;
   pose_t pose;
@@ -4143,7 +4143,7 @@ int test_pose_factor() {
   return 0;
 }
 
-int test_ba_factor() {
+int test_ba_factor(void) {
   // Timestamp
   timestamp_t ts = 0;
 
@@ -4191,7 +4191,7 @@ int test_ba_factor() {
   return 0;
 }
 
-int test_camera_factor() {
+int test_camera_factor(void) {
   // Timestamp
   timestamp_t ts = 0;
 
@@ -4245,7 +4245,7 @@ int test_camera_factor() {
   return 0;
 }
 
-// int test_idf_factor() {
+// int test_idf_factor(void) {
 //   // Timestamp
 //   timestamp_t ts = 0;
 
@@ -4319,14 +4319,14 @@ int test_camera_factor() {
 //   return 0;
 // }
 
-int test_imu_buffer_setup() {
+int test_imu_buffer_setup(void) {
   imu_buffer_t imu_buf;
   imu_buffer_setup(&imu_buf);
 
   return 0;
 }
 
-int test_imu_buffer_add() {
+int test_imu_buffer_add(void) {
   imu_buffer_t imu_buf;
   imu_buffer_setup(&imu_buf);
 
@@ -4347,7 +4347,7 @@ int test_imu_buffer_add() {
   return 0;
 }
 
-int test_imu_buffer_clear() {
+int test_imu_buffer_clear(void) {
   imu_buffer_t imu_buf;
   imu_buffer_setup(&imu_buf);
 
@@ -4369,7 +4369,7 @@ int test_imu_buffer_clear() {
   return 0;
 }
 
-int test_imu_buffer_copy() {
+int test_imu_buffer_copy(void) {
   imu_buffer_t imu_buf;
   imu_buffer_setup(&imu_buf);
 
@@ -4503,7 +4503,7 @@ static void free_imu_test_data(imu_test_data_t *test_data) {
   free(test_data->imu_gyr);
 }
 
-int test_imu_propagate() {
+int test_imu_propagate(void) {
   // Setup test data
   imu_test_data_t test_data;
   setup_imu_test_data(&test_data, 1.0, 0.1);
@@ -4550,7 +4550,7 @@ int test_imu_propagate() {
   return 0;
 }
 
-int test_imu_initial_attitude() {
+int test_imu_initial_attitude(void) {
   // Setup test data
   imu_test_data_t test_data;
   setup_imu_test_data(&test_data, 5.0, 1.0);
@@ -4642,7 +4642,7 @@ int test_imu_initial_attitude() {
 //   imu_state_vector(r_j, q_j, v_j, ba_j, bg_j, x_k);
 // }
 
-int test_imu_factor_form_F_matrix() {
+int test_imu_factor_form_F_matrix(void) {
   // Setup test data
   imu_test_data_t test_data;
   setup_imu_test_data(&test_data, 1.0, 0.1);
@@ -4709,7 +4709,7 @@ int test_imu_factor_form_F_matrix() {
   return 0;
 }
 
-int test_imu_factor() {
+int test_imu_factor(void) {
   // Setup test data
   const double circle_r = 1.0;
   const double circle_v = 0.1;
@@ -4850,7 +4850,7 @@ ginput();\
   return 0;
 }
 
-int test_joint_factor() {
+int test_joint_factor(void) {
   // Joint angle
   const timestamp_t ts = 0;
   const int joint_idx = 0;
@@ -4963,7 +4963,7 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   aprilgrid_free(grid);
 }
 
-int test_calib_camera_factor() {
+int test_calib_camera_factor(void) {
   // Setup
   test_calib_camera_data_t calib_data;
   test_calib_camera_data_setup(&calib_data);
@@ -5087,7 +5087,7 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   aprilgrid_free(grid);
 }
 
-int test_calib_imucam_factor() {
+int test_calib_imucam_factor(void) {
   // Setup
   test_calib_imucam_data_t calib_data;
   test_calib_imucam_data_setup(&calib_data);
@@ -5259,7 +5259,7 @@ static void setup_calib_gimbal_factor(calib_gimbal_factor_t *factor,
                             var);
 }
 
-int test_calib_gimbal_factor() {
+int test_calib_gimbal_factor(void) {
   calib_gimbal_factor_t factor;
   fiducial_t fiducial_ext;
   extrinsic_t gimbal_ext;
@@ -5302,7 +5302,7 @@ int test_calib_gimbal_factor() {
   return 0;
 }
 
-int test_marg() {
+int test_marg(void) {
   // Timestamp
   timestamp_t ts = 0;
 
@@ -5513,7 +5513,7 @@ int test_marg() {
   return 0;
 }
 
-int test_visual_odometry_batch() {
+int test_visual_odometry_batch(void) {
   // Simulate features
   const real_t origin[3] = {0.0, 0.0, 0.0};
   const real_t dim[3] = {5.0, 5.0, 5.0};
@@ -5600,7 +5600,7 @@ int test_visual_odometry_batch() {
   return 0;
 }
 
-int test_inertial_odometry_batch() {
+int test_inertial_odometry_batch(void) {
   // Setup test data
   imu_test_data_t test_data;
   setup_imu_test_data(&test_data, 1.0, 0.1);
@@ -5703,7 +5703,7 @@ int test_inertial_odometry_batch() {
   return 0;
 }
 
-// int test_visual_inertial_odometry_batch() {
+// int test_visual_inertial_odometry_batch(void) {
 //   // Simulate features
 //   const real_t origin[3] = {0.0, 0.0, 0.0};
 //   const real_t dim[3] = {5.0, 5.0, 5.0};
@@ -5866,7 +5866,7 @@ int test_inertial_odometry_batch() {
 //   return 0;
 // }
 
-int test_tsf() {
+int test_tsf(void) {
   // Camera config
   const int cam_res[2] = {640, 480};
   const real_t fov = 90.0;
@@ -5960,7 +5960,7 @@ static int ceres_exp_residual(void *user_data,
   return 1;
 }
 
-int test_ceres_example() {
+int test_ceres_example(void) {
   int num_observations = 67;
   double data[] = {
       0.000000e+00, 1.133898e+00, 7.500000e-02, 1.334902e+00, 1.500000e-01,
@@ -6027,7 +6027,7 @@ int test_ceres_example() {
 
 #endif // USE_CERES
 
-int test_solver_setup() {
+int test_solver_setup(void) {
   solver_t solver;
   solver_setup(&solver);
   return 0;
@@ -6040,7 +6040,7 @@ typedef struct cam_view_t {
   camera_params_t *cam_params;
 } cam_view_t;
 
-// int test_solver_eval() {
+// int test_solver_eval(void) {
 //   // Load test data
 //   const char *dir_path = TEST_SIM_DATA "/cam0";
 //   sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
@@ -6112,7 +6112,7 @@ typedef struct cam_view_t {
 //   return 0;
 // }
 
-int test_camchain() {
+int test_camchain(void) {
   // Form camera poses
   int num_cams = 5;
   real_t T_C0F[4 * 4] = {0};
@@ -6167,7 +6167,7 @@ int test_camchain() {
   return 0;
 }
 
-int test_calib_camera_mono_batch() {
+int test_calib_camera_mono_batch(void) {
   const char *data_path = TEST_CAM_APRIL "/cam0";
 
   // Initialize camera intrinsics
@@ -6209,7 +6209,7 @@ int test_calib_camera_mono_batch() {
   return 0;
 }
 
-int test_calib_camera_mono_ceres() {
+int test_calib_camera_mono_ceres(void) {
   const char *data_path = TEST_CAM_APRIL "/cam0";
 
   // Initialize camera intrinsics
@@ -6295,7 +6295,7 @@ int test_calib_camera_mono_ceres() {
   return 0;
 }
 
-int test_calib_camera_mono_incremental() {
+int test_calib_camera_mono_incremental(void) {
   const char *data_path = TEST_CAM_APRIL "/cam0";
 
   // Initialize camera intrinsics
@@ -6373,7 +6373,7 @@ int test_calib_camera_mono_incremental() {
   return 0;
 }
 
-int test_calib_camera_stereo_batch() {
+int test_calib_camera_stereo_batch(void) {
   // Initialize camera intrinsics
   int num_cams = 2;
   char *data_dir = TEST_CAM_APRIL "/cam%d";
@@ -6512,7 +6512,7 @@ int test_calib_camera_stereo_batch() {
   return 0;
 }
 
-int test_calib_camera_stereo_ceres() {
+int test_calib_camera_stereo_ceres(void) {
   // Initialize camera intrinsics
   int num_cams = 2;
   char *data_dir = TEST_CAM_APRIL "/cam%d";
@@ -6674,7 +6674,7 @@ int test_calib_camera_stereo_ceres() {
   return 0;
 }
 
-int test_calib_imucam_view() {
+int test_calib_imucam_view(void) {
   // Setup Camera
   const int cam_res[2] = {752, 480};
   const char *pmodel = "pinhole";
@@ -6756,7 +6756,7 @@ int test_calib_imucam_view() {
   return 0;
 }
 
-int test_calib_imucam_add_imu() {
+int test_calib_imucam_add_imu(void) {
   // Setup
   const int imu_rate = 200;
   const real_t n_a = 0.08;
@@ -6784,7 +6784,7 @@ int test_calib_imucam_add_imu() {
   return 0;
 }
 
-int test_calib_imucam_add_camera() {
+int test_calib_imucam_add_camera(void) {
   // Setup
   const int res[2] = {752, 480};
   const char *pm = "pinhole";
@@ -6810,7 +6810,7 @@ int test_calib_imucam_add_camera() {
   return 0;
 }
 
-int test_calib_imucam_add_imu_event() {
+int test_calib_imucam_add_imu_event(void) {
   // Setup
   calib_imucam_t *calib = calib_imucam_malloc();
 
@@ -6845,7 +6845,7 @@ int test_calib_imucam_add_imu_event() {
   return 0;
 }
 
-int test_calib_imucam_add_fiducial_event() {
+int test_calib_imucam_add_fiducial_event(void) {
   // Setup
   calib_imucam_t *calib = calib_imucam_malloc();
   // -- Add Imu
@@ -6899,7 +6899,7 @@ int test_calib_imucam_add_fiducial_event() {
   return 0;
 }
 
-int test_calib_imucam_update() {
+int test_calib_imucam_update(void) {
   // Setup
   calib_imucam_t *calib = calib_imucam_malloc();
   // -- Add Imu
@@ -6996,7 +6996,7 @@ int test_calib_imucam_update() {
   return 0;
 }
 
-int test_calib_imucam_batch() {
+int test_calib_imucam_batch(void) {
   // clang-format off
   const int res[2] = {752, 480};
   const char *pm = "pinhole";
@@ -7114,7 +7114,7 @@ int test_calib_imucam_batch() {
   return 0;
 }
 
-int test_calib_imucam_batch_ceres() {
+int test_calib_imucam_batch_ceres(void) {
   // Setup
   calib_imucam_t *calib = calib_imucam_malloc();
   // -- Add Imu
@@ -7324,7 +7324,7 @@ int test_calib_imucam_batch_ceres() {
   return 0;
 }
 
-int test_calib_gimbal_copy() {
+int test_calib_gimbal_copy(void) {
   const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *src = calib_gimbal_load(data_path);
   calib_gimbal_t *dst = calib_gimbal_copy(src);
@@ -7340,7 +7340,7 @@ int test_calib_gimbal_copy() {
   return 0;
 }
 
-int test_calib_gimbal_add_fiducial() {
+int test_calib_gimbal_add_fiducial(void) {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
   real_t fiducial_pose[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
@@ -7352,7 +7352,7 @@ int test_calib_gimbal_add_fiducial() {
   return 0;
 }
 
-int test_calib_gimbal_add_pose() {
+int test_calib_gimbal_add_pose(void) {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
   real_t pose[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
@@ -7365,7 +7365,7 @@ int test_calib_gimbal_add_pose() {
   return 0;
 }
 
-int test_calib_gimbal_add_gimbal_extrinsic() {
+int test_calib_gimbal_add_gimbal_extrinsic(void) {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
   real_t gimbal_ext[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
@@ -7376,7 +7376,7 @@ int test_calib_gimbal_add_gimbal_extrinsic() {
   return 0;
 }
 
-int test_calib_gimbal_add_gimbal_link() {
+int test_calib_gimbal_add_gimbal_link(void) {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
   real_t link0[7] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
@@ -7393,7 +7393,7 @@ int test_calib_gimbal_add_gimbal_link() {
   return 0;
 }
 
-int test_calib_gimbal_add_camera() {
+int test_calib_gimbal_add_camera(void) {
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
   const int cam_res[2] = {640, 480};
@@ -7430,7 +7430,7 @@ int test_calib_gimbal_add_camera() {
   return 0;
 }
 
-int test_calib_gimbal_add_remove_view() {
+int test_calib_gimbal_add_remove_view(void) {
   // Setup gimbal calibration
   calib_gimbal_t *calib = calib_gimbal_malloc();
 
@@ -7512,7 +7512,7 @@ int test_calib_gimbal_add_remove_view() {
   return 0;
 }
 
-int test_calib_gimbal_load() {
+int test_calib_gimbal_load(void) {
   const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *calib = calib_gimbal_load(data_path);
   MU_ASSERT(calib != NULL);
@@ -7522,7 +7522,7 @@ int test_calib_gimbal_load() {
   return 0;
 }
 
-int test_calib_gimbal_save() {
+int test_calib_gimbal_save(void) {
   const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *calib = calib_gimbal_load(data_path);
   calib_gimbal_save(calib, "/tmp/estimates.yaml");
@@ -7612,7 +7612,7 @@ static void compare_gimbal_calib(const calib_gimbal_t *gnd,
   printf("\n");
 }
 
-int test_calib_gimbal_solve() {
+int test_calib_gimbal_solve(void) {
   // Setup
   const int debug = 1;
   // const char *data_path = TEST_SIM_GIMBAL;
@@ -7702,7 +7702,7 @@ int test_calib_gimbal_solve() {
 }
 
 #ifdef USE_CERES
-int test_calib_gimbal_ceres_solve() {
+int test_calib_gimbal_ceres_solve(void) {
   // Setup simulation data
   const char *data_path = TEST_SIM_GIMBAL;
   calib_gimbal_t *calib_gnd = calib_gimbal_load(data_path);
@@ -7834,7 +7834,7 @@ int test_calib_gimbal_ceres_solve() {
  * TEST DATASET
  ******************************************************************************/
 
-int test_assoc_pose_data() {
+int test_assoc_pose_data(void) {
   const double threshold = 0.01;
   const char *matches_fpath = "./gnd_est_matches.csv";
   const char *gnd_data_path = "./test_data/euroc/MH01_groundtruth.csv";
@@ -7896,7 +7896,7 @@ int test_assoc_pose_data() {
  * TEST PLOTTING
  ******************************************************************************/
 
-int test_gnuplot_xyplot() {
+int test_gnuplot_xyplot(void) {
   // Start gnuplot
   FILE *gnuplot = gnuplot_init();
 
@@ -7926,7 +7926,7 @@ int test_gnuplot_xyplot() {
   return 0;
 }
 
-int test_gnuplot_multiplot() {
+int test_gnuplot_multiplot(void) {
   // Start gnuplot
   FILE *gnuplot = gnuplot_init();
 
@@ -7967,7 +7967,7 @@ int test_gnuplot_multiplot() {
 
 // SIM FEATURES //////////////////////////////////////////////////////////////
 
-int test_sim_features_load() {
+int test_sim_features_load(void) {
   const char *csv_file = TEST_SIM_DATA "/features.csv";
   sim_features_t *features_data = sim_features_load(csv_file);
   MU_ASSERT(features_data->num_features > 0);
@@ -7977,7 +7977,7 @@ int test_sim_features_load() {
 
 // SIM IMU DATA //////////////////////////////////////////////////////////////
 
-int test_sim_imu_data_load() {
+int test_sim_imu_data_load(void) {
   // const char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
   // sim_imu_data_t *imu_data = sim_imu_data_load(csv_file);
   // sim_imu_data_free(imu_data);
@@ -7986,7 +7986,7 @@ int test_sim_imu_data_load() {
 
 // SIM CAMERA DATA ///////////////////////////////////////////////////////////
 
-int test_sim_camera_frame_load() {
+int test_sim_camera_frame_load(void) {
   const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
   sim_camera_frame_t *frame_data = sim_camera_frame_load(frame_csv);
 
@@ -7999,14 +7999,14 @@ int test_sim_camera_frame_load() {
   return 0;
 }
 
-int test_sim_camera_data_load() {
+int test_sim_camera_data_load(void) {
   const char *dir_path = TEST_SIM_DATA "/cam0";
   sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
   sim_camera_data_free(cam_data);
   return 0;
 }
 
-int test_sim_camera_circle_trajectory() {
+int test_sim_camera_circle_trajectory(void) {
   // Simulate features
   const real_t origin[3] = {0.0, 0.0, 0.0};
   const real_t dim[3] = {5.0, 5.0, 5.0};
@@ -8070,13 +8070,13 @@ int test_sim_camera_circle_trajectory() {
   return 0;
 }
 
-int test_sim_gimbal_malloc_free() {
+int test_sim_gimbal_malloc_free(void) {
   sim_gimbal_t *sim = sim_gimbal_malloc();
   sim_gimbal_free(sim);
   return 0;
 }
 
-int test_sim_gimbal_view() {
+int test_sim_gimbal_view(void) {
   sim_gimbal_t *sim = sim_gimbal_malloc();
 
   const timestamp_t ts = 0;
@@ -8091,7 +8091,7 @@ int test_sim_gimbal_view() {
   return 0;
 }
 
-int test_sim_gimbal_solve() {
+int test_sim_gimbal_solve(void) {
   // Setup gimbal simulator
   sim_gimbal_t *sim = sim_gimbal_malloc();
 
@@ -8170,7 +8170,7 @@ int test_sim_gimbal_solve() {
   return 0;
 }
 
-void test_suite() {
+void test_suite(void) {
   // MACROS
   MU_ADD_TEST(test_median_value);
   MU_ADD_TEST(test_mean_value);
