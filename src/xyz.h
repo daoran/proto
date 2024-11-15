@@ -3077,7 +3077,6 @@ typedef struct imu_factor_hash_t {
   imu_factor_t *value;
 } imu_factor_hash_t;
 
-/** IMU-camera Calibrator **/
 typedef struct calib_imucam_t {
   // Settings
   int fix_fiducial;

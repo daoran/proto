@@ -250,7 +250,6 @@ int file_copy(const char *src, const char *dst) {
   FILE *dst_file = fopen(dst, "wb");
   if (dst_file == NULL) {
     fclose(src_file);
-    fclose(dst_file);
     return -2;
   }
 
@@ -665,7 +664,6 @@ char **dsv_fields(const char *fp, const char delim, int *num_fields) {
   // Load file
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
-    fclose(infile);
     return NULL;
   }
 
@@ -731,7 +729,6 @@ dsv_data(const char *fp, const char delim, int *num_rows, int *num_cols) {
   // Load file
   FILE *infile = fopen(fp, "r");
   if (infile == NULL) {
-    fclose(infile);
     return NULL;
   }
 
@@ -1896,8 +1893,8 @@ status_t tcp_server_loop(tcp_server_t *server) {
  * Configure TCP client
  */
 status_t tcp_client_setup(tcp_client_t *client,
-                        const char *server_ip,
-                        const int server_port) {
+                          const char *server_ip,
+                          const int server_port) {
   assert(client != NULL);
   assert(server_ip != NULL);
 
@@ -2623,7 +2620,6 @@ real_t *mat_load(const char *mat_path, int *num_rows, int *num_cols) {
   // Load file
   FILE *infile = fopen(mat_path, "r");
   if (infile == NULL) {
-    fclose(infile);
     free(A);
     return NULL;
   }
@@ -12168,7 +12164,7 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
 }
 
 // F11 = eye(3)
-#define IMU_FACTOR_F11(void)                                                       \
+#define IMU_FACTOR_F11(void)                                                   \
   real_t F11[3 * 3] = {0};                                                     \
   eye(F11, 3, 3);
 
@@ -12244,7 +12240,7 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
   mat_add(F32_A, F32_B, F32, 3, 3);
 
 // F33 = eye(3)
-#define IMU_FACTOR_F33(void)                                                       \
+#define IMU_FACTOR_F33(void)                                                   \
   real_t F33[3 * 3] = {0};                                                     \
   F33[0] = 1.0;                                                                \
   F33[4] = 1.0;                                                                \
@@ -12265,14 +12261,14 @@ static void imu_factor_form_Q_matrix(const imu_params_t *imu_params,
   }
 
 // F44 = eye(3)
-#define IMU_FACTOR_F44(void)                                                       \
+#define IMU_FACTOR_F44(void)                                                   \
   real_t F44[3 * 3] = {0};                                                     \
   F44[0] = 1.0;                                                                \
   F44[4] = 1.0;                                                                \
   F44[8] = 1.0;
 
 // F55 = eye(3)
-#define IMU_FACTOR_F55(void)                                                       \
+#define IMU_FACTOR_F55(void)                                                   \
   real_t F55[3 * 3] = {0};                                                     \
   F55[0] = 1.0;                                                                \
   F55[4] = 1.0;                                                                \
@@ -15662,14 +15658,14 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
     view->corner_indices = MALLOC(int, num_corners);
     view->object_points = MALLOC(real_t, num_corners * 3);
     view->keypoints = MALLOC(real_t, num_corners * 2);
+    assert(view->tag_ids != NULL);
+    assert(view->corner_indices != NULL);
+    assert(view->object_points != NULL);
+    assert(view->keypoints != NULL);
   }
 
   // Factors
   view->factors = MALLOC(calib_camera_factor_t, num_corners);
-  assert(view->tag_ids != NULL);
-  assert(view->corner_indices != NULL);
-  assert(view->object_points != NULL);
-  assert(view->keypoints != NULL);
   assert(view->factors != NULL);
 
   for (int i = 0; i < num_corners; i++) {
