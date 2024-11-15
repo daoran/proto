@@ -1,7 +1,5 @@
 include config.mk
-
-.PHONY: third_party docs build install tests ci run_test_xyz clean
-.PHONY: libxyz benchmarks build scripts shaders test_data viz
+.PHONY: benchmarks build docs scripts src third_party
 
 help:
 	@echo "make targets:"
@@ -122,8 +120,11 @@ test_http:  ## Run test_http
 	@$(CC) $(CFLAGS) src/test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
 	@cd build && ./test_http
 
-tests: test_aprilgrid test_gui test_ubx test_xyz  ## Run tests
+tests: test_aprilgrid test_gui test_xyz  ## Run tests
 
 ci:  ## Run CI tests
 	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 src/test_xyz.c -o $(BLD_DIR)/test_xyz $(LDFLAGS)
 	@cd build && ./test_xyz
+
+cppcheck: ## Run cppcheck on xyz.c
+	@cppcheck src/xyz.c src/xyz.h
