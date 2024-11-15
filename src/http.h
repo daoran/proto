@@ -4,8 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+#include <unistd.h>
 #include <inttypes.h>
 
+#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -35,6 +38,10 @@
 #ifndef CALLOC
 #define CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
 #endif // CALLOC
+#endif
+
+#ifndef status_t
+#define status_t __attribute__((warn_unused_result)) int
 #endif
 
 /**
@@ -186,6 +193,20 @@
   "Sec-WebSocket-Accept: %s\r\n"                                               \
   "\r\n"
 
+typedef struct tcp_server_t {
+  int port;
+  int sockfd;
+  int conn;
+  void *(*conn_handler)(void *);
+} tcp_server_t;
+
+typedef struct tcp_client_t {
+  char server_ip[1024];
+  int server_port;
+  int sockfd;
+  int (*loop_cb)(struct tcp_client_t *);
+} tcp_client_t;
+
 typedef struct http_msg_t {
   // Protocol version
   char *protocol;
@@ -209,20 +230,31 @@ typedef struct http_msg_t {
 typedef struct ws_frame_t {
   uint8_t header;
   uint8_t mask[4];
-
   size_t payload_size;
   uint8_t *payload_data;
 } ws_frame_t;
 
+size_t string_copy(char *dst, const char *src);
+void string_cat(char *dst, const char *src);
+char *string_malloc(const char *s);
+
 char *base64_encode(const uint8_t *data, size_t in_len, size_t *out_len);
 uint8_t *base64_decode(const char *data, size_t in_len, size_t *out_len);
+
+status_t ip_port_info(const int sockfd, char *ip, int *port);
+status_t tcp_server_setup(tcp_server_t *server, const int port);
+status_t tcp_server_loop(tcp_server_t *server);
+status_t tcp_client_setup(tcp_client_t *client,
+                        const char *server_ip,
+                        const int server_port);
+status_t tcp_client_loop(tcp_client_t *client);
 
 void http_msg_setup(http_msg_t *msg);
 void http_msg_free(http_msg_t *msg);
 void http_msg_print(http_msg_t *msg);
 int http_parse_request(char *msg_str, http_msg_t *msg);
 
-ws_frame_t *ws_frame_malloc();
+ws_frame_t *ws_frame_malloc(void);
 void ws_frame_free(ws_frame_t *frame);
 void ws_frame_print(ws_frame_t *frame);
 uint8_t *ws_frame_serialize(ws_frame_t *frame);
@@ -237,7 +269,7 @@ void ws_send(int connfd, const uint8_t *msg);
 char *ws_read(ws_frame_t *ws_frame);
 char *ws_hash(const char *ws_key);
 int ws_handshake(const int connfd);
-int ws_server();
+int ws_server(void);
 
 #endif // HTTP_H
 
@@ -255,6 +287,27 @@ static char b64_encode_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                   'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
                                   'w', 'x', 'y', 'z', '0', '1', '2', '3',
                                   '4', '5', '6', '7', '8', '9', '+', '/'};
+
+size_t string_copy(char *dst, const char *src) {
+  dst[0] = '\0';
+  memcpy(dst, src, strlen(src));
+  dst[strlen(src)] = '\0'; // Null terminate
+  return strlen(dst);
+}
+
+void string_cat(char *dst, const char *src) {
+  size_t dst_len = strlen(dst);
+  strcat(dst + dst_len, src);
+  dst[dst_len + strlen(src)] = '\0'; // strncat does not null terminate
+}
+
+char *string_malloc(const char *s) {
+  assert(s != NULL);
+  char *retval = MALLOC(char, strlen(s) + 1);
+  memcpy(retval, s, strlen(s));
+  retval[strlen(s)] = '\0'; // Null terminate
+  return retval;
+}
 
 char *base64_encode(const uint8_t *data, size_t in_len, size_t *out_len) {
   int mod_table[3] = {0, 2, 1};
@@ -351,6 +404,177 @@ uint8_t *base64_decode(const char *data, size_t in_len, size_t *out_len) {
 
   free(decode_table);
   return decoded_data;
+}
+
+/**
+ * Return IP and Port info from socket file descriptor `sockfd` to `ip` and
+ * `port`. Returns `0` for success and `-1` for failure.
+ * @returns
+ * - 0 for success
+ * - -1 for failure
+ */
+status_t ip_port_info(const int sockfd, char *ip, int *port) {
+  assert(ip != NULL);
+  assert(port != NULL);
+
+  struct sockaddr_storage addr;
+  socklen_t len = sizeof addr;
+  if (getpeername(sockfd, (struct sockaddr *) &addr, &len) != 0) {
+    return -1;
+  }
+
+  // Deal with both IPv4 and IPv6:
+  char ipstr[INET6_ADDRSTRLEN];
+
+  if (addr.ss_family == AF_INET) {
+    // IPV4
+    struct sockaddr_in *s = (struct sockaddr_in *) &addr;
+    *port = ntohs(s->sin_port);
+    inet_ntop(AF_INET, &s->sin_addr, ipstr, sizeof(ipstr));
+  } else {
+    // IPV6
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *) &addr;
+    *port = ntohs(s->sin6_port);
+    inet_ntop(AF_INET6, &s->sin6_addr, ipstr, sizeof(ipstr));
+  }
+  memcpy(ip, ipstr, strlen(ipstr));
+  ip[strlen(ip)] = '\0';
+
+  return 0;
+}
+
+/**
+ * Configure TCP server
+ */
+status_t tcp_server_setup(tcp_server_t *server, const int port) {
+  assert(server != NULL);
+
+  // Setup server struct
+  server->port = port;
+  server->sockfd = -1;
+  server->conn = -1;
+
+  // Create socket
+  server->sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (server->sockfd == -1) {
+    HTTP_ERROR("Socket creation failed...");
+    return -1;
+  }
+
+  // Socket options
+  const int en = 1;
+  const size_t int_sz = sizeof(int);
+  if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEADDR, &en, int_sz) < 0) {
+    HTTP_ERROR("setsockopt(SO_REUSEADDR) failed");
+  }
+  if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEPORT, &en, int_sz) < 0) {
+    HTTP_ERROR("setsockopt(SO_REUSEPORT) failed");
+  }
+
+  // Assign IP, PORT
+  struct sockaddr_in addr;
+  bzero(&addr, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  addr.sin_port = htons(server->port);
+
+  // Bind newly created socket to given IP
+  int retval = bind(server->sockfd, (struct sockaddr *) &addr, sizeof(addr));
+  if (retval != 0) {
+    HTTP_ERROR("Socket bind failed: %s", strerror(errno));
+    return -1;
+  }
+
+  return 0;
+}
+
+/**
+ * Loop TCP server
+ * @returns `0` for success, `-1` for failure
+ */
+status_t tcp_server_loop(tcp_server_t *server) {
+  assert(server != NULL);
+
+  // Server is ready to listen
+  if ((listen(server->sockfd, 5)) != 0) {
+    HTTP_ERROR("Listen failed...");
+    return -1;
+  }
+
+  // Accept the data packet from client and verification
+  DEBUG("Server ready!");
+  while (1) {
+    // Accept incomming connections
+    struct sockaddr_in sockaddr;
+    socklen_t len = sizeof(sockaddr);
+    int connfd = accept(server->sockfd, (struct sockaddr *) &sockaddr, &len);
+    if (connfd < 0) {
+      HTTP_ERROR("Server acccept failed!");
+      return -1;
+    } else {
+      server->conn = connfd;
+      server->conn_handler(&server);
+    }
+  }
+  DEBUG("Server shutting down ...");
+
+  return 0;
+}
+
+/**
+ * Configure TCP client
+ */
+status_t tcp_client_setup(tcp_client_t *client,
+                        const char *server_ip,
+                        const int server_port) {
+  assert(client != NULL);
+  assert(server_ip != NULL);
+
+  // Setup client struct
+  string_copy(client->server_ip, server_ip);
+  client->server_port = server_port;
+  client->sockfd = -1;
+
+  // Create socket
+  client->sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (client->sockfd == -1) {
+    HTTP_ERROR("Socket creation failed!");
+    return -1;
+  }
+
+  // Assign IP, PORT
+  struct sockaddr_in server = {.sin_family = AF_INET,
+                               .sin_addr.s_addr = inet_addr(client->server_ip),
+                               .sin_port = htons(client->server_port)};
+
+  // Connect to server
+  if (connect(client->sockfd, (struct sockaddr *) &server, sizeof(server)) !=
+      0) {
+    HTTP_ERROR("Failed to connect to server!");
+    return -1;
+  }
+  DEBUG("Connected to the server!");
+
+  return 0;
+}
+
+/**
+ * Loop TCP client
+ */
+status_t tcp_client_loop(tcp_client_t *client) {
+  while (1) {
+    if (client->loop_cb) {
+      int retval = client->loop_cb(client);
+      switch (retval) {
+        case -1:
+          return -1;
+        case 1:
+          break;
+      }
+    }
+  }
+
+  return 0;
 }
 
 void http_msg_setup(http_msg_t *msg) {
@@ -487,7 +711,7 @@ int http_request_websocket_handshake(const http_msg_t *msg) {
   return 0;
 }
 
-ws_frame_t *ws_frame_malloc() {
+ws_frame_t *ws_frame_malloc(void) {
   ws_frame_t *frame;
 
   frame = MALLOC(ws_frame_t, 1);
@@ -735,7 +959,7 @@ int ws_handshake(const int connfd) {
   return 0;
 }
 
-int ws_server() {
+int ws_server(void) {
   // Setup server
   tcp_server_t server;
   const int port = 5000;
@@ -802,7 +1026,7 @@ static int nb_failed = 0;
  * @param[in] test_name Test name
  * @param[in] test_ptr Pointer to unittest
  */
-void run_test(const char *test_name, int (*test_ptr)()) {
+void run_test(const char *test_name, int (*test_ptr)(void)) {
   if ((*test_ptr)() == 0) {
     printf("-> [%s] " TERM_GRN "OK!\n" TERM_NRM, test_name);
     fflush(stdout);
@@ -836,14 +1060,14 @@ void run_test(const char *test_name, int (*test_ptr)()) {
     }                                                                          \
   } while (0)
 
-int test_http_msg_setup() {
+int test_http_msg_setup(void) {
   http_msg_t msg;
   http_msg_setup(&msg);
 
   return 0;
 }
 
-int test_http_msg_print() {
+int test_http_msg_print(void) {
   char buf[9046] = "\
 GET /chat HTTP/1.1\r\n\
 Host: example.com:8000\r\n\
@@ -861,7 +1085,7 @@ Sec-WebSocket-Version: 13\r\n\
   return 0;
 }
 
-int test_http_parse_request() {
+int test_http_parse_request(void) {
   char buf[9046] = "\
 GET /chat HTTP/1.1\r\n\
 Host: example.com:8000\r\n\
@@ -880,7 +1104,7 @@ Sec-WebSocket-Version: 13\r\n\
   return 0;
 }
 
-int test_ws_hash() {
+int test_ws_hash(void) {
   const char *key = "dGhlIHNhbXBsZSBub25jZQ==";
   char *hash = ws_hash(key);
   TEST_ASSERT(strcmp(hash, "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") == 0);
@@ -888,7 +1112,7 @@ int test_ws_hash() {
   return 0;
 }
 
-int test_ws_server() {
+int test_ws_server(void) {
   ws_server();
   return 0;
 }
