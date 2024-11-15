@@ -5845,9 +5845,10 @@ class TestFrustum(unittest.TestCase):
 
 ###############################################################################
 # STATE ESTIMATION
-# StateVariableType
-# StateVariable
-# FeatureMeasurements
+#
+# class StateVariableType
+# class StateVariable
+# class FeatureMeasurements
 # def pose_setup(ts, param, **kwargs)
 # def extrinsics_setup(param, **kwargs)
 # def screw_axis_setup(param, **kwargs)
@@ -5866,26 +5867,26 @@ class TestFrustum(unittest.TestCase):
 # def idp_param_jacobian(param)
 # def idp_point(param)
 #
-# Factor
-# MeasurementFactor(Factor)
-# PoseFactor(Factor)
-# MultiCameraBuffer
+# class Factor
+# class MeasurementFactor(Factor)
+# class PoseFactor(Factor)
+# class MultiCameraBuffer
 # class BAFactor(Factor)
 # class VisionFactor(Factor)
 # class CameraFactor(Factor)
 # class CalibVisionFactor(Factor)
 # class TwoStateVisionFactor(Factor)
-# class GimbalKinematics:
+# class GimbalKinematics
 # class CalibGimbalFactor(Factor)
-# class ImuBuffer:
-# class ImuParams:
-# class ImuFactorData:
-# class ImuFactorData2:
+# class ImuBuffer
+# class ImuParams
+# class ImuFactorData
+# class ImuFactorData2
 # class ImuFactor(Factor)
 # class ImuFactor2(Factor)
 # class MargFactor(Factor)
-# class Solver:
-# class FactorGraph:
+# class Solver
+# class FactorGraph
 #
 # def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs)
 # def draw_keypoints(img, kps, inliers=None, **kwargs)
@@ -5893,6 +5894,7 @@ class TestFrustum(unittest.TestCase):
 # def spread_corners(img, corners, min_dist, **kwargs)
 # def spread_keypoints(img, kps, min_dist, **kwargs)
 # def spread_features(img, kps, des, min_dist, **kwargs)
+#
 # class FeatureGrid
 # def grid_detect(detector, image, **kwargs)
 # def good_grid(image, **kwargs)
@@ -5903,9 +5905,6 @@ class TestFrustum(unittest.TestCase):
 # class FeatureTrack
 # def estimate_pose(param_i, param_j, ext_i, ext_j, kps_i, kps_j, features,
 #                   pose_i, **kwargs)
-# class TSIF
-# class FeatureTrackerData
-# def visualize_tracking(ft_data)
 ###############################################################################
 
 # STATE VARIABLES #############################################################
@@ -10538,321 +10537,6 @@ def estimate_pose(param_i, param_j, ext_i, ext_j, kps_i, kps_j, features,
     print(f"std:    {np.std(reproj_error):.4f}")
 
   return fgraph.params[pose_j_id]
-
-
-class TSIF:
-  """ Two State Implicit Filter """
-  def __init__(self, cam0_params, cam1_params, cam0_ext, cam1_ext, **kwargs):
-    # Settings
-    self.debug = False
-    self.max_keypoints = kwargs.get("max_keypoints", 300)
-    self.enable_clahe = kwargs.get("enable_clahe", True)
-    self.parallax_threshold = kwargs.get("parallax_threshold", 1.0)
-    self.max_length = kwargs.get("max_length", 30)
-    self.min_length = kwargs.get("min_length", 5)
-
-    # Calibrations
-    self.cam_params = {0: cam0_params, 1: cam1_params}
-    self.cam_exts = {0: cam0_ext, 1: cam1_ext}
-
-    # Features
-    self.next_feature_id = 0
-    self.features = {}
-    self.old_features = {}
-
-    # Data
-    self.initialized = False
-    self.prev_ts = None
-    self.prev_frame0 = None
-    self.prev_frame1 = None
-    self.frame_index = 0
-
-    self.pose_init = pose_setup(0, eye(4))
-    self.pose_km1 = None
-    self.pose_k = None
-
-  def add_feature(self, ts, kp0, kp1):
-    """ Add Feature """
-    feature_id = self.next_feature_id
-    kwargs = {"max_length": self.max_length, "min_length": self.min_length}
-    feature = FeatureTrack(feature_id, self.cam_params, self.cam_exts, **kwargs)
-    feature.add(ts, 0, kp0)
-    feature.add(ts, 1, kp1)
-    self.features[feature_id] = feature
-    self.next_feature_id += 1
-
-  def update_feature(self, feature_id, ts, kp0, kp1):
-    """ Update Feature """
-    self.features[feature_id].add(ts, 0, kp0)
-    self.features[feature_id].add(ts, 1, kp1)
-
-  def remove_feature(self, feature_id):
-    """ Remove feature """
-    self.old_features[feature_id] = self.features[feature_id]
-    self.features.pop(feature_id)
-
-  def get_keypoints(self):
-    """ Get keypoints """
-    feature_ids = []
-    kps0 = []
-    kps1 = []
-
-    for feature_id, feature in self.features.items():
-      keypoints = feature.get_keypoints()
-      feature_ids.append(feature_id)
-      kps0.append(keypoints[0]["kp"])
-      kps1.append(keypoints[1]["kp"])
-
-    return feature_ids, np.array(kps0), np.array(kps1)
-
-  def detect(self, ts, frame0, frame1, debug=False):
-    """ Detect new features """
-    # Get previous keypoints from cam0
-    _, prev_kps0, _ = self.get_keypoints()
-
-    # Detect new
-    kwargs = {
-        "max_keypoints": self.max_keypoints,
-        "prev_kps": prev_kps0,
-        "debug": debug,
-        "optflow_mode": True,
-    }
-    kps0_new = good_grid(frame0, **kwargs)
-    if len(kps0_new) < 10:
-      return
-
-    # Track in space
-    kps0, kps1, inliers = optflow_track(frame0, frame1, kps0_new)
-    kps0, kps1 = filter_outliers(kps0, kps1, inliers)
-    if np.sum(inliers) < 10:
-      return
-
-    # Ransac in space
-    inliers = ransac(kps0, kps1, self.cam_params[0], self.cam_params[1])
-    kps0, kps1 = filter_outliers(kps0, kps1, inliers)
-    if np.sum(inliers) < 10:
-      return
-
-    # Check paralax
-    inliers = check_parallax(self.cam_params[0], self.cam_params[1],
-                             self.cam_exts[0], self.cam_exts[1], kps0, kps1,
-                             self.parallax_threshold)
-    kps0, kps1 = filter_outliers(kps0, kps1, inliers)
-    if np.sum(inliers) < 10:
-      return
-
-    # Add new features
-    for kp0, kp1 in zip(kps0, kps1):
-      self.add_feature(ts, kp0, kp1)
-
-  def _initialize(self, ts):
-    """ Initialize """
-    # Pre-checks
-    if self.initialized:
-      return
-    elif self.frame_index < self.min_length:
-      return
-
-    # Initialize features
-    T_WB = pose2tf(self.pose_init.param)
-    for feature_id, feature in self.features.items():
-      feature.initialize(ts, T_WB)
-
-    self.pose_km1 = self.pose_init
-    self.initialized = True
-
-  def _estimate_pose(self, ts_km1, ts_k):
-    """ Estimate current pose """
-    fgraph = FactorGraph()
-    fgraph.solver_max_iter = 3
-
-    # Add params
-    cam0_geom = self.cam_params[0].data
-    cam1_geom = self.cam_params[1].data
-    cam0_id = fgraph.add_param(self.cam_params[0])
-    cam1_id = fgraph.add_param(self.cam_params[1])
-    ext0_id = fgraph.add_param(self.cam_exts[0])
-    ext1_id = fgraph.add_param(self.cam_exts[1])
-    pose_km1_id = fgraph.add_param(
-        pose_setup(self.prev_ts, self.pose_km1.param, fix=True))
-    pose_k_id = fgraph.add_param(pose_setup(ts_k, self.pose_km1.param))
-
-    # Add factors
-    for _, feature in self.features.items():
-      if feature.init is False:
-        continue
-      feature_id = fgraph.add_param(feature_setup(feature.param))
-      kps_km1 = feature.get_keypoints(ts_km1)
-      kps_k = feature.get_keypoints(ts_k)
-
-      z0_km1 = kps_km1[0]["kp"]
-      param_ids = [pose_km1_id, ext0_id, feature_id, cam0_id]
-      factor0_km1 = VisionFactor(cam0_geom, param_ids, z0_km1)
-      fgraph.add_factor(factor0_km1)
-
-      z1_km1 = kps_km1[1]["kp"]
-      param_ids = [pose_km1_id, ext1_id, feature_id, cam1_id]
-      factor1_km1 = VisionFactor(cam1_geom, param_ids, z1_km1)
-      fgraph.add_factor(factor1_km1)
-
-      z0_k = kps_k[0]["kp"]
-      param_ids = [pose_k_id, ext0_id, feature_id, cam0_id]
-      factor0_k = VisionFactor(cam0_geom, param_ids, z0_k)
-      fgraph.add_factor(factor0_k)
-
-      z1_k = kps_k[1]["kp"]
-      param_ids = [pose_k_id, ext1_id, feature_id, cam1_id]
-      factor1_k = VisionFactor(cam1_geom, param_ids, z1_k)
-      fgraph.add_factor(factor1_k)
-
-    # Solve
-    fgraph.solve(False)
-    reproj_error = fgraph.get_reproj_errors()
-
-    if self.debug:
-      plt.boxplot(reproj_error)
-      plt.show()
-
-      print(f"reproj_error: {np.linalg.norm(reproj_error):.4f}")
-      print(f"max:    {np.max(reproj_error):.4f}")
-      print(f"min:    {np.min(reproj_error):.4f}")
-      print(f"mean:   {np.mean(reproj_error):.4f}")
-      print(f"median: {np.median(reproj_error):.4f}")
-      print(f"std:    {np.std(reproj_error):.4f}")
-
-    return fgraph.params[pose_k_id]
-
-  def track(self, ts, frame0, frame1):
-    """ Track features """
-    # Pre-check
-    if self.prev_frame0 is None or self.prev_frame1 is None:
-      return
-
-    # Track in time and space
-    feature_ids, kps0_km1, kps1_km1 = self.get_keypoints()
-    kps0_km1, kps0_k, track0 = optflow_track(self.prev_frame0, frame0, kps0_km1)
-    kps1_km1, kps1_k, track1 = optflow_track(self.prev_frame1, frame1, kps1_km1)
-    kps0_k, kps_1, track01 = optflow_track(frame0, frame1, kps0_k, pts_j=kps1_k)
-
-    # Ransac in time
-    ransac0 = ransac(kps0_km1, kps0_k, self.cam_params[0], self.cam_params[0])
-    ransac1 = ransac(kps1_km1, kps1_k, self.cam_params[1], self.cam_params[1])
-
-    # Update inliers and remove outliers
-    inliers = [track0, track1, track01, ransac0, ransac1]
-    for i, data in enumerate(zip(kps0_k, kps1_k, *inliers)):
-      feature_id = feature_ids[i]
-      pt0, pt1, t0, t1, t01, r0, r1 = data
-      if t0 and t1 and t01 and r0 and r1:
-        self.update_feature(feature_id, ts, pt0, pt1)
-      else:
-        self.remove_feature(feature_id)
-
-    # Initialize or track
-    if self.initialized is False and self.frame_index >= self.min_length:
-      self._initialize(ts)
-    elif self.initialized:
-      # Estimate current pose
-      self.pose_k = self._estimate_pose(self.prev_ts, ts)
-
-      # Initialize new features
-      T_WB = pose2tf(self.pose_k.param)
-      for feature_id, feature in self.features.items():
-        feature.initialize(ts, T_WB)
-
-  def update(self, ts, frame0, frame1, debug=False):
-    """ Update """
-    # Apply CLAHE
-    if self.enable_clahe:
-      clahe = cv2.createCLAHE(3.0, (8, 8))
-      frame0 = clahe.apply(frame0)
-      frame1 = clahe.apply(frame1)
-
-    # Detect and track
-    self.detect(ts, frame0, frame1, debug)
-    self.track(ts, frame0, frame1)
-
-    # Update
-    self.prev_ts = ts
-    self.prev_frame0 = np.array(frame0)  # Make a copy
-    self.prev_frame1 = np.array(frame1)  # Make a copy
-    self.frame_index += 1
-
-
-class FeatureTrackerData:
-  """
-  Feature tracking data *per camera*
-
-  This data structure keeps track of:
-
-  - Image
-  - Keypoints
-  - Descriptors
-  - Feature ids (optional)
-
-  """
-  def __init__(self, cam_idx, image, keypoints, feature_ids=None):
-    self.cam_idx = cam_idx
-    self.image = image
-    self.keypoints = list(keypoints)
-    self.feature_ids = list(feature_ids)
-
-  def add(self, fid, kp):
-    """ Add measurement """
-    assert isinstance(fid, int)
-    assert hasattr(kp, 'pt')
-    self.keypoints.append(kp)
-    self.feature_ids.append(fid)
-    assert len(self.keypoints) == len(self.feature_ids)
-
-  def update(self, image, fids, kps):
-    """ Extend measurements """
-    assert len(kps) == len(fids)
-    self.image = np.array(image)
-
-    if kps:
-      assert hasattr(kps[0], 'pt')
-
-    self.feature_ids.extend(fids)
-    self.keypoints.extend(kps)
-    assert len(self.keypoints) == len(self.feature_ids)
-
-
-def visualize_tracking(ft_data):
-  """ Visualize feature tracking data """
-  viz = []
-
-  radius = 4
-  green = (0, 255, 0)
-  yellow = (0, 255, 255)
-  thickness = 1
-  linetype = cv2.LINE_AA
-
-  # Find overlaps
-  fids = {}
-  feature_overlaps = set()
-  for _, cam_data in ft_data.items():
-    for n, _ in enumerate(cam_data.keypoints):
-      fid = cam_data.feature_ids[n]
-      fids[fid] = (fids[fid] + 1) if fid in fids else 1
-
-      if fids[fid] > 1:
-        feature_overlaps.add(fid)
-
-  # Draw features being tracked in each camera
-  for _, cam_data in ft_data.items():
-    img = cam_data.image
-    cam_viz = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-
-    for n, kp in enumerate(cam_data.keypoints):
-      fid = cam_data.feature_ids[n]
-      color = green if fid in feature_overlaps else yellow
-      p = (int(kp.pt[0]), int(kp.pt[1])) if hasattr(kp, 'pt') else kp
-      cv2.circle(cam_viz, p, radius, color, thickness, lineType=linetype)
-
-    viz.append(cam_viz)
-
-  return cv2.hconcat(viz)
 
 
 class TestFeatureTracking(unittest.TestCase):
