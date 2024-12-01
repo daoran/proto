@@ -10847,6 +10847,7 @@ class TestFeatureTracking(unittest.TestCase):
 # class CalibView
 # class Calibrator
 # class GimbalCalibrator
+# class TestCalibration
 ###############################################################################
 
 
@@ -11583,9 +11584,8 @@ class TestCalibration(unittest.TestCase):
 # class SimImuData
 # class SimData
 # def dh_matrix(theta, d, a, alpha)
+# class TestSimulation
 ###############################################################################
-
-# UTILS #######################################################################
 
 
 def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
@@ -11636,9 +11636,6 @@ def create_3d_features_perimeter(origin, dim, nb_features):
 
   # Stack features and return
   return np.block([[east], [north], [west], [south]])
-
-
-# SIMULATION ##################################################################
 
 
 class SimCameraFrame:
@@ -12196,6 +12193,7 @@ class TestSimulation(unittest.TestCase):
 # class MavVelocityControl
 # class MavPositionControl
 # class MavTrajectoryControl
+# class TestMav
 ###############################################################################
 
 
@@ -12296,11 +12294,6 @@ class CarrotController:
       self.wp_end = self.waypoints[self.wp_index]
 
     return carrot_pt
-
-
-###############################################################################
-# MAV
-###############################################################################
 
 
 class MavModel:
