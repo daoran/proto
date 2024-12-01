@@ -1,11 +1,11 @@
-#ifndef PROTO_H
-#define PROTO_H
+#ifndef XYZ_H
+#define XYZ_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// PROTO SETTINGS
+// SETTINGS
 #define PRECISION 2
 #define MAX_LINE_LENGTH 9046
 
@@ -3726,4 +3726,4 @@ sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
 #ifdef __cplusplus
 } // extern C
 #endif
-#endif // PROTO_H
+#endif // XYZ_H
