@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-ctags xyz/xyz.c xyz/xyz.h xyz/test_xyz.c
+ctags src/*.c src/*.h
 # ctags xyz/xyz.py
 
 run_gdb() {
@@ -135,7 +135,7 @@ run_memcheck() {
 run_all_tests() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-    cd ~/projects/xyz/xyz \
+    cd ~/code/xyz/xyz \
       && clear \
       && make test_xyz -j \
   " C-m C-m
@@ -147,7 +147,7 @@ run_test() {
   TARGET="dev"
   tmux send-keys -t $TARGET -R C-l C-m
   tmux send-keys -t $TARGET -R "\
-    cd ~/projects/xyz/xyz \
+    cd ~/code/xyz/src \
       && clear \
       && time make test_xyz TEST_TARGET=$1 \
   " C-m C-m
@@ -158,7 +158,7 @@ run_test() {
 dev_sbgc() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-cd $HOME/projects/xyz/xyz \
+cd $HOME/projects/xyz/src \
   && time make test_sbgc \
   && cd ./build \
   && ./test_sbgc \
@@ -173,45 +173,40 @@ cd $HOME/projects/xyz/xyz \
 #   && cd -
 }
 
-dev_tiscam() {
-  tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_tis && ./build/test_tis " C-m
-  exit
-}
-
 dev_aprilgrid() {
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_aprilgrid && ./build/test_aprilgrid" C-m
+  tmux send-keys -t dev -R "cd ~/code/xyz/xyz && make test_aprilgrid && ./build/test_aprilgrid" C-m
   exit
 }
 
 dev_euroc() {
   touch xyz.c;
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_euroc && ./build/test_euroc" C-m
+  tmux send-keys -t dev -R "cd ~/code/xyz/xyz && make test_euroc && ./build/test_euroc" C-m
   exit
 }
 
 dev_gui() {
   touch xyz.c;
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && time make test_gui -j && ./build/test_gui" C-m
-  # tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_gui && gdb -ex=run -ex=bt ./build/test_gui" C-m
-  # tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && make test_gui && gdb -ex=run -ex=bt -ex=quit ./build/test_gui" C-m
+  tmux send-keys -t dev -R "cd ~/code/xyz && time make test_gui -j && cd build && ./test_gui" C-m
+  # tmux send-keys -t dev -R "cd ~/code/xyz && make test_gui && gdb -ex=run -ex=bt ./build/test_gui" C-m
+  # tmux send-keys -t dev -R "cd ~/code/xyz && make test_gui && gdb -ex=run -ex=bt -ex=quit ./build/test_gui" C-m
   exit
 }
 
 dev_avs() {
   tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/projects/xyz/xyz && time make avs -j && ./build/avs" C-m
+  tmux send-keys -t dev -R "cd ~/code/xyz/xyz && time make avs -j && ./build/avs" C-m
   exit
 }
 
 # dev_sbgc
 # dev_aprilgrid
 # dev_euroc
-# dev_gui
+dev_gui
 # dev_avs
+# python3 scripts/benchmark.py
 # python3 scripts/plot_gimbal_calib.py
 # python3 scripts/plot_inertial_odometry.py
 # python3 scripts/plot_map.py
@@ -495,5 +490,5 @@ dev_avs() {
 # run_test test_gl_shaders_link
 # run_test test_gl_prog_setup
 # run_test test_gl_camera_setup
-run_test test_gui
+# run_test test_gui
 # run_test test_imshow
