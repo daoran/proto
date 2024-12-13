@@ -4399,7 +4399,7 @@ void chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
 
 #ifdef USE_LAPACK
 
-// LAPACK fortran prototype
+// LAPACK fortran prototypes
 void sgeqrf_(const int *M,
              const int *N,
              float *A,
