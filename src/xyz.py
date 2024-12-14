@@ -5772,75 +5772,88 @@ class TestFrustum(unittest.TestCase):
     ax.set_box_aspect([1, 1, 1])
     plt.show()
 
-  def test_livox(self):
-    csv_path = "/data/livox/mid360.csv"
-    delimiter = ","
-    data = np.genfromtxt(csv_path, delimiter=delimiter, skip_header=1)
 
-    N = data.shape[0]
-    # N = 40000
-    radius = 1.0
-    time = np.array(data[:N, 0]).reshape(-1, 1)
-    zenith = np.deg2rad(data[:N, 1])
-    azimuth = np.deg2rad(data[:N, 2])
+###############################################################################
+# KD-Tree
+###############################################################################
 
-    x = radius * np.sin(azimuth) * np.cos(zenith)
-    y = radius * np.sin(azimuth) * np.sin(zenith)
-    z = radius * np.cos(azimuth)
 
-    # plt.plot(x[:N], y[:N], "r-")
-    # plt.show()
+class KDNode:
+  def __init__(self, point, k, left=None, right=None):
+    self.point = point
+    self.k = k
+    self.left = left
+    self.right = right
 
-    # plt.subplot(211)
-    # plt.plot(zenith[:50000], "r-")
-    #
-    # plt.subplot(212)
-    # plt.plot(azimuth[:50000], "r-")
-    # plt.show()
 
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
+def kdtree_build(points, depth=0):
+  if points is None or len(points) == 0:
+    return None
 
-    ax.set_xlim([-1.0, 1.0])
-    ax.set_ylim([-1.0, 1.0])
-    ax.set_zlim([0.0, 2.0])
-    ax.set_xlabel('x [m]')
-    ax.set_ylabel('y [m]')
-    ax.set_zlabel('z [m]')
+  kdim = len(points[0])
+  axis = depth % kdim
+  sorted_points = sorted(points, key=lambda p : p[axis])
+  median_index = len(sorted_points) // 2
+  median_point = sorted_points[median_index]
 
-    L = 100
-    scan_line = ax.plot(x[:L], y[:L], z[:L], "r-")[0]
-    for s in range(0, N - L, L):
-      scan_line.set_data(x[s:s + L], y[s:s + L])
-      scan_line.set_3d_properties(z[s:s + L])
+  node = KDNode(median_point, axis)
+  node.left = kdtree_build(sorted_points[:median_index], depth + 1)
+  node.right = kdtree_build(sorted_points[median_index + 1:], depth + 1)
+  return node
 
-      plt.draw()
-      plt.pause(0.001)
 
+def kdtree_nn(root, target):
+  best = [None, float('inf')]  # [best_point, best_dist]
+
+  def search(node, depth):
+    if node is None:
+      return
+
+    # Calculate distance and keep track of best
+    dist = np.linalg.norm(target - node.point)
+    if dist < best[1]:
+      best[0] = node.point
+      best[1] = dist
+
+    # Determine which side to search first
+    axis = node.k
+    diff = target[axis] - node.point[axis]
+
+    # Search the closer subtree first
+    closer, farther = (node.left, node.right) if diff <= 0 else (node.right, node.left)
+    search(closer, depth + 1)
+
+    # Search the farther subtree
+    if abs(diff) < best[1]:
+      search(farther, depth + 1)
+
+  # Search
+  search(root, 0)
+
+  return (best[0], best[1])
+
+
+class TestKDTree(unittest.TestCase):
+  """ Test KDTree """
+  def test_kdtree(self):
+    points = np.array([
+      [1.0, 2.0],
+      [3.0, 5.0],
+      [4.0, 2.0],
+      [7.0, 8.0],
+      [8.0, 1.0],
+      [9.0, 6.0],
+    ])
+
+    target_point = [5.0, 3.0]
+    kdtree = kdtree_build(points)
+    best_point, best_dist = kdtree_nn(kdtree, target_point)
+
+    plt.plot(points[:, 0], points[:, 1], 'b.')
+    plt.plot(target_point[0], target_point[1], 'ko')
+    plt.plot(best_point[0], best_point[1], 'rx')
     plt.show()
 
-    # plt.figure()
-    # y = np.cos(np.sin(np.sin(-0.082006))) - np.sin(((time - 1.584) * -0.0001056) - -0.30189)
-    # plt.plot(time, azimuth, color='blue')
-    # plt.plot(time, y, color='red')
-    # plt.show()
-
-    # from pysr import PySRRegressor
-    # model = PySRRegressor(
-    #     niterations=100,
-    #     binary_operators=["+", "*", "-", "/", "%"],
-    #     unary_operators=[ "cos", "sin", "exp", "log"],
-    #     model_selection="accuracy",
-    #     population_size=100
-    # )
-    # model.fit(time, zenith)
-
-    # plt.figure()
-    # plt.plot(time, zenith, 'k-', label="Ground Truth")
-    # y = (np.sin(np.sin(np.cos(time * 0.0057341))) * (1.5014 - ((np.sin(time * np.sin(0.0057341)) / 0.55249) - 0.84798))) + 3.1307
-    # plt.plot(time, y, 'b-', label="Estimate")
-    # plt.legend(loc=0)
-    # plt.show()
 
 
 ###############################################################################
