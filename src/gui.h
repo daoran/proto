@@ -114,6 +114,9 @@
  * OPENGL UTILS
  *****************************************************************************/
 
+int file_exists(const char *fp);
+char *load_file(const char *fp);
+GLfloat gl_randf(const GLfloat a, const GLfloat b);
 GLfloat gl_deg2rad(const GLfloat d);
 GLfloat gl_rad2deg(const GLfloat r);
 void gl_print_vector(const char *prefix, const GLfloat *x, const int length);
@@ -145,10 +148,10 @@ void gl_eye(GLfloat *A, const int nb_rows, const int nb_cols);
 void gl_vec2(GLfloat *v, const GLfloat x, const GLfloat y);
 void gl_vec3(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z);
 void gl_vec4(GLfloat *v,
-              const GLfloat x,
-              const GLfloat y,
-              const GLfloat z,
-              const GLfloat w);
+             const GLfloat x,
+             const GLfloat y,
+             const GLfloat z,
+             const GLfloat w);
 void gl_vec3_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]);
 
 void gl_add(const GLfloat *A,
@@ -459,7 +462,7 @@ int file_exists(const char *fp) { return access(fp, F_OK); }
  * - Success: File contents
  * - Failure: NULL
  */
-static char *load_file(const char *fp) {
+char *load_file(const char *fp) {
   assert(fp != NULL);
   FILE *f = fopen(fp, "rb");
   if (f == NULL) {
