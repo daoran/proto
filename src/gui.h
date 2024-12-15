@@ -202,6 +202,7 @@ typedef struct gl_entity_t {
 void gl_quat2rot(const GLfloat q[4], GLfloat C[3 * 3]);
 void gl_rot2quat(const GLfloat C[3 * 3], GLfloat q[4]);
 
+void gl_entity_setup(gl_entity_t *entity);
 void gl_entity_set_position(gl_entity_t *entity, const GLfloat pos[3]);
 void gl_entity_get_position(gl_entity_t *entity, GLfloat *pos);
 void gl_entity_set_rotation(gl_entity_t *entity, const GLfloat rot[3 * 3]);
@@ -258,6 +259,8 @@ typedef struct gl_camera_t {
   GLfloat radius;
 
   GLfloat fov;
+  GLfloat fov_min;
+  GLfloat fov_max;
   GLfloat near;
   GLfloat far;
 
@@ -305,6 +308,12 @@ void gl_axis_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
 void gl_grid_setup(gl_entity_t *entity);
 void gl_grid_cleanup(const gl_entity_t *entity);
 void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+
+void gl_points_setup(gl_entity_t *entity, float *points, size_t num_points);
+void gl_points_cleanup(const gl_entity_t *entity);
+void gl_points_draw(const gl_entity_t *entity,
+                    const gl_camera_t *camera,
+                    const size_t num_points);
 
 /******************************************************************************
  * GL-MESH
@@ -487,6 +496,17 @@ char *load_file(const char *fp) {
   return buf;
 }
 
+/**
+ * Generate random number between a and b from a uniform distribution.
+ * @returns Random number
+ */
+GLfloat gl_randf(const GLfloat a, const GLfloat b) {
+  float random = ((float) rand()) / (float) RAND_MAX;
+  float diff = b - a;
+  float r = random * diff;
+  return a + r;
+}
+
 GLfloat gl_deg2rad(const GLfloat d) { return d * M_PI / 180.0f; }
 
 GLfloat gl_rad2deg(const GLfloat r) { return r * 180.0f / M_PI; }
@@ -552,10 +572,10 @@ void gl_vec3(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z) {
 }
 
 void gl_vec4(GLfloat *v,
-              const GLfloat x,
-              const GLfloat y,
-              const GLfloat z,
-              const GLfloat w) {
+             const GLfloat x,
+             const GLfloat y,
+             const GLfloat z,
+             const GLfloat w) {
   v[0] = x;
   v[1] = y;
   v[2] = z;
@@ -906,6 +926,14 @@ void gl_rot2quat(const GLfloat C[3 * 3], GLfloat q[4]) {
   q[3] = qz;
 }
 
+void gl_entity_setup(gl_entity_t *entity) {
+  gl_eye(entity->T, 4, 4);
+  entity->program_id = -1;
+  entity->vao = -1;
+  entity->vbo = -1;
+  entity->ebo = -1;
+}
+
 void gl_entity_set_position(gl_entity_t *entity, const GLfloat pos[3]) {
   assert(entity != NULL);
   assert(pos != NULL);
@@ -1183,6 +1211,8 @@ void gl_camera_setup(gl_camera_t *camera,
   camera->radius = 1.0f;
 
   camera->fov = gl_deg2rad(90.0f);
+  camera->fov_min = gl_deg2rad(10.0f);
+  camera->fov_max = gl_deg2rad(120.0f);
   camera->near = 0.01f;
   camera->far = 100.0f;
 
@@ -1263,8 +1293,6 @@ void gl_camera_rotate(gl_camera_t *camera,
   camera->front[0] = direction[0];
   camera->front[1] = direction[1];
   camera->front[2] = direction[2];
-
-  gl_camera_update(camera);
 }
 
 void gl_camera_pan(gl_camera_t *camera,
@@ -1284,7 +1312,6 @@ void gl_camera_pan(gl_camera_t *camera,
 
   // limit focal point y-axis
   camera->focal[1] = (camera->focal[1] < 0) ? 0 : camera->focal[1];
-  gl_camera_update(camera);
 }
 
 void gl_camera_zoom(gl_camera_t *camera,
@@ -1293,18 +1320,10 @@ void gl_camera_zoom(gl_camera_t *camera,
                     const float dy) {
   UNUSED(factor);
   UNUSED(dx);
-
-  if (camera->fov >= gl_deg2rad(0.1f) && camera->fov <= gl_deg2rad(90.0f)) {
-    camera->fov -= dy * 0.1;
-  }
-
-  if (camera->fov <= gl_deg2rad(0.5f)) {
-    camera->fov = gl_deg2rad(5.0f);
-  } else if (camera->fov >= gl_deg2rad(90.0f)) {
-    camera->fov = gl_deg2rad(90.0f);
-  }
-
-  gl_camera_update(camera);
+  GLfloat fov = camera->fov + dy;
+  fov = (fov <= camera->fov_min) ? camera->fov_min : fov;
+  fov = (fov >= camera->fov_max) ? camera->fov_max : fov;
+  camera->fov = fov;
 }
 
 /******************************************************************************
@@ -1794,6 +1813,84 @@ void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glBindVertexArray(0); // Unbind VAO
 }
 
+// GL POINTS /////////////////////////////////////////////////////////////////
+
+void gl_points_setup(gl_entity_t *entity, float *points, size_t num_points) {
+  // Entity transform
+  gl_eye(entity->T, 4, 4);
+
+  // Shader program
+  char *vs = load_file("./shaders/points.vert");
+  char *fs = load_file("./shaders/points.frag");
+  entity->program_id = gl_prog_setup(vs, fs, NULL);
+  free(vs);
+  free(fs);
+  if (entity->program_id == GL_FALSE) {
+    FATAL("Failed to create shaders to draw points!");
+  }
+
+  // Points
+  const float color[3] = {1.0, 0.0, 0.0};
+  const float r = color[0];
+  const float g = color[1];
+  const float b = color[2];
+
+  GLfloat *vertex_data = MALLOC(GLfloat, num_points * 6);
+  for (size_t i = 0; i < num_points; ++i) {
+    vertex_data[i * 6 + 0] = points[i * 3 + 0];
+    vertex_data[i * 6 + 1] = points[i * 3 + 1];
+    vertex_data[i * 6 + 2] = points[i * 3 + 2];
+    vertex_data[i * 6 + 3] = r;
+    vertex_data[i * 6 + 4] = g;
+    vertex_data[i * 6 + 5] = b;
+  }
+  const size_t vertex_buffer_size = sizeof(float) * 6 * num_points;
+
+  // VAO
+  glGenVertexArrays(1, &entity->vao);
+  glBindVertexArray(entity->vao);
+
+  // VBO
+  glGenBuffers(1, &entity->vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, entity->vbo);
+  glBufferData(GL_ARRAY_BUFFER,
+               vertex_buffer_size,
+               vertex_data,
+               GL_STATIC_DRAW);
+  // -- Position attribute
+  size_t vertex_size = 6 * sizeof(float);
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+  // -- Color attribute
+  void *color_offset = (void *) (3 * sizeof(float));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
+  glEnableVertexAttribArray(1);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+  free(vertex_data);
+}
+
+void gl_points_cleanup(const gl_entity_t *entity) {
+  glDeleteVertexArrays(1, &entity->vao);
+  glDeleteBuffers(1, &entity->vbo);
+}
+
+void gl_points_draw(const gl_entity_t *entity,
+                    const gl_camera_t *camera,
+                    const size_t num_points) {
+  glUseProgram(entity->program_id);
+  gl_prog_set_mat4(entity->program_id, "projection", camera->P);
+  gl_prog_set_mat4(entity->program_id, "view", camera->V);
+  gl_prog_set_mat4(entity->program_id, "model", entity->T);
+
+  glBindVertexArray(entity->vao);
+  glDrawArrays(GL_POINTS, 0, num_points);
+  glBindVertexArray(0); // Unbind VAO
+}
+
 /******************************************************************************
  * GL-MESH
  *****************************************************************************/
@@ -2102,9 +2199,10 @@ static void assimp_load_mesh(const struct aiMesh *mesh,
 
   // Process texture materials
   // struct aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-  // Note: we assume a convention for sampler names in the shaders. Each diffuse texture should be named
-  // as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER.
-  // Same applies to other texture as the following list summarizes:
+  // Note: we assume a convention for sampler names in the shaders. Each
+  // diffuse texture should be named as 'texture_diffuseN' where N is a
+  // sequential number ranging from 1 to MAX_SAMPLER_NUMBER. Same applies to
+  // other texture as the following list summarizes:
   // diffuse: texture_diffuseN
   // specular: texture_specularN
   // normal: texture_normalN
@@ -2289,7 +2387,8 @@ void gui_process_input(GLFWwindow *window) {
   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
 
   // Handle keyboard events
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+      glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
     gui->loop = 0;
   }
 
@@ -2321,6 +2420,14 @@ void gui_process_input(GLFWwindow *window) {
     gui->camera.position[0] += camera_left[0] * camera_speed;
     gui->camera.position[1] += camera_left[1] * camera_speed;
     gui->camera.position[2] += camera_left[2] * camera_speed;
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
+    gl_camera_zoom(&gui->camera, 1.0, 0, 0.1);
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) {
+    gl_camera_zoom(&gui->camera, 1.0, 0, -0.1);
   }
 
   // Handle mouse cursor events
@@ -2367,6 +2474,14 @@ void gui_setup(gui_t *gui) {
     printf("Failed to initialize glfw!\n");
     exit(EXIT_FAILURE);
   }
+
+  // GLEW
+  GLenum err = glewInit();
+  if (err != GLEW_OK) {
+    FATAL("glewInit failed: %s", glewGetErrorString(err));
+  }
+
+  // Window settings
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -2384,11 +2499,10 @@ void gui_setup(gui_t *gui) {
   glfwSetWindowUserPointer(gui->window, gui);
   glfwSetWindowSizeCallback(gui->window, gui_window_size_callback);
 
-  // GLEW
-  GLenum err = glewInit();
-  if (err != GLEW_OK) {
-    FATAL("glewInit failed: %s", glewGetErrorString(err));
-  }
+  // Points settings
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_POINT_SMOOTH);
+  glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 
   // Camera
   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
@@ -2436,6 +2550,16 @@ void gui_loop(gui_t *gui) {
   gl_entity_t grid;
   gl_grid_setup(&grid);
 
+  const size_t num_points = 100000;
+  GLfloat *points_data = MALLOC(GLfloat, num_points * 3);
+  for (size_t i = 0; i < num_points; ++i) {
+    points_data[i * 3 + 0] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 3 + 1] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 3 + 2] = gl_randf(-1.0f, 1.0f);
+  }
+  gl_entity_t points;
+  gl_points_setup(&points, points_data, num_points);
+
   gui->loop = 1;
   glfwMakeContextCurrent(gui->window);
   glEnable(GL_DEPTH_TEST);
@@ -2455,6 +2579,7 @@ void gui_loop(gui_t *gui) {
     // gl_camera_frame_draw(&cf, &gui->camera);
     gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
+    gl_points_draw(&points, &gui->camera, num_points);
     // gl_triangle_draw(&triangle, &gui->camera);
 
     // Update
@@ -2463,9 +2588,12 @@ void gui_loop(gui_t *gui) {
     glfwSwapBuffers(gui->window);
   }
 
+  // Clean up
   gl_cube_cleanup(&cube);
   gl_camera_frame_cleanup(&cf);
   gl_grid_cleanup(&grid);
+  gl_points_cleanup(&points);
+  free(points_data);
   glfwTerminate();
 }
 
