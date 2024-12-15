@@ -23,7 +23,7 @@
 #include <assimp/postprocess.h>
 
 /******************************************************************************
- * OPENGL UTILS
+ * MACROS
  *****************************************************************************/
 
 /**
@@ -110,6 +110,10 @@
 
 #endif
 
+/******************************************************************************
+ * OPENGL UTILS
+ *****************************************************************************/
+
 GLfloat gl_deg2rad(const GLfloat d);
 GLfloat gl_rad2deg(const GLfloat r);
 void gl_print_vector(const char *prefix, const GLfloat *x, const int length);
@@ -123,16 +127,16 @@ int gl_equals(const GLfloat *A,
               const int nb_cols,
               const GLfloat tol);
 void gl_mat_set(GLfloat *A,
-                 const int m,
-                 const int n,
-                 const int i,
-                 const int j,
-                 const GLfloat val);
+                const int m,
+                const int n,
+                const int i,
+                const int j,
+                const GLfloat val);
 GLfloat gl_mat_val(const GLfloat *A,
-                    const int m,
-                    const int n,
-                    const int i,
-                    const int j);
+                   const int m,
+                   const int n,
+                   const int i,
+                   const int j);
 void gl_copy(const GLfloat *src, const int m, const int n, GLfloat *dest);
 void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t);
 void gl_zeros(GLfloat *A, const int nb_rows, const int nb_cols);
@@ -180,16 +184,7 @@ void gl_lookat(const GLfloat eye[3],
 int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
 /******************************************************************************
- * SHADER
- *****************************************************************************/
-
-GLuint gl_shader_compile(const char *shader_src, const int type);
-GLuint gl_shaders_link(const GLuint vertex_shader,
-                       const GLuint fragment_shader,
-                       const GLuint geometry_shader);
-
-/******************************************************************************
- * GL-PROGRAM
+ * GL-ENTITY
  *****************************************************************************/
 
 typedef struct gl_entity_t {
@@ -200,6 +195,29 @@ typedef struct gl_entity_t {
   GLuint vbo;
   GLuint ebo;
 } gl_entity_t;
+
+void gl_quat2rot(const GLfloat q[4], GLfloat C[3 * 3]);
+void gl_rot2quat(const GLfloat C[3 * 3], GLfloat q[4]);
+
+void gl_entity_set_position(gl_entity_t *entity, const GLfloat pos[3]);
+void gl_entity_get_position(gl_entity_t *entity, GLfloat *pos);
+void gl_entity_set_rotation(gl_entity_t *entity, const GLfloat rot[3 * 3]);
+void gl_entity_get_rotation(gl_entity_t *entity, GLfloat *rot);
+void gl_entity_set_quaternion(gl_entity_t *entity, const GLfloat quat[4]);
+void gl_entity_get_quaternion(gl_entity_t *entity, GLfloat *quat);
+
+/******************************************************************************
+ * GL-SHADER
+ *****************************************************************************/
+
+GLuint gl_shader_compile(const char *shader_src, const int type);
+GLuint gl_shaders_link(const GLuint vertex_shader,
+                       const GLuint fragment_shader,
+                       const GLuint geometry_shader);
+
+/******************************************************************************
+ * GL-PROGRAM
+ *****************************************************************************/
 
 GLuint gl_prog_setup(const char *vs_src,
                      const char *fs_src,
@@ -430,6 +448,12 @@ void gui_loop(gui_t *gui);
  *****************************************************************************/
 
 /**
+ * Check if file exists.
+ * @returns 0 for success, -1 for failure
+ */
+int file_exists(const char *fp) { return access(fp, F_OK); }
+
+/**
  * Read file contents in file path `fp`.
  * @returns
  * - Success: File contents
@@ -550,20 +574,20 @@ int gl_equals(const GLfloat *A,
 }
 
 void gl_mat_set(GLfloat *A,
-                 const int m,
-                 const int n,
-                 const int i,
-                 const int j,
-                 const GLfloat val) {
+                const int m,
+                const int n,
+                const int i,
+                const int j,
+                const GLfloat val) {
   UNUSED(n);
   A[i + (j * m)] = val;
 }
 
 GLfloat gl_mat_val(const GLfloat *A,
-                    const int m,
-                    const int n,
-                    const int i,
-                    const int j) {
+                   const int m,
+                   const int n,
+                   const int i,
+                   const int j) {
   UNUSED(n);
   return A[i + (j * m)];
 }
@@ -788,7 +812,160 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp) {
 }
 
 /******************************************************************************
- * SHADER
+ * GL-ENTITY
+ *****************************************************************************/
+
+/**
+ * Convert Quaternion `q` to 3x3 rotation matrix `C`.
+ */
+void gl_quat2rot(const GLfloat q[4], GLfloat C[3 * 3]) {
+  assert(q != NULL);
+  assert(C != NULL);
+
+  const GLfloat qw = q[0];
+  const GLfloat qx = q[1];
+  const GLfloat qy = q[2];
+  const GLfloat qz = q[3];
+
+  const GLfloat qx2 = qx * qx;
+  const GLfloat qy2 = qy * qy;
+  const GLfloat qz2 = qz * qz;
+  const GLfloat qw2 = qw * qw;
+
+  // Homogeneous form
+  // -- 1st row
+  C[0] = qw2 + qx2 - qy2 - qz2;
+  C[3] = 2 * (qx * qy - qw * qz);
+  C[6] = 2 * (qx * qz + qw * qy);
+  // -- 2nd row
+  C[1] = 2 * (qx * qy + qw * qz);
+  C[4] = qw2 - qx2 + qy2 - qz2;
+  C[7] = 2 * (qy * qz - qw * qx);
+  // -- 3rd row
+  C[2] = 2 * (qx * qz - qw * qy);
+  C[5] = 2 * (qy * qz + qw * qx);
+  C[8] = qw2 - qx2 - qy2 + qz2;
+}
+
+/**
+ * Convert 3x3 rotation matrix `C` to Quaternion `q`.
+ */
+void gl_rot2quat(const GLfloat C[3 * 3], GLfloat q[4]) {
+  assert(C != NULL);
+  assert(q != NULL);
+
+  const GLfloat C00 = C[0];
+  const GLfloat C01 = C[3];
+  const GLfloat C02 = C[6];
+  const GLfloat C10 = C[1];
+  const GLfloat C11 = C[4];
+  const GLfloat C12 = C[7];
+  const GLfloat C20 = C[2];
+  const GLfloat C21 = C[5];
+  const GLfloat C22 = C[8];
+
+  const GLfloat tr = C00 + C11 + C22;
+  GLfloat S = 0.0f;
+  GLfloat qw = 0.0f;
+  GLfloat qx = 0.0f;
+  GLfloat qy = 0.0f;
+  GLfloat qz = 0.0f;
+
+  if (tr > 0) {
+    S = sqrt(tr + 1.0) * 2; // S=4*qw
+    qw = 0.25 * S;
+    qx = (C21 - C12) / S;
+    qy = (C02 - C20) / S;
+    qz = (C10 - C01) / S;
+  } else if ((C00 > C11) && (C[0] > C22)) {
+    S = sqrt(1.0 + C[0] - C11 - C22) * 2; // S=4*qx
+    qw = (C21 - C12) / S;
+    qx = 0.25 * S;
+    qy = (C01 + C10) / S;
+    qz = (C02 + C20) / S;
+  } else if (C11 > C22) {
+    S = sqrt(1.0 + C11 - C[0] - C22) * 2; // S=4*qy
+    qw = (C02 - C20) / S;
+    qx = (C01 + C10) / S;
+    qy = 0.25 * S;
+    qz = (C12 + C21) / S;
+  } else {
+    S = sqrt(1.0 + C22 - C[0] - C11) * 2; // S=4*qz
+    qw = (C10 - C01) / S;
+    qx = (C02 + C20) / S;
+    qy = (C12 + C21) / S;
+    qz = 0.25 * S;
+  }
+
+  q[0] = qw;
+  q[1] = qx;
+  q[2] = qy;
+  q[3] = qz;
+}
+
+void gl_entity_set_position(gl_entity_t *entity, const GLfloat pos[3]) {
+  assert(entity != NULL);
+  assert(pos != NULL);
+  entity->T[12] = pos[0];
+  entity->T[13] = pos[1];
+  entity->T[14] = pos[2];
+}
+
+void gl_entity_get_position(gl_entity_t *entity, GLfloat *pos) {
+  assert(entity != NULL);
+  assert(pos != NULL);
+  pos[0] = entity->T[12];
+  pos[1] = entity->T[13];
+  pos[2] = entity->T[14];
+}
+
+void gl_entity_set_rotation(gl_entity_t *entity, const GLfloat rot[3 * 3]) {
+  assert(entity != NULL);
+  assert(rot != NULL);
+  entity->T[0] = rot[0];
+  entity->T[1] = rot[1];
+  entity->T[2] = rot[2];
+  entity->T[4] = rot[3];
+  entity->T[5] = rot[4];
+  entity->T[6] = rot[5];
+  entity->T[8] = rot[6];
+  entity->T[9] = rot[7];
+  entity->T[10] = rot[8];
+}
+
+void gl_entity_get_rotation(gl_entity_t *entity, GLfloat *rot) {
+  assert(entity != NULL);
+  assert(rot != NULL);
+
+  rot[0] = entity->T[0];
+  rot[1] = entity->T[1];
+  rot[2] = entity->T[2];
+  rot[3] = entity->T[4];
+  rot[4] = entity->T[5];
+  rot[5] = entity->T[6];
+  rot[6] = entity->T[8];
+  rot[7] = entity->T[9];
+  rot[8] = entity->T[10];
+}
+
+void gl_entity_set_quaternion(gl_entity_t *entity, const GLfloat quat[4]) {
+  assert(entity != NULL);
+  assert(quat != NULL);
+  GLfloat C[3 * 3] = {0};
+  gl_quat2rot(quat, C);
+  gl_entity_set_rotation(entity, C);
+}
+
+void gl_entity_get_quaternion(gl_entity_t *entity, GLfloat *quat) {
+  assert(entity != NULL);
+  assert(quat != NULL);
+  GLfloat C[3 * 3] = {0};
+  gl_entity_get_rotation(entity, C);
+  gl_rot2quat(C, quat);
+}
+
+/******************************************************************************
+ * GL-SHADER
  *****************************************************************************/
 
 GLuint gl_shader_compile(const char *shader_src, const int type) {
@@ -1030,13 +1207,14 @@ void gl_camera_update(gl_camera_t *camera) {
   const float aspect = width / height;
   gl_perspective(camera->fov, aspect, camera->near, camera->far, camera->P);
 
-  // View matrix
+  // View matrix (Orbit mode)
   // GLfloat eye[3] = {0};
-  // eye[0] = camera->focal[0] + camera->radius * sin(camera->yaw);
-  // eye[1] = camera->focal[1] + camera->radius * cos(camera->pitch);
-  // eye[2] = camera->focal[2] + camera->radius * cos(camera->yaw);
+  // eye[0] = camera->position[0];
+  // eye[1] = camera->position[1];
+  // eye[2] = camera->position[2];
   // gl_lookat(eye, camera->focal, camera->world_up, camera->V);
 
+  // View matrix (FPS mode)
   GLfloat eye[3] = {0};
   eye[0] = camera->position[0];
   eye[1] = camera->position[1];
@@ -2003,7 +2181,7 @@ static int assimp_num_meshes(const struct aiNode *node) {
 
 gl_model_t *gl_model_load(const char *model_path) {
   // Check model file
-  if (access(model_path, F_OK) != 0) {
+  if (file_exists(model_path) != 0) {
     return NULL;
   }
 
@@ -2103,65 +2281,56 @@ void gui_window_size_callback(GLFWwindow *window, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
-void gui_keyboard_callback(GLFWwindow *window,
-                           int key,
-                           int scancode,
-                           int action,
-                           int mods) {
-  const float camera_speed = 0.5f;
+void gui_process_input(GLFWwindow *window) {
+  const float camera_speed = 0.1f;
   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
 
-  if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-    switch (key) {
-      case GLFW_KEY_ESCAPE:
-        gui->loop = 0;
-        break;
-      case GLFW_KEY_W:
-        gui->camera.position[0] += camera_speed * gui->camera.front[0];
-        gui->camera.position[1] += camera_speed * gui->camera.front[1];
-        gui->camera.position[2] += camera_speed * gui->camera.front[2];
-        break;
-      case GLFW_KEY_S:
-        gui->camera.position[0] -= camera_speed * gui->camera.front[0];
-        gui->camera.position[1] -= camera_speed * gui->camera.front[1];
-        gui->camera.position[2] -= camera_speed * gui->camera.front[2];
-        break;
-      case GLFW_KEY_A: {
-        GLfloat camera_left[3] = {0};
-        gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
-        gl_normalize(camera_left, 3);
-        gui->camera.position[0] -= camera_left[0] * camera_speed;
-        gui->camera.position[1] -= camera_left[1] * camera_speed;
-        gui->camera.position[2] -= camera_left[2] * camera_speed;
-        break;
-      }
-      case GLFW_KEY_D: {
-        GLfloat camera_left[3] = {0};
-        gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
-        gl_normalize(camera_left, 3);
-        gui->camera.position[0] += camera_left[0] * camera_speed;
-        gui->camera.position[1] += camera_left[1] * camera_speed;
-        gui->camera.position[2] += camera_left[2] * camera_speed;
-        break;
-      }
-      case GLFW_KEY_Q:
-        gui->loop = 0;
-        break;
-    }
+  // Handle keyboard events
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    gui->loop = 0;
   }
 
-  gl_camera_update(&gui->camera);
-}
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    gui->camera.position[0] += camera_speed * gui->camera.front[0];
+    gui->camera.position[1] += camera_speed * gui->camera.front[1];
+    gui->camera.position[2] += camera_speed * gui->camera.front[2];
+  }
 
-void gui_cursor_position_callback(GLFWwindow *window, double x, double y) {
-  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
-  gui->cursor_x = x;
-  gui->cursor_y = x;
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    gui->camera.position[0] -= camera_speed * gui->camera.front[0];
+    gui->camera.position[1] -= camera_speed * gui->camera.front[1];
+    gui->camera.position[2] -= camera_speed * gui->camera.front[2];
+  }
 
-  const float dx = x - gui->last_cursor_x;
-  const float dy = y - gui->last_cursor_y;
-  gui->last_cursor_x = x;
-  gui->last_cursor_y = y;
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    GLfloat camera_left[3] = {0};
+    gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
+    gl_normalize(camera_left, 3);
+    gui->camera.position[0] -= camera_left[0] * camera_speed;
+    gui->camera.position[1] -= camera_left[1] * camera_speed;
+    gui->camera.position[2] -= camera_left[2] * camera_speed;
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    GLfloat camera_left[3] = {0};
+    gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
+    gl_normalize(camera_left, 3);
+    gui->camera.position[0] += camera_left[0] * camera_speed;
+    gui->camera.position[1] += camera_left[1] * camera_speed;
+    gui->camera.position[2] += camera_left[2] * camera_speed;
+  }
+
+  // Handle mouse cursor events
+  glfwGetCursorPos(window, &gui->cursor_x, &gui->cursor_y);
+  const float dx = gui->cursor_x - gui->last_cursor_x;
+  const float dy = gui->cursor_y - gui->last_cursor_y;
+  gui->last_cursor_x = gui->cursor_x;
+  gui->last_cursor_y = gui->cursor_y;
+
+  const int button_left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+  const int button_right = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+  gui->left_click = (button_left == GLFW_PRESS);
+  gui->right_click = (button_right == GLFW_PRESS);
 
   if (gui->left_click) {
     // Rotate camera
@@ -2189,20 +2358,6 @@ void gui_cursor_position_callback(GLFWwindow *window, double x, double y) {
   }
 }
 
-void gui_mouse_button_callback(GLFWwindow *window,
-                               int button,
-                               int action,
-                               int mods) {
-  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
-
-  if (button == GLFW_MOUSE_BUTTON_LEFT) {
-    gui->left_click = (action == GLFW_PRESS) ? 1 : 0;
-  }
-  if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-    gui->right_click = (action == GLFW_PRESS) ? 1 : 0;
-  }
-}
-
 void gui_setup(gui_t *gui) {
   // GLFW
   if (!glfwInit()) {
@@ -2225,9 +2380,6 @@ void gui_setup(gui_t *gui) {
   glfwMakeContextCurrent(gui->window);
   glfwSetWindowUserPointer(gui->window, gui);
   glfwSetWindowSizeCallback(gui->window, gui_window_size_callback);
-  glfwSetKeyCallback(gui->window, gui_keyboard_callback);
-  glfwSetCursorPosCallback(gui->window, gui_cursor_position_callback);
-  glfwSetMouseButtonCallback(gui->window, gui_mouse_button_callback);
 
   // GLEW
   GLenum err = glewInit();
@@ -2275,14 +2427,11 @@ void gui_loop(gui_t *gui) {
   gl_entity_t triangle;
   gl_triangle_setup(&triangle);
 
-  // gl_entity_t frame;
-  // gl_axis_frame_setup(&frame);
+  gl_entity_t frame;
+  gl_axis_frame_setup(&frame);
 
   gl_entity_t grid;
   gl_grid_setup(&grid);
-
-  gl_model_t *model = gl_model_load(
-      "/home/chutsu/projects/LearnOpenGL/resources/objects/planet/planet.obj");
 
   gui->loop = 1;
   glfwMakeContextCurrent(gui->window);
@@ -2294,24 +2443,26 @@ void gui_loop(gui_t *gui) {
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // Polll events
+    glfwPollEvents();
+    gui_process_input(gui->window);
+
+    // Draw
     gl_cube_draw(&cube, &gui->camera);
     // gl_camera_frame_draw(&cf, &gui->camera);
-    // gl_axis_frame_draw(&frame, &gui->camera);
+    gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
     // gl_triangle_draw(&triangle, &gui->camera);
-    // gl_model_draw(model, &gui->camera);
 
     // Update
-    glfwSwapBuffers(gui->window);
     glfwSetWindowAspectRatio(gui->window, 16, 9);
-    glfwPollEvents();
     gl_camera_update(&gui->camera);
+    glfwSwapBuffers(gui->window);
   }
 
   gl_cube_cleanup(&cube);
   gl_camera_frame_cleanup(&cf);
   gl_grid_cleanup(&grid);
-  gl_model_free(model);
   glfwTerminate();
 }
 
@@ -2381,7 +2532,6 @@ void run_test(const char *test_name, int (*test_ptr)(void)) {
       return -1;                                                               \
     }                                                                          \
   } while (0)
-
 
 // TEST GLFW /////////////////////////////////////////////////////////////////
 
@@ -2595,8 +2745,6 @@ int test_gl_dot(void) {
                            36.0f, 81.0f, 126.0f,
                            42.0f, 96.0f, 150.0f};
   // clang-format on
-  // gl_print_matrix("C", C, 3, 3);
-  // gl_print_matrix("expected", expected, 3, 3);
   TEST_ASSERT(gl_equals(C, expected, 3, 3, 1e-8));
 
   return 0;
@@ -2641,13 +2789,6 @@ int test_gl_perspective(void) {
                                    0.000000, 0.000000, -1.002002, -1.000000,
                                    0.000000, 0.000000, -0.200200, 0.000000};
   // clang-format on
-  // printf("fov: %f\n", fov);
-  // printf("ratio: %f\n", ratio);
-  // printf("near: %f\n", near);
-  // printf("far: %f\n", far);
-  // printf("\n");
-  // gl_print_matrix("P", P, 4, 4);
-  // gl_print_matrix("P_expected", P_expected, 4, 4);
   TEST_ASSERT(gl_equals(P, P_expected, 4, 4, 1e-4));
 
   return 0;
@@ -2674,11 +2815,6 @@ int test_gl_lookat(void) {
                                    0.707107, -0.500000, 0.500000, 0.000000,
                                    0.000000, 0.000000, -14.142136, 1.000000};
   // clang-format on
-  /* gl_print_vector("eye", eye, 3); */
-  /* gl_print_vector("focal", focal, 3); */
-  /* gl_print_vector("world_up", world_up, 3); */
-  /* gl_print_matrix("V", V, 4, 4); */
-  /* gl_print_matrix("V_expected", V_expected, 4, 4); */
   TEST_ASSERT(gl_equals(V, V_expected, 4, 4, 1e-4));
 
   return 0;
@@ -2913,7 +3049,7 @@ int main(int argc, char *argv[]) {
   TEST(test_gl_prog_setup);
   TEST(test_gl_camera_setup);
   TEST(test_gl_model_load);
-  // TEST(test_gui);
+  TEST(test_gui);
 
   return (nb_failed) ? -1 : 0;
 }
