@@ -1,4 +1,4 @@
-# Benchmark
+# `xyz/exps`
 
 This folder features the following state-estimation algorithms as Docker
 images:
