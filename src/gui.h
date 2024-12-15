@@ -142,14 +142,14 @@ void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t);
 void gl_zeros(GLfloat *A, const int nb_rows, const int nb_cols);
 void gl_ones(GLfloat *A, const int nb_rows, const int nb_cols);
 void gl_eye(GLfloat *A, const int nb_rows, const int nb_cols);
-void gl_vec2f(GLfloat *v, const GLfloat x, const GLfloat y);
-void gl_vec3f(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z);
-void gl_vec4f(GLfloat *v,
+void gl_vec2(GLfloat *v, const GLfloat x, const GLfloat y);
+void gl_vec3(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z);
+void gl_vec4(GLfloat *v,
               const GLfloat x,
               const GLfloat y,
               const GLfloat z,
               const GLfloat w);
-void gl_vec3f_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]);
+void gl_vec3_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]);
 
 void gl_add(const GLfloat *A,
             const GLfloat *B,
@@ -229,12 +229,12 @@ int gl_prog_set_vec3i(const GLint id, const char *k, const GLint v[3]);
 int gl_prog_set_vec4i(const GLint id, const char *k, const GLint v[4]);
 
 int gl_prog_set_float(const GLint id, const char *k, const GLfloat v);
-int gl_prog_set_vec2f(const GLint id, const char *k, const GLfloat v[2]);
-int gl_prog_set_vec3f(const GLint id, const char *k, const GLfloat v[3]);
-int gl_prog_set_vec4f(const GLint id, const char *k, const GLfloat v[4]);
-int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2 * 2]);
-int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3 * 3]);
-int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4 * 4]);
+int gl_prog_set_vec2(const GLint id, const char *k, const GLfloat v[2]);
+int gl_prog_set_vec3(const GLint id, const char *k, const GLfloat v[3]);
+int gl_prog_set_vec4(const GLint id, const char *k, const GLfloat v[4]);
+int gl_prog_set_mat2(const GLint id, const char *k, const GLfloat v[2 * 2]);
+int gl_prog_set_mat3(const GLint id, const char *k, const GLfloat v[3 * 3]);
+int gl_prog_set_mat4(const GLint id, const char *k, const GLfloat v[4 * 4]);
 
 /******************************************************************************
  * GL-CAMERA
@@ -537,18 +537,18 @@ void gl_eye(GLfloat *A, const int nb_rows, const int nb_cols) {
   }
 }
 
-void gl_vec2f(GLfloat *v, const GLfloat x, const GLfloat y) {
+void gl_vec2(GLfloat *v, const GLfloat x, const GLfloat y) {
   v[0] = x;
   v[1] = y;
 }
 
-void gl_vec3f(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z) {
+void gl_vec3(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z) {
   v[0] = x;
   v[1] = y;
   v[2] = z;
 }
 
-void gl_vec4f(GLfloat *v,
+void gl_vec4(GLfloat *v,
               const GLfloat x,
               const GLfloat y,
               const GLfloat z,
@@ -610,7 +610,7 @@ void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t) {
   }
 }
 
-void gl_vec3f_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]) {
+void gl_vec3_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]) {
   assert(u);
   assert(v);
   assert(n);
@@ -727,12 +727,12 @@ void gl_lookat(const GLfloat eye[3],
 
   // X-axis: Camera right
   GLfloat x[3] = {0};
-  gl_vec3f_cross(z, up, x);
+  gl_vec3_cross(z, up, x);
   gl_normalize(x, 3);
 
   // Y-axis: Camera up
   GLfloat y[3] = {0};
-  gl_vec3f_cross(x, z, y);
+  gl_vec3_cross(x, z, y);
 
   // Negate z-axis
   gl_scale(-1.0f, z, 3, 1);
@@ -1099,7 +1099,7 @@ int gl_prog_set_float(const GLint id, const char *k, const GLfloat v) {
   return 0;
 }
 
-int gl_prog_set_vec2f(const GLint id, const char *k, const GLfloat v[2]) {
+int gl_prog_set_vec2(const GLint id, const char *k, const GLfloat v[2]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1109,7 +1109,7 @@ int gl_prog_set_vec2f(const GLint id, const char *k, const GLfloat v[2]) {
   return 0;
 }
 
-int gl_prog_set_vec3f(const GLint id, const char *k, const GLfloat v[3]) {
+int gl_prog_set_vec3(const GLint id, const char *k, const GLfloat v[3]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1119,7 +1119,7 @@ int gl_prog_set_vec3f(const GLint id, const char *k, const GLfloat v[3]) {
   return 0;
 }
 
-int gl_prog_set_vec4f(const GLint id, const char *k, const GLfloat v[4]) {
+int gl_prog_set_vec4(const GLint id, const char *k, const GLfloat v[4]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1129,7 +1129,7 @@ int gl_prog_set_vec4f(const GLint id, const char *k, const GLfloat v[4]) {
   return 0;
 }
 
-int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2 * 2]) {
+int gl_prog_set_mat2(const GLint id, const char *k, const GLfloat v[2 * 2]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1139,7 +1139,7 @@ int gl_prog_set_mat2f(const GLint id, const char *k, const GLfloat v[2 * 2]) {
   return 0;
 }
 
-int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3 * 3]) {
+int gl_prog_set_mat3(const GLint id, const char *k, const GLfloat v[3 * 3]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1149,7 +1149,7 @@ int gl_prog_set_mat3f(const GLint id, const char *k, const GLfloat v[3 * 3]) {
   return 0;
 }
 
-int gl_prog_set_mat4f(const GLint id, const char *k, const GLfloat v[4 * 4]) {
+int gl_prog_set_mat4(const GLint id, const char *k, const GLfloat v[4 * 4]) {
   const GLint location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1170,11 +1170,11 @@ void gl_camera_setup(gl_camera_t *camera,
   camera->window_height = window_height;
 
   gl_zeros(camera->focal, 3, 1);
-  gl_vec3f(camera->world_up, 0.0f, 1.0f, 0.0f);
-  gl_vec3f(camera->position, 0.0f, 2.0f, 0.0f);
-  gl_vec3f(camera->right, -1.0f, 0.0f, 0.0f);
-  gl_vec3f(camera->up, 0.0f, 1.0f, 0.0f);
-  gl_vec3f(camera->front, 0.0f, 0.0f, -1.0f);
+  gl_vec3(camera->world_up, 0.0f, 1.0f, 0.0f);
+  gl_vec3(camera->position, 0.0f, 2.0f, 0.0f);
+  gl_vec3(camera->right, -1.0f, 0.0f, 0.0f);
+  gl_vec3(camera->up, 0.0f, 1.0f, 0.0f);
+  gl_vec3(camera->front, 0.0f, 0.0f, -1.0f);
   camera->yaw = gl_deg2rad(0.0f);
   camera->pitch = gl_deg2rad(0.0f);
   camera->radius = 1.0f;
@@ -1194,11 +1194,11 @@ void gl_camera_update(gl_camera_t *camera) {
   gl_normalize(camera->front, 3);
 
   // Right vector
-  gl_vec3f_cross(camera->front, camera->world_up, camera->right);
+  gl_vec3_cross(camera->front, camera->world_up, camera->right);
   gl_normalize(camera->right, 3);
 
   // Up vector
-  gl_vec3f_cross(camera->right, camera->front, camera->up);
+  gl_vec3_cross(camera->right, camera->front, camera->up);
   gl_normalize(camera->up, 3);
 
   // Projection matrix
@@ -1358,9 +1358,9 @@ void gl_triangle_cleanup(const gl_entity_t *entity) {
 
 void gl_triangle_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glUseProgram(entity->program_id);
-  // gl_prog_set_mat4f(entity->program_id, "projection", camera->P);
-  // gl_prog_set_mat4f(entity->program_id, "view", camera->V);
-  // gl_prog_set_mat4f(entity->program_id, "model", entity->T);
+  // gl_prog_set_mat4(entity->program_id, "projection", camera->P);
+  // gl_prog_set_mat4(entity->program_id, "view", camera->V);
+  // gl_prog_set_mat4(entity->program_id, "model", entity->T);
 
   glBindVertexArray(entity->vao);
   glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -1478,9 +1478,9 @@ void gl_cube_cleanup(const gl_entity_t *entity) {
 
 void gl_cube_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glUseProgram(entity->program_id);
-  gl_prog_set_mat4f(entity->program_id, "projection", camera->P);
-  gl_prog_set_mat4f(entity->program_id, "view", camera->V);
-  gl_prog_set_mat4f(entity->program_id, "model", entity->T);
+  gl_prog_set_mat4(entity->program_id, "projection", camera->P);
+  gl_prog_set_mat4(entity->program_id, "view", camera->V);
+  gl_prog_set_mat4(entity->program_id, "model", entity->T);
 
   // 12 x 3 indices starting at 0 -> 12 triangles -> 6 squares
   glBindVertexArray(entity->vao);
@@ -1570,9 +1570,9 @@ void gl_camera_frame_cleanup(const gl_entity_t *entity) {
 void gl_camera_frame_draw(const gl_entity_t *entity,
                           const gl_camera_t *camera) {
   glUseProgram(entity->program_id);
-  gl_prog_set_mat4f(entity->program_id, "projection", camera->P);
-  gl_prog_set_mat4f(entity->program_id, "view", camera->V);
-  gl_prog_set_mat4f(entity->program_id, "model", entity->T);
+  gl_prog_set_mat4(entity->program_id, "projection", camera->P);
+  gl_prog_set_mat4(entity->program_id, "view", camera->V);
+  gl_prog_set_mat4(entity->program_id, "model", entity->T);
 
   // Store original line width
   GLfloat original_line_width = 0.0f;
@@ -1656,9 +1656,9 @@ void gl_axis_frame_cleanup(const gl_entity_t *entity) {
 
 void gl_axis_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glUseProgram(entity->program_id);
-  gl_prog_set_mat4f(entity->program_id, "projection", camera->P);
-  gl_prog_set_mat4f(entity->program_id, "view", camera->V);
-  gl_prog_set_mat4f(entity->program_id, "model", entity->T);
+  gl_prog_set_mat4(entity->program_id, "projection", camera->P);
+  gl_prog_set_mat4(entity->program_id, "view", camera->V);
+  gl_prog_set_mat4(entity->program_id, "model", entity->T);
 
   // Store original line width
   GLfloat original_line_width = 0.0f;
@@ -1778,9 +1778,9 @@ void gl_grid_cleanup(const gl_entity_t *entity) {
 
 void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
   glUseProgram(entity->program_id);
-  gl_prog_set_mat4f(entity->program_id, "projection", camera->P);
-  gl_prog_set_mat4f(entity->program_id, "view", camera->V);
-  gl_prog_set_mat4f(entity->program_id, "model", entity->T);
+  gl_prog_set_mat4(entity->program_id, "projection", camera->P);
+  gl_prog_set_mat4(entity->program_id, "view", camera->V);
+  gl_prog_set_mat4(entity->program_id, "model", entity->T);
 
   const int grid_size = 10;
   const int nb_lines = (grid_size + 1) * 2;
@@ -2253,17 +2253,17 @@ void gl_model_free(gl_model_t *model) {
 
 void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
   glUseProgram(model->program_id);
-  gl_prog_set_mat4f(model->program_id, "projection", camera->P);
-  gl_prog_set_mat4f(model->program_id, "view", camera->V);
-  gl_prog_set_mat4f(model->program_id, "model", model->T);
+  gl_prog_set_mat4(model->program_id, "projection", camera->P);
+  gl_prog_set_mat4(model->program_id, "view", camera->V);
+  gl_prog_set_mat4(model->program_id, "model", model->T);
 
   float light_pos[3] = {0, 10, 0};
   float light_color[3] = {1, 1, 1};
   float object_color[3] = {1, 1, 1};
-  gl_prog_set_vec3f(model->program_id, "lightPos", light_pos);
-  gl_prog_set_vec3f(model->program_id, "viewPos", camera->position);
-  gl_prog_set_vec3f(model->program_id, "lightColor", light_color);
-  gl_prog_set_vec3f(model->program_id, "objectColor", object_color);
+  gl_prog_set_vec3(model->program_id, "lightPos", light_pos);
+  gl_prog_set_vec3(model->program_id, "viewPos", camera->position);
+  gl_prog_set_vec3(model->program_id, "lightColor", light_color);
+  gl_prog_set_vec3(model->program_id, "objectColor", object_color);
 
   for (int i = 0; i < model->num_meshes; i++) {
     gl_mesh_draw(&model->meshes[i], model->program_id);
@@ -2304,7 +2304,7 @@ void gui_process_input(GLFWwindow *window) {
 
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
     GLfloat camera_left[3] = {0};
-    gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
+    gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
     gl_normalize(camera_left, 3);
     gui->camera.position[0] -= camera_left[0] * camera_speed;
     gui->camera.position[1] -= camera_left[1] * camera_speed;
@@ -2313,7 +2313,7 @@ void gui_process_input(GLFWwindow *window) {
 
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
     GLfloat camera_left[3] = {0};
-    gl_vec3f_cross(gui->camera.front, gui->camera.up, camera_left);
+    gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
     gl_normalize(camera_left, 3);
     gui->camera.position[0] += camera_left[0] * camera_speed;
     gui->camera.position[1] += camera_left[1] * camera_speed;
@@ -2718,7 +2718,7 @@ int test_gl_vec3_cross(void) {
   const GLfloat u[3] = {1.0f, 2.0f, 3.0f};
   const GLfloat v[3] = {4.0f, 5.0f, 6.0f};
   GLfloat z[3] = {0};
-  gl_vec3f_cross(u, v, z);
+  gl_vec3_cross(u, v, z);
 
   /* Assert */
   GLfloat expected[3] = {-3.0f, 6.0f, -3.0f};
