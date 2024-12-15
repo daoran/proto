@@ -6,6 +6,7 @@
 #endif
 
 #include <stdio.h>
+#include <unistd.h>
 #include <assert.h>
 #include <libgen.h>
 
@@ -121,13 +122,13 @@ int gl_equals(const GLfloat *A,
               const int nb_rows,
               const int nb_cols,
               const GLfloat tol);
-void gl_matf_set(GLfloat *A,
+void gl_mat_set(GLfloat *A,
                  const int m,
                  const int n,
                  const int i,
                  const int j,
                  const GLfloat val);
-GLfloat gl_matf_val(const GLfloat *A,
+GLfloat gl_mat_val(const GLfloat *A,
                     const int m,
                     const int n,
                     const int i,
@@ -548,7 +549,7 @@ int gl_equals(const GLfloat *A,
   return 1;
 }
 
-void gl_matf_set(GLfloat *A,
+void gl_mat_set(GLfloat *A,
                  const int m,
                  const int n,
                  const int i,
@@ -558,7 +559,7 @@ void gl_matf_set(GLfloat *A,
   A[i + (j * m)] = val;
 }
 
-GLfloat gl_matf_val(const GLfloat *A,
+GLfloat gl_mat_val(const GLfloat *A,
                     const int m,
                     const int n,
                     const int i,
@@ -580,7 +581,7 @@ void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t) {
   int idx = 0;
   for (size_t i = 0; i < m; i++) {
     for (size_t j = 0; j < n; j++) {
-      A_t[idx++] = gl_matf_val(A, m, n, i, j);
+      A_t[idx++] = gl_mat_val(A, m, n, i, j);
     }
   }
 }
@@ -1144,7 +1145,8 @@ void gl_triangle_setup(gl_entity_t *entity) {
   }
 
   // Vertices
-  const float vertices[] = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
+  const float vertices[] =
+      {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f};
   const int num_vertices = 3;
   const size_t vertex_buffer_size = sizeof(float) * 3 * num_vertices;
 
@@ -2000,6 +2002,11 @@ static int assimp_num_meshes(const struct aiNode *node) {
 }
 
 gl_model_t *gl_model_load(const char *model_path) {
+  // Check model file
+  if (access(model_path, F_OK) != 0) {
+    return NULL;
+  }
+
   // Malloc
   gl_model_t *model = MALLOC(gl_model_t, 1);
 
@@ -2051,6 +2058,10 @@ gl_model_t *gl_model_load(const char *model_path) {
 }
 
 void gl_model_free(gl_model_t *model) {
+  if (model == NULL) {
+    return;
+  }
+
   for (int i = 0; i < model->num_meshes; i++) {
     free(model->meshes[i].vertices);
     free(model->meshes[i].indices);
@@ -2287,19 +2298,8 @@ void gui_loop(gui_t *gui) {
     // gl_camera_frame_draw(&cf, &gui->camera);
     // gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
-    gl_triangle_draw(&triangle, &gui->camera);
+    // gl_triangle_draw(&triangle, &gui->camera);
     // gl_model_draw(model, &gui->camera);
-
-    glBegin(GL_QUADS);
-    glColor3d(1, 0, 0);
-    glVertex3f(-1, -1, -10);
-    glColor3d(1, 1, 0);
-    glVertex3f(1, -1, -10);
-    glColor3d(1, 1, 1);
-    glVertex3f(1, 1, -10);
-    glColor3d(0, 1, 1);
-    glVertex3f(-1, 1, -10);
-    glEnd();
 
     // Update
     glfwSwapBuffers(gui->window);
@@ -2382,6 +2382,36 @@ void run_test(const char *test_name, int (*test_ptr)(void)) {
     }                                                                          \
   } while (0)
 
+
+// TEST GLFW /////////////////////////////////////////////////////////////////
+
+int test_glfw(void) {
+  printf("HERE\n");
+  if (!glfwInit()) {
+    printf("Cannot initialize GLFW\n");
+    exit(EXIT_FAILURE);
+  }
+
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  GLFWwindow *window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
+  if (!window) {
+    printf("Cannot open GLFW\n");
+    glfwTerminate();
+    exit(EXIT_FAILURE);
+  }
+
+  while (!glfwWindowShouldClose(window)) {
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+  }
+  glfwTerminate();
+
+  return 0;
+}
+
 // TEST OPENGL UTILS /////////////////////////////////////////////////////////
 
 int test_gl_zeros(void) {
@@ -2393,9 +2423,7 @@ int test_gl_zeros(void) {
                            0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0};
   // clang-format on
-
   gl_zeros(A, 3, 3);
-  gl_print_matrix("A", A, 3, 3);
   TEST_ASSERT(gl_equals(A, expected, 3, 3, 1e-8));
 
   return 0;
@@ -2410,9 +2438,7 @@ int test_gl_ones(void) {
                            1.0, 1.0, 1.0,
                            1.0, 1.0, 1.0};
   // clang-format on
-
   gl_ones(A, 3, 3);
-  gl_print_matrix("A", A, 3, 3);
   TEST_ASSERT(gl_equals(A, expected, 3, 3, 1e-8));
 
   return 0;
@@ -2431,7 +2457,6 @@ int test_gl_eye(void) {
                              0.0, 0.0, 0.0, 1.0};
   // clang-format on
   gl_eye(A, 4, 4);
-  gl_print_matrix("A", A, 4, 4);
   TEST_ASSERT(gl_equals(A, A_expected, 4, 4, 1e-8));
 
   /* Check 3x4 matrix */
@@ -2446,7 +2471,6 @@ int test_gl_eye(void) {
                              0.0, 0.0, 0.0};
   // clang-format on
   gl_eye(B, 3, 4);
-  gl_print_matrix("B", B, 3, 4);
   TEST_ASSERT(gl_equals(B, B_expected, 3, 4, 1e-8));
 
   return 0;
@@ -2472,7 +2496,7 @@ int test_gl_equals(void) {
   return 0;
 }
 
-int test_gl_matf_set(void) {
+int test_gl_mat_set(void) {
   // clang-format off
   GLfloat A[3*4] = {0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
@@ -2480,16 +2504,15 @@ int test_gl_matf_set(void) {
                     0.0, 0.0, 0.0};
   // clang-format on
 
-  gl_matf_set(A, 3, 4, 0, 1, 1.0);
-  gl_matf_set(A, 3, 4, 1, 0, 2.0);
-  gl_matf_set(A, 3, 4, 0, 2, 3.0);
-  gl_matf_set(A, 3, 4, 2, 0, 4.0);
-  gl_print_matrix("A", A, 3, 4);
+  gl_mat_set(A, 3, 4, 0, 1, 1.0);
+  gl_mat_set(A, 3, 4, 1, 0, 2.0);
+  gl_mat_set(A, 3, 4, 0, 2, 3.0);
+  gl_mat_set(A, 3, 4, 2, 0, 4.0);
 
   return 0;
 }
 
-int test_gl_matf_val(void) {
+int test_gl_mat_val(void) {
   // clang-format off
   GLfloat A[3*4] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
@@ -2498,21 +2521,21 @@ int test_gl_matf_val(void) {
   // clang-format on
 
   const float tol = 1e-4;
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 0) - 1.0) < tol);
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 0) - 2.0) < tol);
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 0) - 3.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 0, 0) - 1.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 1, 0) - 2.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 2, 0) - 3.0) < tol);
 
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 1) - 4.0) < tol);
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 1) - 5.0) < tol);
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 1) - 6.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 0, 1) - 4.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 1, 1) - 5.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 2, 1) - 6.0) < tol);
 
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 2) - 7.0) < tol);
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 2) - 8.0) < tol);
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 2) - 9.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 0, 2) - 7.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 1, 2) - 8.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 2, 2) - 9.0) < tol);
 
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 0, 3) - 10.0) < tol);
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 1, 3) - 11.0) < tol);
-  TEST_ASSERT(fabs(gl_matf_val(A, 3, 4, 2, 3) - 12.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 0, 3) - 10.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 1, 3) - 11.0) < tol);
+  TEST_ASSERT(fabs(gl_mat_val(A, 3, 4, 2, 3) - 12.0) < tol);
 
   return 0;
 }
@@ -2527,8 +2550,6 @@ int test_gl_transpose(void) {
   GLfloat A_t[3 * 3] = {0};
 
   gl_transpose(A, 3, 3, A_t);
-  gl_print_matrix("A", A, 3, 3);
-  gl_print_matrix("A_t", A_t, 3, 3);
 
   /* Transpose a 3x4 matrix */
   // clang-format off
@@ -2539,8 +2560,6 @@ int test_gl_transpose(void) {
   // clang-format on
   GLfloat B_t[3 * 4] = {0};
   gl_transpose(B, 3, 4, B_t);
-  gl_print_matrix("B", B, 3, 4);
-  gl_print_matrix("B_t", B_t, 4, 3);
 
   return 0;
 }
@@ -2553,8 +2572,6 @@ int test_gl_vec3_cross(void) {
 
   /* Assert */
   GLfloat expected[3] = {-3.0f, 6.0f, -3.0f};
-  gl_print_vector("z", z, 3);
-  gl_print_vector("expected", z, 3);
   TEST_ASSERT(gl_equals(z, expected, 3, 1, 1e-8));
 
   return 0;
@@ -2578,8 +2595,8 @@ int test_gl_dot(void) {
                            36.0f, 81.0f, 126.0f,
                            42.0f, 96.0f, 150.0f};
   // clang-format on
-  gl_print_matrix("C", C, 3, 3);
-  gl_print_matrix("expected", expected, 3, 3);
+  // gl_print_matrix("C", C, 3, 3);
+  // gl_print_matrix("expected", expected, 3, 3);
   TEST_ASSERT(gl_equals(C, expected, 3, 3, 1e-8));
 
   return 0;
@@ -2619,18 +2636,18 @@ int test_gl_perspective(void) {
   gl_perspective(fov, ratio, near, far, P);
 
   // clang-format off
-  const GLfloat P_expected[4*4] = {1.886051, 0.000000, 0.000000, 0.000000,
+  const GLfloat P_expected[4*4] = {1.732051, 0.000000, 0.000000, 0.000000,
                                    0.000000, 1.732051, 0.000000, 0.000000,
                                    0.000000, 0.000000, -1.002002, -1.000000,
                                    0.000000, 0.000000, -0.200200, 0.000000};
   // clang-format on
-  printf("fov: %f\n", fov);
-  printf("ratio: %f\n", ratio);
-  printf("near: %f\n", near);
-  printf("far: %f\n", far);
-  printf("\n");
-  gl_print_matrix("P", P, 4, 4);
-  gl_print_matrix("P_expected", P_expected, 4, 4);
+  // printf("fov: %f\n", fov);
+  // printf("ratio: %f\n", ratio);
+  // printf("near: %f\n", near);
+  // printf("far: %f\n", far);
+  // printf("\n");
+  // gl_print_matrix("P", P, 4, 4);
+  // gl_print_matrix("P_expected", P_expected, 4, 4);
   TEST_ASSERT(gl_equals(P, P_expected, 4, 4, 1e-4));
 
   return 0;
@@ -2660,7 +2677,6 @@ int test_gl_lookat(void) {
   /* gl_print_vector("eye", eye, 3); */
   /* gl_print_vector("focal", focal, 3); */
   /* gl_print_vector("world_up", world_up, 3); */
-  /* printf("\n"); */
   /* gl_print_matrix("V", V, 4, 4); */
   /* gl_print_matrix("V_expected", V_expected, 4, 4); */
   TEST_ASSERT(gl_equals(V, V_expected, 4, 4, 1e-4));
@@ -2695,11 +2711,17 @@ int test_gl_shader_compile(void) {
   }
 
   char *glcube_vs = load_file("./shaders/cube.vert");
+  if (glcube_vs == NULL) {
+    FATAL("Failed to load file: %s\n", "./shaders/cube.vert");
+  }
   const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
   free(glcube_vs);
   TEST_ASSERT(vs != GL_FALSE);
 
   char *glcube_fs = load_file("./shaders/cube.frag");
+  if (glcube_fs == NULL) {
+    FATAL("Failed to load file: %s\n", "./shaders/cube.frag");
+  }
   const GLuint fs = gl_shader_compile(glcube_fs, GL_VERTEX_SHADER);
   free(glcube_fs);
   TEST_ASSERT(fs != GL_FALSE);
@@ -2817,14 +2839,14 @@ int test_gl_camera_setup(void) {
 
   const GLfloat focal_expected[3] = {0.0f, 0.0f, 0.0f};
   const GLfloat world_up_expected[3] = {0.0f, 1.0f, 0.0f};
-  const GLfloat position_expected[3] = {0.0f, 0.0f, 0.0f};
+  const GLfloat position_expected[3] = {0.0f, 2.0f, 0.0f};
   const GLfloat right_expected[3] = {-1.0f, 0.0f, 0.0f};
   const GLfloat up_expected[3] = {0.0f, 1.0f, 0.0f};
-  const GLfloat front_expected[3] = {0.0f, 0.0f, -1.0f};
+  const GLfloat front_expected[3] = {0.0f, 0.0f, 1.0f};
   const GLfloat yaw_expected = gl_deg2rad(0.0f);
   const GLfloat pitch_expected = gl_deg2rad(0.0f);
-  const GLfloat fov_expected = gl_deg2rad(45.0f);
-  const GLfloat near_expected = 0.1f;
+  const GLfloat fov_expected = gl_deg2rad(90.0f);
+  const GLfloat near_expected = 0.01f;
   const GLfloat far_expected = 100.0f;
 
   TEST_ASSERT(camera.window_width == &window_width);
@@ -2849,41 +2871,9 @@ int test_gl_camera_setup(void) {
 // TEST GL-MODEL /////////////////////////////////////////////////////////////
 
 int test_gl_model_load(void) {
-  // // SDL init
-  // if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-  //   printf("SDL_Init Error: %s/n", SDL_GetError());
-  //   return -1;
-  // }
-
-  // // Window
-  // const char *title = "Hello World!";
-  // const int x = 100;
-  // const int y = 100;
-  // const int w = 640;
-  // const int h = 480;
-  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-  // SDL_Window *window = SDL_CreateWindow(title, x, y, w, h, SDL_WINDOW_OPENGL);
-  // if (window == NULL) {
-  //   printf("SDL_CreateWindow Error: %s/n", SDL_GetError());
-  //   return -1;
-  // }
-
-  // // OpenGL context
-  // SDL_GLContext context = SDL_GL_CreateContext(window);
-  // SDL_GL_SetSwapInterval(1);
-  // UNUSED(context);
-
-  // GLEW
-  // GLenum err = glewInit();
-  // if (err != GLEW_OK) {
-  //   FATAL("glewInit failed: %s", glewGetErrorString(err));
-  // }
-
-  // GL MODEL
-  // gl_model_t *model = gl_model_load("/home/chutsu/monkey.obj");
-  // gl_model_free(model);
+  gl_model_t *model = gl_model_load("/home/chutsu/monkey.obj");
+  gl_model_free(model);
+  TEST_ASSERT(model == NULL);
 
   return 0;
 }
@@ -2893,8 +2883,8 @@ int test_gl_model_load(void) {
 int test_gui(void) {
   gui_t gui;
   gui.window_title = "viz";
-  gui.window_width = 640;
-  gui.window_height = 480;
+  gui.window_width = 1024;
+  gui.window_height = 768;
 
   gui_setup(&gui);
   gui_loop(&gui);
@@ -2902,53 +2892,28 @@ int test_gui(void) {
   return 0;
 }
 
-// TEST GLFW /////////////////////////////////////////////////////////////////
-
-int test_glfw(void) {
-  if (!glfwInit()) {
-    exit(EXIT_FAILURE);
-  }
-
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-  GLFWwindow *window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
-  if (!window) {
-    glfwTerminate();
-    exit(EXIT_FAILURE);
-  }
-
-  while (!glfwWindowShouldClose(window)) {
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glfwSwapBuffers(window);
-    glfwPollEvents();
-  }
-  glfwTerminate();
-
-  return 0;
-}
-
 int main(int argc, char *argv[]) {
-  // TEST(test_gl_zeros);
-  // TEST(test_gl_ones);
-  // TEST(test_gl_eye);
-  // TEST(test_gl_equals);
-  // TEST(test_gl_matf_set);
-  // TEST(test_gl_matf_val);
-  // TEST(test_gl_transpose);
-  // TEST(test_gl_vec3_cross);
-  // TEST(test_gl_dot);
-  // TEST(test_gl_norm);
-  // TEST(test_gl_normalize);
-  // TEST(test_gl_perspective);
-  // TEST(test_gl_lookat);
-  // TEST(test_gl_shader_compile);
-  // TEST(test_gl_shaders_link);
-  // TEST(test_gl_prog_setup);
-  // TEST(test_gl_camera_setup);
-  // TEST(test_gl_model_load);
-  TEST(test_gui);
   // TEST(test_glfw);
+
+  TEST(test_gl_zeros);
+  TEST(test_gl_ones);
+  TEST(test_gl_eye);
+  TEST(test_gl_equals);
+  TEST(test_gl_mat_set);
+  TEST(test_gl_mat_val);
+  TEST(test_gl_transpose);
+  TEST(test_gl_vec3_cross);
+  TEST(test_gl_dot);
+  TEST(test_gl_norm);
+  TEST(test_gl_normalize);
+  TEST(test_gl_perspective);
+  TEST(test_gl_lookat);
+  TEST(test_gl_shader_compile);
+  TEST(test_gl_shaders_link);
+  TEST(test_gl_prog_setup);
+  TEST(test_gl_camera_setup);
+  TEST(test_gl_model_load);
+  // TEST(test_gui);
 
   return (nb_failed) ? -1 : 0;
 }
