@@ -116,6 +116,7 @@
 
 int file_exists(const char *fp);
 char *load_file(const char *fp);
+
 GLfloat gl_randf(const GLfloat a, const GLfloat b);
 GLfloat gl_deg2rad(const GLfloat d);
 GLfloat gl_rad2deg(const GLfloat r);
@@ -244,7 +245,10 @@ int gl_prog_set_mat4(const GLint id, const char *k, const GLfloat v[4 * 4]);
  * GL-CAMERA
  *****************************************************************************/
 
+typedef enum { ORBIT, FPS } gl_view_mode_t;
+
 typedef struct gl_camera_t {
+  gl_view_mode_t view_mode;
   int *window_width;
   int *window_height;
 
@@ -428,32 +432,6 @@ void gui_loop(gui_t *gui);
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #endif
-
-// /**
-//  * Tic, start timer.
-//  * @returns A timespec encapsulating the time instance when tic() is called
-//  */
-// struct timespec tic(void) {
-//   struct timespec time_start;
-//   clock_gettime(CLOCK_MONOTONIC, &time_start);
-//   return time_start;
-// }
-
-// /**
-//  * Toc, stop timer.
-//  * @returns Time elapsed in seconds
-//  */
-// float toc(struct timespec *tic) {
-//   assert(tic != NULL);
-//   struct timespec toc;
-//   float time_elasped;
-
-//   clock_gettime(CLOCK_MONOTONIC, &toc);
-//   time_elasped = (toc.tv_sec - tic->tv_sec);
-//   time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
-
-//   return time_elasped;
-// }
 
 /******************************************************************************
  * OPENGL UTILS
@@ -1197,6 +1175,7 @@ int gl_prog_set_mat4(const GLint id, const char *k, const GLfloat v[4 * 4]) {
 void gl_camera_setup(gl_camera_t *camera,
                      int *window_width,
                      int *window_height) {
+  camera->view_mode = FPS;
   camera->window_width = window_width;
   camera->window_height = window_height;
 
@@ -1207,7 +1186,7 @@ void gl_camera_setup(gl_camera_t *camera,
   gl_vec3(camera->up, 0.0f, 1.0f, 0.0f);
   gl_vec3(camera->front, 0.0f, 0.0f, -1.0f);
   camera->yaw = gl_deg2rad(0.0f);
-  camera->pitch = gl_deg2rad(0.0f);
+  camera->pitch = gl_deg2rad(30.0f);
   camera->radius = 1.0f;
 
   camera->fov = gl_deg2rad(90.0f);
@@ -1241,24 +1220,32 @@ void gl_camera_update(gl_camera_t *camera) {
   gl_perspective(camera->fov, aspect, camera->near, camera->far, camera->P);
 
   // View matrix (Orbit mode)
-  // GLfloat eye[3] = {0};
-  // eye[0] = camera->position[0];
-  // eye[1] = camera->position[1];
-  // eye[2] = camera->position[2];
-  // gl_lookat(eye, camera->focal, camera->world_up, camera->V);
+  if (camera->view_mode == ORBIT) {
+    camera->position[0] = camera->radius * sin(camera->pitch) * sin(camera->yaw);
+    camera->position[1] = camera->radius * cos(camera->pitch);
+    camera->position[2] = camera->radius * sin(camera->pitch) * cos(camera->yaw);
+
+    GLfloat eye[3] = {0};
+    eye[0] = camera->position[0];
+    eye[1] = camera->position[1];
+    eye[2] = camera->position[2];
+    gl_lookat(eye, camera->focal, camera->world_up, camera->V);
+  }
 
   // View matrix (FPS mode)
-  GLfloat eye[3] = {0};
-  eye[0] = camera->position[0];
-  eye[1] = camera->position[1];
-  eye[2] = camera->position[2];
+  if (camera->view_mode == FPS) {
+    GLfloat eye[3] = {0};
+    eye[0] = camera->position[0];
+    eye[1] = camera->position[1];
+    eye[2] = camera->position[2];
 
-  GLfloat carrot[3] = {0};
-  carrot[0] = camera->position[0] + camera->front[0];
-  carrot[1] = camera->position[1] + camera->front[1];
-  carrot[2] = camera->position[2] + camera->front[2];
+    GLfloat carrot[3] = {0};
+    carrot[0] = camera->position[0] + camera->front[0];
+    carrot[1] = camera->position[1] + camera->front[1];
+    carrot[2] = camera->position[2] + camera->front[2];
 
-  gl_lookat(eye, carrot, camera->world_up, camera->V);
+    gl_lookat(eye, carrot, camera->world_up, camera->V);
+  }
 }
 
 void gl_camera_rotate(gl_camera_t *camera,
@@ -1272,8 +1259,8 @@ void gl_camera_rotate(gl_camera_t *camera,
   pitch += dy * factor;
 
   // Constrain pitch and yaw
-  pitch = (pitch > gl_deg2rad(89.0f)) ? gl_deg2rad(89.0f) : pitch;
-  pitch = (pitch < gl_deg2rad(-80.0f)) ? gl_deg2rad(-80.0f) : pitch;
+  // pitch = (pitch > gl_deg2rad(89.0f)) ? gl_deg2rad(89.0f) : pitch;
+  // pitch = (pitch < gl_deg2rad(-80.0f)) ? gl_deg2rad(-80.0f) : pitch;
 
   // pitch = (pitch <= (-M_PI / 2.0) + 1e-5) ? (-M_PI / 2.0) + 1e-5 : pitch;
   // pitch = (pitch > 0.0) ? 0.0 : pitch;
@@ -2393,41 +2380,79 @@ void gui_process_input(GLFWwindow *window) {
   }
 
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    gui->camera.position[0] += camera_speed * gui->camera.front[0];
-    gui->camera.position[1] += camera_speed * gui->camera.front[1];
-    gui->camera.position[2] += camera_speed * gui->camera.front[2];
+    if (gui->camera.view_mode == FPS) {
+      gui->camera.position[0] += camera_speed * gui->camera.front[0];
+      gui->camera.position[1] += camera_speed * gui->camera.front[1];
+      gui->camera.position[2] += camera_speed * gui->camera.front[2];
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.pitch += 0.01;
+      gui->camera.pitch =
+          (gui->camera.pitch >= M_PI) ? M_PI : gui->camera.pitch;
+      gui->camera.pitch =
+          (gui->camera.pitch <= 0.0f) ? 0.0f : gui->camera.pitch;
+    }
   }
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    gui->camera.position[0] -= camera_speed * gui->camera.front[0];
-    gui->camera.position[1] -= camera_speed * gui->camera.front[1];
-    gui->camera.position[2] -= camera_speed * gui->camera.front[2];
+    if (gui->camera.view_mode == FPS) {
+      gui->camera.position[0] -= camera_speed * gui->camera.front[0];
+      gui->camera.position[1] -= camera_speed * gui->camera.front[1];
+      gui->camera.position[2] -= camera_speed * gui->camera.front[2];
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.pitch -= 0.01;
+      gui->camera.pitch =
+          (gui->camera.pitch >= M_PI) ? M_PI : gui->camera.pitch;
+      gui->camera.pitch =
+          (gui->camera.pitch <= 0.0f) ? 0.0f : gui->camera.pitch;
+    }
   }
 
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-    GLfloat camera_left[3] = {0};
-    gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
-    gl_normalize(camera_left, 3);
-    gui->camera.position[0] -= camera_left[0] * camera_speed;
-    gui->camera.position[1] -= camera_left[1] * camera_speed;
-    gui->camera.position[2] -= camera_left[2] * camera_speed;
+    if (gui->camera.view_mode == FPS) {
+      GLfloat camera_left[3] = {0};
+      gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
+      gl_normalize(camera_left, 3);
+      gui->camera.position[0] -= camera_left[0] * camera_speed;
+      gui->camera.position[1] -= camera_left[1] * camera_speed;
+      gui->camera.position[2] -= camera_left[2] * camera_speed;
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.yaw -= 0.01;
+      gui->camera.yaw = (gui->camera.yaw >= M_PI) ? M_PI : gui->camera.yaw;
+      gui->camera.yaw = (gui->camera.yaw <= -M_PI) ? -M_PI : gui->camera.yaw;
+    }
   }
 
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-    GLfloat camera_left[3] = {0};
-    gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
-    gl_normalize(camera_left, 3);
-    gui->camera.position[0] += camera_left[0] * camera_speed;
-    gui->camera.position[1] += camera_left[1] * camera_speed;
-    gui->camera.position[2] += camera_left[2] * camera_speed;
+    if (gui->camera.view_mode == FPS) {
+      GLfloat camera_left[3] = {0};
+      gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
+      gl_normalize(camera_left, 3);
+      gui->camera.position[0] += camera_left[0] * camera_speed;
+      gui->camera.position[1] += camera_left[1] * camera_speed;
+      gui->camera.position[2] += camera_left[2] * camera_speed;
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.yaw += 0.01;
+      gui->camera.yaw = (gui->camera.yaw >= M_PI) ? M_PI : gui->camera.yaw;
+      gui->camera.yaw = (gui->camera.yaw <= -M_PI) ? -M_PI : gui->camera.yaw;
+    }
   }
 
   if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
-    gl_camera_zoom(&gui->camera, 1.0, 0, 0.1);
+    if (gui->camera.view_mode == FPS) {
+      gl_camera_zoom(&gui->camera, 1.0, 0, 0.1);
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.radius += 0.1;
+      gui->camera.radius = (gui->camera.radius <= 0.01) ? 0.01 : gui->camera.radius;
+    }
   }
 
   if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) {
-    gl_camera_zoom(&gui->camera, 1.0, 0, -0.1);
+    if (gui->camera.view_mode == FPS) {
+      gl_camera_zoom(&gui->camera, 1.0, 0, -0.1);
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.radius -= 0.1;
+      gui->camera.radius = (gui->camera.radius <= 0.01) ? 0.01 : gui->camera.radius;
+    }
   }
 
   // Handle mouse cursor events
@@ -2456,8 +2481,6 @@ void gui_process_input(GLFWwindow *window) {
     } else if (gui->last_cursor_set) {
       gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy);
     }
-    // } else if (event.wheel.type == SDL_MOUSEWHEEL && event.wheel.y) {
-    //   gl_camera_zoom(&gui->camera, gui->mouse_sensitivity, 0, event.wheel.y);
   } else {
     // Reset cursor
     gui->left_click = 0;
@@ -2575,11 +2598,11 @@ void gui_loop(gui_t *gui) {
     gui_process_input(gui->window);
 
     // Draw
-    gl_cube_draw(&cube, &gui->camera);
+    // gl_cube_draw(&cube, &gui->camera);
     // gl_camera_frame_draw(&cf, &gui->camera);
     gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
-    gl_points_draw(&points, &gui->camera, num_points);
+    // gl_points_draw(&points, &gui->camera, num_points);
     // gl_triangle_draw(&triangle, &gui->camera);
 
     // Update
