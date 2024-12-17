@@ -1265,8 +1265,8 @@ void gl_camera_rotate(gl_camera_t *camera,
   pitch += dy * factor;
 
   // Constrain pitch and yaw
-  // pitch = (pitch > gl_deg2rad(89.0f)) ? gl_deg2rad(89.0f) : pitch;
-  // pitch = (pitch < gl_deg2rad(-80.0f)) ? gl_deg2rad(-80.0f) : pitch;
+  pitch = (pitch > gl_deg2rad(89.99f)) ? gl_deg2rad(89.99f) : pitch;
+  pitch = (pitch < gl_deg2rad(-89.99f)) ? gl_deg2rad(-89.99f) : pitch;
 
   // pitch = (pitch <= (-M_PI / 2.0) + 1e-5) ? (-M_PI / 2.0) + 1e-5 : pitch;
   // pitch = (pitch > 0.0) ? 0.0 : pitch;
