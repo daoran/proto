@@ -65,14 +65,6 @@ extern "C" {
 #include "aprilgrid.h"
 #endif
 
-#ifdef USE_TIS
-#include "tis.h"
-#endif
-
-#ifdef USE_SBGC
-#include "sbgc.h"
-#endif
-
 /******************************************************************************
  * LOGGING / MACROS
  ******************************************************************************/
