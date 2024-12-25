@@ -68,7 +68,21 @@ build_apriltag:
 		&& make \
 		&& make install
 
-build_glfw:
+build_khr:
+	@cd "$(SRC_PATH)/KHR" \
+		&& mkdir -p "$(PREFIX)/include/KHR" \
+		&& ln -sf $(SRC_PATH)/KHR/khrplatform.h "$(PREFIX)/include/KHR"
+
+build_glad: build_khr
+	@cd "$(SRC_PATH)/glad" \
+		&& mkdir -p "$(PREFIX)/include/glad" \
+		&& ln -sf $(SRC_PATH)/glad/glad.h "$(PREFIX)/include/glad" \
+		&& gcc -I$(PREFIX)/include -c glad.c -o glad.o \
+		&& ar rcs libglad.a glad.o \
+		&& ln -sf $(SRC_PATH)/glad/libglad.a "$(PREFIX)/lib/libglad.a"
+
+
+build_glfw: build_glad
 	@cd "$(SRC_PATH)/glfw" \
 	  && mkdir -p build \
 	  && cd build || return \
