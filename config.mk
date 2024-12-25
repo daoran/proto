@@ -20,10 +20,10 @@ CC := gcc
 # LIBRARIES
 STB_CFLAGS:=-I$(DEPS_DIR)/src/stb
 OPENSSL_LDFLAGS := -lssl -lcrypto
-GLEW_LDFLAGS := -lGLEW
-SDL2_CFLAGS:=$(shell sdl2-config --cflags)
-SDL2_LDFLAGS := $(shell sdl2-config --libs) -lSDL2_image
-OPENGL_LDFLAGS := $(SDL2_LDFLAGS) $(GLEW_LDFLAGS) -lGL
+GLAD_LDFLAGS := -lglad
+OPENGL_LDFLAGS := $(GLAD_LDFLAGS) -lGL
+FREETYPE_CFLAGS := $(shell pkg-config --cflags freetype2)
+FREETYPE_LDFLAGS := $(shell pkg-config --libs freetype2)
 BLAS_LDFLAGS := -lblas -llapack -llapacke
 SUITESPARSE_LDFLAGS := -llapack -lcamd -lamd -lccolamd -lcolamd -lcholmod -lcxsparse
 CERES_CFLAGS := -I/usr/include/eigen3
@@ -55,8 +55,8 @@ CFLAGS += \
 	-I$(INC_DIR) \
 	-I$(DEPS_DIR)/include \
 	-fPIC \
-	$(SDL2_CFLAGS) \
 	$(STB_CFLAGS) \
+	$(FREETYPE_CFLAGS) \
 	$(CERES_CFLAGS)
 
 
@@ -73,6 +73,7 @@ LDFLAGS= \
 	$(OPENSSL_LDFLAGS) \
 	$(ASSIMP_LDFLAGS) \
 	$(YAML_LDFLAGS) \
+	$(FREETYPE_LDFLAGS) \
 	-lglfw3 \
 	-lstdc++ \
 	-lpthread \
