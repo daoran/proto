@@ -307,9 +307,7 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GL-PRIMITIVES
  *****************************************************************************/
 
-void gl_triangle_setup(gl_entity_t *entity);
-void gl_triangle_cleanup(const gl_entity_t *entity);
-void gl_triangle_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+// GL RECT ///////////////////////////////////////////////////////////////////
 
 typedef struct {
   int width;
@@ -318,11 +316,12 @@ typedef struct {
   GLint program_id;
   GLuint vao;
   GLuint vbo;
-  GLuint ebo;
 } gl_rect_t;
 void gl_rect_setup(gl_rect_t *rect, const int width, const int height);
 void gl_rect_cleanup(const gl_rect_t *entity);
 void gl_rect_draw(const gl_rect_t *entity, const gl_camera_t *camera);
+
+// GL CUBE ///////////////////////////////////////////////////////////////////
 
 typedef struct {
   GLfloat T[4 * 4];
@@ -342,23 +341,81 @@ void gl_cube_setup(gl_cube_t *cube,
 void gl_cube_cleanup(const gl_cube_t *cube);
 void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera);
 
+// GL CAMERA FRAME ///////////////////////////////////////////////////////////
+
 void gl_camera_frame_setup(gl_entity_t *entity);
 void gl_camera_frame_cleanup(const gl_entity_t *entity);
 void gl_camera_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+
+// GL AXIS FRAME /////////////////////////////////////////////////////////////
 
 void gl_axis_frame_setup(gl_entity_t *entity);
 void gl_axis_frame_cleanup(const gl_entity_t *entity);
 void gl_axis_frame_draw(const gl_entity_t *entity, const gl_camera_t *camera);
 
+// GL GRID ///////////////////////////////////////////////////////////////////
+
 void gl_grid_setup(gl_entity_t *entity);
 void gl_grid_cleanup(const gl_entity_t *entity);
 void gl_grid_draw(const gl_entity_t *entity, const gl_camera_t *camera);
+
+// GL POINTS /////////////////////////////////////////////////////////////////
 
 void gl_points_setup(gl_entity_t *entity, float *points, size_t num_points);
 void gl_points_cleanup(const gl_entity_t *entity);
 void gl_points_draw(const gl_entity_t *entity,
                     const gl_camera_t *camera,
                     const size_t num_points);
+
+// GL LINE ///////////////////////////////////////////////////////////////////
+
+typedef struct {
+  GLfloat T[4 * 4];
+  GLfloat *points;
+  GLint num_points;
+  GLfloat line_width;
+  GLfloat color[3];
+
+  GLint program_id;
+  GLuint vao;
+  GLuint vbo;
+} gl_line_t;
+void gl_line_setup(gl_line_t *line,
+                   const float *points,
+                   const size_t num_points,
+                   const GLfloat line_width,
+                   const GLfloat color[3]);
+void gl_line_cleanup(const gl_line_t *line);
+void gl_line_draw(const gl_line_t *line, const gl_camera_t *camera);
+
+// GL TEXT ///////////////////////////////////////////////////////////////////
+
+typedef struct {
+  unsigned int texture_id; // ID handle of the glyph texture
+  unsigned int size[2];    // Size of glyph
+  unsigned int bearing[2]; // Offset from baseline to left/top of glyph
+  unsigned int offset;     // Offset to advance to next glyph
+} gl_char_t;
+
+typedef struct {
+  gl_char_t data[128];
+  GLfloat P[4 * 4];
+
+  GLint program_id;
+  GLuint vao;
+  GLuint vbo;
+} gl_text_t;
+
+void gl_char_print(const gl_char_t *ch);
+void gl_text_setup(gl_text_t *font);
+void gl_text_draw(gl_text_t *font,
+                  gl_camera_t *camera,
+                  const char *text,
+                  float x,
+                  const float y,
+                  const float scale,
+                  const float color[3]);
+void gl_text_cleanup(gl_text_t *font);
 
 /******************************************************************************
  * GL-MESH
@@ -1446,68 +1503,6 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GL-PRIMITIVES
  *****************************************************************************/
 
-// GL TRIANGLE ///////////////////////////////////////////////////////////////
-
-void gl_triangle_setup(gl_entity_t *entity) {
-  // Entity transform
-  gl_eye(entity->T, 4, 4);
-
-  // Shader program
-  char *vs = load_file("./shaders/triangle.vert");
-  char *fs = load_file("./shaders/triangle.frag");
-  entity->program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
-  if (entity->program_id == GL_FALSE) {
-    FATAL("Failed to create shaders!");
-  }
-
-  // Vertices
-  // clang-format off
-  const float vertices[] = {
-    -0.5f, -0.5f,  0.0f,
-     0.5f, -0.5f,  0.0f,
-     0.0f,  0.5f,  0.0f
-  };
-  const int num_vertices = 3;
-  const size_t vbo_size = sizeof(float) * num_vertices * 3;
-  // clang-format on
-
-  // VAO
-  glGenVertexArrays(1, &entity->vao);
-  glBindVertexArray(entity->vao);
-
-  // VBO
-  glGenBuffers(1, &entity->vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, entity->vbo);
-  glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
-  // -- Position attribute
-  size_t vertex_size = 3 * sizeof(float);
-  void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-  glEnableVertexAttribArray(0);
-  // -- Color attribute
-  // void *color_offset = (void *) (3 * sizeof(float));
-  // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
-  // glEnableVertexAttribArray(1);
-
-  // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-  glBindVertexArray(0);             // Unbind VAO
-}
-
-void gl_triangle_cleanup(const gl_entity_t *entity) {
-  glDeleteVertexArrays(1, &entity->vao);
-  glDeleteBuffers(1, &entity->vbo);
-}
-
-void gl_triangle_draw(const gl_entity_t *entity, const gl_camera_t *camera) {
-  glUseProgram(entity->program_id);
-  glBindVertexArray(entity->vao);
-  glDrawArrays(GL_TRIANGLES, 0, 3);
-  glBindVertexArray(0);
-}
-
 // GL RECT ///////////////////////////////////////////////////////////////////
 
 void gl_rect_setup(gl_rect_t *rect, const int width, const int height) {
@@ -1671,8 +1666,8 @@ void gl_cube_setup(gl_cube_t *cube,
   glBindBuffer(GL_ARRAY_BUFFER, cube->vbo);
   glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
   // -- Position attribute
-  size_t vertex_size = sizeof(GLfloat) * 3;
-  void *offset = (void *) 0;
+  const size_t vertex_size = sizeof(GLfloat) * 3;
+  const void *offset = (void *) 0;
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, offset);
   glEnableVertexAttribArray(0);
 
@@ -1973,10 +1968,12 @@ void gl_grid_setup(gl_entity_t *entity) {
 
   // Create vertices
   const int grid_size = 10;
-  const int nb_lines = (grid_size + 1) * 2;
-  const int nb_vertices = nb_lines * 2;
+  const size_t vertex_size = sizeof(GLfloat) * 3;
+  const void *offset = (void *) 0;
+  const int num_lines = (grid_size + 1) * 2;
+  const int num_vertices = num_lines * 2;
   GLfloat *vertices = glgrid_create_vertices(grid_size);
-  const size_t buffer_size = sizeof(GLfloat) * nb_vertices * 3;
+  const size_t buffer_size = sizeof(GLfloat) * num_vertices * 3;
 
   // VAO
   glGenVertexArrays(1, &entity->vao);
@@ -1986,12 +1983,7 @@ void gl_grid_setup(gl_entity_t *entity) {
   glGenBuffers(1, &entity->vbo);
   glBindBuffer(GL_ARRAY_BUFFER, entity->vbo);
   glBufferData(GL_ARRAY_BUFFER, buffer_size, vertices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0,
-                        3,
-                        GL_FLOAT,
-                        GL_FALSE,
-                        3 * sizeof(float),
-                        (void *) 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, offset);
   glEnableVertexAttribArray(0);
 
   // Clean up
@@ -2098,23 +2090,95 @@ void gl_points_draw(const gl_entity_t *entity,
   glBindVertexArray(0); // Unbind VAO
 }
 
+// GL LINE ///////////////////////////////////////////////////////////////////
+
+void gl_line_setup(gl_line_t *line,
+                   const float *points,
+                   const size_t num_points,
+                   const GLfloat line_width,
+                   const GLfloat color[3]) {
+  // Entity transform
+  gl_eye(line->T, 4, 4);
+
+  // Points
+  line->points = MALLOC(GLfloat, num_points * 3);
+  line->num_points = num_points;
+  const size_t vbo_size = sizeof(GLfloat) * num_points * 3;
+  for (size_t i = 0; i < (num_points * 3); ++i) {
+    line->points[i] = points[i];
+  }
+
+  // Line width and color
+  line->line_width = line_width;
+  line->color[0] = color[0];
+  line->color[1] = color[1];
+  line->color[2] = color[2];
+
+  // Shader program
+  char *vs = load_file("./shaders/line.vert");
+  char *fs = load_file("./shaders/line.frag");
+  line->program_id = gl_prog_setup(vs, fs, NULL);
+  free(vs);
+  free(fs);
+  if (line->program_id == GL_FALSE) {
+    FATAL("Failed to create shaders to draw cube!");
+  }
+
+  // VAO
+  glGenVertexArrays(1, &line->vao);
+  glBindVertexArray(line->vao);
+
+  // VBO
+  glGenBuffers(1, &line->vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, line->vbo);
+  glBufferData(GL_ARRAY_BUFFER, vbo_size, line->points, GL_STATIC_DRAW);
+
+  // Position attribute
+  const size_t vertex_size = sizeof(GLfloat) * 3;
+  const void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+}
+
+void gl_line_cleanup(const gl_line_t *line) {
+  if (line == NULL) {
+    return;
+  }
+  free(line->points);
+
+  glDeleteVertexArrays(1, &line->vao);
+  glDeleteBuffers(1, &line->vbo);
+}
+
+void gl_line_draw(const gl_line_t *line, const gl_camera_t *camera) {
+  // Activate shader
+  glUseProgram(line->program_id);
+  gl_prog_set_mat4(line->program_id, "projection", camera->P);
+  gl_prog_set_mat4(line->program_id, "view", camera->V);
+  gl_prog_set_mat4(line->program_id, "model", line->T);
+  gl_prog_set_vec3(line->program_id, "in_color", line->color);
+
+  // Store original line width
+  GLfloat original_line_width = 0.0f;
+  glGetFloatv(GL_LINE_WIDTH, &original_line_width);
+
+  // Set line width
+  glLineWidth(line->line_width);
+
+  // Draw frame
+  glBindVertexArray(line->vao);
+  glDrawArrays(GL_LINE_STRIP, 0, line->num_points);
+  glBindVertexArray(0); // Unbind VAO
+
+  // Restore original line width
+  glLineWidth(original_line_width);
+}
+
 // GL CHAR ///////////////////////////////////////////////////////////////////
-
-typedef struct {
-  unsigned int texture_id; // ID handle of the glyph texture
-  unsigned int size[2];    // Size of glyph
-  unsigned int bearing[2]; // Offset from baseline to left/top of glyph
-  unsigned int offset;     // Offset to advance to next glyph
-} gl_char_t;
-
-typedef struct {
-  gl_char_t data[128];
-  GLfloat P[4 * 4];
-
-  GLint program_id;
-  GLuint vao;
-  GLuint vbo;
-} gl_font_t;
 
 void gl_char_print(const gl_char_t *ch) {
   printf("texture_id: %d\n", ch->texture_id);
@@ -2126,7 +2190,7 @@ void gl_char_print(const gl_char_t *ch) {
   printf("\n");
 }
 
-void gl_font_setup(gl_font_t *font) {
+void gl_text_setup(gl_text_t *font) {
   // Compile shader
   char *vs = load_file("./shaders/font.vert");
   char *fs = load_file("./shaders/font.frag");
@@ -2213,7 +2277,7 @@ void gl_font_setup(gl_font_t *font) {
   glBindVertexArray(0);             // Unbind VAO
 }
 
-void gl_font_draw(gl_font_t *font,
+void gl_text_draw(gl_text_t *font,
                   gl_camera_t *camera,
                   const char *text,
                   float x,
@@ -2277,7 +2341,7 @@ void gl_font_draw(gl_font_t *font,
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void gl_font_cleanup(gl_font_t *font) {
+void gl_text_cleanup(gl_text_t *font) {
   glDeleteVertexArrays(1, &font->vao);
   glDeleteBuffers(1, &font->vbo);
 }
@@ -3016,17 +3080,16 @@ void gui_setup(gui_t *gui) {
   }
 
   // OpenGL functions
-  // glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-  // glEnable(GL_POINT_SMOOTH);
-  // glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_LINE_SMOOTH);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  // assert(glIsEnabled(GL_PROGRAM_POINT_SIZE) == 1);
-  // assert(glIsEnabled(GL_POINT_SMOOTH) == 1);
-  // assert(glIsEnabled(GL_DEPTH_TEST) == 1);
+  assert(glIsEnabled(GL_PROGRAM_POINT_SIZE) == 1);
+  assert(glIsEnabled(GL_LINE_SMOOTH) == 1);
+  assert(glIsEnabled(GL_DEPTH_TEST) == 1);
   assert(glIsEnabled(GL_CULL_FACE) == 1);
   assert(glIsEnabled(GL_BLEND) == 1);
 
@@ -3070,6 +3133,24 @@ void gui_loop(gui_t *gui) {
   gl_rect_t rect;
   gl_rect_setup(&rect, 30, 30);
 
+  // clang-format on
+  const float line_points[8 * 3] = {
+    0.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 0.0f,
+    2.0f, 2.0f, 0.0f,
+    3.0f, 3.0f, 0.0f,
+    3.0f, 4.0f, 0.0f,
+    4.0f, 4.0f, 0.0f,
+    5.0f, 4.0f, 0.0f,
+    5.0f, 5.0f, 0.0f,
+  };
+  // clang-format off
+  const size_t line_num_points = 8;
+  const GLfloat line_width = 2.0f;
+  const GLfloat line_color[3] = {0.0f, 1.0f, 1.0f};
+  gl_line_t line;
+  gl_line_setup(&line, line_points, line_num_points, line_width, line_color);
+
   gl_entity_t cf;
   gl_camera_frame_setup(&cf);
 
@@ -3080,8 +3161,8 @@ void gui_loop(gui_t *gui) {
   gl_grid_setup(&grid);
 
   const float color[3] = {1.0, 1.0, 1.0};
-  gl_font_t font;
-  gl_font_setup(&font);
+  gl_text_t font;
+  gl_text_setup(&font);
 
   const size_t num_points = 100000;
   GLfloat *points_data = MALLOC(GLfloat, num_points * 3);
@@ -3108,9 +3189,10 @@ void gui_loop(gui_t *gui) {
     // Draw
     gl_cube_draw(&cube, &gui->camera);
     gl_camera_frame_draw(&cf, &gui->camera);
-    gl_font_draw(&font, &gui->camera, "Here!", 0.0f, 400.0f, 1.0f, color);
+    gl_text_draw(&font, &gui->camera, "Here!", 0.0f, 400.0f, 1.0f, color);
     gl_axis_frame_draw(&frame, &gui->camera);
     gl_grid_draw(&grid, &gui->camera);
+    gl_line_draw(&line, &gui->camera);
     // gl_rect_draw(&rect, &gui->camera);
     // gl_points_draw(&points, &gui->camera, num_points);
 
