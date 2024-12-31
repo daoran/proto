@@ -129,6 +129,13 @@ typedef struct {
   gl_float_t b;
 } gl_color_t;
 
+typedef struct {
+  gl_int_t x;
+  gl_int_t y;
+  gl_int_t w;
+  gl_int_t h;
+} gl_bounds_t;
+
 int file_exists(const char *fp);
 char *load_file(const char *fp);
 
@@ -575,12 +582,7 @@ typedef struct {
   gl_color_t color;
   gl_color_t color_hover;
   gl_color_t color_press;
-  int x;
-  int y;
-  float width;
-  float height;
-  int is_pressed;
-  int is_hovered;
+  gl_bounds_t bounds;
 
   gl_uint_t program_id;
   gl_uint_t vao;
@@ -589,7 +591,7 @@ typedef struct {
 } ui_button_t;
 void ui_button_setup(ui_button_t *button);
 void ui_button_cleanup(const ui_button_t *button);
-int ui_button_draw(const ui_button_t *button);
+int ui_button_draw(const gui_t *gui, const ui_button_t *button);
 
 #endif // GUI_H
 
@@ -3582,7 +3584,7 @@ void gui_loop(gui_t *gui) {
     // gl_points3d_draw(points, &gui->camera, num_points);
     // gl_text_draw(text, &gui->camera, "Here!", 10.0f, 100.0f, 1.0f);
     // gl_image_draw(image);
-    ui_button_draw(&button);
+    ui_button_draw(gui, &button);
 
     // Update
     glfwPollEvents();
@@ -3639,12 +3641,10 @@ void ui_button_setup(ui_button_t *button) {
   button->color = (gl_color_t){1.0f, 1.0f, 1.0f};
   button->color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
   button->color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
-  button->x = 20;
-  button->y = 600;
-  button->width = 200.0f;
-  button->height = 100.0f;
-  button->is_pressed = 0;
-  button->is_hovered = 0;
+  button->bounds.x = 20;
+  button->bounds.y = 600;
+  button->bounds.w = 200.0f;
+  button->bounds.h = 100.0f;
 
   button->program_id = -1;
   button->vao = -1;
@@ -3659,11 +3659,15 @@ void ui_button_setup(ui_button_t *button) {
 
   // Vertices
   // clang-format off
+  const int x = button->bounds.x;
+  const int y = button->bounds.y;
+  const int w = button->bounds.w;
+  const int h = button->bounds.h;
   float vertices[4 * 2] = {0};
-  pixel2ndc(button->x                , button->y + button->height, 1024, 768, &vertices[0], &vertices[1]); // Bottom left
-  pixel2ndc(button->x + button->width, button->y + button->height, 1024, 768, &vertices[2], &vertices[3]); // Bottom right
-  pixel2ndc(button->x + button->width, button->y                 , 1024, 768, &vertices[4], &vertices[5]); // Top right
-  pixel2ndc(button->x                , button->y                 , 1024, 768, &vertices[6], &vertices[7]); // Top left
+  pixel2ndc(x    , y + h, 1024, 768, &vertices[0], &vertices[1]); // Bottom left
+  pixel2ndc(x + w, y + h, 1024, 768, &vertices[2], &vertices[3]); // Bottom right
+  pixel2ndc(x + w, y    , 1024, 768, &vertices[4], &vertices[5]); // Top right
+  pixel2ndc(x    , y    , 1024, 768, &vertices[6], &vertices[7]); // Top left
   // clang-format on
 
   // VAO
@@ -3691,18 +3695,41 @@ void ui_button_cleanup(const ui_button_t *button) {
   glDeleteBuffers(1, &button->vbo);
 }
 
-int ui_button_draw(const ui_button_t *button) {
+static int ui_intercept(const gui_t *gui, const gl_bounds_t *bounds) {
+  const int x = bounds->x;
+  const int y = bounds->y;
+  const int w = bounds->w;
+  const int h = bounds->h;
+  int within_x = (x <= gui->cursor_x && gui->cursor_x <= x + w);
+  int within_y = (y <= gui->cursor_y && gui->cursor_y <= y + h);
+  return (within_x && within_y) ? 1 : 0;
+}
+
+int ui_button_draw(const gui_t *gui, const ui_button_t *button) {
+  // Button color
+  const int button_hover = ui_intercept(gui, &button->bounds);
+  const int button_pressed = gui->left_click;
+  int button_on = 0;
+  gl_color_t color = button->color;
+  if (button_hover == 1 && button_pressed == 0) {
+    color = button->color_hover;
+  } else if (button_hover == 1 && button_pressed == 1) {
+    color = button->color_press;
+    button_on = 1;
+  }
+
+  // Shader program
   glUseProgram(button->program_id);
-  gl_prog_set_color(button->program_id, "color", button->color);
-  gl_prog_set_float(button->program_id, "window_width", 1024.0f);
-  gl_prog_set_float(button->program_id, "window_height", 768.0f);
-  gl_prog_set_float(button->program_id, "button_width", button->width);
-  gl_prog_set_float(button->program_id, "button_height", button->height);
+  gl_prog_set_color(button->program_id, "color", color);
+  gl_prog_set_float(button->program_id, "window_width", gui->window_width);
+  gl_prog_set_float(button->program_id, "window_height", gui->window_height);
+  gl_prog_set_float(button->program_id, "button_width", button->bounds.w);
+  gl_prog_set_float(button->program_id, "button_height", button->bounds.h);
   glBindVertexArray(button->vao);
   glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
   glBindVertexArray(0);
 
-  return 0;
+  return button_on;
 }
 
 #endif // GUI_IMPLEMENTATION
