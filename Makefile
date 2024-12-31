@@ -37,7 +37,7 @@ $(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
 
 setup:
 	@mkdir -p $(BLD_DIR)
-	@cp -r src/shaders $(BLD_DIR)
+	@cp -r src/fonts $(BLD_DIR)
 	@cp -r src/test_data $(BLD_DIR)
 
 clean:  ## Clean
@@ -101,7 +101,7 @@ test_euroc:  ## Run test_euroc
 	@$(CC) $(CFLAGS) src/test_euroc.c -o $(BLD_DIR)/test_euroc $(LDFLAGS)
 	@cd build && ./test_euroc
 
-test_gui:  ## Run test_gui
+test_gui: ## Run test_gui
 	@echo "CC [$@]"
 	@$(CC) $(CFLAGS) src/test_gui.c -o $(BLD_DIR)/test_gui $(LDFLAGS)
 
