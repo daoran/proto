@@ -118,96 +118,106 @@
  * OPENGL UTILS
  *****************************************************************************/
 
+typedef GLuint gl_uint_t;
+typedef GLint gl_int_t;
+typedef GLfloat gl_float_t;
+typedef GLenum gl_enum_t;
+
 typedef struct {
-  GLfloat r;
-  GLfloat g;
-  GLfloat b;
+  gl_float_t r;
+  gl_float_t g;
+  gl_float_t b;
 } gl_color_t;
 
 int file_exists(const char *fp);
 char *load_file(const char *fp);
 
-GLenum gl_check_error(const char *file, const int line);
+gl_enum_t gl_check_error(const char *file, const int line);
 #define GL_CHECK_ERROR() gl_check_error(__FILE__, __LINE__)
 
-GLfloat gl_randf(const GLfloat a, const GLfloat b);
-GLfloat gl_deg2rad(const GLfloat d);
-GLfloat gl_rad2deg(const GLfloat r);
-void gl_print_vector(const char *prefix, const GLfloat *x, const int length);
+gl_float_t gl_randf(const gl_float_t a, const gl_float_t b);
+gl_float_t gl_deg2rad(const gl_float_t d);
+gl_float_t gl_rad2deg(const gl_float_t r);
+void gl_print_vector(const char *prefix, const gl_float_t *x, const int length);
 void gl_print_matrix(const char *prefix,
-                     const GLfloat *A,
+                     const gl_float_t *A,
                      const int num_rows,
                      const int num_cols);
-int gl_equals(const GLfloat *A,
-              const GLfloat *B,
+int gl_equals(const gl_float_t *A,
+              const gl_float_t *B,
               const int num_rows,
               const int num_cols,
-              const GLfloat tol);
-void gl_mat_set(GLfloat *A,
+              const gl_float_t tol);
+void gl_mat_set(gl_float_t *A,
                 const int m,
                 const int n,
                 const int i,
                 const int j,
-                const GLfloat val);
-GLfloat gl_mat_val(const GLfloat *A,
-                   const int m,
-                   const int n,
-                   const int i,
-                   const int j);
-void gl_copy(const GLfloat *src, const int m, const int n, GLfloat *dest);
-void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t);
-void gl_zeros(GLfloat *A, const int num_rows, const int num_cols);
-void gl_ones(GLfloat *A, const int num_rows, const int num_cols);
-void gl_eye(GLfloat *A, const int num_rows, const int num_cols);
-void gl_vec2(GLfloat *v, const GLfloat x, const GLfloat y);
-void gl_vec3(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z);
-void gl_vec4(GLfloat *v,
-             const GLfloat x,
-             const GLfloat y,
-             const GLfloat z,
-             const GLfloat w);
-void gl_vec3_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]);
+                const gl_float_t val);
+gl_float_t gl_mat_val(const gl_float_t *A,
+                      const int m,
+                      const int n,
+                      const int i,
+                      const int j);
+void gl_copy(const gl_float_t *src, const int m, const int n, gl_float_t *dest);
+void gl_transpose(const gl_float_t *A, size_t m, size_t n, gl_float_t *A_t);
+void gl_zeros(gl_float_t *A, const int num_rows, const int num_cols);
+void gl_ones(gl_float_t *A, const int num_rows, const int num_cols);
+void gl_eye(gl_float_t *A, const int num_rows, const int num_cols);
+void gl_vec2(gl_float_t *v, const gl_float_t x, const gl_float_t y);
+void gl_vec3(gl_float_t *v,
+             const gl_float_t x,
+             const gl_float_t y,
+             const gl_float_t z);
+void gl_vec4(gl_float_t *v,
+             const gl_float_t x,
+             const gl_float_t y,
+             const gl_float_t z,
+             const gl_float_t w);
+void gl_vec3_cross(const gl_float_t u[3],
+                   const gl_float_t v[3],
+                   gl_float_t n[3]);
 
-void gl_add(const GLfloat *A,
-            const GLfloat *B,
+void gl_add(const gl_float_t *A,
+            const gl_float_t *B,
             const int num_rows,
             const int num_cols,
-            GLfloat *C);
-void gl_sub(const GLfloat *A,
-            const GLfloat *B,
+            gl_float_t *C);
+void gl_sub(const gl_float_t *A,
+            const gl_float_t *B,
             const int num_rows,
             const int num_cols,
-            GLfloat *C);
-void gl_dot(const GLfloat *A,
+            gl_float_t *C);
+void gl_dot(const gl_float_t *A,
             const int A_m,
             const int A_n,
-            const GLfloat *B,
+            const gl_float_t *B,
             const int B_m,
             const int B_n,
-            GLfloat *C);
-void gl_scale(GLfloat factor,
-              GLfloat *A,
+            gl_float_t *C);
+void gl_scale(gl_float_t factor,
+              gl_float_t *A,
               const int num_rows,
               const int num_cols);
-GLfloat gl_norm(const GLfloat *x, const int size);
-void gl_normalize(GLfloat *x, const int size);
+gl_float_t gl_norm(const gl_float_t *x, const int size);
+void gl_normalize(gl_float_t *x, const int size);
 
-void gl_perspective(const GLfloat fov,
-                    const GLfloat aspect,
-                    const GLfloat near,
-                    const GLfloat far,
-                    GLfloat P[4 * 4]);
-void gl_ortho(const GLfloat left,
-              const GLfloat right,
-              const GLfloat bottom,
-              const GLfloat top,
-              const GLfloat znear,
-              const GLfloat zfar,
-              GLfloat P[4 * 4]);
-void gl_lookat(const GLfloat eye[3],
-               const GLfloat at[3],
-               const GLfloat up[3],
-               GLfloat V[4 * 4]);
+void gl_perspective(const gl_float_t fov,
+                    const gl_float_t aspect,
+                    const gl_float_t near,
+                    const gl_float_t far,
+                    gl_float_t P[4 * 4]);
+void gl_ortho(const gl_float_t left,
+              const gl_float_t right,
+              const gl_float_t bottom,
+              const gl_float_t top,
+              const gl_float_t znear,
+              const gl_float_t zfar,
+              gl_float_t P[4 * 4]);
+void gl_lookat(const gl_float_t eye[3],
+               const gl_float_t at[3],
+               const gl_float_t up[3],
+               gl_float_t V[4 * 4]);
 int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
 /******************************************************************************
@@ -215,56 +225,62 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp);
  *****************************************************************************/
 
 typedef struct gl_entity_t {
-  GLfloat T[4 * 4];
+  gl_float_t T[4 * 4];
 
-  GLuint program_id;
-  GLuint VAO;
-  GLuint VBO;
-  GLuint EBO;
+  gl_uint_t program_id;
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+  gl_uint_t EBO;
 } gl_entity_t;
 
-void gl_quat2rot(const GLfloat q[4], GLfloat C[3 * 3]);
-void gl_rot2quat(const GLfloat C[3 * 3], GLfloat q[4]);
+void gl_quat2rot(const gl_float_t q[4], gl_float_t C[3 * 3]);
+void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]);
 
 void gl_entity_setup(gl_entity_t *entity);
 void gl_entity_cleanup(gl_entity_t *entity);
-void gl_entity_set_position(gl_entity_t *entity, const GLfloat pos[3]);
-void gl_entity_get_position(gl_entity_t *entity, GLfloat *pos);
-void gl_entity_set_rotation(gl_entity_t *entity, const GLfloat rot[3 * 3]);
-void gl_entity_get_rotation(gl_entity_t *entity, GLfloat *rot);
-void gl_entity_set_quaternion(gl_entity_t *entity, const GLfloat quat[4]);
-void gl_entity_get_quaternion(gl_entity_t *entity, GLfloat *quat);
+void gl_entity_set_position(gl_entity_t *entity, const gl_float_t pos[3]);
+void gl_entity_get_position(gl_entity_t *entity, gl_float_t *pos);
+void gl_entity_set_rotation(gl_entity_t *entity, const gl_float_t rot[3 * 3]);
+void gl_entity_get_rotation(gl_entity_t *entity, gl_float_t *rot);
+void gl_entity_set_quaternion(gl_entity_t *entity, const gl_float_t quat[4]);
+void gl_entity_get_quaternion(gl_entity_t *entity, gl_float_t *quat);
 
 /******************************************************************************
  * GL-SHADER
  *****************************************************************************/
 
-GLuint gl_shader_compile(const char *shader_src, const int type);
-GLuint gl_shaders_link(const GLuint vertex_shader,
-                       const GLuint fragment_shader,
-                       const GLuint geometry_shader);
+gl_uint_t gl_shader_compile(const char *shader_src, const int type);
+gl_uint_t gl_shaders_link(const gl_uint_t vertex_shader,
+                          const gl_uint_t fragment_shader,
+                          const gl_uint_t geometry_shader);
 
 /******************************************************************************
  * GL-PROGRAM
  *****************************************************************************/
 
-GLuint gl_prog_setup(const char *vs_src,
-                     const char *fs_src,
-                     const char *gs_src);
+gl_uint_t gl_prog_setup(const char *vs_src,
+                        const char *fs_src,
+                        const char *gs_src);
 
-int gl_prog_set_int(const GLint id, const char *k, const GLint v);
-int gl_prog_set_vec2i(const GLint id, const char *k, const GLint v[2]);
-int gl_prog_set_vec3i(const GLint id, const char *k, const GLint v[3]);
-int gl_prog_set_vec4i(const GLint id, const char *k, const GLint v[4]);
+int gl_prog_set_int(const gl_int_t id, const char *k, const gl_int_t v);
+int gl_prog_set_vec2i(const gl_int_t id, const char *k, const gl_int_t v[2]);
+int gl_prog_set_vec3i(const gl_int_t id, const char *k, const gl_int_t v[3]);
+int gl_prog_set_vec4i(const gl_int_t id, const char *k, const gl_int_t v[4]);
 
-int gl_prog_set_color(const GLint id, const char *k, const gl_color_t v);
-int gl_prog_set_float(const GLint id, const char *k, const GLfloat v);
-int gl_prog_set_vec2(const GLint id, const char *k, const GLfloat v[2]);
-int gl_prog_set_vec3(const GLint id, const char *k, const GLfloat v[3]);
-int gl_prog_set_vec4(const GLint id, const char *k, const GLfloat v[4]);
-int gl_prog_set_mat2(const GLint id, const char *k, const GLfloat v[2 * 2]);
-int gl_prog_set_mat3(const GLint id, const char *k, const GLfloat v[3 * 3]);
-int gl_prog_set_mat4(const GLint id, const char *k, const GLfloat v[4 * 4]);
+int gl_prog_set_color(const gl_int_t id, const char *k, const gl_color_t v);
+int gl_prog_set_float(const gl_int_t id, const char *k, const gl_float_t v);
+int gl_prog_set_vec2(const gl_int_t id, const char *k, const gl_float_t v[2]);
+int gl_prog_set_vec3(const gl_int_t id, const char *k, const gl_float_t v[3]);
+int gl_prog_set_vec4(const gl_int_t id, const char *k, const gl_float_t v[4]);
+int gl_prog_set_mat2(const gl_int_t id,
+                     const char *k,
+                     const gl_float_t v[2 * 2]);
+int gl_prog_set_mat3(const gl_int_t id,
+                     const char *k,
+                     const gl_float_t v[3 * 3]);
+int gl_prog_set_mat4(const gl_int_t id,
+                     const char *k,
+                     const gl_float_t v[4 * 4]);
 
 /******************************************************************************
  * GL-CAMERA
@@ -277,24 +293,24 @@ typedef struct gl_camera_t {
   int *window_width;
   int *window_height;
 
-  GLfloat focal[3];
-  GLfloat world_up[3];
-  GLfloat position[3];
-  GLfloat right[3];
-  GLfloat up[3];
-  GLfloat front[3];
-  GLfloat yaw;
-  GLfloat pitch;
-  GLfloat radius;
+  gl_float_t focal[3];
+  gl_float_t world_up[3];
+  gl_float_t position[3];
+  gl_float_t right[3];
+  gl_float_t up[3];
+  gl_float_t front[3];
+  gl_float_t yaw;
+  gl_float_t pitch;
+  gl_float_t radius;
 
-  GLfloat fov;
-  GLfloat fov_min;
-  GLfloat fov_max;
-  GLfloat near;
-  GLfloat far;
+  gl_float_t fov;
+  gl_float_t fov_min;
+  gl_float_t fov_max;
+  gl_float_t near;
+  gl_float_t far;
 
-  GLfloat P[4 * 4]; // Projection matrix
-  GLfloat V[4 * 4]; // View matrix
+  gl_float_t P[4 * 4]; // Projection matrix
+  gl_float_t V[4 * 4]; // View matrix
 } gl_camera_t;
 
 void gl_camera_setup(gl_camera_t *camera,
@@ -322,10 +338,15 @@ void gl_camera_zoom(gl_camera_t *camera,
 
 typedef struct {
   gl_entity_t entity;
-  int width;
-  int height;
+  gl_int_t x;
+  gl_int_t y;
+  gl_int_t width;
+  gl_int_t height;
 } gl_rect_t;
-gl_rect_t *gl_rect_malloc(const int width, const int height);
+gl_rect_t *gl_rect_malloc(const gl_int_t x,
+                          const gl_int_t y,
+                          const gl_int_t width,
+                          const gl_int_t height);
 void gl_rect_free(gl_rect_t *rect);
 void gl_rect_draw(const gl_rect_t *rect, const gl_camera_t *camera);
 
@@ -333,14 +354,14 @@ void gl_rect_draw(const gl_rect_t *rect, const gl_camera_t *camera);
 
 typedef struct {
   gl_entity_t entity;
-  GLfloat size;
-  GLfloat color[3];
-  GLfloat outline_color[3];
+  gl_float_t size;
+  gl_float_t color[3];
+  gl_float_t outline_color[3];
 } gl_cube_t;
-gl_cube_t *gl_cube_setup(const GLfloat size,
-                         const GLfloat pos[3],
-                         const GLfloat color[3],
-                         const GLfloat outline_color[3]);
+gl_cube_t *gl_cube_setup(const gl_float_t size,
+                         const gl_float_t pos[3],
+                         const gl_float_t color[3],
+                         const gl_float_t outline_color[3]);
 void gl_cube_free(gl_cube_t *cube);
 void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera);
 
@@ -348,13 +369,13 @@ void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera);
 
 typedef struct {
   gl_entity_t entity;
-  GLfloat size;
-  GLfloat color[3];
-  GLfloat line_width;
+  gl_float_t size;
+  gl_float_t color[3];
+  gl_float_t line_width;
 } gl_cframe_t;
-gl_cframe_t *gl_cframe_malloc(const GLfloat pos[3],
-                              const GLfloat size,
-                              const GLfloat color[3]);
+gl_cframe_t *gl_cframe_malloc(const gl_float_t pos[3],
+                              const gl_float_t size,
+                              const gl_float_t color[3]);
 void gl_cframe_free(gl_cframe_t *cf);
 void gl_cframe_draw(const gl_cframe_t *cf, const gl_camera_t *camera);
 
@@ -362,8 +383,8 @@ void gl_cframe_draw(const gl_cframe_t *cf, const gl_camera_t *camera);
 
 typedef struct {
   gl_entity_t entity;
-  GLfloat size;
-  GLfloat line_width;
+  gl_float_t size;
+  gl_float_t line_width;
 } gl_axes3d_t;
 gl_axes3d_t *gl_axes3d_malloc(void);
 void gl_axes3d_free(gl_axes3d_t *axes);
@@ -373,8 +394,8 @@ void gl_axes3d_draw(const gl_axes3d_t *axes, const gl_camera_t *camera);
 
 typedef struct {
   gl_entity_t entity;
-  GLfloat size;
-  GLfloat line_width;
+  gl_float_t size;
+  gl_float_t line_width;
 } gl_grid3d_t;
 gl_grid3d_t *gl_grid3d_malloc(void);
 void gl_grid3d_free(gl_grid3d_t *grid);
@@ -384,15 +405,15 @@ void gl_grid3d_draw(const gl_grid3d_t *grid, const gl_camera_t *camera);
 
 typedef struct {
   gl_entity_t entity;
-  GLfloat *data;
-  GLuint num_points;
-  GLfloat size;
-  GLfloat color[3];
+  gl_float_t *data;
+  gl_uint_t num_points;
+  gl_float_t size;
+  gl_float_t color[3];
 } gl_points3d_t;
 gl_points3d_t *gl_points3d_malloc(const float *data,
                                   const size_t num_points,
-                                  const GLfloat size,
-                                  const GLfloat color[3]);
+                                  const gl_float_t size,
+                                  const gl_float_t color[3]);
 void gl_points3d_free(gl_points3d_t *points);
 void gl_points3d_draw(const gl_points3d_t *points,
                       const gl_camera_t *camera,
@@ -402,15 +423,15 @@ void gl_points3d_draw(const gl_points3d_t *points,
 
 typedef struct {
   gl_entity_t entity;
-  GLfloat *data;
-  GLint num_points;
-  GLfloat line_width;
-  GLfloat color[3];
+  gl_float_t *data;
+  gl_int_t num_points;
+  gl_float_t line_width;
+  gl_float_t color[3];
 } gl_line3d_t;
-gl_line3d_t *gl_line3d_malloc(const GLfloat *data,
+gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
                               const size_t num_points,
-                              const GLfloat line_width,
-                              const GLfloat color[3]);
+                              const gl_float_t line_width,
+                              const gl_float_t color[3]);
 void gl_line3d_free(gl_line3d_t *line);
 void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera);
 
@@ -426,11 +447,11 @@ typedef struct {
 typedef struct {
   gl_char_t data[128];
   gl_color_t color;
-  GLfloat P[4 * 4];
+  gl_float_t P[4 * 4];
 
-  GLuint program_id;
-  GLuint vao;
-  GLuint vbo;
+  gl_uint_t program_id;
+  gl_uint_t vao;
+  gl_uint_t vbo;
 } gl_text_t;
 
 void gl_char_print(const gl_char_t *ch);
@@ -446,16 +467,15 @@ void gl_text_draw(gl_text_t *text,
 // GL IMAGE //////////////////////////////////////////////////////////////////
 
 typedef struct {
-  GLuint program_id;
-  GLuint texture_id;
-  GLuint vao;
-  GLuint vbo;
-  GLuint ebo;
+  gl_uint_t program_id;
+  gl_uint_t texture_id;
+  gl_uint_t vao;
+  gl_uint_t vbo;
+  gl_uint_t ebo;
 } gl_image_t;
-void gl_image_setup(gl_image_t *image);
+gl_image_t *gl_image_malloc(void);
+void gl_image_free(gl_image_t *image);
 void gl_image_draw(gl_image_t *image);
-void gl_image_cleanup(gl_image_t *image);
-
 
 /******************************************************************************
  * GL-MESH
@@ -484,9 +504,9 @@ typedef struct gl_mesh_t {
   int num_indices;
   int num_textures;
 
-  GLuint VAO;
-  GLuint VBO;
-  GLuint EBO;
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+  gl_uint_t EBO;
 } gl_mesh_t;
 
 void gl_mesh_setup(gl_mesh_t *mesh,
@@ -496,7 +516,7 @@ void gl_mesh_setup(gl_mesh_t *mesh,
                    const int num_indices,
                    gl_texture_t *textures,
                    const int num_textures);
-void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader);
+void gl_mesh_draw(const gl_mesh_t *mesh, const gl_uint_t shader);
 
 /******************************************************************************
  * GL-MODEL
@@ -505,8 +525,8 @@ void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader);
 typedef struct gl_model_t {
   char model_dir[100];
 
-  GLfloat T[4 * 4];
-  GLuint program_id;
+  gl_float_t T[4 * 4];
+  gl_uint_t program_id;
 
   gl_mesh_t *meshes;
   int num_meshes;
@@ -533,8 +553,8 @@ typedef struct gui_t {
   int loop;
 
   gl_camera_t camera;
-  GLfloat movement_speed;
-  GLfloat mouse_sensitivity;
+  gl_float_t movement_speed;
+  gl_float_t mouse_sensitivity;
 
   double cursor_x;
   double cursor_y;
@@ -546,10 +566,30 @@ typedef struct gui_t {
   float last_cursor_y;
 } gui_t;
 
-void gui_event_handler(gui_t *gui);
 void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);
 void gui_loop(gui_t *gui);
+
+typedef struct {
+  gl_entity_t entity;
+  gl_color_t color;
+  gl_color_t color_hover;
+  gl_color_t color_press;
+  int x;
+  int y;
+  float width;
+  float height;
+  int is_pressed;
+  int is_hovered;
+
+  gl_uint_t program_id;
+  gl_uint_t vao;
+  gl_uint_t vbo;
+  gl_uint_t ebo;
+} ui_button_t;
+void ui_button_setup(ui_button_t *button);
+void ui_button_cleanup(const ui_button_t *button);
+int ui_button_draw(const ui_button_t *button);
 
 #endif // GUI_H
 
@@ -612,8 +652,8 @@ char *load_file(const char *fp) {
   return buf;
 }
 
-GLenum gl_check_error(const char *file, const int line) {
-  GLenum error_code;
+gl_enum_t gl_check_error(const char *file, const int line) {
+  gl_enum_t error_code;
 
   while ((error_code = glGetError()) != GL_NO_ERROR) {
     char error[1000] = {0};
@@ -650,18 +690,20 @@ GLenum gl_check_error(const char *file, const int line) {
  * Generate random number between a and b from a uniform distribution.
  * @returns Random number
  */
-GLfloat gl_randf(const GLfloat a, const GLfloat b) {
+gl_float_t gl_randf(const gl_float_t a, const gl_float_t b) {
   float random = ((float) rand()) / (float) RAND_MAX;
   float diff = b - a;
   float r = random * diff;
   return a + r;
 }
 
-GLfloat gl_deg2rad(const GLfloat d) { return d * M_PI / 180.0f; }
+gl_float_t gl_deg2rad(const gl_float_t d) { return d * M_PI / 180.0f; }
 
-GLfloat gl_rad2deg(const GLfloat r) { return r * 180.0f / M_PI; }
+gl_float_t gl_rad2deg(const gl_float_t r) { return r * 180.0f / M_PI; }
 
-void gl_print_vector(const char *prefix, const GLfloat *x, const int length) {
+void gl_print_vector(const char *prefix,
+                     const gl_float_t *x,
+                     const int length) {
   printf("%s: [", prefix);
   for (int i = 0; i < length; i++) {
     printf("%f", x[i]);
@@ -673,7 +715,7 @@ void gl_print_vector(const char *prefix, const GLfloat *x, const int length) {
 }
 
 void gl_print_matrix(const char *prefix,
-                     const GLfloat *A,
+                     const gl_float_t *A,
                      const int num_rows,
                      const int num_cols) {
   printf("%s:\n", prefix);
@@ -689,19 +731,19 @@ void gl_print_matrix(const char *prefix,
   printf("\n");
 }
 
-void gl_zeros(GLfloat *A, const int num_rows, const int num_cols) {
+void gl_zeros(gl_float_t *A, const int num_rows, const int num_cols) {
   for (int i = 0; i < (num_rows * num_cols); i++) {
     A[i] = 0.0f;
   }
 }
 
-void gl_ones(GLfloat *A, const int num_rows, const int num_cols) {
+void gl_ones(gl_float_t *A, const int num_rows, const int num_cols) {
   for (int i = 0; i < (num_rows * num_cols); i++) {
     A[i] = 1.0f;
   }
 }
 
-void gl_eye(GLfloat *A, const int num_rows, const int num_cols) {
+void gl_eye(gl_float_t *A, const int num_rows, const int num_cols) {
   int idx = 0;
   for (int j = 0; j < num_cols; j++) {
     for (int i = 0; i < num_rows; i++) {
@@ -710,33 +752,36 @@ void gl_eye(GLfloat *A, const int num_rows, const int num_cols) {
   }
 }
 
-void gl_vec2(GLfloat *v, const GLfloat x, const GLfloat y) {
+void gl_vec2(gl_float_t *v, const gl_float_t x, const gl_float_t y) {
   v[0] = x;
   v[1] = y;
 }
 
-void gl_vec3(GLfloat *v, const GLfloat x, const GLfloat y, const GLfloat z) {
+void gl_vec3(gl_float_t *v,
+             const gl_float_t x,
+             const gl_float_t y,
+             const gl_float_t z) {
   v[0] = x;
   v[1] = y;
   v[2] = z;
 }
 
-void gl_vec4(GLfloat *v,
-             const GLfloat x,
-             const GLfloat y,
-             const GLfloat z,
-             const GLfloat w) {
+void gl_vec4(gl_float_t *v,
+             const gl_float_t x,
+             const gl_float_t y,
+             const gl_float_t z,
+             const gl_float_t w) {
   v[0] = x;
   v[1] = y;
   v[2] = z;
   v[3] = w;
 }
 
-int gl_equals(const GLfloat *A,
-              const GLfloat *B,
+int gl_equals(const gl_float_t *A,
+              const gl_float_t *B,
               const int num_rows,
               const int num_cols,
-              const GLfloat tol) {
+              const gl_float_t tol) {
   for (int i = 0; i < (num_rows * num_cols); i++) {
     if (fabs(A[i] - B[i]) > tol) {
       return 0;
@@ -746,32 +791,35 @@ int gl_equals(const GLfloat *A,
   return 1;
 }
 
-void gl_mat_set(GLfloat *A,
+void gl_mat_set(gl_float_t *A,
                 const int m,
                 const int n,
                 const int i,
                 const int j,
-                const GLfloat val) {
+                const gl_float_t val) {
   UNUSED(n);
   A[i + (j * m)] = val;
 }
 
-GLfloat gl_mat_val(const GLfloat *A,
-                   const int m,
-                   const int n,
-                   const int i,
-                   const int j) {
+gl_float_t gl_mat_val(const gl_float_t *A,
+                      const int m,
+                      const int n,
+                      const int i,
+                      const int j) {
   UNUSED(n);
   return A[i + (j * m)];
 }
 
-void gl_copy(const GLfloat *src, const int m, const int n, GLfloat *dest) {
+void gl_copy(const gl_float_t *src,
+             const int m,
+             const int n,
+             gl_float_t *dest) {
   for (int i = 0; i < (m * n); i++) {
     dest[i] = src[i];
   }
 }
 
-void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t) {
+void gl_transpose(const gl_float_t *A, size_t m, size_t n, gl_float_t *A_t) {
   assert(A != NULL && A != A_t);
   assert(m > 0 && n > 0);
 
@@ -783,7 +831,9 @@ void gl_transpose(const GLfloat *A, size_t m, size_t n, GLfloat *A_t) {
   }
 }
 
-void gl_vec3_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]) {
+void gl_vec3_cross(const gl_float_t u[3],
+                   const gl_float_t v[3],
+                   gl_float_t n[3]) {
   assert(u);
   assert(v);
   assert(n);
@@ -793,33 +843,33 @@ void gl_vec3_cross(const GLfloat u[3], const GLfloat v[3], GLfloat n[3]) {
   n[2] = u[0] * v[1] - u[1] * v[0];
 }
 
-void gl_add(const GLfloat *A,
-            const GLfloat *B,
+void gl_add(const gl_float_t *A,
+            const gl_float_t *B,
             const int num_rows,
             const int num_cols,
-            GLfloat *C) {
+            gl_float_t *C) {
   for (int i = 0; i < (num_rows * num_cols); i++) {
     C[i] = A[i] + B[i];
   }
 }
 
-void gl_sub(const GLfloat *A,
-            const GLfloat *B,
+void gl_sub(const gl_float_t *A,
+            const gl_float_t *B,
             const int num_rows,
             const int num_cols,
-            GLfloat *C) {
+            gl_float_t *C) {
   for (int i = 0; i < (num_rows * num_cols); i++) {
     C[i] = A[i] - B[i];
   }
 }
 
-void gl_dot(const GLfloat *A,
+void gl_dot(const gl_float_t *A,
             const int A_m,
             const int A_n,
-            const GLfloat *B,
+            const gl_float_t *B,
             const int B_m,
             const int B_n,
-            GLfloat *C) {
+            gl_float_t *C) {
   assert(A != C && B != C);
   assert(A_n == B_m);
 
@@ -835,8 +885,8 @@ void gl_dot(const GLfloat *A,
   }
 }
 
-void gl_scale(GLfloat factor,
-              GLfloat *A,
+void gl_scale(gl_float_t factor,
+              gl_float_t *A,
               const int num_rows,
               const int num_cols) {
   for (int i = 0; i < (num_rows * num_cols); i++) {
@@ -844,8 +894,8 @@ void gl_scale(GLfloat factor,
   }
 }
 
-GLfloat gl_norm(const GLfloat *x, const int size) {
-  GLfloat sum_sq = 0.0f;
+gl_float_t gl_norm(const gl_float_t *x, const int size) {
+  gl_float_t sum_sq = 0.0f;
   for (int i = 0; i < size; i++) {
     sum_sq += x[i] * x[i];
   }
@@ -853,19 +903,19 @@ GLfloat gl_norm(const GLfloat *x, const int size) {
   return sqrt(sum_sq);
 }
 
-void gl_normalize(GLfloat *x, const int size) {
-  const GLfloat n = gl_norm(x, size);
+void gl_normalize(gl_float_t *x, const int size) {
+  const gl_float_t n = gl_norm(x, size);
   for (int i = 0; i < size; i++) {
     x[i] /= n;
   }
 }
 
-void gl_perspective(const GLfloat fov,
-                    const GLfloat aspect,
-                    const GLfloat near,
-                    const GLfloat far,
-                    GLfloat P[4 * 4]) {
-  const GLfloat f = 1.0f / tan(fov * 0.5f);
+void gl_perspective(const gl_float_t fov,
+                    const gl_float_t aspect,
+                    const gl_float_t near,
+                    const gl_float_t far,
+                    gl_float_t P[4 * 4]) {
+  const gl_float_t f = 1.0f / tan(fov * 0.5f);
 
   gl_zeros(P, 4, 4);
   P[0] = f / aspect;
@@ -889,13 +939,13 @@ void gl_perspective(const GLfloat fov,
   P[15] = 0.0f;
 }
 
-void gl_ortho(const GLfloat left,
-              const GLfloat right,
-              const GLfloat bottom,
-              const GLfloat top,
-              const GLfloat znear,
-              const GLfloat zfar,
-              GLfloat P[4 * 4]) {
+void gl_ortho(const gl_float_t left,
+              const gl_float_t right,
+              const gl_float_t bottom,
+              const gl_float_t top,
+              const gl_float_t znear,
+              const gl_float_t zfar,
+              gl_float_t P[4 * 4]) {
   gl_zeros(P, 4, 4);
   P[0] = 2.0f / (right - left);
   P[1] = 0.0f;
@@ -918,29 +968,29 @@ void gl_ortho(const GLfloat left,
   P[15] = 1.0f;
 }
 
-void gl_lookat(const GLfloat eye[3],
-               const GLfloat at[3],
-               const GLfloat up[3],
-               GLfloat V[4 * 4]) {
+void gl_lookat(const gl_float_t eye[3],
+               const gl_float_t at[3],
+               const gl_float_t up[3],
+               gl_float_t V[4 * 4]) {
   // Z-axis: Camera forward
-  GLfloat z[3] = {0};
+  gl_float_t z[3] = {0};
   gl_sub(at, eye, 3, 1, z);
   gl_normalize(z, 3);
 
   // X-axis: Camera right
-  GLfloat x[3] = {0};
+  gl_float_t x[3] = {0};
   gl_vec3_cross(z, up, x);
   gl_normalize(x, 3);
 
   // Y-axis: Camera up
-  GLfloat y[3] = {0};
+  gl_float_t y[3] = {0};
   gl_vec3_cross(x, z, y);
 
   // Negate z-axis
   gl_scale(-1.0f, z, 3, 1);
 
   // Form rotation component
-  GLfloat R[4 * 4] = {0};
+  gl_float_t R[4 * 4] = {0};
   R[0] = x[0];
   R[1] = y[0];
   R[2] = z[0];
@@ -962,7 +1012,7 @@ void gl_lookat(const GLfloat eye[3],
   R[15] = 1.0f;
 
   // Form translation component
-  GLfloat T[4 * 4] = {0};
+  gl_float_t T[4 * 4] = {0};
   T[0] = 1.0f;
   T[1] = 0.0f;
   T[2] = 0.0f;
@@ -995,8 +1045,8 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp) {
   GLubyte *pixels = malloc(sizeof(GLubyte) * num_pixels);
 
   // Read pixels
-  const GLint x = 0;
-  const GLint y = 0;
+  const gl_int_t x = 0;
+  const gl_int_t y = 0;
   glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
   // Write to file
@@ -1020,19 +1070,19 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp) {
 /**
  * Convert Quaternion `q` to 3x3 rotation matrix `C`.
  */
-void gl_quat2rot(const GLfloat q[4], GLfloat C[3 * 3]) {
+void gl_quat2rot(const gl_float_t q[4], gl_float_t C[3 * 3]) {
   assert(q != NULL);
   assert(C != NULL);
 
-  const GLfloat qw = q[0];
-  const GLfloat qx = q[1];
-  const GLfloat qy = q[2];
-  const GLfloat qz = q[3];
+  const gl_float_t qw = q[0];
+  const gl_float_t qx = q[1];
+  const gl_float_t qy = q[2];
+  const gl_float_t qz = q[3];
 
-  const GLfloat qx2 = qx * qx;
-  const GLfloat qy2 = qy * qy;
-  const GLfloat qz2 = qz * qz;
-  const GLfloat qw2 = qw * qw;
+  const gl_float_t qx2 = qx * qx;
+  const gl_float_t qy2 = qy * qy;
+  const gl_float_t qz2 = qz * qz;
+  const gl_float_t qw2 = qw * qw;
 
   // Homogeneous form
   // -- 1st row
@@ -1052,26 +1102,26 @@ void gl_quat2rot(const GLfloat q[4], GLfloat C[3 * 3]) {
 /**
  * Convert 3x3 rotation matrix `C` to Quaternion `q`.
  */
-void gl_rot2quat(const GLfloat C[3 * 3], GLfloat q[4]) {
+void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]) {
   assert(C != NULL);
   assert(q != NULL);
 
-  const GLfloat C00 = C[0];
-  const GLfloat C01 = C[3];
-  const GLfloat C02 = C[6];
-  const GLfloat C10 = C[1];
-  const GLfloat C11 = C[4];
-  const GLfloat C12 = C[7];
-  const GLfloat C20 = C[2];
-  const GLfloat C21 = C[5];
-  const GLfloat C22 = C[8];
+  const gl_float_t C00 = C[0];
+  const gl_float_t C01 = C[3];
+  const gl_float_t C02 = C[6];
+  const gl_float_t C10 = C[1];
+  const gl_float_t C11 = C[4];
+  const gl_float_t C12 = C[7];
+  const gl_float_t C20 = C[2];
+  const gl_float_t C21 = C[5];
+  const gl_float_t C22 = C[8];
 
-  const GLfloat tr = C00 + C11 + C22;
-  GLfloat S = 0.0f;
-  GLfloat qw = 0.0f;
-  GLfloat qx = 0.0f;
-  GLfloat qy = 0.0f;
-  GLfloat qz = 0.0f;
+  const gl_float_t tr = C00 + C11 + C22;
+  gl_float_t S = 0.0f;
+  gl_float_t qw = 0.0f;
+  gl_float_t qx = 0.0f;
+  gl_float_t qy = 0.0f;
+  gl_float_t qz = 0.0f;
 
   if (tr > 0) {
     S = sqrt(tr + 1.0) * 2; // S=4*qw
@@ -1131,7 +1181,7 @@ void gl_entity_cleanup(gl_entity_t *entity) {
   }
 }
 
-void gl_entity_set_position(gl_entity_t *entity, const GLfloat pos[3]) {
+void gl_entity_set_position(gl_entity_t *entity, const gl_float_t pos[3]) {
   assert(entity != NULL);
   assert(pos != NULL);
   entity->T[12] = pos[0];
@@ -1139,7 +1189,7 @@ void gl_entity_set_position(gl_entity_t *entity, const GLfloat pos[3]) {
   entity->T[14] = pos[2];
 }
 
-void gl_entity_get_position(gl_entity_t *entity, GLfloat *pos) {
+void gl_entity_get_position(gl_entity_t *entity, gl_float_t *pos) {
   assert(entity != NULL);
   assert(pos != NULL);
   pos[0] = entity->T[12];
@@ -1147,7 +1197,7 @@ void gl_entity_get_position(gl_entity_t *entity, GLfloat *pos) {
   pos[2] = entity->T[14];
 }
 
-void gl_entity_set_rotation(gl_entity_t *entity, const GLfloat rot[3 * 3]) {
+void gl_entity_set_rotation(gl_entity_t *entity, const gl_float_t rot[3 * 3]) {
   assert(entity != NULL);
   assert(rot != NULL);
   entity->T[0] = rot[0];
@@ -1161,7 +1211,7 @@ void gl_entity_set_rotation(gl_entity_t *entity, const GLfloat rot[3 * 3]) {
   entity->T[10] = rot[8];
 }
 
-void gl_entity_get_rotation(gl_entity_t *entity, GLfloat *rot) {
+void gl_entity_get_rotation(gl_entity_t *entity, gl_float_t *rot) {
   assert(entity != NULL);
   assert(rot != NULL);
 
@@ -1176,18 +1226,18 @@ void gl_entity_get_rotation(gl_entity_t *entity, GLfloat *rot) {
   rot[8] = entity->T[10];
 }
 
-void gl_entity_set_quaternion(gl_entity_t *entity, const GLfloat quat[4]) {
+void gl_entity_set_quaternion(gl_entity_t *entity, const gl_float_t quat[4]) {
   assert(entity != NULL);
   assert(quat != NULL);
-  GLfloat C[3 * 3] = {0};
+  gl_float_t C[3 * 3] = {0};
   gl_quat2rot(quat, C);
   gl_entity_set_rotation(entity, C);
 }
 
-void gl_entity_get_quaternion(gl_entity_t *entity, GLfloat *quat) {
+void gl_entity_get_quaternion(gl_entity_t *entity, gl_float_t *quat) {
   assert(entity != NULL);
   assert(quat != NULL);
-  GLfloat C[3 * 3] = {0};
+  gl_float_t C[3 * 3] = {0};
   gl_entity_get_rotation(entity, C);
   gl_rot2quat(C, quat);
 }
@@ -1196,17 +1246,17 @@ void gl_entity_get_quaternion(gl_entity_t *entity, GLfloat *quat) {
  * GL-SHADER
  *****************************************************************************/
 
-GLuint gl_shader_compile(const char *shader_src, const int type) {
+gl_uint_t gl_shader_compile(const char *shader_src, const int type) {
   if (shader_src == NULL) {
     LOG_ERROR("Shader source is NULL!");
     return GL_FALSE;
   }
 
-  const GLuint shader = glCreateShader(type);
+  const gl_uint_t shader = glCreateShader(type);
   glShaderSource(shader, 1, &shader_src, NULL);
   glCompileShader(shader);
 
-  GLint retval = 0;
+  gl_int_t retval = 0;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &retval);
   if (retval == GL_FALSE) {
     char log[9046] = {0};
@@ -1218,8 +1268,8 @@ GLuint gl_shader_compile(const char *shader_src, const int type) {
   return shader;
 }
 
-void gl_shader_status(GLuint shader) {
-  GLint success = 0;
+void gl_shader_status(gl_uint_t shader) {
+  gl_int_t success = 0;
   GLchar infoLog[1024];
 
   glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -1241,11 +1291,11 @@ void gl_shader_status(GLuint shader) {
   }
 }
 
-GLuint gl_shaders_link(const GLuint vertex_shader,
-                       const GLuint fragment_shader,
-                       const GLuint geometry_shader) {
+gl_uint_t gl_shaders_link(const gl_uint_t vertex_shader,
+                          const gl_uint_t fragment_shader,
+                          const gl_uint_t geometry_shader) {
   // Attach shaders to link
-  GLuint program = glCreateProgram();
+  gl_uint_t program = glCreateProgram();
   glAttachShader(program, vertex_shader);
   glAttachShader(program, fragment_shader);
   if (geometry_shader != GL_FALSE) {
@@ -1254,7 +1304,7 @@ GLuint gl_shaders_link(const GLuint vertex_shader,
   glLinkProgram(program);
 
   // Link program
-  GLint success = 0;
+  gl_int_t success = 0;
   char log[9046];
   glGetProgramiv(program, GL_LINK_STATUS, &success);
   if (success == GL_FALSE) {
@@ -1277,12 +1327,12 @@ GLuint gl_shaders_link(const GLuint vertex_shader,
  * GL-PROGRAM
  *****************************************************************************/
 
-GLuint gl_prog_setup(const char *vs_src,
-                     const char *fs_src,
-                     const char *gs_src) {
-  GLuint vs = GL_FALSE;
-  GLuint fs = GL_FALSE;
-  GLuint gs = GL_FALSE;
+gl_uint_t gl_prog_setup(const char *vs_src,
+                        const char *fs_src,
+                        const char *gs_src) {
+  gl_uint_t vs = GL_FALSE;
+  gl_uint_t fs = GL_FALSE;
+  gl_uint_t gs = GL_FALSE;
 
   if (vs_src) {
     vs = gl_shader_compile(vs_src, GL_VERTEX_SHADER);
@@ -1296,12 +1346,12 @@ GLuint gl_prog_setup(const char *vs_src,
     gs = gl_shader_compile(gs_src, GL_GEOMETRY_SHADER);
   }
 
-  const GLuint program_id = gl_shaders_link(vs, fs, gs);
+  const gl_uint_t program_id = gl_shaders_link(vs, fs, gs);
   return program_id;
 }
 
-int gl_prog_set_int(const GLint id, const char *k, const GLint v) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_int(const gl_int_t id, const char *k, const gl_int_t v) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1310,8 +1360,8 @@ int gl_prog_set_int(const GLint id, const char *k, const GLint v) {
   return 0;
 }
 
-int gl_prog_set_vec2i(const GLint id, const char *k, const GLint v[2]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_vec2i(const gl_int_t id, const char *k, const gl_int_t v[2]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1320,8 +1370,8 @@ int gl_prog_set_vec2i(const GLint id, const char *k, const GLint v[2]) {
   return 0;
 }
 
-int gl_prog_set_vec3i(const GLint id, const char *k, const GLint v[3]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_vec3i(const gl_int_t id, const char *k, const gl_int_t v[3]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1330,8 +1380,8 @@ int gl_prog_set_vec3i(const GLint id, const char *k, const GLint v[3]) {
   return 0;
 }
 
-int gl_prog_set_vec4i(const GLint id, const char *k, const GLint v[4]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_vec4i(const gl_int_t id, const char *k, const gl_int_t v[4]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1340,8 +1390,8 @@ int gl_prog_set_vec4i(const GLint id, const char *k, const GLint v[4]) {
   return 0;
 }
 
-int gl_prog_set_color(const GLint id, const char *k, const gl_color_t v) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_color(const gl_int_t id, const char *k, const gl_color_t v) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1350,8 +1400,8 @@ int gl_prog_set_color(const GLint id, const char *k, const gl_color_t v) {
   return 0;
 }
 
-int gl_prog_set_float(const GLint id, const char *k, const GLfloat v) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_float(const gl_int_t id, const char *k, const gl_float_t v) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1360,8 +1410,8 @@ int gl_prog_set_float(const GLint id, const char *k, const GLfloat v) {
   return 0;
 }
 
-int gl_prog_set_vec2(const GLint id, const char *k, const GLfloat v[2]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_vec2(const gl_int_t id, const char *k, const gl_float_t v[2]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1370,8 +1420,8 @@ int gl_prog_set_vec2(const GLint id, const char *k, const GLfloat v[2]) {
   return 0;
 }
 
-int gl_prog_set_vec3(const GLint id, const char *k, const GLfloat v[3]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_vec3(const gl_int_t id, const char *k, const gl_float_t v[3]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1380,8 +1430,8 @@ int gl_prog_set_vec3(const GLint id, const char *k, const GLfloat v[3]) {
   return 0;
 }
 
-int gl_prog_set_vec4(const GLint id, const char *k, const GLfloat v[4]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_vec4(const gl_int_t id, const char *k, const gl_float_t v[4]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1390,8 +1440,10 @@ int gl_prog_set_vec4(const GLint id, const char *k, const GLfloat v[4]) {
   return 0;
 }
 
-int gl_prog_set_mat2(const GLint id, const char *k, const GLfloat v[2 * 2]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_mat2(const gl_int_t id,
+                     const char *k,
+                     const gl_float_t v[2 * 2]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1400,8 +1452,10 @@ int gl_prog_set_mat2(const GLint id, const char *k, const GLfloat v[2 * 2]) {
   return 0;
 }
 
-int gl_prog_set_mat3(const GLint id, const char *k, const GLfloat v[3 * 3]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_mat3(const gl_int_t id,
+                     const char *k,
+                     const gl_float_t v[3 * 3]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1410,8 +1464,10 @@ int gl_prog_set_mat3(const GLint id, const char *k, const GLfloat v[3 * 3]) {
   return 0;
 }
 
-int gl_prog_set_mat4(const GLint id, const char *k, const GLfloat v[4 * 4]) {
-  const GLint location = glGetUniformLocation(id, k);
+int gl_prog_set_mat4(const gl_int_t id,
+                     const char *k,
+                     const gl_float_t v[4 * 4]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
   }
@@ -1433,15 +1489,15 @@ void gl_camera_setup(gl_camera_t *camera,
 
   gl_zeros(camera->focal, 3, 1);
   gl_vec3(camera->world_up, 0.0f, 1.0f, 0.0f);
-  gl_vec3(camera->position, 0.0f, 2.0f, 0.0f);
+  gl_vec3(camera->position, 0.0f, 3.0f, 0.0f);
   gl_vec3(camera->right, -1.0f, 0.0f, 0.0f);
   gl_vec3(camera->up, 0.0f, 1.0f, 0.0f);
   gl_vec3(camera->front, 0.0f, 0.0f, -1.0f);
   camera->yaw = gl_deg2rad(0.0f);
-  camera->pitch = gl_deg2rad(30.0f);
+  camera->pitch = gl_deg2rad(-50.0f);
   camera->radius = 1.0f;
 
-  camera->fov = gl_deg2rad(90.0f);
+  camera->fov = gl_deg2rad(60.0f);
   camera->fov_min = gl_deg2rad(10.0f);
   camera->fov_max = gl_deg2rad(120.0f);
   camera->near = 0.01f;
@@ -1479,7 +1535,7 @@ void gl_camera_update(gl_camera_t *camera) {
     camera->position[2] =
         camera->radius * sin(camera->pitch) * cos(camera->yaw);
 
-    GLfloat eye[3] = {0};
+    gl_float_t eye[3] = {0};
     eye[0] = camera->position[0];
     eye[1] = camera->position[1];
     eye[2] = camera->position[2];
@@ -1488,12 +1544,12 @@ void gl_camera_update(gl_camera_t *camera) {
 
   // View matrix (FPS mode)
   if (camera->view_mode == FPS) {
-    GLfloat eye[3] = {0};
+    gl_float_t eye[3] = {0};
     eye[0] = camera->position[0];
     eye[1] = camera->position[1];
     eye[2] = camera->position[2];
 
-    GLfloat carrot[3] = {0};
+    gl_float_t carrot[3] = {0};
     carrot[0] = camera->position[0] + camera->front[0];
     carrot[1] = camera->position[1] + camera->front[1];
     carrot[2] = camera->position[2] + camera->front[2];
@@ -1542,10 +1598,10 @@ void gl_camera_pan(gl_camera_t *camera,
                    const float dy) {
   // camera->focal -= (dy * mouse_sensitivity) * camera->front;
   // camera->focal += (dx * mouse_sensitivity) * camera->right;
-  const GLfloat dx_scaled = dx * factor;
-  const GLfloat dy_scaled = dy * factor;
-  GLfloat front[3] = {camera->front[0], camera->front[1], camera->front[2]};
-  GLfloat right[3] = {camera->right[0], camera->right[1], camera->right[2]};
+  const gl_float_t dx_scaled = dx * factor;
+  const gl_float_t dy_scaled = dy * factor;
+  gl_float_t front[3] = {camera->front[0], camera->front[1], camera->front[2]};
+  gl_float_t right[3] = {camera->right[0], camera->right[1], camera->right[2]};
   gl_scale(dy_scaled, front, 3, 1);
   gl_scale(dx_scaled, right, 3, 1);
   gl_sub(camera->focal, front, 3, 1, camera->focal);
@@ -1561,7 +1617,7 @@ void gl_camera_zoom(gl_camera_t *camera,
                     const float dy) {
   UNUSED(factor);
   UNUSED(dx);
-  GLfloat fov = camera->fov + dy;
+  gl_float_t fov = camera->fov + dy;
   fov = (fov <= camera->fov_min) ? camera->fov_min : fov;
   fov = (fov >= camera->fov_max) ? camera->fov_max : fov;
   camera->fov = fov;
@@ -1573,19 +1629,37 @@ void gl_camera_zoom(gl_camera_t *camera,
 
 // GL RECT ///////////////////////////////////////////////////////////////////
 
-gl_rect_t *gl_rect_malloc(const int width, const int height) {
+#define GL_RECT_VS                                                             \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec2 in_pos;\n"                                    \
+  "layout (location = 1) in vec2 in_tex_coord;\n"                              \
+  "out vec2 tex_coord;\n"                                                      \
+  "void main() {\n"                                                            \
+  "  gl_Position = vec4(in_pos, 0.0f, 1.0f);\n"                                \
+  "  tex_coord = in_tex_coord;\n"                                              \
+  "}\n"
+
+#define GL_RECT_FS                                                             \
+  "#version 330 core\n"                                                        \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(0.5f, 0.5f, 01.0f, 1.0f);\n"                            \
+  "}\n"
+
+gl_rect_t *gl_rect_malloc(const gl_int_t x,
+                          const gl_int_t y,
+                          const gl_int_t width,
+                          const gl_int_t height) {
   // Malloc
   gl_rect_t *rect = MALLOC(gl_rect_t, 1);
   gl_entity_setup(&rect->entity);
+  rect->x = x;
+  rect->y = y;
   rect->width = width;
   rect->height = height;
 
   // Shader program
-  char *vs = load_file("./shaders/rect.vert");
-  char *fs = load_file("./shaders/rect.frag");
-  rect->entity.program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  rect->entity.program_id = gl_prog_setup(GL_RECT_VS, GL_RECT_FS, NULL);
   if (rect->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -1593,13 +1667,11 @@ gl_rect_t *gl_rect_malloc(const int width, const int height) {
   // Vertices
   // clang-format off
   const float vertices[4 * 3] = {
-     -0.5f, -0.5f,
-     0.5f, -0.5f,
-     0.5f,  0.5f,
-     -0.5f,  0.5f,
+     -0.5f, -0.5f, // Bottom left
+     0.5f, -0.5f,  // Bottom right
+     0.5f,  0.5f,  // Top right
+     -0.5f,  0.5f, // Top left
   };
-  const int num_vertices = 4;
-  const size_t vbo_size = sizeof(float) * num_vertices * 2;
   // clang-format on
 
   // VAO
@@ -1609,7 +1681,7 @@ gl_rect_t *gl_rect_malloc(const int width, const int height) {
   // VBO
   glGenBuffers(1, &rect->entity.VBO);
   glBindBuffer(GL_ARRAY_BUFFER, rect->entity.VBO);
-  glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
   // -- Position attribute
   size_t pos_size = sizeof(float) * 2;
   void *pos_offset = (void *) 0;
@@ -1640,10 +1712,31 @@ void gl_rect_draw(const gl_rect_t *rect, const gl_camera_t *camera) {
 
 // GL CUBE ///////////////////////////////////////////////////////////////////
 
-gl_cube_t *gl_cube_malloc(const GLfloat size,
-                          const GLfloat pos[3],
-                          const GLfloat color[3],
-                          const GLfloat outline_color[3]) {
+#define GL_CUBE_VS                                                             \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec3 in_pos;\n"                                    \
+  "out vec3 color;\n"                                                          \
+  "uniform mat4 model;\n"                                                      \
+  "uniform mat4 view;\n"                                                       \
+  "uniform mat4 projection;\n"                                                 \
+  "uniform vec3 in_color;\n"                                                   \
+  "void main() {\n"                                                            \
+  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "  color = in_color;\n"                                                      \
+  "}\n"
+
+#define GL_CUBE_FS                                                             \
+  "#version 330 core\n"                                                        \
+  "in vec3 color;\n"                                                           \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "}\n"
+
+gl_cube_t *gl_cube_malloc(const gl_float_t size,
+                          const gl_float_t pos[3],
+                          const gl_float_t color[3],
+                          const gl_float_t outline_color[3]) {
   // Malloc
   gl_cube_t *cube = MALLOC(gl_cube_t, 1);
   gl_entity_setup(&cube->entity);
@@ -1667,18 +1760,14 @@ gl_cube_t *gl_cube_malloc(const GLfloat size,
   cube->outline_color[2] = outline_color[2];
 
   // Shader program
-  char *vs = load_file("./shaders/cube.vert");
-  char *fs = load_file("./shaders/cube.frag");
-  cube->entity.program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  cube->entity.program_id = gl_prog_setup(GL_CUBE_VS, GL_CUBE_FS, NULL);
   if (cube->entity.program_id == GL_FALSE) {
-    FATAL("Failed to create shaders to draw cube!");
+    FATAL("Failed to create shaders!");
   }
 
   // Vertices
   // clang-format off
-  GLfloat vertices[12 * 3 * 3] = {
+  gl_float_t vertices[12 * 3 * 3] = {
     // Triangle 1
     -size, -size, -size,
     -size, -size,  size,
@@ -1732,7 +1821,7 @@ gl_cube_t *gl_cube_malloc(const GLfloat size,
   const size_t num_triangles = 12;
   const size_t vertices_per_triangle = 3;
   const size_t num_vertices = vertices_per_triangle * num_triangles;
-  const size_t vbo_size = sizeof(GLfloat) * num_vertices * 3;
+  const size_t vbo_size = sizeof(gl_float_t) * num_vertices * 3;
   // clang-format on
 
   // VAO
@@ -1744,7 +1833,7 @@ gl_cube_t *gl_cube_malloc(const GLfloat size,
   glBindBuffer(GL_ARRAY_BUFFER, cube->entity.VBO);
   glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
   // -- Position attribute
-  const size_t vertex_size = sizeof(GLfloat) * 3;
+  const size_t vertex_size = sizeof(gl_float_t) * 3;
   const void *offset = (void *) 0;
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, offset);
   glEnableVertexAttribArray(0);
@@ -1777,10 +1866,10 @@ void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera) {
 
   // // Draw outline
   // // -- Track original line width
-  // GLfloat lw_orig;
+  // gl_float_t lw_orig;
   // glGetFloatv(GL_LINE_WIDTH, &lw_orig);
   // // -- Draw Outline
-  // GLfloat outline[4 * 4] = {0};
+  // gl_float_t outline[4 * 4] = {0};
   // gl_copy(cube->T, 4, 4, outline);
   // gl_prog_set_mat4(cube->entity.program_id, "model", outline);
   // gl_prog_set_vec3(cube->entity.program_id, "in_color", cube->outline_color);
@@ -1797,9 +1886,26 @@ void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera) {
 
 // GL CAMERA FRAME ///////////////////////////////////////////////////////////
 
-gl_cframe_t *gl_cframe_malloc(const GLfloat pos[3],
-                              const GLfloat size,
-                              const GLfloat color[3]) {
+#define GL_CFRAME_VS                                                           \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec3 in_pos;\n"                                    \
+  "uniform mat4 model;\n"                                                      \
+  "uniform mat4 view;\n"                                                       \
+  "uniform mat4 projection;\n"                                                 \
+  "void main() {\n"                                                            \
+  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "}\n"
+
+#define GL_CFRAME_FS                                                           \
+  "#version 150 core\n"                                                        \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"                             \
+  "}\n"
+
+gl_cframe_t *gl_cframe_malloc(const gl_float_t pos[3],
+                              const gl_float_t size,
+                              const gl_float_t color[3]) {
   // Malloc
   gl_cframe_t *cf = MALLOC(gl_cframe_t, 1);
   gl_entity_setup(&cf->entity);
@@ -1812,30 +1918,26 @@ gl_cframe_t *gl_cframe_malloc(const GLfloat pos[3],
   cf->entity.T[14] = pos[2];
 
   // Shader program
-  char *vs = load_file("./shaders/camera_frame.vert");
-  char *fs = load_file("./shaders/camera_frame.frag");
-  cf->entity.program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  cf->entity.program_id = gl_prog_setup(GL_CFRAME_VS, GL_CFRAME_FS, NULL);
   if (cf->entity.program_id == GL_FALSE) {
-    FATAL("Failed to create shaders to draw cube!");
+    FATAL("Failed to create shaders!");
   }
 
   // Form the camera fov frame
-  GLfloat fov = gl_deg2rad(60.0);
-  GLfloat hfov = fov / 2.0f;
-  GLfloat scale = 1.0f;
-  GLfloat z = scale;
-  GLfloat hwidth = z * tan(hfov);
-  const GLfloat lb[3] = {-hwidth, hwidth, z};  // Left bottom
-  const GLfloat lt[3] = {-hwidth, -hwidth, z}; // Left top
-  const GLfloat rt[3] = {hwidth, -hwidth, z};  // Right top
-  const GLfloat rb[3] = {hwidth, hwidth, z};   // Right bottom
+  gl_float_t fov = gl_deg2rad(60.0);
+  gl_float_t hfov = fov / 2.0f;
+  gl_float_t scale = 1.0f;
+  gl_float_t z = scale;
+  gl_float_t hwidth = z * tan(hfov);
+  const gl_float_t lb[3] = {-hwidth, hwidth, z};  // Left bottom
+  const gl_float_t lt[3] = {-hwidth, -hwidth, z}; // Left top
+  const gl_float_t rt[3] = {hwidth, -hwidth, z};  // Right top
+  const gl_float_t rb[3] = {hwidth, hwidth, z};   // Right bottom
 
   // Rectangle frame
   // clang-format off
-  const size_t vertex_size = sizeof(GLfloat) * 3;
-  const GLfloat vertices[8 * 6] = {
+  const size_t vertex_size = sizeof(gl_float_t) * 3;
+  const gl_float_t vertices[8 * 6] = {
     // -- Left bottom to left top
     lb[0], lb[1], lb[2], lt[0], lt[1], lt[2],
     // -- Left top to right top
@@ -1889,11 +1991,11 @@ void gl_cframe_draw(const gl_cframe_t *cf, const gl_camera_t *camera) {
   gl_prog_set_mat4(cf->entity.program_id, "model", cf->entity.T);
 
   // Store original line width
-  GLfloat original_line_width = 0.0f;
+  gl_float_t original_line_width = 0.0f;
   glGetFloatv(GL_LINE_WIDTH, &original_line_width);
 
   // Set line width
-  GLfloat line_width = 2.0f;
+  gl_float_t line_width = 2.0f;
   glLineWidth(line_width);
 
   // Draw frame
@@ -1909,6 +2011,27 @@ void gl_cframe_draw(const gl_cframe_t *cf, const gl_camera_t *camera) {
 
 // GL AXIS FRAME /////////////////////////////////////////////////////////////
 
+#define GL_AXES3D_VS                                                           \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec3 in_pos;\n"                                    \
+  "layout (location = 1) in vec3 in_color;\n"                                  \
+  "out vec3 color;\n"                                                          \
+  "uniform mat4 model;\n"                                                      \
+  "uniform mat4 view;\n"                                                       \
+  "uniform mat4 projection;\n"                                                 \
+  "void main() {\n"                                                            \
+  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "  color = in_color;\n"                                                      \
+  "}\n"
+
+#define GL_AXES3D_FS                                                           \
+  "#version 150 core\n"                                                        \
+  "in vec3 color;\n"                                                           \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "}\n"
+
 gl_axes3d_t *gl_axes3d_malloc(void) {
   // Malloc
   gl_axes3d_t *axes = MALLOC(gl_axes3d_t, 1);
@@ -1917,18 +2040,14 @@ gl_axes3d_t *gl_axes3d_malloc(void) {
   axes->line_width = 6.0f;
 
   // Shader program
-  char *vs = load_file("./shaders/axis_frame.vert");
-  char *fs = load_file("./shaders/axis_frame.frag");
-  axes->entity.program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  axes->entity.program_id = gl_prog_setup(GL_AXES3D_VS, GL_AXES3D_FS, NULL);
   if (axes->entity.program_id == GL_FALSE) {
-    FATAL("Failed to create shaders to draw cube!");
+    FATAL("Failed to create shaders!");
   }
 
   // Vertices
   // clang-format off
-  static const GLfloat vertices[] = {
+  static const gl_float_t vertices[] = {
     // Line 1 : x-axis + color
     0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
     1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
@@ -1981,7 +2100,7 @@ void gl_axes3d_draw(const gl_axes3d_t *axes, const gl_camera_t *camera) {
   gl_prog_set_mat4(axes->entity.program_id, "model", axes->entity.T);
 
   // Store original line width
-  GLfloat original_line_width = 0.0f;
+  gl_float_t original_line_width = 0.0f;
   glGetFloatv(GL_LINE_WIDTH, &original_line_width);
 
   // Set line width
@@ -1998,12 +2117,29 @@ void gl_axes3d_draw(const gl_axes3d_t *axes, const gl_camera_t *camera) {
 
 // GL GRID ///////////////////////////////////////////////////////////////////
 
-static GLfloat *gl_grid3d_create_vertices(int grid_size) {
+#define GL_GRID3D_VS                                                           \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec3 in_pos;\n"                                    \
+  "uniform mat4 model;\n"                                                      \
+  "uniform mat4 view;\n"                                                       \
+  "uniform mat4 projection;\n"                                                 \
+  "void main() {\n"                                                            \
+  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "}\n"
+
+#define GL_GRID3D_FS                                                           \
+  "#version 150 core\n"                                                        \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(0.8f, 0.8f, 0.8f, 1.0f);\n"                             \
+  "}\n"
+
+static gl_float_t *gl_grid3d_create_vertices(int grid_size) {
   // Allocate memory for vertices
   const int num_lines = (grid_size + 1) * 2;
   const int num_vertices = num_lines * 2;
-  const size_t buffer_size = sizeof(GLfloat) * num_vertices * 3;
-  GLfloat *vertices = (GLfloat *) malloc(buffer_size);
+  const size_t buffer_size = sizeof(gl_float_t) * num_vertices * 3;
+  gl_float_t *vertices = (gl_float_t *) malloc(buffer_size);
 
   // Setup
   const float min_x = -1.0f * (float) grid_size / 2.0f;
@@ -2055,23 +2191,19 @@ gl_grid3d_t *gl_grid3d_malloc(void) {
   grid->line_width = 2.0f;
 
   // Shader program
-  char *vs = load_file("./shaders/grid.vert");
-  char *fs = load_file("./shaders/grid.frag");
-  grid->entity.program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  grid->entity.program_id = gl_prog_setup(GL_GRID3D_VS, GL_GRID3D_FS, NULL);
   if (grid->entity.program_id == GL_FALSE) {
-    FATAL("Failed to create shaders to draw cube!");
+    FATAL("Failed to create shaders!");
   }
 
   // Create vertices
   const int grid_size = 10;
-  const size_t vertex_size = sizeof(GLfloat) * 3;
+  const size_t vertex_size = sizeof(gl_float_t) * 3;
   const void *offset = (void *) 0;
   const int num_lines = (grid_size + 1) * 2;
   const int num_vertices = num_lines * 2;
-  GLfloat *vertices = gl_grid3d_create_vertices(grid_size);
-  const size_t buffer_size = sizeof(GLfloat) * num_vertices * 3;
+  gl_float_t *vertices = gl_grid3d_create_vertices(grid_size);
+  const size_t buffer_size = sizeof(gl_float_t) * num_vertices * 3;
 
   // VAO
   glGenVertexArrays(1, &grid->entity.VAO);
@@ -2117,14 +2249,36 @@ void gl_grid3d_draw(const gl_grid3d_t *grid, const gl_camera_t *camera) {
 
 // GL POINTS /////////////////////////////////////////////////////////////////
 
+#define GL_POINTS3D_VS                                                         \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec3 in_pos;\n"                                    \
+  "layout (location = 1) in vec3 in_color;\n"                                  \
+  "out vec3 color;\n"                                                          \
+  "uniform mat4 model;\n"                                                      \
+  "uniform mat4 view;\n"                                                       \
+  "uniform mat4 projection;\n"                                                 \
+  "void main() {\n"                                                            \
+  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "  gl_PointSize = 1.0;\n"                                                    \
+  "  color = in_color;\n"                                                      \
+  "}\n"
+
+#define GL_POINTS3D_FS                                                         \
+  "#version 330 core\n"                                                        \
+  "in vec3 color;\n"                                                           \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "}\n"
+
 gl_points3d_t *gl_points3d_malloc(const float *data,
                                   const size_t num_points,
-                                  const GLfloat size,
-                                  const GLfloat color[3]) {
+                                  const gl_float_t size,
+                                  const gl_float_t color[3]) {
   // Malloc
   gl_points3d_t *points = MALLOC(gl_points3d_t, 1);
   gl_entity_setup(&points->entity);
-  points->data = MALLOC(GLfloat, num_points * 3);
+  points->data = MALLOC(gl_float_t, num_points * 3);
   for (size_t i = 0; i < num_points * 3; ++i) {
     points->data[i] = data[i];
   }
@@ -2133,11 +2287,8 @@ gl_points3d_t *gl_points3d_malloc(const float *data,
   gl_copy(color, 3, 1, points->color);
 
   // Shader program
-  char *vs = load_file("./shaders/points.vert");
-  char *fs = load_file("./shaders/points.frag");
-  points->entity.program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  points->entity.program_id =
+      gl_prog_setup(GL_POINTS3D_VS, GL_POINTS3D_FS, NULL);
   if (points->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders to draw points!");
   }
@@ -2146,7 +2297,7 @@ gl_points3d_t *gl_points3d_malloc(const float *data,
   const float r = points->color[0];
   const float g = points->color[1];
   const float b = points->color[2];
-  GLfloat *vertex_data = MALLOC(GLfloat, num_points * 6);
+  gl_float_t *vertex_data = MALLOC(gl_float_t, num_points * 6);
   for (size_t i = 0; i < num_points; ++i) {
     vertex_data[i * 6 + 0] = data[i * 3 + 0];
     vertex_data[i * 6 + 1] = data[i * 3 + 1];
@@ -2210,14 +2361,35 @@ void gl_points3d_draw(const gl_points3d_t *points,
 
 // GL LINE ///////////////////////////////////////////////////////////////////
 
-gl_line3d_t *gl_line3d_malloc(const GLfloat *data,
+#define GL_LINE3D_VS                                                           \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec3 in_pos;\n"                                    \
+  "out vec3 color;\n"                                                          \
+  "uniform mat4 model;\n"                                                      \
+  "uniform mat4 view;\n"                                                       \
+  "uniform mat4 projection;\n"                                                 \
+  "uniform vec3 in_color;\n"                                                   \
+  "void main() {\n"                                                            \
+  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "  color = in_color;\n"                                                      \
+  "}\n"
+
+#define GL_LINE3D_FS                                                           \
+  "#version 330 core\n"                                                        \
+  "in vec3 color;\n"                                                           \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "}\n"
+
+gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
                               const size_t num_points,
-                              const GLfloat line_width,
-                              const GLfloat color[3]) {
+                              const gl_float_t line_width,
+                              const gl_float_t color[3]) {
   // Malloc
   gl_line3d_t *line = MALLOC(gl_line3d_t, 1);
   gl_entity_setup(&line->entity);
-  line->data = MALLOC(GLfloat, num_points * 3);
+  line->data = MALLOC(gl_float_t, num_points * 3);
   for (size_t i = 0; i < num_points * 3; ++i) {
     line->data[i] = data[i];
   }
@@ -2226,13 +2398,9 @@ gl_line3d_t *gl_line3d_malloc(const GLfloat *data,
   gl_copy(color, 3, 1, line->color);
 
   // Shader program
-  char *vs = load_file("./shaders/line.vert");
-  char *fs = load_file("./shaders/line.frag");
-  line->entity.program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  line->entity.program_id = gl_prog_setup(GL_LINE3D_VS, GL_LINE3D_FS, NULL);
   if (line->entity.program_id == GL_FALSE) {
-    FATAL("Failed to create shaders to draw cube!");
+    FATAL("Failed to create shaders!");
   }
 
   // VAO
@@ -2240,12 +2408,13 @@ gl_line3d_t *gl_line3d_malloc(const GLfloat *data,
   glBindVertexArray(line->entity.VAO);
 
   // VBO
+  const size_t vbo_size = sizeof(gl_float_t) * 3 * num_points;
   glGenBuffers(1, &line->entity.VBO);
   glBindBuffer(GL_ARRAY_BUFFER, line->entity.VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(data), line->data, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vbo_size, data, GL_STATIC_DRAW);
 
   // Position attribute
-  const size_t vertex_size = sizeof(GLfloat) * 3;
+  const size_t vertex_size = sizeof(gl_float_t) * 3;
   const void *pos_offset = (void *) 0;
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
   glEnableVertexAttribArray(0);
@@ -2275,7 +2444,7 @@ void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera) {
   gl_prog_set_vec3(line->entity.program_id, "in_color", line->color);
 
   // Store original line width
-  GLfloat original_line_width = 0.0f;
+  gl_float_t original_line_width = 0.0f;
   glGetFloatv(GL_LINE_WIDTH, &original_line_width);
 
   // Set line width
@@ -2291,6 +2460,27 @@ void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera) {
 }
 
 // GL TEXT ///////////////////////////////////////////////////////////////////
+
+#define GL_TEXT_VS                                                             \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec4 vertex;\n"                                    \
+  "out vec2 tex_coords;\n"                                                     \
+  "uniform mat4 projection;\n"                                                 \
+  "void main() {\n"                                                            \
+  "  gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);\n"                  \
+  "  tex_coords = vertex.zw;\n"                                                \
+  "}\n"
+
+#define GL_TEXT_FS                                                             \
+  "#version 330 core\n"                                                        \
+  "in vec2 tex_coords;\n"                                                      \
+  "out vec4 color;\n"                                                          \
+  "uniform sampler2D text;\n"                                                  \
+  "uniform vec3 text_color;\n"                                                 \
+  "void main() {\n"                                                            \
+  "  vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, tex_coords).r);\n"       \
+  "  color = vec4(text_color, 1.0) * sampled;\n"                               \
+  "}\n"
 
 void gl_char_print(const gl_char_t *ch) {
   printf("texture_id: %d\n", ch->texture_id);
@@ -2308,11 +2498,7 @@ gl_text_t *gl_text_malloc(void) {
   text->color = (gl_color_t){1.0, 1.0, 1.0};
 
   // Compile shader
-  char *vs = load_file("./shaders/text.vert");
-  char *fs = load_file("./shaders/text.frag");
-  text->program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  text->program_id = gl_prog_setup(GL_TEXT_VS, GL_TEXT_FS, NULL);
   if (text->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -2344,16 +2530,16 @@ gl_text_t *gl_text_malloc(void) {
     }
 
     // text details
-    const GLint ft_width = face->glyph->bitmap.width;
-    const GLint ft_height = face->glyph->bitmap.rows;
+    const gl_int_t ft_width = face->glyph->bitmap.width;
+    const gl_int_t ft_height = face->glyph->bitmap.rows;
     const void *ft_data = face->glyph->bitmap.buffer;
 
     // Generate texture
     unsigned int texture_id;
-    const GLenum target = GL_TEXTURE_2D;
-    const GLenum ifmt = GL_RED;
-    const GLenum fmt = GL_RED;
-    const GLenum type = GL_UNSIGNED_BYTE;
+    const gl_enum_t target = GL_TEXTURE_2D;
+    const gl_enum_t ifmt = GL_RED;
+    const gl_enum_t fmt = GL_RED;
+    const gl_enum_t type = GL_UNSIGNED_BYTE;
 
     glGenTextures(1, &texture_id);
     glBindTexture(GL_TEXTURE_2D, texture_id);
@@ -2408,12 +2594,12 @@ void gl_text_draw(gl_text_t *text,
                   const float y,
                   const float scale) {
   // Setup projection matrix
-  const GLfloat left = 0.0f;
-  const GLfloat right = *(camera->window_width);
-  const GLfloat bottom = 0.0f;
-  const GLfloat top = *(camera->window_height);
-  const GLfloat znear = -1.0f;
-  const GLfloat zfar = 1.0f;
+  const gl_float_t left = 0.0f;
+  const gl_float_t right = *(camera->window_width);
+  const gl_float_t bottom = 0.0f;
+  const gl_float_t top = *(camera->window_height);
+  const gl_float_t znear = -1.0f;
+  const gl_float_t zfar = 1.0f;
   gl_ortho(left, right, bottom, top, znear, zfar, text->P);
 
   // Activate shader
@@ -2466,36 +2652,54 @@ void gl_text_draw(gl_text_t *text,
 
 // GL IMAGE //////////////////////////////////////////////////////////////////
 
-void gl_image_setup(gl_image_t *image) {
+#define GL_IMAGE_VS                                                            \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec2 in_pos;\n"                                    \
+  "layout (location = 1) in vec2 in_tex_coord;\n"                              \
+  "out vec2 tex_coord;\n"                                                      \
+  "void main() {\n"                                                            \
+  "  gl_Position = vec4(in_pos, 0.0, 1.0);\n"                                  \
+  "  tex_coord = in_tex_coord;\n"                                              \
+  "}\n"
+
+#define GL_IMAGE_FS                                                            \
+  "#version 330 core\n"                                                        \
+  "in vec2 tex_coord;\n"                                                       \
+  "out vec4 frag_color;\n"                                                     \
+  "uniform sampler2D texture1;\n"                                              \
+  "void main() {\n"                                                            \
+  "  frag_color = texture(texture1, tex_coord);\n"                             \
+  "}\n"
+
+gl_image_t *gl_image_malloc(void) {
+  // MALLOC
+  gl_image_t *image = MALLOC(gl_image_t, 1);
+
   // Shader program
-  char *vs = load_file("./shaders/image.vert");
-  char *fs = load_file("./shaders/image.frag");
-  image->program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  image->program_id = gl_prog_setup(GL_IMAGE_VS, GL_IMAGE_FS, NULL);
   if (image->program_id == GL_FALSE) {
-    FATAL("Failed to create shaders to draw cube!");
+    FATAL("Failed to create shaders!");
   }
 
   // Rectangle vertices and texture coordinates
   // clang-format off
-  const GLfloat vertices[4 * 4] = {
+  const gl_float_t vertices[4 * 4] = {
      // positions // texture coords
      0.5f,  0.5f, 1.0f,  1.0f, // top right
      0.5f, -0.5f, 1.0f,  0.0f, // bottom right
     -0.5f, -0.5f, 0.0f,  0.0f, // bottom left
     -0.5f,  0.5f, 0.0f,  1.0f  // top left
   };
-  const GLuint indices[2 * 3] = {
+  const gl_uint_t indices[2 * 3] = {
     0, 3, 1, // First Triangle
     2, 1, 3  // Second Triangle
   };
   const size_t num_vertices = 4;
-  const size_t vertex_size = sizeof(GLfloat) * 4;
+  const size_t vertex_size = sizeof(gl_float_t) * 4;
   const size_t vbo_size = sizeof(vertices);
   const size_t ebo_size = sizeof(indices);
   assert(vbo_size == vertex_size * num_vertices);
-  assert(ebo_size == sizeof(GLuint) * 6);
+  assert(ebo_size == sizeof(gl_uint_t) * 6);
   // clang-format on
 
   // VAO
@@ -2516,12 +2720,12 @@ void gl_image_setup(gl_image_t *image) {
   assert(image->ebo != 0);
 
   // Position attribute
-  const void *pos_offset = (void *) (sizeof(GLfloat) * 0);
+  const void *pos_offset = (void *) (sizeof(gl_float_t) * 0);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
   glEnableVertexAttribArray(0);
 
   // Texture coordinate attribute
-  const void *tex_offset = (void *) (sizeof(GLfloat) * 2);
+  const void *tex_offset = (void *) (sizeof(gl_float_t) * 2);
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vertex_size, tex_offset);
   glEnableVertexAttribArray(1);
 
@@ -2537,9 +2741,7 @@ void gl_image_setup(gl_image_t *image) {
     glBindTexture(GL_TEXTURE_2D, image->texture_id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_MIN_FILTER,
-                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
@@ -2559,13 +2761,16 @@ void gl_image_setup(gl_image_t *image) {
   // Unbind VBO and VAO
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
+
+  return image;
 }
 
-void gl_image_cleanup(gl_image_t *image) {
+void gl_image_free(gl_image_t *image) {
   glDeleteVertexArrays(1, &image->vao);
   glDeleteBuffers(1, &image->vbo);
   glDeleteBuffers(1, &image->ebo);
   glDeleteProgram(image->program_id);
+  free(image);
 }
 
 void gl_image_draw(gl_image_t *image) {
@@ -2645,7 +2850,7 @@ void gl_mesh_setup(gl_mesh_t *mesh,
   glBindVertexArray(0);
 }
 
-void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader) {
+void gl_mesh_draw(const gl_mesh_t *mesh, const gl_uint_t shader) {
   // bind appropriate textures
   unsigned int num_diffuse = 1;
   unsigned int num_specular = 1;
@@ -2686,6 +2891,33 @@ void gl_mesh_draw(const gl_mesh_t *mesh, const GLuint shader) {
  * GL-MODEL
  *****************************************************************************/
 
+#define GL_MODEL_VS                                                            \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec3 in_pos;\n"                                    \
+  "layout (location = 1) in vec3 in_normal;\n"                                 \
+  "layout (location = 2) in vec2 in_tex_coords;\n"                             \
+  "out vec2 tex_coords;\n"                                                     \
+  "out vec3 frag_pos;\n"                                                       \
+  "out vec3 normal;\n"                                                         \
+  "uniform mat4 model;\n"                                                      \
+  "uniform mat4 view;\n"                                                       \
+  "uniform mat4 projection;\n"                                                 \
+  "void main() {\n"                                                            \
+  "  tex_coords = in_tex_coords;\n"                                            \
+  "  frag_pos = vec3(model * vec4(in_pos, 1.0));\n"                            \
+  "  normal = mat3(transpose(inverse(model))) * in_normal;\n"                  \
+  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "}\n"
+
+#define GL_MODEL_FS                                                            \
+  "#version 330 core\n"                                                        \
+  "in vec2 tex_coords;\n"                                                      \
+  "out vec4 frag_color;\n"                                                     \
+  "uniform sampler2D texture_diffuse1;\n"                                      \
+  "void main() {\n"                                                            \
+  "  frag_color = texture(texture_diffuse1, tex_coords);\n"                    \
+  "}\n"
+
 static unsigned int gl_texture_load(const char *model_dir,
                                     const char *texture_fname) {
   // File fullpath
@@ -2706,7 +2938,7 @@ static unsigned int gl_texture_load(const char *model_dir,
   unsigned char *data = stbi_load(filepath, &width, &height, &channels, 0);
   if (data) {
     // Image format
-    GLenum format;
+    gl_enum_t format;
     if (channels == 1) {
       format = GL_RED;
     } else if (channels == 3) {
@@ -2980,11 +3212,7 @@ gl_model_t *gl_model_load(const char *model_path) {
   model->T[14] = 0.0;
 
   // Shader program
-  char *vs = load_file("./shaders/model.vert");
-  char *fs = load_file("./shaders/model.frag");
-  model->program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
+  model->program_id = gl_prog_setup(GL_MODEL_VS, GL_MODEL_FS, NULL);
   if (model->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -3059,94 +3287,9 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
  * GUI
  *****************************************************************************/
 
-// GUI-BUTTON ////////////////////////////////////////////////////////////////
+// WINDOW ////////////////////////////////////////////////////////////////////
 
-typedef struct {
-  int x;
-  int y;
-  int width;
-  int height;
-  int is_pressed;
-  int is_hovered;
-
-  GLuint program_id;
-  GLuint vao;
-  GLuint vbo;
-  GLuint ebo;
-} gui_button_t;
-
-void gui_button_setup(gui_button_t *button) {
-  button->x = 0;
-  button->y = 0;
-  button->width = 0;
-  button->height = 0;
-  button->is_pressed = 0;
-  button->is_hovered = 0;
-
-  button->program_id = -1;
-  button->vao = -1;
-  button->vbo = -1;
-  button->ebo = -1;
-
-  // Shader program
-  char *vs = load_file("./shaders/button.vert");
-  char *fs = load_file("./shaders/button.frag");
-  button->program_id = gl_prog_setup(vs, fs, NULL);
-  free(vs);
-  free(fs);
-  if (button->program_id == GL_FALSE) {
-    FATAL("Failed to create shaders!");
-  }
-
-  // Vertices
-  // clang-format off
-  const float vertices[4 * 2] = {
-    -0.5f, -0.5f, // Bottom left
-     0.5f, -0.5f, // Bottom right
-     0.5f,  0.5f, // Top right
-    -0.5f,  0.5f, // Top left
-  };
-  const int num_vertices = 4;
-  const size_t vbo_size = sizeof(float) * num_vertices * 2;
-  // clang-format on
-
-  // VAO
-  glGenVertexArrays(1, &button->vao);
-  glBindVertexArray(button->vao);
-
-  // VBO
-  glGenBuffers(1, &button->vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, button->vbo);
-  glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
-
-  // Position attribute
-  size_t pos_size = sizeof(float) * 2;
-  void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, pos_size, pos_offset);
-  glEnableVertexAttribArray(0);
-
-  // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-  glBindVertexArray(0);             // Unbind VAO
-}
-
-void gui_button_cleanup(const gui_button_t *button) {
-  glDeleteVertexArrays(1, &button->vao);
-  glDeleteBuffers(1, &button->vbo);
-}
-
-void gui_button_draw(const gui_button_t *button) {
-  glUseProgram(button->program_id);
-
-  // 12 x 3 indices starting at 0 -> 12 triangles -> 6 squares
-  glBindVertexArray(button->vao);
-  glDrawArrays(GL_TRIANGLES, 0, 36);
-  glBindVertexArray(0); // Unbind VAO
-}
-
-// GUI-WINDOW ////////////////////////////////////////////////////////////////
-
-void gui_window_size_callback(GLFWwindow *window, int width, int height) {
+void window_callback(GLFWwindow *window, int width, int height) {
   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
   gui->window_width = width;
   gui->window_height = height;
@@ -3193,7 +3336,7 @@ void gui_process_input(GLFWwindow *window) {
 
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
     if (gui->camera.view_mode == FPS) {
-      GLfloat camera_left[3] = {0};
+      gl_float_t camera_left[3] = {0};
       gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
       gl_normalize(camera_left, 3);
       gui->camera.position[0] -= camera_left[0] * camera_speed;
@@ -3208,7 +3351,7 @@ void gui_process_input(GLFWwindow *window) {
 
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
     if (gui->camera.view_mode == FPS) {
-      GLfloat camera_left[3] = {0};
+      gl_float_t camera_left[3] = {0};
       gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
       gl_normalize(camera_left, 3);
       gui->camera.position[0] += camera_left[0] * camera_speed;
@@ -3301,7 +3444,7 @@ void gui_setup(gui_t *gui) {
   }
   glfwMakeContextCurrent(gui->window);
   glfwSetWindowUserPointer(gui->window, gui);
-  glfwSetWindowSizeCallback(gui->window, gui_window_size_callback);
+  glfwSetWindowSizeCallback(gui->window, window_callback);
 
   // GLAD
   if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
@@ -3311,24 +3454,24 @@ void gui_setup(gui_t *gui) {
 
   // OpenGL functions
   glEnable(GL_DEBUG_OUTPUT);
-  // glEnable(GL_PROGRAM_POINT_SIZE);
-  // glEnable(GL_LINE_SMOOTH);
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_LINE_SMOOTH);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  // assert(glIsEnabled(GL_PROGRAM_POINT_SIZE) == 1);
-  // assert(glIsEnabled(GL_LINE_SMOOTH) == 1);
+  assert(glIsEnabled(GL_PROGRAM_POINT_SIZE) == 1);
+  assert(glIsEnabled(GL_LINE_SMOOTH) == 1);
   assert(glIsEnabled(GL_DEPTH_TEST) == 1);
   assert(glIsEnabled(GL_CULL_FACE) == 1);
   assert(glIsEnabled(GL_BLEND) == 1);
 
   // Camera
   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
-  gui->camera.position[0] = 0;
-  gui->camera.position[1] = 1;
-  gui->camera.position[2] = -2;
+  gui->camera.position[0] = 0.0f;
+  gui->camera.position[1] = 4.0f;
+  gui->camera.position[2] = -5.0f;
   gui->movement_speed = 50.0f;
   gui->mouse_sensitivity = 0.02f;
 
@@ -3355,20 +3498,20 @@ void gui_reset(gui_t *gui) {
 
 void gui_loop(gui_t *gui) {
   // Cube
-  const GLfloat cube_size = 0.5f;
-  const GLfloat cube_pos[3] = {0.0, 0.0, 0.0};
-  const GLfloat cube_color[3] = {0.9, 0.4, 0.2};
-  const GLfloat outline_color[3] = {1.0, 1.0, 1.0};
+  const gl_float_t cube_size = 0.5f;
+  const gl_float_t cube_pos[3] = {0.0, 0.0, 0.0};
+  const gl_float_t cube_color[3] = {0.9, 0.4, 0.2};
+  const gl_float_t outline_color[3] = {1.0, 1.0, 1.0};
   gl_cube_t *cube =
       gl_cube_malloc(cube_size, cube_pos, cube_color, outline_color);
 
   // Rect
-  gl_rect_t *rect = gl_rect_malloc(30, 30);
+  gl_rect_t *rect = gl_rect_malloc(0, 0, 0, 0);
 
   // Camera frame
-  const GLfloat cf_pos[3] = {0.0, 0.0, 0.0};
-  const GLfloat cf_size = 0.5f;
-  const GLfloat cf_color[3] = {0.9, 0.4, 0.2};
+  const gl_float_t cf_pos[3] = {0.0, 0.0, 0.0};
+  const gl_float_t cf_size = 0.5f;
+  const gl_float_t cf_color[3] = {0.9, 0.4, 0.2};
   gl_cframe_t *cf = gl_cframe_malloc(cf_pos, cf_size, cf_color);
 
   // Axes
@@ -3378,10 +3521,10 @@ void gui_loop(gui_t *gui) {
   gl_grid3d_t *grid = gl_grid3d_malloc();
 
   // Points
-  const GLfloat points_color[3] = {1.0, 0.0, 0.0};
-  const GLfloat points_size = 1.0;
+  const gl_float_t points_color[3] = {1.0, 0.0, 0.0};
+  const gl_float_t points_size = 1.0;
   const size_t num_points = 100000;
-  GLfloat *points_data = MALLOC(GLfloat, num_points * 3);
+  gl_float_t *points_data = MALLOC(gl_float_t, num_points * 3);
   for (size_t i = 0; i < num_points; ++i) {
     points_data[i * 3 + 0] = gl_randf(-1.0f, 1.0f);
     points_data[i * 3 + 1] = gl_randf(-1.0f, 1.0f);
@@ -3392,48 +3535,32 @@ void gui_loop(gui_t *gui) {
   free(points_data);
 
   // Line
-  const GLfloat line_width = 5.0f;
-  const GLfloat line_color[3] = {1.0f, 0.0f, 0.0f};
-  // const size_t line_num_points = 1000;
+  const gl_float_t line_width = 5.0f;
+  const gl_float_t line_color[3] = {1.0f, 0.0f, 0.0f};
+  const size_t line_num_points = 1000;
   const float radius = 3.0f;
-  // const float dtheta = 2 * M_PI / line_num_points;
-
-  // clang-format off
-  const GLuint line_num_points = 8;
-  const float line_points[8 * 3] = {
-      0.0f, 0.0f, 0.0f,
-      1.0f, 1.0f, 0.0f,
-      2.0f, 2.0f, 0.0f,
-      3.0f, 3.0f, 0.0f,
-      3.0f, 4.0f, 0.0f,
-      4.0f, 4.0f, 0.0f,
-      5.0f, 4.0f, 0.0f,
-      5.0f, 5.0f, 0.0f,
-  };
-  // clang-format on
-
-  // float theta = 0.0f;
-  // float *line_points = MALLOC(float, line_num_points * 3);
-  // for (size_t i = 0; i < line_num_points; ++i) {
-  //   line_points[i * 3 + 0] = radius * sin(theta);
-  //   line_points[i * 3 + 1] = radius * cos(theta);
-  //   line_points[i * 3 + 2] = 1.0f;
-  //   theta += 0.01;
-  //   printf("%f ", line_points[i * 3 + 0]);
-  //   printf("%f ", line_points[i * 3 + 1]);
-  //   printf("%f ", line_points[i * 3 + 2]);
-  //   printf("\n");
-  // }
+  const float dtheta = 2 * M_PI / line_num_points;
+  float theta = 0.0f;
+  float *line_points = MALLOC(float, line_num_points * 3);
+  for (size_t i = 0; i < line_num_points; ++i) {
+    line_points[i * 3 + 0] = radius * sin(theta);
+    line_points[i * 3 + 1] = 0.0f;
+    line_points[i * 3 + 2] = radius * cos(theta);
+    theta += 0.01;
+  }
   gl_line3d_t *line =
       gl_line3d_malloc(line_points, line_num_points, line_width, line_color);
-  // free(line_points);
+  free(line_points);
 
   // Text
   gl_text_t *text = gl_text_malloc();
 
   // Image
-  gl_image_t image;
-  gl_image_setup(&image);
+  gl_image_t *image = gl_image_malloc();
+
+  // Button
+  ui_button_t button;
+  ui_button_setup(&button);
 
   // Render loop
   gui->loop = 1;
@@ -3451,10 +3578,11 @@ void gui_loop(gui_t *gui) {
     // gl_cframe_draw(cf, &gui->camera);
     // gl_axes3d_draw(axes, &gui->camera);
     // gl_grid3d_draw(grid, &gui->camera);
-    gl_line3d_draw(line, &gui->camera);
-    gl_text_draw(text, &gui->camera, "Here!", 10.0f, 100.0f, 1.0f);
-    // gl_image_draw(&image);
-    // gl_points_draw(&points, &gui->camera, num_points);
+    // gl_line3d_draw(line, &gui->camera);
+    // gl_points3d_draw(points, &gui->camera, num_points);
+    // gl_text_draw(text, &gui->camera, "Here!", 10.0f, 100.0f, 1.0f);
+    // gl_image_draw(image);
+    ui_button_draw(&button);
 
     // Update
     glfwPollEvents();
@@ -3472,8 +3600,109 @@ void gui_loop(gui_t *gui) {
   gl_points3d_free(points);
   gl_line3d_free(line);
   gl_text_free(text);
-  gl_image_cleanup(&image);
+  gl_image_free(image);
   glfwTerminate();
+}
+
+// UI-BUTTON /////////////////////////////////////////////////////////////////
+
+#define UI_BUTTON_VS                                                           \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec2 in_pos;\n"                                    \
+  "uniform float window_width;\n"                                              \
+  "uniform float window_height;\n"                                             \
+  "uniform float button_width;\n"                                              \
+  "uniform float button_height;\n"                                             \
+  "void main() {\n"                                                            \
+  "  gl_Position = vec4(in_pos, 0.0, 1.0);\n"                                  \
+  "}\n"
+
+#define UI_BUTTON_FS                                                           \
+  "#version 330 core\n"                                                        \
+  "uniform vec3 color;\n"                                                      \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "}\n"
+
+void pixel2ndc(const int x_px,
+               const int y_px,
+               const float window_width,
+               const float window_height,
+               gl_float_t *x_ndc,
+               gl_float_t *y_ndc) {
+  *x_ndc = 2.0f * x_px / window_width - 1.0f;
+  *y_ndc = 1.0f - 2.0f * y_px / window_height;
+}
+
+void ui_button_setup(ui_button_t *button) {
+  button->color = (gl_color_t){1.0f, 1.0f, 1.0f};
+  button->color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
+  button->color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
+  button->x = 20;
+  button->y = 600;
+  button->width = 200.0f;
+  button->height = 100.0f;
+  button->is_pressed = 0;
+  button->is_hovered = 0;
+
+  button->program_id = -1;
+  button->vao = -1;
+  button->vbo = -1;
+  button->ebo = -1;
+
+  // Shader program
+  button->program_id = gl_prog_setup(UI_BUTTON_VS, UI_BUTTON_FS, NULL);
+  if (button->program_id == GL_FALSE) {
+    FATAL("Failed to create shaders!");
+  }
+
+  // Vertices
+  // clang-format off
+  float vertices[4 * 2] = {0};
+  pixel2ndc(button->x                , button->y + button->height, 1024, 768, &vertices[0], &vertices[1]); // Bottom left
+  pixel2ndc(button->x + button->width, button->y + button->height, 1024, 768, &vertices[2], &vertices[3]); // Bottom right
+  pixel2ndc(button->x + button->width, button->y                 , 1024, 768, &vertices[4], &vertices[5]); // Top right
+  pixel2ndc(button->x                , button->y                 , 1024, 768, &vertices[6], &vertices[7]); // Top left
+  // clang-format on
+
+  // VAO
+  glGenVertexArrays(1, &button->vao);
+  glBindVertexArray(button->vao);
+
+  // VBO
+  glGenBuffers(1, &button->vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, button->vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  // Position attribute
+  size_t pos_size = sizeof(float) * 2;
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, pos_size, pos_offset);
+  glEnableVertexAttribArray(0);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+}
+
+void ui_button_cleanup(const ui_button_t *button) {
+  glDeleteVertexArrays(1, &button->vao);
+  glDeleteBuffers(1, &button->vbo);
+}
+
+int ui_button_draw(const ui_button_t *button) {
+  glUseProgram(button->program_id);
+  gl_prog_set_color(button->program_id, "color", button->color);
+  gl_prog_set_float(button->program_id, "window_width", 1024.0f);
+  gl_prog_set_float(button->program_id, "window_height", 768.0f);
+  gl_prog_set_float(button->program_id, "button_width", button->width);
+  gl_prog_set_float(button->program_id, "button_height", button->height);
+  glBindVertexArray(button->vao);
+  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+  glBindVertexArray(0);
+
+  return 0;
 }
 
 #endif // GUI_IMPLEMENTATION
@@ -3609,10 +3838,10 @@ int test_glfw(void) {
 
 int test_gl_zeros(void) {
   // clang-format off
-  GLfloat A[3*3] = {1.0, 4.0, 7.0,
+  gl_float_t A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
-  GLfloat expected[3*3] = {0.0, 0.0, 0.0,
+  gl_float_t expected[3*3] = {0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0};
   // clang-format on
@@ -3624,10 +3853,10 @@ int test_gl_zeros(void) {
 
 int test_gl_ones(void) {
   // clang-format off
-  GLfloat A[3*3] = {1.0, 4.0, 7.0,
+  gl_float_t A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
-  GLfloat expected[3*3] = {1.0, 1.0, 1.0,
+  gl_float_t expected[3*3] = {1.0, 1.0, 1.0,
                            1.0, 1.0, 1.0,
                            1.0, 1.0, 1.0};
   // clang-format on
@@ -3640,11 +3869,11 @@ int test_gl_ones(void) {
 int test_gl_eye(void) {
   /* Check 4x4 matrix */
   // clang-format off
-  GLfloat A[4*4] = {0.0, 0.0, 0.0, 0.0,
+  gl_float_t A[4*4] = {0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0, 0.0};
-  GLfloat A_expected[4*4] = {1.0, 0.0, 0.0, 0.0,
+  gl_float_t A_expected[4*4] = {1.0, 0.0, 0.0, 0.0,
                              0.0, 1.0, 0.0, 0.0,
                              0.0, 0.0, 1.0, 0.0,
                              0.0, 0.0, 0.0, 1.0};
@@ -3654,11 +3883,11 @@ int test_gl_eye(void) {
 
   /* Check 3x4 matrix */
   // clang-format off
-  GLfloat B[3*4] = {0.0, 0.0, 0.0,
+  gl_float_t B[3*4] = {0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0};
-  GLfloat B_expected[3*4] = {1.0, 0.0, 0.0,
+  gl_float_t B_expected[3*4] = {1.0, 0.0, 0.0,
                              0.0, 1.0, 0.0,
                              0.0, 0.0, 1.0,
                              0.0, 0.0, 0.0};
@@ -3671,13 +3900,13 @@ int test_gl_eye(void) {
 
 int test_gl_equals(void) {
   // clang-format off
-  GLfloat A[3*3] = {1.0, 4.0, 7.0,
+  gl_float_t A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
-  GLfloat B[3*3] = {1.0, 4.0, 7.0,
+  gl_float_t B[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
-  GLfloat C[3*3] = {1.0, 4.0, 7.0,
+  gl_float_t C[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 10.0};
   // clang-format on
@@ -3691,7 +3920,7 @@ int test_gl_equals(void) {
 
 int test_gl_mat_set(void) {
   // clang-format off
-  GLfloat A[3*4] = {0.0, 0.0, 0.0,
+  gl_float_t A[3*4] = {0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0};
@@ -3707,7 +3936,7 @@ int test_gl_mat_set(void) {
 
 int test_gl_mat_val(void) {
   // clang-format off
-  GLfloat A[3*4] = {1.0, 2.0, 3.0,
+  gl_float_t A[3*4] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0,
                     10.0, 11.0, 12.0};
@@ -3736,35 +3965,35 @@ int test_gl_mat_val(void) {
 int test_gl_transpose(void) {
   /* Transpose a 3x3 matrix */
   // clang-format off
-  GLfloat A[3*3] = {1.0, 2.0, 3.0,
+  gl_float_t A[3*3] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0};
   // clang-format on
-  GLfloat A_t[3 * 3] = {0};
+  gl_float_t A_t[3 * 3] = {0};
 
   gl_transpose(A, 3, 3, A_t);
 
   /* Transpose a 3x4 matrix */
   // clang-format off
-  GLfloat B[3*4] = {1.0, 2.0, 3.0,
+  gl_float_t B[3*4] = {1.0, 2.0, 3.0,
                     4.0, 5.0, 6.0,
                     7.0, 8.0, 9.0,
                     10.0, 11.0, 12.0};
   // clang-format on
-  GLfloat B_t[3 * 4] = {0};
+  gl_float_t B_t[3 * 4] = {0};
   gl_transpose(B, 3, 4, B_t);
 
   return 0;
 }
 
 int test_gl_vec3_cross(void) {
-  const GLfloat u[3] = {1.0f, 2.0f, 3.0f};
-  const GLfloat v[3] = {4.0f, 5.0f, 6.0f};
-  GLfloat z[3] = {0};
+  const gl_float_t u[3] = {1.0f, 2.0f, 3.0f};
+  const gl_float_t v[3] = {4.0f, 5.0f, 6.0f};
+  gl_float_t z[3] = {0};
   gl_vec3_cross(u, v, z);
 
   /* Assert */
-  GLfloat expected[3] = {-3.0f, 6.0f, -3.0f};
+  gl_float_t expected[3] = {-3.0f, 6.0f, -3.0f};
   TEST_ASSERT(gl_equals(z, expected, 3, 1, 1e-8));
 
   return 0;
@@ -3772,19 +4001,19 @@ int test_gl_vec3_cross(void) {
 
 int test_gl_dot(void) {
   // clang-format off
-  GLfloat A[3*3] = {1.0, 4.0, 7.0,
+  gl_float_t A[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
-  GLfloat B[3*3] = {1.0, 4.0, 7.0,
+  gl_float_t B[3*3] = {1.0, 4.0, 7.0,
                     2.0, 5.0, 8.0,
                     3.0, 6.0, 9.0};
   // clang-format on
-  GLfloat C[3 * 3] = {0.0};
+  gl_float_t C[3 * 3] = {0.0};
   gl_dot(A, 3, 3, B, 3, 3, C);
 
   /* Assert */
   // clang-format off
-  GLfloat expected[3*3] = {30.0f, 66.0f, 102.0f,
+  gl_float_t expected[3*3] = {30.0f, 66.0f, 102.0f,
                            36.0f, 81.0f, 126.0f,
                            42.0f, 96.0f, 150.0f};
   // clang-format on
@@ -3794,40 +4023,40 @@ int test_gl_dot(void) {
 }
 
 int test_gl_norm(void) {
-  const GLfloat x[3] = {1.0f, 2.0f, 3.0f};
-  const GLfloat n = gl_norm(x, 3);
+  const gl_float_t x[3] = {1.0f, 2.0f, 3.0f};
+  const gl_float_t n = gl_norm(x, 3);
 
   /* Assert */
-  const GLfloat expected = 3.741657f;
+  const gl_float_t expected = 3.741657f;
   TEST_ASSERT(fabs(n - expected) < 1e-6);
 
   return 0;
 }
 
 int test_gl_normalize(void) {
-  GLfloat x[3] = {1.0f, 2.0f, 3.0f};
+  gl_float_t x[3] = {1.0f, 2.0f, 3.0f};
   gl_normalize(x, 3);
 
   /* Assert */
-  const GLfloat expected[3] = {0.26726f, 0.53452f, 0.80178f};
+  const gl_float_t expected[3] = {0.26726f, 0.53452f, 0.80178f};
   TEST_ASSERT(gl_equals(x, expected, 3, 1, 1e-5));
 
   return 0;
 }
 
 int test_gl_perspective(void) {
-  const GLfloat fov = gl_deg2rad(60.0);
-  const GLfloat window_width = 1000.0f;
-  const GLfloat window_height = 1000.0f;
-  const GLfloat ratio = window_width / window_height;
-  const GLfloat near = 0.1f;
-  const GLfloat far = 100.0f;
+  const gl_float_t fov = gl_deg2rad(60.0);
+  const gl_float_t window_width = 1000.0f;
+  const gl_float_t window_height = 1000.0f;
+  const gl_float_t ratio = window_width / window_height;
+  const gl_float_t near = 0.1f;
+  const gl_float_t far = 100.0f;
 
-  GLfloat P[4 * 4] = {0};
+  gl_float_t P[4 * 4] = {0};
   gl_perspective(fov, ratio, near, far, P);
 
   // clang-format off
-  const GLfloat P_expected[4*4] = {
+  const gl_float_t P_expected[4*4] = {
     1.732051, 0.000000, 0.000000, 0.000000,
     0.000000, 1.732051, 0.000000, 0.000000,
     0.000000, 0.000000, -1.002002, -1.000000,
@@ -3840,17 +4069,17 @@ int test_gl_perspective(void) {
 }
 
 int test_gl_ortho(void) {
-  const GLfloat left = 0.0f;
-  const GLfloat right = 800.0f;
-  const GLfloat bottom = 0.0f;
-  const GLfloat top = 600.0f;
-  const GLfloat near = -1.0f;
-  const GLfloat far = 1.0f;
-  GLfloat P[4 * 4] = {0};
+  const gl_float_t left = 0.0f;
+  const gl_float_t right = 800.0f;
+  const gl_float_t bottom = 0.0f;
+  const gl_float_t top = 600.0f;
+  const gl_float_t near = -1.0f;
+  const gl_float_t far = 1.0f;
+  gl_float_t P[4 * 4] = {0};
   gl_ortho(left, right, bottom, top, near, far, P);
 
   // clang-format off
-  const GLfloat P_expected[4*4] = {
+  const gl_float_t P_expected[4*4] = {
     0.00250000,  0.00000000,  0.000000,  0.000000,
     0.00000000,  0.00333333,  0.000000,  0.000000,
     0.00000000,  0.00000000, -1.000000,  0.000000,
@@ -3863,22 +4092,22 @@ int test_gl_ortho(void) {
 }
 
 int test_gl_lookat(void) {
-  const GLfloat yaw = -0.785398;
-  const GLfloat pitch = 0.000000;
-  const GLfloat radius = 10.000000;
-  const GLfloat focal[3] = {0.000000, 0.000000, 0.000000};
-  const GLfloat world_up[3] = {0.000000, 1.000000, 0.000000};
+  const gl_float_t yaw = -0.785398;
+  const gl_float_t pitch = 0.000000;
+  const gl_float_t radius = 10.000000;
+  const gl_float_t focal[3] = {0.000000, 0.000000, 0.000000};
+  const gl_float_t world_up[3] = {0.000000, 1.000000, 0.000000};
 
-  GLfloat eye[3];
+  gl_float_t eye[3];
   eye[0] = focal[0] + radius * sin(yaw);
   eye[1] = focal[1] + radius * cos(pitch);
   eye[2] = focal[2] + radius * cos(yaw);
 
-  GLfloat V[4 * 4] = {0};
+  gl_float_t V[4 * 4] = {0};
   gl_lookat(eye, focal, world_up, V);
 
   // clang-format off
-  const GLfloat V_expected[4*4] = {
+  const gl_float_t V_expected[4*4] = {
     0.707107, 0.500000, -0.500000, 0.000000,
     -0.000000, 0.707107, 0.707107, 0.000000,
     0.707107, -0.500000, 0.500000, 0.000000,
@@ -3897,21 +4126,21 @@ int test_gl_shader_compile(void) {
   GLFWwindow *window = test_setup();
 
   // Vertex shader
-  char *glcube_vs = load_file("./shaders/cube.vert");
-  if (glcube_vs == NULL) {
+  char *vs_str = load_file("./shaders/cube.vert");
+  if (vs_str == NULL) {
     FATAL("Failed to load file: %s\n", "./shaders/cube.vert");
   }
-  const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
-  free(glcube_vs);
+  const gl_uint_t vs = gl_shader_compile(vs_str, GL_VERTEX_SHADER);
+  free(vs_str);
   TEST_ASSERT(vs != GL_FALSE);
 
   // Fragment shader
-  char *glcube_fs = load_file("./shaders/cube.frag");
-  if (glcube_fs == NULL) {
+  char *fs_str = load_file("./shaders/cube.frag");
+  if (fs_str == NULL) {
     FATAL("Failed to load file: %s\n", "./shaders/cube.frag");
   }
-  const GLuint fs = gl_shader_compile(glcube_fs, GL_VERTEX_SHADER);
-  free(glcube_fs);
+  const gl_uint_t fs = gl_shader_compile(fs_str, GL_VERTEX_SHADER);
+  free(fs_str);
   TEST_ASSERT(fs != GL_FALSE);
 
   // Cleanup
@@ -3925,20 +4154,20 @@ int test_gl_shaders_link(void) {
   GLFWwindow *window = test_setup();
 
   // Cube vertex shader
-  char *glcube_vs = load_file("./shaders/cube.vert");
-  const GLuint vs = gl_shader_compile(glcube_vs, GL_VERTEX_SHADER);
-  free(glcube_vs);
+  char *vs_str = load_file("./shaders/cube.vert");
+  const gl_uint_t vs = gl_shader_compile(vs_str, GL_VERTEX_SHADER);
+  free(vs_str);
   TEST_ASSERT(vs != GL_FALSE);
 
   // Cube fragment shader
-  char *glcube_fs = load_file("./shaders/cube.frag");
-  const GLuint fs = gl_shader_compile(glcube_fs, GL_FRAGMENT_SHADER);
-  free(glcube_fs);
+  char *fs_str = load_file("./shaders/cube.frag");
+  const gl_uint_t fs = gl_shader_compile(fs_str, GL_FRAGMENT_SHADER);
+  free(fs_str);
   TEST_ASSERT(fs != GL_FALSE);
 
   // Link shakders
-  const GLuint gs = GL_FALSE;
-  const GLuint prog = gl_shaders_link(vs, fs, gs);
+  const gl_uint_t gs = GL_FALSE;
+  const gl_uint_t prog = gl_shaders_link(vs, fs, gs);
   TEST_ASSERT(prog != GL_FALSE);
 
   // Cleanup
@@ -3954,11 +4183,11 @@ int test_gl_prog_setup(void) {
   GLFWwindow *window = test_setup();
 
   // Shader program
-  char *glcube_vs = load_file("./shaders/cube.vert");
-  char *glcube_fs = load_file("./shaders/cube.frag");
-  const GLuint program_id = gl_prog_setup(glcube_vs, glcube_fs, NULL);
-  free(glcube_vs);
-  free(glcube_fs);
+  char *vs_str = load_file("./shaders/cube.vert");
+  char *fs_str = load_file("./shaders/cube.frag");
+  const gl_uint_t program_id = gl_prog_setup(vs_str, fs_str, NULL);
+  free(vs_str);
+  free(fs_str);
   TEST_ASSERT(program_id != GL_FALSE);
 
   // Cleanup
@@ -3976,17 +4205,17 @@ int test_gl_camera_setup(void) {
   gl_camera_t camera;
   gl_camera_setup(&camera, &window_width, &window_height);
 
-  // const GLfloat focal_expected[3] = {0.0f, 0.0f, 0.0f};
-  // const GLfloat world_up_expected[3] = {0.0f, 1.0f, 0.0f};
-  // const GLfloat position_expected[3] = {0.0f, 2.0f, 0.0f};
-  // const GLfloat right_expected[3] = {-1.0f, 0.0f, 0.0f};
-  // const GLfloat up_expected[3] = {0.0f, 1.0f, 0.0f};
-  // const GLfloat front_expected[3] = {0.0f, 0.0f, 1.0f};
-  // const GLfloat yaw_expected = gl_deg2rad(0.0f);
-  // const GLfloat pitch_expected = gl_deg2rad(0.0f);
-  // const GLfloat fov_expected = gl_deg2rad(90.0f);
-  // const GLfloat near_expected = 0.01f;
-  // const GLfloat far_expected = 100.0f;
+  // const gl_float_t focal_expected[3] = {0.0f, 0.0f, 0.0f};
+  // const gl_float_t world_up_expected[3] = {0.0f, 1.0f, 0.0f};
+  // const gl_float_t position_expected[3] = {0.0f, 2.0f, 0.0f};
+  // const gl_float_t right_expected[3] = {-1.0f, 0.0f, 0.0f};
+  // const gl_float_t up_expected[3] = {0.0f, 1.0f, 0.0f};
+  // const gl_float_t front_expected[3] = {0.0f, 0.0f, 1.0f};
+  // const gl_float_t yaw_expected = gl_deg2rad(0.0f);
+  // const gl_float_t pitch_expected = gl_deg2rad(0.0f);
+  // const gl_float_t fov_expected = gl_deg2rad(90.0f);
+  // const gl_float_t near_expected = 0.01f;
+  // const gl_float_t far_expected = 100.0f;
 
   // TEST_ASSERT(camera.window_width == &window_width);
   // TEST_ASSERT(camera.window_height == &window_height);
