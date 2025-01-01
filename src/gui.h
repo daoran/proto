@@ -233,6 +233,7 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
 typedef struct gl_entity_t {
   gl_float_t T[4 * 4];
+  gl_float_t P[4 * 4];
 
   gl_uint_t program_id;
   gl_uint_t VAO;
@@ -345,15 +346,9 @@ void gl_camera_zoom(gl_camera_t *camera,
 
 typedef struct {
   gl_entity_t entity;
-  gl_int_t x;
-  gl_int_t y;
-  gl_int_t width;
-  gl_int_t height;
+  gl_bounds_t bounds;
 } gl_rect_t;
-gl_rect_t *gl_rect_malloc(const gl_int_t x,
-                          const gl_int_t y,
-                          const gl_int_t width,
-                          const gl_int_t height);
+gl_rect_t *gl_rect_malloc(const gl_bounds_t bounds);
 void gl_rect_free(gl_rect_t *rect);
 void gl_rect_draw(const gl_rect_t *rect, const gl_camera_t *camera);
 
@@ -452,16 +447,15 @@ typedef struct {
 } gl_char_t;
 
 typedef struct {
+  gl_entity_t entity;
   gl_char_t data[128];
   gl_color_t color;
-  gl_float_t P[4 * 4];
-
-  gl_uint_t program_id;
-  gl_uint_t vao;
-  gl_uint_t vbo;
+  gl_color_t bg_color;
 } gl_text_t;
 
 void gl_char_print(const gl_char_t *ch);
+void gl_text_setup(gl_text_t *text);
+void gl_text_cleanup(gl_text_t *text);
 gl_text_t *gl_text_malloc(void);
 void gl_text_free(gl_text_t *text);
 void gl_text_draw(gl_text_t *text,
@@ -583,6 +577,7 @@ typedef struct {
   gl_color_t color_hover;
   gl_color_t color_press;
   gl_bounds_t bounds;
+  gl_text_t text;
 
   gl_uint_t program_id;
   gl_uint_t vao;
@@ -1159,6 +1154,7 @@ void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]) {
 
 void gl_entity_setup(gl_entity_t *entity) {
   gl_eye(entity->T, 4, 4);
+  gl_eye(entity->P, 4, 4);
   entity->program_id = 0;
   entity->VAO = 0;
   entity->VBO = 0;
@@ -1648,17 +1644,11 @@ void gl_camera_zoom(gl_camera_t *camera,
   "  frag_color = vec4(0.5f, 0.5f, 01.0f, 1.0f);\n"                            \
   "}\n"
 
-gl_rect_t *gl_rect_malloc(const gl_int_t x,
-                          const gl_int_t y,
-                          const gl_int_t width,
-                          const gl_int_t height) {
+gl_rect_t *gl_rect_malloc(const gl_bounds_t bounds) {
   // Malloc
   gl_rect_t *rect = MALLOC(gl_rect_t, 1);
   gl_entity_setup(&rect->entity);
-  rect->x = x;
-  rect->y = y;
-  rect->width = width;
-  rect->height = height;
+  rect->bounds = bounds;
 
   // Shader program
   rect->entity.program_id = gl_prog_setup(GL_RECT_VS, GL_RECT_FS, NULL);
@@ -1668,7 +1658,7 @@ gl_rect_t *gl_rect_malloc(const gl_int_t x,
 
   // Vertices
   // clang-format off
-  const float vertices[4 * 3] = {
+  const float vertices[4 * 2] = {
      -0.5f, -0.5f, // Bottom left
      0.5f, -0.5f,  // Bottom right
      0.5f,  0.5f,  // Top right
@@ -2476,12 +2466,15 @@ void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera) {
 #define GL_TEXT_FS                                                             \
   "#version 330 core\n"                                                        \
   "in vec2 tex_coords;\n"                                                      \
-  "out vec4 color;\n"                                                          \
+  "out vec4 frag_color;\n"                                                     \
   "uniform sampler2D text;\n"                                                  \
   "uniform vec3 text_color;\n"                                                 \
+  "uniform vec3 bg_color;\n"                                                   \
   "void main() {\n"                                                            \
-  "  vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, tex_coords).r);\n"       \
-  "  color = vec4(text_color, 1.0) * sampled;\n"                               \
+  "  float alpha = texture(text, tex_coords).r;\n"                             \
+  "  vec4 glyph_rgba = vec4(text_color, alpha);\n"                             \
+  "  vec4 bg_rgba = vec4(bg_color, 1.0);\n"                                    \
+  "  frag_color = mix(bg_rgba, glyph_rgba, alpha);\n"                          \
   "}\n"
 
 void gl_char_print(const gl_char_t *ch) {
@@ -2494,14 +2487,15 @@ void gl_char_print(const gl_char_t *ch) {
   printf("\n");
 }
 
-gl_text_t *gl_text_malloc(void) {
-  // MALLOC
-  gl_text_t *text = MALLOC(gl_text_t, 1);
-  text->color = (gl_color_t){1.0, 1.0, 1.0};
+void gl_text_setup(gl_text_t *text) {
+  // Initialize
+  gl_entity_setup(&text->entity);
+  text->color = (gl_color_t){1.0, 0.0, 0.0};
+  text->bg_color = (gl_color_t){1.0, 1.0, 1.0};
 
   // Compile shader
-  text->program_id = gl_prog_setup(GL_TEXT_VS, GL_TEXT_FS, NULL);
-  if (text->program_id == GL_FALSE) {
+  text->entity.program_id = gl_prog_setup(GL_TEXT_VS, GL_TEXT_FS, NULL);
+  if (text->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
@@ -2566,12 +2560,12 @@ gl_text_t *gl_text_malloc(void) {
   FT_Done_FreeType(ft);
 
   // VAO
-  glGenVertexArrays(1, &text->vao);
-  glBindVertexArray(text->vao);
+  glGenVertexArrays(1, &text->entity.VAO);
+  glBindVertexArray(text->entity.VAO);
 
   // VBO
-  glGenBuffers(1, &text->vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, text->vbo);
+  glGenBuffers(1, &text->entity.VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, text->entity.VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
   glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
   glEnableVertexAttribArray(0);
@@ -2579,13 +2573,24 @@ gl_text_t *gl_text_malloc(void) {
   // Clean up
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
   glBindVertexArray(0);             // Unbind VAO
+}
 
+void gl_text_cleanup(gl_text_t *text) {
+  // Clean up
+  gl_entity_cleanup(&text->entity);
+}
+
+gl_text_t *gl_text_malloc(void) {
+  gl_text_t *text = MALLOC(gl_text_t, 1);
+  gl_text_setup(text);
   return text;
 }
 
 void gl_text_free(gl_text_t *text) {
-  glDeleteVertexArrays(1, &text->vao);
-  glDeleteBuffers(1, &text->vbo);
+  if (text == NULL) {
+    return;
+  }
+  gl_text_cleanup(text);
   free(text);
 }
 
@@ -2602,14 +2607,15 @@ void gl_text_draw(gl_text_t *text,
   const gl_float_t top = *(camera->window_height);
   const gl_float_t znear = -1.0f;
   const gl_float_t zfar = 1.0f;
-  gl_ortho(left, right, bottom, top, znear, zfar, text->P);
+  gl_ortho(left, right, bottom, top, znear, zfar, text->entity.P);
 
   // Activate shader
-  glUseProgram(text->program_id);
-  assert(gl_prog_set_mat4(text->program_id, "projection", text->P) == 0);
-  assert(gl_prog_set_color(text->program_id, "text_color", text->color) == 0);
+  glUseProgram(text->entity.program_id);
+  gl_prog_set_mat4(text->entity.program_id, "projection", text->entity.P);
+  gl_prog_set_color(text->entity.program_id, "text_color", text->color);
+  gl_prog_set_color(text->entity.program_id, "bg_color", text->bg_color);
   glActiveTexture(GL_TEXTURE0);
-  glBindVertexArray(text->vao);
+  glBindVertexArray(text->entity.VAO);
 
   // Render text
   for (size_t i = 0; i < strlen(s); ++i) {
@@ -2635,7 +2641,7 @@ void gl_text_draw(gl_text_t *text,
     glBindTexture(GL_TEXTURE_2D, ch->texture_id);
 
     // Update content of VBO memory
-    glBindBuffer(GL_ARRAY_BUFFER, text->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, text->entity.VBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -3463,11 +3469,11 @@ void gui_setup(gui_t *gui) {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  assert(glIsEnabled(GL_PROGRAM_POINT_SIZE) == 1);
-  assert(glIsEnabled(GL_LINE_SMOOTH) == 1);
-  assert(glIsEnabled(GL_DEPTH_TEST) == 1);
-  assert(glIsEnabled(GL_CULL_FACE) == 1);
-  assert(glIsEnabled(GL_BLEND) == 1);
+  assert(glIsEnabled(GL_PROGRAM_POINT_SIZE));
+  assert(glIsEnabled(GL_LINE_SMOOTH));
+  assert(glIsEnabled(GL_DEPTH_TEST));
+  assert(glIsEnabled(GL_CULL_FACE));
+  assert(glIsEnabled(GL_BLEND));
 
   // Camera
   gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
@@ -3508,7 +3514,7 @@ void gui_loop(gui_t *gui) {
       gl_cube_malloc(cube_size, cube_pos, cube_color, outline_color);
 
   // Rect
-  gl_rect_t *rect = gl_rect_malloc(0, 0, 0, 0);
+  gl_rect_t *rect = gl_rect_malloc((gl_bounds_t){0, 0, 10, 10});
 
   // Camera frame
   const gl_float_t cf_pos[3] = {0.0, 0.0, 0.0};
@@ -3582,7 +3588,8 @@ void gui_loop(gui_t *gui) {
     // gl_grid3d_draw(grid, &gui->camera);
     // gl_line3d_draw(line, &gui->camera);
     // gl_points3d_draw(points, &gui->camera, num_points);
-    // gl_text_draw(text, &gui->camera, "Here!", 10.0f, 100.0f, 1.0f);
+    gl_text_draw(text, &gui->camera, "Here!", 150.0f, 100.0f, 1.0f);
+    // gl_text_draw(text, &gui->camera, "Here2!", 500.0f, 500.0f, 1.0f);
     // gl_image_draw(image);
     ui_button_draw(gui, &button);
 
@@ -3616,7 +3623,7 @@ void gui_loop(gui_t *gui) {
   "uniform float button_width;\n"                                              \
   "uniform float button_height;\n"                                             \
   "void main() {\n"                                                            \
-  "  gl_Position = vec4(in_pos, 0.0, 1.0);\n"                                  \
+  "  gl_Position = vec4(in_pos, 0.1, 1.0);\n"                                  \
   "}\n"
 
 #define UI_BUTTON_FS                                                           \
@@ -3641,9 +3648,9 @@ void ui_button_setup(ui_button_t *button) {
   button->color = (gl_color_t){1.0f, 1.0f, 1.0f};
   button->color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
   button->color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
-  button->bounds.x = 20;
+  button->bounds.x = 100;
   button->bounds.y = 600;
-  button->bounds.w = 200.0f;
+  button->bounds.w = 150.0f;
   button->bounds.h = 100.0f;
 
   button->program_id = -1;
