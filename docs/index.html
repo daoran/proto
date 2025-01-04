@@ -200,18 +200,18 @@ using the frame notation as described by Paul Furgale (see <a
 href="https://tinyurl.com/y635m93l">link</a>). The aim is to mitigate the
 ambiguity that arises when describing robot poses, sensor data and more.</p>
 
-<p>A vector expressed in the world frame, $\frame_{W}$, is written as $\pos_{W}$.
-Or more precisely if the vector describes the position of the camera frame,
-$\frame_{C}$, expressed in $\frame_{W}$, the vector can be written as
-$\pos_{WC}$. The left hand subscripts indicates the coordinate system the
-vector is expressed in, while the right-hand subscripts indicate the start and
-end points. For brevity if the vector has the same start point as the frame to
-which it is expressed in, the same vector can be written as $\pos_{WC}$.
-Similarly a transformation of a point from $\frame_{W}$ to $\frame_{C}$ can be
-represented by a homogeneous transform matrix, $\tf__{WC}$, where its rotation
-matrix component is written as $\rot_{WC}$ and the translation component
-written as $\pos_{WC}$. A rotation matrix that is parametrized by quaternion
-$\quat_{WC}$ is written as $\rot\{\quat_{WC}\}$.</p>
+<p>A vector expressed in the world frame, $\frame_{W}$, is written as
+$\pos_{W}$. Or more precisely if the vector describes the position of the
+camera frame, $\frame_{C}$, expressed in $\frame_{W}$, the vector can be
+written as $\pos_{WC}$. The left hand subscripts indicates the coordinate
+system the vector is expressed in, while the right-hand subscripts indicate the
+start and end points. For brevity if the vector has the same start point as the
+frame to which it is expressed in, the same vector can be written as
+$\pos_{WC}$. Similarly a transformation of a point from $\frame_{W}$ to
+$\frame_{C}$ can be represented by a homogeneous transform matrix, $\tf_{WC}$,
+where its rotation matrix component is written as $\rot_{WC}$ and the
+translation component written as $\pos_{WC}$. A rotation matrix that is
+parametrized by quaternion $\quat_{WC}$ is written as $\rot\{\quat_{WC}\}$.</p>
 
 $$
   \begin{align}
@@ -415,7 +415,7 @@ $$
   \begin{bmatrix}
     0 & -\vec{p}_{v}^{T} \\
     \vec{p}_w \I_{3 \times 3} + \vec{p}_{v} &
-    \vec{p}_w \I_{3 \times 3} -\Skew{\vec{p}_{v}}
+    \vec{p}_w \I_{3 \times 3} -\vee{\vec{p}_{v}}
   \end{bmatrix}
 $$
 
@@ -426,11 +426,11 @@ $$
   \begin{bmatrix}
     0 & -\vec{q}_{v}^{T} \\
     \vec{q}_w \I_{3 \times 3} + \vec{q}_{v} &
-    \vec{q}_w \I_{3 \times 3} -\Skew{\vec{q}_{v}}
+    \vec{q}_w \I_{3 \times 3} -\vee{\vec{q}_{v}}
   \end{bmatrix},
 $$
 
-<p>where $\Skew{\bullet}$ is the skew operator that produces a matrix cross
+<p>where $\vee{\bullet}$ is the skew operator that produces a matrix cross
 product matrix, and is defined as,</p>
 
 $$
@@ -441,7 +441,7 @@ $$
     -v_{2} & v_{1} & 0
   \end{bmatrix},
   \quad
-  \vec{v} \in \Real{3}
+  \vec{v} \in \real^{3}
 $$
 
 
