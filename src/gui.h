@@ -360,10 +360,10 @@ typedef struct {
   gl_float_t color[3];
   gl_float_t outline_color[3];
 } gl_cube_t;
-gl_cube_t *gl_cube_setup(const gl_float_t size,
-                         const gl_float_t pos[3],
-                         const gl_float_t color[3],
-                         const gl_float_t outline_color[3]);
+gl_cube_t *gl_cube_malloc(const gl_float_t size,
+                          const gl_float_t pos[3],
+                          const gl_float_t color[3],
+                          const gl_float_t outline_color[3]);
 void gl_cube_free(gl_cube_t *cube);
 void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera);
 
@@ -450,7 +450,7 @@ typedef struct {
   gl_entity_t entity;
   gl_char_t data[128];
   gl_color_t color;
-  gl_color_t bg_color;
+  gl_int_t size;
 } gl_text_t;
 
 void gl_char_print(const gl_char_t *ch);
@@ -1564,21 +1564,17 @@ void gl_camera_rotate(gl_camera_t *camera,
   float pitch = camera->pitch;
   float yaw = camera->yaw;
   yaw -= dx * factor;
-  pitch += dy * factor;
+  pitch -= dy * factor;
 
   // Constrain pitch and yaw
   pitch = (pitch > gl_deg2rad(89.99f)) ? gl_deg2rad(89.99f) : pitch;
   pitch = (pitch < gl_deg2rad(-89.99f)) ? gl_deg2rad(-89.99f) : pitch;
 
-  // pitch = (pitch <= (-M_PI / 2.0) + 1e-5) ? (-M_PI / 2.0) + 1e-5 : pitch;
-  // pitch = (pitch > 0.0) ? 0.0 : pitch;
-  // yaw = (yaw > M_PI) ? yaw - 2 * M_PI : yaw;
-  // yaw = (yaw < -M_PI) ? yaw + 2 * M_PI : yaw;
-
   // Update camera attitude
   camera->pitch = pitch;
   camera->yaw = yaw;
 
+  // Update camera forward
   float direction[3] = {0};
   direction[0] = cos(yaw) * cos(pitch);
   direction[1] = sin(pitch);
@@ -2459,7 +2455,7 @@ void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera) {
   "out vec2 tex_coords;\n"                                                     \
   "uniform mat4 projection;\n"                                                 \
   "void main() {\n"                                                            \
-  "  gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);\n"                  \
+  "  gl_Position = projection * vec4(vertex.xy, 0.01, 1.0);\n"                 \
   "  tex_coords = vertex.zw;\n"                                                \
   "}\n"
 
@@ -2469,12 +2465,9 @@ void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera) {
   "out vec4 frag_color;\n"                                                     \
   "uniform sampler2D text;\n"                                                  \
   "uniform vec3 text_color;\n"                                                 \
-  "uniform vec3 bg_color;\n"                                                   \
   "void main() {\n"                                                            \
   "  float alpha = texture(text, tex_coords).r;\n"                             \
-  "  vec4 glyph_rgba = vec4(text_color, alpha);\n"                             \
-  "  vec4 bg_rgba = vec4(bg_color, 1.0);\n"                                    \
-  "  frag_color = mix(bg_rgba, glyph_rgba, alpha);\n"                          \
+  "  frag_color = vec4(text_color, alpha);\n"                                  \
   "}\n"
 
 void gl_char_print(const gl_char_t *ch) {
@@ -2490,8 +2483,8 @@ void gl_char_print(const gl_char_t *ch) {
 void gl_text_setup(gl_text_t *text) {
   // Initialize
   gl_entity_setup(&text->entity);
-  text->color = (gl_color_t){1.0, 0.0, 0.0};
-  text->bg_color = (gl_color_t){1.0, 1.0, 1.0};
+  text->color = (gl_color_t){0.0, 0.0, 0.0};
+  text->size = 24;
 
   // Compile shader
   text->entity.program_id = gl_prog_setup(GL_TEXT_VS, GL_TEXT_FS, NULL);
@@ -2512,7 +2505,7 @@ void gl_text_setup(gl_text_t *text) {
   }
 
   // Set the text size (width and height in pixels)
-  FT_Set_Pixel_Sizes(face, 0, 20);
+  FT_Set_Pixel_Sizes(face, 0, text->size);
 
   // Disable byte-alignment restriction
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -2613,7 +2606,6 @@ void gl_text_draw(gl_text_t *text,
   glUseProgram(text->entity.program_id);
   gl_prog_set_mat4(text->entity.program_id, "projection", text->entity.P);
   gl_prog_set_color(text->entity.program_id, "text_color", text->color);
-  gl_prog_set_color(text->entity.program_id, "bg_color", text->bg_color);
   glActiveTexture(GL_TEXTURE0);
   glBindVertexArray(text->entity.VAO);
 
@@ -3588,10 +3580,10 @@ void gui_loop(gui_t *gui) {
     // gl_grid3d_draw(grid, &gui->camera);
     // gl_line3d_draw(line, &gui->camera);
     // gl_points3d_draw(points, &gui->camera, num_points);
-    gl_text_draw(text, &gui->camera, "Here!", 150.0f, 100.0f, 1.0f);
     // gl_text_draw(text, &gui->camera, "Here2!", 500.0f, 500.0f, 1.0f);
     // gl_image_draw(image);
     ui_button_draw(gui, &button);
+    gl_text_draw(text, &gui->camera, "Here!", 150.0f, 100.0f, 1.0f);
 
     // Update
     glfwPollEvents();
@@ -3623,7 +3615,7 @@ void gui_loop(gui_t *gui) {
   "uniform float button_width;\n"                                              \
   "uniform float button_height;\n"                                             \
   "void main() {\n"                                                            \
-  "  gl_Position = vec4(in_pos, 0.1, 1.0);\n"                                  \
+  "  gl_Position = vec4(in_pos, 0.0, 1.0);\n"                                  \
   "}\n"
 
 #define UI_BUTTON_FS                                                           \
