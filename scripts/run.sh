@@ -181,14 +181,12 @@ dev_aprilgrid() {
 }
 
 dev_euroc() {
-  touch xyz.c;
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "cd ~/code/xyz/xyz && make test_euroc && ./build/test_euroc" C-m
   exit
 }
 
 dev_gui() {
-  touch xyz.c;
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "cd ~/code/xyz && time make test_gui -j && cd build && ./test_gui" C-m
   # tmux send-keys -t dev -R "cd ~/code/xyz && make test_gui && gdb -ex=run -ex=bt ./build/test_gui" C-m
