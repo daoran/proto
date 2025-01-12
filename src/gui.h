@@ -234,6 +234,7 @@ static void pixel2ndc(const int x_px,
 
 typedef struct gl_shader_t {
   gl_uint_t program_id;
+  gl_uint_t texture_id;
   gl_uint_t VAO;
   gl_uint_t VBO;
   gl_uint_t EBO;
@@ -342,101 +343,78 @@ typedef struct gui_t {
   int last_cursor_set;
   float last_cursor_x;
   float last_cursor_y;
+
+  gl_shader_t rect;
+  gl_shader_t cube;
+  gl_shader_t frustum;
+  gl_shader_t axes;
+  gl_shader_t grid;
+  gl_shader_t points;
+  gl_shader_t line;
 } gui_t;
 
 void gui_setup(gui_t *gui);
 void gui_reset(gui_t *gui);
 void gui_loop(gui_t *gui);
 
-/******************************************************************************
- * DRAW
- *****************************************************************************/
+// RECT //////////////////////////////////////////////////////////////////////
 
-// GL RECT ///////////////////////////////////////////////////////////////////
+void setup_rect_shader(gl_shader_t *rect);
+void draw_rect(const gui_t *gui,
+               const gl_bounds_t *bounds,
+               const gl_color_t *color);
 
-void gl_rect_setup(gl_shader_t *rect);
-void gl_rect_draw(const gl_shader_t *rect,
-                  const gl_camera_t *camera,
-                  const gl_bounds_t *bounds,
-                  const gl_color_t *color);
+// CUBE //////////////////////////////////////////////////////////////////////
 
-// GL CUBE ///////////////////////////////////////////////////////////////////
+void setup_cube_shader(gl_shader_t *cube);
+void draw_cube(const gui_t *gui,
+               const gl_float_t T[4 * 4],
+               const gl_float_t size,
+               const gl_color_t color);
 
-void gl_cube_setup(gl_shader_t *cube);
-void gl_cube_draw(const gl_shader_t *cube,
-                  const gl_camera_t *camera,
+// FRUSTUM ///////////////////////////////////////////////////////////////////
+
+void setup_frustum_shader(gl_shader_t *frustum);
+void draw_frustum(const gui_t *gui,
                   const gl_float_t T[4 * 4],
                   const gl_float_t size,
-                  const gl_color_t color);
+                  const gl_color_t color,
+                  const gl_float_t lw);
 
-// GL FRUSTUM ////////////////////////////////////////////////////////////////
+// AXES 3D ///////////////////////////////////////////////////////////////////
 
-typedef struct {
-  gl_shader_t entity;
-} gl_frustum_t;
-void gl_frustum_setup(gl_frustum_t *frustum);
-void gl_frustum_cleanup(gl_frustum_t *frustum);
-void gl_frustum_draw(const gl_frustum_t *frustum,
-                     const gl_camera_t *camera,
-                     const gl_float_t T[4 * 4],
-                     const gl_float_t size,
-                     const gl_color_t color,
-                     const gl_float_t lw);
+void setup_axes3d_shader(gl_shader_t *axes);
+void draw_axes3d(const gui_t *gui,
+                 const gl_float_t T[4 * 4],
+                 const gl_float_t size,
+                 const gl_float_t lw);
 
-// GL AXES 3D ////////////////////////////////////////////////////////////////
+// GRID 3D ///////////////////////////////////////////////////////////////////
 
-typedef struct {
-  gl_shader_t entity;
-} gl_axes3d_t;
-void gl_axes3d_setup(gl_axes3d_t *axes);
-void gl_axes3d_cleanup(gl_axes3d_t *axes);
-void gl_axes3d_draw(const gl_axes3d_t *axes,
-                    const gl_camera_t *camera,
-                    const gl_float_t T[4 * 4],
-                    const gl_float_t size,
-                    const gl_float_t lw);
+void setup_grid3d_shader(gl_shader_t *grid);
+void draw_grid3d(const gui_t *gui,
+                 const gl_float_t size,
+                 const gl_float_t lw,
+                 const gl_color_t color);
 
-// GL GRID 3D ////////////////////////////////////////////////////////////////
+// POINTS 3D /////////////////////////////////////////////////////////////////
 
-typedef struct {
-  gl_shader_t entity;
-} gl_grid3d_t;
-void gl_grid3d_setup(gl_grid3d_t *grid);
-void gl_grid3d_cleanup(gl_grid3d_t *grid);
-void gl_grid3d_draw(const gl_grid3d_t *grid,
-                    const gl_camera_t *camera,
-                    const gl_float_t size,
-                    const gl_float_t lw,
-                    const gl_color_t color);
+void setup_points3d_shader(gl_shader_t *points);
+void draw_points3d(gui_t *gui,
+                   const gl_float_t *points_data,
+                   const size_t num_points,
+                   const gl_float_t size);
 
-// GL POINTS 3D //////////////////////////////////////////////////////////////
+// LINE 3D ///////////////////////////////////////////////////////////////////
 
-typedef struct {
-  gl_shader_t entity;
-} gl_points3d_t;
-void gl_points3d_setup(gl_points3d_t *points);
-void gl_points3d_cleanup(gl_points3d_t *points);
-void gl_points3d_draw(gl_points3d_t *points,
-                      const gl_camera_t *camera,
-                      const gl_float_t *points_data,
-                      const size_t num_points,
-                      const gl_float_t size);
+void setup_line3d_shader(gl_shader_t *line);
+void draw_line3d(gui_t *gui,
+                 const gl_float_t *data,
+                 const size_t num_points,
+                 const gl_color_t color,
+                 const gl_float_t lw);
 
-// GL LINE 3D ////////////////////////////////////////////////////////////////
-
-typedef struct {
-  gl_shader_t entity;
-} gl_line3d_t;
-void gl_line3d_setup(gl_line3d_t *line);
-void gl_line3d_cleanup(gl_line3d_t *line);
-void gl_line3d_draw(gl_line3d_t *line,
-                    const gl_camera_t *camera,
-                    const gl_float_t *data,
-                    const size_t num_points,
-                    const gl_color_t color,
-                    const gl_float_t lw);
-
-// GL TEXT ///////////////////////////////////////////////////////////////////
+// TEXT //////////////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_uint_t texture_id;
@@ -462,7 +440,7 @@ void gl_text_draw(gl_text_t *text,
                   const float y,
                   const float scale);
 
-// GL IMAGE //////////////////////////////////////////////////////////////////
+// IMAGE /////////////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_uint_t program_id;
@@ -475,9 +453,7 @@ gl_image_t *gl_image_malloc(void);
 void gl_image_free(gl_image_t *image);
 void gl_image_draw(gl_image_t *image);
 
-/******************************************************************************
- * GL-MESH
- *****************************************************************************/
+// MESH //////////////////////////////////////////////////////////////////////
 
 typedef struct gl_vertex_t {
   float position[3];
@@ -516,9 +492,7 @@ void gl_mesh_setup(gl_mesh_t *mesh,
                    const int num_textures);
 void gl_mesh_draw(const gl_mesh_t *mesh, const gl_uint_t shader);
 
-/******************************************************************************
- * GL-MODEL
- *****************************************************************************/
+// MODEL /////////////////////////////////////////////////////////////////////
 
 typedef struct gl_model_t {
   char model_dir[100];
@@ -535,7 +509,6 @@ typedef struct gl_model_t {
 gl_model_t *gl_model_load(const char *model_path);
 void gl_model_free(gl_model_t *model);
 void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera);
-
 
 // UI-CONTAINER //////////////////////////////////////////////////////////////
 
@@ -1136,6 +1109,7 @@ void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]) {
 
 void gl_shader_setup(gl_shader_t *entity) {
   entity->program_id = 0;
+  entity->texture_id = 0;
   entity->VAO = 0;
   entity->VBO = 0;
   entity->EBO = 0;
@@ -1801,6 +1775,15 @@ void gui_setup(gui_t *gui) {
   gui->last_cursor_set = 0;
   gui->last_cursor_x = 0.0f;
   gui->last_cursor_y = 0.0f;
+
+  // Shaders
+  setup_rect_shader(&gui->rect);
+  setup_cube_shader(&gui->cube);
+  setup_frustum_shader(&gui->frustum);
+  setup_axes3d_shader(&gui->axes);
+  setup_grid3d_shader(&gui->grid);
+  setup_points3d_shader(&gui->points);
+  setup_line3d_shader(&gui->line);
 }
 
 void gui_reset(gui_t *gui) {
@@ -1820,8 +1803,6 @@ void gui_loop(gui_t *gui) {
   // Rect
   gl_bounds_t rect_bounds = (gl_bounds_t){0, 0, 58, 10};
   gl_color_t rect_color = (gl_color_t){1.0f, 1.0f, 1.0f};
-  gl_shader_t rect;
-  gl_rect_setup(&rect);
 
   // Cube
   gl_float_t cube_T[4 * 4] = {0};
@@ -1831,8 +1812,6 @@ void gui_loop(gui_t *gui) {
   cube_T[14] = 1.0;
   gl_float_t cube_size = 0.5f;
   gl_color_t cube_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_shader_t cube;
-  gl_cube_setup(&cube);
 
   // Frustum
   gl_float_t frustum_T[4 * 4];
@@ -1840,23 +1819,18 @@ void gui_loop(gui_t *gui) {
   gl_float_t frustum_size = 0.5f;
   gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
   gl_float_t frustum_lw = 1.0f;
-  gl_frustum_t frustum;
-  gl_frustum_setup(&frustum);
 
   // Axes
   gl_float_t axes_T[4 * 4];
   gl_eye(axes_T, 4, 4);
   gl_float_t axes_size = 0.5f;
   gl_float_t axes_lw = 5.0f;
-  gl_axes3d_t axes;
-  gl_axes3d_setup(&axes);
 
   // Grid
-  gl_grid3d_t grid;
+  gl_shader_t grid;
   gl_float_t grid_size = 0.5f;
   gl_float_t grid_lw = 5.0f;
   gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_grid3d_setup(&grid);
 
   // Points
   gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
@@ -1871,8 +1845,6 @@ void gui_loop(gui_t *gui) {
     points_data[i * 6 + 4] = points_color.g;
     points_data[i * 6 + 5] = points_color.b;
   }
-  gl_points3d_t points;
-  gl_points3d_setup(&points);
 
   // Line
   gl_float_t line_lw = 5.0f;
@@ -1888,8 +1860,6 @@ void gui_loop(gui_t *gui) {
     line_data[i * 3 + 2] = radius * cos(theta);
     theta += dtheta;
   }
-  gl_line3d_t line;
-  gl_line3d_setup(&line);
 
   // Text
   gl_text_t text;
@@ -1913,28 +1883,14 @@ void gui_loop(gui_t *gui) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw
-    gl_rect_draw(&rect, &gui->camera, &rect_bounds, &rect_color);
-    gl_cube_draw(&cube, &gui->camera, cube_T, cube_size, cube_color);
-    gl_frustum_draw(&frustum,
-                    &gui->camera,
-                    frustum_T,
-                    frustum_size,
-                    frustum_color,
-                    frustum_lw);
-    gl_axes3d_draw(&axes, &gui->camera, axes_T, axes_size, axes_lw);
-    gl_grid3d_draw(&grid, &gui->camera, grid_size, grid_lw, grid_color);
-    // gl_points3d_draw(&points,
-    //                  &gui->camera,
-    //                  points_data,
-    //                  num_points,
-    //                  points_size);
-    gl_line3d_draw(&line,
-                   &gui->camera,
-                   line_data,
-                   line_size,
-                   line_color,
-                   line_lw);
-    // gl_text_draw(text, &gui->camera, "Here3!", 500.0f, 550.0f, 1.0f);
+    draw_rect(gui, &rect_bounds, &rect_color);
+    draw_cube(gui, cube_T, cube_size, cube_color);
+    draw_frustum(gui, frustum_T, frustum_size, frustum_color, frustum_lw);
+    draw_axes3d(gui, axes_T, axes_size, axes_lw);
+    draw_grid3d(gui, grid_size, grid_lw, grid_color);
+    draw_points3d(gui, points_data, num_points, points_size);
+    draw_line3d(gui, line_data, line_size, line_color, line_lw);
+
     // gl_image_draw(image);
     // if (ui_button_draw(gui, &button) == 1) {
     //   printf("Button pressed!\n");
@@ -1949,13 +1905,13 @@ void gui_loop(gui_t *gui) {
   }
 
   // Clean up
-  gl_shader_cleanup(&rect);
-  gl_shader_cleanup(&cube);
-  gl_frustum_cleanup(&frustum);
-  gl_axes3d_cleanup(&axes);
-  gl_grid3d_cleanup(&grid);
-  gl_points3d_cleanup(&points);
-  gl_line3d_cleanup(&line);
+  gl_shader_cleanup(&gui->rect);
+  gl_shader_cleanup(&gui->cube);
+  gl_shader_cleanup(&gui->frustum);
+  gl_shader_cleanup(&gui->axes);
+  gl_shader_cleanup(&gui->grid);
+  gl_shader_cleanup(&gui->points);
+  gl_shader_cleanup(&gui->line);
   gl_text_cleanup(&text);
   gl_image_free(image);
   free(points_data);
@@ -1963,11 +1919,7 @@ void gui_loop(gui_t *gui) {
   glfwTerminate();
 }
 
-/******************************************************************************
- * GL-PRIMITIVES
- *****************************************************************************/
-
-// GL RECT ///////////////////////////////////////////////////////////////////
+// RECT //////////////////////////////////////////////////////////////////////
 
 #define GL_RECT_VS                                                             \
   "#version 330 core\n"                                                        \
@@ -1991,7 +1943,7 @@ void gui_loop(gui_t *gui) {
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-void gl_rect_setup(gl_shader_t *rect) {
+void setup_rect_shader(gl_shader_t *rect) {
   // Setup
   gl_shader_setup(rect);
 
@@ -2045,29 +1997,30 @@ void gl_rect_setup(gl_shader_t *rect) {
   glBindVertexArray(0);
 }
 
-void gl_rect_draw(const gl_shader_t *rect,
-                  const gl_camera_t *camera,
-                  const gl_bounds_t *bounds,
-                  const gl_color_t *color) {
+void draw_rect(const gui_t *gui,
+               const gl_bounds_t *bounds,
+               const gl_color_t *color) {
+  const gl_camera_t *camera = &gui->camera;
+  const gl_shader_t *shader = &gui->rect;
   const gl_float_t w = *(camera->window_width);
   const gl_float_t h = *(camera->window_height);
   gl_float_t ortho[16] = {0};
   gl_ortho(w, h, ortho);
 
   glDepthMask(GL_FALSE);
-  glUseProgram(rect->program_id);
-  gl_set_mat4(rect->program_id, "ortho", ortho);
-  gl_set_color(rect->program_id, "color", *color);
-  gl_set_float(rect->program_id, "w", bounds->w);
-  gl_set_float(rect->program_id, "h", bounds->h);
-  gl_set_float(rect->program_id, "x", bounds->x);
-  gl_set_float(rect->program_id, "y", bounds->y);
-  glBindVertexArray(rect->VAO);
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "ortho", ortho);
+  gl_set_color(shader->program_id, "color", *color);
+  gl_set_float(shader->program_id, "w", bounds->w);
+  gl_set_float(shader->program_id, "h", bounds->h);
+  gl_set_float(shader->program_id, "x", bounds->x);
+  gl_set_float(shader->program_id, "y", bounds->y);
+  glBindVertexArray(shader->VAO);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
   glDepthMask(GL_TRUE);
 }
 
-// GL CUBE ///////////////////////////////////////////////////////////////////
+// CUBE //////////////////////////////////////////////////////////////////////
 
 #define GL_CUBE_VS                                                             \
   "#version 330 core\n"                                                        \
@@ -2091,10 +2044,10 @@ void gl_rect_draw(const gl_shader_t *rect,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-void gl_cube_setup(gl_shader_t *cube) {
+void setup_cube_shader(gl_shader_t *shader) {
   // Shader program
-  cube->program_id = gl_shader(GL_CUBE_VS, GL_CUBE_FS, NULL);
-  if (cube->program_id == GL_FALSE) {
+  shader->program_id = gl_shader(GL_CUBE_VS, GL_CUBE_FS, NULL);
+  if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
@@ -2158,12 +2111,12 @@ void gl_cube_setup(gl_shader_t *cube) {
   // clang-format on
 
   // VAO
-  glGenVertexArrays(1, &cube->VAO);
-  glBindVertexArray(cube->VAO);
+  glGenVertexArrays(1, &shader->VAO);
+  glBindVertexArray(shader->VAO);
 
   // VBO
-  glGenBuffers(1, &cube->VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, cube->VBO);
+  glGenBuffers(1, &shader->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
   glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
   // -- Position attribute
   const size_t vertex_size = sizeof(gl_float_t) * 3;
@@ -2176,27 +2129,28 @@ void gl_cube_setup(gl_shader_t *cube) {
   glBindVertexArray(0);             // Unbind VAO
 }
 
-void gl_cube_draw(const gl_shader_t *cube,
-                  const gl_camera_t *camera,
-                  const gl_float_t T[4 * 4],
-                  const gl_float_t size,
-                  const gl_color_t color) {
-  glUseProgram(cube->program_id);
+void draw_cube(const gui_t *gui,
+               const gl_float_t T[4 * 4],
+               const gl_float_t size,
+               const gl_color_t color) {
+  const gl_camera_t *camera = &gui->camera;
+  const gl_shader_t *shader = &gui->cube;
+  glUseProgram(shader->program_id);
 
   // Draw cube
-  gl_set_mat4(cube->program_id, "projection", camera->P);
-  gl_set_mat4(cube->program_id, "view", camera->V);
-  gl_set_mat4(cube->program_id, "model", T);
-  gl_set_float(cube->program_id, "size", size);
-  gl_set_color(cube->program_id, "in_color", color);
-  glBindVertexArray(cube->VAO);
+  gl_set_mat4(shader->program_id, "projection", camera->P);
+  gl_set_mat4(shader->program_id, "view", camera->V);
+  gl_set_mat4(shader->program_id, "model", T);
+  gl_set_float(shader->program_id, "size", size);
+  gl_set_color(shader->program_id, "in_color", color);
+  glBindVertexArray(shader->VAO);
   glDrawArrays(GL_TRIANGLES, 0, 36); // 36 Vertices
 
   // Unbind VAO
   glBindVertexArray(0);
 }
 
-// GL FRUSTUM ////////////////////////////////////////////////////////////////
+// FRUSTUM ///////////////////////////////////////////////////////////////////
 
 #define gl_frustum_VS                                                          \
   "#version 330 core\n"                                                        \
@@ -2215,10 +2169,10 @@ void gl_cube_draw(const gl_shader_t *cube,
   "  frag_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"                             \
   "}\n"
 
-void gl_frustum_setup(gl_frustum_t *f) {
+void setup_frustum_shader(gl_shader_t *shader) {
   // Shader program
-  f->entity.program_id = gl_shader(gl_frustum_VS, gl_frustum_FS, NULL);
-  if (f->entity.program_id == GL_FALSE) {
+  shader->program_id = gl_shader(gl_frustum_VS, gl_frustum_FS, NULL);
+  if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
@@ -2258,12 +2212,12 @@ void gl_frustum_setup(gl_frustum_t *f) {
   // clang-format on
 
   // VAO
-  glGenVertexArrays(1, &f->entity.VAO);
-  glBindVertexArray(f->entity.VAO);
+  glGenVertexArrays(1, &shader->VAO);
+  glBindVertexArray(shader->VAO);
 
   // VBO
-  glGenBuffers(1, &f->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, f->entity.VBO);
+  glGenBuffers(1, &shader->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, (void *) 0);
   glEnableVertexAttribArray(0);
@@ -2273,21 +2227,17 @@ void gl_frustum_setup(gl_frustum_t *f) {
   glBindVertexArray(0);             // Unbind VAO
 }
 
-void gl_frustum_cleanup(gl_frustum_t *frustum) {
-  // Clean up
-  gl_shader_cleanup(&frustum->entity);
-}
-
-void gl_frustum_draw(const gl_frustum_t *frustum,
-                     const gl_camera_t *camera,
-                     const gl_float_t T[4 * 4],
-                     const gl_float_t size,
-                     const gl_color_t color,
-                     const gl_float_t lw) {
-  glUseProgram(frustum->entity.program_id);
-  gl_set_mat4(frustum->entity.program_id, "projection", camera->P);
-  gl_set_mat4(frustum->entity.program_id, "view", camera->V);
-  gl_set_mat4(frustum->entity.program_id, "model", T);
+void draw_frustum(const gui_t *gui,
+                  const gl_float_t T[4 * 4],
+                  const gl_float_t size,
+                  const gl_color_t color,
+                  const gl_float_t lw) {
+  const gl_camera_t *camera = &gui->camera;
+  const gl_shader_t *shader = &gui->frustum;
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "projection", camera->P);
+  gl_set_mat4(shader->program_id, "view", camera->V);
+  gl_set_mat4(shader->program_id, "model", T);
 
   // Store original line width
   gl_float_t lw_bak = 0.0f;
@@ -2299,7 +2249,7 @@ void gl_frustum_draw(const gl_frustum_t *frustum,
   // Draw frame
   const size_t num_lines = 8;
   const size_t num_vertices = num_lines * 2;
-  glBindVertexArray(frustum->entity.VAO);
+  glBindVertexArray(shader->VAO);
   glDrawArrays(GL_LINES, 0, num_vertices);
   glBindVertexArray(0); // Unbind VAO
 
@@ -2307,7 +2257,7 @@ void gl_frustum_draw(const gl_frustum_t *frustum,
   glLineWidth(lw_bak);
 }
 
-// GL AXIS FRAME /////////////////////////////////////////////////////////////
+// AXES 3D ///////////////////////////////////////////////////////////////////
 
 #define GL_AXES3D_VS                                                           \
   "#version 330 core\n"                                                        \
@@ -2330,10 +2280,10 @@ void gl_frustum_draw(const gl_frustum_t *frustum,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-void gl_axes3d_setup(gl_axes3d_t *axes) {
+void setup_axes3d_shader(gl_shader_t *shader) {
   // Shader program
-  axes->entity.program_id = gl_shader(GL_AXES3D_VS, GL_AXES3D_FS, NULL);
-  if (axes->entity.program_id == GL_FALSE) {
+  shader->program_id = gl_shader(GL_AXES3D_VS, GL_AXES3D_FS, NULL);
+  if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
@@ -2353,12 +2303,12 @@ void gl_axes3d_setup(gl_axes3d_t *axes) {
   // clang-format on
 
   // VAO
-  glGenVertexArrays(1, &axes->entity.VAO);
-  glBindVertexArray(axes->entity.VAO);
+  glGenVertexArrays(1, &shader->VAO);
+  glBindVertexArray(shader->VAO);
 
   // VBO
-  glGenBuffers(1, &axes->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, axes->entity.VBO);
+  glGenBuffers(1, &shader->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
   // -- Position attribute
   size_t vertex_size = 6 * sizeof(float);
@@ -2375,20 +2325,16 @@ void gl_axes3d_setup(gl_axes3d_t *axes) {
   glBindVertexArray(0);             // Unbind VAO
 }
 
-void gl_axes3d_cleanup(gl_axes3d_t *axes) {
-  // Clean up
-  gl_shader_cleanup(&axes->entity);
-}
-
-void gl_axes3d_draw(const gl_axes3d_t *axes,
-                    const gl_camera_t *camera,
-                    const gl_float_t T[4 * 4],
-                    const gl_float_t size,
-                    const gl_float_t lw) {
-  glUseProgram(axes->entity.program_id);
-  gl_set_mat4(axes->entity.program_id, "projection", camera->P);
-  gl_set_mat4(axes->entity.program_id, "view", camera->V);
-  gl_set_mat4(axes->entity.program_id, "model", T);
+void draw_axes3d(const gui_t *gui,
+                 const gl_float_t T[4 * 4],
+                 const gl_float_t size,
+                 const gl_float_t lw) {
+  const gl_camera_t *camera = &gui->camera;
+  const gl_shader_t *shader = &gui->axes;
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "projection", camera->P);
+  gl_set_mat4(shader->program_id, "view", camera->V);
+  gl_set_mat4(shader->program_id, "model", T);
 
   // Store original line width
   gl_float_t lw_bak = 0.0f;
@@ -2398,7 +2344,7 @@ void gl_axes3d_draw(const gl_axes3d_t *axes,
   glLineWidth(lw);
 
   // Draw frame
-  glBindVertexArray(axes->entity.VAO);
+  glBindVertexArray(shader->VAO);
   glDrawArrays(GL_LINES, 0, 6);
   glBindVertexArray(0); // Unbind VAO
 
@@ -2406,7 +2352,7 @@ void gl_axes3d_draw(const gl_axes3d_t *axes,
   glLineWidth(lw_bak);
 }
 
-// GL GRID ///////////////////////////////////////////////////////////////////
+// GRID 3D ///////////////////////////////////////////////////////////////////
 
 #define GL_GRID3D_VS                                                           \
   "#version 330 core\n"                                                        \
@@ -2474,10 +2420,10 @@ static gl_float_t *gl_grid3d_create_vertices(int grid_size) {
   return vertices;
 }
 
-void gl_grid3d_setup(gl_grid3d_t *grid) {
+void setup_grid3d_shader(gl_shader_t *shader) {
   // Shader program
-  grid->entity.program_id = gl_shader(GL_GRID3D_VS, GL_GRID3D_FS, NULL);
-  if (grid->entity.program_id == GL_FALSE) {
+  shader->program_id = gl_shader(GL_GRID3D_VS, GL_GRID3D_FS, NULL);
+  if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
@@ -2491,12 +2437,12 @@ void gl_grid3d_setup(gl_grid3d_t *grid) {
   const size_t buffer_size = sizeof(gl_float_t) * num_vertices * 3;
 
   // VAO
-  glGenVertexArrays(1, &grid->entity.VAO);
-  glBindVertexArray(grid->entity.VAO);
+  glGenVertexArrays(1, &shader->VAO);
+  glBindVertexArray(shader->VAO);
 
   // VBO
-  glGenBuffers(1, &grid->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, grid->entity.VBO);
+  glGenBuffers(1, &shader->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
   glBufferData(GL_ARRAY_BUFFER, buffer_size, vertices, GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, offset);
   glEnableVertexAttribArray(0);
@@ -2507,34 +2453,30 @@ void gl_grid3d_setup(gl_grid3d_t *grid) {
   free(vertices);
 }
 
-void gl_grid3d_cleanup(gl_grid3d_t *grid) {
-  // Clean up
-  gl_shader_cleanup(&grid->entity);
-}
-
-void gl_grid3d_draw(const gl_grid3d_t *grid,
-                    const gl_camera_t *camera,
-                    const gl_float_t size,
-                    const gl_float_t lw,
-                    const gl_color_t color) {
+void draw_grid3d(const gui_t *gui,
+                 const gl_float_t size,
+                 const gl_float_t lw,
+                 const gl_color_t color) {
+  const gl_camera_t *camera = &gui->camera;
+  const gl_shader_t *shader = &gui->grid;
   gl_float_t T[4 * 4] = {0};
   gl_eye(T, 4, 4);
 
-  glUseProgram(grid->entity.program_id);
-  gl_set_mat4(grid->entity.program_id, "projection", camera->P);
-  gl_set_mat4(grid->entity.program_id, "view", camera->V);
-  gl_set_mat4(grid->entity.program_id, "model", T);
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "projection", camera->P);
+  gl_set_mat4(shader->program_id, "view", camera->V);
+  gl_set_mat4(shader->program_id, "model", T);
 
   const int grid_size = 10;
   const int num_lines = (grid_size + 1) * 2;
   const int num_vertices = num_lines * 2;
 
-  glBindVertexArray(grid->entity.VAO);
+  glBindVertexArray(shader->VAO);
   glDrawArrays(GL_LINES, 0, num_vertices);
   glBindVertexArray(0); // Unbind VAO
 }
 
-// GL POINTS /////////////////////////////////////////////////////////////////
+// POINTS 3D /////////////////////////////////////////////////////////////////
 
 #define GL_POINTS3D_VS                                                         \
   "#version 330 core\n"                                                        \
@@ -2558,34 +2500,30 @@ void gl_grid3d_draw(const gl_grid3d_t *grid,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-void gl_points3d_setup(gl_points3d_t *points) {
+void setup_points3d_shader(gl_shader_t *shader) {
   // Shader program
-  points->entity.program_id = gl_shader(GL_POINTS3D_VS, GL_POINTS3D_FS, NULL);
-  if (points->entity.program_id == GL_FALSE) {
+  shader->program_id = gl_shader(GL_POINTS3D_VS, GL_POINTS3D_FS, NULL);
+  if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders to draw points!");
   }
-  points->entity.VAO = 0;
+  shader->VAO = 0;
 }
 
-void gl_points3d_cleanup(gl_points3d_t *points) {
-  // Clean up
-  gl_shader_cleanup(&points->entity);
-}
-
-void gl_points3d_draw(gl_points3d_t *points,
-                      const gl_camera_t *camera,
-                      const gl_float_t *data,
-                      const size_t num_points,
-                      const gl_float_t size) {
-  if (points->entity.VAO == 0) {
+void draw_points3d(gui_t *gui,
+                   const gl_float_t *data,
+                   const size_t num_points,
+                   const gl_float_t size) {
+  const gl_camera_t *camera = &gui->camera;
+  gl_shader_t *shader = &gui->points;
+  if (shader->VAO == 0) {
     // VAO
-    glGenVertexArrays(1, &points->entity.VAO);
-    glBindVertexArray(points->entity.VAO);
+    glGenVertexArrays(1, &shader->VAO);
+    glBindVertexArray(shader->VAO);
 
     // VBO
     const size_t vbo_size = sizeof(gl_float_t) * 6 * num_points;
-    glGenBuffers(1, &points->entity.VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, points->entity.VBO);
+    glGenBuffers(1, &shader->VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
     glBufferData(GL_ARRAY_BUFFER, vbo_size, data, GL_STATIC_DRAW);
     // -- Position attribute
     size_t vertex_size = 6 * sizeof(float);
@@ -2603,18 +2541,18 @@ void gl_points3d_draw(gl_points3d_t *points,
   }
 
   // Use shader program
-  glUseProgram(points->entity.program_id);
-  gl_set_mat4(points->entity.program_id, "projection", camera->P);
-  gl_set_mat4(points->entity.program_id, "view", camera->V);
-  gl_set_float(points->entity.program_id, "size", size);
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "projection", camera->P);
+  gl_set_mat4(shader->program_id, "view", camera->V);
+  gl_set_float(shader->program_id, "size", size);
 
   // Draw
-  glBindVertexArray(points->entity.VAO);
+  glBindVertexArray(shader->VAO);
   glDrawArrays(GL_POINTS, 0, num_points);
   glBindVertexArray(0); // Unbind VAO
 }
 
-// GL LINE ///////////////////////////////////////////////////////////////////
+// LINE 3D ///////////////////////////////////////////////////////////////////
 
 #define GL_LINE3D_VS                                                           \
   "#version 330 core\n"                                                        \
@@ -2636,35 +2574,31 @@ void gl_points3d_draw(gl_points3d_t *points,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-void gl_line3d_setup(gl_line3d_t *line) {
+void setup_line3d_shader(gl_shader_t *shader) {
   // Shader program
-  line->entity.program_id = gl_shader(GL_LINE3D_VS, GL_LINE3D_FS, NULL);
-  if (line->entity.program_id == GL_FALSE) {
+  shader->program_id = gl_shader(GL_LINE3D_VS, GL_LINE3D_FS, NULL);
+  if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
-  line->entity.VAO = -1;
+  shader->VAO = -1;
 }
 
-void gl_line3d_cleanup(gl_line3d_t *line) {
-  // Clean up
-  gl_shader_cleanup(&line->entity);
-}
-
-void gl_line3d_draw(gl_line3d_t *line,
-                    const gl_camera_t *camera,
-                    const gl_float_t *data,
-                    const size_t num_points,
-                    const gl_color_t color,
-                    const gl_float_t lw) {
-  if (line->entity.VAO == -1) {
+void draw_line3d(gui_t *gui,
+                 const gl_float_t *data,
+                 const size_t num_points,
+                 const gl_color_t color,
+                 const gl_float_t lw) {
+  const gl_camera_t *camera = &gui->camera;
+  gl_shader_t *shader = &gui->line;
+  if (shader->VAO == -1) {
     // VAO
-    glGenVertexArrays(1, &line->entity.VAO);
-    glBindVertexArray(line->entity.VAO);
+    glGenVertexArrays(1, &shader->VAO);
+    glBindVertexArray(shader->VAO);
 
     // VBO
     const size_t vbo_size = sizeof(gl_float_t) * 3 * num_points;
-    glGenBuffers(1, &line->entity.VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, line->entity.VBO);
+    glGenBuffers(1, &shader->VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
     glBufferData(GL_ARRAY_BUFFER, vbo_size, data, GL_STATIC_DRAW);
 
     // Position attribute
@@ -2679,10 +2613,10 @@ void gl_line3d_draw(gl_line3d_t *line,
   }
 
   // Activate shader
-  glUseProgram(line->entity.program_id);
-  gl_set_mat4(line->entity.program_id, "projection", camera->P);
-  gl_set_mat4(line->entity.program_id, "view", camera->V);
-  gl_set_color(line->entity.program_id, "in_color", color);
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "projection", camera->P);
+  gl_set_mat4(shader->program_id, "view", camera->V);
+  gl_set_color(shader->program_id, "in_color", color);
 
   // Store original line width
   gl_float_t original_line_width = 0.0f;
@@ -2692,7 +2626,7 @@ void gl_line3d_draw(gl_line3d_t *line,
   glLineWidth(lw);
 
   // Draw frame
-  glBindVertexArray(line->entity.VAO);
+  glBindVertexArray(shader->VAO);
   glDrawArrays(GL_LINE_STRIP, 0, num_points);
   glBindVertexArray(0); // Unbind VAO
 
@@ -2700,7 +2634,7 @@ void gl_line3d_draw(gl_line3d_t *line,
   glLineWidth(original_line_width);
 }
 
-// GL TEXT ///////////////////////////////////////////////////////////////////
+// TEXT //////////////////////////////////////////////////////////////////////
 
 #define GL_TEXT_VS                                                             \
   "#version 330 core\n"                                                        \
@@ -2736,7 +2670,8 @@ void gl_char_print(const gl_char_t *ch) {
 void gl_text_setup(gl_text_t *text) {
   // Initialize
   gl_shader_setup(&text->entity);
-  text->color = (gl_color_t){0.0, 0.0, 0.0};
+  // text->color = (gl_color_t){0.0, 0.0, 0.0};
+  text->color = (gl_color_t){1.0, 1.0, 1.0};
   text->size = 16;
 
   // Compile shader
@@ -2896,7 +2831,7 @@ void gl_text_draw(gl_text_t *text,
   glDepthMask(GL_TRUE);
 }
 
-// GL IMAGE //////////////////////////////////////////////////////////////////
+// IMAGE /////////////////////////////////////////////////////////////////////
 
 #define GL_IMAGE_VS                                                            \
   "#version 330 core\n"                                                        \
@@ -3026,9 +2961,7 @@ void gl_image_draw(gl_image_t *image) {
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-/******************************************************************************
- * GL-MESH
- *****************************************************************************/
+// MESH //////////////////////////////////////////////////////////////////////
 
 void gl_mesh_setup(gl_mesh_t *mesh,
                    gl_vertex_t *vertices,
@@ -3133,9 +3066,7 @@ void gl_mesh_draw(const gl_mesh_t *mesh, const gl_uint_t shader) {
   glActiveTexture(GL_TEXTURE0);
 }
 
-/******************************************************************************
- * GL-MODEL
- *****************************************************************************/
+// MODEL /////////////////////////////////////////////////////////////////////
 
 #define GL_MODEL_VS                                                            \
   "#version 330 core\n"                                                        \
@@ -3528,7 +3459,6 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
     gl_mesh_draw(&model->meshes[i], model->program_id);
   }
 }
-
 
 // UI-UTILS //////////////////////////////////////////////////////////////////
 
