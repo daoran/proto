@@ -242,9 +242,6 @@ static void pixel2ndc(const int x_px,
  *****************************************************************************/
 
 typedef struct gl_entity_t {
-  gl_float_t T[4 * 4];
-  gl_float_t P[4 * 4];
-
   gl_uint_t program_id;
   gl_uint_t VAO;
   gl_uint_t VBO;
@@ -256,49 +253,33 @@ void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]);
 
 void gl_entity_setup(gl_entity_t *entity);
 void gl_entity_cleanup(gl_entity_t *entity);
-void gl_entity_set_position(gl_entity_t *entity, const gl_float_t pos[3]);
-void gl_entity_get_position(gl_entity_t *entity, gl_float_t *pos);
-void gl_entity_set_rotation(gl_entity_t *entity, const gl_float_t rot[3 * 3]);
-void gl_entity_get_rotation(gl_entity_t *entity, gl_float_t *rot);
-void gl_entity_set_quaternion(gl_entity_t *entity, const gl_float_t quat[4]);
-void gl_entity_get_quaternion(gl_entity_t *entity, gl_float_t *quat);
+// void gl_entity_set_position(gl_entity_t *entity, const gl_float_t pos[3]);
+// void gl_entity_get_position(gl_entity_t *entity, gl_float_t *pos);
+// void gl_entity_set_rotation(gl_entity_t *entity, const gl_float_t rot[3 * 3]);
+// void gl_entity_get_rotation(gl_entity_t *entity, gl_float_t *rot);
+// void gl_entity_set_quaternion(gl_entity_t *entity, const gl_float_t quat[4]);
+// void gl_entity_get_quaternion(gl_entity_t *entity, gl_float_t *quat);
 
 /******************************************************************************
  * GL-SHADER
  *****************************************************************************/
 
-gl_uint_t gl_shader_compile(const char *shader_src, const int type);
-gl_uint_t gl_shaders_link(const gl_uint_t vertex_shader,
-                          const gl_uint_t fragment_shader,
-                          const gl_uint_t geometry_shader);
+gl_uint_t gl_compile(const char *src, const int type);
+gl_uint_t gl_link(const gl_uint_t vs, const gl_uint_t fs, const gl_uint_t gs);
+gl_uint_t gl_shader(const char *vs_src, const char *fs_src, const char *gs_src);
 
-/******************************************************************************
- * GL-PROGRAM
- *****************************************************************************/
-
-gl_uint_t gl_prog_setup(const char *vs_src,
-                        const char *fs_src,
-                        const char *gs_src);
-
-int gl_prog_set_int(const gl_int_t id, const char *k, const gl_int_t v);
-int gl_prog_set_vec2i(const gl_int_t id, const char *k, const gl_int_t v[2]);
-int gl_prog_set_vec3i(const gl_int_t id, const char *k, const gl_int_t v[3]);
-int gl_prog_set_vec4i(const gl_int_t id, const char *k, const gl_int_t v[4]);
-
-int gl_prog_set_color(const gl_int_t id, const char *k, const gl_color_t v);
-int gl_prog_set_float(const gl_int_t id, const char *k, const gl_float_t v);
-int gl_prog_set_vec2(const gl_int_t id, const char *k, const gl_float_t v[2]);
-int gl_prog_set_vec3(const gl_int_t id, const char *k, const gl_float_t v[3]);
-int gl_prog_set_vec4(const gl_int_t id, const char *k, const gl_float_t v[4]);
-int gl_prog_set_mat2(const gl_int_t id,
-                     const char *k,
-                     const gl_float_t v[2 * 2]);
-int gl_prog_set_mat3(const gl_int_t id,
-                     const char *k,
-                     const gl_float_t v[3 * 3]);
-int gl_prog_set_mat4(const gl_int_t id,
-                     const char *k,
-                     const gl_float_t v[4 * 4]);
+int gl_set_color(const gl_int_t id, const char *k, const gl_color_t v);
+int gl_set_int(const gl_int_t id, const char *k, const gl_int_t v);
+int gl_set_float(const gl_int_t id, const char *k, const gl_float_t v);
+int gl_set_vec2i(const gl_int_t id, const char *k, const gl_int_t v[2]);
+int gl_set_vec3i(const gl_int_t id, const char *k, const gl_int_t v[3]);
+int gl_set_vec4i(const gl_int_t id, const char *k, const gl_int_t v[4]);
+int gl_set_vec2(const gl_int_t id, const char *k, const gl_float_t v[2]);
+int gl_set_vec3(const gl_int_t id, const char *k, const gl_float_t v[3]);
+int gl_set_vec4(const gl_int_t id, const char *k, const gl_float_t v[4]);
+int gl_set_mat2(const gl_int_t id, const char *k, const gl_float_t v[2 * 2]);
+int gl_set_mat3(const gl_int_t id, const char *k, const gl_float_t v[3 * 3]);
+int gl_set_mat4(const gl_int_t id, const char *k, const gl_float_t v[4 * 4]);
 
 /******************************************************************************
  * GL-CAMERA
@@ -352,71 +333,75 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GL-PRIMITIVES
  *****************************************************************************/
 
-// GL RECT ///////////////////////////////////////////////////////////////////
-
+// Forward declaration
 typedef struct gui_t gui_t;
+
+// GL RECT ///////////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_entity_t entity;
-  gl_bounds_t bounds;
-  gl_color_t color;
 } gl_rect_t;
-gl_rect_t *gl_rect_malloc(const gl_bounds_t bounds);
-void gl_rect_free(gl_rect_t *rect);
-void gl_rect_draw(const gui_t *gui, const gl_rect_t *rect);
+void gl_rect_setup(gl_rect_t *rect);
+void gl_rect_cleanup(gl_rect_t *rect);
+void gl_rect_draw(const gui_t *gui,
+                  const gl_rect_t *rect,
+                  const gl_bounds_t *bounds,
+                  const gl_color_t *color);
 
 // GL CUBE ///////////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_entity_t entity;
-  gl_float_t size;
-  gl_float_t color[3];
-  gl_float_t outline_color[3];
 } gl_cube_t;
-gl_cube_t *gl_cube_malloc(const gl_float_t size,
-                          const gl_float_t pos[3],
-                          const gl_float_t color[3],
-                          const gl_float_t outline_color[3]);
-void gl_cube_free(gl_cube_t *cube);
-void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera);
+void gl_cube_setup(gl_cube_t *cube);
+void gl_cube_cleanup(gl_cube_t *cube);
+void gl_cube_draw(const gl_cube_t *cube,
+                  const gl_camera_t *camera,
+                  const gl_float_t T[4 * 4],
+                  const gl_float_t size,
+                  const gl_color_t color);
 
 // GL FRUSTUM ////////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_entity_t entity;
-  gl_float_t size;
-  gl_float_t color[3];
-  gl_float_t line_width;
 } gl_frustum_t;
-gl_frustum_t *gl_frustum_malloc(const gl_float_t pos[3],
-                                const gl_float_t size,
-                                const gl_float_t color[3]);
-void gl_frustum_free(gl_frustum_t *cf);
-void gl_frustum_draw(const gl_frustum_t *cf, const gl_camera_t *camera);
+void gl_frustum_setup(gl_frustum_t *frustum);
+void gl_frustum_cleanup(gl_frustum_t *frustum);
+void gl_frustum_draw(const gl_frustum_t *frustum,
+                     const gl_camera_t *camera,
+                     const gl_float_t T[4 * 4],
+                     const gl_float_t size,
+                     const gl_color_t color,
+                     const gl_float_t lw);
 
 // GL AXES 3D ////////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_entity_t entity;
-  gl_float_t size;
-  gl_float_t line_width;
 } gl_axes3d_t;
-gl_axes3d_t *gl_axes3d_malloc(void);
-void gl_axes3d_free(gl_axes3d_t *axes);
-void gl_axes3d_draw(const gl_axes3d_t *axes, const gl_camera_t *camera);
+void gl_axes3d_setup(gl_axes3d_t *axes);
+void gl_axes3d_cleanup(gl_axes3d_t *axes);
+void gl_axes3d_draw(const gl_axes3d_t *axes,
+                    const gl_camera_t *camera,
+                    const gl_float_t T[4 * 4],
+                    const gl_float_t size,
+                    const gl_float_t lw);
 
-// GL GRID ///////////////////////////////////////////////////////////////////
+// GL GRID 3D ////////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_entity_t entity;
-  gl_float_t size;
-  gl_float_t line_width;
 } gl_grid3d_t;
-gl_grid3d_t *gl_grid3d_malloc(void);
-void gl_grid3d_free(gl_grid3d_t *grid);
-void gl_grid3d_draw(const gl_grid3d_t *grid, const gl_camera_t *camera);
+void gl_grid3d_setup(gl_grid3d_t *grid);
+void gl_grid3d_cleanup(gl_grid3d_t *grid);
+void gl_grid3d_draw(const gl_grid3d_t *grid,
+                    const gl_camera_t *camera,
+                    const gl_float_t size,
+                    const gl_float_t lw,
+                    const gl_color_t color);
 
-// GL POINTS /////////////////////////////////////////////////////////////////
+// GL POINTS 3D //////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_entity_t entity;
@@ -434,7 +419,7 @@ void gl_points3d_draw(const gl_points3d_t *points,
                       const gl_camera_t *camera,
                       const size_t num_points);
 
-// GL LINE ///////////////////////////////////////////////////////////////////
+// GL LINE 3D ////////////////////////////////////////////////////////////////
 
 typedef struct {
   gl_entity_t entity;
@@ -453,10 +438,10 @@ void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera);
 // GL TEXT ///////////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_uint_t texture_id; // ID handle of the glyph texture
-  gl_int_t size[2];     // Size of glyph
-  gl_int_t bearing[2];  // Offset from baseline to left/top of glyph
-  gl_uint_t offset;     // Offset to advance to next glyph
+  gl_uint_t texture_id;
+  gl_int_t size[2];    // Size of glyph
+  gl_int_t bearing[2]; // Offset from baseline to left/top of glyph
+  gl_uint_t offset;    // Offset to advance to next glyph
 } gl_char_t;
 
 typedef struct {
@@ -469,8 +454,6 @@ typedef struct {
 void gl_char_print(const gl_char_t *ch);
 void gl_text_setup(gl_text_t *text);
 void gl_text_cleanup(gl_text_t *text);
-gl_text_t *gl_text_malloc(void);
-void gl_text_free(gl_text_t *text);
 void gl_text_draw(gl_text_t *text,
                   gl_camera_t *camera,
                   const char *s,
@@ -1214,8 +1197,6 @@ void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]) {
 }
 
 void gl_entity_setup(gl_entity_t *entity) {
-  gl_eye(entity->T, 4, 4);
-  gl_eye(entity->P, 4, 4);
   entity->program_id = 0;
   entity->VAO = 0;
   entity->VBO = 0;
@@ -1240,79 +1221,79 @@ void gl_entity_cleanup(gl_entity_t *entity) {
   }
 }
 
-void gl_entity_set_position(gl_entity_t *entity, const gl_float_t pos[3]) {
-  assert(entity != NULL);
-  assert(pos != NULL);
-  entity->T[12] = pos[0];
-  entity->T[13] = pos[1];
-  entity->T[14] = pos[2];
-}
-
-void gl_entity_get_position(gl_entity_t *entity, gl_float_t *pos) {
-  assert(entity != NULL);
-  assert(pos != NULL);
-  pos[0] = entity->T[12];
-  pos[1] = entity->T[13];
-  pos[2] = entity->T[14];
-}
-
-void gl_entity_set_rotation(gl_entity_t *entity, const gl_float_t rot[3 * 3]) {
-  assert(entity != NULL);
-  assert(rot != NULL);
-  entity->T[0] = rot[0];
-  entity->T[1] = rot[1];
-  entity->T[2] = rot[2];
-  entity->T[4] = rot[3];
-  entity->T[5] = rot[4];
-  entity->T[6] = rot[5];
-  entity->T[8] = rot[6];
-  entity->T[9] = rot[7];
-  entity->T[10] = rot[8];
-}
-
-void gl_entity_get_rotation(gl_entity_t *entity, gl_float_t *rot) {
-  assert(entity != NULL);
-  assert(rot != NULL);
-
-  rot[0] = entity->T[0];
-  rot[1] = entity->T[1];
-  rot[2] = entity->T[2];
-  rot[3] = entity->T[4];
-  rot[4] = entity->T[5];
-  rot[5] = entity->T[6];
-  rot[6] = entity->T[8];
-  rot[7] = entity->T[9];
-  rot[8] = entity->T[10];
-}
-
-void gl_entity_set_quaternion(gl_entity_t *entity, const gl_float_t quat[4]) {
-  assert(entity != NULL);
-  assert(quat != NULL);
-  gl_float_t C[3 * 3] = {0};
-  gl_quat2rot(quat, C);
-  gl_entity_set_rotation(entity, C);
-}
-
-void gl_entity_get_quaternion(gl_entity_t *entity, gl_float_t *quat) {
-  assert(entity != NULL);
-  assert(quat != NULL);
-  gl_float_t C[3 * 3] = {0};
-  gl_entity_get_rotation(entity, C);
-  gl_rot2quat(C, quat);
-}
+// void gl_entity_set_position(gl_entity_t *entity, const gl_float_t pos[3]) {
+//   assert(entity != NULL);
+//   assert(pos != NULL);
+//   // entity->T[12] = pos[0];
+//   // entity->T[13] = pos[1];
+//   // entity->T[14] = pos[2];
+// }
+//
+// void gl_entity_get_position(gl_entity_t *entity, gl_float_t *pos) {
+//   assert(entity != NULL);
+//   assert(pos != NULL);
+//   // pos[0] = entity->T[12];
+//   // pos[1] = entity->T[13];
+//   // pos[2] = entity->T[14];
+// }
+//
+// void gl_entity_set_rotation(gl_entity_t *entity, const gl_float_t rot[3 * 3]) {
+//   assert(entity != NULL);
+//   assert(rot != NULL);
+//   entity->T[0] = rot[0];
+//   entity->T[1] = rot[1];
+//   entity->T[2] = rot[2];
+//   entity->T[4] = rot[3];
+//   entity->T[5] = rot[4];
+//   entity->T[6] = rot[5];
+//   entity->T[8] = rot[6];
+//   entity->T[9] = rot[7];
+//   entity->T[10] = rot[8];
+// }
+//
+// void gl_entity_get_rotation(gl_entity_t *entity, gl_float_t *rot) {
+//   assert(entity != NULL);
+//   assert(rot != NULL);
+//
+//   rot[0] = entity->T[0];
+//   rot[1] = entity->T[1];
+//   rot[2] = entity->T[2];
+//   rot[3] = entity->T[4];
+//   rot[4] = entity->T[5];
+//   rot[5] = entity->T[6];
+//   rot[6] = entity->T[8];
+//   rot[7] = entity->T[9];
+//   rot[8] = entity->T[10];
+// }
+//
+// void gl_entity_set_quaternion(gl_entity_t *entity, const gl_float_t quat[4]) {
+//   assert(entity != NULL);
+//   assert(quat != NULL);
+//   gl_float_t C[3 * 3] = {0};
+//   gl_quat2rot(quat, C);
+//   gl_entity_set_rotation(entity, C);
+// }
+//
+// void gl_entity_get_quaternion(gl_entity_t *entity, gl_float_t *quat) {
+//   assert(entity != NULL);
+//   assert(quat != NULL);
+//   gl_float_t C[3 * 3] = {0};
+//   gl_entity_get_rotation(entity, C);
+//   gl_rot2quat(C, quat);
+// }
 
 /******************************************************************************
  * GL-SHADER
  *****************************************************************************/
 
-gl_uint_t gl_shader_compile(const char *shader_src, const int type) {
-  if (shader_src == NULL) {
+gl_uint_t gl_compile(const char *src, const int type) {
+  if (src == NULL) {
     LOG_ERROR("Shader source is NULL!");
     return GL_FALSE;
   }
 
   const gl_uint_t shader = glCreateShader(type);
-  glShaderSource(shader, 1, &shader_src, NULL);
+  glShaderSource(shader, 1, &src, NULL);
   glCompileShader(shader);
 
   gl_int_t retval = 0;
@@ -1350,15 +1331,13 @@ void gl_shader_status(gl_uint_t shader) {
   }
 }
 
-gl_uint_t gl_shaders_link(const gl_uint_t vertex_shader,
-                          const gl_uint_t fragment_shader,
-                          const gl_uint_t geometry_shader) {
+gl_uint_t gl_link(const gl_uint_t vs, const gl_uint_t fs, const gl_uint_t gs) {
   // Attach shaders to link
   gl_uint_t program = glCreateProgram();
-  glAttachShader(program, vertex_shader);
-  glAttachShader(program, fragment_shader);
-  if (geometry_shader != GL_FALSE) {
-    glAttachShader(program, geometry_shader);
+  glAttachShader(program, vs);
+  glAttachShader(program, fs);
+  if (gs != GL_FALSE) {
+    glAttachShader(program, gs);
   }
   glLinkProgram(program);
 
@@ -1373,83 +1352,39 @@ gl_uint_t gl_shaders_link(const gl_uint_t vertex_shader,
   }
 
   // Delete shaders
-  glDeleteShader(vertex_shader);
-  glDeleteShader(fragment_shader);
-  if (geometry_shader == GL_FALSE) {
-    glDeleteShader(geometry_shader);
+  glDeleteShader(vs);
+  glDeleteShader(fs);
+  if (gs == GL_FALSE) {
+    glDeleteShader(gs);
   }
 
   return program;
 }
 
-/******************************************************************************
- * GL-PROGRAM
- *****************************************************************************/
-
-gl_uint_t gl_prog_setup(const char *vs_src,
-                        const char *fs_src,
-                        const char *gs_src) {
+gl_uint_t gl_shader(const char *vs_src,
+                    const char *fs_src,
+                    const char *gs_src) {
   gl_uint_t vs = GL_FALSE;
   gl_uint_t fs = GL_FALSE;
   gl_uint_t gs = GL_FALSE;
 
   if (vs_src) {
-    vs = gl_shader_compile(vs_src, GL_VERTEX_SHADER);
+    vs = gl_compile(vs_src, GL_VERTEX_SHADER);
   }
 
   if (fs_src) {
-    fs = gl_shader_compile(fs_src, GL_FRAGMENT_SHADER);
+    fs = gl_compile(fs_src, GL_FRAGMENT_SHADER);
   }
 
   if (gs_src) {
-    gs = gl_shader_compile(gs_src, GL_GEOMETRY_SHADER);
+    gs = gl_compile(gs_src, GL_GEOMETRY_SHADER);
   }
 
-  const gl_uint_t program_id = gl_shaders_link(vs, fs, gs);
+  const gl_uint_t program_id = gl_link(vs, fs, gs);
   return program_id;
 }
 
-int gl_prog_set_int(const gl_int_t id, const char *k, const gl_int_t v) {
-  const gl_int_t location = glGetUniformLocation(id, k);
-  if (location == -1) {
-    return -1;
-  }
-
-  glUniform1i(location, v);
-  return 0;
-}
-
-int gl_prog_set_vec2i(const gl_int_t id, const char *k, const gl_int_t v[2]) {
-  const gl_int_t location = glGetUniformLocation(id, k);
-  if (location == -1) {
-    return -1;
-  }
-
-  glUniform2i(location, v[0], v[1]);
-  return 0;
-}
-
-int gl_prog_set_vec3i(const gl_int_t id, const char *k, const gl_int_t v[3]) {
-  const gl_int_t location = glGetUniformLocation(id, k);
-  if (location == -1) {
-    return -1;
-  }
-
-  glUniform3i(location, v[0], v[1], v[2]);
-  return 0;
-}
-
-int gl_prog_set_vec4i(const gl_int_t id, const char *k, const gl_int_t v[4]) {
-  const gl_int_t location = glGetUniformLocation(id, k);
-  if (location == -1) {
-    return -1;
-  }
-
-  glUniform4i(location, v[0], v[1], v[2], v[3]);
-  return 0;
-}
-
-int gl_prog_set_color(const gl_int_t id, const char *k, const gl_color_t v) {
+int gl_set_color(const gl_int_t id, const char *k, const gl_color_t v) {
   const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1459,7 +1394,17 @@ int gl_prog_set_color(const gl_int_t id, const char *k, const gl_color_t v) {
   return 0;
 }
 
-int gl_prog_set_float(const gl_int_t id, const char *k, const gl_float_t v) {
+int gl_set_int(const gl_int_t id, const char *k, const gl_int_t v) {
+  const gl_int_t location = glGetUniformLocation(id, k);
+  if (location == -1) {
+    return -1;
+  }
+
+  glUniform1i(location, v);
+  return 0;
+}
+
+int gl_set_float(const gl_int_t id, const char *k, const gl_float_t v) {
   const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1469,7 +1414,37 @@ int gl_prog_set_float(const gl_int_t id, const char *k, const gl_float_t v) {
   return 0;
 }
 
-int gl_prog_set_vec2(const gl_int_t id, const char *k, const gl_float_t v[2]) {
+int gl_set_vec2i(const gl_int_t id, const char *k, const gl_int_t v[2]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
+  if (location == -1) {
+    return -1;
+  }
+
+  glUniform2i(location, v[0], v[1]);
+  return 0;
+}
+
+int gl_set_vec3i(const gl_int_t id, const char *k, const gl_int_t v[3]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
+  if (location == -1) {
+    return -1;
+  }
+
+  glUniform3i(location, v[0], v[1], v[2]);
+  return 0;
+}
+
+int gl_set_vec4i(const gl_int_t id, const char *k, const gl_int_t v[4]) {
+  const gl_int_t location = glGetUniformLocation(id, k);
+  if (location == -1) {
+    return -1;
+  }
+
+  glUniform4i(location, v[0], v[1], v[2], v[3]);
+  return 0;
+}
+
+int gl_set_vec2(const gl_int_t id, const char *k, const gl_float_t v[2]) {
   const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1479,7 +1454,7 @@ int gl_prog_set_vec2(const gl_int_t id, const char *k, const gl_float_t v[2]) {
   return 0;
 }
 
-int gl_prog_set_vec3(const gl_int_t id, const char *k, const gl_float_t v[3]) {
+int gl_set_vec3(const gl_int_t id, const char *k, const gl_float_t v[3]) {
   const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1489,7 +1464,7 @@ int gl_prog_set_vec3(const gl_int_t id, const char *k, const gl_float_t v[3]) {
   return 0;
 }
 
-int gl_prog_set_vec4(const gl_int_t id, const char *k, const gl_float_t v[4]) {
+int gl_set_vec4(const gl_int_t id, const char *k, const gl_float_t v[4]) {
   const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1499,9 +1474,7 @@ int gl_prog_set_vec4(const gl_int_t id, const char *k, const gl_float_t v[4]) {
   return 0;
 }
 
-int gl_prog_set_mat2(const gl_int_t id,
-                     const char *k,
-                     const gl_float_t v[2 * 2]) {
+int gl_set_mat2(const gl_int_t id, const char *k, const gl_float_t v[2 * 2]) {
   const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1511,9 +1484,7 @@ int gl_prog_set_mat2(const gl_int_t id,
   return 0;
 }
 
-int gl_prog_set_mat3(const gl_int_t id,
-                     const char *k,
-                     const gl_float_t v[3 * 3]) {
+int gl_set_mat3(const gl_int_t id, const char *k, const gl_float_t v[3 * 3]) {
   const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1523,9 +1494,7 @@ int gl_prog_set_mat3(const gl_int_t id,
   return 0;
 }
 
-int gl_prog_set_mat4(const gl_int_t id,
-                     const char *k,
-                     const gl_float_t v[4 * 4]) {
+int gl_set_mat4(const gl_int_t id, const char *k, const gl_float_t v[4 * 4]) {
   const gl_int_t location = glGetUniformLocation(id, k);
   if (location == -1) {
     return -1;
@@ -1687,12 +1656,14 @@ void gl_camera_zoom(gl_camera_t *camera,
 #define GL_RECT_VS                                                             \
   "#version 330 core\n"                                                        \
   "layout (location = 0) in vec2 in_pos;\n"                                    \
-  "uniform float offset_x;\n"                                                  \
-  "uniform float offset_y;\n"                                                  \
+  "uniform float w;\n"                                                         \
+  "uniform float h;\n"                                                         \
+  "uniform float x;\n"                                                         \
+  "uniform float y;\n"                                                         \
   "uniform mat4 ortho;\n"                                                      \
   "void main() {\n"                                                            \
-  "  float x = in_pos.x + offset_x;\n"                                         \
-  "  float y = in_pos.y + offset_y;\n"                                         \
+  "  float x = in_pos.x * w + x;\n"                                            \
+  "  float y = in_pos.y * h + y;\n"                                            \
   "  gl_Position = ortho * vec4(x, y, 0.0f, 1.0f);\n"                          \
   "}\n"
 
@@ -1704,27 +1675,23 @@ void gl_camera_zoom(gl_camera_t *camera,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-gl_rect_t *gl_rect_malloc(const gl_bounds_t bounds) {
-  // Malloc
-  gl_rect_t *rect = MALLOC(gl_rect_t, 1);
+void gl_rect_setup(gl_rect_t *rect) {
+  // Setup
   gl_entity_setup(&rect->entity);
-  rect->bounds = bounds;
-  rect->color = (gl_color_t){1.0, 1.0, 1.0};
 
   // Shader program
-  rect->entity.program_id = gl_prog_setup(GL_RECT_VS, GL_RECT_FS, NULL);
+  rect->entity.program_id = gl_shader(GL_RECT_VS, GL_RECT_FS, NULL);
   if (rect->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
   // Vertices
   // clang-format off
-  const gl_float_t vertices[2 * 4] = {
-    // Positions (x, y) relative to top-left origin
-    bounds.w,     0.0f, // Top-right
-    bounds.w, bounds.h, // Bottom-right
-        0.0f, bounds.h, // Bottom-left
-        0.0f,     0.0f, // Top-left
+  const float vertices[2 * 4] = {
+     1.0f, 0.0f,  // Top-right
+     1.0f, 1.0f,  // Bottom-right
+     0.0f, 1.0f,  // Bottom-left
+     0.0f, 0.0f,  // Top-left
   };
   const gl_int_t indices[6] = {
       0, 3, 1, // First triangle
@@ -1760,28 +1727,25 @@ gl_rect_t *gl_rect_malloc(const gl_bounds_t bounds) {
   // Unbind VBO and VAO
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
-
-  return rect;
 }
 
-void gl_rect_free(gl_rect_t *rect) {
-  if (rect == NULL) {
-    return;
-  }
-  gl_entity_cleanup(&rect->entity);
-  free(rect);
-}
+void gl_rect_cleanup(gl_rect_t *rect) { gl_entity_cleanup(&rect->entity); }
 
-void gl_rect_draw(const gui_t *gui, const gl_rect_t *rect) {
+void gl_rect_draw(const gui_t *gui,
+                  const gl_rect_t *rect,
+                  const gl_bounds_t *bounds,
+                  const gl_color_t *color) {
   gl_float_t ortho[16] = {0};
   gui_ortho(gui, ortho);
 
   glDepthMask(GL_FALSE);
   glUseProgram(rect->entity.program_id);
-  gl_prog_set_mat4(rect->entity.program_id, "ortho", ortho);
-  gl_prog_set_color(rect->entity.program_id, "color", rect->color);
-  gl_prog_set_float(rect->entity.program_id, "offset_x", rect->bounds.x);
-  gl_prog_set_float(rect->entity.program_id, "offset_y", rect->bounds.y);
+  gl_set_mat4(rect->entity.program_id, "ortho", ortho);
+  gl_set_color(rect->entity.program_id, "color", *color);
+  gl_set_float(rect->entity.program_id, "w", bounds->w);
+  gl_set_float(rect->entity.program_id, "h", bounds->h);
+  gl_set_float(rect->entity.program_id, "x", bounds->x);
+  gl_set_float(rect->entity.program_id, "y", bounds->y);
   glBindVertexArray(rect->entity.VAO);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
   glDepthMask(GL_TRUE);
@@ -1793,12 +1757,13 @@ void gl_rect_draw(const gui_t *gui, const gl_rect_t *rect) {
   "#version 330 core\n"                                                        \
   "layout (location = 0) in vec3 in_pos;\n"                                    \
   "out vec3 color;\n"                                                          \
+  "uniform float size;\n"                                                      \
   "uniform mat4 model;\n"                                                      \
   "uniform mat4 view;\n"                                                       \
   "uniform mat4 projection;\n"                                                 \
   "uniform vec3 in_color;\n"                                                   \
   "void main() {\n"                                                            \
-  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "  gl_Position = projection * view * model * vec4(in_pos * size, 1.0);\n"    \
   "  color = in_color;\n"                                                      \
   "}\n"
 
@@ -1810,34 +1775,9 @@ void gl_rect_draw(const gui_t *gui, const gl_rect_t *rect) {
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-gl_cube_t *gl_cube_malloc(const gl_float_t size,
-                          const gl_float_t pos[3],
-                          const gl_float_t color[3],
-                          const gl_float_t outline_color[3]) {
-  // Malloc
-  gl_cube_t *cube = MALLOC(gl_cube_t, 1);
-  gl_entity_setup(&cube->entity);
-
-  // Transform
-  cube->entity.T[12] = pos[0];
-  cube->entity.T[13] = pos[1];
-  cube->entity.T[14] = pos[2];
-
-  // Size
-  cube->size = size;
-
-  // Color
-  cube->color[0] = color[0];
-  cube->color[1] = color[1];
-  cube->color[2] = color[2];
-
-  // Outline color
-  cube->outline_color[0] = outline_color[0];
-  cube->outline_color[1] = outline_color[1];
-  cube->outline_color[2] = outline_color[2];
-
+void gl_cube_setup(gl_cube_t *cube) {
   // Shader program
-  cube->entity.program_id = gl_prog_setup(GL_CUBE_VS, GL_CUBE_FS, NULL);
+  cube->entity.program_id = gl_shader(GL_CUBE_VS, GL_CUBE_FS, NULL);
   if (cube->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -1846,53 +1786,53 @@ gl_cube_t *gl_cube_malloc(const gl_float_t size,
   // clang-format off
   gl_float_t vertices[12 * 3 * 3] = {
     // Triangle 1
-    -size, -size, -size,
-    -size, -size,  size,
-    -size,  size,  size,
+    -1.0, -1.0, -1.0,
+    -1.0, -1.0,  1.0,
+    -1.0,  1.0,  1.0,
     // Triangle 2
-     size,  size, -size,
-    -size, -size, -size,
-    -size,  size, -size,
+     1.0,  1.0, -1.0,
+    -1.0, -1.0, -1.0,
+    -1.0,  1.0, -1.0,
     // Triangle 3
-     size, -size,  size,
-    -size, -size, -size,
-     size, -size, -size,
+     1.0, -1.0,  1.0,
+    -1.0, -1.0, -1.0,
+     1.0, -1.0, -1.0,
     // Triangle 4
-     size,  size, -size,
-     size, -size, -size,
-    -size, -size, -size,
+     1.0,  1.0, -1.0,
+     1.0, -1.0, -1.0,
+    -1.0, -1.0, -1.0,
     // Triangle 5
-    -size, -size, -size,
-    -size,  size,  size,
-    -size,  size, -size,
+    -1.0, -1.0, -1.0,
+    -1.0,  1.0,  1.0,
+    -1.0,  1.0, -1.0,
     // Triangle 6
-     size, -size,  size,
-    -size, -size,  size,
-    -size, -size, -size,
+     1.0, -1.0,  1.0,
+    -1.0, -1.0,  1.0,
+    -1.0, -1.0, -1.0,
     // Triangle 7
-    -size,  size,  size,
-    -size, -size,  size,
-     size, -size,  size,
+    -1.0,  1.0,  1.0,
+    -1.0, -1.0,  1.0,
+     1.0, -1.0,  1.0,
     // Triangle 8
-     size,  size,  size,
-     size, -size, -size,
-     size,  size, -size,
+     1.0,  1.0,  1.0,
+     1.0, -1.0, -1.0,
+     1.0,  1.0, -1.0,
     // Triangle 9
-     size, -size, -size,
-     size,  size,  size,
-     size, -size,  size,
+     1.0, -1.0, -1.0,
+     1.0,  1.0,  1.0,
+     1.0, -1.0,  1.0,
     // Triangle 10
-     size,  size,  size,
-     size,  size, -size,
-    -size,  size, -size,
+     1.0,  1.0,  1.0,
+     1.0,  1.0, -1.0,
+    -1.0,  1.0, -1.0,
     // Triangle 11
-     size,  size,  size,
-    -size,  size, -size,
-    -size,  size,  size,
+     1.0,  1.0,  1.0,
+    -1.0,  1.0, -1.0,
+    -1.0,  1.0,  1.0,
     // Triangle 12
-     size,  size,  size,
-    -size,  size,  size,
-     size, -size,  size
+     1.0,  1.0,  1.0,
+    -1.0,  1.0,  1.0,
+     1.0, -1.0,  1.0
     // Triangle 12 : end
   };
   const size_t num_triangles = 12;
@@ -1918,44 +1858,28 @@ gl_cube_t *gl_cube_malloc(const gl_float_t size,
   // Clean up
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
   glBindVertexArray(0);             // Unbind VAO
-
-  return cube;
 }
 
-void gl_cube_free(gl_cube_t *cube) {
-  if (cube == NULL) {
-    return;
-  }
+void gl_cube_cleanup(gl_cube_t *cube) {
+  // Clean up
   gl_entity_cleanup(&cube->entity);
-  free(cube);
 }
 
-void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera) {
+void gl_cube_draw(const gl_cube_t *cube,
+                  const gl_camera_t *camera,
+                  const gl_float_t T[4 * 4],
+                  const gl_float_t size,
+                  const gl_color_t color) {
   glUseProgram(cube->entity.program_id);
 
   // Draw cube
-  gl_prog_set_mat4(cube->entity.program_id, "projection", camera->P);
-  gl_prog_set_mat4(cube->entity.program_id, "view", camera->V);
-  gl_prog_set_mat4(cube->entity.program_id, "model", cube->entity.T);
-  gl_prog_set_vec3(cube->entity.program_id, "in_color", cube->color);
+  gl_set_mat4(cube->entity.program_id, "projection", camera->P);
+  gl_set_mat4(cube->entity.program_id, "view", camera->V);
+  gl_set_mat4(cube->entity.program_id, "model", T);
+  gl_set_float(cube->entity.program_id, "size", size);
+  gl_set_color(cube->entity.program_id, "in_color", color);
   glBindVertexArray(cube->entity.VAO);
   glDrawArrays(GL_TRIANGLES, 0, 36); // 36 Vertices
-
-  // // Draw outline
-  // // -- Track original line width
-  // gl_float_t lw_orig;
-  // glGetFloatv(GL_LINE_WIDTH, &lw_orig);
-  // // -- Draw Outline
-  // gl_float_t outline[4 * 4] = {0};
-  // gl_copy(cube->T, 4, 4, outline);
-  // gl_prog_set_mat4(cube->entity.program_id, "model", outline);
-  // gl_prog_set_vec3(cube->entity.program_id, "in_color", cube->outline_color);
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Wireframe mode
-  // glLineWidth(2.0f);
-  // glDrawArrays(GL_TRIANGLES, 0, 36);
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
-  // // -- Restore original line width
-  // glLineWidth(lw_orig);
 
   // Unbind VAO
   glBindVertexArray(0);
@@ -1980,23 +1904,10 @@ void gl_cube_draw(const gl_cube_t *cube, const gl_camera_t *camera) {
   "  frag_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"                             \
   "}\n"
 
-gl_frustum_t *gl_frustum_malloc(const gl_float_t pos[3],
-                                const gl_float_t size,
-                                const gl_float_t color[3]) {
-  // Malloc
-  gl_frustum_t *cf = MALLOC(gl_frustum_t, 1);
-  gl_entity_setup(&cf->entity);
-  cf->size = size;
-  gl_copy(color, 3, 1, cf->color);
-  // cf->line_width = line_width;
-
-  cf->entity.T[12] = pos[0];
-  cf->entity.T[13] = pos[1];
-  cf->entity.T[14] = pos[2];
-
+void gl_frustum_setup(gl_frustum_t *f) {
   // Shader program
-  cf->entity.program_id = gl_prog_setup(gl_frustum_VS, gl_frustum_FS, NULL);
-  if (cf->entity.program_id == GL_FALSE) {
+  f->entity.program_id = gl_shader(gl_frustum_VS, gl_frustum_FS, NULL);
+  if (f->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
@@ -2036,12 +1947,12 @@ gl_frustum_t *gl_frustum_malloc(const gl_float_t pos[3],
   // clang-format on
 
   // VAO
-  glGenVertexArrays(1, &cf->entity.VAO);
-  glBindVertexArray(cf->entity.VAO);
+  glGenVertexArrays(1, &f->entity.VAO);
+  glBindVertexArray(f->entity.VAO);
 
   // VBO
-  glGenBuffers(1, &cf->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, cf->entity.VBO);
+  glGenBuffers(1, &f->entity.VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, f->entity.VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, (void *) 0);
   glEnableVertexAttribArray(0);
@@ -2049,41 +1960,40 @@ gl_frustum_t *gl_frustum_malloc(const gl_float_t pos[3],
   // Clean up
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
   glBindVertexArray(0);             // Unbind VAO
-
-  return cf;
 }
 
-void gl_frustum_free(gl_frustum_t *cf) {
-  if (cf == NULL) {
-    return;
-  }
-  gl_entity_cleanup(&cf->entity);
-  free(cf);
+void gl_frustum_cleanup(gl_frustum_t *frustum) {
+  // Clean up
+  gl_entity_cleanup(&frustum->entity);
 }
 
-void gl_frustum_draw(const gl_frustum_t *cf, const gl_camera_t *camera) {
-  glUseProgram(cf->entity.program_id);
-  gl_prog_set_mat4(cf->entity.program_id, "projection", camera->P);
-  gl_prog_set_mat4(cf->entity.program_id, "view", camera->V);
-  gl_prog_set_mat4(cf->entity.program_id, "model", cf->entity.T);
+void gl_frustum_draw(const gl_frustum_t *frustum,
+                     const gl_camera_t *camera,
+                     const gl_float_t T[4 * 4],
+                     const gl_float_t size,
+                     const gl_color_t color,
+                     const gl_float_t lw) {
+  glUseProgram(frustum->entity.program_id);
+  gl_set_mat4(frustum->entity.program_id, "projection", camera->P);
+  gl_set_mat4(frustum->entity.program_id, "view", camera->V);
+  gl_set_mat4(frustum->entity.program_id, "model", T);
 
   // Store original line width
-  gl_float_t original_line_width = 0.0f;
-  glGetFloatv(GL_LINE_WIDTH, &original_line_width);
+  gl_float_t lw_bak = 0.0f;
+  glGetFloatv(GL_LINE_WIDTH, &lw_bak);
 
   // Set line width
-  gl_float_t line_width = 2.0f;
-  glLineWidth(line_width);
+  glLineWidth(lw);
 
   // Draw frame
   const size_t num_lines = 8;
   const size_t num_vertices = num_lines * 2;
-  glBindVertexArray(cf->entity.VAO);
+  glBindVertexArray(frustum->entity.VAO);
   glDrawArrays(GL_LINES, 0, num_vertices);
   glBindVertexArray(0); // Unbind VAO
 
   // Restore original line width
-  glLineWidth(original_line_width);
+  glLineWidth(lw_bak);
 }
 
 // GL AXIS FRAME /////////////////////////////////////////////////////////////
@@ -2109,15 +2019,9 @@ void gl_frustum_draw(const gl_frustum_t *cf, const gl_camera_t *camera) {
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-gl_axes3d_t *gl_axes3d_malloc(void) {
-  // Malloc
-  gl_axes3d_t *axes = MALLOC(gl_axes3d_t, 1);
-  gl_entity_setup(&axes->entity);
-  axes->size = 1.0f;
-  axes->line_width = 6.0f;
-
+void gl_axes3d_setup(gl_axes3d_t *axes) {
   // Shader program
-  axes->entity.program_id = gl_prog_setup(GL_AXES3D_VS, GL_AXES3D_FS, NULL);
+  axes->entity.program_id = gl_shader(GL_AXES3D_VS, GL_AXES3D_FS, NULL);
   if (axes->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -2158,30 +2062,29 @@ gl_axes3d_t *gl_axes3d_malloc(void) {
   // Clean up
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
   glBindVertexArray(0);             // Unbind VAO
-
-  return axes;
 }
 
-void gl_axes3d_free(gl_axes3d_t *axes) {
-  if (axes == NULL) {
-    return;
-  }
+void gl_axes3d_cleanup(gl_axes3d_t *axes) {
+  // Clean up
   gl_entity_cleanup(&axes->entity);
-  free(axes);
 }
 
-void gl_axes3d_draw(const gl_axes3d_t *axes, const gl_camera_t *camera) {
+void gl_axes3d_draw(const gl_axes3d_t *axes,
+                    const gl_camera_t *camera,
+                    const gl_float_t T[4 * 4],
+                    const gl_float_t size,
+                    const gl_float_t lw) {
   glUseProgram(axes->entity.program_id);
-  gl_prog_set_mat4(axes->entity.program_id, "projection", camera->P);
-  gl_prog_set_mat4(axes->entity.program_id, "view", camera->V);
-  gl_prog_set_mat4(axes->entity.program_id, "model", axes->entity.T);
+  gl_set_mat4(axes->entity.program_id, "projection", camera->P);
+  gl_set_mat4(axes->entity.program_id, "view", camera->V);
+  gl_set_mat4(axes->entity.program_id, "model", T);
 
   // Store original line width
-  gl_float_t original_line_width = 0.0f;
-  glGetFloatv(GL_LINE_WIDTH, &original_line_width);
+  gl_float_t lw_bak = 0.0f;
+  glGetFloatv(GL_LINE_WIDTH, &lw_bak);
 
   // Set line width
-  glLineWidth(axes->line_width);
+  glLineWidth(lw);
 
   // Draw frame
   glBindVertexArray(axes->entity.VAO);
@@ -2189,7 +2092,7 @@ void gl_axes3d_draw(const gl_axes3d_t *axes, const gl_camera_t *camera) {
   glBindVertexArray(0); // Unbind VAO
 
   // Restore original line width
-  glLineWidth(original_line_width);
+  glLineWidth(lw_bak);
 }
 
 // GL GRID ///////////////////////////////////////////////////////////////////
@@ -2260,15 +2163,9 @@ static gl_float_t *gl_grid3d_create_vertices(int grid_size) {
   return vertices;
 }
 
-gl_grid3d_t *gl_grid3d_malloc(void) {
-  // Malloc
-  gl_grid3d_t *grid = MALLOC(gl_grid3d_t, 1);
-  gl_entity_setup(&grid->entity);
-  grid->size = 1.0f;
-  grid->line_width = 2.0f;
-
+void gl_grid3d_setup(gl_grid3d_t *grid) {
   // Shader program
-  grid->entity.program_id = gl_prog_setup(GL_GRID3D_VS, GL_GRID3D_FS, NULL);
+  grid->entity.program_id = gl_shader(GL_GRID3D_VS, GL_GRID3D_FS, NULL);
   if (grid->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -2297,23 +2194,25 @@ gl_grid3d_t *gl_grid3d_malloc(void) {
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
   glBindVertexArray(0);             // Unbind VAO
   free(vertices);
-
-  return grid;
 }
 
-void gl_grid3d_free(gl_grid3d_t *grid) {
-  if (grid == NULL) {
-    return;
-  }
+void gl_grid3d_cleanup(gl_grid3d_t *grid) {
+  // Clean up
   gl_entity_cleanup(&grid->entity);
-  free(grid);
 }
 
-void gl_grid3d_draw(const gl_grid3d_t *grid, const gl_camera_t *camera) {
+void gl_grid3d_draw(const gl_grid3d_t *grid,
+                    const gl_camera_t *camera,
+                    const gl_float_t size,
+                    const gl_float_t lw,
+                    const gl_color_t color) {
+  gl_float_t T[4 * 4] = {0};
+  gl_eye(T, 4, 4);
+
   glUseProgram(grid->entity.program_id);
-  gl_prog_set_mat4(grid->entity.program_id, "projection", camera->P);
-  gl_prog_set_mat4(grid->entity.program_id, "view", camera->V);
-  gl_prog_set_mat4(grid->entity.program_id, "model", grid->entity.T);
+  gl_set_mat4(grid->entity.program_id, "projection", camera->P);
+  gl_set_mat4(grid->entity.program_id, "view", camera->V);
+  gl_set_mat4(grid->entity.program_id, "model", T);
 
   const int grid_size = 10;
   const int num_lines = (grid_size + 1) * 2;
@@ -2331,11 +2230,10 @@ void gl_grid3d_draw(const gl_grid3d_t *grid, const gl_camera_t *camera) {
   "layout (location = 0) in vec3 in_pos;\n"                                    \
   "layout (location = 1) in vec3 in_color;\n"                                  \
   "out vec3 color;\n"                                                          \
-  "uniform mat4 model;\n"                                                      \
   "uniform mat4 view;\n"                                                       \
   "uniform mat4 projection;\n"                                                 \
   "void main() {\n"                                                            \
-  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "  gl_Position = projection * view * vec4(in_pos, 1.0);\n"                   \
   "  gl_PointSize = 1.0;\n"                                                    \
   "  color = in_color;\n"                                                      \
   "}\n"
@@ -2364,8 +2262,7 @@ gl_points3d_t *gl_points3d_malloc(const float *data,
   gl_copy(color, 3, 1, points->color);
 
   // Shader program
-  points->entity.program_id =
-      gl_prog_setup(GL_POINTS3D_VS, GL_POINTS3D_FS, NULL);
+  points->entity.program_id = gl_shader(GL_POINTS3D_VS, GL_POINTS3D_FS, NULL);
   if (points->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders to draw points!");
   }
@@ -2427,9 +2324,8 @@ void gl_points3d_draw(const gl_points3d_t *points,
                       const gl_camera_t *camera,
                       const size_t num_points) {
   glUseProgram(points->entity.program_id);
-  gl_prog_set_mat4(points->entity.program_id, "projection", camera->P);
-  gl_prog_set_mat4(points->entity.program_id, "view", camera->V);
-  gl_prog_set_mat4(points->entity.program_id, "model", points->entity.T);
+  gl_set_mat4(points->entity.program_id, "projection", camera->P);
+  gl_set_mat4(points->entity.program_id, "view", camera->V);
 
   glBindVertexArray(points->entity.VAO);
   glDrawArrays(GL_POINTS, 0, num_points);
@@ -2442,12 +2338,11 @@ void gl_points3d_draw(const gl_points3d_t *points,
   "#version 330 core\n"                                                        \
   "layout (location = 0) in vec3 in_pos;\n"                                    \
   "out vec3 color;\n"                                                          \
-  "uniform mat4 model;\n"                                                      \
   "uniform mat4 view;\n"                                                       \
   "uniform mat4 projection;\n"                                                 \
   "uniform vec3 in_color;\n"                                                   \
   "void main() {\n"                                                            \
-  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "  gl_Position = projection * view * vec4(in_pos, 1.0);\n"                   \
   "  color = in_color;\n"                                                      \
   "}\n"
 
@@ -2475,7 +2370,7 @@ gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
   gl_copy(color, 3, 1, line->color);
 
   // Shader program
-  line->entity.program_id = gl_prog_setup(GL_LINE3D_VS, GL_LINE3D_FS, NULL);
+  line->entity.program_id = gl_shader(GL_LINE3D_VS, GL_LINE3D_FS, NULL);
   if (line->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -2515,10 +2410,9 @@ void gl_line3d_free(gl_line3d_t *line) {
 void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera) {
   // Activate shader
   glUseProgram(line->entity.program_id);
-  gl_prog_set_mat4(line->entity.program_id, "projection", camera->P);
-  gl_prog_set_mat4(line->entity.program_id, "view", camera->V);
-  gl_prog_set_mat4(line->entity.program_id, "model", line->entity.T);
-  gl_prog_set_vec3(line->entity.program_id, "in_color", line->color);
+  gl_set_mat4(line->entity.program_id, "projection", camera->P);
+  gl_set_mat4(line->entity.program_id, "view", camera->V);
+  gl_set_vec3(line->entity.program_id, "in_color", line->color);
 
   // Store original line width
   gl_float_t original_line_width = 0.0f;
@@ -2576,7 +2470,7 @@ void gl_text_setup(gl_text_t *text) {
   text->size = 16;
 
   // Compile shader
-  text->entity.program_id = gl_prog_setup(GL_TEXT_VS, GL_TEXT_FS, NULL);
+  text->entity.program_id = gl_shader(GL_TEXT_VS, GL_TEXT_FS, NULL);
   if (text->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -2602,11 +2496,7 @@ void gl_text_setup(gl_text_t *text) {
     FATAL("Error: Could not initialize FreeType library\n");
   }
 
-  const char *font_path = "/home/chutsu/code/xyz/src/fonts/OCRAEXT.TTF";
-  // const char *font_path = "/home/chutsu/code/xyz/src/fonts/ocr-a-extended.ttf";
-  // const char *font_path = "/home/chutsu/code/xyz/src/fonts/Antonio-Regular.ttf";
-  // const char *font_path =
-  // "/home/chutsu/code/xyz/src/fonts/Inconsolata-Regular.ttf";
+  const char *font_path = "./fonts/Inconsolata-Regular.ttf";
   if (access(font_path, F_OK) == -1) {
     printf("Font file not found!\n");
   }
@@ -2672,20 +2562,6 @@ void gl_text_cleanup(gl_text_t *text) {
   gl_entity_cleanup(&text->entity);
 }
 
-gl_text_t *gl_text_malloc(void) {
-  gl_text_t *text = MALLOC(gl_text_t, 1);
-  gl_text_setup(text);
-  return text;
-}
-
-void gl_text_free(gl_text_t *text) {
-  if (text == NULL) {
-    return;
-  }
-  gl_text_cleanup(text);
-  free(text);
-}
-
 void gl_text_draw(gl_text_t *text,
                   gl_camera_t *camera,
                   const char *s,
@@ -2699,14 +2575,15 @@ void gl_text_draw(gl_text_t *text,
   const gl_float_t top = 0.0f;
   const gl_float_t znear = -1.0f;
   const gl_float_t zfar = 1.0f;
-  gl_ortho(left, right, bottom, top, znear, zfar, text->entity.P);
+  gl_float_t ortho[4 * 4];
+  gl_ortho(left, right, bottom, top, znear, zfar, ortho);
 
   // Activate shader
   glDepthMask(GL_FALSE);
   glUseProgram(text->entity.program_id);
-  gl_prog_set_mat4(text->entity.program_id, "ortho", text->entity.P);
-  gl_prog_set_color(text->entity.program_id, "text_color", text->color);
-  gl_prog_set_int(text->entity.program_id, "text", 0);
+  gl_set_mat4(text->entity.program_id, "ortho", ortho);
+  gl_set_color(text->entity.program_id, "text_color", text->color);
+  gl_set_int(text->entity.program_id, "text", 0);
   glActiveTexture(GL_TEXTURE0);
   glBindVertexArray(text->entity.VAO);
 
@@ -2779,7 +2656,7 @@ gl_image_t *gl_image_malloc(void) {
   gl_image_t *image = MALLOC(gl_image_t, 1);
 
   // Shader program
-  image->program_id = gl_prog_setup(GL_IMAGE_VS, GL_IMAGE_FS, NULL);
+  image->program_id = gl_shader(GL_IMAGE_VS, GL_IMAGE_FS, NULL);
   if (image->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -3315,7 +3192,7 @@ gl_model_t *gl_model_load(const char *model_path) {
   model->T[14] = 0.0;
 
   // Shader program
-  model->program_id = gl_prog_setup(GL_MODEL_VS, GL_MODEL_FS, NULL);
+  model->program_id = gl_shader(GL_MODEL_VS, GL_MODEL_FS, NULL);
   if (model->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -3369,17 +3246,17 @@ void gl_model_free(gl_model_t *model) {
 
 void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
   glUseProgram(model->program_id);
-  gl_prog_set_mat4(model->program_id, "projection", camera->P);
-  gl_prog_set_mat4(model->program_id, "view", camera->V);
-  gl_prog_set_mat4(model->program_id, "model", model->T);
+  gl_set_mat4(model->program_id, "projection", camera->P);
+  gl_set_mat4(model->program_id, "view", camera->V);
+  gl_set_mat4(model->program_id, "model", model->T);
 
   float light_pos[3] = {0, 10, 0};
   float light_color[3] = {1, 1, 1};
   float object_color[3] = {1, 1, 1};
-  gl_prog_set_vec3(model->program_id, "lightPos", light_pos);
-  gl_prog_set_vec3(model->program_id, "viewPos", camera->position);
-  gl_prog_set_vec3(model->program_id, "lightColor", light_color);
-  gl_prog_set_vec3(model->program_id, "objectColor", object_color);
+  gl_set_vec3(model->program_id, "lightPos", light_pos);
+  gl_set_vec3(model->program_id, "viewPos", camera->position);
+  gl_set_vec3(model->program_id, "lightColor", light_color);
+  gl_set_vec3(model->program_id, "objectColor", object_color);
 
   for (int i = 0; i < model->num_meshes; i++) {
     gl_mesh_draw(&model->meshes[i], model->program_id);
@@ -3628,34 +3505,48 @@ void gui_reset(gui_t *gui) {
 }
 
 void gui_loop(gui_t *gui) {
-  // Cube
-  const gl_float_t cube_size = 0.5f;
-  const gl_float_t cube_pos[3] = {0.0, 0.0, 0.0};
-  const gl_float_t cube_color[3] = {0.9, 0.4, 0.2};
-  const gl_float_t outline_color[3] = {1.0, 1.0, 1.0};
-  gl_cube_t *cube =
-      gl_cube_malloc(cube_size, cube_pos, cube_color, outline_color);
-
   // Rect
-  gl_rect_t *rect = gl_rect_malloc((gl_bounds_t){0, 0, 58, 10});
+  gl_bounds_t rect_bounds = (gl_bounds_t){0, 0, 58, 10};
+  gl_color_t rect_color = (gl_color_t){1.0f, 1.0f, 1.0f};
+  gl_rect_t rect;
+  gl_rect_setup(&rect);
+
+  // Cube
+  gl_float_t cube_T[4 * 4] = {0};
+  gl_eye(cube_T, 4, 4);
+  gl_float_t cube_size = 0.5f;
+  gl_color_t cube_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_cube_t cube;
+  gl_cube_setup(&cube);
 
   // Frustum
-  const gl_float_t frustum_pos[3] = {0.0, 0.0, 0.0};
-  const gl_float_t frustum_size = 0.5f;
-  const gl_float_t frustum_color[3] = {0.9, 0.4, 0.2};
-  gl_frustum_t *cf =
-      gl_frustum_malloc(frustum_pos, frustum_size, frustum_color);
+  gl_float_t frustum_T[4 * 4];
+  gl_eye(frustum_T, 4, 4);
+  gl_float_t frustum_size = 0.5f;
+  gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_float_t frustum_lw = 1.0f;
+  gl_frustum_t frustum;
+  gl_frustum_setup(&frustum);
 
   // Axes
-  gl_axes3d_t *axes = gl_axes3d_malloc();
+  gl_float_t axes_T[4 * 4];
+  gl_eye(axes_T, 4, 4);
+  gl_float_t axes_size = 0.5f;
+  gl_float_t axes_lw = 5.0f;
+  gl_axes3d_t axes;
+  gl_axes3d_setup(&axes);
 
   // Grid
-  gl_grid3d_t *grid = gl_grid3d_malloc();
+  gl_grid3d_t grid;
+  gl_float_t grid_size = 0.5f;
+  gl_float_t grid_lw = 5.0f;
+  gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_grid3d_setup(&grid);
 
   // Points
-  const gl_float_t points_color[3] = {1.0, 0.0, 0.0};
-  const gl_float_t points_size = 1.0;
-  const size_t num_points = 100000;
+  gl_float_t points_color[3] = {1.0, 0.0, 0.0};
+  gl_float_t points_size = 1.0;
+  size_t num_points = 100000;
   gl_float_t *points_data = MALLOC(gl_float_t, num_points * 3);
   for (size_t i = 0; i < num_points; ++i) {
     points_data[i * 3 + 0] = gl_randf(-1.0f, 1.0f);
@@ -3685,7 +3576,8 @@ void gui_loop(gui_t *gui) {
   free(line_points);
 
   // Text
-  gl_text_t *text = gl_text_malloc();
+  gl_text_t text;
+  gl_text_setup(&text);
 
   // Image
   gl_image_t *image = gl_image_malloc();
@@ -3705,19 +3597,25 @@ void gui_loop(gui_t *gui) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw
-    gl_rect_draw(gui, rect);
-    // gl_cube_draw(cube, &gui->camera);
-    // gl_frustum_draw(cf, &gui->camera);
-    // gl_axes3d_draw(axes, &gui->camera);
-    // gl_grid3d_draw(grid, &gui->camera);
+    gl_rect_draw(gui, &rect, &rect_bounds, &rect_color);
+    gl_cube_draw(&cube, &gui->camera, cube_T, cube_size, cube_color);
+    gl_frustum_draw(&frustum,
+                    &gui->camera,
+                    frustum_T,
+                    frustum_size,
+                    frustum_color,
+                    frustum_lw);
+    gl_axes3d_draw(&axes, &gui->camera, axes_T, axes_size, axes_lw);
+    gl_grid3d_draw(&grid, &gui->camera, grid_size, grid_lw, grid_color);
     // gl_line3d_draw(line, &gui->camera);
     // gl_points3d_draw(points, &gui->camera, num_points);
     // gl_text_draw(text, &gui->camera, "Here2!", 500.0f, 500.0f, 1.0f);
+    // gl_text_draw(text, &gui->camera, "Here3!", 500.0f, 550.0f, 1.0f);
     // gl_image_draw(image);
     // if (ui_button_draw(gui, &button) == 1) {
     //   printf("Button pressed!\n");
     // }
-    gl_text_draw(text, &gui->camera, "Button", 0.0f, 0.0f, 1.0f);
+    gl_text_draw(&text, &gui->camera, "Button", 0.0f, 0.0f, 1.0f);
 
     // Update
     glfwPollEvents();
@@ -3727,14 +3625,14 @@ void gui_loop(gui_t *gui) {
   }
 
   // Clean up
-  gl_rect_free(rect);
-  gl_cube_free(cube);
-  gl_frustum_free(cf);
-  gl_axes3d_free(axes);
-  gl_grid3d_free(grid);
+  gl_rect_cleanup(&rect);
+  gl_cube_cleanup(&cube);
+  gl_frustum_cleanup(&frustum);
+  gl_axes3d_cleanup(&axes);
+  gl_grid3d_cleanup(&grid);
   gl_points3d_free(points);
   gl_line3d_free(line);
-  gl_text_free(text);
+  gl_text_cleanup(&text);
   gl_image_free(image);
   glfwTerminate();
 }
@@ -3781,7 +3679,7 @@ void ui_container_setup(ui_container_t *c) {
   c->bounds.h = 100.0f;
 
   // Shader program
-  c->entity.program_id = gl_prog_setup(UI_CONTAINER_VS, UI_CONTAINER_FS, NULL);
+  c->entity.program_id = gl_shader(UI_CONTAINER_VS, UI_CONTAINER_FS, NULL);
   if (c->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -3827,7 +3725,7 @@ void ui_container_cleanup(ui_container_t *c) {
 void ui_container_draw(const gui_t *gui, const ui_container_t *c) {
   // Shader program
   glUseProgram(c->entity.program_id);
-  gl_prog_set_color(c->entity.program_id, "color", c->color);
+  gl_set_color(c->entity.program_id, "color", c->color);
   glBindVertexArray(c->entity.VAO);
   glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
   glBindVertexArray(0);
@@ -3862,7 +3760,7 @@ void ui_button_setup(ui_button_t *button) {
   button->engaged = 0;
 
   // Shader program
-  button->entity.program_id = gl_prog_setup(UI_BUTTON_VS, UI_BUTTON_FS, NULL);
+  button->entity.program_id = gl_shader(UI_BUTTON_VS, UI_BUTTON_FS, NULL);
   if (button->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -3925,7 +3823,7 @@ int ui_button_draw(const gui_t *gui, ui_button_t *button) {
   // Shader program
   glDepthMask(GL_FALSE);
   glUseProgram(button->entity.program_id);
-  gl_prog_set_color(button->entity.program_id, "color", color);
+  gl_set_color(button->entity.program_id, "color", color);
   glBindVertexArray(button->entity.VAO);
   glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
   glBindVertexArray(0);
@@ -4350,7 +4248,7 @@ int test_gl_lookat(void) {
 
 // TEST SHADER ///////////////////////////////////////////////////////////////
 
-int test_gl_shader_compile(void) {
+int test_gl_compile(void) {
   // Setup
   GLFWwindow *window = test_setup();
 
@@ -4359,7 +4257,7 @@ int test_gl_shader_compile(void) {
   if (vs_str == NULL) {
     FATAL("Failed to load file: %s\n", "./shaders/cube.vert");
   }
-  const gl_uint_t vs = gl_shader_compile(vs_str, GL_VERTEX_SHADER);
+  const gl_uint_t vs = gl_compile(vs_str, GL_VERTEX_SHADER);
   free(vs_str);
   TEST_ASSERT(vs != GL_FALSE);
 
@@ -4368,7 +4266,7 @@ int test_gl_shader_compile(void) {
   if (fs_str == NULL) {
     FATAL("Failed to load file: %s\n", "./shaders/cube.frag");
   }
-  const gl_uint_t fs = gl_shader_compile(fs_str, GL_VERTEX_SHADER);
+  const gl_uint_t fs = gl_compile(fs_str, GL_VERTEX_SHADER);
   free(fs_str);
   TEST_ASSERT(fs != GL_FALSE);
 
@@ -4378,25 +4276,25 @@ int test_gl_shader_compile(void) {
   return 0;
 }
 
-int test_gl_shaders_link(void) {
+int test_gl_link(void) {
   // Setup
   GLFWwindow *window = test_setup();
 
   // Cube vertex shader
   char *vs_str = load_file("./shaders/cube.vert");
-  const gl_uint_t vs = gl_shader_compile(vs_str, GL_VERTEX_SHADER);
+  const gl_uint_t vs = gl_compile(vs_str, GL_VERTEX_SHADER);
   free(vs_str);
   TEST_ASSERT(vs != GL_FALSE);
 
   // Cube fragment shader
   char *fs_str = load_file("./shaders/cube.frag");
-  const gl_uint_t fs = gl_shader_compile(fs_str, GL_FRAGMENT_SHADER);
+  const gl_uint_t fs = gl_compile(fs_str, GL_FRAGMENT_SHADER);
   free(fs_str);
   TEST_ASSERT(fs != GL_FALSE);
 
   // Link shakders
   const gl_uint_t gs = GL_FALSE;
-  const gl_uint_t prog = gl_shaders_link(vs, fs, gs);
+  const gl_uint_t prog = gl_link(vs, fs, gs);
   TEST_ASSERT(prog != GL_FALSE);
 
   // Cleanup
@@ -4407,14 +4305,14 @@ int test_gl_shaders_link(void) {
 
 // TEST GL PROGRAM ///////////////////////////////////////////////////////////
 
-int test_gl_prog_setup(void) {
+int test_gl_shader(void) {
   // Setup
   GLFWwindow *window = test_setup();
 
   // Shader program
   char *vs_str = load_file("./shaders/cube.vert");
   char *fs_str = load_file("./shaders/cube.frag");
-  const gl_uint_t program_id = gl_prog_setup(vs_str, fs_str, NULL);
+  const gl_uint_t program_id = gl_shader(vs_str, fs_str, NULL);
   free(vs_str);
   free(fs_str);
   TEST_ASSERT(program_id != GL_FALSE);
@@ -4529,9 +4427,9 @@ int main(int argc, char *argv[]) {
   TEST(test_gl_perspective);
   TEST(test_gl_ortho);
   TEST(test_gl_lookat);
-  TEST(test_gl_shader_compile);
-  TEST(test_gl_shaders_link);
-  TEST(test_gl_prog_setup);
+  TEST(test_gl_compile);
+  TEST(test_gl_link);
+  TEST(test_gl_shader);
   // TEST(test_gl_camera_setup);
   // TEST(test_gl_model_load);
   TEST(test_gui);
