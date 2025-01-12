@@ -362,12 +362,8 @@ void gl_rect_draw(const gl_shader_t *rect,
 
 // GL CUBE ///////////////////////////////////////////////////////////////////
 
-typedef struct {
-  gl_shader_t entity;
-} gl_cube_t;
-void gl_cube_setup(gl_cube_t *cube);
-void gl_cube_cleanup(gl_cube_t *cube);
-void gl_cube_draw(const gl_cube_t *cube,
+void gl_cube_setup(gl_shader_t *cube);
+void gl_cube_draw(const gl_shader_t *cube,
                   const gl_camera_t *camera,
                   const gl_float_t T[4 * 4],
                   const gl_float_t size,
@@ -1835,7 +1831,7 @@ void gui_loop(gui_t *gui) {
   cube_T[14] = 1.0;
   gl_float_t cube_size = 0.5f;
   gl_color_t cube_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_cube_t cube;
+  gl_shader_t cube;
   gl_cube_setup(&cube);
 
   // Frustum
@@ -1954,7 +1950,7 @@ void gui_loop(gui_t *gui) {
 
   // Clean up
   gl_shader_cleanup(&rect);
-  gl_cube_cleanup(&cube);
+  gl_shader_cleanup(&cube);
   gl_frustum_cleanup(&frustum);
   gl_axes3d_cleanup(&axes);
   gl_grid3d_cleanup(&grid);
@@ -2095,10 +2091,10 @@ void gl_rect_draw(const gl_shader_t *rect,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-void gl_cube_setup(gl_cube_t *cube) {
+void gl_cube_setup(gl_shader_t *cube) {
   // Shader program
-  cube->entity.program_id = gl_shader(GL_CUBE_VS, GL_CUBE_FS, NULL);
-  if (cube->entity.program_id == GL_FALSE) {
+  cube->program_id = gl_shader(GL_CUBE_VS, GL_CUBE_FS, NULL);
+  if (cube->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
@@ -2162,12 +2158,12 @@ void gl_cube_setup(gl_cube_t *cube) {
   // clang-format on
 
   // VAO
-  glGenVertexArrays(1, &cube->entity.VAO);
-  glBindVertexArray(cube->entity.VAO);
+  glGenVertexArrays(1, &cube->VAO);
+  glBindVertexArray(cube->VAO);
 
   // VBO
-  glGenBuffers(1, &cube->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, cube->entity.VBO);
+  glGenBuffers(1, &cube->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, cube->VBO);
   glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
   // -- Position attribute
   const size_t vertex_size = sizeof(gl_float_t) * 3;
@@ -2180,25 +2176,20 @@ void gl_cube_setup(gl_cube_t *cube) {
   glBindVertexArray(0);             // Unbind VAO
 }
 
-void gl_cube_cleanup(gl_cube_t *cube) {
-  // Clean up
-  gl_shader_cleanup(&cube->entity);
-}
-
-void gl_cube_draw(const gl_cube_t *cube,
+void gl_cube_draw(const gl_shader_t *cube,
                   const gl_camera_t *camera,
                   const gl_float_t T[4 * 4],
                   const gl_float_t size,
                   const gl_color_t color) {
-  glUseProgram(cube->entity.program_id);
+  glUseProgram(cube->program_id);
 
   // Draw cube
-  gl_set_mat4(cube->entity.program_id, "projection", camera->P);
-  gl_set_mat4(cube->entity.program_id, "view", camera->V);
-  gl_set_mat4(cube->entity.program_id, "model", T);
-  gl_set_float(cube->entity.program_id, "size", size);
-  gl_set_color(cube->entity.program_id, "in_color", color);
-  glBindVertexArray(cube->entity.VAO);
+  gl_set_mat4(cube->program_id, "projection", camera->P);
+  gl_set_mat4(cube->program_id, "view", camera->V);
+  gl_set_mat4(cube->program_id, "model", T);
+  gl_set_float(cube->program_id, "size", size);
+  gl_set_color(cube->program_id, "in_color", color);
+  glBindVertexArray(cube->VAO);
   glDrawArrays(GL_TRIANGLES, 0, 36); // 36 Vertices
 
   // Unbind VAO
