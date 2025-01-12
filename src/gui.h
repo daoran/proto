@@ -12,9 +12,6 @@
 
 #include "stb_image.h"
 
-// #include <GL/glew.h>
-// #include <GL/gl.h>
-// #include <GL/glu.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -214,13 +211,7 @@ void gl_perspective(const gl_float_t fov,
                     const gl_float_t near,
                     const gl_float_t far,
                     gl_float_t P[4 * 4]);
-void gl_ortho(const gl_float_t left,
-              const gl_float_t right,
-              const gl_float_t bottom,
-              const gl_float_t top,
-              const gl_float_t znear,
-              const gl_float_t zfar,
-              gl_float_t P[4 * 4]);
+void gl_ortho(const gl_float_t w, const gl_float_t h, gl_float_t P[4 * 4]);
 void gl_lookat(const gl_float_t eye[3],
                const gl_float_t at[3],
                const gl_float_t up[3],
@@ -238,31 +229,27 @@ static void pixel2ndc(const int x_px,
 }
 
 /******************************************************************************
- * GL-ENTITY
+ * GL-SHADER
  *****************************************************************************/
 
-typedef struct gl_entity_t {
+typedef struct gl_shader_t {
   gl_uint_t program_id;
   gl_uint_t VAO;
   gl_uint_t VBO;
   gl_uint_t EBO;
-} gl_entity_t;
+} gl_shader_t;
 
 void gl_quat2rot(const gl_float_t q[4], gl_float_t C[3 * 3]);
 void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]);
 
-void gl_entity_setup(gl_entity_t *entity);
-void gl_entity_cleanup(gl_entity_t *entity);
-// void gl_entity_set_position(gl_entity_t *entity, const gl_float_t pos[3]);
-// void gl_entity_get_position(gl_entity_t *entity, gl_float_t *pos);
-// void gl_entity_set_rotation(gl_entity_t *entity, const gl_float_t rot[3 * 3]);
-// void gl_entity_get_rotation(gl_entity_t *entity, gl_float_t *rot);
-// void gl_entity_set_quaternion(gl_entity_t *entity, const gl_float_t quat[4]);
-// void gl_entity_get_quaternion(gl_entity_t *entity, gl_float_t *quat);
-
-/******************************************************************************
- * GL-SHADER
- *****************************************************************************/
+void gl_shader_setup(gl_shader_t *entity);
+void gl_shader_cleanup(gl_shader_t *entity);
+// void gl_shader_set_position(gl_shader_t *entity, const gl_float_t pos[3]);
+// void gl_shader_get_position(gl_shader_t *entity, gl_float_t *pos);
+// void gl_shader_set_rotation(gl_shader_t *entity, const gl_float_t rot[3 * 3]);
+// void gl_shader_get_rotation(gl_shader_t *entity, gl_float_t *rot);
+// void gl_shader_set_quaternion(gl_shader_t *entity, const gl_float_t quat[4]);
+// void gl_shader_get_quaternion(gl_shader_t *entity, gl_float_t *quat);
 
 gl_uint_t gl_compile(const char *src, const int type);
 gl_uint_t gl_link(const gl_uint_t vs, const gl_uint_t fs, const gl_uint_t gs);
@@ -330,28 +317,53 @@ void gl_camera_zoom(gl_camera_t *camera,
                     const float dy);
 
 /******************************************************************************
- * GL-PRIMITIVES
+ * GUI
  *****************************************************************************/
 
-// Forward declaration
-typedef struct gui_t gui_t;
+typedef struct gui_t {
+  int screen_width;
+  int screen_height;
+
+  GLFWwindow *window;
+  char *window_title;
+  int window_width;
+  int window_height;
+  int loop;
+
+  gl_camera_t camera;
+  gl_float_t movement_speed;
+  gl_float_t mouse_sensitivity;
+
+  double cursor_x;
+  double cursor_y;
+  int left_click;
+  int right_click;
+
+  int last_cursor_set;
+  float last_cursor_x;
+  float last_cursor_y;
+} gui_t;
+
+void gui_setup(gui_t *gui);
+void gui_reset(gui_t *gui);
+void gui_loop(gui_t *gui);
+
+/******************************************************************************
+ * DRAW
+ *****************************************************************************/
 
 // GL RECT ///////////////////////////////////////////////////////////////////
 
-typedef struct {
-  gl_entity_t entity;
-} gl_rect_t;
-void gl_rect_setup(gl_rect_t *rect);
-void gl_rect_cleanup(gl_rect_t *rect);
-void gl_rect_draw(const gui_t *gui,
-                  const gl_rect_t *rect,
+void gl_rect_setup(gl_shader_t *rect);
+void gl_rect_draw(const gl_shader_t *rect,
+                  const gl_camera_t *camera,
                   const gl_bounds_t *bounds,
                   const gl_color_t *color);
 
 // GL CUBE ///////////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_entity_t entity;
+  gl_shader_t entity;
 } gl_cube_t;
 void gl_cube_setup(gl_cube_t *cube);
 void gl_cube_cleanup(gl_cube_t *cube);
@@ -364,7 +376,7 @@ void gl_cube_draw(const gl_cube_t *cube,
 // GL FRUSTUM ////////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_entity_t entity;
+  gl_shader_t entity;
 } gl_frustum_t;
 void gl_frustum_setup(gl_frustum_t *frustum);
 void gl_frustum_cleanup(gl_frustum_t *frustum);
@@ -378,7 +390,7 @@ void gl_frustum_draw(const gl_frustum_t *frustum,
 // GL AXES 3D ////////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_entity_t entity;
+  gl_shader_t entity;
 } gl_axes3d_t;
 void gl_axes3d_setup(gl_axes3d_t *axes);
 void gl_axes3d_cleanup(gl_axes3d_t *axes);
@@ -391,7 +403,7 @@ void gl_axes3d_draw(const gl_axes3d_t *axes,
 // GL GRID 3D ////////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_entity_t entity;
+  gl_shader_t entity;
 } gl_grid3d_t;
 void gl_grid3d_setup(gl_grid3d_t *grid);
 void gl_grid3d_cleanup(gl_grid3d_t *grid);
@@ -404,36 +416,29 @@ void gl_grid3d_draw(const gl_grid3d_t *grid,
 // GL POINTS 3D //////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_entity_t entity;
-  gl_float_t *data;
-  gl_uint_t num_points;
-  gl_float_t size;
-  gl_float_t color[3];
+  gl_shader_t entity;
 } gl_points3d_t;
-gl_points3d_t *gl_points3d_malloc(const float *data,
-                                  const size_t num_points,
-                                  const gl_float_t size,
-                                  const gl_float_t color[3]);
-void gl_points3d_free(gl_points3d_t *points);
-void gl_points3d_draw(const gl_points3d_t *points,
+void gl_points3d_setup(gl_points3d_t *points);
+void gl_points3d_cleanup(gl_points3d_t *points);
+void gl_points3d_draw(gl_points3d_t *points,
                       const gl_camera_t *camera,
-                      const size_t num_points);
+                      const gl_float_t *points_data,
+                      const size_t num_points,
+                      const gl_float_t size);
 
 // GL LINE 3D ////////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_entity_t entity;
-  gl_float_t *data;
-  gl_int_t num_points;
-  gl_float_t line_width;
-  gl_float_t color[3];
+  gl_shader_t entity;
 } gl_line3d_t;
-gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
-                              const size_t num_points,
-                              const gl_float_t line_width,
-                              const gl_float_t color[3]);
-void gl_line3d_free(gl_line3d_t *line);
-void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera);
+void gl_line3d_setup(gl_line3d_t *line);
+void gl_line3d_cleanup(gl_line3d_t *line);
+void gl_line3d_draw(gl_line3d_t *line,
+                    const gl_camera_t *camera,
+                    const gl_float_t *data,
+                    const size_t num_points,
+                    const gl_color_t color,
+                    const gl_float_t lw);
 
 // GL TEXT ///////////////////////////////////////////////////////////////////
 
@@ -445,7 +450,7 @@ typedef struct {
 } gl_char_t;
 
 typedef struct {
-  gl_entity_t entity;
+  gl_shader_t entity;
   gl_char_t data[128];
   gl_color_t color;
   gl_int_t size;
@@ -535,43 +540,11 @@ gl_model_t *gl_model_load(const char *model_path);
 void gl_model_free(gl_model_t *model);
 void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera);
 
-/******************************************************************************
- * GUI
- *****************************************************************************/
-
-typedef struct gui_t {
-  int screen_width;
-  int screen_height;
-
-  GLFWwindow *window;
-  char *window_title;
-  int window_width;
-  int window_height;
-  int loop;
-
-  gl_camera_t camera;
-  gl_float_t movement_speed;
-  gl_float_t mouse_sensitivity;
-
-  double cursor_x;
-  double cursor_y;
-  int left_click;
-  int right_click;
-
-  int last_cursor_set;
-  float last_cursor_x;
-  float last_cursor_y;
-} gui_t;
-
-void gui_ortho(const gui_t *gui, gl_float_t P[4 * 4]);
-void gui_setup(gui_t *gui);
-void gui_reset(gui_t *gui);
-void gui_loop(gui_t *gui);
 
 // UI-CONTAINER //////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_entity_t entity;
+  gl_shader_t entity;
   gl_color_t color;
   gl_bounds_t bounds;
 } ui_container_t;
@@ -582,7 +555,7 @@ void ui_container_draw(const gui_t *gui, const ui_container_t *c);
 // UI-BUTTON /////////////////////////////////////////////////////////////////
 
 typedef struct {
-  gl_entity_t entity;
+  gl_shader_t entity;
   gl_color_t color;
   gl_color_t color_hover;
   gl_color_t color_press;
@@ -948,44 +921,13 @@ void gl_perspective(const gl_float_t fov,
   P[15] = 0.0f;
 }
 
-void gl_ortho(const gl_float_t left,
-              const gl_float_t right,
-              const gl_float_t bottom,
-              const gl_float_t top,
-              const gl_float_t znear,
-              const gl_float_t zfar,
-              gl_float_t P[4 * 4]) {
-  // clang-format off
-  // const gl_float_t w = gui->window_width;
-  // const gl_float_t h = gui->window_height;
-  // const gl_float_t ortho[16] = {
-  //   2.0f / w,      0.0f,  0.0f,  0.0f,
-  //       0.0f, -2.0f / h,  0.0f,  0.0f,
-  //       0.0f,      0.0f, -1.0f,  0.0f,
-  //      -1.0f,      1.0f,  0.0f,  1.0f
-  // };
-  // clang-format on
-
-  // gl_zeros(P, 4, 4);
-  // P[0] = -2.0f / (right - left);
-  // P[1] = 0.0f;
-  // P[2] = 0.0f;
-  // P[3] = 0.0f;
-  //
-  // P[4] = 0.0f;
-  // P[5] = -2.0f / (top - bottom);
-  // P[6] = 0.0f;
-  // P[7] = 0.0f;
-  //
-  // P[8] = 0.0f;
-  // P[9] = 0.0f;
-  // P[10] = -1.0f;
-  // P[11] = 0.0f;
-  //
-  // P[12] = -1.0f;
-  // P[13] = 1.0f;
-  // P[14] = 0.0f;
-  // P[15] = 1.0f;
+void gl_ortho(const gl_float_t w, const gl_float_t h, gl_float_t P[4 * 4]) {
+  const gl_float_t left = 0.0f;
+  const gl_float_t right = w;
+  const gl_float_t top = 0.0f;
+  const gl_float_t bottom = h;
+  const gl_float_t znear = -1.0f;
+  const gl_float_t zfar = 1.0f;
 
   gl_zeros(P, 4, 4);
   P[0] = 2.0f / (right - left);
@@ -1196,14 +1138,14 @@ void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]) {
   q[3] = qz;
 }
 
-void gl_entity_setup(gl_entity_t *entity) {
+void gl_shader_setup(gl_shader_t *entity) {
   entity->program_id = 0;
   entity->VAO = 0;
   entity->VBO = 0;
   entity->EBO = 0;
 }
 
-void gl_entity_cleanup(gl_entity_t *entity) {
+void gl_shader_cleanup(gl_shader_t *entity) {
   if (glIsProgram(entity->program_id) == GL_TRUE) {
     glDeleteProgram(entity->program_id);
   }
@@ -1221,7 +1163,7 @@ void gl_entity_cleanup(gl_entity_t *entity) {
   }
 }
 
-// void gl_entity_set_position(gl_entity_t *entity, const gl_float_t pos[3]) {
+// void gl_shader_set_position(gl_shader_t *entity, const gl_float_t pos[3]) {
 //   assert(entity != NULL);
 //   assert(pos != NULL);
 //   // entity->T[12] = pos[0];
@@ -1229,7 +1171,7 @@ void gl_entity_cleanup(gl_entity_t *entity) {
 //   // entity->T[14] = pos[2];
 // }
 //
-// void gl_entity_get_position(gl_entity_t *entity, gl_float_t *pos) {
+// void gl_shader_get_position(gl_shader_t *entity, gl_float_t *pos) {
 //   assert(entity != NULL);
 //   assert(pos != NULL);
 //   // pos[0] = entity->T[12];
@@ -1237,7 +1179,7 @@ void gl_entity_cleanup(gl_entity_t *entity) {
 //   // pos[2] = entity->T[14];
 // }
 //
-// void gl_entity_set_rotation(gl_entity_t *entity, const gl_float_t rot[3 * 3]) {
+// void gl_shader_set_rotation(gl_shader_t *entity, const gl_float_t rot[3 * 3]) {
 //   assert(entity != NULL);
 //   assert(rot != NULL);
 //   entity->T[0] = rot[0];
@@ -1251,7 +1193,7 @@ void gl_entity_cleanup(gl_entity_t *entity) {
 //   entity->T[10] = rot[8];
 // }
 //
-// void gl_entity_get_rotation(gl_entity_t *entity, gl_float_t *rot) {
+// void gl_shader_get_rotation(gl_shader_t *entity, gl_float_t *rot) {
 //   assert(entity != NULL);
 //   assert(rot != NULL);
 //
@@ -1266,19 +1208,19 @@ void gl_entity_cleanup(gl_entity_t *entity) {
 //   rot[8] = entity->T[10];
 // }
 //
-// void gl_entity_set_quaternion(gl_entity_t *entity, const gl_float_t quat[4]) {
+// void gl_shader_set_quaternion(gl_shader_t *entity, const gl_float_t quat[4]) {
 //   assert(entity != NULL);
 //   assert(quat != NULL);
 //   gl_float_t C[3 * 3] = {0};
 //   gl_quat2rot(quat, C);
-//   gl_entity_set_rotation(entity, C);
+//   gl_shader_set_rotation(entity, C);
 // }
 //
-// void gl_entity_get_quaternion(gl_entity_t *entity, gl_float_t *quat) {
+// void gl_shader_get_quaternion(gl_shader_t *entity, gl_float_t *quat) {
 //   assert(entity != NULL);
 //   assert(quat != NULL);
 //   gl_float_t C[3 * 3] = {0};
-//   gl_entity_get_rotation(entity, C);
+//   gl_shader_get_rotation(entity, C);
 //   gl_rot2quat(C, quat);
 // }
 
@@ -1517,12 +1459,12 @@ void gl_camera_setup(gl_camera_t *camera,
 
   gl_zeros(camera->focal, 3, 1);
   gl_vec3(camera->world_up, 0.0f, 1.0f, 0.0f);
-  gl_vec3(camera->position, 0.0f, 3.0f, 0.0f);
+  gl_vec3(camera->position, 0.0f, 0.0f, 0.0f);
   gl_vec3(camera->right, -1.0f, 0.0f, 0.0f);
   gl_vec3(camera->up, 0.0f, 1.0f, 0.0f);
   gl_vec3(camera->front, 0.0f, 0.0f, -1.0f);
-  camera->yaw = gl_deg2rad(0.0f);
-  camera->pitch = gl_deg2rad(-50.0f);
+  camera->yaw = gl_deg2rad(180.0f);
+  camera->pitch = gl_deg2rad(-45.0f);
   camera->radius = 1.0f;
 
   camera->fov = gl_deg2rad(60.0f);
@@ -1530,8 +1472,8 @@ void gl_camera_setup(gl_camera_t *camera,
   camera->fov_max = gl_deg2rad(120.0f);
   camera->near = 0.01f;
   camera->far = 100.0f;
-
-  gl_camera_update(camera);
+  //
+  // gl_camera_update(camera);
 }
 
 void gl_camera_update(gl_camera_t *camera) {
@@ -1648,6 +1590,384 @@ void gl_camera_zoom(gl_camera_t *camera,
 }
 
 /******************************************************************************
+ * GUI
+ *****************************************************************************/
+
+// WINDOW ////////////////////////////////////////////////////////////////////
+
+void window_callback(GLFWwindow *window, int width, int height) {
+  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
+  gui->window_width = width;
+  gui->window_height = height;
+  // glViewport(0, 0, width, height);
+
+  // Maintain aspect ratio
+  const float aspect = 16.0f / 9.0f;
+  int new_width = 0;
+  int new_height = 0;
+  if (width / (float) height > aspect) {
+    new_width = (int) (height * aspect);
+    new_height = height;
+  } else {
+    new_width = width;
+    new_height = (int) (width / aspect);
+  }
+
+  // Center the viewport
+  int x_offset = (width - new_width) / 2;
+  int y_offset = (height - new_height) / 2;
+
+  glViewport(x_offset, y_offset, new_width, new_height);
+}
+
+void gui_process_input(GLFWwindow *window) {
+  const float camera_speed = 0.1f;
+  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
+
+  // Handle keyboard events
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+      glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+    gui->loop = 0;
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    if (gui->camera.view_mode == FPS) {
+      gui->camera.position[0] += camera_speed * gui->camera.front[0];
+      gui->camera.position[1] += camera_speed * gui->camera.front[1];
+      gui->camera.position[2] += camera_speed * gui->camera.front[2];
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.pitch += 0.01;
+      gui->camera.pitch =
+          (gui->camera.pitch >= M_PI) ? M_PI : gui->camera.pitch;
+      gui->camera.pitch =
+          (gui->camera.pitch <= 0.0f) ? 0.0f : gui->camera.pitch;
+    }
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    if (gui->camera.view_mode == FPS) {
+      gui->camera.position[0] -= camera_speed * gui->camera.front[0];
+      gui->camera.position[1] -= camera_speed * gui->camera.front[1];
+      gui->camera.position[2] -= camera_speed * gui->camera.front[2];
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.pitch -= 0.01;
+      gui->camera.pitch =
+          (gui->camera.pitch >= M_PI) ? M_PI : gui->camera.pitch;
+      gui->camera.pitch =
+          (gui->camera.pitch <= 0.0f) ? 0.0f : gui->camera.pitch;
+    }
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    if (gui->camera.view_mode == FPS) {
+      gl_float_t camera_left[3] = {0};
+      gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
+      gl_normalize(camera_left, 3);
+      gui->camera.position[0] -= camera_left[0] * camera_speed;
+      gui->camera.position[1] -= camera_left[1] * camera_speed;
+      gui->camera.position[2] -= camera_left[2] * camera_speed;
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.yaw -= 0.01;
+      gui->camera.yaw = (gui->camera.yaw >= M_PI) ? M_PI : gui->camera.yaw;
+      gui->camera.yaw = (gui->camera.yaw <= -M_PI) ? -M_PI : gui->camera.yaw;
+    }
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    if (gui->camera.view_mode == FPS) {
+      gl_float_t camera_left[3] = {0};
+      gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
+      gl_normalize(camera_left, 3);
+      gui->camera.position[0] += camera_left[0] * camera_speed;
+      gui->camera.position[1] += camera_left[1] * camera_speed;
+      gui->camera.position[2] += camera_left[2] * camera_speed;
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.yaw += 0.01;
+      gui->camera.yaw = (gui->camera.yaw >= M_PI) ? M_PI : gui->camera.yaw;
+      gui->camera.yaw = (gui->camera.yaw <= -M_PI) ? -M_PI : gui->camera.yaw;
+    }
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
+    if (gui->camera.view_mode == FPS) {
+      gl_camera_zoom(&gui->camera, 1.0, 0, 0.1);
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.radius += 0.1;
+      gui->camera.radius =
+          (gui->camera.radius <= 0.01) ? 0.01 : gui->camera.radius;
+    }
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) {
+    if (gui->camera.view_mode == FPS) {
+      gl_camera_zoom(&gui->camera, 1.0, 0, -0.1);
+    } else if (gui->camera.view_mode == ORBIT) {
+      gui->camera.radius -= 0.1;
+      gui->camera.radius =
+          (gui->camera.radius <= 0.01) ? 0.01 : gui->camera.radius;
+    }
+  }
+
+  // Handle mouse cursor events
+  glfwGetCursorPos(window, &gui->cursor_x, &gui->cursor_y);
+  const float dx = gui->cursor_x - gui->last_cursor_x;
+  const float dy = gui->cursor_y - gui->last_cursor_y;
+  gui->last_cursor_x = gui->cursor_x;
+  gui->last_cursor_y = gui->cursor_y;
+
+  const int button_left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+  const int button_right = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+  gui->left_click = (button_left == GLFW_PRESS);
+  gui->right_click = (button_right == GLFW_PRESS);
+
+  if (gui->left_click) {
+    // Rotate camera
+    if (gui->last_cursor_set == 0) {
+      gui->last_cursor_set = 1;
+    } else if (gui->last_cursor_set) {
+      gl_camera_rotate(&gui->camera, gui->mouse_sensitivity, dx, dy);
+    }
+  } else if (gui->right_click) {
+    // Pan camera
+    if (gui->last_cursor_set == 0) {
+      gui->last_cursor_set = 1;
+    } else if (gui->last_cursor_set) {
+      gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy);
+    }
+  } else {
+    // Reset cursor
+    gui->left_click = 0;
+    gui->right_click = 0;
+    gui->last_cursor_set = 0;
+    gui->last_cursor_x = 0.0;
+    gui->last_cursor_y = 0.0;
+  }
+}
+
+void gui_setup(gui_t *gui) {
+  // GLFW
+  if (!glfwInit()) {
+    printf("Failed to initialize glfw!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Window settings
+  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  gui->window = glfwCreateWindow(gui->window_width,
+                                 gui->window_height,
+                                 gui->window_title,
+                                 NULL,
+                                 NULL);
+  if (!gui->window) {
+    printf("Failed to create glfw window!\n");
+    glfwTerminate();
+    exit(EXIT_FAILURE);
+  }
+  glfwMakeContextCurrent(gui->window);
+  glfwSetWindowUserPointer(gui->window, gui);
+  glfwSetWindowSizeCallback(gui->window, window_callback);
+
+  // GLAD
+  if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
+    printf("Failed to load GL functions!\n");
+    return;
+  }
+
+  // OpenGL functions
+  glEnable(GL_DEBUG_OUTPUT);
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_LINE_SMOOTH);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  assert(glIsEnabled(GL_PROGRAM_POINT_SIZE));
+  assert(glIsEnabled(GL_LINE_SMOOTH));
+  assert(glIsEnabled(GL_DEPTH_TEST));
+  assert(glIsEnabled(GL_CULL_FACE));
+  assert(glIsEnabled(GL_BLEND));
+
+  // Camera
+  gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
+  gui->camera.position[0] = 0.0f;
+  gui->camera.position[1] = 4.0f;
+  gui->camera.position[2] = 5.0f;
+  gui->movement_speed = 50.0f;
+  gui->mouse_sensitivity = 0.02f;
+
+  // Cursor
+  gui->left_click = 0;
+  gui->right_click = 0;
+  gui->last_cursor_set = 0;
+  gui->last_cursor_x = 0.0f;
+  gui->last_cursor_y = 0.0f;
+}
+
+void gui_reset(gui_t *gui) {
+  // Camera
+  gui->movement_speed = 50.0f;
+  gui->mouse_sensitivity = 0.02f;
+
+  // Cursor
+  gui->left_click = 0;
+  gui->right_click = 0;
+  gui->last_cursor_set = 0;
+  gui->last_cursor_x = 0.0f;
+  gui->last_cursor_y = 0.0f;
+}
+
+void gui_loop(gui_t *gui) {
+  // Rect
+  gl_bounds_t rect_bounds = (gl_bounds_t){0, 0, 58, 10};
+  gl_color_t rect_color = (gl_color_t){1.0f, 1.0f, 1.0f};
+  gl_shader_t rect;
+  gl_rect_setup(&rect);
+
+  // Cube
+  gl_float_t cube_T[4 * 4] = {0};
+  gl_eye(cube_T, 4, 4);
+  cube_T[12] = 0.0;
+  cube_T[13] = 0.0;
+  cube_T[14] = 1.0;
+  gl_float_t cube_size = 0.5f;
+  gl_color_t cube_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_cube_t cube;
+  gl_cube_setup(&cube);
+
+  // Frustum
+  gl_float_t frustum_T[4 * 4];
+  gl_eye(frustum_T, 4, 4);
+  gl_float_t frustum_size = 0.5f;
+  gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_float_t frustum_lw = 1.0f;
+  gl_frustum_t frustum;
+  gl_frustum_setup(&frustum);
+
+  // Axes
+  gl_float_t axes_T[4 * 4];
+  gl_eye(axes_T, 4, 4);
+  gl_float_t axes_size = 0.5f;
+  gl_float_t axes_lw = 5.0f;
+  gl_axes3d_t axes;
+  gl_axes3d_setup(&axes);
+
+  // Grid
+  gl_grid3d_t grid;
+  gl_float_t grid_size = 0.5f;
+  gl_float_t grid_lw = 5.0f;
+  gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_grid3d_setup(&grid);
+
+  // Points
+  gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
+  gl_float_t points_size = 2.0;
+  size_t num_points = 100000;
+  gl_float_t *points_data = MALLOC(gl_float_t, num_points * 6);
+  for (size_t i = 0; i < num_points; ++i) {
+    points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 1] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 2] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 3] = points_color.r;
+    points_data[i * 6 + 4] = points_color.g;
+    points_data[i * 6 + 5] = points_color.b;
+  }
+  gl_points3d_t points;
+  gl_points3d_setup(&points);
+
+  // Line
+  gl_float_t line_lw = 5.0f;
+  gl_color_t line_color = (gl_color_t){1.0, 0.0, 0.0};
+  size_t line_size = 1000;
+  float radius = 3.0f;
+  float dtheta = 2 * M_PI / line_size;
+  float theta = 0.0f;
+  float *line_data = MALLOC(float, line_size * 3);
+  for (size_t i = 0; i < line_size; ++i) {
+    line_data[i * 3 + 0] = radius * sin(theta);
+    line_data[i * 3 + 1] = 0.0f;
+    line_data[i * 3 + 2] = radius * cos(theta);
+    theta += dtheta;
+  }
+  gl_line3d_t line;
+  gl_line3d_setup(&line);
+
+  // Text
+  gl_text_t text;
+  gl_text_setup(&text);
+
+  // Image
+  gl_image_t *image = gl_image_malloc();
+
+  // Button
+  ui_button_t button;
+  ui_button_setup(&button);
+
+  // Render loop
+  gui->loop = 1;
+  glfwMakeContextCurrent(gui->window);
+
+  while (gui->loop) {
+    // Clear rendering states
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw
+    gl_rect_draw(&rect, &gui->camera, &rect_bounds, &rect_color);
+    gl_cube_draw(&cube, &gui->camera, cube_T, cube_size, cube_color);
+    gl_frustum_draw(&frustum,
+                    &gui->camera,
+                    frustum_T,
+                    frustum_size,
+                    frustum_color,
+                    frustum_lw);
+    gl_axes3d_draw(&axes, &gui->camera, axes_T, axes_size, axes_lw);
+    gl_grid3d_draw(&grid, &gui->camera, grid_size, grid_lw, grid_color);
+    // gl_points3d_draw(&points,
+    //                  &gui->camera,
+    //                  points_data,
+    //                  num_points,
+    //                  points_size);
+    gl_line3d_draw(&line,
+                   &gui->camera,
+                   line_data,
+                   line_size,
+                   line_color,
+                   line_lw);
+    // gl_text_draw(text, &gui->camera, "Here3!", 500.0f, 550.0f, 1.0f);
+    // gl_image_draw(image);
+    // if (ui_button_draw(gui, &button) == 1) {
+    //   printf("Button pressed!\n");
+    // }
+    // gl_text_draw(&text, &gui->camera, "Button", 0.0f, 0.0f, 1.0f);
+
+    // Update
+    glfwPollEvents();
+    gui_process_input(gui->window);
+    gl_camera_update(&gui->camera);
+    glfwSwapBuffers(gui->window);
+  }
+
+  // Clean up
+  gl_shader_cleanup(&rect);
+  gl_cube_cleanup(&cube);
+  gl_frustum_cleanup(&frustum);
+  gl_axes3d_cleanup(&axes);
+  gl_grid3d_cleanup(&grid);
+  gl_points3d_cleanup(&points);
+  gl_line3d_cleanup(&line);
+  gl_text_cleanup(&text);
+  gl_image_free(image);
+  free(points_data);
+  free(line_data);
+  glfwTerminate();
+}
+
+/******************************************************************************
  * GL-PRIMITIVES
  *****************************************************************************/
 
@@ -1675,13 +1995,13 @@ void gl_camera_zoom(gl_camera_t *camera,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-void gl_rect_setup(gl_rect_t *rect) {
+void gl_rect_setup(gl_shader_t *rect) {
   // Setup
-  gl_entity_setup(&rect->entity);
+  gl_shader_setup(rect);
 
   // Shader program
-  rect->entity.program_id = gl_shader(GL_RECT_VS, GL_RECT_FS, NULL);
-  if (rect->entity.program_id == GL_FALSE) {
+  rect->program_id = gl_shader(GL_RECT_VS, GL_RECT_FS, NULL);
+  if (rect->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
@@ -1703,21 +2023,21 @@ void gl_rect_setup(gl_rect_t *rect) {
   // clang-format on
 
   // VAO
-  glGenVertexArrays(1, &rect->entity.VAO);
-  glBindVertexArray(rect->entity.VAO);
-  assert(rect->entity.VAO != 0);
+  glGenVertexArrays(1, &rect->VAO);
+  glBindVertexArray(rect->VAO);
+  assert(rect->VAO != 0);
 
   // VBO
-  glGenBuffers(1, &rect->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, rect->entity.VBO);
+  glGenBuffers(1, &rect->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, rect->VBO);
   glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
-  assert(rect->entity.VBO != 0);
+  assert(rect->VBO != 0);
 
   // EBO
-  glGenBuffers(1, &rect->entity.EBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect->entity.EBO);
+  glGenBuffers(1, &rect->EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect->EBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, ebo_size, indices, GL_STATIC_DRAW);
-  assert(rect->entity.EBO != 0);
+  assert(rect->EBO != 0);
 
   // Position attribute
   void *pos_offset = (void *) 0;
@@ -1729,24 +2049,24 @@ void gl_rect_setup(gl_rect_t *rect) {
   glBindVertexArray(0);
 }
 
-void gl_rect_cleanup(gl_rect_t *rect) { gl_entity_cleanup(&rect->entity); }
-
-void gl_rect_draw(const gui_t *gui,
-                  const gl_rect_t *rect,
+void gl_rect_draw(const gl_shader_t *rect,
+                  const gl_camera_t *camera,
                   const gl_bounds_t *bounds,
                   const gl_color_t *color) {
+  const gl_float_t w = *(camera->window_width);
+  const gl_float_t h = *(camera->window_height);
   gl_float_t ortho[16] = {0};
-  gui_ortho(gui, ortho);
+  gl_ortho(w, h, ortho);
 
   glDepthMask(GL_FALSE);
-  glUseProgram(rect->entity.program_id);
-  gl_set_mat4(rect->entity.program_id, "ortho", ortho);
-  gl_set_color(rect->entity.program_id, "color", *color);
-  gl_set_float(rect->entity.program_id, "w", bounds->w);
-  gl_set_float(rect->entity.program_id, "h", bounds->h);
-  gl_set_float(rect->entity.program_id, "x", bounds->x);
-  gl_set_float(rect->entity.program_id, "y", bounds->y);
-  glBindVertexArray(rect->entity.VAO);
+  glUseProgram(rect->program_id);
+  gl_set_mat4(rect->program_id, "ortho", ortho);
+  gl_set_color(rect->program_id, "color", *color);
+  gl_set_float(rect->program_id, "w", bounds->w);
+  gl_set_float(rect->program_id, "h", bounds->h);
+  gl_set_float(rect->program_id, "x", bounds->x);
+  gl_set_float(rect->program_id, "y", bounds->y);
+  glBindVertexArray(rect->VAO);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
   glDepthMask(GL_TRUE);
 }
@@ -1862,7 +2182,7 @@ void gl_cube_setup(gl_cube_t *cube) {
 
 void gl_cube_cleanup(gl_cube_t *cube) {
   // Clean up
-  gl_entity_cleanup(&cube->entity);
+  gl_shader_cleanup(&cube->entity);
 }
 
 void gl_cube_draw(const gl_cube_t *cube,
@@ -1964,7 +2284,7 @@ void gl_frustum_setup(gl_frustum_t *f) {
 
 void gl_frustum_cleanup(gl_frustum_t *frustum) {
   // Clean up
-  gl_entity_cleanup(&frustum->entity);
+  gl_shader_cleanup(&frustum->entity);
 }
 
 void gl_frustum_draw(const gl_frustum_t *frustum,
@@ -2066,7 +2386,7 @@ void gl_axes3d_setup(gl_axes3d_t *axes) {
 
 void gl_axes3d_cleanup(gl_axes3d_t *axes) {
   // Clean up
-  gl_entity_cleanup(&axes->entity);
+  gl_shader_cleanup(&axes->entity);
 }
 
 void gl_axes3d_draw(const gl_axes3d_t *axes,
@@ -2198,7 +2518,7 @@ void gl_grid3d_setup(gl_grid3d_t *grid) {
 
 void gl_grid3d_cleanup(gl_grid3d_t *grid) {
   // Clean up
-  gl_entity_cleanup(&grid->entity);
+  gl_shader_cleanup(&grid->entity);
 }
 
 void gl_grid3d_draw(const gl_grid3d_t *grid,
@@ -2232,9 +2552,10 @@ void gl_grid3d_draw(const gl_grid3d_t *grid,
   "out vec3 color;\n"                                                          \
   "uniform mat4 view;\n"                                                       \
   "uniform mat4 projection;\n"                                                 \
+  "uniform float size;\n"                                                      \
   "void main() {\n"                                                            \
   "  gl_Position = projection * view * vec4(in_pos, 1.0);\n"                   \
-  "  gl_PointSize = 1.0;\n"                                                    \
+  "  gl_PointSize = size;\n"                                                   \
   "  color = in_color;\n"                                                      \
   "}\n"
 
@@ -2246,87 +2567,57 @@ void gl_grid3d_draw(const gl_grid3d_t *grid,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-gl_points3d_t *gl_points3d_malloc(const float *data,
-                                  const size_t num_points,
-                                  const gl_float_t size,
-                                  const gl_float_t color[3]) {
-  // Malloc
-  gl_points3d_t *points = MALLOC(gl_points3d_t, 1);
-  gl_entity_setup(&points->entity);
-  points->data = MALLOC(gl_float_t, num_points * 3);
-  for (size_t i = 0; i < num_points * 3; ++i) {
-    points->data[i] = data[i];
-  }
-  points->num_points = num_points;
-  points->size = size;
-  gl_copy(color, 3, 1, points->color);
-
+void gl_points3d_setup(gl_points3d_t *points) {
   // Shader program
   points->entity.program_id = gl_shader(GL_POINTS3D_VS, GL_POINTS3D_FS, NULL);
   if (points->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders to draw points!");
   }
+  points->entity.VAO = 0;
+}
 
-  // Points
-  const float r = points->color[0];
-  const float g = points->color[1];
-  const float b = points->color[2];
-  gl_float_t *vertex_data = MALLOC(gl_float_t, num_points * 6);
-  for (size_t i = 0; i < num_points; ++i) {
-    vertex_data[i * 6 + 0] = data[i * 3 + 0];
-    vertex_data[i * 6 + 1] = data[i * 3 + 1];
-    vertex_data[i * 6 + 2] = data[i * 3 + 2];
-    vertex_data[i * 6 + 3] = r;
-    vertex_data[i * 6 + 4] = g;
-    vertex_data[i * 6 + 5] = b;
-  }
-  const size_t vertex_buffer_size = sizeof(float) * 6 * num_points;
-
-  // VAO
-  glGenVertexArrays(1, &points->entity.VAO);
-  glBindVertexArray(points->entity.VAO);
-
-  // VBO
-  glGenBuffers(1, &points->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, points->entity.VBO);
-  glBufferData(GL_ARRAY_BUFFER,
-               vertex_buffer_size,
-               vertex_data,
-               GL_STATIC_DRAW);
-  // -- Position attribute
-  size_t vertex_size = 6 * sizeof(float);
-  void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-  glEnableVertexAttribArray(0);
-  // -- Color attribute
-  void *color_offset = (void *) (3 * sizeof(float));
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
-  glEnableVertexAttribArray(1);
-
+void gl_points3d_cleanup(gl_points3d_t *points) {
   // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-  glBindVertexArray(0);             // Unbind VAO
-  free(vertex_data);
-
-  return points;
+  gl_shader_cleanup(&points->entity);
 }
 
-void gl_points3d_free(gl_points3d_t *points) {
-  if (points == NULL) {
-    return;
-  }
-  gl_entity_cleanup(&points->entity);
-  free(points->data);
-  free(points);
-}
-
-void gl_points3d_draw(const gl_points3d_t *points,
+void gl_points3d_draw(gl_points3d_t *points,
                       const gl_camera_t *camera,
-                      const size_t num_points) {
+                      const gl_float_t *data,
+                      const size_t num_points,
+                      const gl_float_t size) {
+  if (points->entity.VAO == 0) {
+    // VAO
+    glGenVertexArrays(1, &points->entity.VAO);
+    glBindVertexArray(points->entity.VAO);
+
+    // VBO
+    const size_t vbo_size = sizeof(gl_float_t) * 6 * num_points;
+    glGenBuffers(1, &points->entity.VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, points->entity.VBO);
+    glBufferData(GL_ARRAY_BUFFER, vbo_size, data, GL_STATIC_DRAW);
+    // -- Position attribute
+    size_t vertex_size = 6 * sizeof(float);
+    void *pos_offset = (void *) 0;
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+    glEnableVertexAttribArray(0);
+    // -- Color attribute
+    void *color_offset = (void *) (3 * sizeof(float));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
+    glEnableVertexAttribArray(1);
+
+    // Clean up
+    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+    glBindVertexArray(0);             // Unbind VAO
+  }
+
+  // Use shader program
   glUseProgram(points->entity.program_id);
   gl_set_mat4(points->entity.program_id, "projection", camera->P);
   gl_set_mat4(points->entity.program_id, "view", camera->V);
+  gl_set_float(points->entity.program_id, "size", size);
 
+  // Draw
   glBindVertexArray(points->entity.VAO);
   glDrawArrays(GL_POINTS, 0, num_points);
   glBindVertexArray(0); // Unbind VAO
@@ -2354,76 +2645,64 @@ void gl_points3d_draw(const gl_points3d_t *points,
   "  frag_color = vec4(color, 1.0f);\n"                                        \
   "}\n"
 
-gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
-                              const size_t num_points,
-                              const gl_float_t line_width,
-                              const gl_float_t color[3]) {
-  // Malloc
-  gl_line3d_t *line = MALLOC(gl_line3d_t, 1);
-  gl_entity_setup(&line->entity);
-  line->data = MALLOC(gl_float_t, num_points * 3);
-  for (size_t i = 0; i < num_points * 3; ++i) {
-    line->data[i] = data[i];
-  }
-  line->num_points = num_points;
-  line->line_width = line_width;
-  gl_copy(color, 3, 1, line->color);
-
+void gl_line3d_setup(gl_line3d_t *line) {
   // Shader program
   line->entity.program_id = gl_shader(GL_LINE3D_VS, GL_LINE3D_FS, NULL);
   if (line->entity.program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
+  line->entity.VAO = -1;
+}
 
-  // VAO
-  glGenVertexArrays(1, &line->entity.VAO);
-  glBindVertexArray(line->entity.VAO);
-
-  // VBO
-  const size_t vbo_size = sizeof(gl_float_t) * 3 * num_points;
-  glGenBuffers(1, &line->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, line->entity.VBO);
-  glBufferData(GL_ARRAY_BUFFER, vbo_size, data, GL_STATIC_DRAW);
-
-  // Position attribute
-  const size_t vertex_size = sizeof(gl_float_t) * 3;
-  const void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-  glEnableVertexAttribArray(0);
-
+void gl_line3d_cleanup(gl_line3d_t *line) {
   // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-  glBindVertexArray(0);             // Unbind VAO
-
-  return line;
+  gl_shader_cleanup(&line->entity);
 }
 
-void gl_line3d_free(gl_line3d_t *line) {
-  if (line == NULL) {
-    return;
+void gl_line3d_draw(gl_line3d_t *line,
+                    const gl_camera_t *camera,
+                    const gl_float_t *data,
+                    const size_t num_points,
+                    const gl_color_t color,
+                    const gl_float_t lw) {
+  if (line->entity.VAO == -1) {
+    // VAO
+    glGenVertexArrays(1, &line->entity.VAO);
+    glBindVertexArray(line->entity.VAO);
+
+    // VBO
+    const size_t vbo_size = sizeof(gl_float_t) * 3 * num_points;
+    glGenBuffers(1, &line->entity.VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, line->entity.VBO);
+    glBufferData(GL_ARRAY_BUFFER, vbo_size, data, GL_STATIC_DRAW);
+
+    // Position attribute
+    const size_t vertex_size = sizeof(gl_float_t) * 3;
+    const void *pos_offset = (void *) 0;
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+    glEnableVertexAttribArray(0);
+
+    // Clean up
+    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+    glBindVertexArray(0);             // Unbind VAO
   }
-  gl_entity_cleanup(&line->entity);
-  free(line->data);
-  free(line);
-}
 
-void gl_line3d_draw(const gl_line3d_t *line, const gl_camera_t *camera) {
   // Activate shader
   glUseProgram(line->entity.program_id);
   gl_set_mat4(line->entity.program_id, "projection", camera->P);
   gl_set_mat4(line->entity.program_id, "view", camera->V);
-  gl_set_vec3(line->entity.program_id, "in_color", line->color);
+  gl_set_color(line->entity.program_id, "in_color", color);
 
   // Store original line width
   gl_float_t original_line_width = 0.0f;
   glGetFloatv(GL_LINE_WIDTH, &original_line_width);
 
   // Set line width
-  glLineWidth(line->line_width);
+  glLineWidth(lw);
 
   // Draw frame
   glBindVertexArray(line->entity.VAO);
-  glDrawArrays(GL_LINE_STRIP, 0, line->num_points);
+  glDrawArrays(GL_LINE_STRIP, 0, num_points);
   glBindVertexArray(0); // Unbind VAO
 
   // Restore original line width
@@ -2465,7 +2744,7 @@ void gl_char_print(const gl_char_t *ch) {
 
 void gl_text_setup(gl_text_t *text) {
   // Initialize
-  gl_entity_setup(&text->entity);
+  gl_shader_setup(&text->entity);
   text->color = (gl_color_t){0.0, 0.0, 0.0};
   text->size = 16;
 
@@ -2559,7 +2838,7 @@ void gl_text_setup(gl_text_t *text) {
 
 void gl_text_cleanup(gl_text_t *text) {
   // Clean up
-  gl_entity_cleanup(&text->entity);
+  gl_shader_cleanup(&text->entity);
 }
 
 void gl_text_draw(gl_text_t *text,
@@ -2569,14 +2848,10 @@ void gl_text_draw(gl_text_t *text,
                   float y,
                   const float scale) {
   // Setup projection matrix
-  const gl_float_t left = 0.0f;
-  const gl_float_t right = *(camera->window_width);
-  const gl_float_t bottom = *(camera->window_height);
-  const gl_float_t top = 0.0f;
-  const gl_float_t znear = -1.0f;
-  const gl_float_t zfar = 1.0f;
+  const gl_float_t w = *(camera->window_width);
+  const gl_float_t h = *(camera->window_height);
   gl_float_t ortho[4 * 4];
-  gl_ortho(left, right, bottom, top, znear, zfar, ortho);
+  gl_ortho(w, h, ortho);
 
   // Activate shader
   glDepthMask(GL_FALSE);
@@ -3263,379 +3538,6 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
   }
 }
 
-/******************************************************************************
- * GUI
- *****************************************************************************/
-
-// WINDOW ////////////////////////////////////////////////////////////////////
-
-void window_callback(GLFWwindow *window, int width, int height) {
-  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
-  gui->window_width = width;
-  gui->window_height = height;
-  // glViewport(0, 0, width, height);
-
-  // Maintain aspect ratio
-  const float aspect = 16.0f / 9.0f;
-  int new_width = 0;
-  int new_height = 0;
-  if (width / (float) height > aspect) {
-    new_width = (int) (height * aspect);
-    new_height = height;
-  } else {
-    new_width = width;
-    new_height = (int) (width / aspect);
-  }
-
-  // Center the viewport
-  int x_offset = (width - new_width) / 2;
-  int y_offset = (height - new_height) / 2;
-
-  glViewport(x_offset, y_offset, new_width, new_height);
-}
-
-void gui_process_input(GLFWwindow *window) {
-  const float camera_speed = 0.1f;
-  gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
-
-  // Handle keyboard events
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
-      glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-    gui->loop = 0;
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    if (gui->camera.view_mode == FPS) {
-      gui->camera.position[0] += camera_speed * gui->camera.front[0];
-      gui->camera.position[1] += camera_speed * gui->camera.front[1];
-      gui->camera.position[2] += camera_speed * gui->camera.front[2];
-    } else if (gui->camera.view_mode == ORBIT) {
-      gui->camera.pitch += 0.01;
-      gui->camera.pitch =
-          (gui->camera.pitch >= M_PI) ? M_PI : gui->camera.pitch;
-      gui->camera.pitch =
-          (gui->camera.pitch <= 0.0f) ? 0.0f : gui->camera.pitch;
-    }
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    if (gui->camera.view_mode == FPS) {
-      gui->camera.position[0] -= camera_speed * gui->camera.front[0];
-      gui->camera.position[1] -= camera_speed * gui->camera.front[1];
-      gui->camera.position[2] -= camera_speed * gui->camera.front[2];
-    } else if (gui->camera.view_mode == ORBIT) {
-      gui->camera.pitch -= 0.01;
-      gui->camera.pitch =
-          (gui->camera.pitch >= M_PI) ? M_PI : gui->camera.pitch;
-      gui->camera.pitch =
-          (gui->camera.pitch <= 0.0f) ? 0.0f : gui->camera.pitch;
-    }
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-    if (gui->camera.view_mode == FPS) {
-      gl_float_t camera_left[3] = {0};
-      gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
-      gl_normalize(camera_left, 3);
-      gui->camera.position[0] -= camera_left[0] * camera_speed;
-      gui->camera.position[1] -= camera_left[1] * camera_speed;
-      gui->camera.position[2] -= camera_left[2] * camera_speed;
-    } else if (gui->camera.view_mode == ORBIT) {
-      gui->camera.yaw -= 0.01;
-      gui->camera.yaw = (gui->camera.yaw >= M_PI) ? M_PI : gui->camera.yaw;
-      gui->camera.yaw = (gui->camera.yaw <= -M_PI) ? -M_PI : gui->camera.yaw;
-    }
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-    if (gui->camera.view_mode == FPS) {
-      gl_float_t camera_left[3] = {0};
-      gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
-      gl_normalize(camera_left, 3);
-      gui->camera.position[0] += camera_left[0] * camera_speed;
-      gui->camera.position[1] += camera_left[1] * camera_speed;
-      gui->camera.position[2] += camera_left[2] * camera_speed;
-    } else if (gui->camera.view_mode == ORBIT) {
-      gui->camera.yaw += 0.01;
-      gui->camera.yaw = (gui->camera.yaw >= M_PI) ? M_PI : gui->camera.yaw;
-      gui->camera.yaw = (gui->camera.yaw <= -M_PI) ? -M_PI : gui->camera.yaw;
-    }
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
-    if (gui->camera.view_mode == FPS) {
-      gl_camera_zoom(&gui->camera, 1.0, 0, 0.1);
-    } else if (gui->camera.view_mode == ORBIT) {
-      gui->camera.radius += 0.1;
-      gui->camera.radius =
-          (gui->camera.radius <= 0.01) ? 0.01 : gui->camera.radius;
-    }
-  }
-
-  if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) {
-    if (gui->camera.view_mode == FPS) {
-      gl_camera_zoom(&gui->camera, 1.0, 0, -0.1);
-    } else if (gui->camera.view_mode == ORBIT) {
-      gui->camera.radius -= 0.1;
-      gui->camera.radius =
-          (gui->camera.radius <= 0.01) ? 0.01 : gui->camera.radius;
-    }
-  }
-
-  // Handle mouse cursor events
-  glfwGetCursorPos(window, &gui->cursor_x, &gui->cursor_y);
-  const float dx = gui->cursor_x - gui->last_cursor_x;
-  const float dy = gui->cursor_y - gui->last_cursor_y;
-  gui->last_cursor_x = gui->cursor_x;
-  gui->last_cursor_y = gui->cursor_y;
-
-  const int button_left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-  const int button_right = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-  gui->left_click = (button_left == GLFW_PRESS);
-  gui->right_click = (button_right == GLFW_PRESS);
-
-  if (gui->left_click) {
-    // Rotate camera
-    if (gui->last_cursor_set == 0) {
-      gui->last_cursor_set = 1;
-    } else if (gui->last_cursor_set) {
-      gl_camera_rotate(&gui->camera, gui->mouse_sensitivity, dx, dy);
-    }
-  } else if (gui->right_click) {
-    // Pan camera
-    if (gui->last_cursor_set == 0) {
-      gui->last_cursor_set = 1;
-    } else if (gui->last_cursor_set) {
-      gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy);
-    }
-  } else {
-    // Reset cursor
-    gui->left_click = 0;
-    gui->right_click = 0;
-    gui->last_cursor_set = 0;
-    gui->last_cursor_x = 0.0;
-    gui->last_cursor_y = 0.0;
-  }
-}
-
-void gui_ortho(const gui_t *gui, gl_float_t P[4 * 4]) {
-  const gl_float_t left = 0.0f;
-  const gl_float_t right = gui->window_width;
-  const gl_float_t bottom = gui->window_height;
-  const gl_float_t top = 0.0f;
-  const gl_float_t znear = -1.0f;
-  const gl_float_t zfar = 1.0f;
-  gl_ortho(left, right, bottom, top, znear, zfar, P);
-}
-
-void gui_setup(gui_t *gui) {
-  // GLFW
-  if (!glfwInit()) {
-    printf("Failed to initialize glfw!\n");
-    exit(EXIT_FAILURE);
-  }
-
-  // Window settings
-  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  gui->window = glfwCreateWindow(gui->window_width,
-                                 gui->window_height,
-                                 gui->window_title,
-                                 NULL,
-                                 NULL);
-  if (!gui->window) {
-    printf("Failed to create glfw window!\n");
-    glfwTerminate();
-    exit(EXIT_FAILURE);
-  }
-  glfwMakeContextCurrent(gui->window);
-  glfwSetWindowUserPointer(gui->window, gui);
-  glfwSetWindowSizeCallback(gui->window, window_callback);
-
-  // GLAD
-  if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
-    printf("Failed to load GL functions!\n");
-    return;
-  }
-
-  // OpenGL functions
-  glEnable(GL_DEBUG_OUTPUT);
-  glEnable(GL_PROGRAM_POINT_SIZE);
-  glEnable(GL_LINE_SMOOTH);
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-  assert(glIsEnabled(GL_PROGRAM_POINT_SIZE));
-  assert(glIsEnabled(GL_LINE_SMOOTH));
-  assert(glIsEnabled(GL_DEPTH_TEST));
-  assert(glIsEnabled(GL_CULL_FACE));
-  assert(glIsEnabled(GL_BLEND));
-
-  // Camera
-  gl_camera_setup(&gui->camera, &gui->window_width, &gui->window_height);
-  gui->camera.position[0] = 0.0f;
-  gui->camera.position[1] = 4.0f;
-  gui->camera.position[2] = -5.0f;
-  gui->movement_speed = 50.0f;
-  gui->mouse_sensitivity = 0.02f;
-
-  // Cursor
-  gui->left_click = 0;
-  gui->right_click = 0;
-  gui->last_cursor_set = 0;
-  gui->last_cursor_x = 0.0f;
-  gui->last_cursor_y = 0.0f;
-}
-
-void gui_reset(gui_t *gui) {
-  // Camera
-  gui->movement_speed = 50.0f;
-  gui->mouse_sensitivity = 0.02f;
-
-  // Cursor
-  gui->left_click = 0;
-  gui->right_click = 0;
-  gui->last_cursor_set = 0;
-  gui->last_cursor_x = 0.0f;
-  gui->last_cursor_y = 0.0f;
-}
-
-void gui_loop(gui_t *gui) {
-  // Rect
-  gl_bounds_t rect_bounds = (gl_bounds_t){0, 0, 58, 10};
-  gl_color_t rect_color = (gl_color_t){1.0f, 1.0f, 1.0f};
-  gl_rect_t rect;
-  gl_rect_setup(&rect);
-
-  // Cube
-  gl_float_t cube_T[4 * 4] = {0};
-  gl_eye(cube_T, 4, 4);
-  gl_float_t cube_size = 0.5f;
-  gl_color_t cube_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_cube_t cube;
-  gl_cube_setup(&cube);
-
-  // Frustum
-  gl_float_t frustum_T[4 * 4];
-  gl_eye(frustum_T, 4, 4);
-  gl_float_t frustum_size = 0.5f;
-  gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_float_t frustum_lw = 1.0f;
-  gl_frustum_t frustum;
-  gl_frustum_setup(&frustum);
-
-  // Axes
-  gl_float_t axes_T[4 * 4];
-  gl_eye(axes_T, 4, 4);
-  gl_float_t axes_size = 0.5f;
-  gl_float_t axes_lw = 5.0f;
-  gl_axes3d_t axes;
-  gl_axes3d_setup(&axes);
-
-  // Grid
-  gl_grid3d_t grid;
-  gl_float_t grid_size = 0.5f;
-  gl_float_t grid_lw = 5.0f;
-  gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_grid3d_setup(&grid);
-
-  // Points
-  gl_float_t points_color[3] = {1.0, 0.0, 0.0};
-  gl_float_t points_size = 1.0;
-  size_t num_points = 100000;
-  gl_float_t *points_data = MALLOC(gl_float_t, num_points * 3);
-  for (size_t i = 0; i < num_points; ++i) {
-    points_data[i * 3 + 0] = gl_randf(-1.0f, 1.0f);
-    points_data[i * 3 + 1] = gl_randf(-1.0f, 1.0f);
-    points_data[i * 3 + 2] = gl_randf(-1.0f, 1.0f);
-  }
-  gl_points3d_t *points =
-      gl_points3d_malloc(points_data, num_points, points_size, points_color);
-  free(points_data);
-
-  // Line
-  const gl_float_t line_width = 5.0f;
-  const gl_float_t line_color[3] = {1.0f, 0.0f, 0.0f};
-  const size_t line_num_points = 1000;
-  const float radius = 3.0f;
-  const float dtheta = 2 * M_PI / line_num_points;
-  float theta = 0.0f;
-  float *line_points = MALLOC(float, line_num_points * 3);
-  for (size_t i = 0; i < line_num_points; ++i) {
-    line_points[i * 3 + 0] = radius * sin(theta);
-    line_points[i * 3 + 1] = 0.0f;
-    line_points[i * 3 + 2] = radius * cos(theta);
-    theta += 0.01;
-  }
-  gl_line3d_t *line =
-      gl_line3d_malloc(line_points, line_num_points, line_width, line_color);
-  free(line_points);
-
-  // Text
-  gl_text_t text;
-  gl_text_setup(&text);
-
-  // Image
-  gl_image_t *image = gl_image_malloc();
-
-  // Button
-  ui_button_t button;
-  ui_button_setup(&button);
-
-  // Render loop
-  gui->loop = 1;
-  glfwMakeContextCurrent(gui->window);
-
-  while (gui->loop) {
-    // Clear rendering states
-    glClear(GL_DEPTH_BUFFER_BIT);
-    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // Draw
-    gl_rect_draw(gui, &rect, &rect_bounds, &rect_color);
-    gl_cube_draw(&cube, &gui->camera, cube_T, cube_size, cube_color);
-    gl_frustum_draw(&frustum,
-                    &gui->camera,
-                    frustum_T,
-                    frustum_size,
-                    frustum_color,
-                    frustum_lw);
-    gl_axes3d_draw(&axes, &gui->camera, axes_T, axes_size, axes_lw);
-    gl_grid3d_draw(&grid, &gui->camera, grid_size, grid_lw, grid_color);
-    // gl_line3d_draw(line, &gui->camera);
-    // gl_points3d_draw(points, &gui->camera, num_points);
-    // gl_text_draw(text, &gui->camera, "Here2!", 500.0f, 500.0f, 1.0f);
-    // gl_text_draw(text, &gui->camera, "Here3!", 500.0f, 550.0f, 1.0f);
-    // gl_image_draw(image);
-    // if (ui_button_draw(gui, &button) == 1) {
-    //   printf("Button pressed!\n");
-    // }
-    gl_text_draw(&text, &gui->camera, "Button", 0.0f, 0.0f, 1.0f);
-
-    // Update
-    glfwPollEvents();
-    gui_process_input(gui->window);
-    gl_camera_update(&gui->camera);
-    glfwSwapBuffers(gui->window);
-  }
-
-  // Clean up
-  gl_rect_cleanup(&rect);
-  gl_cube_cleanup(&cube);
-  gl_frustum_cleanup(&frustum);
-  gl_axes3d_cleanup(&axes);
-  gl_grid3d_cleanup(&grid);
-  gl_points3d_free(points);
-  gl_line3d_free(line);
-  gl_text_cleanup(&text);
-  gl_image_free(image);
-  glfwTerminate();
-}
 
 // UI-UTILS //////////////////////////////////////////////////////////////////
 
@@ -3671,7 +3573,7 @@ static int ui_intercept(const gui_t *gui, const gl_bounds_t *bounds) {
   "}\n"
 
 void ui_container_setup(ui_container_t *c) {
-  gl_entity_setup(&c->entity);
+  gl_shader_setup(&c->entity);
   c->color = (gl_color_t){1.0f, 1.0f, 1.0f};
   c->bounds.x = 100;
   c->bounds.y = 600;
@@ -3719,7 +3621,7 @@ void ui_container_setup(ui_container_t *c) {
 
 void ui_container_cleanup(ui_container_t *c) {
   // Clean up
-  gl_entity_cleanup(&c->entity);
+  gl_shader_cleanup(&c->entity);
 }
 
 void ui_container_draw(const gui_t *gui, const ui_container_t *c) {
@@ -3749,7 +3651,7 @@ void ui_container_draw(const gui_t *gui, const ui_container_t *c) {
   "}\n"
 
 void ui_button_setup(ui_button_t *button) {
-  gl_entity_setup(&button->entity);
+  gl_shader_setup(&button->entity);
   button->color = (gl_color_t){1.0f, 1.0f, 1.0f};
   button->color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
   button->color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
@@ -3800,7 +3702,7 @@ void ui_button_setup(ui_button_t *button) {
 
 void ui_button_cleanup(ui_button_t *button) {
   // Clean up
-  gl_entity_cleanup(&button->entity);
+  gl_shader_cleanup(&button->entity);
 }
 
 int ui_button_draw(const gui_t *gui, ui_button_t *button) {
@@ -4196,21 +4098,17 @@ int test_gl_perspective(void) {
 }
 
 int test_gl_ortho(void) {
-  const gl_float_t left = 0.0f;
-  const gl_float_t right = 800.0f;
-  const gl_float_t bottom = 0.0f;
-  const gl_float_t top = 600.0f;
-  const gl_float_t near = -1.0f;
-  const gl_float_t far = 1.0f;
+  const gl_float_t w = 800.0f;
+  const gl_float_t h = 600.0f;
   gl_float_t P[4 * 4] = {0};
-  gl_ortho(left, right, bottom, top, near, far, P);
+  gl_ortho(w, h, P);
 
   // clang-format off
   const gl_float_t P_expected[4*4] = {
     0.00250000,  0.00000000,  0.000000,  0.000000,
-    0.00000000,  0.00333333,  0.000000,  0.000000,
+    0.00000000, -0.00333333,  0.000000,  0.000000,
     0.00000000,  0.00000000, -1.000000,  0.000000,
-   -1.00000000, -1.00000000,  0.000000,  1.000000
+   -1.00000000,  1.00000000,  0.000000,  1.000000
   };
   // clang-format on
   TEST_ASSERT(gl_equals(P, P_expected, 4, 4, 1e-4));
