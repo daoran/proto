@@ -218,16 +218,6 @@ void gl_lookat(const gl_float_t eye[3],
                gl_float_t V[4 * 4]);
 int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
-static void pixel2ndc(const int x_px,
-                      const int y_px,
-                      const float window_width,
-                      const float window_height,
-                      gl_float_t *x_ndc,
-                      gl_float_t *y_ndc) {
-  *x_ndc = 2.0f * x_px / window_width - 1.0f;
-  *y_ndc = 1.0f - 2.0f * y_px / window_height;
-}
-
 /******************************************************************************
  * GL-SHADER
  *****************************************************************************/
@@ -344,6 +334,8 @@ typedef struct gui_t {
   float last_cursor_x;
   float last_cursor_y;
 
+  int ui_engaged;
+
   gl_shader_t rect;
   gl_shader_t cube;
   gl_shader_t frustum;
@@ -426,19 +418,17 @@ typedef struct {
 typedef struct {
   gl_shader_t entity;
   gl_char_t data[128];
-  gl_color_t color;
   gl_int_t size;
 } gl_text_t;
 
-void gl_char_print(const gl_char_t *ch);
-void gl_text_setup(gl_text_t *text);
-void gl_text_cleanup(gl_text_t *text);
-void gl_text_draw(gl_text_t *text,
-                  gl_camera_t *camera,
-                  const char *s,
-                  float x,
-                  const float y,
-                  const float scale);
+void setup_text_shader(gl_text_t *text);
+void cleanup_text_shader(gl_text_t *text);
+void text_width_height(const char *s, gl_float_t *w, gl_float_t *h);
+void draw_text(gui_t *gui,
+               const char *s,
+               const float x,
+               const float y,
+               const gl_color_t c);
 
 // IMAGE /////////////////////////////////////////////////////////////////////
 
@@ -510,31 +500,9 @@ gl_model_t *gl_model_load(const char *model_path);
 void gl_model_free(gl_model_t *model);
 void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera);
 
-// UI-CONTAINER //////////////////////////////////////////////////////////////
+// UI ////////////////////////////////////////////////////////////////////////
 
-typedef struct {
-  gl_shader_t entity;
-  gl_color_t color;
-  gl_bounds_t bounds;
-} ui_container_t;
-void ui_container_setup(ui_container_t *c);
-void ui_container_cleanup(ui_container_t *c);
-void ui_container_draw(const gui_t *gui, const ui_container_t *c);
-
-// UI-BUTTON /////////////////////////////////////////////////////////////////
-
-typedef struct {
-  gl_shader_t entity;
-  gl_color_t color;
-  gl_color_t color_hover;
-  gl_color_t color_press;
-  gl_bounds_t bounds;
-  gl_text_t text;
-  gl_int_t engaged;
-} ui_button_t;
-void ui_button_setup(ui_button_t *button);
-void ui_button_cleanup(ui_button_t *button);
-int ui_button_draw(const gui_t *gui, ui_button_t *button);
+int ui_button_draw(gui_t *gui, const char *label, gl_bounds_t bounds);
 
 // TODO: IMPLEMENT THE FOLLOWING UI ELEMENTS
 // UI-CHECKBOX ///////////////////////////////////////////////////////////////
@@ -1563,7 +1531,8 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GUI
  *****************************************************************************/
 
-// WINDOW ////////////////////////////////////////////////////////////////////
+// Global variable
+gl_text_t __text;
 
 void window_callback(GLFWwindow *window, int width, int height) {
   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
@@ -1776,6 +1745,9 @@ void gui_setup(gui_t *gui) {
   gui->last_cursor_x = 0.0f;
   gui->last_cursor_y = 0.0f;
 
+  // UI event
+  gui->ui_engaged = 0;
+
   // Shaders
   setup_rect_shader(&gui->rect);
   setup_cube_shader(&gui->cube);
@@ -1861,20 +1833,17 @@ void gui_loop(gui_t *gui) {
     theta += dtheta;
   }
 
-  // Text
-  gl_text_t text;
-  gl_text_setup(&text);
-
   // Image
   gl_image_t *image = gl_image_malloc();
 
   // Button
-  ui_button_t button;
-  ui_button_setup(&button);
+  gl_bounds_t button_bounds = (gl_bounds_t){200, 200, 100, 100};
 
   // Render loop
   gui->loop = 1;
   glfwMakeContextCurrent(gui->window);
+
+  setup_text_shader(&__text);
 
   while (gui->loop) {
     // Clear rendering states
@@ -1883,7 +1852,7 @@ void gui_loop(gui_t *gui) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Draw
-    draw_rect(gui, &rect_bounds, &rect_color);
+    // draw_rect(gui, &rect_bounds, &rect_color);
     draw_cube(gui, cube_T, cube_size, cube_color);
     draw_frustum(gui, frustum_T, frustum_size, frustum_color, frustum_lw);
     draw_axes3d(gui, axes_T, axes_size, axes_lw);
@@ -1892,10 +1861,9 @@ void gui_loop(gui_t *gui) {
     draw_line3d(gui, line_data, line_size, line_color, line_lw);
 
     // gl_image_draw(image);
-    // if (ui_button_draw(gui, &button) == 1) {
-    //   printf("Button pressed!\n");
-    // }
-    // gl_text_draw(&text, &gui->camera, "Button", 0.0f, 0.0f, 1.0f);
+    if (ui_button_draw(gui, "Button", button_bounds) == 1) {
+      printf("Button pressed!\n");
+    }
 
     // Update
     glfwPollEvents();
@@ -1912,7 +1880,7 @@ void gui_loop(gui_t *gui) {
   gl_shader_cleanup(&gui->grid);
   gl_shader_cleanup(&gui->points);
   gl_shader_cleanup(&gui->line);
-  gl_text_cleanup(&text);
+  cleanup_text_shader(&__text);
   gl_image_free(image);
   free(points_data);
   free(line_data);
@@ -2667,12 +2635,10 @@ void gl_char_print(const gl_char_t *ch) {
   printf("\n");
 }
 
-void gl_text_setup(gl_text_t *text) {
+void setup_text_shader(gl_text_t *text) {
   // Initialize
   gl_shader_setup(&text->entity);
-  // text->color = (gl_color_t){0.0, 0.0, 0.0};
-  text->color = (gl_color_t){1.0, 1.0, 1.0};
-  text->size = 16;
+  const gl_float_t text_size = 16;
 
   // Compile shader
   text->entity.program_id = gl_shader(GL_TEXT_VS, GL_TEXT_FS, NULL);
@@ -2714,7 +2680,7 @@ void gl_text_setup(gl_text_t *text) {
   }
 
   // Set the text size (width and height in pixels)
-  FT_Set_Pixel_Sizes(face, 0, text->size);
+  FT_Set_Pixel_Sizes(face, 0, text_size);
 
   // Disable byte-alignment restriction
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -2762,17 +2728,33 @@ void gl_text_setup(gl_text_t *text) {
   FT_Done_FreeType(ft);
 }
 
-void gl_text_cleanup(gl_text_t *text) {
+void cleanup_text_shader(gl_text_t *text) {
   // Clean up
   gl_shader_cleanup(&text->entity);
 }
 
-void gl_text_draw(gl_text_t *text,
-                  gl_camera_t *camera,
-                  const char *s,
-                  float x,
-                  float y,
-                  const float scale) {
+void text_width_height(const char *s, gl_float_t *w, gl_float_t *h) {
+  float x = 0.0f;
+  gl_char_t *hch = &__text.data[(int) 'H'];
+  gl_char_t *ch = &__text.data[(int) s[0]];
+
+  for (size_t i = 0; i < strlen(s); ++i) {
+    ch = &__text.data[(int) s[i]];
+    x += (ch->offset >> 6);
+  }
+
+  *w = x + ch->bearing[0];
+  *h = (hch->bearing[1] - ch->bearing[1]) + ch->size[1];
+}
+
+void draw_text(gui_t *gui,
+               const char *s,
+               const float x,
+               const float y,
+               const gl_color_t c) {
+  const gl_camera_t *camera = &gui->camera;
+  gl_text_t *text = &__text;
+
   // Setup projection matrix
   const gl_float_t w = *(camera->window_width);
   const gl_float_t h = *(camera->window_height);
@@ -2780,19 +2762,21 @@ void gl_text_draw(gl_text_t *text,
   gl_ortho(w, h, ortho);
 
   // Activate shader
+  const gl_float_t scale = 1.0f;
   glDepthMask(GL_FALSE);
   glUseProgram(text->entity.program_id);
   gl_set_mat4(text->entity.program_id, "ortho", ortho);
-  gl_set_color(text->entity.program_id, "text_color", text->color);
+  gl_set_color(text->entity.program_id, "text_color", c);
   gl_set_int(text->entity.program_id, "text", 0);
   glActiveTexture(GL_TEXTURE0);
   glBindVertexArray(text->entity.VAO);
 
   // Render text
+  float x_ = x;
   gl_char_t *hch = &text->data[(int) 'H'];
   for (size_t i = 0; i < strlen(s); ++i) {
     gl_char_t *ch = &text->data[(int) s[i]];
-    const float xpos = x + ch->bearing[0] * scale;
+    const float xpos = x_ + ch->bearing[0] * scale;
     const float ypos = y + (hch->bearing[1] - ch->bearing[1]) * scale;
     const float w = ch->size[0] * scale;
     const float h = ch->size[1] * scale;
@@ -2822,7 +2806,7 @@ void gl_text_draw(gl_text_t *text,
     // Offset cursors for next glyph (Note: advance is number of 1/64 pixels)
 
     // Bitshift by 6 to get value in pixels (2^6 = 64)
-    x += (ch->offset >> 6) * scale;
+    x_ += (ch->offset >> 6) * scale;
   }
 
   // Clean up
@@ -3462,195 +3446,47 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera) {
 
 // UI-UTILS //////////////////////////////////////////////////////////////////
 
-static int ui_intercept(const gui_t *gui, const gl_bounds_t *bounds) {
-  const int x = bounds->x;
-  const int y = bounds->y;
-  const int w = bounds->w;
-  const int h = bounds->h;
-  int within_x = (x <= gui->cursor_x && gui->cursor_x <= x + w);
-  int within_y = (y <= gui->cursor_y && gui->cursor_y <= y + h);
+static int ui_intercept(const gui_t *gui, const gl_bounds_t bounds) {
+  const int x = bounds.x;
+  const int y = bounds.y;
+  const int w = bounds.w;
+  const int h = bounds.h;
+  const int within_x = (x <= gui->cursor_x && gui->cursor_x <= x + w);
+  const int within_y = (y <= gui->cursor_y && gui->cursor_y <= y + h);
   return (within_x && within_y) ? 1 : 0;
-}
-
-// UI-CONTAINER //////////////////////////////////////////////////////////////
-
-#define UI_CONTAINER_VS                                                        \
-  "#version 330 core\n"                                                        \
-  "layout (location = 0) in vec2 in_pos;\n"                                    \
-  "uniform float window_width;\n"                                              \
-  "uniform float window_height;\n"                                             \
-  "uniform float button_width;\n"                                              \
-  "uniform float button_height;\n"                                             \
-  "void main() {\n"                                                            \
-  "  gl_Position = vec4(in_pos, 0.0, 1.0);\n"                                  \
-  "}\n"
-
-#define UI_CONTAINER_FS                                                        \
-  "#version 330 core\n"                                                        \
-  "uniform vec3 color;\n"                                                      \
-  "out vec4 frag_color;\n"                                                     \
-  "void main() {\n"                                                            \
-  "  frag_color = vec4(color, 1.0f);\n"                                        \
-  "}\n"
-
-void ui_container_setup(ui_container_t *c) {
-  gl_shader_setup(&c->entity);
-  c->color = (gl_color_t){1.0f, 1.0f, 1.0f};
-  c->bounds.x = 100;
-  c->bounds.y = 600;
-  c->bounds.w = 150.0f;
-  c->bounds.h = 100.0f;
-
-  // Shader program
-  c->entity.program_id = gl_shader(UI_CONTAINER_VS, UI_CONTAINER_FS, NULL);
-  if (c->entity.program_id == GL_FALSE) {
-    FATAL("Failed to create shaders!");
-  }
-
-  // Vertices
-  // clang-format off
-  const int x = c->bounds.x;
-  const int y = c->bounds.y;
-  const int w = c->bounds.w;
-  const int h = c->bounds.h;
-  float vertices[4 * 2] = {0};
-  pixel2ndc(x    , y + h, 1024, 768, &vertices[0], &vertices[1]); // Bottom left
-  pixel2ndc(x + w, y + h, 1024, 768, &vertices[2], &vertices[3]); // Bottom right
-  pixel2ndc(x + w, y    , 1024, 768, &vertices[4], &vertices[5]); // Top right
-  pixel2ndc(x    , y    , 1024, 768, &vertices[6], &vertices[7]); // Top left
-  // clang-format on
-
-  // VAO
-  glGenVertexArrays(1, &c->entity.VAO);
-  glBindVertexArray(c->entity.VBO);
-
-  // VBO
-  glGenBuffers(1, &c->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, c->entity.VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  // Position attribute
-  size_t pos_size = sizeof(float) * 2;
-  void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, pos_size, pos_offset);
-  glEnableVertexAttribArray(0);
-
-  // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-  glBindVertexArray(0);             // Unbind VAO
-}
-
-void ui_container_cleanup(ui_container_t *c) {
-  // Clean up
-  gl_shader_cleanup(&c->entity);
-}
-
-void ui_container_draw(const gui_t *gui, const ui_container_t *c) {
-  // Shader program
-  glUseProgram(c->entity.program_id);
-  gl_set_color(c->entity.program_id, "color", c->color);
-  glBindVertexArray(c->entity.VAO);
-  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-  glBindVertexArray(0);
 }
 
 // UI-BUTTON /////////////////////////////////////////////////////////////////
 
-#define UI_BUTTON_VS                                                           \
-  "#version 330 core\n"                                                        \
-  "layout (location = 0) in vec2 in_pos;\n"                                    \
-  "void main() {\n"                                                            \
-  "  gl_Position = vec4(in_pos, 0.0, 1.0);\n"                                  \
-  "}\n"
+int ui_button_draw(gui_t *gui, const char *label, gl_bounds_t bounds) {
+  gl_color_t text_color = (gl_color_t){0.0f, 0.0f, 0.0f};
+  gl_color_t color = (gl_color_t){1.0f, 1.0f, 1.0f};
+  gl_color_t color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
+  gl_color_t color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
 
-#define UI_BUTTON_FS                                                           \
-  "#version 330 core\n"                                                        \
-  "uniform vec3 color;\n"                                                      \
-  "out vec4 frag_color;\n"                                                     \
-  "void main() {\n"                                                            \
-  "  frag_color = vec4(color, 1.0f);\n"                                        \
-  "}\n"
+  gl_float_t w = 0.0f;
+  gl_float_t h = 0.0f;
+  text_width_height(label, &w, &h);
+  bounds.w = w;
+  bounds.h = h;
 
-void ui_button_setup(ui_button_t *button) {
-  gl_shader_setup(&button->entity);
-  button->color = (gl_color_t){1.0f, 1.0f, 1.0f};
-  button->color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
-  button->color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
-  button->bounds.x = 100;
-  button->bounds.y = 600;
-  button->bounds.w = 150.0f;
-  button->bounds.h = 100.0f;
-  button->engaged = 0;
-
-  // Shader program
-  button->entity.program_id = gl_shader(UI_BUTTON_VS, UI_BUTTON_FS, NULL);
-  if (button->entity.program_id == GL_FALSE) {
-    FATAL("Failed to create shaders!");
-  }
-
-  // Vertices
-  // clang-format off
-  const int x = button->bounds.x;
-  const int y = button->bounds.y;
-  const int w = button->bounds.w;
-  const int h = button->bounds.h;
-  float vertices[4 * 2] = {0};
-  pixel2ndc(x    , y + h, 1024, 768, &vertices[0], &vertices[1]); // Bottom left
-  pixel2ndc(x + w, y + h, 1024, 768, &vertices[2], &vertices[3]); // Bottom right
-  pixel2ndc(x + w, y    , 1024, 768, &vertices[4], &vertices[5]); // Top right
-  pixel2ndc(x    , y    , 1024, 768, &vertices[6], &vertices[7]); // Top left
-  // clang-format on
-
-  // VAO
-  glGenVertexArrays(1, &button->entity.VAO);
-  glBindVertexArray(button->entity.VAO);
-
-  // VBO
-  glGenBuffers(1, &button->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, button->entity.VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  // Position attribute
-  size_t pos_size = sizeof(float) * 2;
-  void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, pos_size, pos_offset);
-  glEnableVertexAttribArray(0);
-
-  // Clean up
-  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-  glBindVertexArray(0);             // Unbind VAO
-}
-
-void ui_button_cleanup(ui_button_t *button) {
-  // Clean up
-  gl_shader_cleanup(&button->entity);
-}
-
-int ui_button_draw(const gui_t *gui, ui_button_t *button) {
-  // Button color
-  const int button_hover = ui_intercept(gui, &button->bounds);
-  const int button_pressed = gui->left_click;
   int button_on = 0;
-  gl_color_t color = button->color;
+  const int button_hover = ui_intercept(gui, bounds);
+  const int button_pressed = gui->left_click;
+
   if (button_hover == 1 && button_pressed == 0) {
-    color = button->color_hover;
-    button->engaged = 0;
+    color = color_hover;
+    gui->ui_engaged = 0;
   } else if (button_hover == 1 && button_pressed == 1) {
-    color = button->color_press;
-    if (button->engaged == 0) {
+    color = color_press;
+    if (gui->ui_engaged == 0) {
       button_on = 1;
-      button->engaged = 1;
+      gui->ui_engaged = 1;
     }
   }
 
-  // Shader program
-  glDepthMask(GL_FALSE);
-  glUseProgram(button->entity.program_id);
-  gl_set_color(button->entity.program_id, "color", color);
-  glBindVertexArray(button->entity.VAO);
-  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-  glBindVertexArray(0);
-  glDepthMask(GL_TRUE);
+  draw_rect(gui, &bounds, &color);
+  draw_text(gui, label, bounds.x, bounds.y, text_color);
 
   return button_on;
 }
