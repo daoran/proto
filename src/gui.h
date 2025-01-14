@@ -325,11 +325,12 @@ typedef struct gui_t {
   gl_float_t movement_speed;
   gl_float_t mouse_sensitivity;
 
-  double cursor_x;
-  double cursor_y;
   int left_click;
   int right_click;
-
+  double cursor_x;
+  double cursor_y;
+  double cursor_dx;
+  double cursor_dy;
   int last_cursor_set;
   float last_cursor_x;
   float last_cursor_y;
@@ -502,7 +503,9 @@ void gl_model_draw(const gl_model_t *model, const gl_camera_t *camera);
 
 // UI ////////////////////////////////////////////////////////////////////////
 
-int ui_button_draw(gui_t *gui, const char *label, gl_bounds_t bounds);
+void ui_menu(gui_t *gui, gl_bounds_t *bounds);
+int ui_button(gui_t *gui, const char *label, gl_bounds_t bounds);
+int ui_checkbox(gui_t *gui, const char *label, gl_bounds_t bounds);
 
 // TODO: IMPLEMENT THE FOLLOWING UI ELEMENTS
 // UI-CHECKBOX ///////////////////////////////////////////////////////////////
@@ -529,6 +532,9 @@ int ui_button_draw(gui_t *gui, const char *label, gl_bounds_t bounds);
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 #endif
+
+// Global variables
+gl_text_t __text;
 
 /******************************************************************************
  * OPENGL UTILS
@@ -1410,7 +1416,7 @@ void gl_camera_setup(gl_camera_t *camera,
   camera->fov_max = gl_deg2rad(120.0f);
   camera->near = 0.01f;
   camera->far = 100.0f;
-  //
+
   // gl_camera_update(camera);
 }
 
@@ -1531,9 +1537,6 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GUI
  *****************************************************************************/
 
-// Global variable
-gl_text_t __text;
-
 void window_callback(GLFWwindow *window, int width, int height) {
   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
   gui->window_width = width;
@@ -1649,38 +1652,52 @@ void gui_process_input(GLFWwindow *window) {
 
   // Handle mouse cursor events
   glfwGetCursorPos(window, &gui->cursor_x, &gui->cursor_y);
-  const float dx = gui->cursor_x - gui->last_cursor_x;
-  const float dy = gui->cursor_y - gui->last_cursor_y;
-  gui->last_cursor_x = gui->cursor_x;
-  gui->last_cursor_y = gui->cursor_y;
-
   const int button_left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
   const int button_right = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+  gui->cursor_dx = gui->cursor_x - gui->last_cursor_x;
+  gui->cursor_dy = gui->cursor_y - gui->last_cursor_y;
+  gui->last_cursor_x = gui->cursor_x;
+  gui->last_cursor_y = gui->cursor_y;
   gui->left_click = (button_left == GLFW_PRESS);
   gui->right_click = (button_right == GLFW_PRESS);
 
-  if (gui->left_click) {
-    // Rotate camera
-    if (gui->last_cursor_set == 0) {
-      gui->last_cursor_set = 1;
-    } else if (gui->last_cursor_set) {
-      gl_camera_rotate(&gui->camera, gui->mouse_sensitivity, dx, dy);
+  // Update camera view
+  // if (gui->ui_engaged == 0) {
+    if (gui->left_click) {
+      if (gui->last_cursor_set == 0) {
+        gui->last_cursor_set = 1;
+      }
+      // // Rotate camera
+      // if (gui->last_cursor_set == 0) {
+      //   gui->last_cursor_set = 1;
+      // } else if (gui->last_cursor_set) {
+      //   gl_camera_rotate(&gui->camera,
+      //                    gui->mouse_sensitivity,
+      //                    gui->cursor_dx,
+      //                    gui->cursor_dy);
+      // }
+    } else if (gui->right_click) {
+      // // Pan camera
+      // if (gui->last_cursor_set == 0) {
+      //   gui->last_cursor_set = 1;
+      // } else if (gui->last_cursor_set) {
+      //   gl_camera_pan(&gui->camera,
+      //                 gui->mouse_sensitivity,
+      //                 gui->cursor_dx,
+      //                 gui->cursor_dy);
+      // }
+    } else {
+      // Reset cursor
+      gui->left_click = 0;
+      gui->right_click = 0;
+      gui->last_cursor_set = 0;
+      gui->last_cursor_x = gui->cursor_x;
+      gui->last_cursor_y = gui->cursor_y;
     }
-  } else if (gui->right_click) {
-    // Pan camera
-    if (gui->last_cursor_set == 0) {
-      gui->last_cursor_set = 1;
-    } else if (gui->last_cursor_set) {
-      gl_camera_pan(&gui->camera, gui->mouse_sensitivity, dx, dy);
-    }
-  } else {
-    // Reset cursor
-    gui->left_click = 0;
-    gui->right_click = 0;
-    gui->last_cursor_set = 0;
-    gui->last_cursor_x = 0.0;
-    gui->last_cursor_y = 0.0;
-  }
+
+    // Update camera
+    gl_camera_update(&gui->camera);
+  // }
 }
 
 void gui_setup(gui_t *gui) {
@@ -1773,8 +1790,8 @@ void gui_reset(gui_t *gui) {
 
 void gui_loop(gui_t *gui) {
   // Rect
-  gl_bounds_t rect_bounds = (gl_bounds_t){0, 0, 58, 10};
-  gl_color_t rect_color = (gl_color_t){1.0f, 1.0f, 1.0f};
+  gl_bounds_t rect_bounds = (gl_bounds_t){10, 10, 100, 100};
+  gl_color_t rect_color = (gl_color_t){1.0f, 0.0f, 1.0f};
 
   // Cube
   gl_float_t cube_T[4 * 4] = {0};
@@ -1839,6 +1856,12 @@ void gui_loop(gui_t *gui) {
   // Button
   gl_bounds_t button_bounds = (gl_bounds_t){200, 200, 100, 100};
 
+  // Checkbox
+  gl_bounds_t checkbox_bounds = (gl_bounds_t){50, 50, 120, 40};
+
+  // Checkbox
+  gl_bounds_t menu_bounds = (gl_bounds_t){50, 50, 120, 200};
+
   // Render loop
   gui->loop = 1;
   glfwMakeContextCurrent(gui->window);
@@ -1853,22 +1876,33 @@ void gui_loop(gui_t *gui) {
 
     // Draw
     // draw_rect(gui, &rect_bounds, &rect_color);
-    draw_cube(gui, cube_T, cube_size, cube_color);
-    draw_frustum(gui, frustum_T, frustum_size, frustum_color, frustum_lw);
-    draw_axes3d(gui, axes_T, axes_size, axes_lw);
+    // draw_cube(gui, cube_T, cube_size, cube_color);
+    // draw_frustum(gui, frustum_T, frustum_size, frustum_color, frustum_lw);
+    // draw_axes3d(gui, axes_T, axes_size, axes_lw);
     draw_grid3d(gui, grid_size, grid_lw, grid_color);
-    draw_points3d(gui, points_data, num_points, points_size);
-    draw_line3d(gui, line_data, line_size, line_color, line_lw);
-
+    // draw_points3d(gui, points_data, num_points, points_size);
+    // draw_line3d(gui, line_data, line_size, line_color, line_lw);
     // gl_image_draw(image);
-    if (ui_button_draw(gui, "Button", button_bounds) == 1) {
-      printf("Button pressed!\n");
-    }
+
+    // glfwGetCursorPos(gui->window, &gui->cursor_x, &gui->cursor_y);
+    // gui->cursor_dx = gui->cursor_x - gui->last_cursor_x;
+    // gui->cursor_dy = gui->cursor_y - gui->last_cursor_y;
+    // gui->last_cursor_x = gui->cursor_x;
+    // gui->last_cursor_y = gui->cursor_y;
+    // printf("dx: %f, dy: %f\n", gui->cursor_dx, gui->cursor_dy);
+
+    ui_menu(gui, &menu_bounds);
+    // if (ui_button(gui, "Button", button_bounds) == 1) {
+    //   printf("Button pressed!\n");
+    // }
+
+    // if (ui_checkbox(gui, "Checkbox", checkbox_bounds) == 1) {
+    //   printf("Button pressed!\n");
+    // }
 
     // Update
     glfwPollEvents();
     gui_process_input(gui->window);
-    gl_camera_update(&gui->camera);
     glfwSwapBuffers(gui->window);
   }
 
@@ -2638,7 +2672,7 @@ void gl_char_print(const gl_char_t *ch) {
 void setup_text_shader(gl_text_t *text) {
   // Initialize
   gl_shader_setup(&text->entity);
-  const gl_float_t text_size = 16;
+  const gl_float_t text_size = 18;
 
   // Compile shader
   text->entity.program_id = gl_shader(GL_TEXT_VS, GL_TEXT_FS, NULL);
@@ -2668,6 +2702,7 @@ void setup_text_shader(gl_text_t *text) {
   }
 
   const char *font_path = "./fonts/Inconsolata-Regular.ttf";
+  // const char *font_path = "./fonts/Antonio-Regular.ttf";
   if (access(font_path, F_OK) == -1) {
     printf("Font file not found!\n");
   }
@@ -3456,20 +3491,47 @@ static int ui_intercept(const gui_t *gui, const gl_bounds_t bounds) {
   return (within_x && within_y) ? 1 : 0;
 }
 
-// UI-BUTTON /////////////////////////////////////////////////////////////////
+void ui_menu(gui_t *gui, gl_bounds_t *bounds) {
+  // Menu
+  gl_color_t color = (gl_color_t){1.0f, 1.0f, 1.0f};
 
-int ui_button_draw(gui_t *gui, const char *label, gl_bounds_t bounds) {
+  // Toolbar
+  gl_color_t toolbar_color = (gl_color_t){0.7f, 0.7f, 0.7f};
+  gl_bounds_t toolbar_bounds;
+  toolbar_bounds.x = bounds->x;
+  toolbar_bounds.y = bounds->y;
+  toolbar_bounds.w = bounds->w;
+  toolbar_bounds.h = 16.0f;
+
+  // if (ui_intercept(gui, toolbar_bounds) && gui->left_click &&
+  //     gui->last_cursor_set) {
+  //   bounds->x += gui->cursor_dx * 2.0;
+  //   bounds->y += gui->cursor_dy * 2.0;
+  //   toolbar_bounds.x += gui->cursor_dx;
+  //   toolbar_bounds.y += gui->cursor_dy;
+  //   gui->ui_engaged = 1;
+  // } else {
+  //   gui->last_cursor_set = 0;
+  //   gui->ui_engaged = 0;
+  // }
+
+  draw_rect(gui, bounds, &color);
+  draw_rect(gui, &toolbar_bounds, &toolbar_color);
+}
+
+int ui_button(gui_t *gui, const char *label, gl_bounds_t bounds) {
   gl_color_t text_color = (gl_color_t){0.0f, 0.0f, 0.0f};
   gl_color_t color = (gl_color_t){1.0f, 1.0f, 1.0f};
   gl_color_t color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
   gl_color_t color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
 
-  gl_float_t w = 0.0f;
-  gl_float_t h = 0.0f;
-  text_width_height(label, &w, &h);
-  bounds.w = w;
-  bounds.h = h;
+  gl_float_t text_w = 0.0f;
+  gl_float_t text_h = 0.0f;
+  text_width_height(label, &text_w, &text_h);
+  gl_float_t text_x = bounds.x + (bounds.w / 2.0f - text_w / 2.0f);
+  gl_float_t text_y = bounds.y + (bounds.h / 2.0f - text_h / 2.0f);
 
+  // Button color
   int button_on = 0;
   const int button_hover = ui_intercept(gui, bounds);
   const int button_pressed = gui->left_click;
@@ -3485,8 +3547,61 @@ int ui_button_draw(gui_t *gui, const char *label, gl_bounds_t bounds) {
     }
   }
 
+  // Draw button
   draw_rect(gui, &bounds, &color);
-  draw_text(gui, label, bounds.x, bounds.y, text_color);
+  draw_text(gui, label, text_x, text_y, text_color);
+
+  return button_on;
+}
+
+int ui_checkbox(gui_t *gui, const char *label, gl_bounds_t bounds) {
+  gl_color_t text_color = (gl_color_t){0.0f, 0.0f, 0.0f};
+  gl_color_t color = (gl_color_t){1.0f, 1.0f, 1.0f};
+  gl_color_t color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
+  gl_color_t color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
+
+  gl_float_t text_w = 0.0f;
+  gl_float_t text_h = 0.0f;
+  text_width_height(label, &text_w, &text_h);
+  gl_float_t text_x = bounds.x + (bounds.w / 2.0f - text_w / 2.0f);
+  gl_float_t text_y = bounds.y + (bounds.h / 2.0f - text_h / 2.0f);
+
+  // Button color
+  int button_on = 0;
+  // const int button_hover = ui_intercept(gui, bounds);
+  // const int button_pressed = gui->left_click;
+
+  gl_bounds_t cb_bounds;
+  cb_bounds.w = 12.0f;
+  cb_bounds.h = 12.0f;
+  cb_bounds.x = bounds.x + 10.0f;
+  cb_bounds.y = bounds.y + bounds.h / 2.0f - cb_bounds.h / 2.0f;
+
+  gl_bounds_t on_bounds;
+  on_bounds.w = 8.0f;
+  on_bounds.h = 8.0f;
+  on_bounds.x = bounds.x + 12.0f;
+  on_bounds.y = bounds.y + bounds.h / 2.0f - on_bounds.h / 2.0f;
+
+  gl_color_t off_color = (gl_color_t){0.2f, 0.2f, 0.2f};
+  gl_color_t on_color = (gl_color_t){1.0f, 1.0f, 1.0f};
+
+  // if (button_hover == 1 && button_pressed == 0) {
+  //   color = color_hover;
+  //   gui->ui_engaged = 0;
+  // } else if (button_hover == 1 && button_pressed == 1) {
+  //   color = color_press;
+  //   if (gui->ui_engaged == 0) {
+  //     button_on = 1;
+  //     gui->ui_engaged = 1;
+  //   }
+  // }
+
+  // Draw button
+  draw_rect(gui, &bounds, &color);
+  draw_rect(gui, &cb_bounds, &off_color);
+  draw_rect(gui, &on_bounds, &on_color);
+  draw_text(gui, label, text_x, text_y, text_color);
 
   return button_on;
 }
