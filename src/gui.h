@@ -535,6 +535,13 @@ int ui_checkbox(gui_t *gui, const char *label, gl_bounds_t bounds);
 
 // Global variables
 gl_text_t __text;
+double _cursor_x = 0.0;
+double _cursor_y = 0.0;
+double _cursor_dx = 0.0;
+double _cursor_dy = 0.0;
+double _cursor_last_x = 0.0;
+double _cursor_last_y = 0.0;
+int _cursor_is_dragging = 0;
 
 /******************************************************************************
  * OPENGL UTILS
@@ -1562,6 +1569,37 @@ void window_callback(GLFWwindow *window, int width, int height) {
   glViewport(x_offset, y_offset, new_width, new_height);
 }
 
+void mouse_button_callback(GLFWwindow *window,
+                           int button,
+                           int action,
+                           int mods) {
+  if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (action == GLFW_PRESS) {
+      _cursor_is_dragging = 1;
+      glfwGetCursorPos(window, &_cursor_last_x, &_cursor_last_y);
+    } else if (action == GLFW_RELEASE) {
+      _cursor_is_dragging = 0;
+    }
+  }
+}
+
+void mouse_position_callback(GLFWwindow *window, double x, double y) {
+  if (_cursor_is_dragging) {
+    _cursor_dx = x - _cursor_last_x;
+    _cursor_dy = y - _cursor_last_y;
+    _cursor_last_x = x;
+    _cursor_last_y = y;
+  } else {
+    _cursor_dx = 0.0;
+    _cursor_dy = 0.0;
+    _cursor_last_x = x;
+    _cursor_last_y = y;
+  }
+
+  _cursor_x = x;
+  _cursor_y = y;
+}
+
 void gui_process_input(GLFWwindow *window) {
   const float camera_speed = 0.1f;
   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
@@ -1651,53 +1689,47 @@ void gui_process_input(GLFWwindow *window) {
   }
 
   // Handle mouse cursor events
-  glfwGetCursorPos(window, &gui->cursor_x, &gui->cursor_y);
   const int button_left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
   const int button_right = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-  gui->cursor_dx = gui->cursor_x - gui->last_cursor_x;
-  gui->cursor_dy = gui->cursor_y - gui->last_cursor_y;
-  gui->last_cursor_x = gui->cursor_x;
-  gui->last_cursor_y = gui->cursor_y;
-  gui->left_click = (button_left == GLFW_PRESS);
-  gui->right_click = (button_right == GLFW_PRESS);
 
-  // Update camera view
-  // if (gui->ui_engaged == 0) {
-    if (gui->left_click) {
-      if (gui->last_cursor_set == 0) {
-        gui->last_cursor_set = 1;
-      }
-      // // Rotate camera
-      // if (gui->last_cursor_set == 0) {
-      //   gui->last_cursor_set = 1;
-      // } else if (gui->last_cursor_set) {
-      //   gl_camera_rotate(&gui->camera,
-      //                    gui->mouse_sensitivity,
-      //                    gui->cursor_dx,
-      //                    gui->cursor_dy);
-      // }
-    } else if (gui->right_click) {
-      // // Pan camera
-      // if (gui->last_cursor_set == 0) {
-      //   gui->last_cursor_set = 1;
-      // } else if (gui->last_cursor_set) {
-      //   gl_camera_pan(&gui->camera,
-      //                 gui->mouse_sensitivity,
-      //                 gui->cursor_dx,
-      //                 gui->cursor_dy);
-      // }
-    } else {
-      // Reset cursor
-      gui->left_click = 0;
-      gui->right_click = 0;
-      gui->last_cursor_set = 0;
-      gui->last_cursor_x = gui->cursor_x;
-      gui->last_cursor_y = gui->cursor_y;
-    }
+  // -- Mouse button press
+  if (button_left == GLFW_PRESS) {
+    _cursor_is_dragging = 1;
+  } else if (button_left == GLFW_RELEASE) {
+    _cursor_is_dragging = 0;
+  }
 
-    // Update camera
-    gl_camera_update(&gui->camera);
-  // }
+  // -- Mouse cursor position
+  glfwGetCursorPos(window, &_cursor_x, &_cursor_y);
+  if (_cursor_is_dragging) {
+    _cursor_dx = _cursor_x - _cursor_last_x;
+    _cursor_dy = _cursor_y - _cursor_last_y;
+    _cursor_last_x = _cursor_x;
+    _cursor_last_y = _cursor_y;
+  } else {
+    _cursor_last_x = _cursor_x;
+    _cursor_last_y = _cursor_y;
+  }
+
+  // Check if UI element has been selected
+  if (gui->ui_engaged) {
+    return;
+  }
+
+  // Rotate camera
+  if (_cursor_is_dragging) {
+    gl_camera_rotate(&gui->camera,
+                     gui->mouse_sensitivity,
+                     _cursor_dx,
+                     _cursor_dy);
+  }
+  // Pan camera
+  if (gui->last_cursor_set) {
+    gl_camera_pan(&gui->camera, gui->mouse_sensitivity, _cursor_dx, _cursor_dy);
+  }
+
+  // Update camera
+  gl_camera_update(&gui->camera);
 }
 
 void gui_setup(gui_t *gui) {
@@ -1725,6 +1757,9 @@ void gui_setup(gui_t *gui) {
   glfwMakeContextCurrent(gui->window);
   glfwSetWindowUserPointer(gui->window, gui);
   glfwSetWindowSizeCallback(gui->window, window_callback);
+  // glfwSetInputMode(gui->window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+  // glfwSetMouseButtonCallback(gui->window, mouse_button_callback);
+  // glfwSetCursorPosCallback(gui->window, mouse_position_callback);
 
   // GLAD
   if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
@@ -1868,8 +1903,12 @@ void gui_loop(gui_t *gui) {
 
   setup_text_shader(&__text);
 
+  glfwSwapInterval(0);
+  glfwWaitEventsTimeout(0.001);
   while (gui->loop) {
     // Clear rendering states
+    // glfwPollEvents();
+    glfwWaitEvents();
     glClear(GL_DEPTH_BUFFER_BIT);
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -1901,7 +1940,6 @@ void gui_loop(gui_t *gui) {
     // }
 
     // Update
-    glfwPollEvents();
     gui_process_input(gui->window);
     glfwSwapBuffers(gui->window);
   }
@@ -3486,8 +3524,8 @@ static int ui_intercept(const gui_t *gui, const gl_bounds_t bounds) {
   const int y = bounds.y;
   const int w = bounds.w;
   const int h = bounds.h;
-  const int within_x = (x <= gui->cursor_x && gui->cursor_x <= x + w);
-  const int within_y = (y <= gui->cursor_y && gui->cursor_y <= y + h);
+  const int within_x = (x <= _cursor_x && _cursor_x <= x + w);
+  const int within_y = (y <= _cursor_y && _cursor_y <= y + h);
   return (within_x && within_y) ? 1 : 0;
 }
 
@@ -3503,17 +3541,15 @@ void ui_menu(gui_t *gui, gl_bounds_t *bounds) {
   toolbar_bounds.w = bounds->w;
   toolbar_bounds.h = 16.0f;
 
-  // if (ui_intercept(gui, toolbar_bounds) && gui->left_click &&
-  //     gui->last_cursor_set) {
-  //   bounds->x += gui->cursor_dx * 2.0;
-  //   bounds->y += gui->cursor_dy * 2.0;
-  //   toolbar_bounds.x += gui->cursor_dx;
-  //   toolbar_bounds.y += gui->cursor_dy;
-  //   gui->ui_engaged = 1;
-  // } else {
-  //   gui->last_cursor_set = 0;
-  //   gui->ui_engaged = 0;
-  // }
+  if (ui_intercept(gui, toolbar_bounds) && _cursor_is_dragging) {
+    bounds->x += _cursor_dx;
+    bounds->y += _cursor_dy;
+    toolbar_bounds.x += _cursor_dx;
+    toolbar_bounds.y += _cursor_dy;
+    gui->ui_engaged = 1;
+  } else {
+    gui->ui_engaged = 0;
+  }
 
   draw_rect(gui, bounds, &color);
   draw_rect(gui, &toolbar_bounds, &toolbar_color);
