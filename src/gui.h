@@ -344,6 +344,7 @@ typedef struct gui_t {
   gl_shader_t grid;
   gl_shader_t points;
   gl_shader_t line;
+  gl_shader_t image;
 } gui_t;
 
 void gui_setup(gui_t *gui);
@@ -407,6 +408,17 @@ void draw_line3d(gui_t *gui,
                  const gl_color_t color,
                  const gl_float_t lw);
 
+// IMAGE /////////////////////////////////////////////////////////////////////
+
+void setup_image_shader(gl_shader_t *shader);
+void draw_image(gui_t *gui,
+                const int x,
+                const int y,
+                const uint8_t *data,
+                const int w,
+                const int h,
+                const int c);
+
 // TEXT //////////////////////////////////////////////////////////////////////
 
 typedef struct {
@@ -430,19 +442,6 @@ void draw_text(gui_t *gui,
                const float x,
                const float y,
                const gl_color_t c);
-
-// IMAGE /////////////////////////////////////////////////////////////////////
-
-typedef struct {
-  gl_uint_t program_id;
-  gl_uint_t texture_id;
-  gl_uint_t vao;
-  gl_uint_t vbo;
-  gl_uint_t ebo;
-} gl_image_t;
-gl_image_t *gl_image_malloc(void);
-void gl_image_free(gl_image_t *image);
-void gl_image_draw(gl_image_t *image);
 
 // MESH //////////////////////////////////////////////////////////////////////
 
@@ -534,7 +533,6 @@ int ui_checkbox(gui_t *gui, const char *label, gl_bounds_t bounds);
 #endif
 
 // Global variables
-gl_text_t __text;
 double _cursor_x = 0.0;
 double _cursor_y = 0.0;
 double _cursor_dx = 0.0;
@@ -542,6 +540,17 @@ double _cursor_dy = 0.0;
 double _cursor_last_x = 0.0;
 double _cursor_last_y = 0.0;
 int _cursor_is_dragging = 0;
+
+int _key_q = 0;
+int _key_w = 0;
+int _key_a = 0;
+int _key_s = 0;
+int _key_d = 0;
+int _key_esc = 0;
+int _key_equal = 0;
+int _key_minus = 0;
+
+gl_text_t __text;
 
 /******************************************************************************
  * OPENGL UTILS
@@ -1569,48 +1578,25 @@ void window_callback(GLFWwindow *window, int width, int height) {
   glViewport(x_offset, y_offset, new_width, new_height);
 }
 
-void mouse_button_callback(GLFWwindow *window,
-                           int button,
-                           int action,
-                           int mods) {
-  if (button == GLFW_MOUSE_BUTTON_LEFT) {
-    if (action == GLFW_PRESS) {
-      _cursor_is_dragging = 1;
-      glfwGetCursorPos(window, &_cursor_last_x, &_cursor_last_y);
-    } else if (action == GLFW_RELEASE) {
-      _cursor_is_dragging = 0;
-    }
-  }
-}
-
-void mouse_position_callback(GLFWwindow *window, double x, double y) {
-  if (_cursor_is_dragging) {
-    _cursor_dx = x - _cursor_last_x;
-    _cursor_dy = y - _cursor_last_y;
-    _cursor_last_x = x;
-    _cursor_last_y = y;
-  } else {
-    _cursor_dx = 0.0;
-    _cursor_dy = 0.0;
-    _cursor_last_x = x;
-    _cursor_last_y = y;
-  }
-
-  _cursor_x = x;
-  _cursor_y = y;
-}
-
 void gui_process_input(GLFWwindow *window) {
-  const float camera_speed = 0.1f;
+  const float camera_speed = 0.001f;
   gui_t *gui = (gui_t *) glfwGetWindowUserPointer(window);
 
+  _key_esc = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
+  _key_q = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
+  _key_w = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+  _key_a = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+  _key_s = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+  _key_d = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+  _key_equal = glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS;
+  _key_minus = glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS;
+
   // Handle keyboard events
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
-      glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+  if (_key_esc || _key_q) {
     gui->loop = 0;
   }
 
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+  if (_key_w) {
     if (gui->camera.view_mode == FPS) {
       gui->camera.position[0] += camera_speed * gui->camera.front[0];
       gui->camera.position[1] += camera_speed * gui->camera.front[1];
@@ -1624,7 +1610,7 @@ void gui_process_input(GLFWwindow *window) {
     }
   }
 
-  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+  if (_key_s) {
     if (gui->camera.view_mode == FPS) {
       gui->camera.position[0] -= camera_speed * gui->camera.front[0];
       gui->camera.position[1] -= camera_speed * gui->camera.front[1];
@@ -1638,7 +1624,7 @@ void gui_process_input(GLFWwindow *window) {
     }
   }
 
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+  if (_key_a) {
     if (gui->camera.view_mode == FPS) {
       gl_float_t camera_left[3] = {0};
       gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
@@ -1653,7 +1639,7 @@ void gui_process_input(GLFWwindow *window) {
     }
   }
 
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+  if (_key_d) {
     if (gui->camera.view_mode == FPS) {
       gl_float_t camera_left[3] = {0};
       gl_vec3_cross(gui->camera.front, gui->camera.up, camera_left);
@@ -1668,9 +1654,9 @@ void gui_process_input(GLFWwindow *window) {
     }
   }
 
-  if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) {
+  if (_key_equal) {
     if (gui->camera.view_mode == FPS) {
-      gl_camera_zoom(&gui->camera, 1.0, 0, 0.1);
+      gl_camera_zoom(&gui->camera, 1.0, 0, camera_speed);
     } else if (gui->camera.view_mode == ORBIT) {
       gui->camera.radius += 0.1;
       gui->camera.radius =
@@ -1678,9 +1664,9 @@ void gui_process_input(GLFWwindow *window) {
     }
   }
 
-  if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) {
+  if (_key_minus) {
     if (gui->camera.view_mode == FPS) {
-      gl_camera_zoom(&gui->camera, 1.0, 0, -0.1);
+      gl_camera_zoom(&gui->camera, 1.0, 0, -camera_speed);
     } else if (gui->camera.view_mode == ORBIT) {
       gui->camera.radius -= 0.1;
       gui->camera.radius =
@@ -1757,9 +1743,7 @@ void gui_setup(gui_t *gui) {
   glfwMakeContextCurrent(gui->window);
   glfwSetWindowUserPointer(gui->window, gui);
   glfwSetWindowSizeCallback(gui->window, window_callback);
-  // glfwSetInputMode(gui->window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-  // glfwSetMouseButtonCallback(gui->window, mouse_button_callback);
-  // glfwSetCursorPosCallback(gui->window, mouse_position_callback);
+  glfwSetInputMode(gui->window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
   // GLAD
   if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
@@ -1808,6 +1792,7 @@ void gui_setup(gui_t *gui) {
   setup_grid3d_shader(&gui->grid);
   setup_points3d_shader(&gui->points);
   setup_line3d_shader(&gui->line);
+  setup_image_shader(&gui->image);
 }
 
 void gui_reset(gui_t *gui) {
@@ -1886,7 +1871,13 @@ void gui_loop(gui_t *gui) {
   }
 
   // Image
-  gl_image_t *image = gl_image_malloc();
+  // gl_image_t *image = gl_image_malloc();
+  int width = 0;
+  int height = 0;
+  int channels = 0;
+  const char *image_path = "/tmp/container.jpg";
+  stbi_set_flip_vertically_on_load(1);
+  uint8_t *image_data = stbi_load(image_path, &width, &height, &channels, 0);
 
   // Button
   gl_bounds_t button_bounds = (gl_bounds_t){200, 200, 100, 100};
@@ -1900,15 +1891,14 @@ void gui_loop(gui_t *gui) {
   // Render loop
   gui->loop = 1;
   glfwMakeContextCurrent(gui->window);
-
   setup_text_shader(&__text);
 
   glfwSwapInterval(0);
-  glfwWaitEventsTimeout(0.001);
+  // glfwWaitEventsTimeout(0.001);
   while (gui->loop) {
     // Clear rendering states
-    // glfwPollEvents();
-    glfwWaitEvents();
+    glfwPollEvents();
+    // glfwWaitEvents();
     glClear(GL_DEPTH_BUFFER_BIT);
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -1921,7 +1911,7 @@ void gui_loop(gui_t *gui) {
     draw_grid3d(gui, grid_size, grid_lw, grid_color);
     // draw_points3d(gui, points_data, num_points, points_size);
     // draw_line3d(gui, line_data, line_size, line_color, line_lw);
-    // gl_image_draw(image);
+    draw_image(gui, 10, 10, image_data, width, height, channels);
 
     // glfwGetCursorPos(gui->window, &gui->cursor_x, &gui->cursor_y);
     // gui->cursor_dx = gui->cursor_x - gui->last_cursor_x;
@@ -1952,10 +1942,11 @@ void gui_loop(gui_t *gui) {
   gl_shader_cleanup(&gui->grid);
   gl_shader_cleanup(&gui->points);
   gl_shader_cleanup(&gui->line);
+  gl_shader_cleanup(&gui->image);
   cleanup_text_shader(&__text);
-  gl_image_free(image);
   free(points_data);
   free(line_data);
+  stbi_image_free(image_data);
   glfwTerminate();
 }
 
@@ -2674,6 +2665,145 @@ void draw_line3d(gui_t *gui,
   glLineWidth(original_line_width);
 }
 
+// IMAGE /////////////////////////////////////////////////////////////////////
+
+#define GL_IMAGE_VS                                                            \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec2 in_pos;\n"                                    \
+  "layout (location = 1) in vec2 in_tex_coord;\n"                              \
+  "uniform float w;\n"                                                         \
+  "uniform float h;\n"                                                         \
+  "uniform float x;\n"                                                         \
+  "uniform float y;\n"                                                         \
+  "uniform mat4 ortho;\n"                                                      \
+  "out vec2 tex_coord;\n"                                                      \
+  "void main() {\n"                                                            \
+  "  float x = in_pos.x * w + x;\n"                                            \
+  "  float y = in_pos.y * h + y;\n"                                            \
+  "  gl_Position = ortho * vec4(x, y, 0.0f, 1.0f);\n"                          \
+  "  tex_coord = in_tex_coord;\n"                                              \
+  "}\n"
+
+#define GL_IMAGE_FS                                                            \
+  "#version 330 core\n"                                                        \
+  "in vec2 tex_coord;\n"                                                       \
+  "out vec4 frag_color;\n"                                                     \
+  "uniform sampler2D texture1;\n"                                              \
+  "void main() {\n"                                                            \
+  "  frag_color = texture(texture1, tex_coord);\n"                             \
+  "}\n"
+
+void setup_image_shader(gl_shader_t *shader) {
+  // Shader program
+  shader->program_id = gl_shader(GL_IMAGE_VS, GL_IMAGE_FS, NULL);
+  if (shader->program_id == GL_FALSE) {
+    FATAL("Failed to create shaders!");
+  }
+  shader->texture_id = -1;
+  shader->VAO = -1;
+}
+
+void draw_image(gui_t *gui,
+                const int x,
+                const int y,
+                const uint8_t *data,
+                const int width,
+                const int height,
+                const int channels) {
+  assert(data != NULL);
+  const gl_camera_t *camera = &gui->camera;
+  gl_shader_t *shader = &gui->image;
+
+  if (shader->VAO == -1) {
+    // Rectangle vertices and texture coordinates
+    // clang-format off
+    const gl_float_t vertices[4 * 4] = {
+       // Positions // Texture coords
+       1.0f,  0.0f, 1.0f,  1.0f, // Top-right
+       1.0f,  1.0f, 1.0f,  0.0f, // Bottom-right
+       0.0f,  1.0f, 0.0f,  0.0f, // Bottom-left
+       0.0f,  0.0f, 0.0f,  1.0f  // Top-left
+    };
+    const gl_uint_t indices[2 * 3] = {
+      0, 3, 1, // First Triangle
+      2, 1, 3  // Second Triangle
+    };
+    const size_t num_vertices = 4;
+    const size_t vertex_size = sizeof(gl_float_t) * 4;
+    const size_t vbo_size = sizeof(vertices);
+    const size_t ebo_size = sizeof(indices);
+    assert(vbo_size == vertex_size * num_vertices);
+    assert(ebo_size == sizeof(gl_uint_t) * 6);
+    // clang-format on
+
+    // VAO
+    glGenVertexArrays(1, &shader->VAO);
+    glBindVertexArray(shader->VAO);
+    assert(shader->VAO != 0);
+
+    // VBO
+    glGenBuffers(1, &shader->VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
+    glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
+    assert(shader->VBO != 0);
+
+    // EBO
+    glGenBuffers(1, &shader->EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, shader->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, ebo_size, indices, GL_STATIC_DRAW);
+    assert(shader->EBO != 0);
+
+    // Position attribute
+    const void *pos_offset = (void *) (sizeof(gl_float_t) * 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+    glEnableVertexAttribArray(0);
+
+    // Texture coordinate attribute
+    const void *tex_offset = (void *) (sizeof(gl_float_t) * 2);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vertex_size, tex_offset);
+    glEnableVertexAttribArray(1);
+
+    // Load texture
+    glGenTextures(1, &shader->texture_id);
+    glBindTexture(GL_TEXTURE_2D, shader->texture_id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGB,
+                 width,
+                 height,
+                 0,
+                 GL_RGB,
+                 GL_UNSIGNED_BYTE,
+                 data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Unbind VBO and VAO
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+  }
+
+  // Draw
+  const gl_float_t win_w = *(camera->window_width);
+  const gl_float_t win_h = *(camera->window_height);
+  gl_float_t ortho[16] = {0};
+  gl_ortho(win_w, win_h, ortho);
+
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "ortho", ortho);
+  gl_set_float(shader->program_id, "w", width);
+  gl_set_float(shader->program_id, "h", height);
+  gl_set_float(shader->program_id, "x", x);
+  gl_set_float(shader->program_id, "y", y);
+  glBindVertexArray(shader->VAO);
+  glBindTexture(GL_TEXTURE_2D, shader->texture_id);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  glBindVertexArray(0); // Unbind VAO
+}
+
 // TEXT //////////////////////////////////////////////////////////////////////
 
 #define GL_TEXT_VS                                                             \
@@ -2886,136 +3016,6 @@ void draw_text(gui_t *gui,
   glBindVertexArray(0);
   glBindTexture(GL_TEXTURE_2D, 0);
   glDepthMask(GL_TRUE);
-}
-
-// IMAGE /////////////////////////////////////////////////////////////////////
-
-#define GL_IMAGE_VS                                                            \
-  "#version 330 core\n"                                                        \
-  "layout (location = 0) in vec2 in_pos;\n"                                    \
-  "layout (location = 1) in vec2 in_tex_coord;\n"                              \
-  "out vec2 tex_coord;\n"                                                      \
-  "void main() {\n"                                                            \
-  "  gl_Position = vec4(in_pos, 0.0, 1.0);\n"                                  \
-  "  tex_coord = in_tex_coord;\n"                                              \
-  "}\n"
-
-#define GL_IMAGE_FS                                                            \
-  "#version 330 core\n"                                                        \
-  "in vec2 tex_coord;\n"                                                       \
-  "out vec4 frag_color;\n"                                                     \
-  "uniform sampler2D texture1;\n"                                              \
-  "void main() {\n"                                                            \
-  "  frag_color = texture(texture1, tex_coord);\n"                             \
-  "}\n"
-
-gl_image_t *gl_image_malloc(void) {
-  // MALLOC
-  gl_image_t *image = MALLOC(gl_image_t, 1);
-
-  // Shader program
-  image->program_id = gl_shader(GL_IMAGE_VS, GL_IMAGE_FS, NULL);
-  if (image->program_id == GL_FALSE) {
-    FATAL("Failed to create shaders!");
-  }
-
-  // Rectangle vertices and texture coordinates
-  // clang-format off
-  const gl_float_t vertices[4 * 4] = {
-     // positions // texture coords
-     0.5f,  0.5f, 1.0f,  1.0f, // top right
-     0.5f, -0.5f, 1.0f,  0.0f, // bottom right
-    -0.5f, -0.5f, 0.0f,  0.0f, // bottom left
-    -0.5f,  0.5f, 0.0f,  1.0f  // top left
-  };
-  const gl_uint_t indices[2 * 3] = {
-    0, 3, 1, // First Triangle
-    2, 1, 3  // Second Triangle
-  };
-  const size_t num_vertices = 4;
-  const size_t vertex_size = sizeof(gl_float_t) * 4;
-  const size_t vbo_size = sizeof(vertices);
-  const size_t ebo_size = sizeof(indices);
-  assert(vbo_size == vertex_size * num_vertices);
-  assert(ebo_size == sizeof(gl_uint_t) * 6);
-  // clang-format on
-
-  // VAO
-  glGenVertexArrays(1, &image->vao);
-  glBindVertexArray(image->vao);
-  assert(image->vao != 0);
-
-  // VBO
-  glGenBuffers(1, &image->vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, image->vbo);
-  glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
-  assert(image->vbo != 0);
-
-  // EBO
-  glGenBuffers(1, &image->ebo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, image->ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, ebo_size, indices, GL_STATIC_DRAW);
-  assert(image->ebo != 0);
-
-  // Position attribute
-  const void *pos_offset = (void *) (sizeof(gl_float_t) * 0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-  glEnableVertexAttribArray(0);
-
-  // Texture coordinate attribute
-  const void *tex_offset = (void *) (sizeof(gl_float_t) * 2);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vertex_size, tex_offset);
-  glEnableVertexAttribArray(1);
-
-  // Load texture
-  int width = 0;
-  int height = 0;
-  int channels = 0;
-  const char *image_path = "/tmp/container.jpg";
-  stbi_set_flip_vertically_on_load(1);
-  unsigned char *data = stbi_load(image_path, &width, &height, &channels, 0);
-  if (data) {
-    glGenTextures(1, &image->texture_id);
-    glBindTexture(GL_TEXTURE_2D, image->texture_id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGB,
-                 width,
-                 height,
-                 0,
-                 GL_RGB,
-                 GL_UNSIGNED_BYTE,
-                 data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    FATAL("Failed to load image [%s]!\n", image_path);
-  }
-  stbi_image_free(data);
-
-  // Unbind VBO and VAO
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-
-  return image;
-}
-
-void gl_image_free(gl_image_t *image) {
-  glDeleteVertexArrays(1, &image->vao);
-  glDeleteBuffers(1, &image->vbo);
-  glDeleteBuffers(1, &image->ebo);
-  glDeleteProgram(image->program_id);
-  free(image);
-}
-
-void gl_image_draw(gl_image_t *image) {
-  glUseProgram(image->program_id);
-  glBindVertexArray(image->vao);
-  glBindTexture(GL_TEXTURE_2D, image->texture_id);
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 // MESH //////////////////////////////////////////////////////////////////////
@@ -3493,7 +3493,6 @@ void gl_model_free(gl_model_t *model) {
     free(model->meshes[i].textures);
   }
   free(model->meshes);
-
   free(model);
   model = NULL;
 }
