@@ -336,7 +336,6 @@ typedef struct gui_t {
   float last_cursor_y;
 
   int ui_engaged;
-
   gl_shader_t rect;
   gl_shader_t cube;
   gl_shader_t frustum;
@@ -345,6 +344,7 @@ typedef struct gui_t {
   gl_shader_t points;
   gl_shader_t line;
   gl_shader_t image;
+  gl_shader_t text;
 } gui_t;
 
 void gui_setup(gui_t *gui);
@@ -428,14 +428,7 @@ typedef struct {
   gl_uint_t offset;    // Offset to advance to next glyph
 } gl_char_t;
 
-typedef struct {
-  gl_shader_t entity;
-  gl_char_t data[128];
-  gl_int_t size;
-} gl_text_t;
-
-void setup_text_shader(gl_text_t *text);
-void cleanup_text_shader(gl_text_t *text);
+void setup_text_shader(gl_shader_t *text);
 void text_width_height(const char *s, gl_float_t *w, gl_float_t *h);
 void draw_text(gui_t *gui,
                const char *s,
@@ -533,6 +526,8 @@ int ui_checkbox(gui_t *gui, const char *label, gl_bounds_t bounds);
 #endif
 
 // Global variables
+int _mouse_button_left = 0;
+int _mouse_button_right = 0;
 double _cursor_x = 0.0;
 double _cursor_y = 0.0;
 double _cursor_dx = 0.0;
@@ -541,6 +536,7 @@ double _cursor_last_x = 0.0;
 double _cursor_last_y = 0.0;
 int _cursor_is_dragging = 0;
 
+gl_char_t _chars[128];
 int _key_q = 0;
 int _key_w = 0;
 int _key_a = 0;
@@ -549,8 +545,6 @@ int _key_d = 0;
 int _key_esc = 0;
 int _key_equal = 0;
 int _key_minus = 0;
-
-gl_text_t __text;
 
 /******************************************************************************
  * OPENGL UTILS
@@ -1675,14 +1669,17 @@ void gui_process_input(GLFWwindow *window) {
   }
 
   // Handle mouse cursor events
-  const int button_left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-  const int button_right = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+  // clang-format off
+  _mouse_button_left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+  _mouse_button_right = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+  // clang-format on
 
   // -- Mouse button press
-  if (button_left == GLFW_PRESS) {
+  if (_mouse_button_left == GLFW_PRESS) {
     _cursor_is_dragging = 1;
-  } else if (button_left == GLFW_RELEASE) {
+  } else if (_mouse_button_left == GLFW_RELEASE) {
     _cursor_is_dragging = 0;
+     gui->ui_engaged = 0;
   }
 
   // -- Mouse cursor position
@@ -1891,7 +1888,7 @@ void gui_loop(gui_t *gui) {
   // Render loop
   gui->loop = 1;
   glfwMakeContextCurrent(gui->window);
-  setup_text_shader(&__text);
+  setup_text_shader(&gui->text);
 
   glfwSwapInterval(0);
   // glfwWaitEventsTimeout(0.001);
@@ -1911,7 +1908,7 @@ void gui_loop(gui_t *gui) {
     draw_grid3d(gui, grid_size, grid_lw, grid_color);
     // draw_points3d(gui, points_data, num_points, points_size);
     // draw_line3d(gui, line_data, line_size, line_color, line_lw);
-    draw_image(gui, 10, 10, image_data, width, height, channels);
+    // draw_image(gui, 10, 10, image_data, width, height, channels);
 
     // glfwGetCursorPos(gui->window, &gui->cursor_x, &gui->cursor_y);
     // gui->cursor_dx = gui->cursor_x - gui->last_cursor_x;
@@ -1921,9 +1918,9 @@ void gui_loop(gui_t *gui) {
     // printf("dx: %f, dy: %f\n", gui->cursor_dx, gui->cursor_dy);
 
     ui_menu(gui, &menu_bounds);
-    // if (ui_button(gui, "Button", button_bounds) == 1) {
-    //   printf("Button pressed!\n");
-    // }
+    if (ui_button(gui, "Button", button_bounds) == 1) {
+      printf("Button pressed!\n");
+    }
 
     // if (ui_checkbox(gui, "Checkbox", checkbox_bounds) == 1) {
     //   printf("Button pressed!\n");
@@ -1943,7 +1940,7 @@ void gui_loop(gui_t *gui) {
   gl_shader_cleanup(&gui->points);
   gl_shader_cleanup(&gui->line);
   gl_shader_cleanup(&gui->image);
-  cleanup_text_shader(&__text);
+  gl_shader_cleanup(&gui->text);
   free(points_data);
   free(line_data);
   stbi_image_free(image_data);
@@ -2837,24 +2834,24 @@ void gl_char_print(const gl_char_t *ch) {
   printf("\n");
 }
 
-void setup_text_shader(gl_text_t *text) {
+void setup_text_shader(gl_shader_t *shader) {
   // Initialize
-  gl_shader_setup(&text->entity);
+  gl_shader_setup(shader);
   const gl_float_t text_size = 18;
 
   // Compile shader
-  text->entity.program_id = gl_shader(GL_TEXT_VS, GL_TEXT_FS, NULL);
-  if (text->entity.program_id == GL_FALSE) {
+  shader->program_id = gl_shader(GL_TEXT_VS, GL_TEXT_FS, NULL);
+  if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
   // VAO
-  glGenVertexArrays(1, &text->entity.VAO);
-  glBindVertexArray(text->entity.VAO);
+  glGenVertexArrays(1, &shader->VAO);
+  glBindVertexArray(shader->VAO);
 
   // VBO
-  glGenBuffers(1, &text->entity.VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, text->entity.VBO);
+  glGenBuffers(1, &shader->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
   glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
   glEnableVertexAttribArray(0);
@@ -2919,30 +2916,25 @@ void setup_text_shader(gl_text_t *text) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Store character for later use
-    text->data[c].texture_id = texture_id;
-    text->data[c].size[0] = face->glyph->bitmap.width;
-    text->data[c].size[1] = face->glyph->bitmap.rows;
-    text->data[c].bearing[0] = face->glyph->bitmap_left;
-    text->data[c].bearing[1] = face->glyph->bitmap_top;
-    text->data[c].offset = face->glyph->advance.x;
+    _chars[c].texture_id = texture_id;
+    _chars[c].size[0] = face->glyph->bitmap.width;
+    _chars[c].size[1] = face->glyph->bitmap.rows;
+    _chars[c].bearing[0] = face->glyph->bitmap_left;
+    _chars[c].bearing[1] = face->glyph->bitmap_top;
+    _chars[c].offset = face->glyph->advance.x;
   }
   glBindTexture(GL_TEXTURE_2D, 0);
   FT_Done_Face(face);
   FT_Done_FreeType(ft);
 }
 
-void cleanup_text_shader(gl_text_t *text) {
-  // Clean up
-  gl_shader_cleanup(&text->entity);
-}
-
 void text_width_height(const char *s, gl_float_t *w, gl_float_t *h) {
   float x = 0.0f;
-  gl_char_t *hch = &__text.data[(int) 'H'];
-  gl_char_t *ch = &__text.data[(int) s[0]];
+  gl_char_t *hch = &_chars[(int) 'H'];
+  gl_char_t *ch = &_chars[(int) s[0]];
 
   for (size_t i = 0; i < strlen(s); ++i) {
-    ch = &__text.data[(int) s[i]];
+    ch = &_chars[(int) s[i]];
     x += (ch->offset >> 6);
   }
 
@@ -2956,7 +2948,7 @@ void draw_text(gui_t *gui,
                const float y,
                const gl_color_t c) {
   const gl_camera_t *camera = &gui->camera;
-  gl_text_t *text = &__text;
+  gl_shader_t *shader = &gui->text;
 
   // Setup projection matrix
   const gl_float_t w = *(camera->window_width);
@@ -2967,18 +2959,18 @@ void draw_text(gui_t *gui,
   // Activate shader
   const gl_float_t scale = 1.0f;
   glDepthMask(GL_FALSE);
-  glUseProgram(text->entity.program_id);
-  gl_set_mat4(text->entity.program_id, "ortho", ortho);
-  gl_set_color(text->entity.program_id, "text_color", c);
-  gl_set_int(text->entity.program_id, "text", 0);
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "ortho", ortho);
+  gl_set_color(shader->program_id, "text_color", c);
+  gl_set_int(shader->program_id, "text", 0);
   glActiveTexture(GL_TEXTURE0);
-  glBindVertexArray(text->entity.VAO);
+  glBindVertexArray(shader->VAO);
 
   // Render text
   float x_ = x;
-  gl_char_t *hch = &text->data[(int) 'H'];
+  gl_char_t *hch = &_chars[(int) 'H'];
   for (size_t i = 0; i < strlen(s); ++i) {
-    gl_char_t *ch = &text->data[(int) s[i]];
+    gl_char_t *ch = &_chars[(int) s[i]];
     const float xpos = x_ + ch->bearing[0] * scale;
     const float ypos = y + (hch->bearing[1] - ch->bearing[1]) * scale;
     const float w = ch->size[0] * scale;
@@ -3000,7 +2992,7 @@ void draw_text(gui_t *gui,
     glBindTexture(GL_TEXTURE_2D, ch->texture_id);
 
     // Update content of VBO memory
-    glBindBuffer(GL_ARRAY_BUFFER, text->entity.VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -3546,8 +3538,6 @@ void ui_menu(gui_t *gui, gl_bounds_t *bounds) {
     toolbar_bounds.x += _cursor_dx;
     toolbar_bounds.y += _cursor_dy;
     gui->ui_engaged = 1;
-  } else {
-    gui->ui_engaged = 0;
   }
 
   draw_rect(gui, bounds, &color);
@@ -3557,7 +3547,6 @@ void ui_menu(gui_t *gui, gl_bounds_t *bounds) {
 int ui_button(gui_t *gui, const char *label, gl_bounds_t bounds) {
   gl_color_t text_color = (gl_color_t){0.0f, 0.0f, 0.0f};
   gl_color_t color = (gl_color_t){1.0f, 1.0f, 1.0f};
-  gl_color_t color_hover = (gl_color_t){1.0f, 0.0f, 0.0f};
   gl_color_t color_press = (gl_color_t){0.0f, 0.0f, 1.0f};
 
   gl_float_t text_w = 0.0f;
@@ -3568,17 +3557,11 @@ int ui_button(gui_t *gui, const char *label, gl_bounds_t bounds) {
 
   // Button color
   int button_on = 0;
-  const int button_hover = ui_intercept(gui, bounds);
-  const int button_pressed = gui->left_click;
-
-  if (button_hover == 1 && button_pressed == 0) {
-    color = color_hover;
-    gui->ui_engaged = 0;
-  } else if (button_hover == 1 && button_pressed == 1) {
+  if (ui_intercept(gui, bounds) && _mouse_button_left == GLFW_PRESS) {
     color = color_press;
     if (gui->ui_engaged == 0) {
-      button_on = 1;
       gui->ui_engaged = 1;
+      button_on = 1;
     }
   }
 
