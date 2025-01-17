@@ -143,6 +143,7 @@ gl_enum_t gl_check_error(const char *file, const int line);
 gl_float_t gl_randf(const gl_float_t a, const gl_float_t b);
 gl_float_t gl_deg2rad(const gl_float_t d);
 gl_float_t gl_rad2deg(const gl_float_t r);
+gl_float_t gl_rad2deg(const gl_float_t r);
 void gl_print_vector(const char *prefix, const gl_float_t *x, const int length);
 void gl_print_matrix(const char *prefix,
                      const gl_float_t *A,
@@ -268,8 +269,6 @@ typedef enum { ORBIT, FPS } gl_view_mode_t;
 
 typedef struct gl_camera_t {
   gl_view_mode_t view_mode;
-  int *window_width;
-  int *window_height;
 
   gl_float_t focal[3];
   gl_float_t world_up[3];
@@ -1382,8 +1381,6 @@ void gl_camera_setup(gl_camera_t *camera,
                      int *window_width,
                      int *window_height) {
   camera->view_mode = FPS;
-  camera->window_width = window_width;
-  camera->window_height = window_height;
 
   gl_zeros(camera->focal, 3, 1);
   gl_vec3(camera->world_up, 0.0f, 1.0f, 0.0f);
@@ -1420,9 +1417,7 @@ void gl_camera_update(gl_camera_t *camera) {
   gl_normalize(camera->up, 3);
 
   // Projection matrix
-  const float width = (float) *(camera->window_width);
-  const float height = (float) *(camera->window_height);
-  const float aspect = width / height;
+  const float aspect = _window_width / _window_height;
   gl_perspective(camera->fov, aspect, camera->near, camera->far, camera->P);
 
   // View matrix (Orbit mode)
@@ -1544,6 +1539,8 @@ void window_callback(GLFWwindow *window, int width, int height) {
 }
 
 void gui_process_input(GLFWwindow *window) {
+  // Handle keyboard events
+  // -- Key press
   _key_esc = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
   _key_q = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
   _key_w = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
@@ -1552,97 +1549,72 @@ void gui_process_input(GLFWwindow *window) {
   _key_d = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
   _key_equal = glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS;
   _key_minus = glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS;
-
-  // Handle keyboard events
   if (_key_esc || _key_q) {
     _window_loop = 0;
   }
 
-  if (_key_w) {
-    if (_camera.view_mode == FPS) {
+  // -- FPS MODE
+  if (_camera.view_mode == FPS) {
+    if (_key_w) {
       _camera.position[0] += _camera_speed * _camera.front[0];
       _camera.position[1] += _camera_speed * _camera.front[1];
       _camera.position[2] += _camera_speed * _camera.front[2];
-    } else if (_camera.view_mode == ORBIT) {
-      _camera.pitch += 0.01;
-      _camera.pitch =
-          (_camera.pitch >= M_PI) ? M_PI : _camera.pitch;
-      _camera.pitch =
-          (_camera.pitch <= 0.0f) ? 0.0f : _camera.pitch;
-    }
-  }
-
-  if (_key_s) {
-    if (_camera.view_mode == FPS) {
+    } else if (_key_s) {
       _camera.position[0] -= _camera_speed * _camera.front[0];
       _camera.position[1] -= _camera_speed * _camera.front[1];
       _camera.position[2] -= _camera_speed * _camera.front[2];
-    } else if (_camera.view_mode == ORBIT) {
-      _camera.pitch -= 0.01;
-      _camera.pitch =
-          (_camera.pitch >= M_PI) ? M_PI : _camera.pitch;
-      _camera.pitch =
-          (_camera.pitch <= 0.0f) ? 0.0f : _camera.pitch;
-    }
-  }
-
-  if (_key_a) {
-    if (_camera.view_mode == FPS) {
+    } else if (_key_a) {
       gl_float_t camera_left[3] = {0};
       gl_vec3_cross(_camera.front, _camera.up, camera_left);
       gl_normalize(camera_left, 3);
       _camera.position[0] -= camera_left[0] * _camera_speed;
       _camera.position[1] -= camera_left[1] * _camera_speed;
       _camera.position[2] -= camera_left[2] * _camera_speed;
-    } else if (_camera.view_mode == ORBIT) {
-      _camera.yaw -= 0.01;
-      _camera.yaw = (_camera.yaw >= M_PI) ? M_PI : _camera.yaw;
-      _camera.yaw = (_camera.yaw <= -M_PI) ? -M_PI : _camera.yaw;
-    }
-  }
-
-  if (_key_d) {
-    if (_camera.view_mode == FPS) {
+    } else if (_key_d) {
       gl_float_t camera_left[3] = {0};
       gl_vec3_cross(_camera.front, _camera.up, camera_left);
       gl_normalize(camera_left, 3);
       _camera.position[0] += camera_left[0] * _camera_speed;
       _camera.position[1] += camera_left[1] * _camera_speed;
       _camera.position[2] += camera_left[2] * _camera_speed;
-    } else if (_camera.view_mode == ORBIT) {
+    } else if (_key_equal) {
+      gl_camera_zoom(&_camera, 1.0, 0, _camera_speed);
+    } else if (_key_minus) {
+      gl_camera_zoom(&_camera, 1.0, 0, -_camera_speed);
+    }
+  }
+
+  // -- ORBIT MODE
+  if (_camera.view_mode == ORBIT) {
+    if (_key_w) {
+      _camera.pitch += 0.01;
+      _camera.pitch = (_camera.pitch >= M_PI) ? M_PI : _camera.pitch;
+      _camera.pitch = (_camera.pitch <= 0.0f) ? 0.0f : _camera.pitch;
+    } else if (_key_s) {
+      _camera.pitch -= 0.01;
+      _camera.pitch = (_camera.pitch >= M_PI) ? M_PI : _camera.pitch;
+      _camera.pitch = (_camera.pitch <= 0.0f) ? 0.0f : _camera.pitch;
+    } else if (_key_a) {
+      _camera.yaw -= 0.01;
+      _camera.yaw = (_camera.yaw >= M_PI) ? M_PI : _camera.yaw;
+      _camera.yaw = (_camera.yaw <= -M_PI) ? -M_PI : _camera.yaw;
+    } else if (_key_d) {
       _camera.yaw += 0.01;
       _camera.yaw = (_camera.yaw >= M_PI) ? M_PI : _camera.yaw;
       _camera.yaw = (_camera.yaw <= -M_PI) ? -M_PI : _camera.yaw;
-    }
-  }
-
-  if (_key_equal) {
-    if (_camera.view_mode == FPS) {
-      gl_camera_zoom(&_camera, 1.0, 0, _camera_speed);
-    } else if (_camera.view_mode == ORBIT) {
+    } else if (_key_equal) {
       _camera.radius += 0.1;
-      _camera.radius =
-          (_camera.radius <= 0.01) ? 0.01 : _camera.radius;
-    }
-  }
-
-  if (_key_minus) {
-    if (_camera.view_mode == FPS) {
-      gl_camera_zoom(&_camera, 1.0, 0, -_camera_speed);
-    } else if (_camera.view_mode == ORBIT) {
+      _camera.radius = (_camera.radius <= 0.01) ? 0.01 : _camera.radius;
+    } else if (_key_minus) {
       _camera.radius -= 0.1;
-      _camera.radius =
-          (_camera.radius <= 0.01) ? 0.01 : _camera.radius;
+      _camera.radius = (_camera.radius <= 0.01) ? 0.01 : _camera.radius;
     }
   }
 
-  // Handle mouse cursor events
-  // clang-format off
+  // Handle mouse events
+  // -- Mouse button press
   _mouse_button_left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
   _mouse_button_right = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-  // clang-format on
-
-  // -- Mouse button press
   if (_mouse_button_left == GLFW_PRESS) {
     _cursor_is_dragging = 1;
   } else if (_mouse_button_left == GLFW_RELEASE) {
@@ -1700,10 +1672,10 @@ void gui_setup(const char *window_title,
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   _window = glfwCreateWindow(_window_width,
-                                 _window_height,
-                                 _window_title,
-                                 NULL,
-                                 NULL);
+                             _window_height,
+                             _window_title,
+                             NULL,
+                             NULL);
   if (!_window) {
     printf("Failed to create glfw window!\n");
     glfwTerminate();
@@ -1784,7 +1756,6 @@ void gui_loop(void) {
   gl_float_t axes_lw = 5.0f;
 
   // Grid
-  gl_shader_t grid;
   gl_float_t grid_size = 0.5f;
   gl_float_t grid_lw = 5.0f;
   gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
@@ -1819,7 +1790,6 @@ void gui_loop(void) {
   }
 
   // Image
-  // gl_image_t *image = gl_image_malloc();
   int width = 0;
   int height = 0;
   int channels = 0;
@@ -1855,8 +1825,8 @@ void gui_loop(void) {
     draw_frustum(frustum_T, frustum_size, frustum_color, frustum_lw);
     draw_axes3d(axes_T, axes_size, axes_lw);
     draw_grid3d(grid_size, grid_lw, grid_color);
-    // draw_points3d(points_data, num_points, points_size);
-    // draw_line3d(line_data, line_size, line_color, line_lw);
+    draw_points3d(points_data, num_points, points_size);
+    draw_line3d(line_data, line_size, line_color, line_lw);
     // draw_image(10, 10, image_data, width, height, channels);
 
     ui_menu(&menu_bounds);
@@ -1864,9 +1834,9 @@ void gui_loop(void) {
       printf("Button pressed!\n");
     }
 
-    // if (ui_checkbox("Checkbox", checkbox_bounds) == 1) {
-    //   printf("Button pressed!\n");
-    // }
+    if (ui_checkbox("Checkbox", checkbox_bounds) == 1) {
+      printf("Button pressed!\n");
+    }
 
     // Update
     glfwSwapBuffers(_window);
@@ -1968,10 +1938,8 @@ void setup_rect_shader(gl_shader_t *rect) {
 
 void draw_rect(const gl_bounds_t *bounds, const gl_color_t *color) {
   const gl_shader_t *shader = &_rect;
-  const gl_float_t w = *(_camera.window_width);
-  const gl_float_t h = *(_camera.window_height);
   gl_float_t ortho[16] = {0};
-  gl_ortho(w, h, ortho);
+  gl_ortho(_window_width, _window_height, ortho);
 
   glDepthMask(GL_FALSE);
   glUseProgram(shader->program_id);
@@ -2708,10 +2676,8 @@ void draw_image(const int x,
   }
 
   // Draw
-  const gl_float_t win_w = *(_camera.window_width);
-  const gl_float_t win_h = *(_camera.window_height);
   gl_float_t ortho[16] = {0};
-  gl_ortho(win_w, win_h, ortho);
+  gl_ortho(_window_width, _window_height, ortho);
 
   glUseProgram(shader->program_id);
   gl_set_mat4(shader->program_id, "ortho", ortho);
@@ -2791,7 +2757,6 @@ void setup_text_shader(gl_shader_t *shader) {
   }
 
   const char *font_path = "./fonts/Inconsolata-Regular.ttf";
-  // const char *font_path = "./fonts/Antonio-Regular.ttf";
   if (access(font_path, F_OK) == -1) {
     printf("Font file not found!\n");
   }
@@ -2873,10 +2838,8 @@ void draw_text(const char *s,
   gl_shader_t *shader = &_text;
 
   // Setup projection matrix
-  const gl_float_t w = *(_camera.window_width);
-  const gl_float_t h = *(_camera.window_height);
   gl_float_t ortho[4 * 4];
-  gl_ortho(w, h, ortho);
+  gl_ortho(_window_width, _window_height, ortho);
 
   // Activate shader
   const gl_float_t scale = 1.0f;
