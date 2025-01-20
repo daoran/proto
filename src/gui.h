@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <assert.h>
 #include <libgen.h>
@@ -533,6 +534,32 @@ gl_shader_t _text;
 /******************************************************************************
  * OPENGL UTILS
  *****************************************************************************/
+
+/**
+ * Tic, start timer.
+ * @returns A timespec encapsulating the time instance when tic() is called
+ */
+struct timespec tic(void) {
+  struct timespec time_start;
+  clock_gettime(CLOCK_MONOTONIC, &time_start);
+  return time_start;
+}
+
+/**
+ * Toc, stop timer.
+ * @returns Time elapsed in seconds
+ */
+float toc(struct timespec *tic) {
+  assert(tic != NULL);
+  struct timespec toc;
+  float time_elasped;
+
+  clock_gettime(CLOCK_MONOTONIC, &toc);
+  time_elasped = (toc.tv_sec - tic->tv_sec);
+  time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
+
+  return time_elasped;
+}
 
 /**
  * Check if file exists.
@@ -1719,7 +1746,7 @@ void gui_loop(void) {
   // Points
   gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
   gl_float_t points_size = 2.0;
-  size_t num_points = 100000;
+  size_t num_points = 2e3;
   gl_float_t *points_data = MALLOC(gl_float_t, num_points * 6);
   for (size_t i = 0; i < num_points; ++i) {
     points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
@@ -1766,7 +1793,14 @@ void gui_loop(void) {
   _window_loop = 1;
   glfwMakeContextCurrent(_window);
   glfwSwapInterval(0);
+  const double fps_limit = 1.0 / 60.0;
+  double last_time = 0;
+  double last_frame = 0;
+
+  struct timespec time_start = tic();
   while (_window_loop) {
+    double time_now = glfwGetTime();
+    double dt = time_now - last_time;
     glfwPollEvents();
     gui_process_input(_window);
 
@@ -1777,25 +1811,29 @@ void gui_loop(void) {
 
     // Draw
     // draw_rect(&rect_bounds, &rect_color);
-    draw_cube(cube_T, cube_size, cube_color);
-    draw_frustum(frustum_T, frustum_size, frustum_color, frustum_lw);
-    draw_axes3d(axes_T, axes_size, axes_lw);
-    draw_grid3d(grid_size, grid_lw, grid_color);
+    // draw_cube(cube_T, cube_size, cube_color);
+    // draw_frustum(frustum_T, frustum_size, frustum_color, frustum_lw);
+    // draw_axes3d(axes_T, axes_size, axes_lw);
+    // draw_grid3d(grid_size, grid_lw, grid_color);
     draw_points3d(points_data, num_points, points_size);
-    draw_line3d(line_data, line_size, line_color, line_lw);
+    // draw_line3d(line_data, line_size, line_color, line_lw);
     // draw_image(10, 10, image_data, width, height, channels);
 
-    ui_menu(&menu_bounds);
-    if (ui_button("Button", button_bounds) == 1) {
-      printf("Button pressed!\n");
-    }
-
-    if (ui_checkbox("Checkbox", checkbox_bounds) == 1) {
-      printf("Button pressed!\n");
-    }
+    // ui_menu(&menu_bounds);
+    // if (ui_button("Button", button_bounds) == 1) {
+    //   printf("Button pressed!\n");
+    // }
+    //
+    // if (ui_checkbox("Checkbox", checkbox_bounds) == 1) {
+    //   printf("Button pressed!\n");
+    // }
 
     // Update
-    glfwSwapBuffers(_window);
+    if ((time_now - last_frame) >= fps_limit) {
+      glfwSwapBuffers(_window);
+      last_frame = time_now;
+    }
+    last_time = time_now;
   }
 
   // Clean up
@@ -1839,10 +1877,8 @@ void gui_loop(void) {
   "}\n"
 
 void setup_rect_shader(gl_shader_t *rect) {
-  // Setup
-  gl_shader_setup(rect);
-
   // Shader program
+  gl_shader_setup(rect);
   rect->program_id = gl_shader(GL_RECT_VS, GL_RECT_FS, NULL);
   if (rect->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
@@ -1915,89 +1951,110 @@ void draw_rect(const gl_bounds_t *bounds, const gl_color_t *color) {
 #define GL_CUBE_VS                                                             \
   "#version 330 core\n"                                                        \
   "layout (location = 0) in vec3 in_pos;\n"                                    \
-  "out vec3 color;\n"                                                          \
+  "layout (location = 1) in vec3 in_normal;\n"                                 \
+  ""                                                                           \
+  "out vec3 frag_pos;\n"                                                       \
+  "out vec3 normal;\n"                                                         \
+  ""                                                                           \
   "uniform float size;\n"                                                      \
   "uniform mat4 model;\n"                                                      \
   "uniform mat4 view;\n"                                                       \
   "uniform mat4 projection;\n"                                                 \
-  "uniform vec3 in_color;\n"                                                   \
+  ""                                                                           \
   "void main() {\n"                                                            \
   "  gl_Position = projection * view * model * vec4(in_pos * size, 1.0);\n"    \
-  "  color = in_color;\n"                                                      \
+  "  frag_pos = vec3(model * vec4(in_pos, 1.0));\n"                            \
+  "  normal = in_normal;\n"                                                    \
   "}\n"
 
 #define GL_CUBE_FS                                                             \
   "#version 330 core\n"                                                        \
-  "in vec3 color;\n"                                                           \
+  "in vec3 frag_pos;\n"                                                        \
+  "in vec3 normal;\n"                                                          \
   "out vec4 frag_color;\n"                                                     \
+  ""                                                                           \
+  "uniform vec3 view_pos;\n"                                                   \
+  "uniform vec3 light_pos;\n"                                                  \
+  "uniform vec3 light_color;\n"                                                \
+  "uniform vec3 object_color;\n"                                               \
+  ""                                                                           \
   "void main() {\n"                                                            \
-  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "  // Ambient \n"                                                            \
+  "  float ambient_strength = 0.5;\n"                                          \
+  "  vec3 ambient = ambient_strength * light_color;\n"                         \
+  ""                                                                           \
+  "  // Diffuse \n"                                                            \
+  "  vec3 norm = normalize(normal);\n"                                         \
+  "  vec3 light_dir = normalize(light_pos - frag_pos);\n"                      \
+  "  float diff = max(dot(norm, light_dir), 0.0);\n"                           \
+  "  vec3 diffuse = diff * light_color;\n"                                     \
+  ""                                                                           \
+  " // Specular \n"                                                            \
+  " float specular_strenght = 0.5; \n"                                         \
+  " vec3 view_dir = normalize(view_pos - frag_pos); \n"                        \
+  " vec3 reflect_dir = reflect(-light_dir, norm); \n"                          \
+  " float spec = pow(max(dot(view_dir, reflect_dir), 0.0), 32); \n"            \
+  " vec3 specular = specular_strenght * spec * light_color; \n"                \
+  ""                                                                           \
+  "  vec3 result = (ambient + diffuse + specular) * object_color;\n"           \
+  "  frag_color = vec4(result, 1.0f);\n"                                       \
   "}\n"
 
 void setup_cube_shader(gl_shader_t *shader) {
   // Shader program
+  gl_shader_setup(shader);
   shader->program_id = gl_shader(GL_CUBE_VS, GL_CUBE_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 
-  // Vertices
   // clang-format off
-  gl_float_t vertices[12 * 3 * 3] = {
-    // Triangle 1
-    -1.0, -1.0, -1.0,
-    -1.0, -1.0,  1.0,
-    -1.0,  1.0,  1.0,
-    // Triangle 2
-     1.0,  1.0, -1.0,
-    -1.0, -1.0, -1.0,
-    -1.0,  1.0, -1.0,
-    // Triangle 3
-     1.0, -1.0,  1.0,
-    -1.0, -1.0, -1.0,
-     1.0, -1.0, -1.0,
-    // Triangle 4
-     1.0,  1.0, -1.0,
-     1.0, -1.0, -1.0,
-    -1.0, -1.0, -1.0,
-    // Triangle 5
-    -1.0, -1.0, -1.0,
-    -1.0,  1.0,  1.0,
-    -1.0,  1.0, -1.0,
-    // Triangle 6
-     1.0, -1.0,  1.0,
-    -1.0, -1.0,  1.0,
-    -1.0, -1.0, -1.0,
-    // Triangle 7
-    -1.0,  1.0,  1.0,
-    -1.0, -1.0,  1.0,
-     1.0, -1.0,  1.0,
-    // Triangle 8
-     1.0,  1.0,  1.0,
-     1.0, -1.0, -1.0,
-     1.0,  1.0, -1.0,
-    // Triangle 9
-     1.0, -1.0, -1.0,
-     1.0,  1.0,  1.0,
-     1.0, -1.0,  1.0,
-    // Triangle 10
-     1.0,  1.0,  1.0,
-     1.0,  1.0, -1.0,
-    -1.0,  1.0, -1.0,
-    // Triangle 11
-     1.0,  1.0,  1.0,
-    -1.0,  1.0, -1.0,
-    -1.0,  1.0,  1.0,
-    // Triangle 12
-     1.0,  1.0,  1.0,
-    -1.0,  1.0,  1.0,
-     1.0, -1.0,  1.0
-    // Triangle 12 : end
+  // Vertices
+  gl_float_t vertices[] = {
+      -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+       1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+       1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+       1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+      -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+      -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+
+      -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+       1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+       1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+      -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+      -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+
+      -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
+      -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
+      -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
+      -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
+      -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
+      -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
+
+       1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
+       1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
+       1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
+       1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
+       1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
+       1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
+
+      -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
+       1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
+       1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
+       1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
+      -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
+      -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
+
+      -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+       1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+       1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+       1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+      -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+      -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f
   };
-  const size_t num_triangles = 12;
-  const size_t vertices_per_triangle = 3;
-  const size_t num_vertices = vertices_per_triangle * num_triangles;
-  const size_t vbo_size = sizeof(gl_float_t) * num_vertices * 3;
+  const size_t vbo_size = sizeof(vertices);
+  const size_t vertex_size = sizeof(gl_float_t) * 6;
   // clang-format on
 
   // VAO
@@ -2007,12 +2064,15 @@ void setup_cube_shader(gl_shader_t *shader) {
   // VBO
   glGenBuffers(1, &shader->VBO);
   glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
-  glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
   // -- Position attribute
-  const size_t vertex_size = sizeof(gl_float_t) * 3;
-  const void *offset = (void *) 0;
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, offset);
+  const void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
   glEnableVertexAttribArray(0);
+  // -- Normal attribute
+  const void *normal_offset = (void *) (3 * sizeof(gl_float_t));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, normal_offset);
+  glEnableVertexAttribArray(1);
 
   // Clean up
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
@@ -2022,20 +2082,39 @@ void setup_cube_shader(gl_shader_t *shader) {
 void draw_cube(const gl_float_t T[4 * 4],
                const gl_float_t size,
                const gl_color_t color) {
+  // Disable cull face
+  int cull_face_mode = 0;
+  if (glIsEnabled(GL_CULL_FACE)) {
+    glDisable(GL_CULL_FACE);
+    cull_face_mode = 1;
+  }
+
   const gl_shader_t *shader = &_cube;
   glUseProgram(shader->program_id);
+
+  gl_float_t *view_pos = _camera.position;
+  gl_float_t light_pos[3] = {0.0, 20.0, 2.0};
+  gl_color_t light_color = (gl_color_t){1.0, 1.0, 1.0};
 
   // Draw cube
   gl_set_mat4(shader->program_id, "projection", _camera.P);
   gl_set_mat4(shader->program_id, "view", _camera.V);
   gl_set_mat4(shader->program_id, "model", T);
   gl_set_float(shader->program_id, "size", size);
-  gl_set_color(shader->program_id, "in_color", color);
+  gl_set_vec3(shader->program_id, "view_pos", view_pos);
+  gl_set_vec3(shader->program_id, "light_pos", light_pos);
+  gl_set_color(shader->program_id, "light_color", light_color);
+  gl_set_color(shader->program_id, "object_color", color);
   glBindVertexArray(shader->VAO);
   glDrawArrays(GL_TRIANGLES, 0, 36); // 36 Vertices
 
   // Unbind VAO
   glBindVertexArray(0);
+
+  // Renable cull face
+  if (cull_face_mode) {
+    glEnable(GL_CULL_FACE);
+  }
 }
 
 // FRUSTUM ///////////////////////////////////////////////////////////////////
@@ -2059,6 +2138,7 @@ void draw_cube(const gl_float_t T[4 * 4],
 
 void setup_frustum_shader(gl_shader_t *shader) {
   // Shader program
+  gl_shader_setup(shader);
   shader->program_id = gl_shader(gl_frustum_VS, gl_frustum_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
@@ -2168,6 +2248,7 @@ void draw_frustum(const gl_float_t T[4 * 4],
 
 void setup_axes3d_shader(gl_shader_t *shader) {
   // Shader program
+  gl_shader_setup(shader);
   shader->program_id = gl_shader(GL_AXES3D_VS, GL_AXES3D_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
@@ -2306,6 +2387,7 @@ static gl_float_t *gl_grid3d_create_vertices(int grid_size) {
 
 void setup_grid3d_shader(gl_shader_t *shader) {
   // Shader program
+  gl_shader_setup(shader);
   shader->program_id = gl_shader(GL_GRID3D_VS, GL_GRID3D_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
@@ -2384,6 +2466,7 @@ void draw_grid3d(const gl_float_t size,
 
 void setup_points3d_shader(gl_shader_t *shader) {
   // Shader program
+  gl_shader_setup(shader);
   shader->program_id = gl_shader(GL_POINTS3D_VS, GL_POINTS3D_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders to draw points!");
@@ -2456,6 +2539,7 @@ void draw_points3d(const gl_float_t *data,
 
 void setup_line3d_shader(gl_shader_t *shader) {
   // Shader program
+  gl_shader_setup(shader);
   shader->program_id = gl_shader(GL_LINE3D_VS, GL_LINE3D_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
@@ -2542,6 +2626,7 @@ void draw_line3d(const gl_float_t *data,
 
 void setup_image_shader(gl_shader_t *shader) {
   // Shader program
+  gl_shader_setup(shader);
   shader->program_id = gl_shader(GL_IMAGE_VS, GL_IMAGE_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
@@ -2681,11 +2766,11 @@ void gl_char_print(const gl_char_t *ch) {
 }
 
 void setup_text_shader(gl_shader_t *shader) {
-  // Initialize
-  gl_shader_setup(shader);
+  // Setup
   const gl_float_t text_size = 18;
 
   // Compile shader
+  gl_shader_setup(shader);
   shader->program_id = gl_shader(GL_TEXT_VS, GL_TEXT_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
@@ -3639,13 +3724,13 @@ int test_gl_eye(void) {
   /* Check 4x4 matrix */
   // clang-format off
   gl_float_t A[4*4] = {0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0, 0.0};
+                       0.0, 0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0, 0.0};
   gl_float_t A_expected[4*4] = {1.0, 0.0, 0.0, 0.0,
-                             0.0, 1.0, 0.0, 0.0,
-                             0.0, 0.0, 1.0, 0.0,
-                             0.0, 0.0, 0.0, 1.0};
+                                0.0, 1.0, 0.0, 0.0,
+                                0.0, 0.0, 1.0, 0.0,
+                                0.0, 0.0, 0.0, 1.0};
   // clang-format on
   gl_eye(A, 4, 4);
   TEST_ASSERT(gl_equals(A, A_expected, 4, 4, 1e-8));
@@ -3670,14 +3755,14 @@ int test_gl_eye(void) {
 int test_gl_equals(void) {
   // clang-format off
   gl_float_t A[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
+                       2.0, 5.0, 8.0,
+                       3.0, 6.0, 9.0};
   gl_float_t B[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
+                       2.0, 5.0, 8.0,
+                       3.0, 6.0, 9.0};
   gl_float_t C[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 10.0};
+                       2.0, 5.0, 8.0,
+                       3.0, 6.0, 10.0};
   // clang-format on
 
   /* Assert */
@@ -3690,9 +3775,9 @@ int test_gl_equals(void) {
 int test_gl_mat_set(void) {
   // clang-format off
   gl_float_t A[3*4] = {0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.0};
+                       0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0};
   // clang-format on
 
   gl_mat_set(A, 3, 4, 0, 1, 1.0);
@@ -3706,9 +3791,9 @@ int test_gl_mat_set(void) {
 int test_gl_mat_val(void) {
   // clang-format off
   gl_float_t A[3*4] = {1.0, 2.0, 3.0,
-                    4.0, 5.0, 6.0,
-                    7.0, 8.0, 9.0,
-                    10.0, 11.0, 12.0};
+                       4.0, 5.0, 6.0,
+                       7.0, 8.0, 9.0,
+                       10.0, 11.0, 12.0};
   // clang-format on
 
   const float tol = 1e-4;
@@ -3735,8 +3820,8 @@ int test_gl_transpose(void) {
   /* Transpose a 3x3 matrix */
   // clang-format off
   gl_float_t A[3*3] = {1.0, 2.0, 3.0,
-                    4.0, 5.0, 6.0,
-                    7.0, 8.0, 9.0};
+                       4.0, 5.0, 6.0,
+                       7.0, 8.0, 9.0};
   // clang-format on
   gl_float_t A_t[3 * 3] = {0};
 
@@ -3745,9 +3830,9 @@ int test_gl_transpose(void) {
   /* Transpose a 3x4 matrix */
   // clang-format off
   gl_float_t B[3*4] = {1.0, 2.0, 3.0,
-                    4.0, 5.0, 6.0,
-                    7.0, 8.0, 9.0,
-                    10.0, 11.0, 12.0};
+                       4.0, 5.0, 6.0,
+                       7.0, 8.0, 9.0,
+                       10.0, 11.0, 12.0};
   // clang-format on
   gl_float_t B_t[3 * 4] = {0};
   gl_transpose(B, 3, 4, B_t);
@@ -3771,11 +3856,11 @@ int test_gl_vec3_cross(void) {
 int test_gl_dot(void) {
   // clang-format off
   gl_float_t A[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
+                       2.0, 5.0, 8.0,
+                       3.0, 6.0, 9.0};
   gl_float_t B[3*3] = {1.0, 4.0, 7.0,
-                    2.0, 5.0, 8.0,
-                    3.0, 6.0, 9.0};
+                       2.0, 5.0, 8.0,
+                       3.0, 6.0, 9.0};
   // clang-format on
   gl_float_t C[3 * 3] = {0.0};
   gl_dot(A, 3, 3, B, 3, 3, C);
@@ -3783,8 +3868,8 @@ int test_gl_dot(void) {
   /* Assert */
   // clang-format off
   gl_float_t expected[3*3] = {30.0f, 66.0f, 102.0f,
-                           36.0f, 81.0f, 126.0f,
-                           42.0f, 96.0f, 150.0f};
+                              36.0f, 81.0f, 126.0f,
+                              42.0f, 96.0f, 150.0f};
   // clang-format on
   TEST_ASSERT(gl_equals(C, expected, 3, 3, 1e-8));
 
