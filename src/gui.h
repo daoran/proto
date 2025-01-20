@@ -122,6 +122,19 @@ typedef GLfloat gl_float_t;
 typedef GLenum gl_enum_t;
 
 typedef struct {
+  gl_float_t x;
+  gl_float_t y;
+  gl_float_t z;
+} gl_vec3_t;
+
+typedef struct {
+  gl_float_t w;
+  gl_float_t x;
+  gl_float_t y;
+  gl_float_t z;
+} gl_quat_t;
+
+typedef struct {
   gl_float_t r;
   gl_float_t g;
   gl_float_t b;
@@ -133,6 +146,11 @@ typedef struct {
   gl_int_t w;
   gl_int_t h;
 } gl_bounds_t;
+
+typedef struct {
+  gl_vec3_t pos;
+  gl_quat_t quat;
+} gl_pose_t;
 
 int file_exists(const char *fp);
 char *load_file(const char *fp);
@@ -218,6 +236,9 @@ void gl_lookat(const gl_float_t eye[3],
                const gl_float_t at[3],
                const gl_float_t up[3],
                gl_float_t V[4 * 4]);
+void gl_quat2rot(const gl_quat_t *q, gl_float_t C[3 * 3]);
+void gl_rot2quat(const gl_float_t C[3 * 3], gl_quat_t *q);
+void gl_tf2pose(const gl_float_t T[4 * 4], gl_pose_t *pose);
 int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
 /******************************************************************************
@@ -232,18 +253,8 @@ typedef struct gl_shader_t {
   gl_uint_t EBO;
 } gl_shader_t;
 
-void gl_quat2rot(const gl_float_t q[4], gl_float_t C[3 * 3]);
-void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]);
-
-void gl_shader_setup(gl_shader_t *entity);
-void gl_shader_cleanup(gl_shader_t *entity);
-// void gl_shader_set_position(gl_shader_t *entity, const gl_float_t pos[3]);
-// void gl_shader_get_position(gl_shader_t *entity, gl_float_t *pos);
-// void gl_shader_set_rotation(gl_shader_t *entity, const gl_float_t rot[3 * 3]);
-// void gl_shader_get_rotation(gl_shader_t *entity, gl_float_t *rot);
-// void gl_shader_set_quaternion(gl_shader_t *entity, const gl_float_t quat[4]);
-// void gl_shader_get_quaternion(gl_shader_t *entity, gl_float_t *quat);
-
+void gl_shader_setup(gl_shader_t *shader);
+void gl_shader_cleanup(gl_shader_t *shader);
 gl_uint_t gl_compile(const char *src, const int type);
 gl_uint_t gl_link(const gl_uint_t vs, const gl_uint_t fs, const gl_uint_t gs);
 gl_uint_t gl_shader(const char *vs_src, const char *fs_src, const char *gs_src);
@@ -947,6 +958,104 @@ void gl_lookat(const gl_float_t eye[3],
   gl_dot(R, 4, 4, T, 4, 4, V);
 }
 
+/**
+ * Convert Quaternion `q` to 3x3 rotation matrix `C`.
+ */
+void gl_quat2rot(const gl_quat_t *q, gl_float_t C[3 * 3]) {
+  assert(q != NULL);
+  assert(C != NULL);
+
+  const gl_float_t qx2 = q->x * q->x;
+  const gl_float_t qy2 = q->y * q->y;
+  const gl_float_t qz2 = q->z * q->z;
+  const gl_float_t qw2 = q->w * q->w;
+
+  // Homogeneous form
+  // -- 1st row
+  C[0] = qw2 + qx2 - qy2 - qz2;
+  C[3] = 2 * (q->x * q->y - q->w * q->z);
+  C[6] = 2 * (q->x * q->z + q->w * q->y);
+  // -- 2nd row
+  C[1] = 2 * (q->x * q->y + q->w * q->z);
+  C[4] = qw2 - qx2 + qy2 - qz2;
+  C[7] = 2 * (q->y * q->z - q->w * q->x);
+  // -- 3rd row
+  C[2] = 2 * (q->x * q->z - q->w * q->y);
+  C[5] = 2 * (q->y * q->z + q->w * q->x);
+  C[8] = qw2 - qx2 - qy2 + qz2;
+}
+
+/**
+ * Convert 3x3 rotation matrix `C` to Quaternion `q`.
+ */
+void gl_rot2quat(const gl_float_t C[3 * 3], gl_quat_t *q) {
+  assert(C != NULL);
+  assert(q != NULL);
+
+  const gl_float_t C00 = C[0];
+  const gl_float_t C01 = C[3];
+  const gl_float_t C02 = C[6];
+  const gl_float_t C10 = C[1];
+  const gl_float_t C11 = C[4];
+  const gl_float_t C12 = C[7];
+  const gl_float_t C20 = C[2];
+  const gl_float_t C21 = C[5];
+  const gl_float_t C22 = C[8];
+  const gl_float_t tr = C00 + C11 + C22;
+
+  if (tr > 0) {
+    const gl_float_t S = sqrt(tr + 1.0) * 2; // S=4*qw
+    q->w = 0.25 * S;
+    q->x = (C21 - C12) / S;
+    q->y = (C02 - C20) / S;
+    q->z = (C10 - C01) / S;
+  } else if ((C00 > C11) && (C[0] > C22)) {
+    const gl_float_t S = sqrt(1.0 + C[0] - C11 - C22) * 2; // S=4*qx
+    q->w = (C21 - C12) / S;
+    q->x = 0.25 * S;
+    q->y = (C01 + C10) / S;
+    q->z = (C02 + C20) / S;
+  } else if (C11 > C22) {
+    const gl_float_t S = sqrt(1.0 + C11 - C[0] - C22) * 2; // S=4*qy
+    q->w = (C02 - C20) / S;
+    q->x = (C01 + C10) / S;
+    q->y = 0.25 * S;
+    q->z = (C12 + C21) / S;
+  } else {
+    const gl_float_t S = sqrt(1.0 + C22 - C[0] - C11) * 2; // S=4*qz
+    q->w = (C10 - C01) / S;
+    q->x = (C02 + C20) / S;
+    q->y = (C12 + C21) / S;
+    q->z = 0.25 * S;
+  }
+}
+
+void gl_tf2pose(const gl_float_t T[4 * 4], gl_pose_t *pose) {
+  pose->pos.x = T[12];
+  pose->pos.y = T[13];
+  pose->pos.z = T[14];
+
+  // clang-format off
+  gl_float_t C[3 * 3] = {0};
+  C[0] = T[0]; C[1] = T[1]; C[2] = T[2];
+  C[3] = T[4]; C[4] = T[5]; C[5] = T[6];
+  C[6] = T[8]; C[7] = T[9]; C[8] = T[10];
+  gl_rot2quat(C, &pose->quat);
+  // clang-format on
+}
+
+void gl_pose2tf(const gl_pose_t *pose, gl_float_t T[4 * 4]) {
+  gl_float_t C[3 * 3] = {0};
+  gl_quat2rot(&pose->quat, C);
+
+  // clang-format off
+  T[0] = C[0];  T[1]  = C[1]; T[2]  = C[2]; T[3]  = pose->pos.x;
+  T[4] = C[3];  T[5]  = C[4]; T[6]  = C[5]; T[7]  = pose->pos.y;
+  T[8] = C[6];  T[9]  = C[7]; T[10] = C[8]; T[11] = pose->pos.z;
+  T[12] = 0.0f; T[13] = 0.0f; T[14] = 0.0f; T[15] = 1.0f;
+  // clang-format on
+}
+
 int gl_save_frame_buffer(const int width, const int height, const char *fp) {
   // Malloc pixels
   const int num_channels = 3;
@@ -973,187 +1082,34 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp) {
 }
 
 /******************************************************************************
- * GL-ENTITY
- *****************************************************************************/
-
-/**
- * Convert Quaternion `q` to 3x3 rotation matrix `C`.
- */
-void gl_quat2rot(const gl_float_t q[4], gl_float_t C[3 * 3]) {
-  assert(q != NULL);
-  assert(C != NULL);
-
-  const gl_float_t qw = q[0];
-  const gl_float_t qx = q[1];
-  const gl_float_t qy = q[2];
-  const gl_float_t qz = q[3];
-
-  const gl_float_t qx2 = qx * qx;
-  const gl_float_t qy2 = qy * qy;
-  const gl_float_t qz2 = qz * qz;
-  const gl_float_t qw2 = qw * qw;
-
-  // Homogeneous form
-  // -- 1st row
-  C[0] = qw2 + qx2 - qy2 - qz2;
-  C[3] = 2 * (qx * qy - qw * qz);
-  C[6] = 2 * (qx * qz + qw * qy);
-  // -- 2nd row
-  C[1] = 2 * (qx * qy + qw * qz);
-  C[4] = qw2 - qx2 + qy2 - qz2;
-  C[7] = 2 * (qy * qz - qw * qx);
-  // -- 3rd row
-  C[2] = 2 * (qx * qz - qw * qy);
-  C[5] = 2 * (qy * qz + qw * qx);
-  C[8] = qw2 - qx2 - qy2 + qz2;
-}
-
-/**
- * Convert 3x3 rotation matrix `C` to Quaternion `q`.
- */
-void gl_rot2quat(const gl_float_t C[3 * 3], gl_float_t q[4]) {
-  assert(C != NULL);
-  assert(q != NULL);
-
-  const gl_float_t C00 = C[0];
-  const gl_float_t C01 = C[3];
-  const gl_float_t C02 = C[6];
-  const gl_float_t C10 = C[1];
-  const gl_float_t C11 = C[4];
-  const gl_float_t C12 = C[7];
-  const gl_float_t C20 = C[2];
-  const gl_float_t C21 = C[5];
-  const gl_float_t C22 = C[8];
-
-  const gl_float_t tr = C00 + C11 + C22;
-  gl_float_t S = 0.0f;
-  gl_float_t qw = 0.0f;
-  gl_float_t qx = 0.0f;
-  gl_float_t qy = 0.0f;
-  gl_float_t qz = 0.0f;
-
-  if (tr > 0) {
-    S = sqrt(tr + 1.0) * 2; // S=4*qw
-    qw = 0.25 * S;
-    qx = (C21 - C12) / S;
-    qy = (C02 - C20) / S;
-    qz = (C10 - C01) / S;
-  } else if ((C00 > C11) && (C[0] > C22)) {
-    S = sqrt(1.0 + C[0] - C11 - C22) * 2; // S=4*qx
-    qw = (C21 - C12) / S;
-    qx = 0.25 * S;
-    qy = (C01 + C10) / S;
-    qz = (C02 + C20) / S;
-  } else if (C11 > C22) {
-    S = sqrt(1.0 + C11 - C[0] - C22) * 2; // S=4*qy
-    qw = (C02 - C20) / S;
-    qx = (C01 + C10) / S;
-    qy = 0.25 * S;
-    qz = (C12 + C21) / S;
-  } else {
-    S = sqrt(1.0 + C22 - C[0] - C11) * 2; // S=4*qz
-    qw = (C10 - C01) / S;
-    qx = (C02 + C20) / S;
-    qy = (C12 + C21) / S;
-    qz = 0.25 * S;
-  }
-
-  q[0] = qw;
-  q[1] = qx;
-  q[2] = qy;
-  q[3] = qz;
-}
-
-void gl_shader_setup(gl_shader_t *entity) {
-  entity->program_id = 0;
-  entity->texture_id = 0;
-  entity->VAO = 0;
-  entity->VBO = 0;
-  entity->EBO = 0;
-}
-
-void gl_shader_cleanup(gl_shader_t *entity) {
-  if (glIsProgram(entity->program_id) == GL_TRUE) {
-    glDeleteProgram(entity->program_id);
-  }
-
-  if (glIsVertexArray(entity->VAO) == GL_TRUE) {
-    glDeleteVertexArrays(1, &entity->VAO);
-  }
-
-  if (glIsBuffer(entity->VBO) == GL_TRUE) {
-    glDeleteBuffers(1, &entity->VBO);
-  }
-
-  if (glIsBuffer(entity->EBO) == GL_TRUE) {
-    glDeleteBuffers(1, &entity->EBO);
-  }
-}
-
-// void gl_shader_set_position(gl_shader_t *entity, const gl_float_t pos[3]) {
-//   assert(entity != NULL);
-//   assert(pos != NULL);
-//   // entity->T[12] = pos[0];
-//   // entity->T[13] = pos[1];
-//   // entity->T[14] = pos[2];
-// }
-//
-// void gl_shader_get_position(gl_shader_t *entity, gl_float_t *pos) {
-//   assert(entity != NULL);
-//   assert(pos != NULL);
-//   // pos[0] = entity->T[12];
-//   // pos[1] = entity->T[13];
-//   // pos[2] = entity->T[14];
-// }
-//
-// void gl_shader_set_rotation(gl_shader_t *entity, const gl_float_t rot[3 * 3]) {
-//   assert(entity != NULL);
-//   assert(rot != NULL);
-//   entity->T[0] = rot[0];
-//   entity->T[1] = rot[1];
-//   entity->T[2] = rot[2];
-//   entity->T[4] = rot[3];
-//   entity->T[5] = rot[4];
-//   entity->T[6] = rot[5];
-//   entity->T[8] = rot[6];
-//   entity->T[9] = rot[7];
-//   entity->T[10] = rot[8];
-// }
-//
-// void gl_shader_get_rotation(gl_shader_t *entity, gl_float_t *rot) {
-//   assert(entity != NULL);
-//   assert(rot != NULL);
-//
-//   rot[0] = entity->T[0];
-//   rot[1] = entity->T[1];
-//   rot[2] = entity->T[2];
-//   rot[3] = entity->T[4];
-//   rot[4] = entity->T[5];
-//   rot[5] = entity->T[6];
-//   rot[6] = entity->T[8];
-//   rot[7] = entity->T[9];
-//   rot[8] = entity->T[10];
-// }
-//
-// void gl_shader_set_quaternion(gl_shader_t *entity, const gl_float_t quat[4]) {
-//   assert(entity != NULL);
-//   assert(quat != NULL);
-//   gl_float_t C[3 * 3] = {0};
-//   gl_quat2rot(quat, C);
-//   gl_shader_set_rotation(entity, C);
-// }
-//
-// void gl_shader_get_quaternion(gl_shader_t *entity, gl_float_t *quat) {
-//   assert(entity != NULL);
-//   assert(quat != NULL);
-//   gl_float_t C[3 * 3] = {0};
-//   gl_shader_get_rotation(entity, C);
-//   gl_rot2quat(C, quat);
-// }
-
-/******************************************************************************
  * GL-SHADER
  *****************************************************************************/
+
+void gl_shader_setup(gl_shader_t *shader) {
+  shader->program_id = 0;
+  shader->texture_id = 0;
+  shader->VAO = 0;
+  shader->VBO = 0;
+  shader->EBO = 0;
+}
+
+void gl_shader_cleanup(gl_shader_t *shader) {
+  if (glIsProgram(shader->program_id) == GL_TRUE) {
+    glDeleteProgram(shader->program_id);
+  }
+
+  if (glIsVertexArray(shader->VAO) == GL_TRUE) {
+    glDeleteVertexArrays(1, &shader->VAO);
+  }
+
+  if (glIsBuffer(shader->VBO) == GL_TRUE) {
+    glDeleteBuffers(1, &shader->VBO);
+  }
+
+  if (glIsBuffer(shader->EBO) == GL_TRUE) {
+    glDeleteBuffers(1, &shader->EBO);
+  }
+}
 
 gl_uint_t gl_compile(const char *src, const int type) {
   if (src == NULL) {
