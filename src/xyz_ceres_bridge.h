@@ -1,5 +1,5 @@
-#ifndef _CERES_BRIDGE_H_
-#define _CERES_BRIDGE_H_
+#ifndef _XYZ_CERES_BRIDGE_H_
+#define _XYZ_CERES_BRIDGE_H_
 
 #include <ceres/c_api.h>
 
@@ -77,4 +77,4 @@ void ceres_set_parameter_constant(ceres_problem_t *c_problem, double *values);
 #ifdef __cplusplus
 } // extern "C"
 #endif
-#endif // _CERES_BRIDGE_H_
+#endif // _XYZ_CERES_BRIDGE_H_

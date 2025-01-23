@@ -1,5 +1,5 @@
-#ifndef EUROC_H
-#define EUROC_H
+#ifndef XYZ_EUROC_H
+#define XYZ_EUROC_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -234,13 +234,13 @@ typedef struct euroc_calib_t {
 euroc_calib_t *euroc_calib_load(const char *data_path);
 void euroc_calib_free(euroc_calib_t *data);
 
-#endif // EUROC_H
+#endif // XYZ_EUROC_H
 
 //////////////////////////////////////////////////////////////////////////////
 //                             IMPLEMENTATION                               //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifdef EUROC_IMPLEMENTATION
+#ifdef XYZ_EUROC_IMPLEMENTATION
 
 /*****************************************************************************
  * UTILS
@@ -1333,7 +1333,7 @@ void euroc_calib_free(euroc_calib_t *data) {
   free(data);
 }
 
-#endif // EUROC_IMPLEMENTATION
+#endif // XYZ_EUROC_IMPLEMENTATION
 
 //////////////////////////////////////////////////////////////////////////////
 //                                UNITTESTS                                 //

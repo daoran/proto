@@ -14,19 +14,18 @@ third_party: ## Install dependencies
 	@make -s -C third_party
 
 docs: ## Build docs
-	@pip3 install sphinx
-	@pip3 install sphinx-autobuild
-	@sleep 3 && xdg-open http://127.0.0.1:8000 &
-	@rm -rf docs/build
-	@sphinx-autobuild docs/source docs/build/html
+	@livereload .
 
 $(BLD_DIR)/%.o: src/%.c src/%.h Makefile
 	@echo "CC [$<]"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BLD_DIR)/ceres_bridge.o: src/ceres_bridge.cpp Makefile
-	@echo "CXX [ceres_bridge.c]"
-	@g++ -Wall -O3 -c src/ceres_bridge.cpp -o $(BLD_DIR)/ceres_bridge.o -I/usr/include/eigen3
+$(BLD_DIR)/xyz_ceres_bridge.o: src/xyz_ceres_bridge.cpp Makefile
+	@echo "CXX [xyz_ceres_bridge.c]"
+	@g++ -Wall -O3 \
+		-c src/xyz_ceres_bridge.cpp \
+		-o $(BLD_DIR)/xyz_ceres_bridge.o \
+		-I/usr/include/eigen3
 
 $(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
 	@echo "AR [libxyz.a]"
@@ -50,25 +49,25 @@ install: ## Install libxyz
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
 	ln -sf $(CUR_DIR)/build/libxyz.a $(PREFIX)/lib/libxyz.a
-	ln -sf $(CUR_DIR)/aprilgrid.h $(PREFIX)/include/aprilgrid.h
-	ln -sf $(CUR_DIR)/ceres_bridge.h $(PREFIX)/include/ceres_bridge.h
-	ln -sf $(CUR_DIR)/euroc.h $(PREFIX)/include/euroc.h
-	ln -sf $(CUR_DIR)/gui.h $(PREFIX)/include/gui.h
-	ln -sf $(CUR_DIR)/http.h $(PREFIX)/include/http.h
-	ln -sf $(CUR_DIR)/xyz.h $(PREFIX)/include/xyz.h
-	ln -sf $(CUR_DIR)/sbgc.h $(PREFIX)/include/sbgc.h
-	ln -sf $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
 	ln -sf $(CUR_DIR)/xyz.py $(PYTHON3_PATH)/xyz.py
+	ln -sf $(CUR_DIR)/xyz.h $(PREFIX)/include/xyz.h
+	ln -sf $(CUR_DIR)/xyz_aprilgrid.h $(PREFIX)/include/xyz_aprilgrid.h
+	ln -sf $(CUR_DIR)/xyz_ceres_bridge.h $(PREFIX)/include/xyz_ceres_bridge.h
+	ln -sf $(CUR_DIR)/xyz_euroc.h $(PREFIX)/include/xyz_euroc.h
+	ln -sf $(CUR_DIR)/xyz_gui.h $(PREFIX)/include/xyz_gui.h
+	ln -sf $(CUR_DIR)/xyz_http.h $(PREFIX)/include/xyz_http.h
+	ln -sf $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
 
 uninstall: ## Uninstall libxyz
 	rm $(PREFIX)/lib/libxyz.a
-	rm $(PREFIX)/include/aprilgrid.h
-	rm $(PREFIX)/include/euroc.h
-	rm $(PREFIX)/include/gui.h
-	rm $(PREFIX)/include/http.h
 	rm $(PREFIX)/include/xyz.h
-	rm $(PREFIX)/include/sbgc.h
-	rm $(PREFIX)/include/stb_image.h
+	rm $(PREFIX)/include/xyz_aprilgrid.h
+	rm $(PREFIX)/include/xyz_ceres_bridge.h
+	rm $(PREFIX)/include/xyz_euroc.h
+	rm $(PREFIX)/include/xyz_gui.h
+	rm $(PREFIX)/include/xyz_http.h
+	rm $(PREFIX)/include/xyz_sbgc.h
+	rm $(PREFIX)/include/xyz_stb_image.h
 	rm $(PYTHON3_PATH)/xyz.py
 
 avs: $(BLD_DIR)/libxyz.a

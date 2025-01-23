@@ -1,5 +1,5 @@
-#ifndef HTTP_H
-#define HTTP_H
+#ifndef XYZ_HTTP_H
+#define XYZ_HTTP_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -271,13 +271,13 @@ char *ws_hash(const char *ws_key);
 int ws_handshake(const int connfd);
 int ws_server(void);
 
-#endif // HTTP_H
+#endif // XYZ_HTTP_H
 
 //////////////////////////////////////////////////////////////////////////////
 //                             IMPLEMENTATION                               //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifdef HTTP_IMPLEMENTATION
+#ifdef XYZ_HTTP_IMPLEMENTATION
 
 static char b64_encode_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -993,13 +993,13 @@ int ws_server(void) {
   return 0;
 }
 
-#endif // HTTP_IMPLEMENTATION
+#endif // XYZ_HTTP_IMPLEMENTATION
 
 //////////////////////////////////////////////////////////////////////////////
 //                                UNITTESTS                                 //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifdef HTTP_UNITTEST
+#ifdef XYZ_HTTP_UNITTEST
 
 #include <stdio.h>
 
@@ -1125,4 +1125,4 @@ int main(int argc, char *argv[]) {
   return (nb_failed) ? -1 : 0;
 }
 
-#endif // HTTP_UNITTESTS
+#endif // XYZ_HTTP_UNITTESTS

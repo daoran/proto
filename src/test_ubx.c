@@ -1,3 +1,3 @@
-#define UBX_IMPLEMENTATION
-#define UBX_UNITTEST
-#include "ubx.h"
+#define XYZ_UBX_IMPLEMENTATION
+#define XYZ_UBX_UNITTEST
+#include "xyz_ubx.h"

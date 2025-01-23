@@ -1,0 +1,142 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-c",
+      "-o",
+      "build/xyz.o",
+      "src/xyz.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/xyz.c",
+    "output": "/home/chutsu/code/xyz/build/xyz.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-c",
+      "-o",
+      "build/aprilgrid.o",
+      "src/aprilgrid.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/aprilgrid.c",
+    "output": "/home/chutsu/code/xyz/build/aprilgrid.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-c",
+      "-o",
+      "build/euroc.o",
+      "src/euroc.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/euroc.c",
+    "output": "/home/chutsu/code/xyz/build/euroc.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-c",
+      "-o",
+      "build/gui.o",
+      "src/gui.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/gui.c",
+    "output": "/home/chutsu/code/xyz/build/gui.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-c",
+      "-o",
+      "build/sbgc.o",
+      "src/sbgc.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/sbgc.c",
+    "output": "/home/chutsu/code/xyz/build/sbgc.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-O3",
+      "-c",
+      "-I/usr/include/eigen3",
+      "-o",
+      "build/ceres_bridge.o",
+      "src/ceres_bridge.cpp"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/ceres_bridge.cpp",
+    "output": "/home/chutsu/code/xyz/build/ceres_bridge.o"
+  }
+]

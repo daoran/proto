@@ -1,5 +1,5 @@
-#ifndef APRILGRID_H
-#define APRILGRID_H
+#ifndef XYZ_APRILGRID_H
+#define XYZ_APRILGRID_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -192,14 +192,14 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
 #ifdef __cplusplus
 } // extern C
 #endif
-#endif // APRILGRID_H
+#endif // XYZ_APRILGRID_H
 
 
 //////////////////////////////////////////////////////////////////////////////
 //                             IMPLEMENTATION                               //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifdef APRILGRID_IMPLEMENTATION
+#ifdef XYZ_APRILGRID_IMPLEMENTATION
 
 // APRILGRID /////////////////////////////////////////////////////////////////
 
@@ -855,13 +855,13 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
 // }
 // #endif // __cplusplus
 
-#endif // APRILGRID_IMPLEMENTATION
+#endif // XYZ_APRILGRID_IMPLEMENTATION
 
 //////////////////////////////////////////////////////////////////////////////
 //                                UNITTESTS                                 //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifdef APRILGRID_UNITTEST
+#ifdef XYZ_APRILGRID_UNITTEST
 
 #include <math.h>
 #include <stdio.h>
@@ -1238,4 +1238,4 @@ int main(int argc, char *argv[]) {
   return (nb_failed) ? -1 : 0;
 }
 
-#endif // APRILGRID_UNITTEST
+#endif // XYZ_APRILGRID_UNITTEST

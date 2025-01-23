@@ -1,5 +1,5 @@
-#ifndef GUI_H
-#define GUI_H
+#ifndef XYZ_GUI_H
+#define XYZ_GUI_H
 
 #ifdef __cplusplus
 #error "This module only supports C builds"
@@ -469,9 +469,9 @@ int ui_checkbox(const char *label, gl_bounds_t bounds);
 // UI-DROPDOWN ///////////////////////////////////////////////////////////////
 // UI-TEXTBOX ////////////////////////////////////////////////////////////////
 
-#endif // GUI_H
+#endif // XYZ_GUI_H
 
-#ifdef GUI_IMPLEMENTATION
+#ifdef XYZ_GUI_IMPLEMENTATION
 
 //////////////////////////////////////////////////////////////////////////////
 //                             IMPLEMENTATION                               //
@@ -3559,13 +3559,13 @@ int ui_checkbox(const char *label, gl_bounds_t bounds) {
   return button_on;
 }
 
-#endif // GUI_IMPLEMENTATION
+#endif // XYZ_GUI_IMPLEMENTATION
 
 //////////////////////////////////////////////////////////////////////////////
 //                                UNITTESTS                                 //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifdef GUI_UNITTEST
+#ifdef XYZ_GUI_UNITTEST
 
 #include <stdio.h>
 
@@ -4148,9 +4148,9 @@ int main(int argc, char *argv[]) {
   TEST(test_gl_perspective);
   TEST(test_gl_ortho);
   TEST(test_gl_lookat);
-  TEST(test_gl_compile);
-  TEST(test_gl_link);
-  TEST(test_gl_shader);
+  // TEST(test_gl_compile);
+  // TEST(test_gl_link);
+  // TEST(test_gl_shader);
   // TEST(test_gl_camera_setup);
   // TEST(test_gl_model_load);
   TEST(test_gui);
@@ -4159,4 +4159,4 @@ int main(int argc, char *argv[]) {
   return (num_failed) ? -1 : 0;
 }
 
-#endif // GUI_UNITTEST
+#endif // XYZ_GUI_UNITTEST

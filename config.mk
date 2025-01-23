@@ -89,14 +89,12 @@ ARFLAGS = rvs
 LIBXYZ := $(BLD_DIR)/libxyz.a
 LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz.o \
-	$(BLD_DIR)/aprilgrid.o \
-	$(BLD_DIR)/euroc.o \
-	$(BLD_DIR)/gui.o \
-	$(BLD_DIR)/sbgc.o \
-	$(BLD_DIR)/ceres_bridge.o
+	$(BLD_DIR)/xyz_aprilgrid.o \
+	$(BLD_DIR)/xyz_euroc.o \
+	$(BLD_DIR)/xyz_gui.o \
+	$(BLD_DIR)/xyz_ceres_bridge.o
 
 TESTS := \
 	test_xyz \
 	test_aprilgrid \
-	test_sbgc \
 	test_ubx

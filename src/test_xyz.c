@@ -2901,8 +2901,8 @@ int test_linear_triangulation(void) {
   const real_t fov = 120.0;
   const real_t fx = pinhole_focal(image_width, fov);
   const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
+  const real_t cx = image_width / 2.0;
+  const real_t cy = image_height / 2.0;
   const real_t proj_params[4] = {fx, fy, cx, cy};
   real_t K[3 * 3];
   pinhole_K(proj_params, K);
@@ -2971,8 +2971,8 @@ int test_homography_find(void) {
   const real_t fov = 120.0;
   const real_t fx = pinhole_focal(image_width, fov);
   const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
+  const real_t cx = image_width / 2.0;
+  const real_t cy = image_height / 2.0;
   const real_t proj_params[4] = {fx, fy, cx, cy};
   real_t K[3 * 3];
   pinhole_K(proj_params, K);
@@ -3061,8 +3061,8 @@ int test_homography_pose(void) {
   const real_t fov = 120.0;
   const real_t fx = pinhole_focal(image_width, fov);
   const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
+  const real_t cx = image_width / 2.0;
+  const real_t cy = image_height / 2.0;
   const real_t proj_params[4] = {fx, fy, cx, cy};
 
   // Setup camera pose T_WC
@@ -3177,8 +3177,8 @@ int test_solvepnp(void) {
   const real_t fov = 120.0;
   const real_t fx = pinhole_focal(image_width, fov);
   const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
+  const real_t cx = image_width / 2.0;
+  const real_t cy = image_height / 2.0;
   const real_t proj_params[4] = {fx, fy, cx, cy};
 
   // Setup camera pose T_WC
@@ -4026,8 +4026,8 @@ int test_triangulation_batch(void) {
   const real_t fov = 120.0;
   const real_t fx = pinhole_focal(image_width, fov);
   const real_t fy = pinhole_focal(image_width, fov);
-  const real_t cx = image_width / 2;
-  const real_t cy = image_height / 2;
+  const real_t cx = image_width / 2.0;
+  const real_t cy = image_height / 2.0;
   const real_t proj_params[4] = {fx, fy, cx, cy};
   const real_t data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
   camera_params_t cam_i;

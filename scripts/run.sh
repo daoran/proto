@@ -57,7 +57,7 @@ run_memcheck() {
 # python3 src/xyz.py TestOctree
 # python3 src/xyz.py TestOctree.test_octree
 # python3 src/xyz.py TestOctree.test_point_plane
-python3 src/xyz.py TestKDTree
+# python3 src/xyz.py TestKDTree
 # python3 src/xyz.py TestFrustum
 # python3 src/xyz.py TestFrustum.test_frustum
 # python3 src/xyz.py TestFrustum.test_livox
@@ -136,7 +136,7 @@ python3 src/xyz.py TestKDTree
 run_all_tests() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
-    cd ~/code/xyz/xyz \
+    cd ~/code/xyz/src \
       && clear \
       && make test_xyz -j \
   " C-m C-m
@@ -189,8 +189,6 @@ dev_euroc() {
 dev_gui() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "cd ~/code/xyz && time make test_gui -j && cd build && ./test_gui" C-m
-  # tmux send-keys -t dev -R "cd ~/code/xyz && make test_gui && gdb -ex=run -ex=bt ./build/test_gui" C-m
-  # tmux send-keys -t dev -R "cd ~/code/xyz && make test_gui && gdb -ex=run -ex=bt -ex=quit ./build/test_gui" C-m
   exit
 }
 
@@ -200,7 +198,6 @@ dev_avs() {
   exit
 }
 
-# dev_sbgc
 # dev_aprilgrid
 # dev_euroc
 dev_gui
@@ -210,6 +207,7 @@ dev_gui
 # python3 scripts/plot_inertial_odometry.py
 # python3 scripts/plot_map.py
 
+# make libxyz
 
 # xyz
 # run_all_tests

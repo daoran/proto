@@ -14,7 +14,7 @@
 
 #ifdef USE_APRILGRID
 #define APRILGRID_IMPLEMENTATION
-#include "aprilgrid.h"
+#include "xyz_aprilgrid.h"
 #endif
 
 #ifdef USE_GUI
@@ -19769,10 +19769,10 @@ static void tsf_extract_stereo_keypoints(const size_t *fids0,
                                          real_t *kps0_out,
                                          real_t *kps1_out) {
   // Initialize output to zero
-  memset(match_fids, sizeof(int), limit);
-  *num_match_fids = 0;
-  memset(kps0_out, sizeof(real_t), limit * 2);
-  memset(kps1_out, sizeof(real_t), limit * 2);
+  // memset(match_fids, sizeof(int), limit);
+  // *num_match_fids = 0;
+  // memset(kps0_out, sizeof(real_t), limit * 2);
+  // memset(kps1_out, sizeof(real_t), limit * 2);
 
   // Extract features with same feature id
   int cam0_idx = 0;

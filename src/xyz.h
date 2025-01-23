@@ -16,8 +16,6 @@ extern "C" {
 #define USE_STB
 // #define USE_GUI
 #define USE_APRILGRID
-// #define USE_TIS
-// #define USE_SBGC
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +48,7 @@ extern "C" {
 #endif
 
 #ifdef USE_CERES
-#include "ceres_bridge.h"
+#include "xyz_ceres_bridge.h"
 #endif
 
 #ifdef USE_STB
@@ -62,7 +60,7 @@ extern "C" {
 #endif
 
 #ifdef USE_APRILGRID
-#include "aprilgrid.h"
+#include "xyz_aprilgrid.h"
 #endif
 
 /******************************************************************************

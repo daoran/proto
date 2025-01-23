@@ -1,4 +1,4 @@
-#include "ceres_bridge.h"
+#include "xyz_ceres_bridge.h"
 
 #include <iostream>
 #include <ceres/c_api.h>
