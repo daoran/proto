@@ -88,11 +88,25 @@ ARFLAGS = rvs
 # TARGETS
 LIBXYZ := $(BLD_DIR)/libxyz.a
 LIBXYZ_OBJS := \
-	$(BLD_DIR)/xyz.o \
-	$(BLD_DIR)/xyz_aprilgrid.o \
-	$(BLD_DIR)/xyz_euroc.o \
-	$(BLD_DIR)/xyz_gui.o \
-	$(BLD_DIR)/xyz_ceres_bridge.o
+	$(BLD_DIR)/data.o \
+	$(BLD_DIR)/fs.o \
+	$(BLD_DIR)/ds.o \
+	$(BLD_DIR)/time.o \
+	$(BLD_DIR)/network.o \
+	$(BLD_DIR)/math.o \
+	$(BLD_DIR)/cv.o \
+	$(BLD_DIR)/control.o \
+	$(BLD_DIR)/gimbal.o \
+	$(BLD_DIR)/mav.o \
+	$(BLD_DIR)/gnuplot.o \
+	$(BLD_DIR)/state_estimation.o \
+	$(BLD_DIR)/timeline.o \
+	$(BLD_DIR)/dataset.o \
+	# $(BLD_DIR)/sim.o \
+	# $(BLD_DIR)/calib.o \
+	# $(BLD_DIR)/xyz_aprilgrid.o \
+	# $(BLD_DIR)/xyz_euroc.o \
+	# $(BLD_DIR)/xyz_ceres_bridge.o
 
 TESTS := \
 	test_xyz \

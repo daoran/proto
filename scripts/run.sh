@@ -200,14 +200,16 @@ dev_avs() {
 
 # dev_aprilgrid
 # dev_euroc
-dev_gui
+# dev_gui
 # dev_avs
 # python3 scripts/benchmark.py
 # python3 scripts/plot_gimbal_calib.py
 # python3 scripts/plot_inertial_odometry.py
 # python3 scripts/plot_map.py
 
-# make libxyz
+tmux send-keys -t dev -R C-l C-m
+tmux send-keys -t dev -R "cd ~/code/xyz && make libxyz" C-m
+exit
 
 # xyz
 # run_all_tests
