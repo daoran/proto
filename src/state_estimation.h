@@ -106,25 +106,25 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 // FIDUCIAL //
 //////////////
 
-// /** Fiducial **/
-// typedef struct fiducial_t {
-//   int marginalize;
-//   int fix;
-//   real_t data[7];
-// } fiducial_t;
-//
-// void fiducial_setup(fiducial_t *fiducial, const real_t *param);
-// void fiducial_copy(const fiducial_t *src, fiducial_t *dst);
-// void fiducial_fprint(const char *prefix, const fiducial_t *exts, FILE *f);
-// void fiducial_print(const char *prefix, const fiducial_t *exts);
-//
-// /** Fiducial Buffer **/
+/** Fiducial **/
+typedef struct fiducial_t {
+  int marginalize;
+  int fix;
+  real_t data[7];
+} fiducial_t;
+
+void fiducial_setup(fiducial_t *fiducial, const real_t *param);
+void fiducial_copy(const fiducial_t *src, fiducial_t *dst);
+void fiducial_fprint(const char *prefix, const fiducial_t *exts, FILE *f);
+void fiducial_print(const char *prefix, const fiducial_t *exts);
+
+/** Fiducial Buffer **/
 // typedef struct fiducial_buffer_t {
 //   fiducial_event_t **data;
 //   int size;
 //   int capacity;
 // } fiducial_buffer_t;
-//
+
 // fiducial_buffer_t *fiducial_buffer_malloc(void); void fiducial_buffer_clear(fiducial_buffer_t *buf);
 // void fiducial_buffer_free(fiducial_buffer_t *buf);
 // int fiducial_buffer_total_corners(const fiducial_buffer_t *buf);
@@ -365,7 +365,7 @@ PARAM_HASH(imu_biases_hash_t, timestamp_t, imu_biases_t)
 PARAM_HASH(feature_hash_t, size_t, feature_t)
 PARAM_HASH(joint_hash_t, size_t, joint_t)
 PARAM_HASH(extrinsic_hash_t, size_t, extrinsic_t)
-// PARAM_HASH(fiducial_hash_t, size_t, fiducial_t)
+PARAM_HASH(fiducial_hash_t, size_t, fiducial_t)
 PARAM_HASH(camera_params_hash_t, size_t, camera_params_t)
 PARAM_HASH(time_delay_hash_t, size_t, time_delay_t)
 
@@ -391,7 +391,7 @@ void param_order_add_position(param_order_t **h, pos_t *p, int *c);
 void param_order_add_rotation(param_order_t **h, rot_t *p, int *c);
 void param_order_add_pose(param_order_t **h, pose_t *p, int *c);
 void param_order_add_extrinsic(param_order_t **h, extrinsic_t *p, int *c);
-// void param_order_add_fiducial(param_order_t **h, fiducial_t *p, int *c);
+void param_order_add_fiducial(param_order_t **h, fiducial_t *p, int *c);
 void param_order_add_velocity(param_order_t **h, velocity_t *p, int *c);
 void param_order_add_imu_biases(param_order_t **h, imu_biases_t *p, int *c);
 void param_order_add_feature(param_order_t **h, feature_t *p, int *c);
@@ -825,14 +825,6 @@ int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
     hmput(MHASH, PARAM, PARAM);                                                \
   }
 
-/*
-// case FIDUCIAL_PARAM:                                                       \
-//   MARG_TRACK(marg->r_fiducials,                                            \
-//              marg->m_fiducials,                                            \
-//              ((fiducial_t *) PARAM));                                      \
-//   break;
-*/
-
 #define MARG_TRACK_FACTOR(PARAM, PARAM_TYPE)                                   \
   switch (PARAM_TYPE) {                                                        \
     case POSITION_PARAM:                                                       \
@@ -856,6 +848,11 @@ int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
       break;                                                                   \
     case FEATURE_PARAM:                                                        \
       MARG_TRACK(marg->r_features, marg->m_features, ((feature_t *) PARAM));   \
+      break;                                                                   \
+    case FIDUCIAL_PARAM:                                                       \
+      MARG_TRACK(marg->r_fiducials,                                            \
+                 marg->m_fiducials,                                            \
+                 ((fiducial_t *) PARAM));                                      \
       break;                                                                   \
     case EXTRINSIC_PARAM:                                                      \
       MARG_TRACK(marg->r_extrinsics,                                           \
@@ -942,7 +939,7 @@ MARG_PARAM_HASH(imu_biases_t, marg_imu_biases_t)
 MARG_PARAM_HASH(feature_t, marg_feature_t)
 MARG_PARAM_HASH(joint_t, marg_joint_t)
 MARG_PARAM_HASH(extrinsic_t, marg_extrinsic_t)
-// MARG_PARAM_HASH(fiducial_t, marg_fiducial_t)
+MARG_PARAM_HASH(fiducial_t, marg_fiducial_t)
 MARG_PARAM_HASH(camera_params_t, marg_camera_params_t)
 MARG_PARAM_HASH(time_delay_t, marg_time_delay_t)
 
@@ -963,7 +960,7 @@ typedef struct marg_factor_t {
   marg_pose_t *r_poses;
   marg_velocity_t *r_velocities;
   marg_imu_biases_t *r_imu_biases;
-  // marg_fiducial_t *r_fiducials;
+  marg_fiducial_t *r_fiducials;
   marg_joint_t *r_joints;
   marg_extrinsic_t *r_extrinsics;
   marg_feature_t *r_features;
@@ -976,7 +973,7 @@ typedef struct marg_factor_t {
   marg_velocity_t *m_velocities;
   marg_imu_biases_t *m_imu_biases;
   marg_feature_t *m_features;
-  // marg_fiducial_t *m_fiducials;
+  marg_fiducial_t *m_fiducials;
   marg_extrinsic_t *m_extrinsics;
   marg_joint_t *m_joints;
   marg_camera_params_t *m_cam_params;

@@ -391,81 +391,81 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts) {
 // FIDUCIAL //
 //////////////
 
-// /**
-//  * Setup fiducial.
-//  */
-// void fiducial_setup(fiducial_t *exts, const real_t *data) {
-//   assert(exts != NULL);
-//   assert(data != NULL);
-//
-//   // Flags
-//   exts->marginalize = 0;
-//   exts->fix = 0;
-//
-//   // Translation
-//   exts->data[0] = data[0]; // rx
-//   exts->data[1] = data[1]; // ry
-//   exts->data[2] = data[2]; // rz
-//
-//   // Rotation (Quaternion)
-//   exts->data[3] = data[3]; // qw
-//   exts->data[4] = data[4]; // qx
-//   exts->data[5] = data[5]; // qy
-//   exts->data[6] = data[6]; // qz
-// }
-//
-// /**
-//  * Copy fiducial.
-//  */
-// void fiducial_copy(const fiducial_t *src, fiducial_t *dst) {
-//   assert(src != NULL);
-//   assert(dst != NULL);
-//
-//   dst->marginalize = src->marginalize;
-//   dst->fix = src->fix;
-//   dst->data[0] = src->data[0];
-//   dst->data[1] = src->data[1];
-//   dst->data[2] = src->data[2];
-//   dst->data[3] = src->data[3];
-//   dst->data[4] = src->data[4];
-//   dst->data[5] = src->data[5];
-//   dst->data[6] = src->data[6];
-// }
-//
-// /**
-//  * Print fiducial.
-//  */
-// void fiducial_fprint(const char *prefix, const fiducial_t *fiducial, FILE *f) {
-//   const real_t x = fiducial->data[0];
-//   const real_t y = fiducial->data[1];
-//   const real_t z = fiducial->data[2];
-//
-//   const real_t qw = fiducial->data[3];
-//   const real_t qx = fiducial->data[4];
-//   const real_t qy = fiducial->data[5];
-//   const real_t qz = fiducial->data[6];
-//   const real_t q[4] = {qw, qx, qy, qz};
-//   real_t C[3 * 3] = {0};
-//   quat2rot(q, C);
-//
-//   fprintf(f, "%s:\n", prefix);
-//   fprintf(f, "  num_rows: 4\n");
-//   fprintf(f, "  num_cols: 4\n");
-//   fprintf(f, "  data: [\n");
-//   fprintf(f, "    %f, %f, %f, %f,\n", C[0], C[1], C[2], x);
-//   fprintf(f, "    %f, %f, %f, %f,\n", C[3], C[4], C[5], y);
-//   fprintf(f, "    %f, %f, %f, %f,\n", C[6], C[7], C[8], z);
-//   fprintf(f, "    %f, %f, %f, %f\n", 0.0, 0.0, 0.0, 1.0);
-//   fprintf(f, "  ]\n");
-// }
-//
-// /**
-//  * Print fiducial.
-//  */
-// void fiducial_print(const char *prefix, const fiducial_t *fiducial) {
-//   fiducial_fprint(prefix, fiducial, stdout);
-// }
-//
+/**
+ * Setup fiducial.
+ */
+void fiducial_setup(fiducial_t *exts, const real_t *data) {
+  assert(exts != NULL);
+  assert(data != NULL);
+
+  // Flags
+  exts->marginalize = 0;
+  exts->fix = 0;
+
+  // Translation
+  exts->data[0] = data[0]; // rx
+  exts->data[1] = data[1]; // ry
+  exts->data[2] = data[2]; // rz
+
+  // Rotation (Quaternion)
+  exts->data[3] = data[3]; // qw
+  exts->data[4] = data[4]; // qx
+  exts->data[5] = data[5]; // qy
+  exts->data[6] = data[6]; // qz
+}
+
+/**
+ * Copy fiducial.
+ */
+void fiducial_copy(const fiducial_t *src, fiducial_t *dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+
+  dst->marginalize = src->marginalize;
+  dst->fix = src->fix;
+  dst->data[0] = src->data[0];
+  dst->data[1] = src->data[1];
+  dst->data[2] = src->data[2];
+  dst->data[3] = src->data[3];
+  dst->data[4] = src->data[4];
+  dst->data[5] = src->data[5];
+  dst->data[6] = src->data[6];
+}
+
+/**
+ * Print fiducial.
+ */
+void fiducial_fprint(const char *prefix, const fiducial_t *fiducial, FILE *f) {
+  const real_t x = fiducial->data[0];
+  const real_t y = fiducial->data[1];
+  const real_t z = fiducial->data[2];
+
+  const real_t qw = fiducial->data[3];
+  const real_t qx = fiducial->data[4];
+  const real_t qy = fiducial->data[5];
+  const real_t qz = fiducial->data[6];
+  const real_t q[4] = {qw, qx, qy, qz};
+  real_t C[3 * 3] = {0};
+  quat2rot(q, C);
+
+  fprintf(f, "%s:\n", prefix);
+  fprintf(f, "  num_rows: 4\n");
+  fprintf(f, "  num_cols: 4\n");
+  fprintf(f, "  data: [\n");
+  fprintf(f, "    %f, %f, %f, %f,\n", C[0], C[1], C[2], x);
+  fprintf(f, "    %f, %f, %f, %f,\n", C[3], C[4], C[5], y);
+  fprintf(f, "    %f, %f, %f, %f,\n", C[6], C[7], C[8], z);
+  fprintf(f, "    %f, %f, %f, %f\n", 0.0, 0.0, 0.0, 1.0);
+  fprintf(f, "  ]\n");
+}
+
+/**
+ * Print fiducial.
+ */
+void fiducial_print(const char *prefix, const fiducial_t *fiducial) {
+  fiducial_fprint(prefix, fiducial, stdout);
+}
+
 // /**
 //  * Malloc fiducial buffer.
 //  */
@@ -1498,11 +1498,11 @@ void param_order_add_extrinsic(param_order_t **h, extrinsic_t *p, int *c) {
 }
 
 /** Add fiducial parameter **/
-// void param_order_add_fiducial(param_order_t **h, fiducial_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, FIDUCIAL_PARAM, fix, data, c);
-// }
+void param_order_add_fiducial(param_order_t **h, fiducial_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_order_add(h, FIDUCIAL_PARAM, fix, data, c);
+}
 
 /** Add velocity parameter **/
 void param_order_add_velocity(param_order_t **h, velocity_t *p, int *c) {
@@ -4160,7 +4160,7 @@ marg_factor_t *marg_factor_malloc(void) {
   marg->r_poses = NULL;
   marg->r_velocities = NULL;
   marg->r_imu_biases = NULL;
-  // marg->r_fiducials = NULL;
+  marg->r_fiducials = NULL;
   marg->r_joints = NULL;
   marg->r_extrinsics = NULL;
   marg->r_features = NULL;
@@ -4172,7 +4172,7 @@ marg_factor_t *marg_factor_malloc(void) {
   marg->m_poses = NULL;
   marg->m_velocities = NULL;
   marg->m_imu_biases = NULL;
-  // marg->m_fiducials = NULL;
+  marg->m_fiducials = NULL;
   marg->m_joints = NULL;
   marg->m_extrinsics = NULL;
   marg->m_features = NULL;
@@ -4471,7 +4471,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_INDEX(marg->m_features, FEATURE_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(marg->m_joints, JOINT_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(marg->m_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m, gm, nm);
-  // MARG_INDEX(marg->m_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(marg->m_cam_params, CAMERA_PARAM, marg->hash, &H_idx, m, gm, nm);
   MARG_INDEX(marg->m_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, m, gm, nm);
   // -- Column indices for parameter blocks to remain
@@ -4483,7 +4483,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_INDEX(marg->r_features, FEATURE_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_joints, JOINT_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r, gr, nr);
-  // MARG_INDEX(marg->r_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r, gr, nr);
   MARG_INDEX(marg->r_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r, gr, nr);
   // clang-format on
@@ -4509,7 +4509,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_PARAMS(marg, marg->r_features, FEATURE_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_joints, JOINT_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_extrinsics, EXTRINSIC_PARAM, param_idx, x0_idx);
-  // MARG_PARAMS(marg, marg->r_fiducials, FIDUCIAL_PARAM, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_fiducials, FIDUCIAL_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_cam_params, CAMERA_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_time_delays, TIME_DELAY_PARAM, param_idx, x0_idx);
 
