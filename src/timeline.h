@@ -2,7 +2,6 @@
 
 #include "macros.h"
 #include "logging.h"
-#include "fs.h"
 #include "data.h"
 #include "time.h"
 
@@ -72,6 +71,7 @@ void print_imu_event(const imu_event_t *event);
 void print_fiducial_event(const fiducial_event_t *event);
 
 timeline_t *timeline_malloc(void); void timeline_free(timeline_t *timeline);
+void timeline_form_timeline(timeline_t *tl);
 timeline_t *timeline_load_data(const char *data_dir,
                                const int num_cams,
                                const int num_imus);

@@ -362,7 +362,7 @@ static void timeline_load_events(timeline_t *timeline, const char *data_dir) {
 /**
  * Form timeline.
  */
-static void timeline_form_timeline(timeline_t *tl) {
+void timeline_form_timeline(timeline_t *tl) {
   // Determine timeline timestamps
   int max_timeline_length = 0;
   for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {

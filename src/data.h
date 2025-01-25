@@ -5,8 +5,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <dirent.h>
+#include <unistd.h>
 
 #include "macros.h"
+#include "logging.h"
+#include "data.h"
 
 size_t string_copy(char *dst, const char *src);
 void string_subcopy(char *dst, const char *src, const int s, const int n);
@@ -33,3 +37,16 @@ void dsv_free(double **data, const int num_rows);
 
 double **csv_data(const char *fp, int *num_rows, int *num_cols);
 void csv_free(double **data, const int num_rows);
+
+void path_file_name(const char *path, char *fname);
+void path_file_ext(const char *path, char *fext);
+void path_dir_name(const char *path, char *dir_name);
+char *path_join(const char *x, const char *y);
+char **list_files(const char *path, int *num_files);
+void list_files_free(char **data, const int n);
+
+char *file_read(const char *fp);
+void skip_line(FILE *fp);
+status_t file_exists(const char *fp);
+status_t file_rows(const char *fp);
+status_t file_copy(const char *src, const char *dest);

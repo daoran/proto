@@ -726,309 +726,309 @@ void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
   free(sim_data);
 }
 
-/////////////////////
-// SIM GIMBAL DATA //
-/////////////////////
-
-/**
- * Malloc a simulated gimbal view.
- */
-sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners) {
-  sim_gimbal_view_t *view = MALLOC(sim_gimbal_view_t, 1);
-
-  view->num_measurements = 0;
-  view->tag_ids = MALLOC(int, max_corners);
-  view->corner_indices = MALLOC(int, max_corners);
-  view->object_points = MALLOC(real_t, max_corners * 3);
-  view->keypoints = MALLOC(real_t, max_corners * 2);
-
-  assert(view->tag_ids != NULL);
-  assert(view->corner_indices != NULL);
-  assert(view->object_points != NULL);
-  assert(view->keypoints != NULL);
-
-  return view;
-}
-
-/**
- * Free simulated gimbal view.
- */
-void sim_gimbal_view_free(sim_gimbal_view_t *view) {
-  free(view->tag_ids);
-  free(view->corner_indices);
-  free(view->object_points);
-  free(view->keypoints);
-  free(view);
-}
-
-/**
- * Print simulated gimbal view.
- */
-void sim_gimbal_view_print(const sim_gimbal_view_t *view) {
-  printf("num_measurements: %d\n", view->num_measurements);
-  for (size_t i = 0; i < view->num_measurements; i++) {
-    printf("%d ", view->tag_ids[i]);
-    printf("%d ", view->corner_indices[i]);
-    printf("(%.2f, %.2f, %.2f) ",
-           view->object_points[i + 0],
-           view->object_points[i + 1],
-           view->object_points[i + 2]);
-    printf("(%.2f, %.2f) ", view->keypoints[i + 0], view->keypoints[i + 1]);
-    printf("\n");
-  }
-}
-
-/**
- * Malloc gimbal simulation.
- */
-sim_gimbal_t *sim_gimbal_malloc(void) {
-  sim_gimbal_t *sim = MALLOC(sim_gimbal_t, 1);
-
-  // Aprilgrid
-  int num_rows = 6;
-  int num_cols = 6;
-  double tag_size = 0.088;
-  double tag_spacing = 0.3;
-  sim->grid = aprilgrid_malloc(num_rows, num_cols, tag_size, tag_spacing);
-
-  // Fiducial pose
-  const real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
-  const real_t r_WF[3] = {0.5, 0.0, 0.0};
-  POSE_ER(ypr_WF, r_WF, fiducial_ext);
-  fiducial_setup(&sim->fiducial_ext, fiducial_ext);
-
-  // Gimbal pose
-  real_t x = 0.0;
-  real_t y = 0.0;
-  aprilgrid_center(sim->grid, &x, &y);
-  const real_t r_WB[3] = {0, -y, 0};
-  const real_t ypr_WB[3] = {0, 0, 0};
-  POSE_ER(ypr_WB, r_WB, gimbal_pose);
-  pose_setup(&sim->gimbal_pose, 0, gimbal_pose);
-
-  // Gimbal extrinsic (body to gimbal)
-  const real_t ypr_BM0[3] = {0.01, 0.01, 0.01};
-  const real_t r_BM0[3] = {0.001, 0.001, 0.001};
-  POSE_ER(ypr_BM0, r_BM0, gimbal_ext);
-  extrinsic_setup(&sim->gimbal_ext, gimbal_ext);
-
-  // Links
-  sim->num_links = 2;
-  sim->gimbal_links = MALLOC(extrinsic_t, sim->num_links);
-  // -- Roll link
-  const real_t ypr_L0M1[3] = {0.0, M_PI / 2, 0.0};
-  const real_t r_L0M1[3] = {-0.1, 0.0, 0.15};
-  POSE_ER(ypr_L0M1, r_L0M1, link_roll);
-  extrinsic_setup(&sim->gimbal_links[0], link_roll);
-  // -- Pitch link
-  const real_t ypr_L1M2[3] = {0.0, 0.0, -M_PI / 2.0};
-  const real_t r_L1M2[3] = {0.0, -0.05, 0.1};
-  POSE_ER(ypr_L1M2, r_L1M2, link_pitch);
-  extrinsic_setup(&sim->gimbal_links[1], link_pitch);
-
-  // Joints
-  sim->num_joints = 3;
-  sim->gimbal_joints = MALLOC(joint_t, sim->num_joints);
-  joint_setup(&sim->gimbal_joints[0], 0, 0, 0.0);
-  joint_setup(&sim->gimbal_joints[1], 0, 1, 0.0);
-  joint_setup(&sim->gimbal_joints[2], 0, 2, 0.0);
-
-  // Setup cameras
-  sim->num_cams = 2;
-  // -- Camera extrinsic
-  sim->cam_exts = MALLOC(extrinsic_t, sim->num_cams);
-  // ---- cam0 extrinsic
-  const real_t ypr_M2eC0[3] = {-M_PI / 2.0, M_PI / 2.0, 0.0};
-  const real_t r_M2eC0[3] = {0.0, -0.05, 0.12};
-  POSE_ER(ypr_M2eC0, r_M2eC0, cam0_exts);
-  extrinsic_setup(&sim->cam_exts[0], cam0_exts);
-  // ---- cam1 extrinsic
-  const real_t ypr_M2eC1[3] = {-M_PI / 2.0, M_PI / 2.0, 0.0};
-  const real_t r_M2eC1[3] = {0.0, -0.05, -0.12};
-  POSE_ER(ypr_M2eC1, r_M2eC1, cam1_exts);
-  extrinsic_setup(&sim->cam_exts[1], cam1_exts);
-  // -- Camera parameters
-  const int cam_res[2] = {640, 480};
-  const real_t fov = 120.0;
-  const real_t fx = pinhole_focal(cam_res[0], fov);
-  const real_t fy = pinhole_focal(cam_res[0], fov);
-  const real_t cx = cam_res[0] / 2.0;
-  const real_t cy = cam_res[1] / 2.0;
-  const char *proj_model = "pinhole";
-  const char *dist_model = "radtan4";
-  const real_t data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
-  sim->cam_params = MALLOC(camera_params_t, sim->num_cams);
-  camera_params_setup(&sim->cam_params[0],
-                      0,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      data);
-  camera_params_setup(&sim->cam_params[1],
-                      1,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      data);
-
-  return sim;
-}
-
-/**
- * Free gimbal simulation.
- */
-void sim_gimbal_free(sim_gimbal_t *sim) {
-  if (sim == NULL) {
-    return;
-  }
-
-  aprilgrid_free(sim->grid);
-  FREE(sim->gimbal_links);
-  FREE(sim->gimbal_joints);
-  FREE(sim->cam_exts);
-  FREE(sim->cam_params);
-  FREE(sim);
-}
-
-/**
- * Print gimbal simulation.
- */
-void sim_gimbal_print(const sim_gimbal_t *sim) {
-  // Configuration file
-  for (int cam_idx = 0; cam_idx < sim->num_cams; cam_idx++) {
-    camera_params_print(&sim->cam_params[cam_idx]);
-    printf("\n");
-  }
-  for (int cam_idx = 0; cam_idx < sim->num_cams; cam_idx++) {
-    char cam_str[20] = {0};
-    sprintf(cam_str, "cam%d_ext", cam_idx);
-    extrinsic_print(cam_str, &sim->cam_exts[cam_idx]);
-  }
-  for (int link_idx = 0; link_idx < sim->num_links; link_idx++) {
-    char link_str[20] = {0};
-    sprintf(link_str, "link%d_ext", link_idx);
-    extrinsic_print(link_str, &sim->gimbal_links[link_idx]);
-  }
-  extrinsic_print("gimbal_ext", &sim->gimbal_ext);
-  fiducial_print("fiducial_ext", &sim->fiducial_ext);
-}
-
-/**
- * Set gimbal joint.
- */
-void sim_gimbal_set_joint(sim_gimbal_t *sim,
-                          const int joint_idx,
-                          const real_t angle) {
-  sim->gimbal_joints[joint_idx].data[0] = angle;
-}
-
-/**
- * Get gimbal joint.
- */
-void sim_gimbal_get_joints(sim_gimbal_t *sim,
-                           const int num_joints,
-                           real_t *angles) {
-  for (int i = 0; i < num_joints; i++) {
-    angles[i] = sim->gimbal_joints[i].data[0];
-  }
-}
-
-/**
- * Simulate 3-axis gimbal view.
- */
-sim_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
-                                    const timestamp_t ts,
-                                    const int view_idx,
-                                    const real_t fiducial_pose[7],
-                                    const real_t body_pose[7],
-                                    const real_t gimbal_ext[7],
-                                    const real_t gimbal_link0[7],
-                                    const real_t gimbal_link1[7],
-                                    const real_t gimbal_joint0,
-                                    const real_t gimbal_joint1,
-                                    const real_t gimbal_joint2,
-                                    const int cam_idx,
-                                    const int cam_res[2],
-                                    const real_t cam_params[8],
-                                    const real_t cam_ext[7]) {
-  // Form: T_CiF
-  TF(fiducial_pose, T_WF);
-  TF(body_pose, T_WB);
-  TF(gimbal_ext, T_BM0);
-  TF(gimbal_link0, T_L0M1);
-  TF(gimbal_link1, T_L1M2);
-  GIMBAL_JOINT_TF(gimbal_joint0, T_M0L0);
-  GIMBAL_JOINT_TF(gimbal_joint1, T_M1L1);
-  GIMBAL_JOINT_TF(gimbal_joint2, T_M2L2);
-  TF(cam_ext, T_L2Ci);
-  TF_CHAIN(T_BCi, 7, T_BM0, T_M0L0, T_L0M1, T_M1L1, T_L1M2, T_M2L2, T_L2Ci);
-  TF_INV(T_BCi, T_CiB);
-  TF_INV(T_WB, T_BW);
-  TF_CHAIN(T_CiF, 3, T_CiB, T_BW, T_WF);
-
-  const int max_tags = grid->num_rows * grid->num_cols;
-  const int max_corners = max_tags * 4;
-  sim_gimbal_view_t *view = sim_gimbal_view_malloc(max_corners);
-
-  for (int tag_id = 0; tag_id < max_tags; tag_id++) {
-    for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
-      // Transform fiducial point to camera frame
-      real_t p_FFi[3] = {0};
-      aprilgrid_object_point(grid, tag_id, corner_idx, p_FFi);
-      TF_POINT(T_CiF, p_FFi, p_CiFi);
-
-      // Check point is infront of camera
-      if (p_CiFi[2] < 0) {
-        continue;
-      }
-
-      // Project image point to image plane
-      real_t z[2] = {0};
-      pinhole_radtan4_project(cam_params, p_CiFi, z);
-
-      // Check projection
-      const int x_ok = (z[0] < cam_res[0] && z[0] > 0);
-      const int y_ok = (z[1] < cam_res[1] && z[1] > 0);
-      if (x_ok == 0 || y_ok == 0) {
-        continue;
-      }
-
-      // Add to measurements
-      view->tag_ids[view->num_measurements] = tag_id;
-      view->corner_indices[view->num_measurements] = corner_idx;
-      view->object_points[view->num_measurements * 3] = p_FFi[0];
-      view->object_points[view->num_measurements * 3 + 1] = p_FFi[1];
-      view->object_points[view->num_measurements * 3 + 2] = p_FFi[2];
-      view->keypoints[view->num_measurements * 2] = z[0];
-      view->keypoints[view->num_measurements * 2 + 1] = z[1];
-      view->num_measurements++;
-    }
-  }
-
-  return view;
-}
-
-/**
- * Simulate 3-axis gimbal view.
- */
-sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
-                                   const timestamp_t ts,
-                                   const int view_idx,
-                                   const int cam_idx,
-                                   const real_t body_pose[7]) {
-  return sim_gimbal3_view(sim->grid,
-                          ts,
-                          view_idx,
-                          sim->fiducial_ext.data,
-                          body_pose,
-                          sim->gimbal_ext.data,
-                          sim->gimbal_links[0].data,
-                          sim->gimbal_links[1].data,
-                          sim->gimbal_joints[0].data[0],
-                          sim->gimbal_joints[1].data[0],
-                          sim->gimbal_joints[2].data[0],
-                          cam_idx,
-                          sim->cam_params->resolution,
-                          sim->cam_params->data,
-                          sim->cam_exts[cam_idx].data);
-}
+// /////////////////////
+// // SIM GIMBAL DATA //
+// /////////////////////
+//
+// /**
+//  * Malloc a simulated gimbal view.
+//  */
+// sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners) {
+//   sim_gimbal_view_t *view = MALLOC(sim_gimbal_view_t, 1);
+//
+//   view->num_measurements = 0;
+//   view->tag_ids = MALLOC(int, max_corners);
+//   view->corner_indices = MALLOC(int, max_corners);
+//   view->object_points = MALLOC(real_t, max_corners * 3);
+//   view->keypoints = MALLOC(real_t, max_corners * 2);
+//
+//   assert(view->tag_ids != NULL);
+//   assert(view->corner_indices != NULL);
+//   assert(view->object_points != NULL);
+//   assert(view->keypoints != NULL);
+//
+//   return view;
+// }
+//
+// /**
+//  * Free simulated gimbal view.
+//  */
+// void sim_gimbal_view_free(sim_gimbal_view_t *view) {
+//   free(view->tag_ids);
+//   free(view->corner_indices);
+//   free(view->object_points);
+//   free(view->keypoints);
+//   free(view);
+// }
+//
+// /**
+//  * Print simulated gimbal view.
+//  */
+// void sim_gimbal_view_print(const sim_gimbal_view_t *view) {
+//   printf("num_measurements: %d\n", view->num_measurements);
+//   for (size_t i = 0; i < view->num_measurements; i++) {
+//     printf("%d ", view->tag_ids[i]);
+//     printf("%d ", view->corner_indices[i]);
+//     printf("(%.2f, %.2f, %.2f) ",
+//            view->object_points[i + 0],
+//            view->object_points[i + 1],
+//            view->object_points[i + 2]);
+//     printf("(%.2f, %.2f) ", view->keypoints[i + 0], view->keypoints[i + 1]);
+//     printf("\n");
+//   }
+// }
+//
+// /**
+//  * Malloc gimbal simulation.
+//  */
+// sim_gimbal_t *sim_gimbal_malloc(void) {
+//   sim_gimbal_t *sim = MALLOC(sim_gimbal_t, 1);
+//
+//   // Aprilgrid
+//   int num_rows = 6;
+//   int num_cols = 6;
+//   double tag_size = 0.088;
+//   double tag_spacing = 0.3;
+//   sim->grid = aprilgrid_malloc(num_rows, num_cols, tag_size, tag_spacing);
+//
+//   // Fiducial pose
+//   const real_t ypr_WF[3] = {-M_PI / 2.0, 0.0, M_PI / 2.0};
+//   const real_t r_WF[3] = {0.5, 0.0, 0.0};
+//   POSE_ER(ypr_WF, r_WF, fiducial_ext);
+//   fiducial_setup(&sim->fiducial_ext, fiducial_ext);
+//
+//   // Gimbal pose
+//   real_t x = 0.0;
+//   real_t y = 0.0;
+//   aprilgrid_center(sim->grid, &x, &y);
+//   const real_t r_WB[3] = {0, -y, 0};
+//   const real_t ypr_WB[3] = {0, 0, 0};
+//   POSE_ER(ypr_WB, r_WB, gimbal_pose);
+//   pose_setup(&sim->gimbal_pose, 0, gimbal_pose);
+//
+//   // Gimbal extrinsic (body to gimbal)
+//   const real_t ypr_BM0[3] = {0.01, 0.01, 0.01};
+//   const real_t r_BM0[3] = {0.001, 0.001, 0.001};
+//   POSE_ER(ypr_BM0, r_BM0, gimbal_ext);
+//   extrinsic_setup(&sim->gimbal_ext, gimbal_ext);
+//
+//   // Links
+//   sim->num_links = 2;
+//   sim->gimbal_links = MALLOC(extrinsic_t, sim->num_links);
+//   // -- Roll link
+//   const real_t ypr_L0M1[3] = {0.0, M_PI / 2, 0.0};
+//   const real_t r_L0M1[3] = {-0.1, 0.0, 0.15};
+//   POSE_ER(ypr_L0M1, r_L0M1, link_roll);
+//   extrinsic_setup(&sim->gimbal_links[0], link_roll);
+//   // -- Pitch link
+//   const real_t ypr_L1M2[3] = {0.0, 0.0, -M_PI / 2.0};
+//   const real_t r_L1M2[3] = {0.0, -0.05, 0.1};
+//   POSE_ER(ypr_L1M2, r_L1M2, link_pitch);
+//   extrinsic_setup(&sim->gimbal_links[1], link_pitch);
+//
+//   // Joints
+//   sim->num_joints = 3;
+//   sim->gimbal_joints = MALLOC(joint_t, sim->num_joints);
+//   joint_setup(&sim->gimbal_joints[0], 0, 0, 0.0);
+//   joint_setup(&sim->gimbal_joints[1], 0, 1, 0.0);
+//   joint_setup(&sim->gimbal_joints[2], 0, 2, 0.0);
+//
+//   // Setup cameras
+//   sim->num_cams = 2;
+//   // -- Camera extrinsic
+//   sim->cam_exts = MALLOC(extrinsic_t, sim->num_cams);
+//   // ---- cam0 extrinsic
+//   const real_t ypr_M2eC0[3] = {-M_PI / 2.0, M_PI / 2.0, 0.0};
+//   const real_t r_M2eC0[3] = {0.0, -0.05, 0.12};
+//   POSE_ER(ypr_M2eC0, r_M2eC0, cam0_exts);
+//   extrinsic_setup(&sim->cam_exts[0], cam0_exts);
+//   // ---- cam1 extrinsic
+//   const real_t ypr_M2eC1[3] = {-M_PI / 2.0, M_PI / 2.0, 0.0};
+//   const real_t r_M2eC1[3] = {0.0, -0.05, -0.12};
+//   POSE_ER(ypr_M2eC1, r_M2eC1, cam1_exts);
+//   extrinsic_setup(&sim->cam_exts[1], cam1_exts);
+//   // -- Camera parameters
+//   const int cam_res[2] = {640, 480};
+//   const real_t fov = 120.0;
+//   const real_t fx = pinhole_focal(cam_res[0], fov);
+//   const real_t fy = pinhole_focal(cam_res[0], fov);
+//   const real_t cx = cam_res[0] / 2.0;
+//   const real_t cy = cam_res[1] / 2.0;
+//   const char *proj_model = "pinhole";
+//   const char *dist_model = "radtan4";
+//   const real_t data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+//   sim->cam_params = MALLOC(camera_params_t, sim->num_cams);
+//   camera_params_setup(&sim->cam_params[0],
+//                       0,
+//                       cam_res,
+//                       proj_model,
+//                       dist_model,
+//                       data);
+//   camera_params_setup(&sim->cam_params[1],
+//                       1,
+//                       cam_res,
+//                       proj_model,
+//                       dist_model,
+//                       data);
+//
+//   return sim;
+// }
+//
+// /**
+//  * Free gimbal simulation.
+//  */
+// void sim_gimbal_free(sim_gimbal_t *sim) {
+//   if (sim == NULL) {
+//     return;
+//   }
+//
+//   aprilgrid_free(sim->grid);
+//   FREE(sim->gimbal_links);
+//   FREE(sim->gimbal_joints);
+//   FREE(sim->cam_exts);
+//   FREE(sim->cam_params);
+//   FREE(sim);
+// }
+//
+// /**
+//  * Print gimbal simulation.
+//  */
+// void sim_gimbal_print(const sim_gimbal_t *sim) {
+//   // Configuration file
+//   for (int cam_idx = 0; cam_idx < sim->num_cams; cam_idx++) {
+//     camera_params_print(&sim->cam_params[cam_idx]);
+//     printf("\n");
+//   }
+//   for (int cam_idx = 0; cam_idx < sim->num_cams; cam_idx++) {
+//     char cam_str[20] = {0};
+//     sprintf(cam_str, "cam%d_ext", cam_idx);
+//     extrinsic_print(cam_str, &sim->cam_exts[cam_idx]);
+//   }
+//   for (int link_idx = 0; link_idx < sim->num_links; link_idx++) {
+//     char link_str[20] = {0};
+//     sprintf(link_str, "link%d_ext", link_idx);
+//     extrinsic_print(link_str, &sim->gimbal_links[link_idx]);
+//   }
+//   extrinsic_print("gimbal_ext", &sim->gimbal_ext);
+//   fiducial_print("fiducial_ext", &sim->fiducial_ext);
+// }
+//
+// /**
+//  * Set gimbal joint.
+//  */
+// void sim_gimbal_set_joint(sim_gimbal_t *sim,
+//                           const int joint_idx,
+//                           const real_t angle) {
+//   sim->gimbal_joints[joint_idx].data[0] = angle;
+// }
+//
+// /**
+//  * Get gimbal joint.
+//  */
+// void sim_gimbal_get_joints(sim_gimbal_t *sim,
+//                            const int num_joints,
+//                            real_t *angles) {
+//   for (int i = 0; i < num_joints; i++) {
+//     angles[i] = sim->gimbal_joints[i].data[0];
+//   }
+// }
+//
+// /**
+//  * Simulate 3-axis gimbal view.
+//  */
+// sim_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
+//                                     const timestamp_t ts,
+//                                     const int view_idx,
+//                                     const real_t fiducial_pose[7],
+//                                     const real_t body_pose[7],
+//                                     const real_t gimbal_ext[7],
+//                                     const real_t gimbal_link0[7],
+//                                     const real_t gimbal_link1[7],
+//                                     const real_t gimbal_joint0,
+//                                     const real_t gimbal_joint1,
+//                                     const real_t gimbal_joint2,
+//                                     const int cam_idx,
+//                                     const int cam_res[2],
+//                                     const real_t cam_params[8],
+//                                     const real_t cam_ext[7]) {
+//   // Form: T_CiF
+//   TF(fiducial_pose, T_WF);
+//   TF(body_pose, T_WB);
+//   TF(gimbal_ext, T_BM0);
+//   TF(gimbal_link0, T_L0M1);
+//   TF(gimbal_link1, T_L1M2);
+//   GIMBAL_JOINT_TF(gimbal_joint0, T_M0L0);
+//   GIMBAL_JOINT_TF(gimbal_joint1, T_M1L1);
+//   GIMBAL_JOINT_TF(gimbal_joint2, T_M2L2);
+//   TF(cam_ext, T_L2Ci);
+//   TF_CHAIN(T_BCi, 7, T_BM0, T_M0L0, T_L0M1, T_M1L1, T_L1M2, T_M2L2, T_L2Ci);
+//   TF_INV(T_BCi, T_CiB);
+//   TF_INV(T_WB, T_BW);
+//   TF_CHAIN(T_CiF, 3, T_CiB, T_BW, T_WF);
+//
+//   const int max_tags = grid->num_rows * grid->num_cols;
+//   const int max_corners = max_tags * 4;
+//   sim_gimbal_view_t *view = sim_gimbal_view_malloc(max_corners);
+//
+//   for (int tag_id = 0; tag_id < max_tags; tag_id++) {
+//     for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
+//       // Transform fiducial point to camera frame
+//       real_t p_FFi[3] = {0};
+//       aprilgrid_object_point(grid, tag_id, corner_idx, p_FFi);
+//       TF_POINT(T_CiF, p_FFi, p_CiFi);
+//
+//       // Check point is infront of camera
+//       if (p_CiFi[2] < 0) {
+//         continue;
+//       }
+//
+//       // Project image point to image plane
+//       real_t z[2] = {0};
+//       pinhole_radtan4_project(cam_params, p_CiFi, z);
+//
+//       // Check projection
+//       const int x_ok = (z[0] < cam_res[0] && z[0] > 0);
+//       const int y_ok = (z[1] < cam_res[1] && z[1] > 0);
+//       if (x_ok == 0 || y_ok == 0) {
+//         continue;
+//       }
+//
+//       // Add to measurements
+//       view->tag_ids[view->num_measurements] = tag_id;
+//       view->corner_indices[view->num_measurements] = corner_idx;
+//       view->object_points[view->num_measurements * 3] = p_FFi[0];
+//       view->object_points[view->num_measurements * 3 + 1] = p_FFi[1];
+//       view->object_points[view->num_measurements * 3 + 2] = p_FFi[2];
+//       view->keypoints[view->num_measurements * 2] = z[0];
+//       view->keypoints[view->num_measurements * 2 + 1] = z[1];
+//       view->num_measurements++;
+//     }
+//   }
+//
+//   return view;
+// }
+//
+// /**
+//  * Simulate 3-axis gimbal view.
+//  */
+// sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
+//                                    const timestamp_t ts,
+//                                    const int view_idx,
+//                                    const int cam_idx,
+//                                    const real_t body_pose[7]) {
+//   return sim_gimbal3_view(sim->grid,
+//                           ts,
+//                           view_idx,
+//                           sim->fiducial_ext.data,
+//                           body_pose,
+//                           sim->gimbal_ext.data,
+//                           sim->gimbal_links[0].data,
+//                           sim->gimbal_links[1].data,
+//                           sim->gimbal_joints[0].data[0],
+//                           sim->gimbal_joints[1].data[0],
+//                           sim->gimbal_joints[2].data[0],
+//                           cam_idx,
+//                           sim->cam_params->resolution,
+//                           sim->cam_params->data,
+//                           sim->cam_exts[cam_idx].data);
+// }

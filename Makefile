@@ -20,11 +20,11 @@ $(BLD_DIR)/%.o: src/%.c src/%.h Makefile
 	@echo "CC [$<]"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BLD_DIR)/xyz_ceres_bridge.o: src/xyz_ceres_bridge.cpp Makefile
-	@echo "CXX [xyz_ceres_bridge.c]"
+$(BLD_DIR)/ceres_bridge.o: src/ceres_bridge.cpp Makefile
+	@echo "CXX [$<]"
 	@g++ -Wall -O3 \
-		-c src/xyz_ceres_bridge.cpp \
-		-o $(BLD_DIR)/xyz_ceres_bridge.o \
+		-c $< \
+		-o $(BLD_DIR)/$(basename $(notdir $<)).o \
 		-I/usr/include/eigen3
 
 $(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
@@ -48,27 +48,27 @@ install: ## Install libxyz
 	mkdir -p $(PREFIX)
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
-	ln -sf $(CUR_DIR)/build/libxyz.a $(PREFIX)/lib/libxyz.a
-	ln -sf $(CUR_DIR)/xyz.py $(PYTHON3_PATH)/xyz.py
-	ln -sf $(CUR_DIR)/xyz.h $(PREFIX)/include/xyz.h
-	ln -sf $(CUR_DIR)/xyz_aprilgrid.h $(PREFIX)/include/xyz_aprilgrid.h
-	ln -sf $(CUR_DIR)/xyz_ceres_bridge.h $(PREFIX)/include/xyz_ceres_bridge.h
-	ln -sf $(CUR_DIR)/xyz_euroc.h $(PREFIX)/include/xyz_euroc.h
-	ln -sf $(CUR_DIR)/xyz_gui.h $(PREFIX)/include/xyz_gui.h
-	ln -sf $(CUR_DIR)/xyz_http.h $(PREFIX)/include/xyz_http.h
-	ln -sf $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
+	# ln -sf $(CUR_DIR)/build/libxyz.a $(PREFIX)/lib/libxyz.a
+	# ln -sf $(CUR_DIR)/xyz.py $(PYTHON3_PATH)/xyz.py
+	# ln -sf $(CUR_DIR)/xyz.h $(PREFIX)/include/xyz.h
+	# ln -sf $(CUR_DIR)/xyz_aprilgrid.h $(PREFIX)/include/xyz_aprilgrid.h
+	# ln -sf $(CUR_DIR)/xyz_ceres_bridge.h $(PREFIX)/include/xyz_ceres_bridge.h
+	# ln -sf $(CUR_DIR)/xyz_euroc.h $(PREFIX)/include/xyz_euroc.h
+	# ln -sf $(CUR_DIR)/xyz_gui.h $(PREFIX)/include/xyz_gui.h
+	# ln -sf $(CUR_DIR)/xyz_http.h $(PREFIX)/include/xyz_http.h
+	# ln -sf $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
 
 uninstall: ## Uninstall libxyz
 	rm $(PREFIX)/lib/libxyz.a
-	rm $(PREFIX)/include/xyz.h
-	rm $(PREFIX)/include/xyz_aprilgrid.h
-	rm $(PREFIX)/include/xyz_ceres_bridge.h
-	rm $(PREFIX)/include/xyz_euroc.h
-	rm $(PREFIX)/include/xyz_gui.h
-	rm $(PREFIX)/include/xyz_http.h
-	rm $(PREFIX)/include/xyz_sbgc.h
-	rm $(PREFIX)/include/xyz_stb_image.h
-	rm $(PYTHON3_PATH)/xyz.py
+	# rm $(PREFIX)/include/xyz.h
+	# rm $(PREFIX)/include/xyz_aprilgrid.h
+	# rm $(PREFIX)/include/xyz_ceres_bridge.h
+	# rm $(PREFIX)/include/xyz_euroc.h
+	# rm $(PREFIX)/include/xyz_gui.h
+	# rm $(PREFIX)/include/xyz_http.h
+	# rm $(PREFIX)/include/xyz_sbgc.h
+	# rm $(PREFIX)/include/xyz_stb_image.h
+	# rm $(PYTHON3_PATH)/xyz.py
 
 avs: $(BLD_DIR)/libxyz.a
 	@g++ \
@@ -119,7 +119,7 @@ test_http:  ## Run test_http
 	@$(CC) $(CFLAGS) src/test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
 	@cd build && ./test_http
 
-tests: test_aprilgrid test_gui test_xyz  ## Run tests
+tests: test_xyz test_aprilgrid test_gui  ## Run tests
 
 ci:  ## Run CI tests
 	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 src/test_xyz.c -o $(BLD_DIR)/test_xyz $(LDFLAGS)

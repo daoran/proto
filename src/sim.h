@@ -2,6 +2,8 @@
 
 #include "state_estimation.h"
 #include "timeline.h"
+#include "aprilgrid.h"
+#include "gimbal.h"
 
 /** Sim Circle Trajectory **/
 typedef struct sim_circle_t {
@@ -126,63 +128,63 @@ typedef struct sim_circle_camera_imu_t {
 
 sim_circle_camera_imu_t *sim_circle_camera_imu(void); void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data);
 
-/////////////////////
-// SIM GIMBAL DATA //
-/////////////////////
-
-typedef struct sim_gimbal_view_t {
-  int num_measurements;
-  int *tag_ids;
-  int *corner_indices;
-  real_t *object_points;
-  real_t *keypoints;
-} sim_gimbal_view_t;
-
-typedef struct sim_gimbal_t {
-  aprilgrid_t *grid;
-
-  int num_links;
-  int num_joints;
-  int num_cams;
-
-  fiducial_t fiducial_ext;
-  pose_t gimbal_pose;
-  extrinsic_t gimbal_ext;
-  extrinsic_t *gimbal_links;
-  joint_t *gimbal_joints;
-  extrinsic_t *cam_exts;
-  camera_params_t *cam_params;
-} sim_gimbal_t;
-
-sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners);
-void sim_gimbal_view_free(sim_gimbal_view_t *view);
-void sim_gimbal_view_print(const sim_gimbal_view_t *view);
-
-sim_gimbal_t *sim_gimbal_malloc(void); void sim_gimbal_free(sim_gimbal_t *sim);
-void sim_gimbal_print(const sim_gimbal_t *sim);
-void sim_gimbal_set_joint(sim_gimbal_t *sim,
-                          const int joint_idx,
-                          const real_t angle);
-void sim_gimbal_get_joints(sim_gimbal_t *sim,
-                           const int num_joints,
-                           real_t *angles);
-sim_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
-                                    const timestamp_t ts,
-                                    const int view_idx,
-                                    const real_t fiducial_pose[7],
-                                    const real_t body_pose[7],
-                                    const real_t gimbal_ext[7],
-                                    const real_t gimbal_link0[7],
-                                    const real_t gimbal_link1[7],
-                                    const real_t gimbal_joint0,
-                                    const real_t gimbal_joint1,
-                                    const real_t gimbal_joint2,
-                                    const int cam_idx,
-                                    const int cam_res[2],
-                                    const real_t cam_params[8],
-                                    const real_t cam_ext[7]);
-sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
-                                   const timestamp_t ts,
-                                   const int view_idx,
-                                   const int cam_idx,
-                                   const real_t body_pose[7]);
+// /////////////////////
+// // SIM GIMBAL DATA //
+// /////////////////////
+//
+// typedef struct sim_gimbal_view_t {
+//   int num_measurements;
+//   int *tag_ids;
+//   int *corner_indices;
+//   real_t *object_points;
+//   real_t *keypoints;
+// } sim_gimbal_view_t;
+//
+// typedef struct sim_gimbal_t {
+//   aprilgrid_t *grid;
+//
+//   int num_links;
+//   int num_joints;
+//   int num_cams;
+//
+//   fiducial_t fiducial_ext;
+//   pose_t gimbal_pose;
+//   extrinsic_t gimbal_ext;
+//   extrinsic_t *gimbal_links;
+//   joint_t *gimbal_joints;
+//   extrinsic_t *cam_exts;
+//   camera_params_t *cam_params;
+// } sim_gimbal_t;
+//
+// sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners);
+// void sim_gimbal_view_free(sim_gimbal_view_t *view);
+// void sim_gimbal_view_print(const sim_gimbal_view_t *view);
+//
+// sim_gimbal_t *sim_gimbal_malloc(void); void sim_gimbal_free(sim_gimbal_t *sim);
+// void sim_gimbal_print(const sim_gimbal_t *sim);
+// void sim_gimbal_set_joint(sim_gimbal_t *sim,
+//                           const int joint_idx,
+//                           const real_t angle);
+// void sim_gimbal_get_joints(sim_gimbal_t *sim,
+//                            const int num_joints,
+//                            real_t *angles);
+// sim_gimbal_view_t *sim_gimbal3_view(const aprilgrid_t *grid,
+//                                     const timestamp_t ts,
+//                                     const int view_idx,
+//                                     const real_t fiducial_pose[7],
+//                                     const real_t body_pose[7],
+//                                     const real_t gimbal_ext[7],
+//                                     const real_t gimbal_link0[7],
+//                                     const real_t gimbal_link1[7],
+//                                     const real_t gimbal_joint0,
+//                                     const real_t gimbal_joint1,
+//                                     const real_t gimbal_joint2,
+//                                     const int cam_idx,
+//                                     const int cam_res[2],
+//                                     const real_t cam_params[8],
+//                                     const real_t cam_ext[7]);
+// sim_gimbal_view_t *sim_gimbal_view(const sim_gimbal_t *sim,
+//                                    const timestamp_t ts,
+//                                    const int view_idx,
+//                                    const int cam_idx,
+//                                    const real_t body_pose[7]);

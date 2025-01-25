@@ -208,7 +208,8 @@ dev_avs() {
 # python3 scripts/plot_map.py
 
 tmux send-keys -t dev -R C-l C-m
-tmux send-keys -t dev -R "cd ~/code/xyz && make libxyz" C-m
+# tmux send-keys -t dev -R "cd ~/code/xyz && make libxyz -j" C-m
+tmux send-keys -t dev -R "cd ~/code/xyz && make test_xyz" C-m
 exit
 
 # xyz

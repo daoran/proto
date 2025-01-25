@@ -10,8 +10,8 @@ PYTHON3_PATH := $(shell python3 -c "import site; print(site.getsitepackages()[0]
 # COMPILER SETTINGS
 BUILD_TYPE := debug
 # BUILD_TYPE := release
-ADDRESS_SANITIZER := 1
-# ADDRESS_SANITIZER := 0
+# ADDRESS_SANITIZER := 1
+ADDRESS_SANITIZER := 0
 # CC := clang
 CC := gcc
 # CC := tcc
@@ -89,10 +89,10 @@ ARFLAGS = rvs
 LIBXYZ := $(BLD_DIR)/libxyz.a
 LIBXYZ_OBJS := \
 	$(BLD_DIR)/data.o \
-	$(BLD_DIR)/fs.o \
 	$(BLD_DIR)/ds.o \
 	$(BLD_DIR)/time.o \
 	$(BLD_DIR)/network.o \
+	$(BLD_DIR)/http.o \
 	$(BLD_DIR)/math.o \
 	$(BLD_DIR)/cv.o \
 	$(BLD_DIR)/control.o \
@@ -102,12 +102,15 @@ LIBXYZ_OBJS := \
 	$(BLD_DIR)/state_estimation.o \
 	$(BLD_DIR)/timeline.o \
 	$(BLD_DIR)/dataset.o \
-	# $(BLD_DIR)/sim.o \
-	# $(BLD_DIR)/calib.o \
-	# $(BLD_DIR)/xyz_aprilgrid.o \
-	# $(BLD_DIR)/xyz_euroc.o \
-	# $(BLD_DIR)/xyz_ceres_bridge.o
+	$(BLD_DIR)/euroc.o \
+	$(BLD_DIR)/aprilgrid.o \
+	$(BLD_DIR)/sim.o \
+	$(BLD_DIR)/calib.o \
+	$(BLD_DIR)/ceres_bridge.o \
+	$(BLD_DIR)/gui.o
 
+
+# TESTS
 TESTS := \
 	test_xyz \
 	test_aprilgrid \
