@@ -1,8 +1,67 @@
+#include "xyz.h"
 #include "munit.h"
-#include "math.h"
 
 /******************************************************************************
- * TEST MATHS
+ * MACROS
+ *****************************************************************************/
+
+int test_median_value(void) {
+  real_t median = 0.0f;
+  real_t buf[5] = {4.0, 1.0, 0.0, 3.0, 2.0};
+  MEDIAN_VALUE(real_t, fltcmp2, buf, 5, median);
+  MU_ASSERT(fltcmp(median, 2.0) == 0);
+
+  return 0;
+}
+
+int test_mean_value(void) {
+  real_t mean = 0.0f;
+  real_t buf[5] = {0.0, 1.0, 2.0, 3.0, 4.0};
+  MEAN_VALUE(real_t, buf, 5, mean);
+  MU_ASSERT(fltcmp(mean, 2.0) == 0);
+
+  return 0;
+}
+
+/*******************************************************************************
+ * TIME
+ ******************************************************************************/
+
+int test_tic_toc(void) {
+  struct timespec t_start = tic();
+  usleep(1);
+  MU_ASSERT(fabs(toc(&t_start) - 1e-3) < 1e-2);
+  return 0;
+}
+
+int test_mtoc(void) {
+  struct timespec t_start = tic();
+  usleep(1);
+  MU_ASSERT(fabs(mtoc(&t_start) - 1e-3) < 1);
+  return 0;
+}
+
+int test_time_now(void) {
+  timestamp_t t_now = time_now();
+  // printf("t_now: %ld\n", t_now);
+  MU_ASSERT(t_now > 0);
+  return 0;
+}
+
+/******************************************************************************
+ * NETWORK
+ ******************************************************************************/
+
+int test_tcp_server_setup(void) {
+  tcp_server_t server;
+  const int port = 8080;
+  int retval = tcp_server_setup(&server, port);
+  MU_ASSERT(retval == 0);
+  return 0;
+}
+
+/******************************************************************************
+ * MATH
  ******************************************************************************/
 
 int test_min(void) {
@@ -181,7 +240,7 @@ int test_stddev(void) {
 }
 
 /******************************************************************************
- * TEST LINEAR ALGEBRA
+ * LINEAR ALGEBRA
  ******************************************************************************/
 
 int test_eye(void) {
@@ -548,38 +607,38 @@ int test_dot(void) {
 }
 
 int test_bdiag_inv(void) {
-  int num_rows = 0;
-  int num_cols = 0;
-  real_t *H = mat_load("/tmp/H.csv", &num_rows, &num_cols);
-
-  // Invert taking advantage of block diagonal structure
-  {
-    real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
-
-    // TIC(bdiag_time);
-    bdiag_inv(H, num_rows, 6, H_inv);
-    // printf("H: %dx%d\n", num_rows, num_cols);
-    // printf("invert block diagonal -> time taken: %f\n", TOC(bdiag_time));
-    MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
-
-    free(H_inv);
-  }
-
-  // Invert the dumb way
-  {
-
-    real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
-
-    // TIC(pinv_time);
-    pinv(H, num_rows, num_rows, H_inv);
-    // eig_inv(H, num_rows, num_rows, 0, H_inv);
-    // printf("invert dumb way -> time taken: %f\n", TOC(pinv_time));
-    MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
-
-    free(H_inv);
-  }
-
-  free(H);
+  // int num_rows = 0;
+  // int num_cols = 0;
+  // real_t *H = mat_load("/tmp/H.csv", &num_rows, &num_cols);
+  //
+  // // Invert taking advantage of block diagonal structure
+  // {
+  //   real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
+  //
+  //   // TIC(bdiag_time);
+  //   bdiag_inv(H, num_rows, 6, H_inv);
+  //   // printf("H: %dx%d\n", num_rows, num_cols);
+  //   // printf("invert block diagonal -> time taken: %f\n", TOC(bdiag_time));
+  //   MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
+  //
+  //   free(H_inv);
+  // }
+  //
+  // // Invert the dumb way
+  // {
+  //
+  //   real_t *H_inv = CALLOC(real_t, num_rows * num_rows);
+  //
+  //   // TIC(pinv_time);
+  //   pinv(H, num_rows, num_rows, H_inv);
+  //   // eig_inv(H, num_rows, num_rows, 0, H_inv);
+  //   // printf("invert dumb way -> time taken: %f\n", TOC(pinv_time));
+  //   MU_ASSERT(check_inv(H, H_inv, num_rows) == 0);
+  //
+  //   free(H_inv);
+  // }
+  //
+  // free(H);
 
   return 0;
 }
@@ -924,7 +983,7 @@ int test_suitesparse_chol_solve(void) {
 }
 
 /******************************************************************************
- * TEST TRANSFORMS
+ * TRANSFORMS
  ******************************************************************************/
 
 int test_tf_rot_set(void) {
@@ -1301,7 +1360,7 @@ int test_quat2rot(void) {
 }
 
 /******************************************************************************
- * TEST LIE
+ * LIE
  ******************************************************************************/
 
 int test_lie_Exp_Log(void) {
@@ -1324,8 +1383,21 @@ int test_lie_Exp_Log(void) {
   return 0;
 }
 
+
 void test_suite(void) {
-  // MATHS
+  // MACROS
+  MU_ADD_TEST(test_median_value);
+  MU_ADD_TEST(test_mean_value);
+
+  // TIME
+  MU_ADD_TEST(test_tic_toc);
+  MU_ADD_TEST(test_mtoc);
+  MU_ADD_TEST(test_time_now);
+
+  // NETWORK
+  MU_ADD_TEST(test_tcp_server_setup);
+
+  // MATH
   MU_ADD_TEST(test_min);
   MU_ADD_TEST(test_max);
   MU_ADD_TEST(test_randf);

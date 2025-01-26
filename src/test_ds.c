@@ -1,6 +1,6 @@
 #include "munit.h"
-#include "ds.h"
-#include "math.h"
+#include "xyz.h"
+#include "xyz_ds.h"
 
 
 // DARRAY ////////////////////////////////////////////////////////////////////

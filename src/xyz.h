@@ -24,6 +24,7 @@
 
 #define PRECISION 2
 #define MAX_LINE_LENGTH 9046
+#define USE_LAPACK
 
 /******************************************************************************
  * MACROS

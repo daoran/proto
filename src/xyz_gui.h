@@ -148,7 +148,6 @@ typedef struct {
   gl_quat_t quat;
 } gl_pose_t;
 
-int file_exists(const char *fp);
 char *load_file(const char *fp);
 
 gl_enum_t gl_check_error(const char *file, const int line);

@@ -57,38 +57,6 @@ gl_shader_t _text;
  *****************************************************************************/
 
 /**
- * Tic, start timer.
- * @returns A timespec encapsulating the time instance when tic() is called
- */
-struct timespec tic(void) {
-  struct timespec time_start;
-  clock_gettime(CLOCK_MONOTONIC, &time_start);
-  return time_start;
-}
-
-/**
- * Toc, stop timer.
- * @returns Time elapsed in seconds
- */
-float toc(struct timespec *tic) {
-  assert(tic != NULL);
-  struct timespec toc;
-  float time_elasped;
-
-  clock_gettime(CLOCK_MONOTONIC, &toc);
-  time_elasped = (toc.tv_sec - tic->tv_sec);
-  time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
-
-  return time_elasped;
-}
-
-/**
- * Check if file exists.
- * @returns 0 for success, -1 for failure
- */
-int file_exists(const char *fp) { return access(fp, F_OK); }
-
-/**
  * Read file contents in file path `fp`.
  * @returns
  * - Success: File contents
@@ -2869,7 +2837,7 @@ static int assimp_num_meshes(const struct aiNode *node) {
 
 gl_model_t *gl_model_load(const char *model_path) {
   // Check model file
-  if (file_exists(model_path) != 0) {
+  if (access(model_path, F_OK) != 0) {
     return NULL;
   }
 

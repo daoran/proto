@@ -108,13 +108,16 @@ LIBXYZ_OBJS := \
 
 # TESTS
 TESTS := \
-	$(BLD_DIR)/test_http \
-	$(BLD_DIR)/test_gnuplot \
 	$(BLD_DIR)/test_aprilgrid \
+	$(BLD_DIR)/test_control \
 	$(BLD_DIR)/test_cv \
+	$(BLD_DIR)/test_ds \
+	$(BLD_DIR)/test_euroc \
+	$(BLD_DIR)/test_gimbal \
+	$(BLD_DIR)/test_gnuplot \
+	$(BLD_DIR)/test_gui \
+	$(BLD_DIR)/test_http \
+	$(BLD_DIR)/test_mav \
 	$(BLD_DIR)/test_se \
 	$(BLD_DIR)/test_sim \
-	$(BLD_DIR)/test_control \
-	$(BLD_DIR)/test_gimbal \
-	$(BLD_DIR)/test_mav \
-	$(BLD_DIR)/test_gui
+	$(BLD_DIR)/test_xyz

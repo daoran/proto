@@ -107,24 +107,6 @@ avs: $(BLD_DIR)/libxyz.a
 		-lxyz \
 		$(shell pkg-config opencv4 --libs)
 
-test_aprilgrid: test_aprilgrid.c
-
-# test_control.c
-# test_cv.c
-# test_dataset.c
-# test_ds.c
-# test_euroc.c
-# test_gimbal.c
-# test_gnuplot.c
-# test_gui.c
-# test_http.c
-# test_macros.c
-# test_math.c
-# test_mav.c
-# test_se.c
-# test_sim.c
-# test_time.c
-
 tests: $(TESTS)
 
 ci:  ## Run CI tests
