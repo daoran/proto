@@ -83,7 +83,8 @@ LDFLAGS= \
 	-lglfw3 \
 	-lstdc++ \
 	-lpthread \
-  -lm
+  -lm \
+	-ldl
 
 
 # ARCHIVER SETTTINGS
