@@ -48,11 +48,13 @@ int test_euroc_calib_load(void) {
 }
 
 void test_suite(void) {
+#if CI_MODE == 0
   MU_ADD_TEST(test_euroc_imu_load);
   MU_ADD_TEST(test_euroc_camera_load);
   MU_ADD_TEST(test_euroc_ground_truth_load);
   MU_ADD_TEST(test_euroc_data_load);
   MU_ADD_TEST(test_euroc_calib_target_load);
   MU_ADD_TEST(test_euroc_calib_load);
+#endif
 }
 MU_RUN_TESTS(test_suite)
