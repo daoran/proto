@@ -1,6 +1,4 @@
-#include "http.h"
-
-#include <stdio.h>
+#include "xyz_http.h"
 
 // UNITESTS GLOBAL VARIABLES
 static int nb_tests = 0;

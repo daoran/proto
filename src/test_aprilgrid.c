@@ -1,11 +1,6 @@
-//////////////////////////////////////////////////////////////////////////////
-//                                UNITTESTS                                 //
-//////////////////////////////////////////////////////////////////////////////
-
-#ifdef XYZ_APRILGRID_UNITTEST
-
 #include <math.h>
 #include <stdio.h>
+#include "xyz_aprilgrid.h"
 
 // UNITESTS GLOBAL VARIABLES
 static int nb_tests = 0;
@@ -64,15 +59,15 @@ void run_test(const char *test_name, int (*test_ptr)(void)) {
     }                                                                          \
   } while (0)
 
-static int fltcmp(const float x, const float y) {
-  if (fabs(x - y) < 1e-10) {
-    return 0;
-  } else if (x > y) {
-    return 1;
-  }
-
-  return -1;
-}
+// static int fltcmp(const float x, const float y) {
+//   if (fabs(x - y) < 1e-10) {
+//     return 0;
+//   } else if (x > y) {
+//     return 1;
+//   }
+//
+//   return -1;
+// }
 
 int test_aprilgrid_malloc_and_free(void) {
   // Setup
@@ -378,5 +373,3 @@ int main(int argc, char *argv[]) {
 
   return (nb_failed) ? -1 : 0;
 }
-
-#endif // XYZ_APRILGRID_UNITTEST

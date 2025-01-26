@@ -209,7 +209,7 @@ dev_avs() {
 
 tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "cd ~/code/xyz && make libxyz -j" C-m
-tmux send-keys -t dev -R "cd ~/code/xyz && make test_xyz" C-m
+tmux send-keys -t dev -R "cd ~/code/xyz && make tests" C-m
 exit
 
 # xyz

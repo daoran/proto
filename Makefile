@@ -16,12 +16,16 @@ third_party: ## Install dependencies
 docs: ## Build docs
 	@livereload .
 
+$(BLD_DIR)/test_%: src/test_%.c
+	@echo "TEST [$(notdir $@)]"
+	@$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS) -lxyz
+
 $(BLD_DIR)/%.o: src/%.c src/%.h Makefile
-	@echo "CC [$<]"
+	@echo "CC [$(notdir $<)]"
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BLD_DIR)/ceres_bridge.o: src/ceres_bridge.cpp Makefile
-	@echo "CXX [$<]"
+$(BLD_DIR)/xyz_ceres.o: src/xyz_ceres.cpp Makefile
+	@echo "CXX [$(notdir $<)]"
 	@g++ -Wall -O3 \
 		-c $< \
 		-o $(BLD_DIR)/$(basename $(notdir $<)).o \
@@ -48,27 +52,45 @@ install: ## Install libxyz
 	mkdir -p $(PREFIX)
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
-	# ln -sf $(CUR_DIR)/build/libxyz.a $(PREFIX)/lib/libxyz.a
-	# ln -sf $(CUR_DIR)/xyz.py $(PYTHON3_PATH)/xyz.py
-	# ln -sf $(CUR_DIR)/xyz.h $(PREFIX)/include/xyz.h
-	# ln -sf $(CUR_DIR)/xyz_aprilgrid.h $(PREFIX)/include/xyz_aprilgrid.h
-	# ln -sf $(CUR_DIR)/xyz_ceres_bridge.h $(PREFIX)/include/xyz_ceres_bridge.h
-	# ln -sf $(CUR_DIR)/xyz_euroc.h $(PREFIX)/include/xyz_euroc.h
-	# ln -sf $(CUR_DIR)/xyz_gui.h $(PREFIX)/include/xyz_gui.h
-	# ln -sf $(CUR_DIR)/xyz_http.h $(PREFIX)/include/xyz_http.h
-	# ln -sf $(CUR_DIR)/stb_image.h $(PREFIX)/include/stb_image.h
+	ln -sf $(CUR_DIR)/xyz.py $(PYTHON3_PATH)/xyz.py
+	ln -sf $(CUR_DIR)/build/libxyz.a $(PREFIX)/lib/libxyz.a
+	ln -sf $(CUR_DIR)/*.h $(PREFIX)/include/*.h
+	ln -sf $(CUR_DIR)/xyz.h            $(PREFIX)/include/xyz.h
+	ln -sf $(CUR_DIR)/xyz_aprilgrid.h  $(PREFIX)/include/xyz_aprilgrid.h
+	ln -sf $(CUR_DIR)/xyz_calib.h      $(PREFIX)/include/xyz_calib.h
+	ln -sf $(CUR_DIR)/xyz_ceres.h      $(PREFIX)/include/xyz_ceres.h
+	ln -sf $(CUR_DIR)/xyz_control.h    $(PREFIX)/include/xyz_control.h
+	ln -sf $(CUR_DIR)/xyz_cv.h         $(PREFIX)/include/xyz_cv.h
+	ln -sf $(CUR_DIR)/xyz_ds.h         $(PREFIX)/include/xyz_ds.h
+	ln -sf $(CUR_DIR)/xyz_euroc.h      $(PREFIX)/include/xyz_euroc.h
+	ln -sf $(CUR_DIR)/xyz_gimbal.h     $(PREFIX)/include/xyz_gimbal.h
+	ln -sf $(CUR_DIR)/xyz_gnuplot.h    $(PREFIX)/include/xyz_gnuplot.h
+	ln -sf $(CUR_DIR)/xyz_gui.h        $(PREFIX)/include/xyz_gui.h
+	ln -sf $(CUR_DIR)/xyz_http.h       $(PREFIX)/include/xyz_http.h
+	ln -sf $(CUR_DIR)/xyz_mav.h        $(PREFIX)/include/xyz_mav.h
+	ln -sf $(CUR_DIR)/xyz_se.h         $(PREFIX)/include/xyz_se.h
+	ln -sf $(CUR_DIR)/xyz_sim.h        $(PREFIX)/include/xyz_sim.h
+	ln -sf $(CUR_DIR)/xyz_timeline.h   $(PREFIX)/include/xyz_timeline.h
 
 uninstall: ## Uninstall libxyz
+	rm $(PYTHON3_PATH)/xyz.py
 	rm $(PREFIX)/lib/libxyz.a
-	# rm $(PREFIX)/include/xyz.h
-	# rm $(PREFIX)/include/xyz_aprilgrid.h
-	# rm $(PREFIX)/include/xyz_ceres_bridge.h
-	# rm $(PREFIX)/include/xyz_euroc.h
-	# rm $(PREFIX)/include/xyz_gui.h
-	# rm $(PREFIX)/include/xyz_http.h
-	# rm $(PREFIX)/include/xyz_sbgc.h
-	# rm $(PREFIX)/include/xyz_stb_image.h
-	# rm $(PYTHON3_PATH)/xyz.py
+	rm $(PREFIX)/include/xyz.h
+	rm $(PREFIX)/include/xyz_aprilgrid.h
+	rm $(PREFIX)/include/xyz_calib.h
+	rm $(PREFIX)/include/xyz_ceres.h
+	rm $(PREFIX)/include/xyz_control.h
+	rm $(PREFIX)/include/xyz_cv.h
+	rm $(PREFIX)/include/xyz_ds.h
+	rm $(PREFIX)/include/xyz_euroc.h
+	rm $(PREFIX)/include/xyz_gimbal.h
+	rm $(PREFIX)/include/xyz_gnuplot.h
+	rm $(PREFIX)/include/xyz_gui.h
+	rm $(PREFIX)/include/xyz_http.h
+	rm $(PREFIX)/include/xyz_mav.h
+	rm $(PREFIX)/include/xyz_se.h
+	rm $(PREFIX)/include/xyz_sim.h
+	rm $(PREFIX)/include/xyz_timeline.h
 
 avs: $(BLD_DIR)/libxyz.a
 	@g++ \
@@ -85,41 +107,25 @@ avs: $(BLD_DIR)/libxyz.a
 		-lxyz \
 		$(shell pkg-config opencv4 --libs)
 
-test_xyz: libxyz  ## Run test_xyz
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) src/test_xyz.c -o $(BLD_DIR)/test_xyz $(LDFLAGS)
-	@cd build && ./test_xyz --target $(TEST_TARGET)
+test_aprilgrid: test_aprilgrid.c
 
-test_aprilgrid:  ## Run test_aprilgrid
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) src/test_aprilgrid.c -o $(BLD_DIR)/test_aprilgrid $(LDFLAGS)
-	@cd build && ./test_aprilgrid
+# test_control.c
+# test_cv.c
+# test_dataset.c
+# test_ds.c
+# test_euroc.c
+# test_gimbal.c
+# test_gnuplot.c
+# test_gui.c
+# test_http.c
+# test_macros.c
+# test_math.c
+# test_mav.c
+# test_se.c
+# test_sim.c
+# test_time.c
 
-test_euroc:  ## Run test_euroc
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) src/test_euroc.c -o $(BLD_DIR)/test_euroc $(LDFLAGS)
-	@cd build && ./test_euroc
-
-test_gui: ## Run test_gui
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) src/test_gui.c -o $(BLD_DIR)/test_gui $(LDFLAGS)
-
-test_sbgc:  ## Run test_sbgc
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) src/test_sbgc.c -o $(BLD_DIR)/test_sbgc $(LDFLAGS)
-	@cd build && ./test_sbgc
-
-test_ubx:  ## Run test_ubx
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) src/test_ubx.c -o $(BLD_DIR)/test_ubx $(LDFLAGS)
-	@cd build && ./test_ubx
-
-test_http:  ## Run test_http
-	@echo "CC [$@]"
-	@$(CC) $(CFLAGS) src/test_http.c -o $(BLD_DIR)/test_http $(LDFLAGS)
-	@cd build && ./test_http
-
-tests: test_xyz test_aprilgrid test_gui  ## Run tests
+tests: $(TESTS)
 
 ci:  ## Run CI tests
 	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 src/test_xyz.c -o $(BLD_DIR)/test_xyz $(LDFLAGS)

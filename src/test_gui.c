@@ -1,10 +1,5 @@
-//////////////////////////////////////////////////////////////////////////////
-//                                UNITTESTS                                 //
-//////////////////////////////////////////////////////////////////////////////
+#include "xyz_gui.h"
 
-#ifdef XYZ_GUI_UNITTEST
-
-#include <stdio.h>
 
 // UNITESTS GLOBAL VARIABLES
 static int num_tests = 0;
@@ -595,5 +590,3 @@ int main(int argc, char *argv[]) {
 
   return (num_failed) ? -1 : 0;
 }
-
-#endif // XYZ_GUI_UNITTEST

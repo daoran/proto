@@ -88,30 +88,33 @@ ARFLAGS = rvs
 # TARGETS
 LIBXYZ := $(BLD_DIR)/libxyz.a
 LIBXYZ_OBJS := \
-	$(BLD_DIR)/data.o \
-	$(BLD_DIR)/ds.o \
-	$(BLD_DIR)/time.o \
-	$(BLD_DIR)/network.o \
-	$(BLD_DIR)/http.o \
-	$(BLD_DIR)/math.o \
-	$(BLD_DIR)/cv.o \
-	$(BLD_DIR)/control.o \
-	$(BLD_DIR)/gimbal.o \
-	$(BLD_DIR)/mav.o \
-	$(BLD_DIR)/gnuplot.o \
-	$(BLD_DIR)/state_estimation.o \
-	$(BLD_DIR)/timeline.o \
-	$(BLD_DIR)/dataset.o \
-	$(BLD_DIR)/euroc.o \
-	$(BLD_DIR)/aprilgrid.o \
-	$(BLD_DIR)/sim.o \
-	$(BLD_DIR)/calib.o \
-	$(BLD_DIR)/ceres_bridge.o \
-	$(BLD_DIR)/gui.o
+	$(BLD_DIR)/xyz.o \
+	$(BLD_DIR)/xyz_ds.o \
+	$(BLD_DIR)/xyz_http.o \
+	$(BLD_DIR)/xyz_gnuplot.o \
+	$(BLD_DIR)/xyz_aprilgrid.o \
+	$(BLD_DIR)/xyz_cv.o \
+	$(BLD_DIR)/xyz_timeline.o \
+	$(BLD_DIR)/xyz_se.o \
+	$(BLD_DIR)/xyz_sim.o \
+	$(BLD_DIR)/xyz_control.o \
+	$(BLD_DIR)/xyz_gimbal.o \
+	$(BLD_DIR)/xyz_mav.o \
+	$(BLD_DIR)/xyz_euroc.o \
+	$(BLD_DIR)/xyz_calib.o \
+	$(BLD_DIR)/xyz_ceres.o \
+	$(BLD_DIR)/xyz_gui.o
 
 
 # TESTS
 TESTS := \
-	test_xyz \
-	test_aprilgrid \
-	test_ubx
+	$(BLD_DIR)/test_http \
+	$(BLD_DIR)/test_gnuplot \
+	$(BLD_DIR)/test_aprilgrid \
+	$(BLD_DIR)/test_cv \
+	$(BLD_DIR)/test_se \
+	$(BLD_DIR)/test_sim \
+	$(BLD_DIR)/test_control \
+	$(BLD_DIR)/test_gimbal \
+	$(BLD_DIR)/test_mav \
+	$(BLD_DIR)/test_gui
