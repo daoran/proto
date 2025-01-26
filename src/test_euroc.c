@@ -1,63 +1,5 @@
-// #include <stdio.h>
-// #include <math.h>
+#include "munit.h"
 #include "xyz_euroc.h"
-
-// UNITESTS GLOBAL VARIABLES
-static int nb_tests = 0;
-static int nb_passed = 0;
-static int nb_failed = 0;
-
-#define ENABLE_TERM_COLORS 0
-#if ENABLE_TERM_COLORS == 1
-#define TERM_RED "\x1B[1;31m"
-#define TERM_GRN "\x1B[1;32m"
-#define TERM_WHT "\x1B[1;37m"
-#define TERM_NRM "\x1B[1;0m"
-#else
-#define TERM_RED
-#define TERM_GRN
-#define TERM_WHT
-#define TERM_NRM
-#endif
-
-/**
- * Run unittests
- * @param[in] test_name Test name
- * @param[in] test_ptr Pointer to unittest
- */
-void run_test(const char *test_name, int (*test_ptr)(void)) {
-  if ((*test_ptr)() == 0) {
-    printf("-> [%s] " TERM_GRN "OK!\n" TERM_NRM, test_name);
-    fflush(stdout);
-    nb_passed++;
-  } else {
-    printf(TERM_RED "FAILED!\n" TERM_NRM);
-    fflush(stdout);
-    nb_failed++;
-  }
-  nb_tests++;
-}
-
-/**
- * Add unittest
- * @param[in] TEST Test function
- */
-#define TEST(TEST_FN) run_test(#TEST_FN, TEST_FN);
-
-/**
- * Unit-test assert
- * @param[in] TEST Test condition
- */
-#define TEST_ASSERT(TEST)                                                      \
-  do {                                                                         \
-    if ((TEST) == 0) {                                                         \
-      printf(TERM_RED "ERROR!" TERM_NRM " [%s:%d] %s FAILED!\n",               \
-             __func__,                                                         \
-             __LINE__,                                                         \
-             #TEST);                                                           \
-      return -1;                                                               \
-    }                                                                          \
-  } while (0)
 
 int test_euroc_imu_load(void) {
   const char *data_dir = "/data/euroc/imu_april/mav0/imu0";
@@ -105,12 +47,12 @@ int test_euroc_calib_load(void) {
   return 0;
 }
 
-int main(int argc, char *argv[]) {
-  TEST(test_euroc_imu_load);
-  TEST(test_euroc_camera_load);
-  TEST(test_euroc_ground_truth_load);
-  TEST(test_euroc_data_load);
-  TEST(test_euroc_calib_target_load);
-  TEST(test_euroc_calib_load);
-  return (nb_failed) ? -1 : 0;
+void test_suite(void) {
+  MU_ADD_TEST(test_euroc_imu_load);
+  MU_ADD_TEST(test_euroc_camera_load);
+  MU_ADD_TEST(test_euroc_ground_truth_load);
+  MU_ADD_TEST(test_euroc_data_load);
+  MU_ADD_TEST(test_euroc_calib_target_load);
+  MU_ADD_TEST(test_euroc_calib_load);
 }
+MU_RUN_TESTS(test_suite)

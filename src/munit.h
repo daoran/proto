@@ -9,9 +9,9 @@
 #include <fcntl.h>
 
 /* GLOBAL VARIABLES */
-static int nb_tests = 0;
-static int nb_passed = 0;
-static int nb_failed = 0;
+static int num_tests = 0;
+static int num_passed = 0;
+static int num_failed = 0;
 static char *test_target_name = NULL;
 
 /* MUNIT SETTINGS */
@@ -171,9 +171,9 @@ void mu_print_log(const char *log_path) {
  */
 void mu_print_stats(void) {
   printf("\n");
-  printf(MU_WHT "Ran %d tests" MU_NRM "\n", nb_tests);
-  printf(MU_GRN "- %d passed" MU_NRM "\n", nb_passed);
-  printf(MU_RED "- %d failed\n" MU_NRM "\n", nb_failed);
+  printf(MU_WHT "Ran %d tests" MU_NRM "\n", num_tests);
+  printf(MU_GRN "- %d passed" MU_NRM "\n", num_passed);
+  printf(MU_RED "- %d failed\n" MU_NRM "\n", num_failed);
   printf("\n");
 }
 
@@ -222,7 +222,7 @@ void mu_run_test(const char *test_name,
       printf("-> [%s] " MU_GRN "OK!\n" MU_NRM, test_name);
     }
     fflush(stdout);
-    nb_passed++;
+    num_passed++;
 
     if (redirect && keep_logs == 0) {
       remove(log_path);
@@ -232,10 +232,10 @@ void mu_run_test(const char *test_name,
     printf("\n" MU_RED "[%s] FAILED!\n" MU_NRM, test_name);
     fflush(stdout);
     mu_print_log(log_path);
-    nb_failed++;
+    num_failed++;
   }
 
-  nb_tests++;
+  num_tests++;
 }
 
 /**
@@ -287,7 +287,7 @@ int mu_run_python(const char *script_path) {
                                                                                \
     TEST_SUITE();                                                              \
     mu_print_stats();                                                          \
-    return (nb_failed) ? -1 : 0;                                               \
+    return (num_failed) ? -1 : 0;                                              \
   }
 
 #endif // MUNIT_H

@@ -16,28 +16,6 @@ third_party: ## Install dependencies
 docs: ## Build docs
 	@livereload .
 
-$(BLD_DIR)/test_%: src/test_%.c
-	@echo "TEST [$(notdir $@)]"
-	@$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS) -lxyz
-
-$(BLD_DIR)/%.o: src/%.c src/%.h Makefile
-	@echo "CC [$(notdir $<)]"
-	@$(CC) $(CFLAGS) -c $< -o $@
-
-$(BLD_DIR)/xyz_ceres.o: src/xyz_ceres.cpp Makefile
-	@echo "CXX [$(notdir $<)]"
-	@g++ -Wall -O3 \
-		-c $< \
-		-o $(BLD_DIR)/$(basename $(notdir $<)).o \
-		-I/usr/include/eigen3
-
-$(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
-	@echo "AR [libxyz.a]"
-	@$(AR) $(ARFLAGS) \
-		$(BLD_DIR)/libxyz.a \
-		$(LIBXYZ_OBJS) \
-		> /dev/null 2>&1
-
 setup:
 	@mkdir -p $(BLD_DIR)
 	@cp -r src/fonts $(BLD_DIR)
@@ -109,9 +87,8 @@ avs: $(BLD_DIR)/libxyz.a
 
 tests: $(TESTS)
 
-ci:  ## Run CI tests
-	@$(CC) $(CFLAGS) -DMU_REDIRECT_STREAMS=1 src/test_xyz.c -o $(BLD_DIR)/test_xyz $(LDFLAGS)
-	@cd build && ./test_xyz
+ci: ## Run CI tests
+	@make tests CI_MODE=1 --no-print-directory
 
 cppcheck: ## Run cppcheck on xyz.c
 	@cppcheck src/xyz.c src/xyz.h

@@ -3537,7 +3537,6 @@ void __lapack_qr(real_t *A, int m, int n, real_t *R) {
     }
   }
 
-
   // Recover matrix Q
   // From the LAPACK documentation:
   //

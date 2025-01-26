@@ -68,7 +68,9 @@ int test_gnuplot_multiplot(void) {
 }
 
 void test_suite(void) {
+#if CI_MODE == 0
   MU_ADD_TEST(test_gnuplot_xyplot);
   MU_ADD_TEST(test_gnuplot_multiplot);
+#endif
 }
 MU_RUN_TESTS(test_suite)
