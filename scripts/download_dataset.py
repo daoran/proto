@@ -63,6 +63,7 @@ def download_euroc_sequences(dst_dir):
   base_url = "http://robotics.ethz.ch/~asl-datasets/ijrr_euroc_mav_dataset"
   seqs = [
       "calibration_datasets/cam_april/cam_april.zip",
+      "calibration_datasets/cam_checkerboard/cam_checkerboard.zip",
       "calibration_datasets/imu_april/imu_april.zip",
       "machine_hall/MH_01_easy/MH_01_easy.zip",
       "machine_hall/MH_02_easy/MH_02_easy.zip",
