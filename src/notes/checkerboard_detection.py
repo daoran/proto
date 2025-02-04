@@ -5,22 +5,51 @@ import cv2
 import numpy as np
 from scipy.signal import convolve2d
 from scipy.stats import norm
+from scipy.spatial import cKDTree
 import scipy.ndimage as ndi
 
 
-def normalize_image(img):
-  if len(img.shape) > 2:
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-  else:
-    gray = img
+def normalize_image(image):
+  """
+  Normalize image to between 0 to  1
+  """
+  assert len(image.shape) == 2
+  return image / 255
 
-  blur_size = int(np.sqrt(gray.size) / 2)
-  grayb = cv2.GaussianBlur(gray, (3, 3), 1)
-  gray_mean = cv2.blur(grayb, (blur_size, blur_size))
-  diff = (np.float32(grayb) - gray_mean) / 255.0
-  diff = np.clip(diff, -0.2, 0.2) + 0.2
-  diff = (diff - np.min(diff)) / (np.max(diff) - np.min(diff))
-  return diff
+  # blur_size = int(np.sqrt(image.size) / 2)
+  # grayb = cv2.GaussianBlur(image, (3, 3), 1)
+  # gray_mu = cv2.blur(grayb, (blur_size, blur_size))
+  # diff = (np.float32(grayb) - gray_mu) / 255.0
+  # diff = np.clip(grayb, -0.1, 0.1) + 0.1
+  # diff = (diff - np.min(diff)) / (np.max(diff) - np.min(diff))
+  # return diff
+
+
+def z_score_normalization(image):
+  """
+  Z-score Normalization
+  """
+  mean, std = np.mean(image), np.std(image)
+  return (image - mean) / (std + 1e-8)  # Avoid division by zero
+
+
+def gamma_correction(image, gamma=0.5):
+  """
+  Gamma correction
+  """
+  image = image / 255.0  # Normalize to [0,1]
+  return np.power(image, gamma) * 255.0  # Apply gamma and rescale
+
+
+def histogram_equalization(image):
+  """
+  Histogram Equalization
+  """
+  hist, bins = np.histogram(image.flatten(), bins=256, range=[0, 256])
+  cdf = hist.cumsum()  # Cumulative distribution function
+  cdf_normalized = cdf * 255 / cdf[-1]  # Normalize to [0,255]
+  return np.interp(image.flatten(), bins[:-1],
+                   cdf_normalized).reshape(image.shape)
 
 
 def correlation_patch(angle_1, angle_2, radius):
@@ -73,7 +102,7 @@ def correlation_patch(angle_1, angle_2, radius):
   return template
 
 
-def non_maxima_suppression(image, n=3, tau=0.025, margin=5):
+def non_maxima_suppression(image, n=3, tau=0.1, margin=2):
   """
   Non Maximum Suppression
 
@@ -260,9 +289,9 @@ def refine_corners(img_du, img_dv, img_angle, img_weight, corners, r=10):
     v1_edge, v2_edge = edge_orientations(img_angle_sub, img_weight_sub)
 
     # Check invalid edge
-    print(v1_edge, v2_edge)
-    if (v1_edge[0] == 0 and v1_edge[1] == 0) or (v2_edge[0] == 0 and
-                                                 v2_edge[1] == 0):
+    if np.array_equal(v1_edge, [0.0, 0.0]):
+      continue
+    if np.array_equal(v2_edge, [0.0, 0.0]):
       continue
 
     corners_inliers.append(corners[i])
@@ -272,27 +301,78 @@ def refine_corners(img_du, img_dv, img_angle, img_weight, corners, r=10):
   return corners, v1, v2
 
 
+def max_pooling(corr, step=40, thres=0.01):
+  """
+  Extracts strong corner candidates from a corner response matrix using a
+  grid-based local max-pooling approach.
+
+  This function scans the input matrix in a grid-wise manner, selecting the
+  strongest corner in each region while ensuring detected corners are spaced
+  apart and meet a minimum response threshold.
+
+  Parameters:
+  -----------
+  corr : np.ndarray
+      The corner response matrix (e.g., from Harris or Shi-Tomasi corner
+      detectors).
+
+  step : int, optional (default=40)
+      The size of the local region (window) for non-max suppression. Larger
+      values ensure more spaced-out corners.
+
+  thres : float, optional (default=0.01)
+      Minimum response value for a corner to be considered valid.
+
+  Returns:
+  --------
+  np.ndarray
+
+      A NumPy array of shape (N, 3), where each row represents a detected
+      corner with:
+      - Row index of the corner
+      - Column index of the corner
+      - Corner response value
+
+  Example:
+  --------
+  >>> corner_response = np.random.rand(100, 100)  # Simulated response matrix
+  >>> corners = get_corner_candidates(corner_response, step=20, thres=0.05)
+  >>> print(corners)
+  [[12 34 0.08]
+   [52 76 0.12]
+   [85 90 0.15] ...]
+  """
+  out = []
+  check = set()
+
+  for i in range(0, corr.shape[0], step // 2):
+    for j in range(0, corr.shape[1], step // 2):
+      # Get row, column index, and max value in local region
+      region = corr[i:i + step, j:j + step]
+      ix = np.argmax(region)
+      r, c = np.unravel_index(ix, region.shape)
+      val = region[r, c]
+
+      # Keep if larger than threshold
+      if val > thres and (r + i, c + j) not in check:
+        out.append((r + i, c + j, val))
+        check.add((r + i, c + j))
+
+  return np.array(out)
+
+
 def detect_corners(image, radiuses=[6, 8, 10]):
   """
   Detect corners
   """
   # Convert gray image to double
   assert len(image.shape) == 2
-  image = image.astype(np.float32)
+  image = normalize_image(image)
 
   # Find corners
-  assert len(image.shape) == 2
-  template_props = [
-      [0.0, pi / 2.0, radiuses[0]],
-      [pi / 4.0, -pi / 4.0, radiuses[0]],
-      [0.0, pi / 2.0, radiuses[1]],
-      [pi / 4.0, -pi / 4.0, radiuses[1]],
-      [0.0, pi / 2.0, radiuses[2]],
-      [pi / 4.0, -pi / 4.0, radiuses[2]],
-  ]
-
+  template_props = [[0.0, pi / 2.0], [pi / 4.0, -pi / 4.0]]
   corr = np.zeros(image.shape)
-  for angle_1, angle_2, radius in template_props:
+  for angle_1, angle_2 in template_props:
     for radius in radiuses:
       template = correlation_patch(angle_1, angle_2, radius)
 
@@ -318,46 +398,31 @@ def detect_corners(image, radiuses=[6, 8, 10]):
       # Max
       corr = np.max([img_corners, corr], axis=0)
 
-  # Non Maximum Suppression
-  corners = non_maxima_suppression(corr)
-  # vis = cv2.cvtColor(image.astype(np.float32), cv2.COLOR_GRAY2BGR)
-  # for px, py in corners:
-  #   center = (int(px), int(py))
-  #   radius = 1
-  #   color = (0, 0, 255)
-  #   thickness = 2
-  #   cv2.circle(vis, center, radius, color, thickness)
+  # Max pooling
+  corners = max_pooling(corr, 10, np.max(corr) * 0.2)
 
   # Refine corners
-  du = np.array([
-      [-1, 0, 1],
-      [-1, 0, 1],
-      [-1, 0, 1],
-  ])
-  dv = du.T
-  img_du = convolve2d(image, du, mode='same')
-  img_dv = convolve2d(image, dv, mode='same')
-  img_angle = np.arctan2(img_dv, img_du)
-  img_weight = np.sqrt(img_du**2 + img_dv**2)
-  corners, v1, v2 = refine_corners(img_du, img_dv, img_angle, img_weight,
-                                   corners)
+  # du = np.array([
+  #     [-1, 0, 1],
+  #     [-1, 0, 1],
+  #     [-1, 0, 1],
+  # ])
+  # dv = du.T
+  # img_du = convolve2d(image, du, mode='same')
+  # img_dv = convolve2d(image, dv, mode='same')
+  # img_angle = np.arctan2(img_dv, img_du)
+  # img_weight = np.sqrt(img_du**2 + img_dv**2)
+  # corners, v1, v2 = refine_corners(img_du, img_dv, img_angle, img_weight,
+  #                                  corners)
 
-  vis_refine = cv2.cvtColor(image.astype(np.float32), cv2.COLOR_GRAY2BGR)
-  for px, py in corners:
+  vis = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+  for i in range(corners.shape[0]):
+    py, px = corners[i, :2]
     center = (int(px), int(py))
     radius = 1
     color = (0, 0, 255)
     thickness = 2
-    cv2.circle(vis_refine, center, radius, color, thickness)
-
-  vis = np.vstack([
-      cv2.cvtColor(corr.astype(np.float32), cv2.COLOR_GRAY2BGR),
-      vis_refine,
-      # cv2.cvtColor(img_du.astype(np.float32), cv2.COLOR_GRAY2BGR),
-      # cv2.cvtColor(img_dv.astype(np.float32), cv2.COLOR_GRAY2BGR),
-      # cv2.cvtColor(img_angle.astype(np.float32), cv2.COLOR_GRAY2BGR),
-      # cv2.cvtColor(img_weight.astype(np.float32), cv2.COLOR_GRAY2BGR),
-  ])
+    cv2.circle(vis, center, radius, color, thickness)
   cv2.imshow("vis", vis)
   cv2.waitKey(0)
 
@@ -389,9 +454,15 @@ euroc_data = Path("/data/euroc")
 calib_dir = euroc_data / "cam_checkerboard" / "mav0" / "cam0" / "data"
 calib_image = calib_dir / "1403709080437837056.png"
 image = cv2.imread(str(calib_image), cv2.COLOR_BGR2GRAY)
+image = image.astype(np.float32)
 cb_size = (7, 6)
 winsize = 9
 
 # vis = cv2.imread(str(calib_image))
-# diff = normalize_image(image)
+# image = image.astype(np.float32)
+# image = normalize_image(image)
+# image = z_score_normalization(image)
+# image = gamma_correction(image)
+# image = histogram_equalization(image)
+
 detect_corners(image)
