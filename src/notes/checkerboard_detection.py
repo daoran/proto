@@ -1,15 +1,36 @@
 from math import pi
 from pathlib import Path
+from typing import TypeVar
+from typing import Annotated
+from typing import Literal
+from typing import List
+from typing import Tuple
 
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 from scipy.signal import convolve2d
 from scipy.stats import norm
 from scipy.spatial import cKDTree
+from scipy.optimize import minimize
 import scipy.ndimage as ndi
+import matplotlib.pylab as plt
+
+DType = TypeVar("DType", bound=np.generic)
+Vec2 = Annotated[NDArray[DType], Literal[2]]
+Vec3 = Annotated[NDArray[DType], Literal[3]]
+Vec4 = Annotated[NDArray[DType], Literal[4]]
+VecN = Annotated[NDArray[DType], Literal["N"]]
+Mat2x2 = Annotated[NDArray[DType], Literal[2, 2]]
+Mat3x3 = Annotated[NDArray[DType], Literal[3, 3]]
+Mat4x4 = Annotated[NDArray[DType], Literal[4, 4]]
+MatN = Annotated[NDArray[DType], Literal["N", "N"]]
+MatNx2 = Annotated[NDArray[DType], Literal["N", "2"]]
+MatNx3 = Annotated[NDArray[DType], Literal["N", "3"]]
+Image = Annotated[NDArray[DType], Literal["N", "N"]]
 
 
-def normalize_image(image):
+def normalize_image(image: Image):
   """
   Normalize image to between 0 to  1
   """
@@ -25,7 +46,7 @@ def normalize_image(image):
   # return diff
 
 
-def z_score_normalization(image):
+def z_score_normalization(image: Image):
   """
   Z-score Normalization
   """
@@ -33,7 +54,7 @@ def z_score_normalization(image):
   return (image - mean) / (std + 1e-8)  # Avoid division by zero
 
 
-def gamma_correction(image, gamma=0.5):
+def gamma_correction(image: Image, gamma: float = 0.5):
   """
   Gamma correction
   """
@@ -52,13 +73,15 @@ def histogram_equalization(image):
                    cdf_normalized).reshape(image.shape)
 
 
-def correlation_patch(angle_1, angle_2, radius):
+def correlation_patch(angle_1: float, angle_2: float, radius: float):
   """
   Form correlation patch
   """
   # Width and height
-  width = radius * 2 + 1
-  height = radius * 2 + 1
+  width = int(radius * 2 + 1)
+  height = int(radius * 2 + 1)
+  if width == 0 or height == 0:
+    return None
 
   # Initialize template
   template = []
@@ -102,7 +125,10 @@ def correlation_patch(angle_1, angle_2, radius):
   return template
 
 
-def non_maxima_suppression(image, n=3, tau=0.1, margin=2):
+def non_maxima_suppression(image: Image,
+                           n: int = 3,
+                           tau: float = 0.1,
+                           margin: int = 2):
   """
   Non Maximum Suppression
 
@@ -156,13 +182,14 @@ def non_maxima_suppression(image, n=3, tau=0.1, margin=2):
   return maxima
 
 
-def find_modes_mean_shift(hist, sigma):
+def find_modes_mean_shift(hist: VecN, sigma: float) -> Tuple[MatNx2, VecN]:
   """
   Efficient mean-shift approximation by histogram smoothing.
 
   Args:
-    hist (numpy.ndarray): 1D histogram.
-    sigma (float): Standard deviation of Gaussian kernel.
+
+    hist: 1D histogram.
+    sigma: Standard deviation of Gaussian kernel.
 
   Returns:
     tuple: A tuple containing two numpy arrays:
@@ -214,7 +241,20 @@ def find_modes_mean_shift(hist, sigma):
   return modes, hist_smoothed
 
 
-def edge_orientations(img_angle, img_weight):
+def edge_orientations(img_angle: Image, img_weight: Image) -> Tuple[Vec2, Vec2]:
+  """
+  Calculate Edge Orientations
+
+  Args:
+
+    img_angle: Image angles
+    img_weight: Image weight
+
+  Returns:
+
+    Refined edge orientation vectors v1, v2
+
+  """
   # Initialize v1 and v2
   v1 = np.array([0, 0])
   v2 = np.array([0, 0])
@@ -238,7 +278,7 @@ def edge_orientations(img_angle, img_weight):
     angle_hist[bin_idx] += vec_weight[i]
 
   # Find modes of smoothed histogram
-  modes, angle_hist_smoothed = find_modes_mean_shift(angle_hist, 1)
+  modes, _ = find_modes_mean_shift(angle_hist, 1)
 
   # If only one or no mode => return invalid corner
   if modes.shape[0] <= 1:
@@ -267,19 +307,40 @@ def edge_orientations(img_angle, img_weight):
   return v1, v2
 
 
-def refine_corners(img_du, img_dv, img_angle, img_weight, corners, r=10):
+def refine_corners(img_shape: Tuple[int, ...],
+                   img_angle: MatN,
+                   img_weight: MatN,
+                   corners,
+                   r=10):
+  """
+  Refine detected corners
+
+  Args:
+
+    img_shape: Image shape (rows, cols)
+    img_angle: Image angles [degrees]
+    img_weight: Image weight
+    corners: List of corners to refine
+    r: Patch radius size [pixels]
+
+  Returns
+
+    corners, v1, v2
+
+  """
   # Image dimensions
-  height, width = img_du.shape
+  assert len(img_shape) == 2
+  height, width = img_shape
 
   # Init orientations to invalid (corner is invalid iff orientation=0)
-  N = len(corners)
   corners_inliers = []
   v1 = []
   v2 = []
 
   # for all corners do
-  for i, (cu, cv) in enumerate(corners):
+  for i, (cu, cv, _) in enumerate(corners):
     # Estimate edge orientations
+    cu, cv = int(cu), int(cv)
     rs = max(cv - r, 1)
     re = min(cv + r, height)
     cs = max(cu - r, 1)
@@ -301,7 +362,49 @@ def refine_corners(img_du, img_dv, img_angle, img_weight, corners, r=10):
   return corners, v1, v2
 
 
-def max_pooling(corr, step=40, thres=0.01):
+def compute_edge_orientation(image: Image):
+  # Compute Sobel gradients
+  Gx = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
+  Gy = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
+
+  # Compute edge magnitude and orientation
+  magnitude = np.sqrt(Gx**2 + Gy**2)
+  orientation = np.arctan2(Gy, Gx)  # Orientation in radians
+
+  # Normalize orientation to 0-180 degrees
+  orientation_degrees = np.degrees(orientation)
+  orientation_degrees = (orientation_degrees + 180) % 180
+
+  # Visualizing edge orientations
+  _, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+  ax[0].imshow(image, cmap='gray')
+  ax[0].set_title("Original Image")
+  ax[0].axis("off")
+
+  ax[1].imshow(magnitude, cmap='gray')
+  ax[1].set_title("Edge Magnitude")
+  ax[1].axis("off")
+
+  plt.show()
+
+  # Quiver plot for edge orientation visualization
+  step = 10  # Downsampling for visualization
+  y, x = np.mgrid[0:image.shape[0]:step, 0:image.shape[1]:step]
+  U = Gx[::step, ::step]
+  V = Gy[::step, ::step]
+
+  plt.figure(figsize=(6, 6))
+  plt.imshow(image, cmap='gray', alpha=0.5)
+  plt.quiver(x, y, U, -V, color='red', angles='xy', scale_units='xy', scale=20)
+  plt.title("Edge Orientation")
+  plt.axis("off")
+  plt.show()
+
+  return orientation_degrees
+
+
+def max_pooling(corr: Image, step: int = 40, thres: float = 0.01):
   """
   Extracts strong corner candidates from a corner response matrix using a
   grid-based local max-pooling approach.
@@ -361,7 +464,7 @@ def max_pooling(corr, step=40, thres=0.01):
   return np.array(out)
 
 
-def detect_corners(image, radiuses=[6, 8, 10]):
+def detect_corners(image: Image, radiuses: List[int] = [6, 8, 10]):
   """
   Detect corners
   """
@@ -375,6 +478,8 @@ def detect_corners(image, radiuses=[6, 8, 10]):
   for angle_1, angle_2 in template_props:
     for radius in radiuses:
       template = correlation_patch(angle_1, angle_2, radius)
+      if template is None:
+        continue
 
       img_corners = [
           convolve2d(image, template[0], mode="same"),
@@ -399,21 +504,22 @@ def detect_corners(image, radiuses=[6, 8, 10]):
       corr = np.max([img_corners, corr], axis=0)
 
   # Max pooling
-  corners = max_pooling(corr, 10, np.max(corr) * 0.2)
+  step = 40
+  threshold = float(np.max(corr) * 0.2)
+  corners = max_pooling(corr, step, threshold)
 
   # Refine corners
-  # du = np.array([
-  #     [-1, 0, 1],
-  #     [-1, 0, 1],
-  #     [-1, 0, 1],
-  # ])
-  # dv = du.T
-  # img_du = convolve2d(image, du, mode='same')
-  # img_dv = convolve2d(image, dv, mode='same')
-  # img_angle = np.arctan2(img_dv, img_du)
-  # img_weight = np.sqrt(img_du**2 + img_dv**2)
-  # corners, v1, v2 = refine_corners(img_du, img_dv, img_angle, img_weight,
-  #                                  corners)
+  du = np.array([
+      [-1, 0, 1],
+      [-1, 0, 1],
+      [-1, 0, 1],
+  ])
+  dv = du.T
+  img_du = convolve2d(image, du, mode='same')
+  img_dv = convolve2d(image, dv, mode='same')
+  img_angle = np.arctan2(img_dv, img_du)
+  img_weight = np.sqrt(img_du**2 + img_dv**2)
+  corners, v1, v2 = refine_corners(image.shape, img_angle, img_weight, corners)
 
   vis = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
   for i in range(corners.shape[0]):
@@ -425,6 +531,8 @@ def detect_corners(image, radiuses=[6, 8, 10]):
     cv2.circle(vis, center, radius, color, thickness)
   cv2.imshow("vis", vis)
   cv2.waitKey(0)
+
+  return corners, v1, v2
 
 
 def checkerboard_score(corners, size=(9, 6)):
@@ -449,6 +557,58 @@ def checkerboard_score(corners, size=(9, 6)):
   return maxm
 
 
+def generate_synthetic_corner(image_shape: Tuple[int, int] = (10, 10)):
+  """
+  Generate a synthetic image with a corner feature.
+
+  Args:
+
+    image_shape: (rows, cols)
+
+  """
+  img = np.zeros(image_shape, dtype=np.float32)
+  img[5 + 3:, :5 - 3] = 255  # Simulating an L-shaped corner
+  img[:5 + 3, 5 - 3:] = 255
+  return img
+
+
+def subpixel_refine(image: Image):
+  """
+  Sub-pixel Refinement.
+  """
+  dx = cv2.Sobel(image, cv2.CV_32F, 1, 0, ksize=3)
+  dy = cv2.Sobel(image, cv2.CV_32F, 0, 1, ksize=3)
+
+  matsum = np.zeros((2, 2))
+  pointsum = np.zeros(2)
+  for i in range(dx.shape[0]):
+    for j in range(dx.shape[1]):
+      vec = [dy[i, j], dx[i, j]]
+      pos = (i, j)
+      mat = np.outer(vec, vec)
+      pointsum += mat @ pos
+      matsum += mat
+
+  try:
+    minv = np.linalg.inv(matsum)
+  except np.linalg.LinAlgError:
+    return None
+
+  newp = minv.dot(pointsum)
+
+  return newp
+
+
+# Example usage
+# image = generate_synthetic_corner()
+# initial_corner = (6, 6)  # Approximate detection
+# refined_corner = subpixel_refine(image)
+
+# plt.imshow(image, cmap='gray', vmin=0, vmax=255)
+# plt.xticks(range(image.shape[0]))
+# plt.yticks(range(image.shape[1]))
+# plt.show()
+
 # Load the image
 euroc_data = Path("/data/euroc")
 calib_dir = euroc_data / "cam_checkerboard" / "mav0" / "cam0" / "data"
@@ -458,11 +618,5 @@ image = image.astype(np.float32)
 cb_size = (7, 6)
 winsize = 9
 
-# vis = cv2.imread(str(calib_image))
-# image = image.astype(np.float32)
-# image = normalize_image(image)
-# image = z_score_normalization(image)
-# image = gamma_correction(image)
-# image = histogram_equalization(image)
-
 detect_corners(image)
+# compute_edge_orientation(image)
