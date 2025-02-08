@@ -138,7 +138,7 @@ $(BLD_DIR)/test_%: src/test_%.c libxyz
 
 $(BLD_DIR)/%.o: src/%.c src/%.h Makefile
 	@echo "CC [$(notdir $<)]"
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BLD_DIR)/xyz_ceres.o: src/xyz_ceres.cpp Makefile
 	@echo "CXX [$(notdir $<)]"
