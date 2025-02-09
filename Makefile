@@ -24,6 +24,28 @@ setup:
 clean:  ## Clean
 	@rm -rf $(BLD_DIR)
 
+$(BLD_DIR)/test_%: src/test_%.c libxyz
+	@echo "TEST [$(notdir $@)]"
+	@$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS) -lxyz
+
+$(BLD_DIR)/%.o: src/%.c src/%.h Makefile
+	@echo "CC [$(notdir $<)]"
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BLD_DIR)/xyz_ceres.o: src/xyz_ceres.cpp Makefile
+	@echo "CXX [$(notdir $<)]"
+	g++ -Wall -O3 \
+		-c $< \
+		-o $(BLD_DIR)/$(basename $(notdir $<)).o \
+		-I/usr/include/eigen3
+
+$(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
+	@echo "AR [libxyz.a]"
+	$(AR) $(ARFLAGS) \
+		$(BLD_DIR)/libxyz.a \
+		$(LIBXYZ_OBJS) \
+		> /dev/null 2>&1
+
 libxyz: setup $(BLD_DIR)/libxyz.a  ## Build libxyz
 
 install: ## Install libxyz
@@ -89,6 +111,9 @@ tests: $(TESTS)
 
 ci: ## Run CI tests
 	@make tests CI_MODE=1 --no-print-directory
+	@cd ./build && $(foreach TEST, $(TESTS), ./$(notdir ${TEST});)
+
+all: libxyz tests
 
 cppcheck: ## Run cppcheck on xyz.c
 	@cppcheck src/xyz.c src/xyz.h

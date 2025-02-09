@@ -17,12 +17,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/data.o",
-      "src/data.c"
+      "build/xyz.o",
+      "src/xyz.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/data.c",
-    "output": "/home/chutsu/code/xyz/build/data.o"
+    "file": "/home/chutsu/code/xyz/src/xyz.c",
+    "output": "/home/chutsu/code/xyz/build/xyz.o"
   },
   {
     "arguments": [
@@ -42,12 +42,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/ds.o",
-      "src/ds.c"
+      "build/xyz_ds.o",
+      "src/xyz_ds.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/ds.c",
-    "output": "/home/chutsu/code/xyz/build/ds.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_ds.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_ds.o"
   },
   {
     "arguments": [
@@ -67,12 +67,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/time.o",
-      "src/time.c"
+      "build/xyz_http.o",
+      "src/xyz_http.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/time.c",
-    "output": "/home/chutsu/code/xyz/build/time.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_http.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_http.o"
   },
   {
     "arguments": [
@@ -92,12 +92,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/network.o",
-      "src/network.c"
+      "build/xyz_gnuplot.o",
+      "src/xyz_gnuplot.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/network.c",
-    "output": "/home/chutsu/code/xyz/build/network.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_gnuplot.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_gnuplot.o"
   },
   {
     "arguments": [
@@ -117,12 +117,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/http.o",
-      "src/http.c"
+      "build/xyz_aprilgrid.o",
+      "src/xyz_aprilgrid.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/http.c",
-    "output": "/home/chutsu/code/xyz/build/http.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_aprilgrid.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_aprilgrid.o"
   },
   {
     "arguments": [
@@ -142,12 +142,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/math.o",
-      "src/math.c"
+      "build/xyz_cv.o",
+      "src/xyz_cv.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/math.c",
-    "output": "/home/chutsu/code/xyz/build/math.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_cv.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_cv.o"
   },
   {
     "arguments": [
@@ -167,12 +167,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/cv.o",
-      "src/cv.c"
+      "build/xyz_timeline.o",
+      "src/xyz_timeline.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/cv.c",
-    "output": "/home/chutsu/code/xyz/build/cv.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_timeline.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_timeline.o"
   },
   {
     "arguments": [
@@ -192,12 +192,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/control.o",
-      "src/control.c"
+      "build/xyz_se.o",
+      "src/xyz_se.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/control.c",
-    "output": "/home/chutsu/code/xyz/build/control.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_se.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_se.o"
   },
   {
     "arguments": [
@@ -217,12 +217,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/gimbal.o",
-      "src/gimbal.c"
+      "build/xyz_sim.o",
+      "src/xyz_sim.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/gimbal.c",
-    "output": "/home/chutsu/code/xyz/build/gimbal.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_sim.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_sim.o"
   },
   {
     "arguments": [
@@ -242,12 +242,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/mav.o",
-      "src/mav.c"
+      "build/xyz_control.o",
+      "src/xyz_control.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/mav.c",
-    "output": "/home/chutsu/code/xyz/build/mav.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_control.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_control.o"
   },
   {
     "arguments": [
@@ -267,12 +267,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/gnuplot.o",
-      "src/gnuplot.c"
+      "build/xyz_gimbal.o",
+      "src/xyz_gimbal.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/gnuplot.c",
-    "output": "/home/chutsu/code/xyz/build/gnuplot.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_gimbal.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_gimbal.o"
   },
   {
     "arguments": [
@@ -292,12 +292,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/state_estimation.o",
-      "src/state_estimation.c"
+      "build/xyz_mav.o",
+      "src/xyz_mav.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/state_estimation.c",
-    "output": "/home/chutsu/code/xyz/build/state_estimation.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_mav.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_mav.o"
   },
   {
     "arguments": [
@@ -317,12 +317,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/timeline.o",
-      "src/timeline.c"
+      "build/xyz_euroc.o",
+      "src/xyz_euroc.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/timeline.c",
-    "output": "/home/chutsu/code/xyz/build/timeline.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_euroc.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_euroc.o"
   },
   {
     "arguments": [
@@ -342,112 +342,12 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
-      "build/dataset.o",
-      "src/dataset.c"
+      "build/xyz_calib.o",
+      "src/xyz_calib.c"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/dataset.c",
-    "output": "/home/chutsu/code/xyz/build/dataset.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-Wall",
-      "-Wpedantic",
-      "-Wstrict-prototypes",
-      "-g",
-      "-fopenmp",
-      "-fsanitize=address",
-      "-I/home/chutsu/code/xyz",
-      "-I/home/chutsu/code/xyz/third_party/include",
-      "-fPIC",
-      "-I/home/chutsu/code/xyz/third_party/src/stb",
-      "-I/usr/include/freetype2",
-      "-I/usr/include/libpng16",
-      "-I/usr/include/eigen3",
-      "-c",
-      "-o",
-      "build/euroc.o",
-      "src/euroc.c"
-    ],
-    "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/euroc.c",
-    "output": "/home/chutsu/code/xyz/build/euroc.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-Wall",
-      "-Wpedantic",
-      "-Wstrict-prototypes",
-      "-g",
-      "-fopenmp",
-      "-fsanitize=address",
-      "-I/home/chutsu/code/xyz",
-      "-I/home/chutsu/code/xyz/third_party/include",
-      "-fPIC",
-      "-I/home/chutsu/code/xyz/third_party/src/stb",
-      "-I/usr/include/freetype2",
-      "-I/usr/include/libpng16",
-      "-I/usr/include/eigen3",
-      "-c",
-      "-o",
-      "build/aprilgrid.o",
-      "src/aprilgrid.c"
-    ],
-    "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/aprilgrid.c",
-    "output": "/home/chutsu/code/xyz/build/aprilgrid.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-Wall",
-      "-Wpedantic",
-      "-Wstrict-prototypes",
-      "-g",
-      "-fopenmp",
-      "-fsanitize=address",
-      "-I/home/chutsu/code/xyz",
-      "-I/home/chutsu/code/xyz/third_party/include",
-      "-fPIC",
-      "-I/home/chutsu/code/xyz/third_party/src/stb",
-      "-I/usr/include/freetype2",
-      "-I/usr/include/libpng16",
-      "-I/usr/include/eigen3",
-      "-c",
-      "-o",
-      "build/sim.o",
-      "src/sim.c"
-    ],
-    "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/sim.c",
-    "output": "/home/chutsu/code/xyz/build/sim.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/gcc",
-      "-Wall",
-      "-Wpedantic",
-      "-Wstrict-prototypes",
-      "-g",
-      "-fopenmp",
-      "-fsanitize=address",
-      "-I/home/chutsu/code/xyz",
-      "-I/home/chutsu/code/xyz/third_party/include",
-      "-fPIC",
-      "-I/home/chutsu/code/xyz/third_party/src/stb",
-      "-I/usr/include/freetype2",
-      "-I/usr/include/libpng16",
-      "-I/usr/include/eigen3",
-      "-c",
-      "-o",
-      "build/calib.o",
-      "src/calib.c"
-    ],
-    "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/calib.c",
-    "output": "/home/chutsu/code/xyz/build/calib.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_calib.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_calib.o"
   },
   {
     "arguments": [
@@ -457,11 +357,400 @@
       "-c",
       "-I/usr/include/eigen3",
       "-o",
-      "build/ceres_bridge.o",
-      "src/ceres_bridge.cpp"
+      "build/xyz_ceres.o",
+      "src/xyz_ceres.cpp"
     ],
     "directory": "/home/chutsu/code/xyz",
-    "file": "/home/chutsu/code/xyz/src/ceres_bridge.cpp",
-    "output": "/home/chutsu/code/xyz/build/ceres_bridge.o"
+    "file": "/home/chutsu/code/xyz/src/xyz_ceres.cpp",
+    "output": "/home/chutsu/code/xyz/build/xyz_ceres.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-c",
+      "-o",
+      "build/xyz_gui.o",
+      "src/xyz_gui.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/xyz_gui.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_gui.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_aprilgrid",
+      "src/test_aprilgrid.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_aprilgrid.c",
+    "output": "/home/chutsu/code/xyz/build/test_aprilgrid"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_control",
+      "src/test_control.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_control.c",
+    "output": "/home/chutsu/code/xyz/build/test_control"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_cv",
+      "src/test_cv.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_cv.c",
+    "output": "/home/chutsu/code/xyz/build/test_cv"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_ds",
+      "src/test_ds.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_ds.c",
+    "output": "/home/chutsu/code/xyz/build/test_ds"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_euroc",
+      "src/test_euroc.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_euroc.c",
+    "output": "/home/chutsu/code/xyz/build/test_euroc"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_gimbal",
+      "src/test_gimbal.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_gimbal.c",
+    "output": "/home/chutsu/code/xyz/build/test_gimbal"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_gnuplot",
+      "src/test_gnuplot.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_gnuplot.c",
+    "output": "/home/chutsu/code/xyz/build/test_gnuplot"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_gui",
+      "src/test_gui.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_gui.c",
+    "output": "/home/chutsu/code/xyz/build/test_gui"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_http",
+      "src/test_http.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_http.c",
+    "output": "/home/chutsu/code/xyz/build/test_http"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_kitti",
+      "src/test_kitti.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_kitti.c",
+    "output": "/home/chutsu/code/xyz/build/test_kitti"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_mav",
+      "src/test_mav.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_mav.c",
+    "output": "/home/chutsu/code/xyz/build/test_mav"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_se",
+      "src/test_se.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_se.c",
+    "output": "/home/chutsu/code/xyz/build/test_se"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_sim",
+      "src/test_sim.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_sim.c",
+    "output": "/home/chutsu/code/xyz/build/test_sim"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_xyz",
+      "src/test_xyz.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_xyz.c",
+    "output": "/home/chutsu/code/xyz/build/test_xyz"
   }
 ]
