@@ -420,6 +420,8 @@ void print_matrix(const char *prefix,
                   const size_t m,
                   const size_t n);
 void print_vector(const char *prefix, const real_t *v, const size_t n);
+void print_float_array(const char *prefix, const float *arr, const size_t n);
+void print_double_array(const char *prefix, const double *arr, const size_t n);
 void vec2str(const real_t *v, const int n, char *s);
 void vec2csv(const real_t *v, const int n, char *s);
 

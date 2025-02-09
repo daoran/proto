@@ -780,7 +780,6 @@ int file_copy(const char *src, const char *dst) {
   return 0;
 }
 
-
 /*******************************************************************************
  * TIME
  ******************************************************************************/
@@ -1402,6 +1401,36 @@ void print_vector(const char *prefix, const real_t *v, const size_t n) {
     // printf("%f ", v[i]);
     // printf("%.4f ", v[i]);
     // printf("%.10f ", v[i]);
+  }
+  printf("\n");
+}
+
+/**
+ * Print float array.
+ */
+void print_float_array(const char *prefix, const float *arr, const size_t n) {
+  assert(prefix != NULL);
+  assert(arr != NULL);
+  assert(n != 0);
+
+  printf("%s: ", prefix);
+  for (size_t i = 0; i < n; i++) {
+    printf("%.4f ", arr[i]);
+  }
+  printf("\n");
+}
+
+/**
+ * Print double array.
+ */
+void print_double_array(const char *prefix, const double *arr, const size_t n) {
+  assert(prefix != NULL);
+  assert(arr != NULL);
+  assert(n != 0);
+
+  printf("%s: ", prefix);
+  for (size_t i = 0; i < n; i++) {
+    printf("%.4f ", arr[i]);
   }
   printf("\n");
 }
