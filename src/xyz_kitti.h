@@ -104,47 +104,47 @@ typedef struct kitti_calib_t {
   char calib_time_velo_to_cam[100];
   double corner_dist;
 
-  double S_00[2];
-  double K_00[9];
-  double D_00[5];
-  double R_00[9];
-  double T_00[3];
-  double S_rect_00[2];
-  double R_rect_00[9];
-  double P_rect_00[12];
+  double S_00[2];       // Image size [pixels]
+  double K_00[9];       // Camera 0 intrinsics
+  double D_00[5];       // Camera 0 distortion coefficients
+  double R_00[9];       // Rotation from camera 0 to camera 0
+  double T_00[3];       // Translation from camera 0 to camera 0
+  double S_rect_00[2];  // Image size after rectifcation [pixels]
+  double R_rect_00[9];  // Rotation after rectification
+  double P_rect_00[12]; // Projection matrix after rectification
 
-  double S_01[2];
-  double K_01[9];
-  double D_01[5];
-  double R_01[9];
-  double T_01[3];
-  double S_rect_01[2];
-  double R_rect_01[9];
-  double P_rect_01[12];
+  double S_01[2];       // Image size [pixels]
+  double K_01[9];       // Camera 1 intrinsics
+  double D_01[5];       // Camera 1 distortion coefficients
+  double R_01[9];       // Rotation from camera 0 to camera 1
+  double T_01[3];       // Translation from camera 0 to camera 1
+  double S_rect_01[2];  // Image size after rectifcation [pixels]
+  double R_rect_01[9];  // Rotation after rectification
+  double P_rect_01[12]; // Projection matrix after rectification
 
-  double S_02[2];
-  double K_02[9];
-  double D_02[5];
-  double R_02[9];
-  double T_02[3];
-  double S_rect_02[2];
-  double R_rect_02[9];
-  double P_rect_02[12];
+  double S_02[2];       // Image size [pixels]
+  double K_02[9];       // Camera 2 intrinsics
+  double D_02[5];       // Camera 2 distortion coefficients
+  double R_02[9];       // Rotation from camera 0 to camera 2
+  double T_02[3];       // Translation from camera 0 to camera 2
+  double S_rect_02[2];  // Image size after rectifcation [pixels]
+  double R_rect_02[9];  // Rotation after rectification
+  double P_rect_02[12]; // Projection matrix after rectification
 
-  double S_03[2];
-  double K_03[9];
-  double D_03[5];
-  double R_03[9];
-  double T_03[3];
-  double S_rect_03[2];
-  double R_rect_03[9];
-  double P_rect_03[12];
+  double S_03[2];       // Image size [pixels]
+  double K_03[9];       // Camera 3 intrinsics
+  double D_03[5];       // Camera 3 distortion coefficients
+  double R_03[9];       // Rotation from camera 0 to camera 3
+  double T_03[3];       // Translation from camera 0 to camera 3
+  double S_rect_03[2];  // Image size after rectifcation [pixels]
+  double R_rect_03[9];  // Rotation after rectification
+  double P_rect_03[12]; // Projection matrix after rectification
 
-  double R_velo_imu[9];
-  double T_velo_imu[3];
+  double R_velo_imu[9]; // Rotation from imu to velodyne
+  double T_velo_imu[3]; // Translation from imu to velodyne
 
-  double R_cam_velo[9];
-  double T_cam_velo[3];
+  double R_cam_velo[9]; // Rotation from velodyne to camera
+  double T_cam_velo[3]; // Translation from velodyne to camera
   double delta_f[2];
   double delta_c[2];
 } kitti_calib_t;
