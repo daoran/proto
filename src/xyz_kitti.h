@@ -151,6 +151,7 @@ typedef struct kitti_calib_t {
 
 kitti_calib_t *kitti_calib_load(const char *data_dir);
 void kitti_calib_free(kitti_calib_t *data);
+void kitti_calib_print(const kitti_calib_t *data);
 
 /*****************************************************************************
  * kitti_raw_t
