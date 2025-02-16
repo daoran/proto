@@ -107,7 +107,10 @@ avs: $(BLD_DIR)/libxyz.a
 		-lxyz \
 		$(shell pkg-config opencv4 --libs)
 
-tests: $(TESTS)
+tests: $(TESTS) ## Build tests
+
+run_tests: tests ## Run tests
+	@cd ./build && $(foreach TEST, $(TESTS), ./$(notdir ${TEST});)
 
 ci: ## Run CI tests
 	@make tests CI_MODE=1 --no-print-directory

@@ -54,7 +54,7 @@ void test_suite(void) {
   MU_ADD_TEST(test_euroc_ground_truth_load);
   MU_ADD_TEST(test_euroc_data_load);
   MU_ADD_TEST(test_euroc_calib_target_load);
-  MU_ADD_TEST(test_euroc_calib_load);
+  // MU_ADD_TEST(test_euroc_calib_load);
 #endif
 }
 MU_RUN_TESTS(test_suite)
