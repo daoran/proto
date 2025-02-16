@@ -186,7 +186,7 @@ int camchain_find(camchain_t *cc,
 /**
  * Setup camera calibration factor
  */
-void calib_camera_factor_setup(struct calib_camera_factor_t *factor,
+void calib_camera_factor_setup(calib_camera_factor_t *factor,
                                pose_t *pose,
                                extrinsic_t *cam_ext,
                                camera_params_t *cam_params,
@@ -248,8 +248,7 @@ void calib_camera_factor_setup(struct calib_camera_factor_t *factor,
 
 int calib_camera_factor_eval(void *factor_ptr) {
   // Map factor
-  struct calib_camera_factor_t *factor =
-      (struct calib_camera_factor_t *) factor_ptr;
+  calib_camera_factor_t *factor = (calib_camera_factor_t *) factor_ptr;
   assert(factor != NULL);
 
   // Map params
@@ -396,7 +395,7 @@ int calib_camera_factor_ceres_eval(void *factor_ptr,
                                    real_t *r_out,
                                    real_t **J_out) {
   CERES_FACTOR_EVAL(calib_camera_factor,
-                    ((struct calib_camera_factor_t *) factor_ptr),
+                    ((calib_camera_factor_t *) factor_ptr),
                     calib_camera_factor_eval,
                     params,
                     r_out,
@@ -1563,10 +1562,10 @@ void calib_camera_solve(calib_camera_t *calib) {
   }
 }
 
-// ///////////////////////////////
-// // CALIB IMU-CAM CALIBRATION //
-// ///////////////////////////////
-//
+///////////////////////////////
+// CALIB IMU-CAM CALIBRATION //
+///////////////////////////////
+
 // /**
 //  * Malloc imucam calibration view.
 //  */
@@ -2126,7 +2125,7 @@ void calib_camera_solve(calib_camera_t *calib) {
 //                       object_points,
 //                       keypoints);
 // }
-//
+
 // // /**
 // //  * Marginalize oldest state variables in IMU-camera calibration.
 // //  */

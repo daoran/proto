@@ -39,7 +39,7 @@ int camchain_find(camchain_t *cc,
 // CALIB-CAMERA FACTOR //
 /////////////////////////
 
-struct calib_camera_factor_t {
+typedef struct calib_camera_factor_t {
   pose_t *pose;
   extrinsic_t *cam_ext;
   camera_params_t *cam_params;
@@ -64,9 +64,9 @@ struct calib_camera_factor_t {
   real_t J_pose[2 * 6];
   real_t J_cam_ext[2 * 6];
   real_t J_cam_params[2 * 8];
-};
+} calib_camera_factor_t;
 
-void calib_camera_factor_setup(struct calib_camera_factor_t *factor,
+void calib_camera_factor_setup(calib_camera_factor_t *factor,
                                pose_t *pose,
                                extrinsic_t *cam_ext,
                                camera_params_t *cam_params,
@@ -202,7 +202,8 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
                                               camera_params_t *cam_params);
 void calib_camera_view_free(calib_camera_view_t *view);
 
-calib_camera_t *calib_camera_malloc(void); void calib_camera_free(calib_camera_t *calib);
+calib_camera_t *calib_camera_malloc(void);
+void calib_camera_free(calib_camera_t *calib);
 void calib_camera_print(calib_camera_t *calib);
 void calib_camera_add_camera(calib_camera_t *calib,
                              const int cam_idx,
@@ -248,10 +249,10 @@ void calib_camera_linsolve(const void *data,
                            real_t *dx);
 void calib_camera_solve(calib_camera_t *calib);
 
-// ////////////////////////////
-// // CAMERA-IMU CALIBRATION //
-// ////////////////////////////
-//
+////////////////////////////
+// CAMERA-IMU CALIBRATION //
+////////////////////////////
+
 // typedef struct calib_imucam_view_t {
 //   timestamp_t ts;
 //   int view_idx;
@@ -386,152 +387,3 @@ void calib_camera_solve(calib_camera_t *calib);
 //                                     real_t *r);
 // void calib_imucam_save_estimates(calib_imucam_t *calib);
 // void calib_imucam_solve(calib_imucam_t *calib);
-
-// ////////////////////////
-// // GIMBAL CALIBRATION //
-// ////////////////////////
-//
-// typedef struct calib_gimbal_view_t {
-//   timestamp_t ts;
-//   int view_idx;
-//   int cam_idx;
-//   int num_corners;
-//
-//   int *tag_ids;
-//   int *corner_indices;
-//   real_t *object_points;
-//   real_t *keypoints;
-//   calib_gimbal_factor_t *calib_factors;
-// } calib_gimbal_view_t;
-//
-// typedef struct calib_gimbal_t {
-//   // Settings
-//   int fix_fiducial_ext;
-//   int fix_gimbal_ext;
-//   int fix_poses;
-//   int fix_cam_params;
-//   int fix_cam_exts;
-//   int fix_links;
-//   int fix_joints;
-//
-//   int num_rows;
-//   int num_cols;
-//   double tag_size;
-//   double tag_spacing;
-//
-//   // Flags
-//   int fiducial_ext_ok;
-//   int gimbal_ext_ok;
-//   int poses_ok;
-//   int cams_ok;
-//   int links_ok;
-//   int joints_ok;
-//
-//   // Counters
-//   int num_cams;
-//   int num_views;
-//   int num_poses;
-//   int num_links;
-//   int num_joints;
-//   int num_calib_factors;
-//   int num_joint_factors;
-//
-//   // Variables
-//   timestamp_t *timestamps;
-//   fiducial_t fiducial_ext;
-//   extrinsic_t gimbal_ext;
-//   extrinsic_t *cam_exts;
-//   camera_params_t *cam_params;
-//   extrinsic_t *links;
-//   joint_t **joints;
-//   pose_t *poses;
-//
-//   // Factors
-//   calib_gimbal_view_t ***views;
-//   joint_factor_t **joint_factors;
-// } calib_gimbal_t;
-//
-// void calib_gimbal_view_setup(calib_gimbal_view_t *calib);
-// calib_gimbal_view_t *calib_gimbal_view_malloc(const timestamp_t ts,
-//                                               const int view_idx,
-//                                               const int cam_idx,
-//                                               const int *tag_ids,
-//                                               const int *corner_indices,
-//                                               const real_t *object_points,
-//                                               const real_t *keypoints,
-//                                               const int N,
-//                                               fiducial_t *fiducial_ext,
-//                                               extrinsic_t *gimbal_ext,
-//                                               pose_t *pose,
-//                                               extrinsic_t *link0,
-//                                               extrinsic_t *link1,
-//                                               joint_t *joint0,
-//                                               joint_t *joint1,
-//                                               joint_t *joint2,
-//                                               extrinsic_t *cam_ext,
-//                                               camera_params_t *cam_params);
-// void calib_gimbal_view_free(calib_gimbal_view_t *calib);
-// int calib_gimbal_view_equals(const calib_gimbal_view_t *v0,
-//                              const calib_gimbal_view_t *v1);
-//
-// void calib_gimbal_setup(calib_gimbal_t *calib);
-// calib_gimbal_t *calib_gimbal_malloc(void); void calib_gimbal_free(calib_gimbal_t *calib);
-// int calib_gimbal_equals(const calib_gimbal_t *calib0,
-//                         const calib_gimbal_t *calib1);
-// calib_gimbal_t *calib_gimbal_copy(const calib_gimbal_t *src);
-// void calib_gimbal_print(const calib_gimbal_t *calib);
-// void calib_gimbal_add_fiducial(calib_gimbal_t *calib,
-//                                const real_t fiducial_pose[7]);
-// void calib_gimbal_add_pose(calib_gimbal_t *calib,
-//                            const timestamp_t ts,
-//                            const real_t pose[7]);
-// void calib_gimbal_add_gimbal_extrinsic(calib_gimbal_t *calib,
-//                                        const real_t gimbal_ext[7]);
-// void calib_gimbal_add_gimbal_link(calib_gimbal_t *calib,
-//                                   const int link_idx,
-//                                   const real_t link[7]);
-// void calib_gimbal_add_camera(calib_gimbal_t *calib,
-//                              const int cam_idx,
-//                              const int cam_res[2],
-//                              const char *proj_model,
-//                              const char *dist_model,
-//                              const real_t *cam_params,
-//                              const real_t *cam_ext);
-// void calib_gimbal_add_view(calib_gimbal_t *calib,
-//                            const int pose_idx,
-//                            const int view_idx,
-//                            const timestamp_t ts,
-//                            const int cam_idx,
-//                            const int num_corners,
-//                            const int *tag_ids,
-//                            const int *corner_indices,
-//                            const real_t *object_points,
-//                            const real_t *keypoints,
-//                            const real_t *joints,
-//                            const int num_joints);
-// int calib_gimbal_remove_view(calib_gimbal_t *calib, const int view_idx);
-// calib_gimbal_t *calib_gimbal_load(const char *data_path);
-// void calib_gimbal_save(const calib_gimbal_t *calib, const char *data_path);
-// int calib_gimbal_validate(calib_gimbal_t *calib);
-// void calib_gimbal_nbv(calib_gimbal_t *calib, real_t nbv_joints[3]);
-// param_order_t *calib_gimbal_param_order(const void *data,
-//                                         int *sv_size,
-//                                         int *r_size);
-// void calib_gimbal_reproj_errors(const calib_gimbal_t *calib,
-//                                 real_t *reproj_rmse,
-//                                 real_t *reproj_mean,
-//                                 real_t *reproj_median);
-// void calib_gimbal_cost(const void *data, real_t *r);
-// void calib_gimbal_linearize(const void *data,
-//                             const int J_rows,
-//                             const int J_cols,
-//                             param_order_t *hash,
-//                             real_t *J,
-//                             real_t *g,
-//                             real_t *r);
-// void calib_gimbal_linearize_compact(const void *data,
-//                                     const int sv_size,
-//                                     param_order_t *hash,
-//                                     real_t *H,
-//                                     real_t *g,
-//                                     real_t *r);
