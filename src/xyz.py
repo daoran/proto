@@ -48,14 +48,13 @@ from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass
 from collections import namedtuple
-from collections import defaultdict
 from types import FunctionType
 from typing import Optional
-import asyncio
 import subprocess
-from subprocess import Popen
-from subprocess import PIPE
-from itertools import combinations
+
+from typing import TypeVar
+from typing import Annotated
+from typing import Literal
 
 import cv2
 import yaml
@@ -71,12 +70,31 @@ SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 EUROC_DATA_PATH = '/data/euroc/V1_01'
 
+from numpy.typing import NDArray
+
+DType = TypeVar("DType", bound=np.generic)
+Vec2 = Annotated[NDArray[DType], Literal[2]]
+Vec3 = Annotated[NDArray[DType], Literal[3]]
+Vec4 = Annotated[NDArray[DType], Literal[4]]
+Vec5 = Annotated[NDArray[DType], Literal[5]]
+Vec6 = Annotated[NDArray[DType], Literal[6]]
+Vec7 = Annotated[NDArray[DType], Literal[7]]
+VecN = Annotated[NDArray[DType], Literal["N"]]
+Mat2 = Annotated[NDArray[DType], Literal[2, 2]]
+Mat3 = Annotated[NDArray[DType], Literal[3, 3]]
+Mat34 = Annotated[NDArray[DType], Literal[3, 4]]
+Mat4 = Annotated[NDArray[DType], Literal[4, 4]]
+MatN = Annotated[NDArray[DType], Literal["N", "N"]]
+MatNx2 = Annotated[NDArray[DType], Literal["N", "2"]]
+MatNx3 = Annotated[NDArray[DType], Literal["N", "3"]]
+Image = Annotated[NDArray[DType], Literal["N", "N"]]
+
 ###############################################################################
 # PIP
 ###############################################################################
 
 
-def pip_install(package):
+def pip_install(package: str):
   """ Install package via pip """
   subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
@@ -87,7 +105,7 @@ def pip_install(package):
 ###############################################################################
 
 
-def load_yaml(yaml_path):
+def load_yaml(yaml_path: str):
   """ Load YAML and return a named tuple """
   assert yaml_path is not None
   assert yaml_path != ""
@@ -113,12 +131,12 @@ def load_yaml(yaml_path):
 ###############################################################################
 
 
-def sec2ts(time_s):
+def sec2ts(time_s: float) -> np.int64:
   """ Convert time in seconds to timestamp """
-  return int(time_s * 1e9)
+  return np.int64(time_s * 1e9)
 
 
-def ts2sec(ts):
+def ts2sec(ts: int) -> float:
   """ Convert timestamp to seconds """
   return ts * 1e-9
 
@@ -130,14 +148,14 @@ def ts2sec(ts):
 ###############################################################################
 
 
-def profile_start():
+def profile_start() -> cProfile.Profile:
   """ Start profile """
   prof = cProfile.Profile()
   prof.enable()
   return prof
 
 
-def profile_stop(prof, **kwargs):
+def profile_stop(prof: cProfile.Profile, **kwargs):
   """ Stop profile """
   key = kwargs.get('key', 'cumtime')
   N = kwargs.get('N', 10)
@@ -166,7 +184,7 @@ def profile_stop(prof, **kwargs):
 ###############################################################################
 
 
-def http_status_code_string(code):
+def http_status_code_string(code: int) -> str:
   """ Convert status code to string """
   status_code_str = {
       100: "100 Continue",
@@ -214,7 +232,7 @@ def http_status_code_string(code):
   return status_code_str[code]
 
 
-def http_parse_request(msg_str):
+def http_parse_request(msg_str: str) -> tuple[str, str, str, dict]:
   """ Parse HTTP Request """
   # Parse method, path and HTTP protocol
   msg = msg_str.split("\r\n")
@@ -232,7 +250,12 @@ def http_parse_request(msg_str):
   return (protocol, method, path, headers)
 
 
-def http_form_request(method, path, headers, protocol="HTTP/1.1"):
+def http_form_request(
+    method: str,
+    path: str,
+    headers: dict,
+    protocol: str = "HTTP/1.1",
+) -> str:
   """ Form HTTP request """
   msg = f"{method} {path} {protocol}"
   msg += "\r\n"
@@ -245,7 +268,11 @@ def http_form_request(method, path, headers, protocol="HTTP/1.1"):
   return msg
 
 
-def http_form_response(status_code, headers, protocol="HTTP/1.1"):
+def http_form_response(
+    status_code: int,
+    headers: dict,
+    protocol: str = "HTTP/1.1",
+) -> str:
   """ Form HTTP request """
   msg = f"{protocol} {status_code}"
   msg += "\r\n"
@@ -259,7 +286,7 @@ def http_form_response(status_code, headers, protocol="HTTP/1.1"):
   return msg
 
 
-def websocket_hash(ws_key):
+def websocket_hash(ws_key: str) -> str:
   """
   This hashing function:
   1. Appends '258EAFA5-E914-47DA-95CA-C5AB0DC85B11' to Sec-WebSocket-Key
@@ -273,7 +300,7 @@ def websocket_hash(ws_key):
   return base64.b64encode(hash_sha1).decode('ascii')
 
 
-def websocket_handshake_response(ws_key):
+def websocket_handshake_response(ws_key: str) -> str:
   """ Create websocket handshake response """
   ws_hash = websocket_hash(ws_key)
   headers = {
@@ -591,12 +618,12 @@ from math import atan
 from math import atan2
 
 
-def rmse(errors):
+def rmse(errors: VecN) -> float:
   """ Root Mean Squared Error """
   return np.sqrt(np.mean(errors**2))
 
 
-def clip_value(x, vmin, vmax):
+def clip_value(x: float, vmin: float, vmax: float) -> float:
   """ Clip """
   x_tmp = x
   x_tmp = vmax if (x_tmp > vmax) else x_tmp
@@ -604,7 +631,7 @@ def clip_value(x, vmin, vmax):
   return x_tmp
 
 
-def wrap_180(d):
+def wrap_180(d: float) -> float:
   x = np.fmod(d + 180, 360)
   if x < 0:
     x += 360.0
@@ -612,7 +639,7 @@ def wrap_180(d):
   return x - 180.0
 
 
-def wrap_360(d):
+def wrap_360(d: float) -> float:
   """Wrap angle `d` in degrees to 0 to 360 degrees"""
   x = np.fmod(d, 360)
   if x < 0:
@@ -620,7 +647,7 @@ def wrap_360(d):
   return x
 
 
-def wrap_pi(r):
+def wrap_pi(r: float) -> float:
   """Wrap angle `r` in radians to +- pi radians."""
   return deg2rad(wrap_180(rad2deg(r)))
 
@@ -661,7 +688,7 @@ from numpy.linalg import svd
 from numpy.linalg import cholesky as chol
 
 
-def pprint_matrix(mat, fmt="g"):
+def pprint_matrix(mat: MatN, fmt: str = "g") -> None:
   """ Pretty Print matrix """
   col_maxes = [
       max([len(("{:" + fmt + "}").format(x)) for x in col]) for col in mat.T
@@ -672,7 +699,7 @@ def pprint_matrix(mat, fmt="g"):
     print("")
 
 
-def normalize(v):
+def normalize(v: VecN) -> VecN:
   """ Normalize vector v """
   n = np.linalg.norm(v)
   if n == 0:
@@ -680,25 +707,25 @@ def normalize(v):
   return v / n
 
 
-def full_rank(A):
+def full_rank(A: MatN) -> float:
   """ Check if matrix A is full rank """
   return rank(A) == A.shape[0]
 
 
-def hat(vec):
+def hat(vec: Vec3) -> Mat3:
   """ Form skew-symmetric matrix from vector `vec` """
   assert vec.shape == (3,) or vec.shape == (3, 1)
   x, y, z = vec
   return np.array([[0.0, -z, y], [z, 0.0, -x], [-y, x, 0.0]])
 
 
-def vee(A):
+def vee(A: Mat3) -> Vec3:
   """ Form skew symmetric matrix vector """
   assert A.shape == (3, 3)
   return np.array([A[2, 1], A[0, 2], A[1, 0]])
 
 
-def fwdsubs(L, b):
+def fwdsubs(L: MatN, b: VecN):
   """
   Solving a lower triangular system by forward-substitution
   Input matrix L is an n by n lower triangular matrix
@@ -717,7 +744,7 @@ def fwdsubs(L, b):
     b[j:n] = b[j:n] - L[j:n, j] * x[j]
 
 
-def bwdsubs(U, b):
+def bwdsubs(U: MatN, b: VecN):
   """
   Solving an upper triangular system by back-substitution
   Input matrix U is an n by n upper triangular matrix
@@ -732,11 +759,11 @@ def bwdsubs(U, b):
   for j in range(n):
     if U[j, j] == 0:
       raise RuntimeError('Matrix is singular!')
-    x[j] = b[j] / U(j, j)
+    x[j] = b[j] / U[j, j]
     b[0:j] = b[0:j] - U[0:j, j] * x[j]
 
 
-def solve_svd(A, b):
+def solve_svd(A: MatN, b: VecN) -> VecN:
   """
   Solve Ax = b with SVD
   """
@@ -772,7 +799,13 @@ def solve_svd(A, b):
   return x
 
 
-def schurs_complement(H, g, m, r, precond=False):
+def schurs_complement(
+    H: MatN,
+    g: VecN,
+    m: float,
+    r: float,
+    precond: bool = False,
+) -> tuple[MatN, VecN]:
   """ Shurs-complement """
   assert H.shape[0] == (m + r)
 
@@ -804,7 +837,7 @@ def schurs_complement(H, g, m, r, precond=False):
   return (H_marg, g_marg)
 
 
-def is_pd(B):
+def is_pd(B: MatN) -> bool:
   """Returns true when input is positive-definite, via Cholesky"""
   try:
     _ = chol(B)
@@ -813,7 +846,7 @@ def is_pd(B):
     return False
 
 
-def nearest_pd(A):
+def nearest_pd(A: MatN) -> MatN:
   """Find the nearest positive-definite matrix to input
 
   A Python/Numpy port of John D'Errico's `nearestSPD` MATLAB code [1], which
@@ -853,7 +886,12 @@ def nearest_pd(A):
   return A3
 
 
-def matrix_equal(A, B, tol=1e-8, verbose=False):
+def matrix_equal(
+    A: MatN,
+    B: MatN,
+    tol: float = 1e-8,
+    verbose: bool = False,
+) -> bool:
   """ Compare matrices `A` and `B` """
   diff = A - B
 
@@ -876,7 +914,7 @@ def matrix_equal(A, B, tol=1e-8, verbose=False):
   return True
 
 
-def plot_compare_matrices(title_A, A, title_B, B):
+def plot_compare_matrices(title_A: str, A: MatN, title_B: str, B: MatN):
   """ Plot compare matrices """
   plt.matshow(A)
   plt.colorbar()
@@ -900,7 +938,13 @@ def plot_compare_matrices(title_A, A, title_B, B):
   plt.show()
 
 
-def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False):
+def check_jacobian(
+    jac_name: str,
+    fdiff: MatN,
+    jac: MatN,
+    threshold: float,
+    verbose: bool = False,
+) -> bool:
   """ Check jacobians """
 
   # Check if numerical diff is same as analytical jacobian
@@ -1006,12 +1050,12 @@ class TestLinearAlgebra(unittest.TestCase):
 ###############################################################################
 
 
-def lerp(x0, x1, t):
+def lerp(x0: float, x1: float, t: float) -> float:
   """ Linear interpolation """
   return (1.0 - t) * x0 + t * x1
 
 
-def lerp2d(p0, p1, t):
+def lerp2d(p0: Vec2, p1: Vec2, t: float) -> Vec2:
   """ Linear interpolation 2D """
   assert len(p0) == 2
   assert len(p1) == 2
@@ -1021,7 +1065,7 @@ def lerp2d(p0, p1, t):
   return np.array([x, y])
 
 
-def lerp3d(p0, p1, t):
+def lerp3d(p0: Vec3, p1: Vec3, t: float) -> Vec3:
   """ Linear interpolation 3D """
   assert len(p0) == 3
   assert len(p1) == 3
@@ -1032,14 +1076,14 @@ def lerp3d(p0, p1, t):
   return np.array([x, y, z])
 
 
-def circle(r, theta):
+def circle(r: float, theta: float) -> Vec2:
   """ Circle """
   x = r * cos(theta)
   y = r * sin(theta)
   return np.array([x, y])
 
 
-def sphere(rho, theta, phi):
+def sphere(rho: float, theta: float, phi: float) -> Vec3:
   """
   Sphere
 
@@ -1060,7 +1104,7 @@ def sphere(rho, theta, phi):
   return np.array([x, y, z])
 
 
-def circle_loss(c, x, y):
+def circle_loss(c: Vec2, x: float, y: float) -> float:
   """
   Calculate the algebraic distance between the data points and the mean
   circle centered at c=(xc, yc)
@@ -1071,7 +1115,7 @@ def circle_loss(c, x, y):
   return Ri - Ri.mean()
 
 
-def find_circle(x, y):
+def find_circle(x: float, y: float) -> tuple[float, float, float]:
   """
   Find the circle center and radius given (x, y) data points using least
   squares. Returns `(circle_center, circle_radius, residual)`
@@ -1089,7 +1133,7 @@ def find_circle(x, y):
   return (center, radius, residual)
 
 
-def bresenham(p0, p1):
+def bresenham(p0: Vec2, p1: Vec2) -> list[Vec2]:
   """
   Bresenham's line algorithm is a line drawing algorithm that determines the
   points of an n-dimensional raster that should be selected in order to form
@@ -1133,7 +1177,12 @@ def bresenham(p0, p1):
       y0 = y0 + sy
 
 
-def find_intersection(p1, p2, q1, q2):
+def find_intersection(
+    p1: Vec2,
+    p2: Vec2,
+    q1: Vec2,
+    q2: Vec2,
+) -> tuple[bool, Vec2]:
   """
   Find the intersection between two lines formed by points p1, p2 and q1, q2
   for line 1 and line 2 respectively.
@@ -1186,7 +1235,7 @@ def find_intersection(p1, p2, q1, q2):
 ###############################################################################
 
 
-def Exp(phi):
+def Exp(phi: Vec3) -> Mat3:
   """ Exponential Map """
   assert phi.shape == (3,) or phi.shape == (3, 1)
   if norm(phi) < 1e-3:
@@ -1203,7 +1252,7 @@ def Exp(phi):
   return C
 
 
-def Log(C):
+def Log(C: Mat3) -> Vec3:
   """ Logarithmic Map """
   assert C.shape == (3, 3)
   # phi = acos((trace(C) - 1) / 2);
@@ -1242,7 +1291,7 @@ def Log(C):
   return rvec
 
 
-def Jr(theta):
+def Jr(theta: Vec3) -> Mat3:
   """
   Right jacobian
 
@@ -1263,7 +1312,7 @@ def Jr(theta):
   return J
 
 
-def Jr_inv(theta):
+def Jr_inv(theta: Vec3) -> Mat3:
   """ Inverse right jacobian """
   theta_norm = norm(theta)
   theta_norm_sq = theta_norm * theta_norm
@@ -1279,7 +1328,7 @@ def Jr_inv(theta):
   return J
 
 
-def SO3_boxplus(C, alpha):
+def SO3_boxplus(C: Mat3, alpha: Vec3) -> Mat3:
   """ Box plus """
   assert C.shape == (3, 3)
   # C_updated = C [+] alpha
@@ -1287,7 +1336,7 @@ def SO3_boxplus(C, alpha):
   return C_updated
 
 
-def SO3_boxminus(C_a, C_b):
+def SO3_boxminus(C_a: Mat3, C_b: Mat3) -> Vec3:
   """ Box minus """
   assert C_a.shape == (3, 3)
   assert C_b.shape == (3, 3)
@@ -1296,7 +1345,7 @@ def SO3_boxminus(C_a, C_b):
   return alpha
 
 
-def twistSE3(twist):
+def twistSE3(twist: Vec6) -> Mat4:
   """ Twist to SE3(3)
 
   Let twist:
@@ -1320,7 +1369,7 @@ def twistSE3(twist):
   return np.block([[hat(w), v.reshape((3, 1))], [np.zeros((1, 4))]])
 
 
-def so3_exp(so3mat, tol=1e-6):
+def so3_exp(so3mat: Mat3, tol=1e-6) -> Mat3:
   """ Computes the matrix exponential of a matrix in so(3)
 
   Example Input:
@@ -1349,12 +1398,12 @@ def so3_exp(so3mat, tol=1e-6):
   return I3 + s_theta * omgmat + (1.0 - c_theta) * np.dot(omgmat, omgmat)
 
 
-def so3_Exp(w):
+def so3_Exp(w: Vec3) -> Mat3:
   """ Exponential Map R3 to so3 """
   return so3_exp(hat(w))
 
 
-def poe(screw_axis, theta, tol=1e-6):
+def poe(screw_axis: Vec6, theta: Vec3, tol: float = 1e-6) -> Mat4:
   """ Matrix exponential of se(3) to SE(3) """
   s = screw_axis * theta
   aa = s[0:3]  # Axis-angle (w * theta)
@@ -1525,17 +1574,17 @@ class TestLie(unittest.TestCase):
 ###############################################################################
 
 
-def homogeneous(p):
+def homogeneous(p: Vec3) -> Vec4:
   """ Turn point `p` into its homogeneous form """
   return np.array([*p, 1.0])
 
 
-def dehomogeneous(hp):
+def dehomogeneous(hp: Vec4) -> Vec3:
   """ De-homogenize point `hp` into `p` """
   return hp[0:3]
 
 
-def rotx(theta):
+def rotx(theta: float) -> Mat3:
   """ Form rotation matrix around x axis """
   row0 = [1.0, 0.0, 0.0]
   row1 = [0.0, cos(theta), -sin(theta)]
@@ -1543,7 +1592,7 @@ def rotx(theta):
   return np.array([row0, row1, row2])
 
 
-def roty(theta):
+def roty(theta: float) -> Mat3:
   """ Form rotation matrix around y axis """
   row0 = [cos(theta), 0.0, sin(theta)]
   row1 = [0.0, 1.0, 0.0]
@@ -1551,7 +1600,7 @@ def roty(theta):
   return np.array([row0, row1, row2])
 
 
-def rotz(theta):
+def rotz(theta: float) -> Mat3:
   """ Form rotation matrix around z axis """
   row0 = [cos(theta), -sin(theta), 0.0]
   row1 = [sin(theta), cos(theta), 0.0]
@@ -1559,7 +1608,7 @@ def rotz(theta):
   return np.array([row0, row1, row2])
 
 
-def aa2quat(axis, angle):
+def aa2quat(axis: Vec3, angle: float) -> Vec4:
   """
   Convert Axis-angle to quaternion
 
@@ -1576,7 +1625,7 @@ def aa2quat(axis, angle):
   return np.array([qw, qx, qy, qz])
 
 
-def aa2rot(aa):
+def aa2rot(aa: Vec3) -> Mat3:
   """ Axis-angle to rotation matrix """
   # If small rotation
   theta = sqrt(aa @ aa)  # = norm(aa), but faster
@@ -1610,27 +1659,27 @@ def aa2rot(aa):
   return np.array([row0, row1, row2])
 
 
-def aa_vec(axis, angle):
+def aa_vec(axis: Vec3, angle: float) -> Vec3:
   """ Form Axis-Angle Vector """
   assert axis.shape[0] == 3
   return axis * angle
 
 
-def aa_decomp(aa):
+def aa_decomp(aa: Vec3):
   """ Decompose an axis-angle into its components """
   w = aa / np.linalg.norm(aa)
   theta = np.linalg.norm(aa)
   return w, theta
 
 
-def vecs2aa(u, v):
+def vecs2aa(u: Vec3, v: Vec3) -> Vec3:
   """ From 2 vectors form an axis-angle vector """
   angle = math.acos(u.T * v)
   ax = normalize(np.cross(u, v))
   return ax * angle
 
 
-def euler321(yaw, pitch, roll):
+def euler321(yaw: float, pitch: float, roll: float) -> Mat3:
   """
   Convert yaw, pitch, roll in radians to a 3x3 rotation matrix.
 
@@ -1666,7 +1715,7 @@ def euler321(yaw, pitch, roll):
   return np.array([[C11, C12, C13], [C21, C22, C23], [C31, C32, C33]])
 
 
-def euler2quat(yaw, pitch, roll):
+def euler2quat(yaw: float, pitch: float, roll: float) -> Mat3:
   """
   Convert yaw, pitch, roll in radians to a quaternion.
 
@@ -1696,7 +1745,7 @@ def euler2quat(yaw, pitch, roll):
   return np.array([qw / mag, qx / mag, qy / mag, qz / mag])
 
 
-def quat2euler(q):
+def quat2euler(q: Vec4) -> Vec3:
   """
   Convert quaternion to euler angles (yaw, pitch, roll).
 
@@ -1722,7 +1771,7 @@ def quat2euler(q):
   return ypr
 
 
-def quat2rot(q):
+def quat2rot(q: Vec4) -> Mat3:
   """
   Convert quaternion to 3x3 rotation matrix.
 
@@ -1755,7 +1804,7 @@ def quat2rot(q):
   return np.array([[C11, C12, C13], [C21, C22, C23], [C31, C32, C33]])
 
 
-def rot2euler(C):
+def rot2euler(C: Mat3) -> Vec3:
   """
   Convert 3x3 rotation matrix to euler angles (yaw, pitch, roll). The result is
   also equivalent to rotation around (z, y, x) axes.
@@ -1765,7 +1814,7 @@ def rot2euler(C):
   return quat2euler(q)
 
 
-def rot2quat(C):
+def rot2quat(C: Mat3) -> Vec4:
   """
   Convert 3x3 rotation matrix to quaternion.
   """
@@ -1932,32 +1981,32 @@ class TestTransform(unittest.TestCase):
 # def quat_slerp(q_i, q_j, t)
 
 
-def quat_norm(q):
+def quat_norm(q: Vec4) -> float:
   """ Returns norm of a quaternion """
   qw, qx, qy, qz = q
   return sqrt(qw**2 + qx**2 + qy**2 + qz**2)
 
 
-def quat_normalize(q):
+def quat_normalize(q: Vec4) -> Vec4:
   """ Normalize quaternion """
   n = quat_norm(q)
   qw, qx, qy, qz = q
   return np.array([qw / n, qx / n, qy / n, qz / n])
 
 
-def quat_conj(q):
+def quat_conj(q: Vec4) -> Mat4:
   """ Return conjugate quaternion """
   qw, qx, qy, qz = q
   q_conj = np.array([qw, -qx, -qy, -qz])
   return q_conj
 
 
-def quat_inv(q):
+def quat_inv(q: Vec4) -> Mat4:
   """ Invert quaternion """
   return quat_conj(q)
 
 
-def quat_left(q):
+def quat_left(q: Vec4) -> Mat4:
   """ Quaternion left product matrix """
   qw, qx, qy, qz = q
   row0 = [qw, -qx, -qy, -qz]
@@ -1967,7 +2016,7 @@ def quat_left(q):
   return np.array([row0, row1, row2, row3])
 
 
-def quat_right(q):
+def quat_right(q: Vec4) -> Mat4:
   """ Quaternion right product matrix """
   qw, qx, qy, qz = q
   row0 = [qw, -qx, -qy, -qz]
@@ -1977,7 +2026,7 @@ def quat_right(q):
   return np.array([row0, row1, row2, row3])
 
 
-def quat_lmul(p, q):
+def quat_lmul(p: Vec4, q: Vec4) -> Vec4:
   """ Quaternion left multiply """
   assert len(p) == 4
   assert len(q) == 4
@@ -1985,7 +2034,7 @@ def quat_lmul(p, q):
   return lprod @ q
 
 
-def quat_rmul(p, q):
+def quat_rmul(p: Vec4, q: Vec4) -> Vec4:
   """ Quaternion right multiply """
   assert len(p) == 4
   assert len(q) == 4
@@ -1993,12 +2042,12 @@ def quat_rmul(p, q):
   return rprod @ p
 
 
-def quat_mul(p, q):
+def quat_mul(p: Vec4, q: Vec4) -> Vec4:
   """ Quaternion multiply p * q """
   return quat_lmul(p, q)
 
 
-def quat_rot(q, x):
+def quat_rot(q: Vec4, x: Vec3) -> Vec4:
   """ Rotate vector x of size 3 by Quaternion q """
   # y = q * p * q_conj
   q_conj = np.array([q[0], -q[1], -q[2], -q[3]])
@@ -2007,7 +2056,7 @@ def quat_rot(q, x):
   return np.array([p[1], p[2], p[3]])
 
 
-def quat_omega(w):
+def quat_omega(w: Vec3) -> Mat4:
   """ Quaternion omega matrix """
   Omega = np.zeros((4, 4))
   Omega[0, 1:4] = -w.T
@@ -2016,7 +2065,7 @@ def quat_omega(w):
   return Omega
 
 
-def quat_delta(dalpha):
+def quat_delta(dalpha: Vec3) -> Vec4:
   """ Form quaternion from small angle rotation vector dalpha """
   half_norm = 0.5 * norm(dalpha)
   scalar = cos(half_norm)
@@ -2029,7 +2078,7 @@ def quat_delta(dalpha):
   return dq
 
 
-def quat_integrate(q_k, w, dt):
+def quat_integrate(q_k: Vec4, w: Vec3, dt: float) -> Vec4:
   """
   Sola, Joan. "Quaternion kinematics for the error-state Kalman filter." arXiv
   preprint arXiv:1711.02508 (2017).
@@ -2050,7 +2099,7 @@ def quat_integrate(q_k, w, dt):
   return q_kp1
 
 
-def quat_slerp(q_i, q_j, t):
+def quat_slerp(q_i: Vec4, q_j: Vec4, t: float):
   """ Quaternion Slerp `q_i` and `q_j` with parameter `t` """
   assert len(q_i) == 4
   assert len(q_j) == 4
@@ -2176,7 +2225,7 @@ class TestQuaternion(unittest.TestCase):
 #  def load_poses(csv_path)
 
 
-def tf(rot, trans):
+def tf(rot: Mat3 | Vec4, trans: Vec3) -> Mat4:
   """
   Form 4x4 homogeneous transformation matrix from rotation `rot` and
   translation `trans`. Where the rotation component `rot` can be a rotation
@@ -2196,51 +2245,51 @@ def tf(rot, trans):
   return T
 
 
-def tf_rot(T):
+def tf_rot(T: Mat4) -> Mat3:
   """ Return rotation matrix from 4x4 homogeneous transform """
   assert T.shape == (4, 4)
   return T[0:3, 0:3]
 
 
-def tf_quat(T):
+def tf_quat(T: Mat4) -> Vec4:
   """ Return quaternion from 4x4 homogeneous transform """
   assert T.shape == (4, 4)
   return rot2quat(tf_rot(T))
 
 
-def tf_euler(T):
+def tf_euler(T: Mat4) -> Vec3:
   """ Return Euler angles from 4x4 homogeneous transform """
   assert T.shape == (4, 4)
   return rot2euler(tf_rot(T))
 
 
-def tf2pose(T):
+def tf2pose(T: Mat4) -> Vec7:
   """ Form pose vector """
   rx, ry, rz = tf_trans(T)
   qw, qx, qy, qz = tf_quat(T)
   return np.array([rx, ry, rz, qx, qy, qz, qw])
 
 
-def pose2tf(pose_vec):
+def pose2tf(pose_vec: Vec7) -> Mat4:
   """ Convert pose vector to transformation matrix """
   rx, ry, rz = pose_vec[0:3]
   qx, qy, qz, qw = pose_vec[3:7]
   return tf(np.array([qw, qx, qy, qz]), np.array([rx, ry, rz]))
 
 
-def tf_trans(T):
+def tf_trans(T: Mat4) -> Vec3:
   """ Return translation vector from 4x4 homogeneous transform """
   assert T.shape == (4, 4)
   return T[0:3, 3]
 
 
-def tf_inv(T):
+def tf_inv(T: Mat4) -> Mat4:
   """ Invert 4x4 homogeneous transform """
   assert T.shape == (4, 4)
   return np.linalg.inv(T)
 
 
-def tf_point(T, p):
+def tf_point(T: Mat4, p: Vec3) -> Vec3:
   """ Transform 3d point """
   assert T.shape == (4, 4)
   assert p.shape == (3,) or p.shape == (3, 1)
@@ -2248,14 +2297,14 @@ def tf_point(T, p):
   return (T @ hpoint)[0:3]
 
 
-def tf_hpoint(T, hp):
+def tf_hpoint(T: Mat4, hp: Vec4) -> Vec3:
   """ Transform 3d point """
   assert T.shape == (4, 4)
   assert hp.shape == (4,) or hp.shape == (4, 1)
   return (T @ hp)[0:3]
 
 
-def tf_decompose(T):
+def tf_decompose(T: Mat4):
   """ Decompose into rotation matrix and translation vector"""
   assert T.shape == (4, 4)
   C = tf_rot(T)
@@ -2263,7 +2312,7 @@ def tf_decompose(T):
   return (C, r)
 
 
-def tf_lerp(pose_i, pose_j, t):
+def tf_lerp(pose_i: Mat4, pose_j: Mat4, t: float):
   """ Interpolate pose `pose_i` and `pose_j` with parameter `t` """
   assert pose_i.shape == (4, 4)
   assert pose_j.shape == (4, 4)
@@ -2284,7 +2333,7 @@ def tf_lerp(pose_i, pose_j, t):
   return tf(q_lerp, r_lerp)
 
 
-def rot_perturb(C, i, step_size):
+def rot_perturb(C: Mat3, i: int, step_size: float) -> Mat3:
   """ Perturb rotation matrix """
   # Perturb rotation
   rvec = np.array([0.0, 0.0, 0.0])
@@ -2299,7 +2348,7 @@ def rot_perturb(C, i, step_size):
   return quat2rot(q_diff)
 
 
-def tf_perturb(T, i, step_size):
+def tf_perturb(T: Mat4, i: int, step_size: float) -> Mat4:
   """ Perturb transformation matrix """
   assert T.shape == (4, 4)
   assert i >= 0 and i <= 5
@@ -2328,7 +2377,7 @@ def tf_perturb(T, i, step_size):
   return tf(C, r)
 
 
-def tf_update(T, dx):
+def tf_update(T: Mat4, dx: Vec3) -> Mat4:
   """ Update transformation matrix """
   assert T.shape == (4, 4)
 
@@ -2342,7 +2391,7 @@ def tf_update(T, dx):
   return tf(quat_mul(q, dq), r + dr)
 
 
-def tf_diff(T0, T1):
+def tf_diff(T0: Mat4, T1: Mat4) -> tuple[Vec3, float]:
   """ Return difference between two 4x4 homogeneous transforms """
   r0 = tf_trans(T0)
   r1 = tf_trans(T1)
@@ -2370,7 +2419,7 @@ def tf_diff(T0, T1):
   return (dr, dtheta)
 
 
-def pose_diff(pose0, pose1):
+def pose_diff(pose0: Mat4, pose1: Mat4) -> tuple[Vec3, float]:
   """ Return difference between two poses """
   # dr = r0 - r1
   dr = np.zeros((3,))
@@ -2394,10 +2443,12 @@ def pose_diff(pose0, pose1):
   return (dr, dtheta)
 
 
-def load_extrinsics(csv_path):
+def load_extrinsics(csv_path: str) -> Mat4 | None:
   """ Load Extrinsics """
   import pandas
   csv_data = pandas.read_csv(csv_path)
+  if csv_data is None:
+    return None
 
   rx = csv_data["rx"]
   ry = csv_data["ry"]
@@ -2413,12 +2464,14 @@ def load_extrinsics(csv_path):
   return tf(q, r)
 
 
-def load_poses(csv_path):
+def load_poses(csv_path: str) -> list[tuple[float, Mat4]] | None:
   """ Load poses """
   import pandas
   csv_data = pandas.read_csv(csv_path)
-  pose_data = []
+  if csv_data is None:
+    return None
 
+  pose_data = []
   for row_idx in range(csv_data.shape[0]):
     pose_ts = csv_data["#ts"][row_idx]
 
@@ -2749,7 +2802,7 @@ def plot_mav(ax, T, **kwargs):
   return (fl_axis, fr_axis, bl_axis, br_axis)
 
 
-def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
+def plot_xyz(title: str, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
   """
   Plot XYZ plot
 
@@ -2921,9 +2974,96 @@ def pyqtgraph_example(sys):
 # def pinhole_radtan4_setup(cam_idx, cam_res)
 # def pinhole_equi4_setup(cam_idx, cam_res)
 # def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model)
+# ChessboardDetector
 ###############################################################################
 
 # UTILS #######################################################################
+
+
+def z_score_normalization(image: Image):
+  """
+  Z-score Normalization
+  """
+  mean, std = np.mean(image), np.std(image)
+  return (image - mean) / (std + 1e-8)  # Avoid division by zero
+
+
+def gamma_correction(image: Image, gamma: float = 0.5):
+  """
+  Gamma correction
+  """
+  image = image / 255.0  # Normalize to [0,1]
+  return np.power(image, gamma) * 255.0  # Apply gamma and rescale
+
+
+def histogram_equalization(image):
+  """
+  Histogram Equalization
+  """
+  hist, bins = np.histogram(image.flatten(), bins=256, range=[0, 256])
+  cdf = hist.cumsum()  # Cumulative distribution function
+  cdf_normalized = cdf * 255 / cdf[-1]  # Normalize to [0,255]
+  results = np.interp(image.flatten(), bins[:-1], cdf_normalized)
+  return results.reshape(image.shape)
+
+
+def find_modes_mean_shift(hist: VecN, sigma: float) -> tuple[MatNx2, VecN]:
+  """
+  Efficient mean-shift approximation by histogram smoothing.
+
+  Args:
+
+    hist: 1D histogram.
+    sigma: Standard deviation of Gaussian kernel.
+
+  Returns:
+    tuple: A tuple containing two numpy arrays:
+      - modes: A 2D array where each row represents a mode,
+               with columns [index, smoothed_histogram_value].
+      - hist_smoothed: The smoothed histogram.
+  """
+  hist_len = len(hist)
+  hist_smoothed = np.zeros(hist_len)
+
+  # Compute smoothed histogram
+  for i in range(hist_len):
+    j = np.arange(-int(round(2 * sigma)), int(round(2 * sigma)) + 1)
+    idx = (i + j) % hist_len  # Handle wraparound
+    hist_smoothed[i] = np.sum(hist[idx] * norm.pdf(j, 0, sigma))
+
+  # Initialize empty array
+  modes = np.array([], dtype=int).reshape(0, 2)
+
+  # Check if all entries are nearly identical (to avoid infinite loop)
+  if np.all(np.abs(hist_smoothed - hist_smoothed[0]) < 1e-5):
+    return modes, hist_smoothed  # Return empty modes
+
+  # Mode finding
+  for i in range(hist_len):
+    j = i
+    while True:
+      h0 = hist_smoothed[j]
+      j1 = (j + 1) % hist_len
+      j2 = (j - 1) % hist_len
+      h1 = hist_smoothed[j1]
+      h2 = hist_smoothed[j2]
+
+      if h1 >= h0 and h1 >= h2:
+        j = j1
+      elif h2 > h0 and h2 > h1:
+        j = j2
+      else:
+        break
+
+    # Check if mode already found (more efficient than list search)
+    if modes.size == 0 or not np.any(modes[:, 0] == j):
+      modes = np.vstack((modes, [j, hist_smoothed[j]]))
+
+  # Sort modes by smoothed histogram value (descending)
+  idx = np.argsort(modes[:, 1])[::-1]  # Get indices for descending sort
+  modes = modes[idx]
+
+  return modes, hist_smoothed
 
 
 def illumination_invariant_transform(image, alpha=0.9):
@@ -3463,7 +3603,7 @@ def solvepnp(obj_pts, img_pts, fx, fy, cx, cy, **kwargs):
 # FEATURES 2D #################################################################
 
 
-def _convolve2d(image, kernel):
+def _convolve2d(image: Image, kernel: MatN) -> Image:
   """ Convolve 2D image with kernel """
   # f is an image and is indexed by (v, w)
   # kernel is a filter kernel and is indexed by (s, t),
@@ -3510,7 +3650,7 @@ def _convolve2d(image, kernel):
   return out
 
 
-def harris_corner(image_gray, **kwargs):
+def harris_corner(image_gray: Image, **kwargs) -> list[tuple[float, float]]:
   """ Harris Corner Detector
 
   For educational purposes only, this implementation is slower than OpenCV's.
@@ -3587,7 +3727,7 @@ def harris_corner(image_gray, **kwargs):
   return filtered_corners
 
 
-def shi_tomasi_corner(image_gray, **kwargs):
+def shi_tomasi_corner(image_gray: Image, **kwargs) -> list[tuple[int, int]]:
   """ Shi-Tomasi Corner Detector
 
   For educational purposes only, this implementation is slower than OpenCV's.
@@ -3666,7 +3806,7 @@ def shi_tomasi_corner(image_gray, **kwargs):
 # PINHOLE #####################################################################
 
 
-def focal_length(image_width, fov_deg):
+def focal_length(image_width: int, fov_deg: float) -> float:
   """
   Estimated focal length based on `image_width` and field of fiew `fov_deg`
   in degrees.
@@ -3674,13 +3814,13 @@ def focal_length(image_width, fov_deg):
   return (image_width / 2.0) / tan(deg2rad(fov_deg / 2.0))
 
 
-def pinhole_K(params):
+def pinhole_K(params: Vec4) -> Mat3:
   """ Form camera matrix K """
   fx, fy, cx, cy = params
   return np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
 
 
-def pinhole_P(params, T_WC):
+def pinhole_P(params: Vec4, T_WC: Mat4) -> Mat34:
   """ Form 3x4 projection matrix P """
   K = pinhole_K(params)
   T_CW = inv(T_WC)
@@ -3694,7 +3834,7 @@ def pinhole_P(params, T_WC):
   return P
 
 
-def pinhole_project(proj_params, p_C):
+def pinhole_project(proj_params: Vec4, p_C: Vec3) -> Vec2:
   """ Project 3D point onto image plane using pinhole camera model """
   assert len(proj_params) == 4
   assert len(p_C) == 3
@@ -3709,7 +3849,7 @@ def pinhole_project(proj_params, p_C):
   return z
 
 
-def pinhole_back_project(proj_params, z):
+def pinhole_back_project(proj_params: Vec4, z: Vec2) -> Vec2:
   """ Back project image point to bearing """
   fx, fy, cx, cy = proj_params
   x = (z[0] - cx) / fx
@@ -3717,12 +3857,12 @@ def pinhole_back_project(proj_params, z):
   return np.array([x, y])
 
 
-def pinhole_params_jacobian(x):
+def pinhole_params_jacobian(x: Vec2) -> MatN:
   """ Form pinhole parameter jacobian """
   return np.array([[x[0], 0.0, 1.0, 0.0], [0.0, x[1], 0.0, 1.0]])
 
 
-def pinhole_point_jacobian(proj_params):
+def pinhole_point_jacobian(proj_params: Vec4) -> Mat2:
   """ Form pinhole point jacobian """
   fx, fy, _, _ = proj_params
   return np.array([[fx, 0.0], [0.0, fy]])
@@ -3731,7 +3871,7 @@ def pinhole_point_jacobian(proj_params):
 # RADTAN4 #####################################################################
 
 
-def radtan4_distort(dist_params, p):
+def radtan4_distort(dist_params: Vec4, p: Vec2) -> Vec2:
   """ Distort point with Radial-Tangential distortion """
   assert len(dist_params) == 4
   assert len(p) == 2
@@ -3758,7 +3898,7 @@ def radtan4_distort(dist_params, p):
   return np.array([x_ddash, y_ddash])
 
 
-def radtan4_point_jacobian(dist_params, p):
+def radtan4_point_jacobian(dist_params: Vec4, p: Vec2) -> Mat2:
   """ Radial-tangential point jacobian """
   assert len(dist_params) == 4
   assert len(p) == 2
@@ -3792,7 +3932,7 @@ def radtan4_point_jacobian(dist_params, p):
   return J_point
 
 
-def radtan4_undistort(dist_params, p0):
+def radtan4_undistort(dist_params: Vec4, p0: Vec2) -> Vec2:
   """ Un-distort point with Radial-Tangential distortion """
   assert len(dist_params) == 4
   assert len(p0) == 2
@@ -3819,7 +3959,7 @@ def radtan4_undistort(dist_params, p0):
   return p
 
 
-def radtan4_params_jacobian(dist_params, p):
+def radtan4_params_jacobian(dist_params: Vec4, p: Vec2) -> MatN:
   """ Radial-Tangential distortion parameter jacobian """
   assert len(dist_params) == 4
   assert len(p) == 2
@@ -3851,7 +3991,7 @@ def radtan4_params_jacobian(dist_params, p):
 # EQUI4 #######################################################################
 
 
-def equi4_distort(dist_params, p):
+def equi4_distort(dist_params: Vec4, p: Vec2) -> Vec2:
   """ Distort point with Equi-distant distortion """
   assert len(dist_params) == 4
   assert len(p) == 2
@@ -3874,7 +4014,7 @@ def equi4_distort(dist_params, p):
   return np.array([x_dash, y_dash])
 
 
-def equi4_undistort(dist_params, p):
+def equi4_undistort(dist_params: Vec4, p: Vec2) -> Vec2:
   """ Undistort point using Equi-distant distortion """
   thd = sqrt(p(0) * p(0) + p[0] * p[0])
 
@@ -3893,7 +4033,7 @@ def equi4_undistort(dist_params, p):
   return np.array([p[0] * scaling, p[1] * scaling])
 
 
-def equi4_params_jacobian(dist_params, p):
+def equi4_params_jacobian(dist_params: Vec4, p: Vec2) -> MatN:
   """ Equi-distant distortion params jacobian """
   assert len(dist_params) == 4
   assert len(p) == 2
@@ -3917,7 +4057,7 @@ def equi4_params_jacobian(dist_params, p):
   return J_params
 
 
-def equi4_point_jacobian(dist_params, p):
+def equi4_point_jacobian(dist_params: Vec4, p: Vec2) -> Mat2:
   """ Equi-distant distortion point jacobian """
   assert len(dist_params) == 4
   assert len(p) == 2
@@ -3958,7 +4098,11 @@ def equi4_point_jacobian(dist_params, p):
 # PINHOLE RADTAN4 #############################################################
 
 
-def pinhole_radtan4_project(proj_params, dist_params, p_C):
+def pinhole_radtan4_project(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    p_C: Vec3,
+) -> Vec2:
   """ Pinhole + Radial-Tangential project """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -3976,7 +4120,11 @@ def pinhole_radtan4_project(proj_params, dist_params, p_C):
   return z
 
 
-def pinhole_radtan4_backproject(proj_params, dist_params, z):
+def pinhole_radtan4_backproject(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    z: Vec2,
+) -> Vec3:
   """ Pinhole + Radial-Tangential back-project """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -3994,7 +4142,11 @@ def pinhole_radtan4_backproject(proj_params, dist_params, z):
   return p
 
 
-def pinhole_radtan4_undistort(proj_params, dist_params, z):
+def pinhole_radtan4_undistort(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    z: Vec2,
+) -> Vec2:
   """ Pinhole + Radial-Tangential undistort """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -4009,7 +4161,11 @@ def pinhole_radtan4_undistort(proj_params, dist_params, z):
   return np.array([p_undist[0] * fx + cx, p_undist[1] * fy + cy])
 
 
-def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C):
+def pinhole_radtan4_project_jacobian(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    p_C: Vec3,
+) -> MatN:
   """ Pinhole + Radial-Tangential project jacobian """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -4028,7 +4184,11 @@ def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C):
   return J_proj_point @ J_dist_point @ J_proj
 
 
-def pinhole_radtan4_params_jacobian(proj_params, dist_params, p_C):
+def pinhole_radtan4_params_jacobian(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    p_C: Vec3,
+) -> MatN:
   """ Pinhole + Radial-Tangential params jacobian """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -4049,7 +4209,11 @@ def pinhole_radtan4_params_jacobian(proj_params, dist_params, p_C):
 # PINHOLE EQUI4 ###############################################################
 
 
-def pinhole_equi4_project(proj_params, dist_params, p_C):
+def pinhole_equi4_project(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    p_C: Vec3,
+) -> Vec2:
   """ Pinhole + Equi-distant project """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -4067,7 +4231,11 @@ def pinhole_equi4_project(proj_params, dist_params, p_C):
   return z
 
 
-def pinhole_equi4_backproject(proj_params, dist_params, z):
+def pinhole_equi4_backproject(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    z: Vec2,
+) -> Vec3:
   """ Pinhole + Equi-distant back-project """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -4085,7 +4253,11 @@ def pinhole_equi4_backproject(proj_params, dist_params, z):
   return p
 
 
-def pinhole_equi4_undistort(proj_params, dist_params, z):
+def pinhole_equi4_undistort(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    z: Vec2,
+) -> Vec2:
   """ Pinhole + Equi-distant undistort """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -4100,7 +4272,11 @@ def pinhole_equi4_undistort(proj_params, dist_params, z):
   return np.array([p_undist[0] * fx + cx, p_undist[1] * fy + cy])
 
 
-def pinhole_equi4_project_jacobian(proj_params, dist_params, p_C):
+def pinhole_equi4_project_jacobian(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    p_C: Vec3,
+) -> MatN:
   """ Pinhole + Equi-distant project jacobian """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -4118,7 +4294,11 @@ def pinhole_equi4_project_jacobian(proj_params, dist_params, p_C):
   return J_proj_point @ J_dist_point @ J_proj
 
 
-def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C):
+def pinhole_equi4_params_jacobian(
+    proj_params: Vec4,
+    dist_params: Vec4,
+    p_C: Vec3,
+) -> MatN:
   """ Pinhole + Equi-distant params jacobian """
   assert len(proj_params) == 4
   assert len(dist_params) == 4
@@ -4265,6 +4445,340 @@ def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
 
   raise RuntimeError(f"Unrecognized [{proj_model}]-[{dist_model}] combo!")
 
+# ChessboardDetector
+
+class ChessboardDetector:
+  def __init__(self):
+
+  def correlation_patch(self, angle_1: float, angle_2: float, radius: float):
+    """
+    Form correlation patch
+    """
+    # Width and height
+    width = int(radius * 2 + 1)
+    height = int(radius * 2 + 1)
+    if width == 0 or height == 0:
+      return None
+
+    # Initialize template
+    template = []
+    for i in range(4):
+      x = np.zeros((height, width))
+      template.append(x)
+
+    # Midpoint
+    mu = radius
+    mv = radius
+
+    # Compute normals from angles
+    n1 = [-np.sin(angle_1), np.cos(angle_1)]
+    n2 = [-np.sin(angle_2), np.cos(angle_2)]
+
+    # For all points in template do
+    for u in range(width):
+      for v in range(height):
+        # Vector
+        vec = [u - mu, v - mv]
+        dist = np.linalg.norm(vec)
+
+        # Check on which side of the normals we are
+        s1 = np.dot(vec, n1)
+        s2 = np.dot(vec, n2)
+
+        if dist <= radius:
+          if s1 <= -0.1 and s2 <= -0.1:
+            template[0][v, u] = 1
+          elif s1 >= 0.1 and s2 >= 0.1:
+            template[1][v, u] = 1
+          elif s1 <= -0.1 and s2 >= 0.1:
+            template[2][v, u] = 1
+          elif s1 >= 0.1 and s2 <= -0.1:
+            template[3][v, u] = 1
+
+    # Normalize
+    for i in range(4):
+      template[i] /= np.sum(template[i])
+
+    return template
+
+
+  def non_maxima_suppression(self, image: Image,
+                             n: int = 3,
+                             tau: float = 0.1,
+                             margin: int = 2):
+    """
+    Non Maximum Suppression
+
+    Args:
+
+      image: Input image
+      n: Kernel size
+      tau: Corner response threshold
+      margin: Offset away from image boundaries
+
+    Returns:
+
+      List of corners with maximum response
+
+    """
+    height, width = image.shape
+    maxima = []
+
+    for i in range(n + margin, width - n - margin, n + 1):
+      for j in range(n + margin, height - n - margin, n + 1):
+        # Initialize max value
+        maxi = i
+        maxj = j
+        maxval = image[j, i]
+
+        # Get max value in kernel
+        for i2 in range(i, i + n):
+          for j2 in range(j, j + n):
+            currval = image[j2, i2]
+            if currval > maxval:
+              maxi = i2
+              maxj = j2
+              maxval = currval
+
+        # Make sure maxval is larger than neighbours
+        failed = 0
+        for i2 in range(maxi - n, min(maxi + n, width - margin)):
+          for j2 in range(maxj - n, min(maxj + n, height - margin)):
+            currval = image[j2, i2]
+            if currval > maxval and (i2 < i or i2 > i + n or j2 < j or
+                                     j2 > j + n):
+              failed = 1
+              break
+          if failed:
+            break
+
+        # Store maxval
+        if maxval >= tau and failed == 0:
+          maxima.append([maxi, maxj])
+
+    return maxima
+
+  def edge_orientations(self, img_angle: Image, img_weight: Image) -> Tuple[Vec2, Vec2]:
+    """
+    Calculate Edge Orientations
+
+    Args:
+
+      img_angle: Image angles
+      img_weight: Image weight
+
+    Returns:
+
+      Refined edge orientation vectors v1, v2
+
+    """
+    # Initialize v1 and v2
+    v1 = np.array([0, 0])
+    v2 = np.array([0, 0])
+
+    # Number of bins (histogram parameter)
+    bin_num = 32
+
+    # Convert images to vectors
+    vec_angle = img_angle.flatten()
+    vec_weight = img_weight.flatten()
+
+    # Convert angles from normals to directions
+    vec_angle = vec_angle + np.pi / 2
+    vec_angle[vec_angle > np.pi] -= np.pi
+
+    # Create histogram
+    angle_hist = np.zeros(bin_num)
+    for i in range(len(vec_angle)):
+      bin_idx = min(max(int(np.floor(vec_angle[i] / (np.pi / bin_num))), 0),
+                    bin_num - 1)
+      angle_hist[bin_idx] += vec_weight[i]
+
+    # Find modes of smoothed histogram
+    modes, _ = find_modes_mean_shift(angle_hist, 1)
+
+    # If only one or no mode => return invalid corner
+    if modes.shape[0] <= 1:
+      return v1, v2
+
+    # Compute orientation at modes
+    modes = np.hstack(
+        (modes, ((modes[:, 0] - 1) * np.pi / bin_num).reshape(-1, 1)))
+
+    # Extract 2 strongest modes and sort by angle
+    modes = modes[:2]
+    modes = modes[np.argsort(modes[:, 2])]
+
+    # Compute angle between modes
+    delta_angle = min(modes[1, 2] - modes[0, 2],
+                      modes[0, 2] + np.pi - modes[1, 2])
+
+    # If angle too small => return invalid corner
+    if delta_angle <= 0.3:
+      return v1, v2
+
+    # Set statistics: orientations
+    v1 = np.array([np.cos(modes[0, 2]), np.sin(modes[0, 2])])
+    v2 = np.array([np.cos(modes[1, 2]), np.sin(modes[1, 2])])
+
+    return v1, v2
+
+  def refine_corners(self,
+                     img_shape: Tuple[int, ...],
+                     img_angle: MatN,
+                     img_weight: MatN,
+                     corners,
+                     r=10):
+    """
+    Refine detected corners
+
+    Args:
+
+      img_shape: Image shape (rows, cols)
+      img_angle: Image angles [degrees]
+      img_weight: Image weight
+      corners: List of corners to refine
+      r: Patch radius size [pixels]
+
+    Returns
+
+      corners, v1, v2
+
+    """
+    # Image dimensions
+    assert len(img_shape) == 2
+    height, width = img_shape
+
+    # Init orientations to invalid (corner is invalid iff orientation=0)
+    corners_inliers = []
+    v1 = []
+    v2 = []
+
+    # for all corners do
+    for i, (cu, cv, _) in enumerate(corners):
+      # Estimate edge orientations
+      cu, cv = int(cu), int(cv)
+      rs = max(cv - r, 1)
+      re = min(cv + r, height)
+      cs = max(cu - r, 1)
+      ce = min(cu + r, width)
+      img_angle_sub = img_angle[rs:re, cs:ce]
+      img_weight_sub = img_weight[rs:re, cs:ce]
+      v1_edge, v2_edge = edge_orientations(img_angle_sub, img_weight_sub)
+
+      # Check invalid edge
+      if np.array_equal(v1_edge, [0.0, 0.0]):
+        continue
+      if np.array_equal(v2_edge, [0.0, 0.0]):
+        continue
+
+      corners_inliers.append(corners[i])
+      v1.append(v1_edge)
+      v2.append(v2_edge)
+
+    return corners, v1, v2
+
+  def subpixel_refine(self, image: Image):
+    """
+    Sub-pixel Refinement.
+    """
+    dx = cv2.Sobel(image, cv2.CV_32F, 1, 0, ksize=3)
+    dy = cv2.Sobel(image, cv2.CV_32F, 0, 1, ksize=3)
+
+    matsum = np.zeros((2, 2))
+    pointsum = np.zeros(2)
+    for i in range(dx.shape[0]):
+      for j in range(dx.shape[1]):
+        vec = np.array([dy[i, j], dx[i, j]])
+        pos = (i, j)
+        mat = np.outer(vec, vec)
+        pointsum += mat @ pos
+        matsum += mat
+
+    try:
+      minv = np.linalg.inv(matsum)
+    except np.linalg.LinAlgError:
+      return None
+
+    newp = minv.dot(pointsum)
+
+    return newp
+
+  def detect_corners(self, image: Image, radiuses: List[int] = [6, 8, 10]):
+    """
+    Detect corners
+    """
+    # Convert gray image to double
+    assert len(image.shape) == 2
+    image = image / 255
+
+    # Find corners
+    template_props = [[0.0, pi / 2.0], [pi / 4.0, -pi / 4.0]]
+    corr = np.zeros(image.shape)
+    for angle_1, angle_2 in template_props:
+      for radius in radiuses:
+        template = correlation_patch(angle_1, angle_2, radius)
+        if template is None:
+          continue
+
+        img_corners = [
+            convolve2d(image, template[0], mode="same"),
+            convolve2d(image, template[1], mode="same"),
+            convolve2d(image, template[2], mode="same"),
+            convolve2d(image, template[3], mode="same"),
+        ]
+        img_corners_mu = np.mean(img_corners, axis=0)
+        arr = np.array([
+            img_corners[0] - img_corners_mu,
+            img_corners[1] - img_corners_mu,
+            img_corners_mu - img_corners[2],
+            img_corners_mu - img_corners[3],
+        ])
+        img_corners_1 = np.min(arr, axis=0)  # Case 1: a = white, b = black
+        img_corners_2 = np.min(-arr, axis=0)  # Case 2: b = white, a = black
+
+        # Combine both
+        img_corners = np.max([img_corners_1, img_corners_2], axis=0)
+
+        # Max
+        corr = np.max([img_corners, corr], axis=0)
+
+    # Max pooling
+    # step = 40
+    # threshold = float(np.max(corr) * 0.2)
+    # corners = self.max_pooling(corr, step, threshold)
+
+    # print(np.max(corr))
+    # print(np.min(corr))
+
+    # import matplotlib.pylab as plt
+    # plt.imshow(corr, cmap="gray")
+    # plt.colorbar()
+    # plt.show()
+
+  def checkerboard_score(self, corners, size=(9, 6)):
+    corners_reshaped = corners[:, :2].reshape(*size, 2)
+    maxm = 0
+    for rownum in range(size[0]):
+      for colnum in range(1, size[1] - 1):
+        pts = corners_reshaped[rownum, [colnum - 1, colnum, colnum + 1]]
+        top = np.linalg.norm(pts[2] + pts[0] - 2 * pts[1])
+        bot = np.linalg.norm(pts[2] - pts[0])
+        if np.abs(bot) < 1e-9:
+          return 1
+        maxm = max(top / bot, maxm)
+    for colnum in range(0, size[1]):
+      for rownum in range(1, size[0] - 1):
+        pts = corners_reshaped[[rownum - 1, rownum, rownum + 1], colnum]
+        top = np.linalg.norm(pts[2] + pts[0] - 2 * pts[1])
+        bot = np.linalg.norm(pts[2] - pts[0])
+        if np.abs(bot) < 1e-9:
+          return 1
+        maxm = max(top / bot, maxm)
+    return maxm
+
+
+
 
 # UNITESTS #####################################################################
 
@@ -4279,7 +4793,7 @@ class TestCV(unittest.TestCase):
     fy = focal_length(img_w, 90.0)
     cx = img_w / 2.0
     cy = img_h / 2.0
-    self.proj_params = [fx, fy, cx, cy]
+    self.proj_params = np.array([fx, fy, cx, cy])
 
     # Camera pose in world frame
     C_WC = euler321(-pi / 2, 0.0, -pi / 2)
@@ -4385,7 +4899,7 @@ class TestCV(unittest.TestCase):
     fy = focal_length(img_w, 90.0)
     cx = img_w / 2.0
     cy = img_h / 2.0
-    proj_params = [fx, fy, cx, cy]
+    proj_params = np.array([fx, fy, cx, cy])
 
     # Camera pose i
     C_WC_i = euler321(-pi / 2 - deg2rad(45), 0.0, -pi / 2)
@@ -4459,7 +4973,7 @@ class TestCV(unittest.TestCase):
     fy = focal_length(img_w, 90.0)
     cx = img_w / 2.0
     cy = img_h / 2.0
-    proj_params = [fx, fy, cx, cy]
+    proj_params = np.array([fx, fy, cx, cy])
 
     # Camera pose T_WC
     C_WC = euler321(-pi / 2, 0.0, -pi / 2)
@@ -4664,16 +5178,18 @@ class TestCV(unittest.TestCase):
       self.assertTrue(abs(dtheta) < 1e-1)
 
       # Solve pnp with OpenCV
-      K = pinhole_K([fx, fy, cx, cy])
+      K = pinhole_K(np.array([fx, fy, cx, cy]))
       D = np.array([0.0, 0.0, 0.0, 0.0])
       flags = cv2.SOLVEPNP_ITERATIVE
       t_start = datetime.now()
-      _, rvec, tvec = cv2.solvePnP(object_points,
-                                   image_points,
-                                   K,
-                                   D,
-                                   False,
-                                   flags=flags)
+      _, rvec, tvec = cv2.solvePnP(
+          object_points,
+          image_points,
+          K,
+          D,
+          False,
+          flags=flags,
+      )
       C, _ = cv2.Rodrigues(rvec)
       r = tvec.flatten()
       T_CF_opencv = tf(C, r)
@@ -4778,7 +5294,7 @@ class TestCV(unittest.TestCase):
     fy = 2.0
     cx = 3.0
     cy = 4.0
-    proj_params = [fx, fy, cx, cy]
+    proj_params = np.array([fx, fy, cx, cy])
     K = pinhole_K(proj_params)
     expected = np.array([[1.0, 0.0, 3.0], [0.0, 2.0, 4.0], [0.0, 0.0, 1.0]])
 
@@ -4833,6 +5349,20 @@ class TestCV(unittest.TestCase):
 
     self.assertTrue(matrix_equal(finite_diff, J, tol, True))
 
+  def test_chessboard_detector(selfl):
+    # Load the image
+    # euroc_data = Path("/data/euroc")
+    # calib_dir = euroc_data / "cam_checkerboard" / "mav0" / "cam0" / "data"
+    # calib_image = calib_dir / "1403709080437837056.png"
+    # image = cv2.imread(str(calib_image), cv2.COLOR_BGR2GRAY)
+    # image = image.astype(np.float32)
+    # cb_size = (7, 6)
+    # winsize = 9
+
+    # detect_corners(image)
+    # compute_edge_orientation(image)
+    pass
+
 
 ################################################################################
 # DATASET
@@ -4856,7 +5386,7 @@ class CameraEvent:
   """ Camera Event """
   ts: int
   cam_idx: int
-  image: np.array
+  image: Image
 
 
 @dataclass
@@ -4864,8 +5394,8 @@ class ImuEvent:
   """ IMU Event """
   ts: int
   imu_idx: int
-  acc: np.array
-  gyr: np.array
+  acc: Vec3
+  gyr: Vec3
 
 
 @dataclass
@@ -4945,7 +5475,8 @@ class EurocImuData:
     self.gyr = {}
 
     # Load data
-    df = pandas.read_csv(Path(self.imu_dir, 'data.csv'))
+    imu_path = Path(self.imu_dir, 'data.csv')
+    df = pandas.read_csv(imu_path)
     df = df.rename(columns=lambda x: x.strip())
 
     # -- Timestamp
@@ -5156,7 +5687,7 @@ class KittiRawDataset:
           pass
       return data
 
-  def nb_camera_images(self, cam_idx=0):
+  def num_camera_images(self, cam_idx=0):
     """ Return number of camera images """
     assert cam_idx >= 0
     assert cam_idx <= 3
@@ -5168,8 +5699,8 @@ class KittiRawDataset:
       return len(self.cam2_data.img_paths)
     elif cam_idx == 3:
       return len(self.cam3_data.img_paths)
-    else:
-      return None
+
+    raise RuntimeError(f"Invalid cam_idx: {cam_idx}")
 
   def get_velodyne_extrinsics(self):
     """ Get velodyne extrinsics """
@@ -5219,7 +5750,7 @@ class KittiRawDataset:
     elif cam_idx == 3:
       return cv2.imread(self.cam3_data.img_paths[img_idx], imread_flag)
 
-    return None
+    raise RuntimeError(f"Invalid cam_idx: {cam_idx}")
 
   def plot_frames(self):
     """ Plot Frames """
@@ -5255,7 +5786,7 @@ class TestKitti(unittest.TestCase):
     dataset = KittiRawDataset(data_dir, date, seq, True)
     # dataset.plot_frames()
 
-    for i in range(dataset.nb_camera_images()):
+    for i in range(dataset.num_camera_images()):
       cam0_img = dataset.get_camera_image(0, index=i)
       cam1_img = dataset.get_camera_image(1, index=i)
       cam2_img = dataset.get_camera_image(2, index=i)
@@ -5494,7 +6025,7 @@ class OctreeNode:
     self.children = [None for _ in range(8)]
     self.data = []
 
-  def insert(self, point):
+  def insert(self, point: Vec3):
     if self.depth == self.max_depth:
       self.data.append(point)
       return
@@ -5511,10 +6042,13 @@ class OctreeNode:
     child = self.children[index]
     if child is None:
       new_center = self.center + np.array([offset_x, offset_y, offset_z])
-      child = OctreeNode(new_center, self.size / 2.0, self.depth + 1,
-                         self.max_depth)
+      child = OctreeNode(
+          center=new_center,
+          size=self.size / 2.0,
+          depth=self.depth + 1,
+          max_depth=self.max_depth,
+      )
       self.children[index] = child
-
     self.children[index].insert(point)
 
 
@@ -5639,7 +6173,7 @@ class Frustum:
     # Form near plane
     A = self.near["top_right"] - self.near["top_left"]
     B = self.near["bottom_left"] - self.near["top_left"]
-    status, point = find_intersection(self.near["top_left"],
+    _, point = find_intersection(self.near["top_left"],
                                       self.near["bottom_right"],
                                       self.near["top_right"],
                                       self.near["bottom_left"])
@@ -5648,7 +6182,7 @@ class Frustum:
     # Form far plane
     A = self.far["top_right"] - self.far["top_left"]
     B = self.far["bottom_left"] - self.far["top_left"]
-    status, point = find_intersection(self.far["top_left"],
+    _, point = find_intersection(self.far["top_left"],
                                       self.far["bottom_right"],
                                       self.far["top_right"],
                                       self.far["bottom_left"])
@@ -5792,7 +6326,7 @@ def kdtree_build(points, depth=0):
 
   kdim = len(points[0])
   axis = depth % kdim
-  sorted_points = sorted(points, key=lambda p : p[axis])
+  sorted_points = sorted(points, key=lambda p: p[axis])
   median_index = len(sorted_points) // 2
   median_point = sorted_points[median_index]
 
@@ -5820,7 +6354,10 @@ def kdtree_nn(root, target):
     diff = target[axis] - node.point[axis]
 
     # Search the closer subtree first
-    closer, farther = (node.left, node.right) if diff <= 0 else (node.right, node.left)
+    if diff <= 0:
+      closer, farther = (node.left, node.right)
+    else:
+      closer, farther = (node.right, node.left)
     search(closer, depth + 1)
 
     # Search the farther subtree
@@ -5837,12 +6374,12 @@ class TestKDTree(unittest.TestCase):
   """ Test KDTree """
   def test_kdtree(self):
     points = np.array([
-      [1.0, 2.0],
-      [3.0, 5.0],
-      [4.0, 2.0],
-      [7.0, 8.0],
-      [8.0, 1.0],
-      [9.0, 6.0],
+        [1.0, 2.0],
+        [3.0, 5.0],
+        [4.0, 2.0],
+        [7.0, 8.0],
+        [8.0, 1.0],
+        [9.0, 6.0],
     ])
 
     target_point = [5.0, 3.0]
@@ -5853,7 +6390,6 @@ class TestKDTree(unittest.TestCase):
     plt.plot(target_point[0], target_point[1], 'ko')
     plt.plot(best_point[0], best_point[1], 'rx')
     plt.show()
-
 
 
 ###############################################################################
@@ -6002,27 +6538,27 @@ def extrinsics_setup(param, **kwargs):
   """ Form extrinsics state-variable """
   fix = kwargs.get('fix', False)
   param = tf2pose(param) if param.shape == (4, 4) else param
-  return StateVariable(None, "extrinsics", param, None, 6, fix)
+  return StateVariable(-1, "extrinsics", param, None, 6, fix)
 
 
 def screw_axis_setup(param, **kwargs):
   """ Form screw axis state-variable """
   fix = kwargs.get('fix', False)
-  return StateVariable(None, "screw_axis", param, None, 6, fix)
+  return StateVariable(-1, "screw_axis", param, None, 6, fix)
 
 
 def camera_params_setup(cam_idx, res, proj_model, dist_model, param, **kwargs):
   """ Form camera parameters state-variable """
   fix = kwargs.get('fix', False)
   data = camera_geometry_setup(cam_idx, res, proj_model, dist_model)
-  return StateVariable(None, "camera", param, None, len(param), fix, data)
+  return StateVariable(-1, "camera", param, None, len(param), fix, data)
 
 
 def feature_setup(param, **kwargs):
   """ Form feature state-variable """
   fix = kwargs.get('fix', False)
   data = FeatureMeasurements()
-  return StateVariable(None, "feature", param, None, len(param), fix, data)
+  return StateVariable(-1, "feature", param, None, len(param), fix, data)
 
 
 def speed_biases_setup(ts, vel, ba, bg, **kwargs):
@@ -6035,19 +6571,19 @@ def speed_biases_setup(ts, vel, ba, bg, **kwargs):
 def inverse_depth_setup(param, **kwargs):
   """ Form inverse depth state-variable """
   fix = kwargs.get('fix', False)
-  return StateVariable(None, "inverse_depth", np.array([param]), None, 1, fix)
+  return StateVariable(-1, "inverse_depth", np.array([param]), None, 1, fix)
 
 
 def time_delay_setup(param, **kwargs):
   """ Form time delay state-variable """
   fix = kwargs.get('fix', False)
-  return StateVariable(None, "time_delay", np.array([param]), None, 1, fix)
+  return StateVariable(-1, "time_delay", np.array([param]), None, 1, fix)
 
 
 def joint_angle_setup(param, **kwargs):
   """ Form time delay state-variable """
   fix = kwargs.get('fix', False)
-  return StateVariable(None, "joint_angle", np.array([param]), None, 1, fix)
+  return StateVariable(-1, "joint_angle", np.array([param]), None, 1, fix)
 
 
 def perturb_state_variable(sv, i, step_size):

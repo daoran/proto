@@ -119,20 +119,6 @@ run_memcheck() {
 # C
 ###############################################################################
 
-# make clean
-# time make build
-# time make tests
-
-# make format_code
-# ctags -R lib
-# time make clean
-# time make build
-# time make debug
-
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "make ci" C-m C-m
-# exit
-
 run_all_tests() {
   tmux send-keys -t dev -R C-l C-m
   tmux send-keys -t dev -R "\
@@ -144,73 +130,21 @@ run_all_tests() {
 }
 
 run_test() {
-  # TARGET=0.left
   TARGET="dev"
   tmux send-keys -t $TARGET -R C-l C-m
   tmux send-keys -t $TARGET -R "\
-    cd ~/code/xyz/src \
+    cd ~/code/xyz \
       && clear \
-      && time make test_xyz TEST_TARGET=$1 \
+      && time make tests -j \
+      && cd build && ./$1 --target $2 \
   " C-m C-m
   exit
-  # python3 xyz.py TestFactors.test_imu_factor2
 }
 
-dev_sbgc() {
-  tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "\
-cd $HOME/projects/xyz/src \
-  && time make test_sbgc \
-  && cd ./build \
-  && ./test_sbgc \
-  && cd - \
-" C-m
-  exit
-
-# cd $HOME/projects/xyz/xyz \
-#   && time make test_sbgc \
-#   && cd ./build \
-#   && ./test_sbgc \
-#   && cd -
-}
-
-dev_aprilgrid() {
-  tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/code/xyz/xyz && make test_aprilgrid && ./build/test_aprilgrid" C-m
-  exit
-}
-
-dev_euroc() {
-  tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/code/xyz/xyz && make test_euroc && ./build/test_euroc" C-m
-  exit
-}
-
-dev_gui() {
-  tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/code/xyz && time make test_gui -j && cd build && ./test_gui" C-m
-  exit
-}
-
-dev_avs() {
-  tmux send-keys -t dev -R C-l C-m
-  tmux send-keys -t dev -R "cd ~/code/xyz/xyz && time make avs -j && ./build/avs" C-m
-  exit
-}
-
-# dev_aprilgrid
-# dev_euroc
-# dev_gui
-# dev_avs
-# python3 scripts/benchmark.py
-# python3 scripts/plot_gimbal_calib.py
-# python3 scripts/plot_inertial_odometry.py
-# python3 scripts/plot_map.py
-
-tmux send-keys -t dev -R C-l C-m
+# tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "cd ~/code/xyz && make libxyz -j" C-m
-tmux send-keys -t dev -R "cd ~/code/xyz && make ci" C-m
-exit
+# tmux send-keys -t dev -R "cd ~/code/xyz && make ci" C-m
+# exit
 
 # xyz
 # run_all_tests
@@ -422,7 +356,6 @@ exit
 # run_test test_visual_odometry_batch
 # run_test test_inertial_odometry_batch
 # run_test test_visual_inertial_odometry_batch
-# python3 scripts/marg_sandbox.py
 # run_test test_tsf
 # run_test test_ceres_example
 # run_test test_invert_block_diagonal
@@ -432,7 +365,7 @@ exit
 # run_test test_solver_setup
 # run_test test_solver_print
 # run_test test_solver_eval
-# run_test test_camchain
+run_test test_calib test_camchain
 # run_test test_calib_camera_mono_batch
 # run_test test_calib_camera_mono_ceres
 # run_test test_calib_camera_mono_incremental
@@ -460,9 +393,11 @@ exit
 # run_test test_calib_gimbal_ceres_solve
 # XYZ-DATASET
 # run_test test_assoc_pose_data
-# XYZ-PLOTTING
+# XYZ-GNUPLOT
 # run_test test_gnuplot_xyplot
 # run_test test_gnuplot_multiplot
+# XYZ-KITTI
+# run_test test_kitti test_kitti_raw_load
 # XYZ-SIM
 # run_test test_sim_features_load
 # run_test test_sim_imu_data_load

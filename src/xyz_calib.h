@@ -116,118 +116,37 @@ int calib_imucam_factor_ceres_eval(void *factor_ptr,
                                    real_t *r_out,
                                    real_t **J_out);
 
-// /////////////////////////
-// // CALIB-GIMBAL FACTOR //
-// /////////////////////////
-//
-// typedef struct calib_gimbal_factor_t {
-//   fiducial_t *fiducial_ext;
-//   extrinsic_t *gimbal_ext;
-//   pose_t *pose;
-//   extrinsic_t *link0;
-//   extrinsic_t *link1;
-//   joint_t *joint0;
-//   joint_t *joint1;
-//   joint_t *joint2;
-//   extrinsic_t *cam_ext;
-//   camera_params_t *cam;
-//
-//   timestamp_t ts;
-//   int cam_idx;
-//   int tag_id;
-//   int corner_idx;
-//   real_t p_FFi[3];
-//   real_t z[2];
-//
-//   real_t covar[2 * 2];
-//   real_t sqrt_info[2 * 2];
-//
-//   int r_size;
-//   int num_params;
-//   int param_types[10];
-//
-//   real_t *params[10];
-//   real_t r[2];
-//   real_t *jacs[10];
-//   real_t J_fiducial_ext[2 * 6];
-//   real_t J_gimbal_ext[2 * 6];
-//   real_t J_pose[2 * 6];
-//   real_t J_link0[2 * 6];
-//   real_t J_link1[2 * 6];
-//   real_t J_joint0[2 * 1];
-//   real_t J_joint1[2 * 1];
-//   real_t J_joint2[2 * 1];
-//   real_t J_cam_ext[2 * 6];
-//   real_t J_cam_params[2 * 8];
-// } calib_gimbal_factor_t;
-//
-// void gimbal_setup_extrinsic(const real_t ypr[3],
-//                             const real_t r[3],
-//                             real_t T[4 * 4],
-//                             extrinsic_t *link);
-// void gimbal_setup_joint(const timestamp_t ts,
-//                         const int joint_idx,
-//                         const real_t theta,
-//                         real_t T_joint[4 * 4],
-//                         joint_t *joint);
-//
-// void calib_gimbal_factor_setup(calib_gimbal_factor_t *factor,
-//                                fiducial_t *fiducial_ext,
-//                                extrinsic_t *gimbal_ext,
-//                                pose_t *pose,
-//                                extrinsic_t *link0,
-//                                extrinsic_t *link1,
-//                                joint_t *joint0,
-//                                joint_t *joint1,
-//                                joint_t *joint2,
-//                                extrinsic_t *cam_ext,
-//                                camera_params_t *cam,
-//                                const timestamp_t ts,
-//                                const int cam_idx,
-//                                const int tag_id,
-//                                const int corner_idx,
-//                                const real_t p_FFi[3],
-//                                const real_t z[2],
-//                                const real_t var[2]);
-// int calib_gimbal_factor_eval(void *factor);
-// int calib_gimbal_factor_ceres_eval(void *factor_ptr,
-//                                    real_t **params,
-//                                    real_t *r_out,
-//                                    real_t **J_out);
-// int calib_gimbal_factor_equals(const calib_gimbal_factor_t *c0,
-//                                const calib_gimbal_factor_t *c1);
+//////////////
+// CAMCHAIN //
+//////////////
 
-// //////////////
-// // CAMCHAIN //
-// //////////////
-//
-// typedef struct camchain_pose_hash_t {
-//   timestamp_t key;
-//   real_t *value;
-// } camchain_pose_hash_t;
-//
-// typedef struct camchain_t {
-//   int analyzed;
-//   int num_cams;
-//
-//   int **adj_list;
-//   real_t **adj_exts;
-//   camchain_pose_hash_t **cam_poses;
-// } camchain_t;
-//
-// camchain_t *camchain_malloc(const int num_cams);
-// void camchain_free(camchain_t *cc);
-// void camchain_add_pose(camchain_t *cc,
-//                        const int cam_idx,
-//                        const timestamp_t ts,
-//                        const real_t T_CiF[4 * 4]);
-// void camchain_adjacency(camchain_t *cc);
-// void camchain_adjacency_print(const camchain_t *cc);
-// int camchain_find(camchain_t *cc,
-//                   const int idx_i,
-//                   const int idx_j,
-//                   real_t T_CiCj[4 * 4]);
-//
+typedef struct camchain_pose_hash_t {
+  timestamp_t key;
+  real_t *value;
+} camchain_pose_hash_t;
+
+typedef struct camchain_t {
+  int analyzed;
+  int num_cams;
+
+  int **adj_list;
+  real_t **adj_exts;
+  camchain_pose_hash_t **cam_poses;
+} camchain_t;
+
+camchain_t *camchain_malloc(const int num_cams);
+void camchain_free(camchain_t *cc);
+void camchain_add_pose(camchain_t *cc,
+                       const int cam_idx,
+                       const timestamp_t ts,
+                       const real_t T_CiF[4 * 4]);
+void camchain_adjacency(camchain_t *cc);
+void camchain_adjacency_print(const camchain_t *cc);
+int camchain_find(camchain_t *cc,
+                  const int idx_i,
+                  const int idx_j,
+                  real_t T_CiCj[4 * 4]);
+
 // ////////////////////////
 // // CAMERA CALIBRATION //
 // ////////////////////////

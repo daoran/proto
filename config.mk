@@ -117,6 +117,7 @@ LIBXYZ_OBJS := \
 # TESTS
 TESTS := \
 	$(BLD_DIR)/test_aprilgrid \
+	$(BLD_DIR)/test_calib \
 	$(BLD_DIR)/test_control \
 	$(BLD_DIR)/test_cv \
 	$(BLD_DIR)/test_ds \
