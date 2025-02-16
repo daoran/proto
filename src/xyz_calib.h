@@ -8,32 +8,32 @@
 // CAMCHAIN //
 //////////////
 
-// typedef struct {
-//   timestamp_t key;
-//   real_t *value;
-// } camchain_pose_hash_t;
+typedef struct {
+  timestamp_t key;
+  real_t *value;
+} camchain_pose_hash_t;
 
-// typedef struct {
-//   int analyzed;
-//   int num_cams;
-//
-//   int **adj_list;
-//   real_t **adj_exts;
-//   camchain_pose_hash_t **cam_poses;
-// } camchain_t;
+typedef struct {
+  int analyzed;
+  int num_cams;
 
-// camchain_t *camchain_malloc(const int num_cams);
-// void camchain_free(camchain_t *cc);
-// void camchain_add_pose(camchain_t *cc,
-//                        const int cam_idx,
-//                        const timestamp_t ts,
-//                        const real_t T_CiF[4 * 4]);
-// void camchain_adjacency(camchain_t *cc);
-// void camchain_adjacency_print(const camchain_t *cc);
-// int camchain_find(camchain_t *cc,
-//                   const int idx_i,
-//                   const int idx_j,
-//                   real_t T_CiCj[4 * 4]);
+  int **adj_list;
+  real_t **adj_exts;
+  camchain_pose_hash_t **cam_poses;
+} camchain_t;
+
+camchain_t *camchain_malloc(const int num_cams);
+void camchain_free(camchain_t *cc);
+void camchain_add_pose(camchain_t *cc,
+                       const int cam_idx,
+                       const timestamp_t ts,
+                       const real_t T_CiF[4 * 4]);
+void camchain_adjacency(camchain_t *cc);
+void camchain_adjacency_print(const camchain_t *cc);
+int camchain_find(camchain_t *cc,
+                  const int idx_i,
+                  const int idx_j,
+                  real_t T_CiCj[4 * 4]);
 
 /////////////////////////
 // CALIB-CAMERA FACTOR //
