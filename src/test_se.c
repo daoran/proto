@@ -1928,6 +1928,64 @@ int test_tsf(void) {
   return 0;
 }
 
+int test_assoc_pose_data(void) {
+  const double threshold = 0.01;
+  const char *matches_fpath = "./gnd_est_matches.csv";
+  const char *gnd_data_path = "./test_data/euroc/MH01_groundtruth.csv";
+  const char *est_data_path = "./test_data/euroc/MH01_estimate.csv";
+
+  // Load ground-truth poses
+  int num_gnd_poses = 0;
+  pose_t *gnd_poses = load_poses(gnd_data_path, &num_gnd_poses);
+  printf("num_gnd_poses: %d\n", num_gnd_poses);
+
+  // Load estimate poses
+  int num_est_poses = 0;
+  pose_t *est_poses = load_poses(est_data_path, &num_est_poses);
+  printf("num_est_poses: %d\n", num_est_poses);
+
+  // Associate data
+  size_t num_matches = 0;
+  int **matches = assoc_pose_data(gnd_poses,
+                                  num_gnd_poses,
+                                  est_poses,
+                                  num_est_poses,
+                                  threshold,
+                                  &num_matches);
+  printf("Time Associated:\n");
+  printf(" - [%s]\n", gnd_data_path);
+  printf(" - [%s]\n", est_data_path);
+  printf("threshold:  %.4f [s]\n", threshold);
+  printf("num_matches: %ld\n", num_matches);
+
+  // Save matches to file
+  FILE *matches_csv = fopen(matches_fpath, "w");
+  fprintf(matches_csv, "#gnd_idx,est_idx\n");
+  for (size_t i = 0; i < num_matches; i++) {
+    uint64_t gnd_ts = gnd_poses[matches[i][0]].ts;
+    uint64_t est_ts = est_poses[matches[i][1]].ts;
+    double t_diff = fabs(ts2sec(gnd_ts - est_ts));
+    if (t_diff > threshold) {
+      printf("ERROR! Time difference > threshold!\n");
+      printf("ground_truth_index: %d\n", matches[i][0]);
+      printf("estimate_index: %d\n", matches[i][1]);
+      break;
+    }
+    fprintf(matches_csv, "%d,%d\n", matches[i][0], matches[i][1]);
+  }
+  fclose(matches_csv);
+
+  // Clean up
+  for (size_t i = 0; i < num_matches; i++) {
+    free(matches[i]);
+  }
+  free(matches);
+  free(gnd_poses);
+  free(est_poses);
+
+  return 0;
+}
+
 #ifdef USE_CERES
 
 /**
@@ -2037,80 +2095,79 @@ typedef struct cam_view_t {
   camera_params_t *cam_params;
 } cam_view_t;
 
-// int test_solver_eval(void) {
-//   // Load test data
-//   const char *dir_path = TEST_SIM_DATA "/cam0";
-//   sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
+int test_solver_eval(void) {
+  // Load test data
+  const char *dir_path = TEST_SIM_DATA "/cam0";
+  sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
 
-//   // Camera parameters
-//   camera_params_t cam;
-//   const int cam_idx = 0;
-//   const int cam_res[2] = {640, 480};
-//   const char *proj_model = "pinhole";
-//   const char *dist_model = "radtan4";
-//   const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
+  // // Camera parameters
+  // camera_params_t cam;
+  // const int cam_idx = 0;
+  // const int cam_res[2] = {640, 480};
+  // const char *proj_model = "pinhole";
+  // const char *dist_model = "radtan4";
+  // const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  // camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
+  //
+  // // Setup features
+  // // -- Load features csv
+  // int num_rows = 0;
+  // int num_cols = 0;
+  // char *features_csv = TEST_SIM_DATA "/features.csv";
+  // real_t **features_data = csv_data(features_csv, &num_rows, &num_cols);
+  // size_t *feature_ids = MALLOC(size_t, num_rows);
+  // real_t *feature_xyzs = MALLOC(real_t, num_rows * 3);
+  // for (int i = 0; i < num_rows; i++) {
+  //   feature_ids[i] = features_data[i][0];
+  //   feature_xyzs[i * 3 + 0] = features_data[i][1];
+  //   feature_xyzs[i * 3 + 1] = features_data[i][2];
+  //   feature_xyzs[i * 3 + 2] = features_data[i][3];
+  //   free(features_data[i]);
+  // }
+  // free(features_data);
+  // // -- Add features to container
+  // features_t *features = features_malloc();
+  // features_add_xyzs(features, feature_ids, feature_xyzs, num_rows);
+  // free(feature_ids);
+  // free(feature_xyzs);
+  //
+  // // Loop over simulated camera frames
+  // const real_t var[2] = {1.0, 1.0};
+  // cam_view_t *cam_views = MALLOC(cam_view_t, cam_data->num_frames);
+  // for (int k = 0; k < cam_data->num_frames; k++) {
+  //   // Camera frame
+  //   const sim_camera_frame_t *frame = cam_data->frames[k];
+  //
+  //   // Pose
+  //   pose_t *pose = &cam_views[k].pose;
+  //   pose_setup(pose, frame->ts, &cam_data->poses[k]);
+  //
+  //   // Add factors
+  //   cam_views[k].num_factors = frame->num_measurements;
+  //   for (int i = 0; i < frame->num_measurements; i++) {
+  //     const int feature_id = frame->feature_ids[i];
+  //     const real_t *z = &frame->keypoints[i];
+  //     feature_t *f = NULL;
+  //     features_get_xyz(features, feature_id, &f);
+  //
+  //     // Factor
+  //     ba_factor_t *factor = &cam_views[k].factors[i];
+  //     ba_factor_setup(factor, pose, f, &cam, z, var);
+  //   }
+  // }
 
-//   // Setup features
-//   // -- Load features csv
-//   int num_rows = 0;
-//   int num_cols = 0;
-//   char *features_csv = TEST_SIM_DATA "/features.csv";
-//   real_t **features_data = csv_data(features_csv, &num_rows, &num_cols);
-//   size_t *feature_ids = MALLOC(size_t, num_rows);
-//   real_t *feature_xyzs = MALLOC(real_t, num_rows * 3);
-//   for (int i = 0; i < num_rows; i++) {
-//     feature_ids[i] = features_data[i][0];
-//     feature_xyzs[i * 3 + 0] = features_data[i][1];
-//     feature_xyzs[i * 3 + 1] = features_data[i][2];
-//     feature_xyzs[i * 3 + 2] = features_data[i][3];
-//     free(features_data[i]);
-//   }
-//   free(features_data);
-//   // -- Add features to container
-//   features_t *features = features_malloc();
-//   features_add_xyzs(features, feature_ids, feature_xyzs, num_rows);
-//   free(feature_ids);
-//   free(feature_xyzs);
+  solver_t solver;
+  solver_setup(&solver);
 
-//   // Loop over simulated camera frames
-//   const real_t var[2] = {1.0, 1.0};
-//   cam_view_t *cam_views = MALLOC(cam_view_t, cam_data->num_frames);
-//   for (int k = 0; k < cam_data->num_frames; k++) {
-//     // Camera frame
-//     const sim_camera_frame_t *frame = cam_data->frames[k];
+  // Clean up
+  sim_camera_data_free(cam_data);
+  // free(cam_views);
+  // features_free(features);
 
-//     // Pose
-//     pose_t *pose = &cam_views[k].pose;
-//     pose_setup(pose, frame->ts, &cam_data->poses[k]);
-
-//     // Add factors
-//     cam_views[k].num_factors = frame->num_measurements;
-//     for (int i = 0; i < frame->num_measurements; i++) {
-//       const int feature_id = frame->feature_ids[i];
-//       const real_t *z = &frame->keypoints[i];
-//       feature_t *f = NULL;
-//       features_get_xyz(features, feature_id, &f);
-
-//       // Factor
-//       ba_factor_t *factor = &cam_views[k].factors[i];
-//       ba_factor_setup(factor, pose, f, &cam, z, var);
-//     }
-//   }
-
-//   solver_t solver;
-//   solver_setup(&solver);
-
-//   // Clean up
-//   sim_camera_data_free(cam_data);
-//   free(cam_views);
-//   features_free(features);
-
-//   return 0;
-// }
+  return 0;
+}
 
 void test_suite(void) {
-  // SENSOR FUSION
   MU_ADD_TEST(test_schur_complement);
   // MU_ADD_TEST(test_timeline);
   MU_ADD_TEST(test_pose);
@@ -2144,6 +2201,7 @@ void test_suite(void) {
   MU_ADD_TEST(test_inertial_odometry_batch);
   // MU_ADD_TEST(test_visual_inertial_odometry_batch);
   // MU_ADD_TEST(test_tsf);
+  // MU_ADD_TEST(test_assoc_pose_data);
 #ifdef USE_CERES
   MU_ADD_TEST(test_ceres_example);
 #endif // USE_CERES

@@ -157,7 +157,7 @@ int test_calib_camera_factor(void) {
   test_calib_camera_data_t calib_data;
   test_calib_camera_data_setup(&calib_data);
 
-  calib_camera_factor_t factor;
+  struct calib_camera_factor_t factor;
   const real_t var[2] = {1.0, 1.0};
   calib_camera_factor_setup(&factor,
                             &calib_data.rel_pose,
@@ -316,47 +316,47 @@ int test_calib_imucam_factor(void) {
   return 0;
 }
 
-// int test_calib_camera_mono_batch(void) {
-  // const char *data_path = TEST_CAM_APRIL "/cam0";
-  //
-  // // Initialize camera intrinsics
-  // const int cam_res[2] = {752, 480};
-  // const char *proj_model = "pinhole";
-  // const char *dist_model = "radtan4";
-  // const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  // const real_t cam_params[8] =
-  //     {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
+int test_calib_camera_mono_batch(void) {
+  const char *data_path = TEST_CAM_APRIL "/cam0";
 
-  // // Setup camera calibration problem
-  // calib_camera_t *calib = calib_camera_malloc();
-  // calib->verbose = 0;
-  // calib->max_iter = 30;
-  // calib_camera_add_camera(calib,
-  //                         0,
-  //                         cam_res,
-  //                         proj_model,
-  //                         dist_model,
-  //                         cam_params,
-  //                         cam_ext);
-  //
-  // // Batch solve
-  // calib_camera_add_data(calib, 0, data_path);
-  // calib_camera_solve(calib);
-  //
-  // // Asserts
-  // double reproj_rmse = 0.0;
-  // double reproj_mean = 0.0;
-  // double reproj_median = 0.0;
-  // calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
-  // MU_ASSERT(reproj_rmse < 0.5);
-  // MU_ASSERT(reproj_mean < 0.5);
-  // MU_ASSERT(reproj_median < 0.5);
-  //
-  // // Clean up
-  // calib_camera_free(calib);
+  // Initialize camera intrinsics
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  const real_t cam_params[8] =
+      {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
 
-//   return 0;
-// }
+  // Setup camera calibration problem
+  calib_camera_t *calib = calib_camera_malloc();
+  calib->verbose = 0;
+  calib->max_iter = 30;
+  calib_camera_add_camera(calib,
+                          0,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          cam_params,
+                          cam_ext);
+
+  // Batch solve
+  calib_camera_add_data(calib, 0, data_path);
+  calib_camera_solve(calib);
+
+  // Asserts
+  double reproj_rmse = 0.0;
+  double reproj_mean = 0.0;
+  double reproj_median = 0.0;
+  calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  MU_ASSERT(reproj_rmse < 0.5);
+  MU_ASSERT(reproj_mean < 0.5);
+  MU_ASSERT(reproj_median < 0.5);
+
+  // Clean up
+  calib_camera_free(calib);
+
+  return 0;
+}
 
 // int test_calib_camera_mono_ceres(void) {
 //   const char *data_path = TEST_CAM_APRIL "/cam0";
@@ -1983,7 +1983,7 @@ void test_suite(void) {
   MU_ADD_TEST(test_camchain);
   MU_ADD_TEST(test_calib_camera_factor);
   MU_ADD_TEST(test_calib_imucam_factor);
-  // MU_ADD_TEST(test_calib_camera_mono_batch);
+  MU_ADD_TEST(test_calib_camera_mono_batch);
   // MU_ADD_TEST(test_calib_camera_mono_ceres);
   // MU_ADD_TEST(test_calib_camera_mono_incremental);
   // MU_ADD_TEST(test_calib_camera_stereo_batch);

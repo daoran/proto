@@ -146,143 +146,134 @@ run_test() {
 # tmux send-keys -t dev -R "cd ~/code/xyz && make ci" C-m
 # exit
 
-# xyz
+# XYZ
 # run_all_tests
-# XYZ-LOGGING
-# run_test test_debug
-# run_test test_log_error
-# run_test test_log_warn
-# XYZ-FILE_SYSTEM
-# run_test test_path_file_name
-# run_test test_path_file_ext
-# run_test test_path_dir_name
-# run_test test_path_join
-# run_test test_list_files
-# run_test test_list_files_free
-# run_test test_file_read
-#  run_test test_file_copy
-# XYZ-DATA
-# run_test test_malloc_string
-# run_test test_dsv_rows
-# run_test test_dsv_cols
-# run_test test_dsv_fields
-# run_test test_dsv_data
-# run_test test_dsv_free
-# XYZ-DATA-STRUCTURE
-# run_test test_darray_new_and_destroy
-# run_test test_darray_push_pop
-# run_test test_darray_contains
-# run_test test_darray_copy
-# run_test test_darray_new_element
-# run_test test_darray_set_and_get
-# run_test test_darray_update
-# run_test test_darray_remove
-# run_test test_darray_expand_and_contract
-# run_test test_list_new_and_destroy
-# run_test test_list_push_pop
-# run_test test_list_shift
-# run_test test_list_unshift
-# run_test test_list_remove
-# run_test test_list_remove_destroy
-# run_test test_stack_new_and_destroy
-# run_test test_stack_push
-# run_test test_stack_pop
-# run_test test_queue_new_and_destroy
-# run_test test_queue_enqueue_dequeue
-# run_test test_hashmap_new_destroy
-# run_test test_hashmap_clear_destroy
-# run_test test_hashmap_get_set
-# run_test test_hashmap_delete
-# run_test test_hashmap_traverse
-# XYZ-TIME
-# run_test test_tic
-# run_test test_toc
-# run_test test_mtoc
-# run_test test_time_now
-# XYZ-NETWORK
-# run_test test_tcp_server_setup
-# run_test test_http_parse_request
-# run_test test_websocket_hash
-# run_test test_ws_handshake_respond
-# run_test test_ws_server
-# XYZ-MATHS
-# run_test test_min
-# run_test test_max
-# run_test test_randf
-# run_test test_deg2rad
-# run_test test_rad2deg
-# run_test test_wrap_180
-# run_test test_wrap_360
-# run_test test_wrap_pi
-# run_test test_wrap_2pi
-# run_test test_fltcmp
-# run_test test_fltcmp2
-# run_test test_cumsum
-# run_test test_logspace
-# run_test test_pythag
-# run_test test_lerp
-# run_test test_lerp3
-# run_test test_sinc
-# run_test test_mean
-# run_test test_median
-# run_test test_var
-# run_test test_stddev
-# XYZ-LINEAR_ALGEBRA
-# run_test test_eye
-# run_test test_ones
-# run_test test_xyzs
-# run_test test_mat_set
-# run_test test_mat_val
-# run_test test_mat_copy
-# run_test test_mat_row_set
-# run_test test_mat_col_set
-# run_test test_mat_block_get
-# run_test test_mat_block_set
-# run_test test_mat_diag_get
-# run_test test_mat_diag_set
-# run_test test_mat_triu
-# run_test test_mat_tril
-# run_test test_mat_trace
-# run_test test_mat_transpose
-# run_test test_mat_add
-# run_test test_mat_sub
-# run_test test_mat_scale
-# run_test test_vec_add
-# run_test test_vec_sub
-# run_test test_dot
-# run_test test_skew
-# run_test test_check_jacobian
-# run_test test_svd
-# run_test test_pinv
-# run_test test_svd_det
-# run_test test_eig_sym
-# run_test test_eig_inv
-# run_test test_chol
-# run_test test_chol_solve
-# run_test test_qr
-# run_test test_suitesparse_chol_solve
-# XYZ-TIME
-# XYZ-TRANSFORMS
-# run_test test_tf_set_rot
-# run_test test_tf_set_trans
-# run_test test_tf_trans
-# run_test test_tf_rot
-# run_test test_tf_quat
-# run_test test_tf_inv
-# run_test test_tf_point
-# run_test test_tf_hpoint
-# run_test test_tf_perturb_rot
-# run_test test_tf_perturb_trans
-# run_test test_tf_chain
-# run_test test_quat2rot
-# XYZ-POSE
-# run_test test_pose_init
-# run_test test_pose_set_get_quat
-# run_test test_pose_set_get_trans
-# run_test test_pose2tf
-# run_test test_load_poses
+# run_test test_xyz
+# run_test test_xyz test_tic
+# run_test test_xyz test_toc
+# run_test test_xyz test_mtoc
+# run_test test_xyz test_time_now
+# run_test test_xyz test_debug
+# run_test test_xyz test_log_error
+# run_test test_xyz test_log_warn
+# run_test test_xyz test_path_file_name
+# run_test test_xyz test_path_file_ext
+# run_test test_xyz test_path_dir_name
+# run_test test_xyz test_path_join
+# run_test test_xyz test_list_files
+# run_test test_xyz test_list_files_free
+# run_test test_xyz test_file_read
+# run_test test_xyz test_file_copy
+# run_test test_xyz test_malloc_string
+# run_test test_xyz test_dsv_rows
+# run_test test_xyz test_dsv_cols
+# run_test test_xyz test_dsv_fields
+# run_test test_xyz test_dsv_data
+# run_test test_xyz test_dsv_free
+# run_test test_xyz test_tcp_server_setup
+# run_test test_xyz test_http_parse_request
+# run_test test_xyz test_websocket_hash
+# run_test test_xyz test_ws_handshake_respond
+# run_test test_xyz test_ws_server
+# run_test test_xyz test_min
+# run_test test_xyz test_max
+# run_test test_xyz test_randf
+# run_test test_xyz test_deg2rad
+# run_test test_xyz test_rad2deg
+# run_test test_xyz test_wrap_180
+# run_test test_xyz test_wrap_360
+# run_test test_xyz test_wrap_pi
+# run_test test_xyz test_wrap_2pi
+# run_test test_xyz test_fltcmp
+# run_test test_xyz test_fltcmp2
+# run_test test_xyz test_cumsum
+# run_test test_xyz test_logspace
+# run_test test_xyz test_pythag
+# run_test test_xyz test_lerp
+# run_test test_xyz test_lerp3
+# run_test test_xyz test_sinc
+# run_test test_xyz test_mean
+# run_test test_xyz test_median
+# run_test test_xyz test_var
+# run_test test_xyz test_stddev
+# run_test test_xyz test_eye
+# run_test test_xyz test_ones
+# run_test test_xyz test_xyzs
+# run_test test_xyz test_mat_set
+# run_test test_xyz test_mat_val
+# run_test test_xyz test_mat_copy
+# run_test test_xyz test_mat_row_set
+# run_test test_xyz test_mat_col_set
+# run_test test_xyz test_mat_block_get
+# run_test test_xyz test_mat_block_set
+# run_test test_xyz test_mat_diag_get
+# run_test test_xyz test_mat_diag_set
+# run_test test_xyz test_mat_triu
+# run_test test_xyz test_mat_tril
+# run_test test_xyz test_mat_trace
+# run_test test_xyz test_mat_transpose
+# run_test test_xyz test_mat_add
+# run_test test_xyz test_mat_sub
+# run_test test_xyz test_mat_scale
+# run_test test_xyz test_vec_add
+# run_test test_xyz test_vec_sub
+# run_test test_xyz test_dot
+# run_test test_xyz test_skew
+# run_test test_xyz test_check_jacobian
+# run_test test_xyz test_svd
+# run_test test_xyz test_pinv
+# run_test test_xyz test_svd_det
+# run_test test_xyz test_eig_sym
+# run_test test_xyz test_eig_inv
+# run_test test_xyz test_chol
+# run_test test_xyz test_chol_solve
+# run_test test_xyz test_qr
+# run_test test_xyz test_suitesparse_chol_solve
+# run_test test_xyz test_tf_set_rot
+# run_test test_xyz test_tf_set_trans
+# run_test test_xyz test_tf_trans
+# run_test test_xyz test_tf_rot
+# run_test test_xyz test_tf_quat
+# run_test test_xyz test_tf_inv
+# run_test test_xyz test_tf_point
+# run_test test_xyz test_tf_hpoint
+# run_test test_xyz test_tf_perturb_rot
+# run_test test_xyz test_tf_perturb_trans
+# run_test test_xyz test_tf_chain
+# run_test test_xyz test_quat2rot
+# run_test test_xyz test_pose_init
+# run_test test_xyz test_pose_set_get_quat
+# run_test test_xyz test_pose_set_get_trans
+# run_test test_xyz test_pose2tf
+# run_test test_xyz test_load_poses
+# XYZ - DATA STRUCTURE
+# run_test test_ds
+# run_test test_ds test_darray_new_and_destroy
+# run_test test_ds test_darray_push_pop
+# run_test test_ds test_darray_contains
+# run_test test_ds test_darray_copy
+# run_test test_ds test_darray_new_element
+# run_test test_ds test_darray_set_and_get
+# run_test test_ds test_darray_update
+# run_test test_ds test_darray_remove
+# run_test test_ds test_darray_expand_and_contract
+# run_test test_ds test_list_new_and_destroy
+# run_test test_ds test_list_push_pop
+# run_test test_ds test_list_shift
+# run_test test_ds test_list_unshift
+# run_test test_ds test_list_remove
+# run_test test_ds test_list_remove_destroy
+# run_test test_ds test_stack_new_and_destroy
+# run_test test_ds test_stack_push
+# run_test test_ds test_stack_pop
+# run_test test_ds test_queue_new_and_destroy
+# run_test test_ds test_queue_enqueue_dequeue
+# run_test test_ds test_hashmap_new_destroy
+# run_test test_ds test_hashmap_clear_destroy
+# run_test test_ds test_hashmap_get_set
+# run_test test_ds test_hashmap_delete
+# run_test test_ds test_hashmap_traverse
 # XYZ-CV
-# run_test test_lie_Exp_Log
 # run_test test_linear_triangulation
 # run_test test_homography_find
 # run_test test_homography_pose
@@ -314,59 +305,58 @@ run_test() {
 # memcheck run_test test_load_sim_cam_frame
 # memcheck run_test test_load_sim_cam_data
 # XYZ-CONTROL
-# run_test test_pid_ctrl
+# run_test test_control test_pid_ctrl
 # XYZ-GIMBAL
-# run_test test_gimbal
+# run_test test_gimbal test_gimbal
 # XYZ-MAV
-# run_test test_mav_att_ctrl
-# run_test test_mav_vel_ctrl
-# run_test test_mav_pos_ctrl
-# run_test test_mav_waypoints
-# XYZ-SENSOR_FUSION
-# run_test test_schur_complement
-# run_test test_timeline
-# run_test test_pose
-# run_test test_speed_bias
-# run_test test_extrinsics
-# run_test test_fiducial
-# run_test test_fiducial_buffer
-# run_test test_camera
-# run_test test_triangulation_batch
-# run_test test_feature
-# run_test test_idf
-# run_test test_features
-# run_test test_pose_factor
-# run_test test_ba_factor
-# run_test test_camera_factor
-# run_test test_idf_factor
-# run_test test_imu_buf_setup
-# run_test test_imu_buf_add
-# run_test test_imu_buf_clear
-# run_test test_imu_buf_copy
-# run_test test_imu_buf_print
-# run_test test_imu_propagate
-# run_test test_imu_initial_attitude
-# run_test test_imu_factor_form_F_matrix
-# run_test test_imu_factor
-# run_test test_joint_angle_factor
-# run_test test_calib_camera_factor
-# run_test test_calib_imucam_factor
-# run_test test_calib_gimbal_factor
-# run_test test_marg
-# run_test test_visual_odometry_batch
-# run_test test_inertial_odometry_batch
-# run_test test_visual_inertial_odometry_batch
-# run_test test_tsf
-# run_test test_ceres_example
-# run_test test_invert_block_diagonal
-# run_test test_fgraph_add_camera_params
-# run_test test_fgraph_add_time_delay
-# run_test test_fgraph_add_extrinsic
-# run_test test_solver_setup
-# run_test test_solver_print
-# run_test test_solver_eval
+# run_test test_mav test_mav_att_ctrl
+# run_test test_mav test_mav_vel_ctrl
+# run_test test_mav test_mav_pos_ctrl
+# run_test test_mav test_mav_waypoints
+# XYZ - STATE ESTIMATION
+# run_test test_se test_schur_complement
+# run_test test_se test_timeline
+# run_test test_se test_pose
+# run_test test_se test_speed_bias
+# run_test test_se test_extrinsics
+# run_test test_se test_fiducial
+# run_test test_se test_fiducial_buffer
+# run_test test_se test_camera
+# run_test test_se test_triangulation_batch
+# run_test test_se test_feature
+# run_test test_se test_idf
+# run_test test_se test_features
+# run_test test_se test_pose_factor
+# run_test test_se test_ba_factor
+# run_test test_se test_camera_factor
+# run_test test_se test_idf_factor
+# run_test test_se test_imu_buf_setup
+# run_test test_se test_imu_buf_add
+# run_test test_se test_imu_buf_clear
+# run_test test_se test_imu_buf_copy
+# run_test test_se test_imu_buf_print
+# run_test test_se test_imu_propagate
+# run_test test_se test_imu_initial_attitude
+# run_test test_se test_imu_factor_form_F_matrix
+# run_test test_se test_imu_factor
+# run_test test_se test_joint_angle_factor
+# run_test test_se test_calib_camera_factor
+# run_test test_se test_calib_imucam_factor
+# run_test test_se test_calib_gimbal_factor
+# run_test test_se test_marg
+# run_test test_se test_visual_odometry_batch
+# run_test test_se test_inertial_odometry_batch
+# run_test test_se test_visual_inertial_odometry_batch
+# run_test test_se test_tsf
+# run_test test_se test_se test_assoc_pose_data
+# run_test test_se test_ceres_example
+# run_test test_se test_invert_block_diagonal
+# run_test test_se test_solver_setup
+# run_test test_se test_solver_print
+# run_test test_se test_solver_eval
+# XYZ - CALIBRATION
 run_test test_calib test_camchain
-# run_test test_calib_camera_mono_batch
+# run_test test_calib test_calib_camera_mono_batch
 # run_test test_calib_camera_mono_ceres
 # run_test test_calib_camera_mono_incremental
 # run_test test_calib_camera_stereo_batch
@@ -379,23 +369,9 @@ run_test test_calib test_camchain
 # run_test test_calib_imucam_update
 # run_test test_calib_imucam_batch
 # run_test test_calib_imucam_batch_ceres
-# python3 test_data/test_marg.py
-# run_test test_calib_gimbal_copy
-# run_test test_calib_gimbal_add_fiducial
-# run_test test_calib_gimbal_add_gimbal_extrinsic
-# run_test test_calib_gimbal_add_gimbal_link
-# run_test test_calib_gimbal_add_camera
-# run_test test_calib_gimbal_add_remove_view
-# run_test test_calib_gimbal_load
-# run_test test_calib_gimbal_save
-# run_test test_calib_gimbal_solve
-# python3 scripts/plot_gimbal_calib.py
-# run_test test_calib_gimbal_ceres_solve
-# XYZ-DATASET
-# run_test test_assoc_pose_data
 # XYZ-GNUPLOT
-# run_test test_gnuplot_xyplot
-# run_test test_gnuplot_multiplot
+# run_test test_gnuplot test_gnuplot_xyplot
+# run_test test_gnuplot test_gnuplot_multiplot
 # XYZ-KITTI
 # run_test test_kitti test_kitti_raw_load
 # XYZ-SIM

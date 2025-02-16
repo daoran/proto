@@ -1,21 +1,45 @@
 #pragma once
 
-#include <stb_ds.h>
-
 #include "xyz_ds.h"
 #include "xyz_se.h"
+#include "xyz_aprilgrid.h"
 
-/////////////////////
-// IMU CALIBRATION //
-/////////////////////
+//////////////
+// CAMCHAIN //
+//////////////
 
-void avar(const real_t *x, const real_t dt, const real_t *tau, const size_t n);
+// typedef struct {
+//   timestamp_t key;
+//   real_t *value;
+// } camchain_pose_hash_t;
+
+// typedef struct {
+//   int analyzed;
+//   int num_cams;
+//
+//   int **adj_list;
+//   real_t **adj_exts;
+//   camchain_pose_hash_t **cam_poses;
+// } camchain_t;
+
+// camchain_t *camchain_malloc(const int num_cams);
+// void camchain_free(camchain_t *cc);
+// void camchain_add_pose(camchain_t *cc,
+//                        const int cam_idx,
+//                        const timestamp_t ts,
+//                        const real_t T_CiF[4 * 4]);
+// void camchain_adjacency(camchain_t *cc);
+// void camchain_adjacency_print(const camchain_t *cc);
+// int camchain_find(camchain_t *cc,
+//                   const int idx_i,
+//                   const int idx_j,
+//                   real_t T_CiCj[4 * 4]);
 
 /////////////////////////
 // CALIB-CAMERA FACTOR //
 /////////////////////////
 
-typedef struct calib_camera_factor_t {
+struct calib_camera_factor_t {
   pose_t *pose;
   extrinsic_t *cam_ext;
   camera_params_t *cam_params;
@@ -40,9 +64,9 @@ typedef struct calib_camera_factor_t {
   real_t J_pose[2 * 6];
   real_t J_cam_ext[2 * 6];
   real_t J_cam_params[2 * 8];
-} calib_camera_factor_t;
+};
 
-void calib_camera_factor_setup(calib_camera_factor_t *factor,
+void calib_camera_factor_setup(struct calib_camera_factor_t *factor,
                                pose_t *pose,
                                extrinsic_t *cam_ext,
                                camera_params_t *cam_params,
@@ -116,145 +140,114 @@ int calib_imucam_factor_ceres_eval(void *factor_ptr,
                                    real_t *r_out,
                                    real_t **J_out);
 
-//////////////
-// CAMCHAIN //
-//////////////
+////////////////////////
+// CAMERA CALIBRATION //
+////////////////////////
 
-typedef struct camchain_pose_hash_t {
+typedef struct calib_camera_view_t {
+  timestamp_t ts;
+  int view_idx;
+  int cam_idx;
+  int num_corners;
+
+  int *tag_ids;
+  int *corner_indices;
+  real_t *object_points;
+  real_t *keypoints;
+
+  struct calib_camera_factor_t *factors;
+} calib_camera_view_t;
+
+typedef struct calib_camera_viewset_t {
   timestamp_t key;
-  real_t *value;
-} camchain_pose_hash_t;
+  calib_camera_view_t **value;
+} calib_camera_viewset_t;
 
-typedef struct camchain_t {
-  int analyzed;
+typedef struct calib_camera_t {
+  // Settings
+  int fix_cam_params;
+  int fix_cam_exts;
+  int verbose;
+  int max_iter;
+
+  // Flags
+  int cams_ok;
+
+  // Counters
   int num_cams;
+  int num_views;
+  int num_factors;
 
-  int **adj_list;
-  real_t **adj_exts;
-  camchain_pose_hash_t **cam_poses;
-} camchain_t;
+  // Variables
+  timestamp_t *timestamps;
+  pose_hash_t *poses;
+  extrinsic_t *cam_exts;
+  camera_params_t *cam_params;
 
-camchain_t *camchain_malloc(const int num_cams);
-void camchain_free(camchain_t *cc);
-void camchain_add_pose(camchain_t *cc,
-                       const int cam_idx,
-                       const timestamp_t ts,
-                       const real_t T_CiF[4 * 4]);
-void camchain_adjacency(camchain_t *cc);
-void camchain_adjacency_print(const camchain_t *cc);
-int camchain_find(camchain_t *cc,
-                  const int idx_i,
-                  const int idx_j,
-                  real_t T_CiCj[4 * 4]);
+  // Factors
+  calib_camera_viewset_t *view_sets;
+  marg_factor_t *marg;
+} calib_camera_t;
 
-// ////////////////////////
-// // CAMERA CALIBRATION //
-// ////////////////////////
-//
-// typedef struct calib_camera_view_t {
-//   timestamp_t ts;
-//   int view_idx;
-//   int cam_idx;
-//   int num_corners;
-//
-//   int *tag_ids;
-//   int *corner_indices;
-//   real_t *object_points;
-//   real_t *keypoints;
-//
-//   calib_camera_factor_t *factors;
-// } calib_camera_view_t;
-//
-// typedef struct calib_camera_viewset_t {
-//   timestamp_t key;
-//   calib_camera_view_t **value;
-// } calib_camera_viewset_t;
-//
-// typedef struct calib_camera_t {
-//   // Settings
-//   int fix_cam_params;
-//   int fix_cam_exts;
-//   int verbose;
-//   int max_iter;
-//
-//   // Flags
-//   int cams_ok;
-//
-//   // Counters
-//   int num_cams;
-//   int num_views;
-//   int num_factors;
-//
-//   // Variables
-//   timestamp_t *timestamps;
-//   pose_hash_t *poses;
-//   extrinsic_t *cam_exts;
-//   camera_params_t *cam_params;
-//
-//   // Factors
-//   calib_camera_viewset_t *view_sets;
-//   marg_factor_t *marg;
-// } calib_camera_t;
-//
-// calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
-//                                               const int view_idx,
-//                                               const int cam_idx,
-//                                               const int num_corners,
-//                                               const int *tag_ids,
-//                                               const int *corner_indices,
-//                                               const real_t *object_points,
-//                                               const real_t *keypoints,
-//                                               pose_t *pose,
-//                                               extrinsic_t *cam_ext,
-//                                               camera_params_t *cam_params);
-// void calib_camera_view_free(calib_camera_view_t *view);
-//
-// calib_camera_t *calib_camera_malloc(void); void calib_camera_free(calib_camera_t *calib);
-// void calib_camera_print(calib_camera_t *calib);
-// void calib_camera_add_camera(calib_camera_t *calib,
-//                              const int cam_idx,
-//                              const int cam_res[2],
-//                              const char *proj_model,
-//                              const char *dist_model,
-//                              const real_t *cam_params,
-//                              const real_t *cam_ext);
-// void calib_camera_add_view(calib_camera_t *calib,
-//                            const timestamp_t ts,
-//                            const int view_idx,
-//                            const int cam_idx,
-//                            const int num_corners,
-//                            const int *tag_ids,
-//                            const int *corner_indices,
-//                            const real_t *object_points,
-//                            const real_t *keypoints);
-// void calib_camera_marginalize(calib_camera_t *calib);
-// int calib_camera_add_data(calib_camera_t *calib,
-//                           const int cam_idx,
-//                           const char *data_path);
-// void calib_camera_errors(calib_camera_t *calib,
-//                          real_t *reproj_rmse,
-//                          real_t *reproj_mean,
-//                          real_t *reproj_median);
-// int calib_camera_shannon_entropy(calib_camera_t *calib, real_t *entropy);
-//
-// param_order_t *calib_camera_param_order(const void *data,
-//                                         int *sv_size,
-//                                         int *r_size);
-// void calib_camera_cost(const void *data, real_t *r);
-// void calib_camera_linearize_compact(const void *data,
-//                                     const int sv_size,
-//                                     param_order_t *hash,
-//                                     real_t *H,
-//                                     real_t *g,
-//                                     real_t *r);
-// void calib_camera_linsolve(const void *data,
-//                            const int sv_size,
-//                            param_order_t *hash,
-//                            real_t *H,
-//                            real_t *g,
-//                            real_t *dx);
-// void calib_camera_solve(calib_camera_t *calib);
-//
+calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
+                                              const int view_idx,
+                                              const int cam_idx,
+                                              const int num_corners,
+                                              const int *tag_ids,
+                                              const int *corner_indices,
+                                              const real_t *object_points,
+                                              const real_t *keypoints,
+                                              pose_t *pose,
+                                              extrinsic_t *cam_ext,
+                                              camera_params_t *cam_params);
+void calib_camera_view_free(calib_camera_view_t *view);
+
+calib_camera_t *calib_camera_malloc(void); void calib_camera_free(calib_camera_t *calib);
+void calib_camera_print(calib_camera_t *calib);
+void calib_camera_add_camera(calib_camera_t *calib,
+                             const int cam_idx,
+                             const int cam_res[2],
+                             const char *proj_model,
+                             const char *dist_model,
+                             const real_t *cam_params,
+                             const real_t *cam_ext);
+void calib_camera_add_view(calib_camera_t *calib,
+                           const timestamp_t ts,
+                           const int view_idx,
+                           const int cam_idx,
+                           const int num_corners,
+                           const int *tag_ids,
+                           const int *corner_indices,
+                           const real_t *object_points,
+                           const real_t *keypoints);
+void calib_camera_marginalize(calib_camera_t *calib);
+int calib_camera_add_data(calib_camera_t *calib,
+                          const int cam_idx,
+                          const char *data_path);
+void calib_camera_errors(calib_camera_t *calib,
+                         real_t *reproj_rmse,
+                         real_t *reproj_mean,
+                         real_t *reproj_median);
+int calib_camera_shannon_entropy(calib_camera_t *calib, real_t *entropy);
+
+param_order_t *calib_camera_param_order(const void *data,
+                                        int *sv_size,
+                                        int *r_size);
+void calib_camera_cost(const void *data, real_t *r);
+void calib_camera_linearize_compact(const void *data,
+                                    const int sv_size,
+                                    param_order_t *hash,
+                                    real_t *H,
+                                    real_t *g,
+                                    real_t *r);
+void calib_camera_linsolve(const void *data,
+                           const int sv_size,
+                           param_order_t *hash,
+                           real_t *H,
+                           real_t *g,
+                           real_t *dx);
+void calib_camera_solve(calib_camera_t *calib);
+
 // ////////////////////////////
 // // CAMERA-IMU CALIBRATION //
 // ////////////////////////////
