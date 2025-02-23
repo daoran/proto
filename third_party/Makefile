@@ -12,7 +12,6 @@ setup:
 	@mkdir -p lib
 	@mkdir -p log
 	@mkdir -p share
-	@mkdir -p src
 
 clean:
 	@rm -rf bin
@@ -20,7 +19,6 @@ clean:
 	@rm -rf lib
 	@rm -rf log
 	@rm -rf share
-	@rm -rf src
 
 install: setup apt_base install_apt_pkgs build_pkgs
 
@@ -54,16 +52,17 @@ install_apt_pkgs:
 	@sudo apt-get install -y -qqq libassimp-dev libassimp-doc
 	@sudo apt-get install -y -qqq libyaml-cpp-dev
 
-build_pkgs: build_apriltag build_glfw build_stb build_dbow2
+build_pkgs: build_apriltag build_glfw build_stb build_dbow2 build_flann
 
 build_apriltag:
 	@sudo apt-get install -y -qqq cmake libeigen3-dev libv4l-dev libopencv-*
 	@cd "$(SRC_PATH)/apriltag" \
-	  && mkdir -p build \
-	  && cd build || return \
-	  && cmake \
-		  -DCMAKE_BUILD_TYPE=Release \
-		  -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		&& mkdir -p build \
+		&& cd build || return \
+		&& cmake \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
+			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
 			.. \
 		&& make \
 		&& make install
@@ -84,11 +83,12 @@ build_glad: build_khr
 
 build_glfw: build_glad
 	@cd "$(SRC_PATH)/glfw" \
-	  && mkdir -p build \
-	  && cd build || return \
-	  && cmake \
-		  -DCMAKE_BUILD_TYPE=Release \
-		  -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+		&& mkdir -p build \
+		&& cd build || return \
+		&& cmake \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
+			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
 			.. \
 		&& make \
 		&& make install
@@ -121,9 +121,10 @@ build_dbow2:
 		&& mkdir -p build \
 		&& cd build || return \
 		&& cmake \
-		  -DCMAKE_BUILD_TYPE=Release \
-		  -DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-		  .. \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
+			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+			.. \
 		&& make \
 		&& make install
 
@@ -133,7 +134,24 @@ build_fbow:
 		&& cd build || return \
 		&& cmake \
 			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
 			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+			.. \
+		&& make \
+		&& make install
+
+build_lz4:
+	@cd "$(SRC_PATH)/lz4" && make install PREFIX="$(PREFIX)"
+
+build_flann: build_lz4
+	@cd "$(SRC_PATH)/flann" \
+		&& mkdir -p build \
+		&& cd build || return \
+		&& cmake \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
+			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
+			-DBUILD_MATLAB_BINDINGS=OFF \
 			.. \
 		&& make \
 		&& make install
