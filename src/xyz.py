@@ -49,12 +49,12 @@ from enum import Enum
 from dataclasses import dataclass
 from collections import namedtuple
 from types import FunctionType
-from typing import Optional
 import subprocess
 
 from typing import TypeVar
 from typing import Annotated
 from typing import Literal
+from typing import Any
 
 import cv2
 import yaml
@@ -4449,6 +4449,7 @@ def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
 
 class ChessboardDetector:
   def __init__(self):
+    pass
 
   def correlation_patch(self, angle_1: float, angle_2: float, radius: float):
     """
@@ -4558,7 +4559,7 @@ class ChessboardDetector:
 
     return maxima
 
-  def edge_orientations(self, img_angle: Image, img_weight: Image) -> Tuple[Vec2, Vec2]:
+  def edge_orientations(self, img_angle: Image, img_weight: Image) -> tuple[Vec2, Vec2]:
     """
     Calculate Edge Orientations
 
@@ -4624,7 +4625,7 @@ class ChessboardDetector:
     return v1, v2
 
   def refine_corners(self,
-                     img_shape: Tuple[int, ...],
+                     img_shape: tuple[int, ...],
                      img_angle: MatN,
                      img_weight: MatN,
                      corners,
@@ -4704,7 +4705,7 @@ class ChessboardDetector:
 
     return newp
 
-  def detect_corners(self, image: Image, radiuses: List[int] = [6, 8, 10]):
+  def detect_corners(self, image: Image, radiuses: list[int] = [6, 8, 10]):
     """
     Detect corners
     """
@@ -6016,6 +6017,18 @@ class TestKalmanFilter(unittest.TestCase):
 ###############################################################################
 
 
+class Ray:
+  def __init__(self, origin: Vec3, dir: Vec3):
+    self.origin = origin
+    self.dir = dir
+    self.invdir = 1.0 / dir
+    self.sign = [
+      (self.invdir[0] < 0)
+      (self.invdir[1] < 0)
+      (self.invdir[2] < 0)
+    ]
+
+
 class OctreeNode:
   def __init__(self, center, size, depth, max_depth):
     self.center = center
@@ -6024,6 +6037,10 @@ class OctreeNode:
     self.max_depth = max_depth
     self.children = [None for _ in range(8)]
     self.data = []
+
+    vmin = center - size / 2.0
+    vmax = center + size / 2.0
+    self.bounds = [vmin, vmax]
 
   def insert(self, point: Vec3):
     if self.depth == self.max_depth:
@@ -6035,25 +6052,62 @@ class OctreeNode:
       if point[i] < self.center[i]:
         index |= (1 << i)
 
-    offset_x = (-1)**(index & 1) * self.size / 4.0
-    offset_y = (-1)**((index >> 1) & 1) * self.size / 4.0
-    offset_z = (-1)**((index >> 2) & 1) * self.size / 4.0
+    half_size = self.size / 2.0
+    quarter_size = self.size / 4.0
+    offset_x = (-1)**((index >> 0) & 1) * quarter_size
+    offset_y = (-1)**((index >> 1) & 1) * quarter_size
+    offset_z = (-1)**((index >> 2) & 1) * quarter_size
 
     child = self.children[index]
     if child is None:
       new_center = self.center + np.array([offset_x, offset_y, offset_z])
       child = OctreeNode(
           center=new_center,
-          size=self.size / 2.0,
+          size=half_size,
           depth=self.depth + 1,
           max_depth=self.max_depth,
       )
-      self.children[index] = child
-    self.children[index].insert(point)
+      self.children[index] = child      # pyright: ignore
+    self.children[index].insert(point)  # pyright: ignore
+
+  def intersect(self, r: Ray) -> tuple[bool, float]:
+    # Check intersect in x-y
+    tx_min = (self.bounds[0 - r.sign[0]][0] - r.origin[0]) * r.invdir[0];
+    tx_max = (self.bounds[1 - r.sign[0]][0] - r.origin[0]) * r.invdir[0];
+    ty_min = (self.bounds[0 - r.sign[1]][1] - r.origin[1]) * r.invdir[1];
+    ty_max = (self.bounds[1 - r.sign[1]][1] - r.origin[1]) * r.invdir[1];
+    if (tx_min > ty_max) or (ty_min > tx_max):
+      return (False, -1)
+
+    if ty_min > tx_min:
+      tx_min = ty_min;
+    if ty_max < tx_max:
+      tx_max = ty_max
+
+    # Check intersect in z
+    tz_min = (self.bounds[0 - r.sign[2]][2] - r.origin[2]) * r.invdir[2];
+    tz_max = (self.bounds[1 - r.sign[2]][2] - r.origin[2]) * r.invdir[2];
+    if (tx_min > tz_max) or (tz_min > tx_max):
+      return (False, -1)
+
+    if tz_min > tx_min:
+        tx_min = tz_min
+    if tz_max < tx_max:
+        tx_max = tz_max
+
+    # Form results
+    if tx_min < 0 and tx_max < 0:
+      return (False, -1)
+    elif tx_min < 0:
+      t = tx_min
+    else:
+      t = tx_max
+
+    return (True, t)
 
 
 class Octree:
-  def __init__(self, points, max_depth=2):
+  def __init__(self, points, max_depth=3):
     self.center = np.array([0.0, 0.0, 0.0])
     self.size = 2.0
     self.root = OctreeNode(self.center, self.size, 0, max_depth)
@@ -6141,170 +6195,6 @@ class Plane:
     xx, yy = np.meshgrid(xrange + self.point[0], yrange + self.point[1])
     z = (-self.normal[0] * xx - self.normal[1] * yy - d) * 1.0 / self.normal[2]
     ax.plot_surface(xx, yy, z)
-
-
-class Frustum:
-  def __init__(self, fov, aspect_ratio, znear, zfar):
-    self.fov = fov
-    self.aspect_ratio = aspect_ratio
-    self.znear = znear
-    self.zfar = zfar
-
-    half_fov = np.tan(np.radians(self.fov) / 2.0)
-    near_h = 2.0 * half_fov * self.znear
-    near_w = near_h * self.aspect_ratio
-    far_h = 2.0 * half_fov * self.zfar
-    far_w = far_h * self.aspect_ratio
-
-    # Define corners of the frustum in camera coordinates
-    self.near = {
-        "top_left": np.array([-near_w / 2.0, -near_h / 2.0, self.znear]),
-        "top_right": np.array([near_w / 2.0, -near_h / 2.0, self.znear]),
-        "bottom_left": np.array([-near_w / 2.0, near_h / 2.0, self.znear]),
-        "bottom_right": np.array([near_w / 2.0, near_h / 2.0, self.znear]),
-    }
-    self.far = {
-        "top_left": np.array([-far_w / 2, -far_h / 2, self.zfar]),
-        "top_right": np.array([far_w / 2, -far_h / 2, self.zfar]),
-        "bottom_left": np.array([-far_w / 2, far_h / 2, self.zfar]),
-        "bottom_right": np.array([far_w / 2, far_h / 2, self.zfar]),
-    }
-
-    # Form near plane
-    A = self.near["top_right"] - self.near["top_left"]
-    B = self.near["bottom_left"] - self.near["top_left"]
-    _, point = find_intersection(self.near["top_left"],
-                                      self.near["bottom_right"],
-                                      self.near["top_right"],
-                                      self.near["bottom_left"])
-    self.near_plane = Plane(point, np.cross(A, B))
-
-    # Form far plane
-    A = self.far["top_right"] - self.far["top_left"]
-    B = self.far["bottom_left"] - self.far["top_left"]
-    _, point = find_intersection(self.far["top_left"],
-                                      self.far["bottom_right"],
-                                      self.far["top_right"],
-                                      self.far["bottom_left"])
-    self.far_plane = Plane(point, np.cross(A, B))
-
-    # Form left plane
-    A = self.far["top_left"] - self.near["top_left"]
-    B = self.near["bottom_left"] - self.near["top_left"]
-    point = np.array([
-        (self.far["top_left"][0] - self.near["top_left"][0]) / 2.0 +
-        self.near["top_left"][0], 0.0,
-        (self.far["top_left"][2] - self.near["top_left"][2]) / 2.0 +
-        self.near["top_left"][2]
-    ])
-    self.left_plane = Plane(point, np.cross(A, B))
-
-    # Form right plane
-    A = self.far["top_right"] - self.near["top_right"]
-    B = self.near["bottom_right"] - self.near["top_right"]
-    point = np.array([
-        (self.far["top_right"][0] - self.near["top_right"][0]) / 2.0 +
-        self.near["top_right"][0], 0.0,
-        (self.far["top_right"][2] - self.near["top_right"][2]) / 2.0 +
-        self.near["top_right"][2]
-    ])
-    self.right_plane = Plane(point, np.cross(A, B))
-
-    # Form top plane
-    A = self.far["top_left"] - self.near["top_left"]
-    B = self.near["top_right"] - self.near["top_left"]
-    point = np.array([
-        0.0, (self.far["top_left"][1] - self.near["top_left"][1]) / 2.0 +
-        self.near["top_right"][1],
-        (self.far["top_left"][2] - self.near["top_left"][2]) / 2.0 +
-        self.near["top_right"][2]
-    ])
-    self.top_plane = Plane(point, np.cross(A, B))
-
-    # Form bottom plane
-    A = self.far["bottom_left"] - self.near["bottom_left"]
-    B = self.near["bottom_right"] - self.near["bottom_left"]
-    point = np.array([
-        0.0, (self.far["bottom_left"][1] - self.near["bottom_left"][1]) / 2.0 +
-        self.near["bottom_right"][1],
-        (self.far["bottom_left"][2] - self.near["bottom_left"][2]) / 2.0 +
-        self.near["bottom_right"][2]
-    ])
-    self.bottom_plane = Plane(point, np.cross(A, B))
-
-  def plot(self, ax):
-    edges = [
-        [self.near["top_left"], self.near["top_right"]],
-        [self.near["top_right"], self.near["bottom_right"]],
-        [self.near["bottom_right"], self.near["bottom_left"]],
-        [self.near["bottom_left"], self.near["top_left"]],
-        [self.far["top_left"], self.far["top_right"]],
-        [self.far["top_right"], self.far["bottom_right"]],
-        [self.far["bottom_right"], self.far["bottom_left"]],
-        [self.far["bottom_left"], self.far["top_left"]],
-        [self.near["top_left"], self.far["top_left"]],
-        [self.near["top_right"], self.far["top_right"]],
-        [self.near["bottom_left"], self.far["bottom_left"]],
-        [self.near["bottom_right"], self.far["bottom_right"]],
-    ]
-    for edge in edges:
-      ax.plot(*zip(*edge), color='blue')
-
-    half_fov = np.tan(np.radians(self.fov) / 2.0)
-    near_h = 2.0 * half_fov * self.znear
-    near_w = near_h * self.aspect_ratio
-    far_h = 2.0 * half_fov * self.zfar
-    far_w = far_h * self.aspect_ratio
-
-    # Plot near plane
-    xrange = np.linspace(-near_w / 2, near_w / 2)
-    yrange = np.linspace(-near_h / 2, near_h / 2)
-    self.near_plane.plot(ax, xrange, yrange)
-
-    # Plot far plane
-    xrange = np.linspace(-far_w / 2, far_w / 2)
-    yrange = np.linspace(-far_h / 2, far_h / 2)
-    self.far_plane.plot(ax, xrange, yrange)
-
-    # Plot left plane
-    xrange = np.linspace(-1, 1)
-    yrange = np.linspace(-1, 1)
-    self.left_plane.plot(ax, xrange, yrange)
-
-    # Plot right plane
-    xrange = np.linspace(-1, 1)
-    yrange = np.linspace(-1, 1)
-    self.right_plane.plot(ax, xrange, yrange)
-
-    # Plot top plane
-    xrange = np.linspace(-1, 1)
-    yrange = np.linspace(-1, 1)
-    self.top_plane.plot(ax, xrange, yrange)
-
-    # # Plot bottom plane
-    # xrange = np.linspace(-1, 1)
-    # yrange = np.linspace(-1, 1)
-    # self.bottom_plane.plot(ax, xrange, yrange)
-
-
-class TestFrustum(unittest.TestCase):
-  """ Test Frustum"""
-  def test_frustum(self):
-    fov = 90.0  # Field of view in degrees
-    aspect_ratio = 16.0 / 9.0  # Aspect ratio (width/height)
-    znear = 5.0  # Near clipping plane
-    zfar = 10.0  # Far clipping plane
-    frustum = Frustum(fov, aspect_ratio, znear, zfar)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-    frustum.plot(ax)
-    ax.plot(*[0.0, 0.0, 0.0], "r.")
-    ax.set_xlabel('x [m]')
-    ax.set_ylabel('y [m]')
-    ax.set_zlabel('z [m]')
-    ax.set_box_aspect([1, 1, 1])
-    plt.show()
 
 
 ###############################################################################
@@ -6473,12 +6363,12 @@ class StateVariable:
   """ State variable """
   ts: int
   var_type: str
-  param: np.array
-  parameterization: str
+  param: VecN
+  parameterization: str | None
   min_dims: int
   fix: bool
-  data: Optional[dict] = None
-  param_id: int = None
+  data: Any | None = None
+  param_id: int | None = None
   marginalize: bool = False
 
   def set_param_id(self, pid):
@@ -6707,6 +6597,9 @@ class Factor:
     self.factor_type = ftype
     self.param_ids = pids
     self.r_size = r_size
+    self.measurement = None
+    self.covar = None
+    self.sqrt_info = None
 
     if isinstance(z, (np.ndarray, tuple)):
       self.measurement = z
@@ -6719,9 +6612,6 @@ class Factor:
     elif covar is not None:
       self.covar = np.array([covar])
       self.sqrt_info = np.sqrt(1.0 / covar)
-    else:
-      self.covar = None
-      self.sqrt_info = None
 
   def set_factor_id(self, fid):
     """ Set factor id """
@@ -7644,38 +7534,38 @@ class ImuBuffer:
 @dataclass
 class ImuParams:
   """ IMU parameters """
-  noise_acc: np.array
-  noise_gyr: np.array
-  noise_ba: np.array
-  noise_bg: np.array
-  g: np.array = np.array([0.0, 0.0, 9.81])
+  noise_acc: VecN
+  noise_gyr: VecN
+  noise_ba: VecN
+  noise_bg: VecN
+  g: VecN = np.array([0.0, 0.0, 9.81])
 
 
 @dataclass
 class ImuFactorData:
   """ IMU Factor data """
-  state_F: np.array
-  state_P: np.array
-  dr: np.array
-  dv: np.array
-  dC: np.array
-  ba: np.array
-  bg: np.array
-  g: np.array
+  state_F: VecN
+  state_P: VecN
+  dr: VecN
+  dv: VecN
+  dC: VecN
+  ba: VecN
+  bg: VecN
+  g: VecN
   Dt: float
 
 
 @dataclass
 class ImuFactorData2:
   """ IMU Factor2 data """
-  state_F: np.array
-  state_P: np.array
-  dr: np.array
-  dv: np.array
-  dq: np.array
-  ba: np.array
-  bg: np.array
-  g: np.array
+  state_F: VecN
+  state_P: VecN
+  dr: VecN
+  dv: VecN
+  dq: VecN
+  ba: VecN
+  bg: VecN
+  g: VecN
   Dt: float
 
 
@@ -7721,6 +7611,8 @@ class ImuFactor(Factor):
     dC = eye(3)  # Relative rotation
     ba_i = sb_i.param[3:6]  # Accel biase at i
     bg_i = sb_i.param[6:9]  # Gyro biase at i
+    ba = sb_i.param[3:6]  # Accel biase
+    bg = sb_i.param[6:9]  # Gyro biase
 
     # Pre-integrate imu measuremenets
     for k in range(len(imu_buf.ts) - 1):
@@ -7814,6 +7706,7 @@ class ImuFactor(Factor):
     dq = quat_normalize(rot2quat(dC))
 
     # Form residuals
+    assert self.sqrt_info is not None
     sqrt_info = self.sqrt_info
     g = self.g
     Dt = self.Dt
@@ -7843,7 +7736,7 @@ class ImuFactor(Factor):
     J0[0:3, 0:3] = -C_i.T  # dr w.r.t r_i
     J0[0:3, 3:6] = hat(dr_meas)  # dr w.r.t C_i
     J0[3:6, 3:6] = hat(dv_meas)  # dv w.r.t C_i
-    J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
+    J0[6:9, 3:6] = -1.0 * (quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
     J0 = sqrt_info @ J0
     # yapf: enable
 
@@ -8083,6 +7976,7 @@ class ImuFactor2(Factor):
     dq = quat_mul(self.dq, quat_delta(dq_dbg @ dbg))
 
     # Form residuals
+    assert self.sqrt_info
     sqrt_info = self.sqrt_info
     g = self.g
     Dt = self.Dt
@@ -8112,7 +8006,7 @@ class ImuFactor2(Factor):
     J0[0:3, 0:3] = -C_i.T  # dr w.r.t r_i
     J0[0:3, 3:6] = hat(dr_meas)  # dr w.r.t C_i
     J0[3:6, 3:6] = hat(dv_meas)  # dv w.r.t C_i
-    J0[6:9, 3:6] = -(quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
+    J0[6:9, 3:6] = -1.0 * (quat_left(rot2quat(C_j.T @ C_i)) @ quat_right(dq))[1:4, 1:4]  # dtheta w.r.t C_i
     J0 = sqrt_info @ J0
     # yapf: enable
 
