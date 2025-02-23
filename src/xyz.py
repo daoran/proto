@@ -4445,7 +4445,9 @@ def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
 
   raise RuntimeError(f"Unrecognized [{proj_model}]-[{dist_model}] combo!")
 
+
 # ChessboardDetector
+
 
 class ChessboardDetector:
   def __init__(self):
@@ -4502,8 +4504,8 @@ class ChessboardDetector:
 
     return template
 
-
-  def non_maxima_suppression(self, image: Image,
+  def non_maxima_suppression(self,
+                             image: Image,
                              n: int = 3,
                              tau: float = 0.1,
                              margin: int = 2):
@@ -4559,7 +4561,8 @@ class ChessboardDetector:
 
     return maxima
 
-  def edge_orientations(self, img_angle: Image, img_weight: Image) -> tuple[Vec2, Vec2]:
+  def edge_orientations(self, img_angle: Image,
+                        img_weight: Image) -> tuple[Vec2, Vec2]:
     """
     Calculate Edge Orientations
 
@@ -4777,8 +4780,6 @@ class ChessboardDetector:
           return 1
         maxm = max(top / bot, maxm)
     return maxm
-
-
 
 
 # UNITESTS #####################################################################
@@ -6023,14 +6024,14 @@ class Ray:
     self.dir = dir
     self.invdir = 1.0 / dir
     self.sign = [
-      (self.invdir[0] < 0)
-      (self.invdir[1] < 0)
-      (self.invdir[2] < 0)
+        (self.invdir[0] < 0),
+        (self.invdir[1] < 0),
+        (self.invdir[2] < 0),
     ]
 
 
 class OctreeNode:
-  def __init__(self, center, size, depth, max_depth):
+  def __init__(self, center: Vec3, size: float, depth: int, max_depth: int):
     self.center = center
     self.size = size
     self.depth = depth
@@ -6067,33 +6068,33 @@ class OctreeNode:
           depth=self.depth + 1,
           max_depth=self.max_depth,
       )
-      self.children[index] = child      # pyright: ignore
+      self.children[index] = child  # pyright: ignore
     self.children[index].insert(point)  # pyright: ignore
 
   def intersect(self, r: Ray) -> tuple[bool, float]:
     # Check intersect in x-y
-    tx_min = (self.bounds[0 - r.sign[0]][0] - r.origin[0]) * r.invdir[0];
-    tx_max = (self.bounds[1 - r.sign[0]][0] - r.origin[0]) * r.invdir[0];
-    ty_min = (self.bounds[0 - r.sign[1]][1] - r.origin[1]) * r.invdir[1];
-    ty_max = (self.bounds[1 - r.sign[1]][1] - r.origin[1]) * r.invdir[1];
+    tx_min = (self.bounds[0 - r.sign[0]][0] - r.origin[0]) * r.invdir[0]
+    tx_max = (self.bounds[1 - r.sign[0]][0] - r.origin[0]) * r.invdir[0]
+    ty_min = (self.bounds[0 - r.sign[1]][1] - r.origin[1]) * r.invdir[1]
+    ty_max = (self.bounds[1 - r.sign[1]][1] - r.origin[1]) * r.invdir[1]
     if (tx_min > ty_max) or (ty_min > tx_max):
       return (False, -1)
 
     if ty_min > tx_min:
-      tx_min = ty_min;
+      tx_min = ty_min
     if ty_max < tx_max:
       tx_max = ty_max
 
     # Check intersect in z
-    tz_min = (self.bounds[0 - r.sign[2]][2] - r.origin[2]) * r.invdir[2];
-    tz_max = (self.bounds[1 - r.sign[2]][2] - r.origin[2]) * r.invdir[2];
+    tz_min = (self.bounds[0 - r.sign[2]][2] - r.origin[2]) * r.invdir[2]
+    tz_max = (self.bounds[1 - r.sign[2]][2] - r.origin[2]) * r.invdir[2]
     if (tx_min > tz_max) or (tz_min > tx_max):
       return (False, -1)
 
     if tz_min > tx_min:
-        tx_min = tz_min
+      tx_min = tz_min
     if tz_max < tx_max:
-        tx_max = tz_max
+      tx_max = tz_max
 
     # Form results
     if tx_min < 0 and tx_max < 0:
