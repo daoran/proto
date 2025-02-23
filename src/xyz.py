@@ -37,7 +37,6 @@ import pickle
 import json
 import io
 import struct
-import signal
 import socket
 import base64
 import hashlib
@@ -48,7 +47,6 @@ from enum import Enum
 from dataclasses import dataclass
 from collections import namedtuple
 from types import FunctionType
-import subprocess
 
 from typing import TypeVar
 from typing import Annotated
@@ -126,9 +124,9 @@ def sec2ts(time_s: float) -> np.int64:
   return np.int64(time_s * 1e9)
 
 
-def ts2sec(ts: int64) -> float:
+def ts2sec(ts: np.int64) -> np.float64:
   """ Convert timestamp to seconds """
-  return ts * 1e-9
+  return np.float64(ts) * 1e-9
 
 
 ###############################################################################
