@@ -25,3 +25,6 @@
 [submodule "third_party/src/glfw"]
 	path = third_party/src/glfw
 	url = https://github.com/glfw/glfw
+[submodule "third_party/src/flann"]
+	path = third_party/src/flann
+	url = https://github.com/flann-lib/flann
