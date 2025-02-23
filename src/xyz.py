@@ -88,15 +88,6 @@ MatNx2 = Annotated[NDArray[DType], Literal["N", "2"]]
 MatNx3 = Annotated[NDArray[DType], Literal["N", "3"]]
 Image = Annotated[NDArray[DType], Literal["N", "N"]]
 
-###############################################################################
-# PIP
-###############################################################################
-
-
-def pip_install(package: str):
-  """ Install package via pip """
-  subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
 
 ###############################################################################
 # YAML
