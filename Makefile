@@ -30,18 +30,18 @@ $(BLD_DIR)/test_%: src/test_%.c libxyz
 
 $(BLD_DIR)/%.o: src/%.c src/%.h Makefile
 	@echo "CC [$(notdir $<)]"
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BLD_DIR)/xyz_ceres.o: src/xyz_ceres.cpp Makefile
 	@echo "CXX [$(notdir $<)]"
-	g++ -Wall -O3 \
+	@g++ -Wall -O3 \
 		-c $< \
 		-o $(BLD_DIR)/$(basename $(notdir $<)).o \
 		-I/usr/include/eigen3
 
 $(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
 	@echo "AR [libxyz.a]"
-	$(AR) $(ARFLAGS) \
+	@$(AR) $(ARFLAGS) \
 		$(BLD_DIR)/libxyz.a \
 		$(LIBXYZ_OBJS) \
 		> /dev/null 2>&1

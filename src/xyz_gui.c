@@ -1269,15 +1269,6 @@ void gui_loop(void) {
   stbi_set_flip_vertically_on_load(1);
   uint8_t *image_data = stbi_load(image_path, &width, &height, &channels, 0);
 
-  // Button
-  // gl_bounds_t button_bounds = (gl_bounds_t){200, 200, 100, 100};
-
-  // Checkbox
-  // gl_bounds_t checkbox_bounds = (gl_bounds_t){50, 50, 120, 40};
-
-  // Checkbox
-  // gl_bounds_t menu_bounds = (gl_bounds_t){50, 50, 120, 200};
-
   // Render loop
   _window_loop = 1;
   glfwMakeContextCurrent(_window);

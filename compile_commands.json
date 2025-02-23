@@ -92,6 +92,31 @@
       "-I/usr/include/eigen3",
       "-c",
       "-o",
+      "build/xyz_kitti.o",
+      "src/xyz_kitti.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/xyz_kitti.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_kitti.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-c",
+      "-o",
       "build/xyz_gnuplot.o",
       "src/xyz_gnuplot.c"
     ],
@@ -351,6 +376,31 @@
   },
   {
     "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-c",
+      "-o",
+      "build/xyz_octree.o",
+      "src/xyz_octree.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/xyz_octree.c",
+    "output": "/home/chutsu/code/xyz/build/xyz_octree.o"
+  },
+  {
+    "arguments": [
       "/usr/bin/g++",
       "-Wall",
       "-O3",
@@ -414,6 +464,32 @@
     "directory": "/home/chutsu/code/xyz",
     "file": "/home/chutsu/code/xyz/src/test_aprilgrid.c",
     "output": "/home/chutsu/code/xyz/build/test_aprilgrid"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_calib",
+      "src/test_calib.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_calib.c",
+    "output": "/home/chutsu/code/xyz/build/test_calib"
   },
   {
     "arguments": [
@@ -674,6 +750,32 @@
     "directory": "/home/chutsu/code/xyz",
     "file": "/home/chutsu/code/xyz/src/test_mav.c",
     "output": "/home/chutsu/code/xyz/build/test_mav"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wpedantic",
+      "-Wstrict-prototypes",
+      "-g",
+      "-fopenmp",
+      "-fsanitize=address",
+      "-I/home/chutsu/code/xyz",
+      "-I/home/chutsu/code/xyz/third_party/include",
+      "-fPIC",
+      "-I/home/chutsu/code/xyz/third_party/src/stb",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/eigen3",
+      "-Wl,-rpath,/home/chutsu/code/xyz/third_party/lib",
+      "-o",
+      "build/test_octree",
+      "src/test_octree.c"
+    ],
+    "directory": "/home/chutsu/code/xyz",
+    "file": "/home/chutsu/code/xyz/src/test_octree.c",
+    "output": "/home/chutsu/code/xyz/build/test_octree"
   },
   {
     "arguments": [

@@ -990,7 +990,6 @@ int test_solvepnp(void) {
 }
 
 void test_suite(void) {
-  // CV
   MU_ADD_TEST(test_image_setup);
   MU_ADD_TEST(test_image_load);
   MU_ADD_TEST(test_image_print_properties);

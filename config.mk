@@ -110,6 +110,7 @@ LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz_mav.o \
 	$(BLD_DIR)/xyz_euroc.o \
 	$(BLD_DIR)/xyz_calib.o \
+	$(BLD_DIR)/xyz_octree.o \
 	$(BLD_DIR)/xyz_ceres.o \
 	$(BLD_DIR)/xyz_gui.o
 
@@ -128,6 +129,7 @@ TESTS := \
 	$(BLD_DIR)/test_http \
 	$(BLD_DIR)/test_kitti \
 	$(BLD_DIR)/test_mav \
+	$(BLD_DIR)/test_octree \
 	$(BLD_DIR)/test_se \
 	$(BLD_DIR)/test_sim \
 	$(BLD_DIR)/test_xyz

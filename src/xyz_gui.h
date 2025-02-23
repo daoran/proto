@@ -358,6 +358,15 @@ void draw_grid3d(const gl_float_t size,
 
 // POINTS 3D /////////////////////////////////////////////////////////////////
 
+typedef struct gl_points3d {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+
+  gl_float_t *points;
+  size_t num_points;
+  gl_float_t point_size;
+} gl_points3d;
+
 void setup_points3d_shader(gl_shader_t *points);
 void draw_points3d(const gl_float_t *points_data,
                    const size_t num_points,
