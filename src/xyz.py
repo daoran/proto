@@ -126,7 +126,7 @@ def sec2ts(time_s: float) -> np.int64:
   return np.int64(time_s * 1e9)
 
 
-def ts2sec(ts: int) -> float:
+def ts2sec(ts: int64) -> float:
   """ Convert timestamp to seconds """
   return ts * 1e-9
 
@@ -7439,10 +7439,10 @@ class ImuBuffer:
 @dataclass
 class ImuParams:
   """ IMU parameters """
-  noise_acc: VecN
-  noise_gyr: VecN
-  noise_ba: VecN
-  noise_bg: VecN
+  noise_acc: float
+  noise_gyr: float
+  noise_ba: float
+  noise_bg: float
   g: VecN = np.array([0.0, 0.0, 9.81])
 
 
@@ -9551,26 +9551,6 @@ class FactorGraph:
       solver.add(factor, factor_params)
     solver.solve(verbose)
 
-    # params_k = copy.deepcopy(solver.params)
-    # (H, g, param_idxs) = solver._linearize(params_k)
-
-    # m = 6
-    # Hmm = H[0:m, 0:m]
-    # Hmr = H[0:m, m:]
-    # Hrm = H[m:, 0:m]
-    # Hrr = H[m:, m:]
-    # assert rank(Hmm) == Hmm.shape[0]
-    # Hmm_inv = np.linalg.inv(Hmm)
-    # H_marg = Hrr - Hrm @ Hmm_inv @ Hmr
-    # w, V = np.linalg.eigh(0.5 * (H_marg + H_marg.T))
-
-    # w[w < 0.0] = 0.0
-    # J = np.diag(np.sqrt(w)) @ V.T
-    # diff = norm(H_marg - J.T @ J)
-    # print(f"diff: {diff}")
-    # plt.imshow(diff)
-    # plt.colorbar()
-    # plt.show()
 
 
 class TestFactorGraph(unittest.TestCase):
@@ -9719,6 +9699,8 @@ class TestFactorGraph(unittest.TestCase):
 
     # Setup factor graph
     imu0_data = self.sim_data.imu0_data
+    assert(imu0_data)
+    assert(imu0_data.timestamps)
     window_size = 20
     start_idx = 0
     # end_idx = 200
@@ -10062,7 +10044,7 @@ def draw_keypoints(img, kps, inliers=None, **kwargs):
   and is expected to be the same size as `kps` denoting whether the point
   should be drawn or not.
   """
-  inliers = [1 for i in range(len(kps))] if inliers is None else inliers
+  inliers = [1 for _ in range(len(kps))] if inliers is None else inliers
   radius = kwargs.get('radius', 1)
   color = kwargs.get('color', (0, 255, 0))
   thickness = kwargs.get('thickness', cv2.FILLED)
@@ -10187,7 +10169,7 @@ def spread_keypoints(img, kps, min_dist, **kwargs):
 
   # Setup
   debug = kwargs.get('debug', False)
-  des = kwargs.get('des', [])
+  # des = kwargs.get('des', [])
   prev_kps = kwargs.get('prev_kps', [])
   min_dist = int(min_dist)
   img_h, img_w = img.shape
@@ -10363,7 +10345,7 @@ class FeatureGrid:
     self.image_shape = image_shape
     self.keypoints = keypoints
 
-    self.cell = [0 for i in range(self.grid_rows * self.grid_cols)]
+    self.cell = [0 for _ in range(self.grid_rows * self.grid_cols)]
     for kp in keypoints:
       if hasattr(kp, 'pt'):
         # cv2.KeyPoint
@@ -11831,7 +11813,7 @@ class TestCalibration(unittest.TestCase):
       plot_set_axes_equal(ax)
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
+      ax.set_zlabel("z [m]") # pyright: ignore
       plt.show()
 
   def test_calib_generate_random_poses(self):
@@ -11859,7 +11841,7 @@ class TestCalibration(unittest.TestCase):
       plot_set_axes_equal(ax)
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
+      ax.set_zlabel("z [m]") # pyright: ignore
       plt.show()
 
   @unittest.skip("")
@@ -12136,9 +12118,10 @@ class SimData:
 
     # Plot features
     features = self.features
-    ax.scatter3D(features[:, 0], features[:, 1], features[:, 2])
+    ax.scatter3D(features[:, 0], features[:, 1], features[:, 2]) # pyright: ignore
 
     # Plot camera frames
+    assert self.imu0_data and self.imu0_data.poses
     idx = 0
     for _, T_WB in self.imu0_data.poses.items():
       if idx % 100 == 0:
@@ -12260,7 +12243,7 @@ class SimData:
       rx = self.circle_r * cos(theta)
       ry = self.circle_r * sin(theta)
       rz = 0.0
-      r_WB = [rx, ry, rz]
+      r_WB = np.array([rx, ry, rz])
       C_WB = euler321(yaw, 0.0, 0.0)
       T_WB = tf(C_WB, r_WB)
 
@@ -12284,6 +12267,7 @@ class SimData:
     timeline = Timeline()
 
     # -- Add imu events
+    assert self.imu0_data
     imu_idx = self.imu0_data.imu_idx
     for ts in self.imu0_data.timestamps:
       acc = self.imu0_data.acc[ts]
@@ -12336,7 +12320,7 @@ class TestSimulation(unittest.TestCase):
 
     if debug:
       fig = plt.figure()
-      ax = fig.gca(projection='3d')
+      ax = fig.gca(projection='3d') # pyright: ignore
       ax.scatter(features[:, 0], features[:, 1], features[:, 2])
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
@@ -12354,7 +12338,7 @@ class TestSimulation(unittest.TestCase):
 
     if debug:
       fig = plt.figure()
-      ax = fig.gca(projection='3d')
+      ax = fig.gca(projection='3d') # pyright: ignore
       ax.scatter(features[:, 0], features[:, 1], features[:, 2])
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
@@ -12435,7 +12419,7 @@ class TestSimulation(unittest.TestCase):
 
     if debug_cam:
       cam0_data = sim_data.mcam_data[0]
-      pos = np.array([tf_trans(v) for k, v in cam0_data.poses.items()])
+      pos = np.array([tf_trans(v) for _, v in cam0_data.poses.items()])
 
       plt.figure()
       plt.plot(pos[:, 0], pos[:, 1], 'r-')
@@ -12446,12 +12430,13 @@ class TestSimulation(unittest.TestCase):
       plt.show()
 
     if debug_imu:
+      assert sim_data.imu0_data
       imu0_data = sim_data.imu0_data
 
-      pos = np.array([tf_trans(v) for k, v in imu0_data.poses.items()])
-      vel = np.array([v for k, v in imu0_data.vel.items()])
-      acc = np.array([v for k, v in imu0_data.acc.items()])
-      gyr = np.array([v for k, v in imu0_data.gyr.items()])
+      pos = np.array([tf_trans(v) for _, v in imu0_data.poses.items()])
+      vel = np.array([v for _, v in imu0_data.vel.items()])
+      acc = np.array([v for _, v in imu0_data.acc.items()])
+      gyr = np.array([v for _, v in imu0_data.gyr.items()])
 
       plt.figure()
       plt.subplot(411)
@@ -12492,7 +12477,9 @@ class TestSimulation(unittest.TestCase):
     # Source: https://www.ohio.edu/mechanical-faculty/williams/html/PDF/BaxterKinematics.pdf
 
     # Base link in world frame
-    T_WB = tf(eye(3), [0.0, 0.0, 0.0])
+    C_WB = eye(3)
+    r_WB = np.array([0.0, 0.0, 0.0])
+    T_WB = tf(C_WB, r_WB)
 
     # DH-Parameters
     theta0 = deg2rad(0.0)
@@ -12504,11 +12491,11 @@ class TestSimulation(unittest.TestCase):
     # theta, d, a, alpha
     link0 = [deg2rad(0.0) + theta0, L0, 0.0, deg2rad(-90.0)]
     link1 = [deg2rad(0.0) + theta1, 0.0, L1, deg2rad(0.0)]
-    # link2 = [deg2rad(90.0) + theta2, 0.0, L2, deg2rad(90)]
+    link2 = [deg2rad(90.0) + theta2, 0.0, L2, deg2rad(90)]
 
     T_BL0 = dh_matrix(*link0)
     T_L0L1 = dh_matrix(*link1)
-    # T_L1L2 = dh_matrix(*link2)
+    T_L1L2 = dh_matrix(*link2)
 
     debug = False
     if debug:
@@ -12516,12 +12503,12 @@ class TestSimulation(unittest.TestCase):
       dpi = 96.0
       fig_dim = [800.0 / dpi, 800.0 / dpi]
       plt.figure(figsize=fig_dim, dpi=dpi)
-      ax = plt.gca(projection='3d')
+      ax = plt.gca(projection='3d') # pyright: ignore
 
       plot_tf(ax, T_WB, size=0.05, name="base")
       plot_tf(ax, T_WB @ T_BL0, size=0.05, name="L0")
       plot_tf(ax, T_WB @ T_BL0 @ T_L0L1, size=0.05, name="L1")
-      # plot_tf(ax, T_WB @ T_BL0 @ T_L0L1 @ T_L1L2, size=0.1, name="L2")
+      plot_tf(ax, T_WB @ T_BL0 @ T_L0L1 @ T_L1L2, size=0.1, name="L2")
 
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
@@ -12595,6 +12582,8 @@ class CarrotController:
 
   def _calculate_closest_point(self, pos):
     """ Calculate closest point """
+    assert self.wp_start
+    assert self.wp_end
     v1 = pos - self.wp_start
     v2 = self.wp_end - self.wp_start
     t = v1 @ v2 / v2.squaredNorm()
@@ -12605,6 +12594,8 @@ class CarrotController:
   def _calculate_carrot_point(self, pos):
     """ Calculate carrot point """
     assert len(pos) == 3
+    assert self.wp_start
+    assert self.wp_end
 
     t, closest_pt = self._calculate_closest_point(pos)
     carrot_pt = None
@@ -12628,6 +12619,10 @@ class CarrotController:
   def update(self, pos):
     """ Update """
     assert len(pos) == 3
+    assert self.wp_start
+    assert self.wp_end
+    assert self.wp_index
+
     # Calculate new carot point
     status, carrot_pt = self._calculate_carrot_point(pos)
 
@@ -12965,10 +12960,12 @@ class MavPositionControl:
 
   def reset(self):
     """ Reset """
+    assert self.dt is not None
+
     self.dt = 0.0
-    self.pid_vx.reset()
-    self.pid_vy.reset()
-    self.pid_vz.reset()
+    self.pid_x.reset()
+    self.pid_y.reset()
+    self.pid_z.reset()
     self.u = [0.0, 0.0, 0.0, 0.0]
 
 
@@ -13036,7 +13033,7 @@ class MavTrajectoryControl:
     """ Get yaw """
     p0 = self.get_position(t)
     p1 = self.get_position(t + 0.1)
-    dx, dy, dz = p1 - p0
+    dx, dy, _ = p1 - p0
 
     heading = np.arctan2(dy, dx)
     if heading > np.pi:
@@ -13048,7 +13045,7 @@ class MavTrajectoryControl:
 
   def get_velocity(self, t):
     w = 2.0 * np.pi * self.f
-    theta = np.sin(0.25 * w * t)**2
+    # theta = np.sin(0.25 * w * t)**2
 
     ka = 2.0 * np.pi * self.a
     kb = 2.0 * np.pi * self.b
@@ -13143,10 +13140,10 @@ class TestMav(unittest.TestCase):
     traj_ctrl = MavTrajectoryControl(z=2.0, T=10.0)
     traj_ctrl.symdiff_velocity()
 
-  def test_plot(self):
-    """ Test Plot """
-    traj_ctrl = MavTrajectoryControl(z=2.0, T=20.0)
-    # traj_ctrl.plot()
+  # def test_plot(self):
+  #   """ Test Plot """
+  #   traj_ctrl = MavTrajectoryControl(z=2.0, T=20.0)
+  #   # traj_ctrl.plot()
 
   def test_mav_attitude_control(self):
     # Simulation parameters
