@@ -16,6 +16,7 @@ Contains the following library code useful for prototyping robotic algorithms:
 - TF
 - MATPLOTLIB
 - CV
+- POINT CLOUD
 - DATASET
 - MANIPULATOR
 - FILTER
@@ -84,8 +85,8 @@ Mat4 = Annotated[NDArray[DType], Literal[4, 4]]
 MatN = Annotated[NDArray[DType], Literal["N", "N"]]
 MatNx2 = Annotated[NDArray[DType], Literal["N", "2"]]
 MatNx3 = Annotated[NDArray[DType], Literal["N", "3"]]
+MatNx4 = Annotated[NDArray[DType], Literal["N", "4"]]
 Image = Annotated[NDArray[DType], Literal["N", "N"]]
-
 
 ###############################################################################
 # YAML
@@ -5266,6 +5267,51 @@ class TestCV(unittest.TestCase):
     # detect_corners(image)
     # compute_edge_orientation(image)
     pass
+
+
+################################################################################
+# POINT CLOUD
+################################################################################
+
+def umeyama(X: MatNx3, Y: MatNx3) -> tuple[float, Mat3, Vec3]:
+  """
+  Estimates scale c, rotation matrix R and translation vector t between two
+  sets of points X and Y such that:
+
+    Y ~= c * R @ X + t
+
+  Parameters
+  ----------
+  X: src 3D points
+  Y: dest 3D points
+
+  Returns
+  -------
+  c: Scale factor
+  R: Rotation matrix
+  t: translation vector
+
+  """
+  # Compute centroid
+  mu_x = X.mean(axis=1).reshape(-1, 1)
+  mu_y = Y.mean(axis=1).reshape(-1, 1)
+
+  # Form covariance matrix and decompose with SVD
+  var_x = np.square(X - mu_x).sum(axis=0).mean()
+  cov_xy = ((Y - mu_y) @ (X - mu_x).T) / X.shape[1]
+  U, D, VH = np.linalg.svd(cov_xy)
+
+  # Check to see if rotation matrix det(R) is 1
+  S = np.eye(X.shape[0])
+  if np.linalg.det(U) * np.linalg.det(VH) < 0:
+    S[-1, -1] = -1
+
+  # Calculate scale, rotation matrix and translation vector
+  c = np.trace(np.diag(D) @ S) / var_x
+  R = U @ S @ VH
+  t = mu_y - c * R @ mu_x
+
+  return c, R, t
 
 
 ################################################################################
