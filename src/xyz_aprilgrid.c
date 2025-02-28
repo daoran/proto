@@ -12,7 +12,7 @@ aprilgrid_t *aprilgrid_malloc(const int num_rows,
                               const int num_cols,
                               const real_t tag_size,
                               const real_t tag_spacing) {
-  aprilgrid_t *grid = MALLOC(aprilgrid_t, 1);
+  aprilgrid_t *grid = malloc(sizeof(aprilgrid_t));
   grid->num_rows = num_rows;
   grid->num_cols = num_cols;
   grid->tag_size = tag_size;
@@ -22,7 +22,7 @@ aprilgrid_t *aprilgrid_malloc(const int num_rows,
   grid->timestamp = 0;
   const int max_corners = (num_rows * num_cols * 4);
   grid->corners_detected = 0;
-  grid->data = CALLOC(real_t, max_corners * 6);
+  grid->data = calloc(max_corners * 6, sizeof(real_t));
 
   return grid;
 }
@@ -89,16 +89,16 @@ void aprilgrid_copy(const aprilgrid_t *src, aprilgrid_t *dst) {
  * Check AprilGrids are equal
  */
 int aprilgrid_equals(const aprilgrid_t *grid0, const aprilgrid_t *grid1) {
-  CHECK(grid0->timestamp == grid1->timestamp);
-  CHECK(grid0->num_rows == grid1->num_rows);
-  CHECK(grid0->num_cols == grid1->num_cols);
-  CHECK(fabs(grid0->tag_size - grid1->tag_size) < 1e-8);
-  CHECK(fabs(grid0->tag_spacing - grid1->tag_spacing) < 1e-8);
-  CHECK(grid0->corners_detected == grid1->corners_detected);
+  APRILGRID_CHECK(grid0->timestamp == grid1->timestamp);
+  APRILGRID_CHECK(grid0->num_rows == grid1->num_rows);
+  APRILGRID_CHECK(grid0->num_cols == grid1->num_cols);
+  APRILGRID_CHECK(fabs(grid0->tag_size - grid1->tag_size) < 1e-8);
+  APRILGRID_CHECK(fabs(grid0->tag_spacing - grid1->tag_spacing) < 1e-8);
+  APRILGRID_CHECK(grid0->corners_detected == grid1->corners_detected);
 
   for (size_t i = 0; i < (grid0->num_rows * grid0->num_cols * 4); i++) {
     for (size_t j = 0; j < 6; j++) {
-      CHECK(fabs(grid0->data[i * 6 + j] - grid1->data[i * 6 + j]) < 1e-8);
+      APRILGRID_CHECK(fabs(grid0->data[i * 6 + j] - grid1->data[i * 6 + j]) < 1e-8);
     }
   }
 
@@ -170,9 +170,9 @@ void aprilgrid_grid_index(const aprilgrid_t *grid,
   assert(j != NULL);
 
   if (tag_id > (grid->num_rows * grid->num_cols)) {
-    FATAL("tag_id > (num_rows * num_cols)!\n");
+    APRILGRID_FATAL("tag_id > (num_rows * num_cols)!\n");
   } else if (tag_id < 0) {
-    FATAL("tag_id < 0!\n");
+    APRILGRID_FATAL("tag_id < 0!\n");
   }
 
   *i = (int) (tag_id / grid->num_cols);
@@ -224,7 +224,7 @@ void aprilgrid_object_point(const aprilgrid_t *grid,
       object_point[2] = 0;
       break;
     default:
-      FATAL("Incorrect corner id [%d]!\n", corner_idx);
+      APRILGRID_FATAL("Incorrect corner id [%d]!\n", corner_idx);
       break;
   }
 }
@@ -362,7 +362,7 @@ int aprilgrid_save(const aprilgrid_t *grid, const char *save_path) {
   // Open file for saving
   FILE *fp = fopen(save_path, "w");
   if (fp == NULL) {
-    LOG_ERROR("Failed to open [%s] for saving!", save_path);
+    APRILGRID_LOG("Failed to open [%s] for saving!", save_path);
     return -1;
   }
 
@@ -417,7 +417,7 @@ static void aprilgrid_parse_line(FILE *fp,
   const size_t buf_len = 1024;
   char buf[1024] = {0};
   if (fgets(buf, buf_len, fp) == NULL) {
-    FATAL("Failed to parse [%s]\n", key);
+    APRILGRID_FATAL("Failed to parse [%s]\n", key);
   }
 
   // Split key-value
@@ -427,12 +427,12 @@ static void aprilgrid_parse_line(FILE *fp,
 
   // Check key matches
   if (strcmp(key_str, key) != 0) {
-    FATAL("Failed to parse [%s]\n", key);
+    APRILGRID_FATAL("Failed to parse [%s]\n", key);
   }
 
   // Typecase value
   if (value_type == NULL) {
-    FATAL("Value type not set!\n");
+    APRILGRID_FATAL("Value type not set!\n");
   }
 
   if (strcmp(value_type, "uint64_t") == 0) {
@@ -442,7 +442,7 @@ static void aprilgrid_parse_line(FILE *fp,
   } else if (strcmp(value_type, "real_t") == 0) {
     *(real_t *) value = atof(value_str);
   } else {
-    FATAL("Invalid value type [%s]\n", value_type);
+    APRILGRID_FATAL("Invalid value type [%s]\n", value_type);
   }
 }
 
@@ -451,7 +451,7 @@ static void aprilgrid_parse_skip_line(FILE *fp) {
   const size_t buf_len = 1024;
   char buf[1024] = {0};
   char *retval = fgets(buf, buf_len, fp);
-  UNUSED(retval);
+  APRILGRID_UNUSED(retval);
 }
 
 /**
@@ -463,7 +463,7 @@ aprilgrid_t *aprilgrid_load(const char *data_path) {
   // Open file for loading
   FILE *fp = fopen(data_path, "r");
   if (fp == NULL) {
-    LOG_ERROR("Failed to open [%s]!\n", data_path);
+    APRILGRID_LOG("Failed to open [%s]!\n", data_path);
     return NULL;
   }
 
@@ -509,7 +509,7 @@ aprilgrid_t *aprilgrid_load(const char *data_path) {
                               &p[1],
                               &p[2]);
     if (retval != 7) {
-      FATAL("Failed to parse data line in [%s]\n", data_path);
+      APRILGRID_FATAL("Failed to parse data line in [%s]\n", data_path);
     }
 
     // Add corner
@@ -528,7 +528,7 @@ aprilgrid_detector_t *aprilgrid_detector_malloc(int num_rows,
                                                 int num_cols,
                                                 real_t tag_size,
                                                 real_t tag_spacing) {
-  aprilgrid_detector_t *det = MALLOC(aprilgrid_detector_t, 1);
+  aprilgrid_detector_t *det = malloc(sizeof(aprilgrid_detector_t));
   // det->tf = tagStandard41h12_create();
   det->tf = tag36h11_create();
   det->td = apriltag_detector_create();

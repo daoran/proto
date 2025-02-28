@@ -269,6 +269,20 @@ int mu_run_python(const char *script_path) {
   } while (0)
 
 /**
+ * Compare reals.
+ * @returns
+ * - 0 if x == y
+ * - 1 if x > y
+ * - -1 if x < y
+ */
+#define MU_ASSERT_FLOAT(X, Y)                                                  \
+  do {                                                                         \
+    if (fabs(X - Y) > 1e-12) {                                                 \
+      return -1;                                                               \
+    }                                                                          \
+  } while (0)
+
+/**
  * Add unittest
  * @param[in] TEST Test function
  */

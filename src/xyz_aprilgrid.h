@@ -1,5 +1,7 @@
 #pragma once
 
+#include <math.h>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-prototypes"
 #include "apriltag/apriltag.h"
@@ -9,7 +11,40 @@
 #include "apriltag/tagStandard41h12.h"
 #pragma GCC diagnostic pop
 
-#include "xyz.h"
+// Float Precision
+#ifndef real_t
+typedef double real_t;
+#endif
+
+// Timestamp Type
+#ifndef timestamp_t
+typedef int64_t timestamp_t;
+#endif
+
+#ifndef APRILGRID_LOG
+#define APRILGRID_LOG(...) printf(__VA_ARGS__);
+#endif
+
+#ifndef APRILGRID_FATAL
+#define APRILGRID_FATAL(...)                                                   \
+  printf(__VA_ARGS__);                                                         \
+  exit(-1);
+#endif
+
+#ifndef APRILGRID_UNUSED
+#define APRILGRID_UNUSED(expr)                                                 \
+  do {                                                                         \
+    (void) (expr);                                                             \
+  } while (0)
+#endif
+
+#ifndef APRILGRID_CHECK
+#define APRILGRID_CHECK(X)                                                     \
+  if (!(X)) {                                                                  \
+    APRILGRID_LOG(#X " Failed!\n");                                            \
+    goto error;                                                                \
+  }
+#endif
 
 // APRILGRID /////////////////////////////////////////////////////////////////
 

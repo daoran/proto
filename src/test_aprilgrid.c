@@ -12,8 +12,8 @@ int test_aprilgrid_malloc_and_free(void) {
   MU_ASSERT(g->timestamp == 0);
   MU_ASSERT(g->num_rows == num_rows);
   MU_ASSERT(g->num_cols == num_cols);
-  MU_ASSERT(fltcmp(g->tag_size, tsize) == 0);
-  MU_ASSERT(fltcmp(g->tag_spacing, tspacing) == 0);
+  MU_ASSERT_FLOAT(g->tag_size, tsize);
+  MU_ASSERT_FLOAT(g->tag_spacing, tspacing);
   MU_ASSERT(g->corners_detected == 0);
 
   aprilgrid_free(g);
@@ -34,8 +34,8 @@ int test_aprilgrid_center(void) {
   real_t cx = 0.0;
   real_t cy = 0.0;
   aprilgrid_center(grid, &cx, &cy);
-  MU_ASSERT(fltcmp(cx, 0.1) == 0);
-  MU_ASSERT(fltcmp(cy, 0.25) == 0);
+  MU_ASSERT_FLOAT(cx, 0.1);
+  MU_ASSERT_FLOAT(cy, 0.25);
 
   // Clean up
   aprilgrid_free(grid);
@@ -93,24 +93,24 @@ int test_aprilgrid_object_point(void) {
   // Get object point
   real_t p[3] = {0};
   aprilgrid_object_point(grid, 1, 0, p);
-  MU_ASSERT(fltcmp(p[0], tag_size) == 0);
-  MU_ASSERT(fltcmp(p[1], 0) == 0);
-  MU_ASSERT(fltcmp(p[2], 0) == 0);
+  MU_ASSERT_FLOAT(p[0], tag_size);
+  MU_ASSERT_FLOAT(p[1], 0);
+  MU_ASSERT_FLOAT(p[2], 0);
 
   aprilgrid_object_point(grid, 1, 1, p);
-  MU_ASSERT(fltcmp(p[0], tag_size * 2) == 0);
-  MU_ASSERT(fltcmp(p[1], 0) == 0);
-  MU_ASSERT(fltcmp(p[2], 0) == 0);
+  MU_ASSERT_FLOAT(p[0], tag_size * 2);
+  MU_ASSERT_FLOAT(p[1], 0);
+  MU_ASSERT_FLOAT(p[2], 0);
 
   aprilgrid_object_point(grid, 1, 2, p);
-  MU_ASSERT(fltcmp(p[0], tag_size * 2) == 0);
-  MU_ASSERT(fltcmp(p[1], tag_size) == 0);
-  MU_ASSERT(fltcmp(p[2], 0) == 0);
+  MU_ASSERT_FLOAT(p[0], tag_size * 2);
+  MU_ASSERT_FLOAT(p[1], tag_size);
+  MU_ASSERT_FLOAT(p[2], 0);
 
   aprilgrid_object_point(grid, 1, 3, p);
-  MU_ASSERT(fltcmp(p[0], tag_size) == 0);
-  MU_ASSERT(fltcmp(p[1], tag_size) == 0);
-  MU_ASSERT(fltcmp(p[2], 0) == 0);
+  MU_ASSERT_FLOAT(p[0], tag_size);
+  MU_ASSERT_FLOAT(p[1], tag_size);
+  MU_ASSERT_FLOAT(p[2], 0);
 
   // Clean up
   aprilgrid_free(grid);
@@ -136,16 +136,16 @@ int test_aprilgrid_add_and_remove_corner(void) {
   const int data_row = (tag_id * 4) + corner_idx;
   MU_ASSERT(grid->corners_detected == 1);
   MU_ASSERT(grid->data[data_row * 6 + 0] == 1);
-  MU_ASSERT(fltcmp(grid->data[data_row * 6 + 1], kp[0]) == 0);
-  MU_ASSERT(fltcmp(grid->data[data_row * 6 + 2], kp[1]) == 0);
+  MU_ASSERT_FLOAT(grid->data[data_row * 6 + 1], kp[0]);
+  MU_ASSERT_FLOAT(grid->data[data_row * 6 + 2], kp[1]);
 
   // Remove corner
   aprilgrid_remove_corner(grid, tag_id, corner_idx);
 
   MU_ASSERT(grid->corners_detected == 0);
   MU_ASSERT(grid->data[data_row * 6 + 0] == 0);
-  MU_ASSERT(fltcmp(grid->data[data_row * 6 + 1], 0.0) == 0);
-  MU_ASSERT(fltcmp(grid->data[data_row * 6 + 2], 0.0) == 0);
+  MU_ASSERT_FLOAT(grid->data[data_row * 6 + 1], 0.0);
+  MU_ASSERT_FLOAT(grid->data[data_row * 6 + 2], 0.0);
 
   // Clean up
   aprilgrid_free(grid);
@@ -171,10 +171,8 @@ int test_aprilgrid_add_and_remove_tag(void) {
   for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
     const int data_row = (tag_id * 4) + corner_idx;
     MU_ASSERT(grid->data[data_row * 6 + 0] == 1);
-    MU_ASSERT(fltcmp(grid->data[data_row * 6 + 1], tag_kps[corner_idx][0]) ==
-                0);
-    MU_ASSERT(fltcmp(grid->data[data_row * 6 + 2], tag_kps[corner_idx][1]) ==
-                0);
+    MU_ASSERT_FLOAT(grid->data[data_row * 6 + 1], tag_kps[corner_idx][0]);
+    MU_ASSERT_FLOAT(grid->data[data_row * 6 + 2], tag_kps[corner_idx][1]);
   }
 
   // Remove tag
@@ -184,8 +182,8 @@ int test_aprilgrid_add_and_remove_tag(void) {
   for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
     const int data_row = (tag_id * 4) + corner_idx;
     MU_ASSERT(grid->data[data_row * 6 + 0] == 0);
-    MU_ASSERT(fltcmp(grid->data[data_row * 6 + 1], 0.0) == 0);
-    MU_ASSERT(fltcmp(grid->data[data_row * 6 + 2], 0.0) == 0);
+    MU_ASSERT_FLOAT(grid->data[data_row * 6 + 1], 0.0);
+    MU_ASSERT_FLOAT(grid->data[data_row * 6 + 2], 0.0);
   }
 
   // Clean up
@@ -212,10 +210,8 @@ int test_aprilgrid_save_and_load(void) {
   for (int corner_idx = 0; corner_idx < 4; corner_idx++) {
     const int data_row = (tag_id * 4) + corner_idx;
     MU_ASSERT(grid->data[data_row * 6 + 0] == 1);
-    MU_ASSERT(fltcmp(grid->data[data_row * 6 + 1], tag_kps[corner_idx][0]) ==
-                0);
-    MU_ASSERT(fltcmp(grid->data[data_row * 6 + 2], tag_kps[corner_idx][1]) ==
-                0);
+    MU_ASSERT_FLOAT(grid->data[data_row * 6 + 1], tag_kps[corner_idx][0]);
+    MU_ASSERT_FLOAT(grid->data[data_row * 6 + 2], tag_kps[corner_idx][1]);
   }
 
   // Save
@@ -226,14 +222,13 @@ int test_aprilgrid_save_and_load(void) {
   aprilgrid_t *grid_load = aprilgrid_load("/tmp/test_aprilgrid.dat");
   MU_ASSERT(grid_load->num_rows == grid->num_rows);
   MU_ASSERT(grid_load->num_cols == grid->num_cols);
-  MU_ASSERT(fltcmp(grid_load->tag_size, grid->tag_size) == 0);
-  MU_ASSERT(fltcmp(grid_load->tag_spacing, grid->tag_spacing) == 0);
+  MU_ASSERT_FLOAT(grid_load->tag_size, grid->tag_size);
+  MU_ASSERT_FLOAT(grid_load->tag_spacing, grid->tag_spacing);
   MU_ASSERT(grid_load->corners_detected == grid->corners_detected);
   const int max_corners = (grid->num_rows * grid->num_cols * 4);
   for (int i = 0; i < max_corners; i++) {
     for (int j = 0; j < 6; j++) {
-      MU_ASSERT(fltcmp(grid_load->data[i * 6 + j], grid->data[i * 6 + j]) ==
-                  0);
+      MU_ASSERT_FLOAT(grid_load->data[i * 6 + j], grid->data[i * 6 + j]);
     }
   }
   // aprilgrid_print(grid_load);
