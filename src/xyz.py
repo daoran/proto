@@ -6169,7 +6169,7 @@ class TestOctree(unittest.TestCase):
     z = (d - a * x - b * y) / c
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax: Axes3D = fig.add_subplot(111, projection='3d')
 
     # Plot the surface
     ax.plot_surface(x, y, z, alpha=0.5, rstride=100, cstride=100)
@@ -9792,8 +9792,8 @@ class TestFactorGraph(unittest.TestCase):
 
     # Setup factor graph
     imu0_data = self.sim_data.imu0_data
-    assert(imu0_data)
-    assert(imu0_data.timestamps)
+    assert (imu0_data)
+    assert (imu0_data.timestamps)
     window_size = 20
     start_idx = 0
     # end_idx = 200
@@ -11698,7 +11698,7 @@ class TestCalibration(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax: Axes3D = plt.axes(projection='3d')
 
       calib_target.plot(ax, T_WF)
       for T_FC in poses:
@@ -11707,7 +11707,7 @@ class TestCalibration(unittest.TestCase):
       plot_set_axes_equal(ax)
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]") # pyright: ignore
+      ax.set_zlabel("z [m]")
       plt.show()
 
   def test_calib_generate_random_poses(self):
@@ -11726,7 +11726,7 @@ class TestCalibration(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax: Axes3D = plt.axes(projection='3d')
 
       calib_target.plot(ax, T_WF)
       for T_FC in poses:
@@ -11735,7 +11735,7 @@ class TestCalibration(unittest.TestCase):
       plot_set_axes_equal(ax)
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]") # pyright: ignore
+      ax.set_zlabel("z [m]")
       plt.show()
 
   @unittest.skip("")
@@ -12012,7 +12012,8 @@ class SimData:
 
     # Plot features
     features = self.features
-    ax.scatter3D(features[:, 0], features[:, 1], features[:, 2]) # pyright: ignore
+    ax.scatter3D(features[:, 0], features[:, 1], features[:,
+                                                          2])  # pyright: ignore
 
     # Plot camera frames
     assert self.imu0_data and self.imu0_data.poses
@@ -12214,7 +12215,7 @@ class TestSimulation(unittest.TestCase):
 
     if debug:
       fig = plt.figure()
-      ax = fig.gca(projection='3d') # pyright: ignore
+      ax = fig.gca(projection='3d')  # pyright: ignore
       ax.scatter(features[:, 0], features[:, 1], features[:, 2])
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
@@ -12232,7 +12233,7 @@ class TestSimulation(unittest.TestCase):
 
     if debug:
       fig = plt.figure()
-      ax = fig.gca(projection='3d') # pyright: ignore
+      ax = fig.gca(projection='3d')  # pyright: ignore
       ax.scatter(features[:, 0], features[:, 1], features[:, 2])
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
@@ -12397,7 +12398,7 @@ class TestSimulation(unittest.TestCase):
       dpi = 96.0
       fig_dim = [800.0 / dpi, 800.0 / dpi]
       plt.figure(figsize=fig_dim, dpi=dpi)
-      ax = plt.gca(projection='3d') # pyright: ignore
+      ax = plt.gca(projection='3d')  # pyright: ignore
 
       plot_tf(ax, T_WB, size=0.05, name="base")
       plot_tf(ax, T_WB @ T_BL0, size=0.05, name="L0")
@@ -13690,6 +13691,7 @@ class SimGimbal:
 
       # Perturb body pose
       if fix_gimbal is False:
+        assert self.T_WB is not None
         self.T_WB = tf_perturb(self.T_WB, 0, np.random.uniform(-0.1, 0.1))
         self.T_WB = tf_perturb(self.T_WB, 1, np.random.uniform(-0.1, 0.1))
         self.T_WB = tf_perturb(self.T_WB, 2, np.random.uniform(-0.1, 0.1))
