@@ -462,12 +462,10 @@ def websocket_decode_frame(reader, mask):
     data = yield from reader(8)
     length, = struct.unpack('!Q', data)
 
+  # Read payload
   if mask:
     mask_bits = yield from reader(4)
-
-  # Read payload
-  data = yield from reader(length)
-  if mask:
+    data = yield from reader(length)
     data = websocket_apply_mask(data, mask_bits)
 
   return data
@@ -509,6 +507,9 @@ class DebugServer:
     return self
 
   def __exit__(self, exc_type, exc_value, traceback):
+    assert exc_type
+    assert exc_value
+    assert traceback
     self.conn.close()
     self.sock.close()
 
@@ -1039,7 +1040,7 @@ class TestLinearAlgebra(unittest.TestCase):
 ###############################################################################
 
 
-def lerp(x0: float, x1: float, t: float) -> float:
+def lerp(x0: float | VecN, x1: float | VecN, t: float) -> float | VecN:
   """ Linear interpolation """
   return (1.0 - t) * x0 + t * x1
 
@@ -1104,7 +1105,7 @@ def circle_loss(c: Vec2, x: float, y: float) -> float:
   return Ri - Ri.mean()
 
 
-def find_circle(x: float, y: float) -> tuple[float, float, float]:
+def find_circle(x: float, y: float) -> tuple[Vec2, float, float]:
   """
   Find the circle center and radius given (x, y) data points using least
   squares. Returns `(circle_center, circle_radius, residual)`
@@ -1171,7 +1172,7 @@ def find_intersection(
     p2: Vec2,
     q1: Vec2,
     q2: Vec2,
-) -> tuple[bool, Vec2]:
+) -> tuple[bool, Vec2, VecN, np.int32]:
   """
   Find the intersection between two lines formed by points p1, p2 and q1, q2
   for line 1 and line 2 respectively.
@@ -1206,7 +1207,7 @@ def find_intersection(
   line2_intersect = q1 + s * d2
   status = np.allclose(line1_intersect, line2_intersect)
 
-  return status, p1 + t * d1
+  return status, p1 + t * d1, residuals, rank
 
 
 ###############################################################################
@@ -2103,7 +2104,7 @@ def quat_slerp(q_i: Vec4, q_j: Vec4, t: float):
   # reversing one quaternion.
   if dot_result < 0.0:
     q_j = -q_j
-    dot_result = -dot_result
+    dot_result = -1.0 * dot_result
 
   DOT_THRESHOLD = 0.9995
   if dot_result > DOT_THRESHOLD:
@@ -2316,7 +2317,7 @@ def tf_lerp(pose_i: Mat4, pose_j: Mat4, t: float):
   q_j = tf_quat(pose_j)
 
   # Interpolate translation and rotation
-  r_lerp = lerp(r_i, r_j, t)
+  r_lerp = np.array(lerp(r_i, r_j, t))
   q_lerp = quat_slerp(q_i, q_j, t)
 
   return tf(q_lerp, r_lerp)
@@ -2499,6 +2500,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from mpl_toolkits.mplot3d.proj3d import proj_transform
 from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import Axes3D
 
 
 class Arrow3D(FancyArrowPatch):
@@ -2750,10 +2752,10 @@ def plot_mav(ax, T, **kwargs):
   assert T.shape == (4, 4)
   arm_length = kwargs.get('arm_length', 1.0)
   linewidth = kwargs.get('linewidth', 3)
-  name = kwargs.get('name', None)
-  name_offset = kwargs.get('name_offset', [0, 0, -0.01])
-  fontsize = kwargs.get('fontsize', 10)
-  fontweight = kwargs.get('fontweight', 'bold')
+  # name = kwargs.get('name', None)
+  # name_offset = kwargs.get('name_offset', [0, 0, -0.01])
+  # fontsize = kwargs.get('fontsize', 10)
+  # fontweight = kwargs.get('fontweight', 'bold')
   color = kwargs.get('color', 'k-')
   kwargs["size"] = arm_length / 2.0
 
@@ -2903,7 +2905,8 @@ def histogram_equalization(image):
   """
   Histogram Equalization
   """
-  hist, bins = np.histogram(image.flatten(), bins=256, range=[0, 256])
+  hist_range = np.array([0.0, 256.0])
+  hist, bins = np.histogram(image.flatten(), bins=256, range=hist_range)
   cdf = hist.cumsum()  # Cumulative distribution function
   cdf_normalized = cdf * 255 / cdf[-1]  # Normalize to [0,255]
   results = np.interp(image.flatten(), bins[:-1], cdf_normalized)
@@ -3324,6 +3327,7 @@ def _solvepnp_cost(object_points, image_points, fx, fy, cx, cy, pose):
   N = len(object_points)
   T_FC_est = pose2tf(pose)
   T_CF_est = inv(T_FC_est)
+  pinhole_params = np.array([fx, fy, cx, cy])
   r = np.zeros(2 * N)
   r_idx = 0
 
@@ -3332,7 +3336,7 @@ def _solvepnp_cost(object_points, image_points, fx, fy, cx, cy, pose):
     z = image_points[n, :]
     p_F = object_points[n, :]
     p_C = tf_point(T_CF_est, p_F)
-    zhat = pinhole_project([fx, fy, cx, cy], p_C)
+    zhat = pinhole_project(pinhole_params, p_C)
     res = z - zhat
 
     # Form R.H.S. Gauss Newton g
@@ -3350,6 +3354,7 @@ def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
   N = len(object_points)
   T_FC_est = pose2tf(pose)
   T_CF_est = inv(T_FC_est)
+  pinhole_params = np.array([fx, fy, cx, cy])
   H = np.zeros((6, 6))
   g = np.zeros(6)
   r_idx = 0
@@ -3359,7 +3364,7 @@ def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
     z = image_points[n, :]
     p_F = object_points[n, :]
     p_C = tf_point(T_CF_est, p_F)
-    zhat = pinhole_project([fx, fy, cx, cy], p_C)
+    zhat = pinhole_project(pinhole_params, p_C)
     r = z - zhat
 
     # Calculate Jacobian
@@ -3919,7 +3924,7 @@ def equi4_distort(dist_params: Vec4, p: Vec2) -> Vec2:
 
 def equi4_undistort(dist_params: Vec4, p: Vec2) -> Vec2:
   """ Undistort point using Equi-distant distortion """
-  thd = sqrt(p(0) * p(0) + p[0] * p[0])
+  thd = sqrt(p[0] * p[0] + p[1] * p[1])
 
   # Distortion parameters
   k1, k2, k3, k4 = dist_params
@@ -4929,7 +4934,7 @@ class TestCV(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax: Axes3D = plt.axes(projection='3d')
       plot_tf(ax, T_WC, size=0.1, name="camera")
       plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
       plot_tf(ax, T_WF, size=0.1, name="fiducial")
@@ -4997,7 +5002,7 @@ class TestCV(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax: Axes3D = plt.axes(projection='3d')
       plot_tf(ax, T_WC, size=0.1, name="camera")
       plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
       plot_tf(ax, T_WF, size=0.1, name="fiducial")
@@ -5120,7 +5125,7 @@ class TestCV(unittest.TestCase):
       debug = False
       if debug:
         plt.figure()
-        ax = plt.axes(projection='3d')
+        ax: Axes3D = plt.axes(projection='3d')
         plot_tf(ax, T_WC, size=0.1, name="camera")
         plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
         plot_tf(ax, T_WF, size=0.1, name="fiducial")
