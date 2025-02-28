@@ -5594,36 +5594,80 @@ class TestEuroc(unittest.TestCase):
 
 
 class KittiCameraData:
-  """ KittiCameraDataset """
-  def __init__(self, cam_idx, seq_path):
+  """ Kitti Camera Data"""
+  def __init__(self, cam_idx, seq_dir: Path):
     self.cam_idx = cam_idx
-    self.seq_path = seq_path
-    self.cam_path = Path(self.seq_path, "image_" + str(self.cam_idx).zfill(2))
-    self.img_dir = Path(self.cam_path, "data")
+    self.seq_dir = seq_dir
+    self.cam_path = self.seq_dir / ("image_" + str(self.cam_idx).zfill(2))
+    self.img_dir = self.cam_path / "data"
     self.img_paths = sorted(glob.glob(str(Path(self.img_dir, "*.png"))))
+
+
+class KittiVelodyneData:
+  """ Kitti Velodyne Data"""
+  def __init__(self, seq_dir: Path):
+    self.seq_dir = seq_dir
+    self.velodyne_path = Path(self.seq_dir, "velodyne_points")
+    self.bins_dir = self.velodyne_path / "data"
+
+    ts_file = self.velodyne_path / "timestamps.txt"
+    ts_start_file = self.velodyne_path / "timestamps_start.txt"
+    ts_end_file = self.velodyne_path / "timestamps_end.txt"
+
+    self.timestamps = self._load_timestamps(ts_file)
+    self.timestamps_start = self._load_timestamps(ts_start_file)
+    self.timestamps_end = self._load_timestamps(ts_end_file)
+    self.bin_paths = sorted(self.bins_dir.glob("*.bin"))
+
+  def _load_timestamps(self, data_file: Path) -> list[np.int64]:
+    """ Load timestamps from file """
+    f = open(data_file, "r")
+
+    timestamps = []
+    for line in f:
+      line = line.strip()
+      dt = line.split('.')[0]
+      dt_obj = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
+      seconds = dt_obj.timestamp()
+      nanoseconds = int(line.split('.')[1])
+      timestamps.append(int(seconds * 1e9) + nanoseconds)
+
+    f.close()
+    return timestamps
+
+  def load_scan(self, ts: np.int64) -> MatNx4:
+    """ Load scan based on timestamp """
+    index = self.timestamps.index(ts)
+    bin_path = self.bin_paths[index]
+    pcd = np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4)
+    return pcd
 
 
 class KittiRawDataset:
   """ KittiRawDataset """
-  def __init__(self, data_dir, date, seq, is_sync):
+  def __init__(self, data_dir: Path, date: str, seq: str, is_sync: bool):
     # Paths
     self.data_dir = data_dir
     self.date = date
+    self.date_dir = data_dir / self.date
     self.seq = seq.zfill(4)
     self.sync = "sync" if is_sync else "extract"
     self.seq_name = "_".join([self.date, "drive", self.seq, self.sync])
-    self.seq_path = Path(self.data_dir, self.date, self.seq_name)
+    self.seq_dir = Path(self.data_dir, self.date, self.seq_name)
 
     # Camera data
-    self.cam0_data = KittiCameraData(0, self.seq_path)
-    self.cam1_data = KittiCameraData(1, self.seq_path)
-    self.cam2_data = KittiCameraData(2, self.seq_path)
-    self.cam3_data = KittiCameraData(3, self.seq_path)
+    self.cam0_data = KittiCameraData(0, self.seq_dir)
+    self.cam1_data = KittiCameraData(1, self.seq_dir)
+    self.cam2_data = KittiCameraData(2, self.seq_dir)
+    self.cam3_data = KittiCameraData(3, self.seq_dir)
+
+    # Velodyne data
+    self.velodyne_data = KittiVelodyneData(self.seq_dir)
 
     # Calibration
-    calib_cam_to_cam_filepath = Path(self.data_dir, "calib_cam_to_cam.txt")
-    calib_imu_to_velo_filepath = Path(self.data_dir, "calib_imu_to_velo.txt")
-    calib_velo_to_cam_filepath = Path(self.data_dir, "calib_velo_to_cam.txt")
+    calib_cam_to_cam_filepath = Path(self.date_dir, "calib_cam_to_cam.txt")
+    calib_imu_to_velo_filepath = Path(self.date_dir, "calib_imu_to_velo.txt")
+    calib_velo_to_cam_filepath = Path(self.date_dir, "calib_velo_to_cam.txt")
     self.calib_cam_to_cam = self._read_calib_file(calib_cam_to_cam_filepath)
     self.calib_imu_to_velo = self._read_calib_file(calib_imu_to_velo_filepath)
     self.calib_velo_to_cam = self._read_calib_file(calib_velo_to_cam_filepath)
@@ -5716,7 +5760,7 @@ class KittiRawDataset:
     T_BC3 = self.get_camera_extrinsics(3)
 
     plt.figure()
-    ax = plt.axes(projection='3d')
+    ax: Axes3D = plt.axes(projection='3d')
     plot_tf(ax, eye(4), size=0.1, name="imu")
     plot_tf(ax, T_BV, size=0.1, name="velo")
     plot_tf(ax, T_BC0, size=0.1, name="cam0")
