@@ -1,6 +1,16 @@
 #pragma once
 
-#include "xyz.h"
+#include <inttypes.h>
+
+// Float Precision
+#ifndef real_t
+typedef double real_t;
+#endif
+
+// Timestamp Type
+#ifndef timestamp_t
+typedef int64_t timestamp_t;
+#endif
 
 typedef struct pid_ctrl_t {
   real_t error_prev;
