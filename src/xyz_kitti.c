@@ -177,10 +177,10 @@ kitti_camera_t *kitti_camera_load(const char *data_dir) {
 
   // Parse
   assert(num_rows > 0);
-  kitti_camera_t *data = MALLOC(kitti_camera_t, 1);
+  kitti_camera_t *data = malloc(sizeof(kitti_camera_t));
   data->num_timestamps = num_rows;
-  data->timestamps = MALLOC(timestamp_t, num_rows);
-  data->image_paths = MALLOC(char *, num_rows);
+  data->timestamps = malloc(sizeof(timestamp_t) * num_rows);
+  data->image_paths = malloc(sizeof(char *) * num_rows);
 
   for (int i = 0; i < num_rows; ++i) {
     // Timestamp
@@ -192,7 +192,7 @@ kitti_camera_t *kitti_camera_load(const char *data_dir) {
     // Image path
     char image_path[1024] = {0};
     sprintf(image_path, "%s/%s/%010d.png", data_dir, "data", i);
-    data->image_paths[i] = MALLOC(char, strlen(image_path) + 1);
+    data->image_paths[i] = malloc(sizeof(char) * strlen(image_path) + 1);
     strcpy(data->image_paths[i], image_path);
   }
   fclose(fp);
@@ -226,46 +226,46 @@ kitti_oxts_t *kitti_oxts_load(const char *data_dir) {
 
   // Parse setup
   assert(num_rows > 0);
-  kitti_oxts_t *data = MALLOC(kitti_oxts_t, 1);
+  kitti_oxts_t *data = malloc(sizeof(kitti_oxts_t));
   // -- Timestamps
   data->num_timestamps = num_rows;
-  data->timestamps = MALLOC(timestamp_t, num_rows);
+  data->timestamps = malloc(sizeof(timestamp_t) * num_rows);
   // -- GPS
-  data->lat = MALLOC(double, num_rows);
-  data->lon = MALLOC(double, num_rows);
-  data->alt = MALLOC(double, num_rows);
+  data->lat = malloc(sizeof(real_t) * num_rows);
+  data->lon = malloc(sizeof(real_t) * num_rows);
+  data->alt = malloc(sizeof(real_t) * num_rows);
   // -- Attitude
-  data->roll = MALLOC(double, num_rows);
-  data->pitch = MALLOC(double, num_rows);
-  data->yaw = MALLOC(double, num_rows);
+  data->roll = malloc(sizeof(real_t) * num_rows);
+  data->pitch = malloc(sizeof(real_t) * num_rows);
+  data->yaw = malloc(sizeof(real_t) * num_rows);
   // -- Velocity
-  data->vn = MALLOC(double, num_rows);
-  data->ve = MALLOC(double, num_rows);
-  data->vf = MALLOC(double, num_rows);
-  data->vl = MALLOC(double, num_rows);
-  data->vu = MALLOC(double, num_rows);
+  data->vn = malloc(sizeof(real_t) * num_rows);
+  data->ve = malloc(sizeof(real_t) * num_rows);
+  data->vf = malloc(sizeof(real_t) * num_rows);
+  data->vl = malloc(sizeof(real_t) * num_rows);
+  data->vu = malloc(sizeof(real_t) * num_rows);
   // -- Acceleration
-  data->ax = MALLOC(double, num_rows);
-  data->ay = MALLOC(double, num_rows);
-  data->az = MALLOC(double, num_rows);
-  data->af = MALLOC(double, num_rows);
-  data->al = MALLOC(double, num_rows);
-  data->au = MALLOC(double, num_rows);
+  data->ax = malloc(sizeof(real_t) * num_rows);
+  data->ay = malloc(sizeof(real_t) * num_rows);
+  data->az = malloc(sizeof(real_t) * num_rows);
+  data->af = malloc(sizeof(real_t) * num_rows);
+  data->al = malloc(sizeof(real_t) * num_rows);
+  data->au = malloc(sizeof(real_t) * num_rows);
   // -- Angular velocity
-  data->wx = MALLOC(double, num_rows);
-  data->wy = MALLOC(double, num_rows);
-  data->wz = MALLOC(double, num_rows);
-  data->wf = MALLOC(double, num_rows);
-  data->wl = MALLOC(double, num_rows);
-  data->wu = MALLOC(double, num_rows);
+  data->wx = malloc(sizeof(real_t) * num_rows);
+  data->wy = malloc(sizeof(real_t) * num_rows);
+  data->wz = malloc(sizeof(real_t) * num_rows);
+  data->wf = malloc(sizeof(real_t) * num_rows);
+  data->wl = malloc(sizeof(real_t) * num_rows);
+  data->wu = malloc(sizeof(real_t) * num_rows);
   // -- Satellite tracking
-  data->pos_accuracy = MALLOC(double, num_rows);
-  data->vel_accuracy = MALLOC(double, num_rows);
-  data->navstat = MALLOC(int, num_rows);
-  data->numsats = MALLOC(int, num_rows);
-  data->posmode = MALLOC(int, num_rows);
-  data->velmode = MALLOC(int, num_rows);
-  data->orimode = MALLOC(int, num_rows);
+  data->pos_accuracy = malloc(sizeof(real_t) * num_rows);
+  data->vel_accuracy = malloc(sizeof(real_t) * num_rows);
+  data->navstat = malloc(sizeof(int) * num_rows);
+  data->numsats = malloc(sizeof(int) * num_rows);
+  data->posmode = malloc(sizeof(int) * num_rows);
+  data->velmode = malloc(sizeof(int) * num_rows);
+  data->orimode = malloc(sizeof(int) * num_rows);
 
   // -- Parse timestamps
   {
@@ -414,7 +414,7 @@ static timestamp_t *load_timestamps(const char *file_path) {
     KITTI_FATAL("Failed to open [%s]!\n", file_path);
   }
 
-  timestamp_t *timestamps = MALLOC(timestamp_t, num_rows);
+  timestamp_t *timestamps = malloc(sizeof(timestamp_t) * num_rows);
   for (int i = 0; i < num_rows; ++i) {
     char line[1024] = {0};
     fgets(line, sizeof(line), fp);
@@ -439,7 +439,7 @@ point_xyzr_t *kitti_load_points(const char *pcd_path) {
 
   // Allocate memory for the points
   const int num_points = file_size / 16;
-  point_xyzr_t *points = MALLOC(point_xyzr_t, num_points);
+  point_xyzr_t *points = malloc(sizeof(point_xyzr_t) * num_points);
   if (!points) {
     KITTI_LOG("Failed to allocate memory for points");
     fclose(pcd_file);
@@ -472,16 +472,16 @@ kitti_velodyne_t *kitti_velodyne_load(const char *data_dir) {
   sprintf(timestamps_end_path, "%s/timestamps_end.txt", data_dir);
 
   // Load data
-  kitti_velodyne_t *data = MALLOC(kitti_velodyne_t, 1);
+  kitti_velodyne_t *data = malloc(sizeof(kitti_velodyne_t));
   data->num_timestamps = file_lines(timestamps_path);
   data->timestamps = load_timestamps(timestamps_path);
   data->timestamps_start = load_timestamps(timestamps_start_path);
   data->timestamps_end = load_timestamps(timestamps_end_path);
-  data->pcd_paths = MALLOC(char *, data->num_timestamps);
+  data->pcd_paths = malloc(sizeof(char *) * data->num_timestamps);
   for (int i = 0; i < data->num_timestamps; ++i) {
     char pcd_path[1024] = {0};
     sprintf(pcd_path, "%s/%s/%010d.bin", data_dir, "data", i);
-    data->pcd_paths[i] = MALLOC(char, strlen(pcd_path) + 1);
+    data->pcd_paths[i] = malloc(sizeof(char) * strlen(pcd_path) + 1);
     strcpy(data->pcd_paths[i], pcd_path);
   }
 
@@ -504,7 +504,7 @@ void kitti_velodyne_free(kitti_velodyne_t *data) {
  ****************************************************************************/
 
 kitti_calib_t *kitti_calib_load(const char *data_dir) {
-  kitti_calib_t *data = MALLOC(kitti_calib_t, 1);
+  kitti_calib_t *data = malloc(sizeof(kitti_calib_t));
 
   // Load camera calibrations
   {
@@ -594,6 +594,20 @@ kitti_calib_t *kitti_calib_load(const char *data_dir) {
 
 void kitti_calib_free(kitti_calib_t *data) { free(data); }
 
+static void print_double_array(const char *prefix,
+                               const double *arr,
+                               const size_t n) {
+  assert(prefix != NULL);
+  assert(arr != NULL);
+  assert(n != 0);
+
+  printf("%s: ", prefix);
+  for (size_t i = 0; i < n; i++) {
+    printf("%.4f ", arr[i]);
+  }
+  printf("\n");
+}
+
 void kitti_calib_print(const kitti_calib_t *data) {
   printf("calib_time_cam_to_cam: %s\n", data->calib_time_cam_to_cam);
   printf("calib_time_imu_to_velo: %s\n", data->calib_time_imu_to_velo);
@@ -648,7 +662,6 @@ void kitti_calib_print(const kitti_calib_t *data) {
   print_double_array("delta_f", data->delta_f, 2);
   print_double_array("delta_c", data->delta_c, 2);
   printf("\n");
-
 }
 
 /*****************************************************************************
@@ -671,7 +684,7 @@ kitti_raw_t *kitti_raw_load(const char *data_dir, const char *seq_name) {
   sprintf(velodyne_points_path, "%s/%s/velodyne_points", data_dir, seq_name);
 
   // Load data
-  kitti_raw_t *data = MALLOC(kitti_raw_t, 1);
+  kitti_raw_t *data = malloc(sizeof(kitti_raw_t));
   strcpy(data->seq_name, seq_name);
   data->image_00 = kitti_camera_load(image_00_path);
   data->image_01 = kitti_camera_load(image_01_path);

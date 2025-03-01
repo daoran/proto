@@ -1,6 +1,21 @@
 #pragma once
 
-#include "xyz.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <time.h>
+#include <inttypes.h>
+
+// Float Precision
+#ifndef real_t
+typedef double real_t;
+#endif
+
+// Timestamp Type
+#ifndef timestamp_t
+typedef int64_t timestamp_t;
+#endif
 
 /*****************************************************************************
  * kitti_camera_t
