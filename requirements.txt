@@ -1,4 +1,12 @@
-numpy
-matplotlib
-pandas
+pyyaml
+requests
 websockets
+
+numpy
+scipy
+scipy-stubs
+pandas
+matplotlib
+matplotlib-stubs
+opencv-python
+open3d-cpu
