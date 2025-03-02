@@ -29,6 +29,7 @@ third_party/src/glad/glad.o
 third_party/src/glad/libglad.a
 
 # Python
+.venv
 .ropeproject
 *.pyc
 
