@@ -41,6 +41,7 @@ import struct
 import socket
 import base64
 import hashlib
+import tarfile
 import unittest
 from datetime import datetime
 from pathlib import Path
@@ -56,6 +57,7 @@ from typing import Any
 
 import cv2
 import yaml
+import requests
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
@@ -86,7 +88,23 @@ MatN = Annotated[NDArray[DType], Literal["N", "N"]]
 MatNx2 = Annotated[NDArray[DType], Literal["N", "2"]]
 MatNx3 = Annotated[NDArray[DType], Literal["N", "3"]]
 MatNx4 = Annotated[NDArray[DType], Literal["N", "4"]]
+Mat2xN = Annotated[NDArray[DType], Literal["2", "N"]]
+Mat3xN = Annotated[NDArray[DType], Literal["3", "N"]]
+Mat4xN = Annotated[NDArray[DType], Literal["4", "N"]]
 Image = Annotated[NDArray[DType], Literal["N", "N"]]
+
+###############################################################################
+# I/O
+# def extract_tar_gz(file_path)
+###############################################################################
+
+
+def extract_tar_gz(file_path: Path, extract_path: Path) -> bool:
+  with tarfile.open(str(file_path), "r:gz") as tar:
+    tar.extractall(path=str(extract_path))
+
+  return True
+
 
 ###############################################################################
 # YAML
@@ -171,6 +189,18 @@ def profile_stop(prof: cProfile.Profile, **kwargs):
 # def websocket_decode_frame(reader, mask)
 # DebugServer
 ###############################################################################
+
+
+def download_file(url: str, dst: Path) -> bool:
+  """ Download file """
+  response = requests.get(url, stream=True)
+  if response.status_code == 200:
+    with open(str(dst), "wb") as file:
+      for chunk in response.iter_content(chunk_size=1024):
+        file.write(chunk)
+    return True
+
+  return False
 
 
 def http_status_code_string(code: int) -> str:
@@ -5317,6 +5347,36 @@ def umeyama(X: MatNx3, Y: MatNx3) -> tuple[float, Mat3, Vec3]:
   t = mu_y - c * R @ mu_x
 
   return c, R, t
+
+
+class TestPointCloud(unittest.TestCase):
+  """ Test point cloud functions """
+  def setUp(self):
+    self.debug = False
+
+  def test_umeyama(self):
+    R_gnd = euler321(*np.random.rand(3))
+    t_gnd = np.random.rand(3, 1) * 0.1
+
+    points = np.random.rand(1000, 3)
+    src = points
+    dst = points @ R_gnd.T + t_gnd.T
+    c, R, t = umeyama(src.T, dst.T)
+    est = c * src @ R.T + t.T
+
+    self.assertTrue(np.allclose(R, R_gnd, atol=1e-4))
+    self.assertTrue(np.allclose(t, t_gnd, atol=1e-4))
+
+    # Visualize
+    if self.debug:
+      plt.figure(figsize=(12, 10))
+      ax: Axes3D = plt.axes(projection='3d')
+      ax.scatter(src[:, 0], src[:, 1], src[:, 2], "r", label="src", alpha=0.2)
+      ax.scatter(dst[:, 0], dst[:, 1], dst[:, 2], "g", label="dest", alpha=0.2)
+      ax.scatter(est[:, 0], est[:, 1], est[:, 2], "k", label="aligned", alpha=0.2)
+      ax.legend(loc=0)
+      plot_set_axes_equal(ax)
+      plt.show()
 
 
 ################################################################################
