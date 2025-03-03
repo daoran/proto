@@ -7038,35 +7038,6 @@ class VisionFactor(Factor):
     return (r, [J0, J1, J2, J3])
 
 
-class CameraFactor(Factor):
-  """ Camera Factor """
-  def __init__(self, cam_geom, pids, z, covar=eye(2)):
-    assert len(pids) == 4
-    assert len(z) == 2
-    assert covar.shape == (2, 2)
-    Factor.__init__(self, "CameraFactor", pids, z, covar, 2)
-    self.cam_geom = cam_geom
-
-  def get_residual(self, pose, cam_exts, bearing_vec, depth, cam_params):
-    """ Get residual """
-    T_WB = pose2tf(pose)
-    T_BCi = pose2tf(cam_exts)
-    p_W = feature
-    p_C = tf_point(inv(T_WB @ T_BCi), p_W)
-    status, z_hat = self.cam_geom.project(cam_params, p_C)
-
-    z = self.measurement
-    r = z - z_hat
-
-    return status, r
-
-  # def get_reproj_error(self, pose, cam_exts, feature, cam_params):
-  #   """ Get reprojection error """
-  #   status, r = self.get_residual(pose, cam_exts, feature, cam_params)
-  #   reproj_error = norm(r)
-  #   return status, reproj_error
-
-
 class CalibVisionFactor(Factor):
   """ Calibration Vision Factor """
   def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
@@ -8476,72 +8447,6 @@ class TestVisionFactor(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
     self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
-
-
-class TestCameraFactor(unittest.TestCase):
-  """ Test Camera factor """
-  def test_camera_factor(self):
-    """ Test camera factor """
-    # Setup camera pose T_WB
-    rot = euler2quat(0.0, 0.0, 0.0)
-    trans = np.array([0.0, 0.0, 0.0])
-    T_WB = tf(rot, trans)
-    pose = pose_setup(0, T_WB)
-
-    # Setup camera extrinsics T_BCi
-    rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
-    trans = np.array([0.0, 0.0, 0.0])
-    T_BCi = tf(rot, trans)
-    cam_exts = extrinsics_setup(T_BCi)
-
-    # Setup cam0
-    cam_idx = 0
-    img_w = 640
-    img_h = 480
-    res = [img_w, img_h]
-    fov = 60.0
-    fx = focal_length(img_w, fov)
-    fy = focal_length(img_h, fov)
-    cx = img_w / 2.0
-    cy = img_h / 2.0
-    params = [fx, fy, cx, cy, 0.01, 0.01, 0.0001, 0.0001]
-    cam_params = camera_params_setup(cam_idx, res, "pinhole", "radtan4", params)
-    cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
-
-    # Setup feature
-    p_W = np.array([10, random.uniform(0.0, 1.0), random.uniform(0.0, 1.0)])
-    # -- Feature XYZ parameterization
-    feature = feature_setup(p_W)
-    # # -- Feature inverse depth parameterization
-    # param = idp_param(camera, T_WC, z)
-    # feature = feature_init(0, param)
-    # -- Calculate image point
-    T_WCi = T_WB @ T_BCi
-    p_C = tf_point(inv(T_WCi), p_W)
-    status, z = cam_geom.project(cam_params.param, p_C)
-    self.assertTrue(status)
-
-    # Convert 3D ray from camera frame to world frame
-    x = cam_geom.backproject(cam_params.param, z)
-    theta = x[0]
-    phi = x[1]
-    rho = 0.1
-
-    # print(f"p_C: {np.round(p_C, 4)}")
-    # print(f"x: {np.round(x, 4)}")
-    # print(f"theta: {theta:.4f}")
-    # print(f"phi: {phi:.4f}")
-
-    # Setup factor
-    param_ids = [0, 1, 2, 3]
-    factor = CameraFactor(cam_geom, param_ids, z)
-
-    # Test jacobians
-    # fvars = [pose, cam_exts, feature, cam_params]
-    # self.assertTrue(factor.check_jacobian(fvars, 0, "J_pose"))
-    # self.assertTrue(factor.check_jacobian(fvars, 1, "J_cam_exts"))
-    # self.assertTrue(factor.check_jacobian(fvars, 2, "J_feature"))
-    # self.assertTrue(factor.check_jacobian(fvars, 3, "J_cam_params"))
 
 
 class TestCalibVisionFactor(unittest.TestCase):
