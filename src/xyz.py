@@ -1240,6 +1240,19 @@ def find_intersection(
   return status, p1 + t * d1, residuals, rank
 
 
+def fix_rotation_matrix(R):
+  """Ensure R is a valid rotation matrix by enforcing det(R) = 1."""
+  U, _, Vt = np.linalg.svd(R)
+  R_fixed = U @ Vt  # Project onto SO(3)
+
+  # Ensure det(R) = 1 (corrects reflections)
+  if np.linalg.det(R_fixed) < 0:
+    U[:, -1] *= -1  # Flip last column of U
+    R_fixed = U @ Vt
+
+  return R_fixed
+
+
 ###############################################################################
 # LIE
 # def Exp(phi)
