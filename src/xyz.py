@@ -1712,7 +1712,11 @@ def vecs2aa(u: Vec3, v: Vec3) -> Vec3:
   return ax * angle
 
 
-def euler321(yaw: float, pitch: float, roll: float) -> Mat3:
+def euler321(
+    yaw: float | np.float32 | np.float64,
+    pitch: float | np.float32 | np.float64,
+    roll: float | np.float32 | np.float64,
+) -> Mat3:
   """
   Convert yaw, pitch, roll in radians to a 3x3 rotation matrix.
 
