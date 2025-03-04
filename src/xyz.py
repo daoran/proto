@@ -5419,6 +5419,52 @@ class TestPointCloud(unittest.TestCase):
       plot_set_axes_equal(ax)
       plt.show()
 
+  def test_icp(self):
+    # Ground truth
+    R_gnd = euler321(*np.random.rand(3))
+    t_gnd = np.random.rand(3) * 2
+
+    # Estimate
+    R_est = R_gnd @ euler321(*np.random.rand(3) * 0.2)
+    t_est = t_gnd + np.random.rand(3)
+
+    # Create ground truth points
+    N = 10000
+    p_src = np.random.rand(3, N)
+    p_dst_gnd = (R_gnd @ p_src) + t_gnd[:, np.newaxis]
+
+    # ICP
+    max_iter = 10
+    for _ in range(max_iter):
+      p_dst_est = (R_est @ p_src) + t_est[:, np.newaxis]
+
+      jacobians = []
+      residuals = []
+      for i in range(N):
+        residuals.append(p_dst_gnd[:, i] - p_dst_est[:, i])
+        J = zeros((3, 6))
+        J[0:3, 0:3] = -1.0 * eye(3)
+        J[0:3, 3:6] = R_est @ hat(p_dst_est[:, i])
+        jacobians.append(J)
+      J = np.vstack(jacobians)
+      r = np.hstack(residuals)
+
+      cost = (0.5 * (r.T @ r))
+      H = J.T @ J
+      H += 1e-4 * eye(6)
+      b = (-1.0 * J.T @ r)
+      dx = solve_svd(H, b)
+
+      print(f"{cost=:.2e}")
+      t_est += dx[0:3]
+      R_est = R_est @ Exp(dx[3:6])
+
+    # Assert
+    self.assertTrue(np.linalg.norm(t_est - t_gnd) < 1e-3)
+    self.assertTrue(rot_diff(R_est, R_gnd) < 1e-3)
+
+
+
 
 ################################################################################
 # DATASET
