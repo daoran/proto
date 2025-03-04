@@ -5407,6 +5407,7 @@ class TestPointCloud(unittest.TestCase):
 
     self.assertTrue(np.allclose(R, R_gnd, atol=1e-4))
     self.assertTrue(np.allclose(t, t_gnd, atol=1e-4))
+    self.assertTrue(np.allclose(est, dst, atol=1e-4))
 
     # Visualize
     if self.debug:
@@ -5414,7 +5415,12 @@ class TestPointCloud(unittest.TestCase):
       ax: Axes3D = plt.axes(projection='3d')
       ax.scatter(src[:, 0], src[:, 1], src[:, 2], "r", label="src", alpha=0.2)
       ax.scatter(dst[:, 0], dst[:, 1], dst[:, 2], "g", label="dest", alpha=0.2)
-      ax.scatter(est[:, 0], est[:, 1], est[:, 2], "k", label="aligned", alpha=0.2)
+      ax.scatter(est[:, 0],
+                 est[:, 1],
+                 est[:, 2],
+                 "k",
+                 label="aligned",
+                 alpha=0.2)
       ax.legend(loc=0)
       plot_set_axes_equal(ax)
       plt.show()
@@ -5923,33 +5929,48 @@ class KittiRawDataset:
 
 class TestKitti(unittest.TestCase):
   """ Test KITTI dataset loader """
-  @unittest.skip("")
+
+  # @unittest.skip("")
   def test_load(self):
     """ Test load """
-    data_dir = '/data/kitti'
+    data_dir = Path("/data/kitti_raw")
     date = "2011_09_26"
     seq = "93"
     dataset = KittiRawDataset(data_dir, date, seq, True)
-    # dataset.plot_frames()
 
-    for i in range(dataset.num_camera_images()):
-      cam0_img = dataset.get_camera_image(0, index=i)
-      cam1_img = dataset.get_camera_image(1, index=i)
-      cam2_img = dataset.get_camera_image(2, index=i)
-      cam3_img = dataset.get_camera_image(3, index=i)
+    lidar_timestamps = dataset.velodyne_data.timestamps
+    xyzi = dataset.velodyne_data.load_scan(lidar_timestamps[0])
 
-      img_size = cam0_img.shape
-      img_new_size = (int(img_size[1] / 2.0), int(img_size[0] / 2.0))
+    # fig = plt.figure(figsize=(12, 10))
+    # ax: Axes3D = plt.axes(projection='3d')
+    # ax.scatter(xyzi[::100, 0], xyzi[::100, 1], xyzi[::100, 2])
+    # ax.set_xlabel("x [m]")
+    # ax.set_ylabel("y [m]")
+    # ax.set_zlabel("z [m]")
+    # plot_set_axes_equal(ax)
+    # plt.show()
 
-      cam0_img = cv2.resize(cam0_img, img_new_size)
-      cam1_img = cv2.resize(cam1_img, img_new_size)
-      cam2_img = cv2.resize(cam2_img, img_new_size)
-      cam3_img = cv2.resize(cam3_img, img_new_size)
+    # for ts in lidar_timestamps[:10]:
+    #   xyzi = dataset.velodyne_data.load_scan(ts)
 
-      cv2.imshow("viz", cv2.vconcat([cam0_img, cam1_img, cam2_img, cam3_img]))
-      cv2.waitKey(0)
-
-    self.assertTrue(dataset is not None)
+    # for i in range(dataset.num_camera_images()):
+    #   cam0_img = dataset.get_camera_image(0, index=i)
+    #   cam1_img = dataset.get_camera_image(1, index=i)
+    #   cam2_img = dataset.get_camera_image(2, index=i)
+    #   cam3_img = dataset.get_camera_image(3, index=i)
+    #
+    #   img_size = cam0_img.shape
+    #   img_new_size = (int(img_size[1] / 2.0), int(img_size[0] / 2.0))
+    #
+    #   cam0_img = cv2.resize(cam0_img, img_new_size)
+    #   cam1_img = cv2.resize(cam1_img, img_new_size)
+    #   cam2_img = cv2.resize(cam2_img, img_new_size)
+    #   cam3_img = cv2.resize(cam3_img, img_new_size)
+    #
+    #   cv2.imshow("viz", cv2.vconcat([cam0_img, cam1_img, cam2_img, cam3_img]))
+    #   cv2.waitKey(0)
+    #
+    # self.assertTrue(dataset is not None)
 
 
 ###############################################################################
@@ -6963,6 +6984,7 @@ class BAFactor(Factor):
 
   def eval(self, params, **kwargs):
     """ Evaluate """
+    assert self.sqrt_info
     assert len(params) == 3
     assert len(params[0]) == 7  # Camera pose T_WC
     assert len(params[1]) == 3  # Feature position (x, y, z)
@@ -7047,6 +7069,7 @@ class VisionFactor(Factor):
 
   def eval(self, params, **kwargs):
     """ Evaluate """
+    assert self.sqrt_info
     assert len(params) == 4
     assert len(params[0]) == 7
     assert len(params[1]) == 7
@@ -8820,6 +8843,7 @@ class TestIMUFactor(unittest.TestCase):
     circle_v = 0.1
     sim_data = SimData(circle_r, circle_v, sim_cams=False)
     imu_data = sim_data.imu0_data
+    assert imu_data
 
     # Setup imu parameters
     noise_acc = 0.08  # accelerometer measurement noise stddev.
@@ -8873,6 +8897,7 @@ class TestIMUFactor(unittest.TestCase):
     circle_v = 0.1
     sim_data = SimData(circle_r, circle_v, sim_cams=False)
     imu_data = sim_data.imu0_data
+    assert imu_data
 
     # Setup imu parameters
     noise_acc = 0.08  # accelerometer measurement noise stddev.
@@ -9006,6 +9031,7 @@ class TestIMUFactor(unittest.TestCase):
     circle_v = 0.1
     sim_data = SimData(circle_r, circle_v, sim_cams=False)
     imu_data = sim_data.imu0_data
+    assert imu_data
 
     # Setup imu parameters
     noise_acc = 0.08  # accelerometer measurement noise stddev.
@@ -9061,6 +9087,7 @@ class TestIMUFactor(unittest.TestCase):
     circle_v = 1.0
     sim_data = SimData(circle_r, circle_v, sim_cams=False)
     imu_data = sim_data.imu0_data
+    assert imu_data
 
     # Setup imu parameters
     noise_acc = 0.08  # accelerometer measurement noise stddev.
@@ -10055,6 +10082,7 @@ class TestFactorGraph(unittest.TestCase):
     T_CB_gnd = inv(T_BC_gnd)
 
     # -- Build bundle adjustment problem
+    assert self.sim_data.imu0_data
     imu_data = ImuBuffer()
     poses = []
     sbs = []
@@ -11173,6 +11201,10 @@ class TestFeatureTracking(unittest.TestCase):
     # cv2.waitKey(0)
 
     # Triangulate
+    assert self.cam0_params.data
+    assert self.cam1_params.data
+    assert self.cam0_params.data.project_params
+    assert self.cam1_params.data.project_params
     features = []
     T_WB = eye(4)
     T_BC0 = pose2tf(self.cam0_ext.param)
@@ -11262,7 +11294,7 @@ class TestFeatureTracking(unittest.TestCase):
       if frame0_km1 is not None:
         viz_km1 = draw_keypoints(frame0_km1, kps0_km1)
         viz_k = draw_keypoints(frame0_k, kps0_k)
-        viz = cv2.hconcat([viz_km1, viz_k])
+        viz = np.hstack([viz_km1, viz_k])
         cv2.imshow("Viz", viz)
 
         key_pressed = cv2.waitKey(imshow_wait)
@@ -11304,7 +11336,7 @@ class TestFeatureTracking(unittest.TestCase):
       feature_ids, kps0, kps1 = ft.get_keypoints()
       viz_i = draw_keypoints(frame0, kps0)
       viz_j = draw_keypoints(frame1, kps1)
-      viz = cv2.hconcat([viz_i, viz_j])
+      viz = np.hstack([viz_i, viz_j])
 
       cv2.imshow("Viz", viz)
       key_pressed = cv2.waitKey(imshow_wait)
