@@ -735,7 +735,16 @@ def full_rank(A: MatN) -> float:
 def hat(vec: Vec3) -> Mat3:
   """ Form skew-symmetric matrix from vector `vec` """
   assert vec.shape == (3,) or vec.shape == (3, 1)
-  x, y, z = vec
+
+  if vec.shape == (3,):
+    x = vec[0]
+    y = vec[1]
+    z = vec[2]
+  else:
+    x = vec[0][0]
+    y = vec[1][0]
+    z = vec[2][0]
+
   return np.array([[0.0, -z, y], [z, 0.0, -x], [-y, x, 0.0]])
 
 
@@ -1901,6 +1910,21 @@ def rot2quat(C: Mat3) -> Vec4:
     qz = 0.25 * S
 
   return quat_normalize(np.array([qw, qx, qy, qz]))
+
+
+def rot_diff(C0: Mat3, C1: Mat3):
+  """ Difference between two rotation matrices """
+  dC = C0.T @ C1
+  tr = np.trace(dC)
+  if tr < 0:
+    tr *= -1
+
+  if np.fabs(tr - 3.0) < 1e-6:
+    dtheta = 0.0
+  else:
+    dtheta = acos((tr - 1.0) / 2.0)
+
+  return dtheta
 
 
 # UNITESTS #####################################################################
