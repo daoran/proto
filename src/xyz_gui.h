@@ -77,37 +77,6 @@
   } while (0)
 #endif
 
-/** Macro that adds the ability to switch between C / C++ style mallocs */
-#ifdef __cplusplus
-
-#ifndef MALLOC
-#define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N))
-#endif
-
-#ifndef REALLOC
-#define REALLOC(PTR, TYPE, N) (TYPE *) realloc(PTR, sizeof(TYPE) * (N));
-#endif
-
-#ifndef CALLOC
-#define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE))
-#endif
-
-#else
-
-#ifndef MALLOC
-#define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N))
-#endif
-
-#ifndef REALLOC
-#define REALLOC(PTR, TYPE, N) realloc(PTR, sizeof(TYPE) * (N))
-#endif
-
-#ifndef CALLOC
-#define CALLOC(TYPE, N) calloc((N), sizeof(TYPE))
-#endif
-
-#endif
-
 /******************************************************************************
  * OPENGL UTILS
  *****************************************************************************/
