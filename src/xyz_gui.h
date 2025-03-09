@@ -218,10 +218,10 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
 typedef struct gl_shader_t {
   gl_uint_t program_id;
-  gl_uint_t texture_id;
-  gl_uint_t VAO;
-  gl_uint_t VBO;
-  gl_uint_t EBO;
+  // gl_uint_t texture_id;
+  // gl_uint_t VAO;
+  // gl_uint_t VBO;
+  // gl_uint_t EBO;
 } gl_shader_t;
 
 void gl_shader_setup(gl_shader_t *shader);
@@ -465,9 +465,24 @@ void draw_image(gl_image_t *image);
 
 // TEXT //////////////////////////////////////////////////////////////////////
 
-void setup_text_shader(gl_shader_t *text);
-void text_width_height(const char *s, gl_float_t *w, gl_float_t *h);
-void draw_text(const char *s, const float x, const float y, const gl_color_t c);
+typedef struct gl_text_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+  gl_uint_t EBO;
+  gl_char_t chars[128];
+} gl_text_t;
+
+void setup_text_shader(gl_shader_t *shader);
+void gl_text_setup(gl_text_t *text, const int text_size);
+void text_width_height(gl_text_t *text,
+                       const char *s,
+                       gl_float_t *w,
+                       gl_float_t *h);
+void draw_text(gl_text_t *text,
+               const char *s,
+               const float x,
+               const float y,
+               const gl_color_t c);
 
 // MESH //////////////////////////////////////////////////////////////////////
 

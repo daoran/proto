@@ -1,7 +1,6 @@
 #include "munit.h"
 #include "xyz_gui.h"
 
-
 static GLFWwindow *test_setup(void) {
   // GLFW
   glfwInit();
@@ -478,8 +477,138 @@ int test_gui(void) {
   const char *window_title = "viz";
   const int window_width = 1024;
   const int window_height = 768;
-  gui_setup(window_title, window_width, window_height);
-  gui_loop();
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
+
+  for (int i = 0; i < 10; ++i) {
+    gui_poll(gui);
+    gui_update(gui);
+  }
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_components(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
+
+  // Rect
+  gl_rect_t rect;
+  gl_bounds_t rect_bounds = (gl_bounds_t){10, 10, 100, 100};
+  gl_color_t rect_color = (gl_color_t){1.0f, 0.0f, 1.0f};
+  gl_rect_setup(&rect, rect_bounds, rect_color);
+
+  // Cube
+  gl_float_t cube_T[4 * 4] = {0};
+  gl_eye(cube_T, 4, 4);
+  cube_T[12] = 0.0;
+  cube_T[13] = 0.0;
+  cube_T[14] = 1.0;
+  gl_float_t cube_size = 0.5f;
+  gl_color_t cube_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_cube_t cube;
+  gl_cube_setup(&cube, cube_T, cube_size, cube_color);
+
+  // Frustum
+  gl_float_t frustum_T[4 * 4];
+  gl_eye(frustum_T, 4, 4);
+  gl_float_t frustum_size = 0.5f;
+  gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_float_t frustum_lw = 1.0f;
+  gl_frustum_t frustum;
+  gl_frustum_setup(&frustum,
+                   frustum_T,
+                   frustum_size,
+                   frustum_color,
+                   frustum_lw);
+
+  // Axes
+  gl_float_t axes_T[4 * 4];
+  gl_eye(axes_T, 4, 4);
+  gl_float_t axes_size = 0.5f;
+  gl_float_t axes_lw = 5.0f;
+  gl_axes3d_t axes;
+  gl_axes3d_setup(&axes, axes_T, axes_size, axes_lw);
+
+  // Grid
+  gl_float_t grid_size = 0.5f;
+  gl_float_t grid_lw = 5.0f;
+  gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_grid3d_t grid;
+  gl_grid3d_setup(&grid, grid_size, grid_color, grid_lw);
+
+  // Points
+  gl_points3d_t points3d;
+  gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
+  gl_float_t point_size = 2.0;
+  size_t num_points = 2e3;
+  gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
+  for (size_t i = 0; i < num_points; ++i) {
+    points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 1] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 2] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 3] = points_color.r;
+    points_data[i * 6 + 4] = points_color.g;
+    points_data[i * 6 + 5] = points_color.b;
+  }
+  gl_points3d_setup(&points3d, points_data, num_points, point_size);
+
+  // Line
+  gl_float_t line_lw = 5.0f;
+  gl_color_t line_color = (gl_color_t){1.0, 0.0, 0.0};
+  size_t line_size = 1000;
+  float radius = 3.0f;
+  float dtheta = 2 * M_PI / line_size;
+  float theta = 0.0f;
+  float *line_data = malloc(sizeof(float) * line_size * 3);
+  for (size_t i = 0; i < line_size; ++i) {
+    line_data[i * 3 + 0] = radius * sin(theta);
+    line_data[i * 3 + 1] = 0.0f;
+    line_data[i * 3 + 2] = radius * cos(theta);
+    theta += dtheta;
+  }
+  gl_line3d_t line;
+  gl_line3d_setup(&line, line_data, line_size, line_color, line_lw);
+
+  // Image
+  int width = 0;
+  int height = 0;
+  int channels = 0;
+  const char *image_path = "/home/chutsu/smile.jpeg";
+  stbi_set_flip_vertically_on_load(1);
+  uint8_t *image_data = stbi_load(image_path, &width, &height, &channels, 0);
+  gl_image_t image;
+  gl_image_setup(&image, 10, 120, image_data, width, height, channels);
+
+  // Text
+  gl_text_t text;
+  gl_color_t text_color = (gl_color_t){1.0, 1.0, 1.0};
+  int text_size = 18;
+  gl_text_setup(&text, text_size);
+
+  // Render
+  while (gui_poll(gui)) {
+    draw_rect(&rect);
+    draw_cube(&cube);
+    draw_frustum(&frustum);
+    draw_axes3d(&axes);
+    draw_grid3d(&grid);
+    draw_points3d(&points3d);
+    draw_line3d(&line);
+    draw_image(&image);
+    draw_text(&text, "Hello World", 10, 350, text_color);
+
+    gui_update(gui);
+  }
+
+  // Clean up
+  free(points_data);
+  free(line_data);
+  stbi_image_free(image_data);
+  gui_free(gui);
 
   return 0;
 }
@@ -531,6 +660,7 @@ void test_suite(void) {
   // MU_ADD_TEST(test_gl_model_load);
 #if CI_MODE == 0
   MU_ADD_TEST(test_gui);
+  MU_ADD_TEST(test_components);
   MU_ADD_TEST(test_sandbox);
 #endif
 }

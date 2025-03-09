@@ -11,7 +11,6 @@
 #endif
 
 // GLOBAL VARIABLES
-// GLFWwindow *_window;
 char _window_title[100] = {0};
 int _window_loop = 1;
 int _window_width = 0;
@@ -32,7 +31,6 @@ double _cursor_last_y = 0.0;
 int _cursor_is_dragging = 0;
 int _ui_engaged = 0;
 
-gl_char_t _chars[128];
 int _key_q = 0;
 int _key_w = 0;
 int _key_a = 0;
@@ -603,10 +601,10 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp) {
 
 void gl_shader_setup(gl_shader_t *shader) {
   shader->program_id = 0;
-  shader->texture_id = 0;
-  shader->VAO = 0;
-  shader->VBO = 0;
-  shader->EBO = 0;
+  // shader->texture_id = 0;
+  // shader->VAO = 0;
+  // shader->VBO = 0;
+  // shader->EBO = 0;
 }
 
 void gl_shader_cleanup(gl_shader_t *shader) {
@@ -614,17 +612,17 @@ void gl_shader_cleanup(gl_shader_t *shader) {
     glDeleteProgram(shader->program_id);
   }
 
-  if (glIsVertexArray(shader->VAO) == GL_TRUE) {
-    glDeleteVertexArrays(1, &shader->VAO);
-  }
-
-  if (glIsBuffer(shader->VBO) == GL_TRUE) {
-    glDeleteBuffers(1, &shader->VBO);
-  }
-
-  if (glIsBuffer(shader->EBO) == GL_TRUE) {
-    glDeleteBuffers(1, &shader->EBO);
-  }
+  // if (glIsVertexArray(shader->VAO) == GL_TRUE) {
+  //   glDeleteVertexArrays(1, &shader->VAO);
+  // }
+  //
+  // if (glIsBuffer(shader->VBO) == GL_TRUE) {
+  //   glDeleteBuffers(1, &shader->VBO);
+  // }
+  //
+  // if (glIsBuffer(shader->EBO) == GL_TRUE) {
+  //   glDeleteBuffers(1, &shader->EBO);
+  // }
 }
 
 gl_uint_t gl_compile(const char *src, const int type) {
@@ -2001,7 +1999,6 @@ void setup_points3d_shader(gl_shader_t *shader) {
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders to draw points!");
   }
-  shader->VAO = 0;
 }
 
 void gl_points3d_setup(gl_points3d_t *points3d,
@@ -2092,7 +2089,6 @@ void setup_line3d_shader(gl_shader_t *shader) {
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
-  shader->VAO = -1;
 }
 
 void gl_line3d_setup(gl_line3d_t *line,
@@ -2196,8 +2192,6 @@ void setup_image_shader(gl_shader_t *shader) {
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
-  shader->texture_id = -1;
-  shader->VAO = -1;
 }
 
 void gl_image_setup(gl_image_t *image,
@@ -2358,24 +2352,21 @@ void gl_char_print(const gl_char_t *ch) {
 
 void setup_text_shader(gl_shader_t *shader) {
   assert(shader);
-
-  // Setup
-  const gl_float_t text_size = 18;
-
-  // Compile shader
   gl_shader_setup(shader);
   shader->program_id = gl_shader(GL_TEXT_VS, GL_TEXT_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
+}
 
+void gl_text_setup(gl_text_t *text, const int text_size) {
   // VAO
-  glGenVertexArrays(1, &shader->VAO);
-  glBindVertexArray(shader->VAO);
+  glGenVertexArrays(1, &text->VAO);
+  glBindVertexArray(text->VAO);
 
   // VBO
-  glGenBuffers(1, &shader->VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
+  glGenBuffers(1, &text->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, text->VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
   glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
   glEnableVertexAttribArray(0);
@@ -2439,29 +2430,32 @@ void setup_text_shader(gl_shader_t *shader) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Store character for later use
-    _chars[c].texture_id = texture_id;
-    _chars[c].size[0] = face->glyph->bitmap.width;
-    _chars[c].size[1] = face->glyph->bitmap.rows;
-    _chars[c].bearing[0] = face->glyph->bitmap_left;
-    _chars[c].bearing[1] = face->glyph->bitmap_top;
-    _chars[c].offset = face->glyph->advance.x;
+    text->chars[c].texture_id = texture_id;
+    text->chars[c].size[0] = face->glyph->bitmap.width;
+    text->chars[c].size[1] = face->glyph->bitmap.rows;
+    text->chars[c].bearing[0] = face->glyph->bitmap_left;
+    text->chars[c].bearing[1] = face->glyph->bitmap_top;
+    text->chars[c].offset = face->glyph->advance.x;
   }
   glBindTexture(GL_TEXTURE_2D, 0);
   FT_Done_Face(face);
   FT_Done_FreeType(ft);
 }
 
-void text_width_height(const char *s, gl_float_t *w, gl_float_t *h) {
+void text_width_height(gl_text_t *text,
+                       const char *s,
+                       gl_float_t *w,
+                       gl_float_t *h) {
   assert(s);
   assert(w);
   assert(h);
 
   float x = 0.0f;
-  gl_char_t *hch = &_chars[(int) 'H'];
-  gl_char_t *ch = &_chars[(int) s[0]];
+  gl_char_t *hch = &text->chars[(int) 'H'];
+  gl_char_t *ch = &text->chars[(int) s[0]];
 
   for (size_t i = 0; i < strlen(s); ++i) {
-    ch = &_chars[(int) s[i]];
+    ch = &text->chars[(int) s[i]];
     x += (ch->offset >> 6);
   }
 
@@ -2469,10 +2463,12 @@ void text_width_height(const char *s, gl_float_t *w, gl_float_t *h) {
   *h = (hch->bearing[1] - ch->bearing[1]) + ch->size[1];
 }
 
-void draw_text(const char *s,
+void draw_text(gl_text_t *text,
+               const char *s,
                const float x,
                const float y,
                const gl_color_t c) {
+  assert(text);
   assert(s);
 
   // Setup projection matrix
@@ -2488,13 +2484,13 @@ void draw_text(const char *s,
   gl_set_color(shader->program_id, "text_color", c);
   gl_set_int(shader->program_id, "text", 0);
   glActiveTexture(GL_TEXTURE0);
-  glBindVertexArray(shader->VAO);
+  glBindVertexArray(text->VAO);
 
   // Render text
   float x_ = x;
-  gl_char_t *hch = &_chars[(int) 'H'];
+  gl_char_t *hch = &text->chars[(int) 'H'];
   for (size_t i = 0; i < strlen(s); ++i) {
-    gl_char_t *ch = &_chars[(int) s[i]];
+    gl_char_t *ch = &text->chars[(int) s[i]];
     const float xpos = x_ + ch->bearing[0] * scale;
     const float ypos = y + (hch->bearing[1] - ch->bearing[1]) * scale;
     const float w = ch->size[0] * scale;
@@ -2516,7 +2512,7 @@ void draw_text(const char *s,
     glBindTexture(GL_TEXTURE_2D, ch->texture_id);
 
     // Update content of VBO memory
-    glBindBuffer(GL_ARRAY_BUFFER, shader->VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, text->VBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
