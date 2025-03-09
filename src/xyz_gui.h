@@ -87,6 +87,13 @@ typedef GLfloat gl_float_t;
 typedef GLenum gl_enum_t;
 
 typedef struct {
+  gl_uint_t texture_id;
+  gl_int_t size[2];    // Size of glyph
+  gl_int_t bearing[2]; // Offset from baseline to left/top of glyph
+  gl_uint_t offset;    // Offset to advance to next glyph
+} gl_char_t;
+
+typedef struct {
   gl_float_t x;
   gl_float_t y;
   gl_float_t z;
@@ -286,87 +293,177 @@ void gl_camera_zoom(gl_camera_t *camera,
  * GUI
  *****************************************************************************/
 
-void gui_setup(const char *window_title,
-               const int window_width,
-               const int window_height);
+typedef struct gui_t {
+  GLFWwindow *window;
+  float fps_limit;
+  float last_time;
+  float last_frame;
+} gui_t;
+
+gui_t *gui_malloc(const char *window_title,
+                  const int window_width,
+                  const int window_height);
+void gui_free(gui_t *gui);
+int gui_poll(gui_t *gui);
+void gui_update(gui_t *gui);
 void gui_loop(void);
 
 // RECT //////////////////////////////////////////////////////////////////////
 
+typedef struct gl_rect_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+  gl_uint_t EBO;
+  gl_bounds_t bounds;
+  gl_color_t color;
+} gl_rect_t;
+
 void setup_rect_shader(gl_shader_t *rect);
-void draw_rect(const gl_bounds_t *bounds, const gl_color_t *color);
+void gl_rect_setup(gl_rect_t *rect,
+                   const gl_bounds_t bounds,
+                   const gl_color_t color);
+void draw_rect(gl_rect_t *rect);
 
 // CUBE //////////////////////////////////////////////////////////////////////
 
-void setup_cube_shader(gl_shader_t *cube);
-void draw_cube(const gl_float_t T[4 * 4],
-               const gl_float_t size,
-               const gl_color_t color);
-
-// FRUSTUM ///////////////////////////////////////////////////////////////////
-
-void setup_frustum_shader(gl_shader_t *frustum);
-void draw_frustum(const gl_float_t T[4 * 4],
-                  const gl_float_t size,
-                  const gl_color_t color,
-                  const gl_float_t lw);
-
-// AXES 3D ///////////////////////////////////////////////////////////////////
-
-void setup_axes3d_shader(gl_shader_t *axes);
-void draw_axes3d(const gl_float_t T[4 * 4],
-                 const gl_float_t size,
-                 const gl_float_t lw);
-
-// GRID 3D ///////////////////////////////////////////////////////////////////
-
-void setup_grid3d_shader(gl_shader_t *grid);
-void draw_grid3d(const gl_float_t size,
-                 const gl_float_t lw,
-                 const gl_color_t color);
-
-// POINTS 3D /////////////////////////////////////////////////////////////////
-
-typedef struct gl_points3d {
+typedef struct gl_cube_t {
   gl_uint_t VAO;
   gl_uint_t VBO;
 
-  gl_float_t *points;
+  gl_float_t T[4 * 4];
+  gl_float_t size;
+  gl_color_t color;
+} gl_cube_t;
+
+void setup_cube_shader(gl_shader_t *cube);
+void gl_cube_setup(gl_cube_t *cube,
+                   const gl_float_t T[4 * 4],
+                   const gl_float_t size,
+                   const gl_color_t color);
+void draw_cube(gl_cube_t *cube);
+
+// FRUSTUM ///////////////////////////////////////////////////////////////////
+
+typedef struct gl_frustum_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+
+  gl_float_t T[4 * 4];
+  gl_float_t size;
+  gl_color_t color;
+  gl_float_t lw;
+} gl_frustum_t;
+
+void setup_frustum_shader(gl_shader_t *frustum);
+void gl_frustum_setup(gl_frustum_t *frustum,
+                      const gl_float_t T[4 * 4],
+                      const gl_float_t size,
+                      const gl_color_t color,
+                      const gl_float_t lw);
+void draw_frustum(gl_frustum_t *frustum);
+
+// AXES 3D ///////////////////////////////////////////////////////////////////
+
+typedef struct gl_axes3d_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+
+  gl_float_t T[4 * 4];
+  gl_float_t size;
+  gl_float_t lw;
+} gl_axes3d_t;
+
+void setup_axes3d_shader(gl_shader_t *axes);
+void gl_axes3d_setup(gl_axes3d_t *axes,
+                     const gl_float_t T[4 * 4],
+                     const gl_float_t size,
+                     const gl_float_t lw);
+void draw_axes3d(gl_axes3d_t *axes);
+
+// GRID 3D ///////////////////////////////////////////////////////////////////
+
+typedef struct gl_grid3d_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+
+  gl_float_t size;
+  gl_color_t color;
+  gl_float_t lw;
+} gl_grid3d_t;
+
+void setup_grid3d_shader(gl_shader_t *grid);
+void gl_grid3d_setup(gl_grid3d_t *grid,
+                     const gl_float_t size,
+                     const gl_color_t color,
+                     const gl_float_t lw);
+void draw_grid3d(gl_grid3d_t *grid);
+
+// POINTS 3D /////////////////////////////////////////////////////////////////
+
+typedef struct gl_points3d_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+
+  const gl_float_t *points_data;
   size_t num_points;
   gl_float_t point_size;
-} gl_points3d;
+} gl_points3d_t;
 
 void setup_points3d_shader(gl_shader_t *points);
-void draw_points3d(const gl_float_t *points_data,
-                   const size_t num_points,
-                   const gl_float_t size);
+void gl_points3d_setup(gl_points3d_t *points3d,
+                       const gl_float_t *points_data,
+                       const size_t num_points,
+                       const gl_float_t point_size);
+void draw_points3d(gl_points3d_t *points);
 
 // LINE 3D ///////////////////////////////////////////////////////////////////
 
+typedef struct gl_line3d_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+
+  const gl_float_t *data;
+  size_t num_points;
+  gl_color_t color;
+  gl_float_t lw;
+} gl_line3d_t;
+
 void setup_line3d_shader(gl_shader_t *line);
-void draw_line3d(const gl_float_t *data,
-                 const size_t num_points,
-                 const gl_color_t color,
-                 const gl_float_t lw);
+void gl_line3d_setup(gl_line3d_t *line,
+                     const gl_float_t *data,
+                     const size_t num_points,
+                     const gl_color_t color,
+                     const gl_float_t lw);
+void draw_line3d(gl_line3d_t *line);
 
 // IMAGE /////////////////////////////////////////////////////////////////////
 
+typedef struct gl_image_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+  gl_uint_t EBO;
+  gl_uint_t texture_id;
+
+  gl_int_t x;
+  gl_int_t y;
+
+  const uint8_t *data;
+  gl_int_t width;
+  gl_int_t height;
+  gl_int_t channels;
+} gl_image_t;
+
 void setup_image_shader(gl_shader_t *shader);
-void draw_image(const int x,
-                const int y,
-                const uint8_t *data,
-                const int w,
-                const int h,
-                const int c);
+void gl_image_setup(gl_image_t *image,
+                    const int x,
+                    const int y,
+                    const uint8_t *data,
+                    const int w,
+                    const int h,
+                    const int c);
+void draw_image(gl_image_t *image);
 
 // TEXT //////////////////////////////////////////////////////////////////////
-
-typedef struct {
-  gl_uint_t texture_id;
-  gl_int_t size[2];    // Size of glyph
-  gl_int_t bearing[2]; // Offset from baseline to left/top of glyph
-  gl_uint_t offset;    // Offset to advance to next glyph
-} gl_char_t;
 
 void setup_text_shader(gl_shader_t *text);
 void text_width_height(const char *s, gl_float_t *w, gl_float_t *h);
