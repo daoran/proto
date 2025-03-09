@@ -218,10 +218,6 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
 typedef struct gl_shader_t {
   gl_uint_t program_id;
-  // gl_uint_t texture_id;
-  // gl_uint_t VAO;
-  // gl_uint_t VBO;
-  // gl_uint_t EBO;
 } gl_shader_t;
 
 void gl_shader_setup(gl_shader_t *shader);
@@ -322,6 +318,7 @@ void setup_rect_shader(gl_shader_t *rect);
 void gl_rect_setup(gl_rect_t *rect,
                    const gl_bounds_t bounds,
                    const gl_color_t color);
+void gl_rect_cleanup(gl_rect_t *rect);
 void draw_rect(gl_rect_t *rect);
 
 // CUBE //////////////////////////////////////////////////////////////////////
@@ -340,6 +337,7 @@ void gl_cube_setup(gl_cube_t *cube,
                    const gl_float_t T[4 * 4],
                    const gl_float_t size,
                    const gl_color_t color);
+void gl_cube_cleanup(gl_cube_t *cube);
 void draw_cube(gl_cube_t *cube);
 
 // FRUSTUM ///////////////////////////////////////////////////////////////////
@@ -360,6 +358,7 @@ void gl_frustum_setup(gl_frustum_t *frustum,
                       const gl_float_t size,
                       const gl_color_t color,
                       const gl_float_t lw);
+void gl_frustum_cleanup(gl_frustum_t *frustum);
 void draw_frustum(gl_frustum_t *frustum);
 
 // AXES 3D ///////////////////////////////////////////////////////////////////
@@ -378,6 +377,7 @@ void gl_axes3d_setup(gl_axes3d_t *axes,
                      const gl_float_t T[4 * 4],
                      const gl_float_t size,
                      const gl_float_t lw);
+void gl_axes3d_cleanup(gl_axes3d_t *axes);
 void draw_axes3d(gl_axes3d_t *axes);
 
 // GRID 3D ///////////////////////////////////////////////////////////////////
@@ -396,6 +396,7 @@ void gl_grid3d_setup(gl_grid3d_t *grid,
                      const gl_float_t size,
                      const gl_color_t color,
                      const gl_float_t lw);
+void gl_grid3d_cleanup(gl_grid3d_t *grid);
 void draw_grid3d(gl_grid3d_t *grid);
 
 // POINTS 3D /////////////////////////////////////////////////////////////////
@@ -414,6 +415,7 @@ void gl_points3d_setup(gl_points3d_t *points3d,
                        const gl_float_t *points_data,
                        const size_t num_points,
                        const gl_float_t point_size);
+void gl_points3d_cleanup(gl_points3d_t *points);
 void draw_points3d(gl_points3d_t *points);
 
 // LINE 3D ///////////////////////////////////////////////////////////////////
@@ -434,6 +436,7 @@ void gl_line3d_setup(gl_line3d_t *line,
                      const size_t num_points,
                      const gl_color_t color,
                      const gl_float_t lw);
+void gl_line3d_cleanup(gl_line3d_t *line);
 void draw_line3d(gl_line3d_t *line);
 
 // IMAGE /////////////////////////////////////////////////////////////////////
@@ -461,6 +464,7 @@ void gl_image_setup(gl_image_t *image,
                     const int w,
                     const int h,
                     const int c);
+void gl_image_cleanup(gl_image_t *image);
 void draw_image(gl_image_t *image);
 
 // TEXT //////////////////////////////////////////////////////////////////////
@@ -474,6 +478,7 @@ typedef struct gl_text_t {
 
 void setup_text_shader(gl_shader_t *shader);
 void gl_text_setup(gl_text_t *text, const int text_size);
+void gl_text_cleanup(gl_text_t *text);
 void text_width_height(gl_text_t *text,
                        const char *s,
                        gl_float_t *w,

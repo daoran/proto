@@ -347,25 +347,40 @@ int test_gl_lookat(void) {
 // TEST SHADER ///////////////////////////////////////////////////////////////
 
 int test_gl_compile(void) {
+
+#define GL_RECT_VS                                                             \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec2 in_pos;\n"                                    \
+  "uniform float w;\n"                                                         \
+  "uniform float h;\n"                                                         \
+  "uniform float x;\n"                                                         \
+  "uniform float y;\n"                                                         \
+  "uniform mat4 ortho;\n"                                                      \
+  "void main() {\n"                                                            \
+  "  float x = in_pos.x * w + x;\n"                                            \
+  "  float y = in_pos.y * h + y;\n"                                            \
+  "  gl_Position = ortho * vec4(x, y, 0.0f, 1.0f);\n"                          \
+  "}\n"
+
+#define GL_RECT_FS                                                             \
+  "#version 330 core\n"                                                        \
+  "uniform vec3 color;\n"                                                      \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "}\n"
+
   // Setup
   GLFWwindow *window = test_setup();
 
   // Vertex shader
-  char *vs_str = load_file("./shaders/cube.vert");
-  if (vs_str == NULL) {
-    FATAL("Failed to load file: %s\n", "./shaders/cube.vert");
-  }
+  char *vs_str = GL_RECT_VS;
   const gl_uint_t vs = gl_compile(vs_str, GL_VERTEX_SHADER);
-  free(vs_str);
   MU_ASSERT(vs != GL_FALSE);
 
   // Fragment shader
-  char *fs_str = load_file("./shaders/cube.frag");
-  if (fs_str == NULL) {
-    FATAL("Failed to load file: %s\n", "./shaders/cube.frag");
-  }
+  char *fs_str = GL_RECT_FS;
   const gl_uint_t fs = gl_compile(fs_str, GL_VERTEX_SHADER);
-  free(fs_str);
   MU_ASSERT(fs != GL_FALSE);
 
   // Cleanup
@@ -375,19 +390,40 @@ int test_gl_compile(void) {
 }
 
 int test_gl_link(void) {
+
+#define GL_RECT_VS                                                             \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec2 in_pos;\n"                                    \
+  "uniform float w;\n"                                                         \
+  "uniform float h;\n"                                                         \
+  "uniform float x;\n"                                                         \
+  "uniform float y;\n"                                                         \
+  "uniform mat4 ortho;\n"                                                      \
+  "void main() {\n"                                                            \
+  "  float x = in_pos.x * w + x;\n"                                            \
+  "  float y = in_pos.y * h + y;\n"                                            \
+  "  gl_Position = ortho * vec4(x, y, 0.0f, 1.0f);\n"                          \
+  "}\n"
+
+#define GL_RECT_FS                                                             \
+  "#version 330 core\n"                                                        \
+  "uniform vec3 color;\n"                                                      \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "}\n"
+
   // Setup
   GLFWwindow *window = test_setup();
 
   // Cube vertex shader
-  char *vs_str = load_file("./shaders/cube.vert");
+  char *vs_str = GL_RECT_VS;
   const gl_uint_t vs = gl_compile(vs_str, GL_VERTEX_SHADER);
-  free(vs_str);
   MU_ASSERT(vs != GL_FALSE);
 
   // Cube fragment shader
-  char *fs_str = load_file("./shaders/cube.frag");
+  char *fs_str = GL_RECT_FS;
   const gl_uint_t fs = gl_compile(fs_str, GL_FRAGMENT_SHADER);
-  free(fs_str);
   MU_ASSERT(fs != GL_FALSE);
 
   // Link shakders
@@ -404,15 +440,34 @@ int test_gl_link(void) {
 // TEST GL PROGRAM ///////////////////////////////////////////////////////////
 
 int test_gl_shader(void) {
+
+#define GL_RECT_VS                                                             \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec2 in_pos;\n"                                    \
+  "uniform float w;\n"                                                         \
+  "uniform float h;\n"                                                         \
+  "uniform float x;\n"                                                         \
+  "uniform float y;\n"                                                         \
+  "uniform mat4 ortho;\n"                                                      \
+  "void main() {\n"                                                            \
+  "  float x = in_pos.x * w + x;\n"                                            \
+  "  float y = in_pos.y * h + y;\n"                                            \
+  "  gl_Position = ortho * vec4(x, y, 0.0f, 1.0f);\n"                          \
+  "}\n"
+
+#define GL_RECT_FS                                                             \
+  "#version 330 core\n"                                                        \
+  "uniform vec3 color;\n"                                                      \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "}\n"
+
   // Setup
   GLFWwindow *window = test_setup();
 
   // Shader program
-  char *vs_str = load_file("./shaders/cube.vert");
-  char *fs_str = load_file("./shaders/cube.frag");
-  const gl_uint_t program_id = gl_shader(vs_str, fs_str, NULL);
-  free(vs_str);
-  free(fs_str);
+  const gl_uint_t program_id = gl_shader(GL_RECT_VS, GL_RECT_FS, NULL);
   MU_ASSERT(program_id != GL_FALSE);
 
   // Cleanup
@@ -429,34 +484,6 @@ int test_gl_camera_setup(void) {
 
   gl_camera_t camera;
   gl_camera_setup(&camera, &window_width, &window_height);
-
-  // const gl_float_t focal_expected[3] = {0.0f, 0.0f, 0.0f};
-  // const gl_float_t world_up_expected[3] = {0.0f, 1.0f, 0.0f};
-  // const gl_float_t position_expected[3] = {0.0f, 2.0f, 0.0f};
-  // const gl_float_t right_expected[3] = {-1.0f, 0.0f, 0.0f};
-  // const gl_float_t up_expected[3] = {0.0f, 1.0f, 0.0f};
-  // const gl_float_t front_expected[3] = {0.0f, 0.0f, 1.0f};
-  // const gl_float_t yaw_expected = gl_deg2rad(0.0f);
-  // const gl_float_t pitch_expected = gl_deg2rad(0.0f);
-  // const gl_float_t fov_expected = gl_deg2rad(90.0f);
-  // const gl_float_t near_expected = 0.01f;
-  // const gl_float_t far_expected = 100.0f;
-
-  // MU_ASSERT(camera.window_width == &window_width);
-  // MU_ASSERT(camera.window_height == &window_height);
-  //
-  // MU_ASSERT(gl_equals(camera.focal, focal_expected, 3, 1, 1e-8) == 1);
-  // MU_ASSERT(gl_equals(camera.world_up, world_up_expected, 3, 1, 1e-8) == 1);
-  // MU_ASSERT(gl_equals(camera.position, position_expected, 3, 1, 1e-8) == 1);
-  // MU_ASSERT(gl_equals(camera.right, right_expected, 3, 1, 1e-8) == 1);
-  // MU_ASSERT(gl_equals(camera.up, up_expected, 3, 1, 1e-8) == 1);
-  // MU_ASSERT(gl_equals(camera.front, front_expected, 3, 1, 1e-8) == 1);
-  // MU_ASSERT(fabs(camera.yaw - yaw_expected) < 1e-8);
-  // MU_ASSERT(fabs(camera.pitch - pitch_expected) < 1e-8);
-  //
-  // MU_ASSERT(fabs(camera.fov - fov_expected) < 1e-8);
-  // MU_ASSERT(fabs(camera.near - near_expected) < 1e-8);
-  // MU_ASSERT(fabs(camera.far - far_expected) < 1e-8);
 
   return 0;
 }
@@ -544,7 +571,7 @@ int test_components(void) {
   gl_points3d_t points3d;
   gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
   gl_float_t point_size = 2.0;
-  size_t num_points = 2e3;
+  size_t num_points = 1e5;
   gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
   for (size_t i = 0; i < num_points; ++i) {
     points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
@@ -653,11 +680,11 @@ void test_suite(void) {
   MU_ADD_TEST(test_gl_perspective);
   MU_ADD_TEST(test_gl_ortho);
   MU_ADD_TEST(test_gl_lookat);
-  // MU_ADD_TEST(test_gl_compile);
-  // MU_ADD_TEST(test_gl_link);
-  // MU_ADD_TEST(test_gl_shader);
-  // MU_ADD_TEST(test_gl_camera_setup);
-  // MU_ADD_TEST(test_gl_model_load);
+  MU_ADD_TEST(test_gl_compile);
+  MU_ADD_TEST(test_gl_link);
+  MU_ADD_TEST(test_gl_shader);
+  MU_ADD_TEST(test_gl_camera_setup);
+  MU_ADD_TEST(test_gl_model_load);
 #if CI_MODE == 0
   MU_ADD_TEST(test_gui);
   MU_ADD_TEST(test_components);

@@ -54,6 +54,16 @@ gl_shader_t _shader_text;
  * OPENGL UTILS
  *****************************************************************************/
 
+#define GL_DEL_VERTEX_ARRAY(X)                                                 \
+  if (glIsVertexArray(X) == GL_TRUE) {                                         \
+    glDeleteVertexArrays(1, &X);                                               \
+  }
+
+#define GL_DEL_BUFFER(X)                                                       \
+  if (glIsBuffer(X) == GL_TRUE) {                                              \
+    glDeleteBuffers(1, &X);                                                    \
+  }
+
 /**
  * Read file contents in file path `fp`.
  * @returns
@@ -611,18 +621,6 @@ void gl_shader_cleanup(gl_shader_t *shader) {
   if (glIsProgram(shader->program_id) == GL_TRUE) {
     glDeleteProgram(shader->program_id);
   }
-
-  // if (glIsVertexArray(shader->VAO) == GL_TRUE) {
-  //   glDeleteVertexArrays(1, &shader->VAO);
-  // }
-  //
-  // if (glIsBuffer(shader->VBO) == GL_TRUE) {
-  //   glDeleteBuffers(1, &shader->VBO);
-  // }
-  //
-  // if (glIsBuffer(shader->EBO) == GL_TRUE) {
-  //   glDeleteBuffers(1, &shader->EBO);
-  // }
 }
 
 gl_uint_t gl_compile(const char *src, const int type) {
@@ -1266,11 +1264,13 @@ int gui_poll(gui_t *gui) {
 void gui_update(gui_t *gui) {
   assert(gui);
 
-  double time_now = glfwGetTime();
-  if ((time_now - gui->last_frame) >= gui->fps_limit) {
+  const double time_now = glfwGetTime();
+  const double dt = time_now - gui->last_frame;
+  if (dt >= gui->fps_limit) {
     glfwSwapBuffers(gui->window);
     gui->last_frame = time_now;
   }
+  glfwSwapBuffers(gui->window);
   gui->last_time = time_now;
 }
 
@@ -1318,6 +1318,12 @@ void gl_rect_setup(gl_rect_t *rect,
 
   rect->bounds = bounds;
   rect->color = color;
+}
+
+void gl_rect_cleanup(gl_rect_t *rect) {
+  GL_DEL_VERTEX_ARRAY(rect->VAO);
+  GL_DEL_BUFFER(rect->VBO);
+  GL_DEL_BUFFER(rect->EBO);
 }
 
 void draw_rect(gl_rect_t *rect) {
@@ -1466,6 +1472,11 @@ void gl_cube_setup(gl_cube_t *cube,
   }
   cube->size = size;
   cube->color = color;
+}
+
+void gl_cube_cleanup(gl_cube_t *cube) {
+  GL_DEL_VERTEX_ARRAY(cube->VAO);
+  GL_DEL_BUFFER(cube->VBO);
 }
 
 void draw_cube(gl_cube_t *cube) {
@@ -1628,6 +1639,11 @@ void gl_frustum_setup(gl_frustum_t *frustum,
   frustum->lw = lw;
 }
 
+void gl_frustum_cleanup(gl_frustum_t *frustum) {
+  GL_DEL_VERTEX_ARRAY(frustum->VAO);
+  GL_DEL_BUFFER(frustum->VBO);
+}
+
 void draw_frustum(gl_frustum_t *frustum) {
   assert(frustum);
 
@@ -1757,6 +1773,11 @@ void gl_axes3d_setup(gl_axes3d_t *axes,
   }
   axes->size = size;
   axes->lw = lw;
+}
+
+void gl_axes3d_cleanup(gl_axes3d_t *axes3d) {
+  GL_DEL_VERTEX_ARRAY(axes3d->VAO);
+  GL_DEL_BUFFER(axes3d->VBO);
 }
 
 void draw_axes3d(gl_axes3d_t *axes) {
@@ -1919,6 +1940,11 @@ void gl_grid3d_setup(gl_grid3d_t *grid,
   grid->lw = lw;
 }
 
+void gl_grid3d_cleanup(gl_grid3d_t *grid) {
+  GL_DEL_VERTEX_ARRAY(grid->VAO);
+  GL_DEL_BUFFER(grid->VBO);
+}
+
 void draw_grid3d(gl_grid3d_t *grid) {
   assert(grid);
 
@@ -2018,6 +2044,11 @@ void gl_points3d_setup(gl_points3d_t *points3d,
   points3d->point_size = point_size;
 }
 
+void gl_points3d_cleanup(gl_points3d_t *points) {
+  GL_DEL_VERTEX_ARRAY(points->VAO);
+  GL_DEL_BUFFER(points->VBO);
+}
+
 void draw_points3d(gl_points3d_t *points) {
   if (points->VAO == 0) {
     // VAO
@@ -2108,6 +2139,11 @@ void gl_line3d_setup(gl_line3d_t *line,
   line->num_points = num_points;
   line->color = color;
   line->lw = lw;
+}
+
+void gl_line3d_cleanup(gl_line3d_t *line) {
+  GL_DEL_VERTEX_ARRAY(line->VAO);
+  GL_DEL_BUFFER(line->VBO);
 }
 
 void draw_line3d(gl_line3d_t *line) {
@@ -2220,6 +2256,12 @@ void gl_image_setup(gl_image_t *image,
   image->width = width;
   image->height = height;
   image->channels = channels;
+}
+
+void gl_image_cleanup(gl_image_t *image) {
+  GL_DEL_VERTEX_ARRAY(image->VAO);
+  GL_DEL_BUFFER(image->VBO);
+  GL_DEL_BUFFER(image->EBO);
 }
 
 void draw_image(gl_image_t *image) {
@@ -2440,6 +2482,12 @@ void gl_text_setup(gl_text_t *text, const int text_size) {
   glBindTexture(GL_TEXTURE_2D, 0);
   FT_Done_Face(face);
   FT_Done_FreeType(ft);
+}
+
+void gl_text_cleanup(gl_text_t *text) {
+  GL_DEL_VERTEX_ARRAY(text->VAO);
+  GL_DEL_BUFFER(text->VBO);
+  GL_DEL_BUFFER(text->EBO);
 }
 
 void text_width_height(gl_text_t *text,
