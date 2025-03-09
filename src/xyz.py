@@ -5390,12 +5390,77 @@ def umeyama(X: MatNx3, Y: MatNx3) -> tuple[float, Mat3, Vec3]:
   return c, R, t
 
 
+def icp(
+    X: MatNx3,
+    Y: MatNx3,
+    **kwargs,
+) -> tuple[MatNx3, Mat3 | None, Vec3 | None]:
+  # Parameters
+  prev_error = float('inf')
+  max_iter = kwargs.get("max_iter", 2)
+  tol = kwargs.get("tol", 1e-8)
+
+  # Setup
+  R = None
+  t = None
+
+  # -- Setup plotting
+  plt.figure(figsize=(12, 10))
+  ax: Axes3D = plt.axes(projection='3d')
+  ax.scatter(X[:, 0], X[:, 1], X[:, 2], color="r", label="src", alpha=0.2)
+  ax.scatter(Y[:, 0], Y[:, 1], Y[:, 2], color="g", label="dest", alpha=0.2)
+  plt.legend(loc=0)
+  # plt.show()
+
+  # Optimize
+  est_ax = None
+  for _ in range(max_iter):
+    # Step 1: Find closest points in Y for each point in X
+    tree = scipy.spatial.KDTree(Y)
+    distances, indices = tree.query(X)
+    closest_Y = Y[indices]
+
+    # # Step 2: Compute transformation using Least Squares
+    # X_flat = np.hstack((X, np.ones((X.shape[0], 1))))
+    # Y_flat = np.hstack((Y, np.ones((Y.shape[0], 1))))
+    #
+    # # Solve Ax = b in Least Squares sense (x = transformation matrix)
+    # est, _, _, _ = np.linalg.lstsq(X_flat, Y_flat, rcond=None)  # Solving A * X ≈ B
+    # R = est[:3, :3]  # Rotation matrix
+    # t = est[3, :]    # Translation vector
+    _, R, t = umeyama(X.T, closest_Y.T)
+
+    # Step 3: Apply transformation
+    X = (X @ R.T) + t.T
+
+    # Plot
+    if est_ax:
+      est_ax.remove()
+    est_ax = ax.scatter(X[:, 0],
+                        X[:, 1],
+                        X[:, 2],
+                        color="k",
+                        label="est",
+                        alpha=0.2)
+    plot_set_axes_equal(ax)
+    plt.draw()
+    plt.pause(0.5)
+    # plt.show()
+
+    # Step 4: Check for convergence
+    mean_error = np.mean(distances)
+    print(f"mean_error: {mean_error}")
+    if abs(prev_error - mean_error) < tol:
+      break
+    prev_error = mean_error
+
+  return X, R, t
+
+
 class TestPointCloud(unittest.TestCase):
   """ Test point cloud functions """
-  def setUp(self):
-    self.debug = False
-
   def test_umeyama(self):
+    debug = False
     R_gnd = euler321(*np.random.rand(3))
     t_gnd = np.random.rand(3, 1) * 0.1
 
@@ -5410,7 +5475,7 @@ class TestPointCloud(unittest.TestCase):
     self.assertTrue(np.allclose(est, dst, atol=1e-4))
 
     # Visualize
-    if self.debug:
+    if debug:
       plt.figure(figsize=(12, 10))
       ax: Axes3D = plt.axes(projection='3d')
       ax.scatter(src[:, 0], src[:, 1], src[:, 2], "r", label="src", alpha=0.2)
