@@ -6,7 +6,9 @@ numpy
 scipy
 scipy-stubs
 pandas
+pandas-stubs
 matplotlib
 matplotlib-stubs
 opencv-python
+opencv-stubs
 open3d-cpu
