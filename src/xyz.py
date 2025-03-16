@@ -2563,7 +2563,7 @@ def load_poses(csv_path: str) -> list[tuple[float, Mat4]] | None:
 # def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs)
 ###############################################################################
 
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 import matplotlib.patches
 import matplotlib.transforms
 from mpl_toolkits import mplot3d
@@ -5330,7 +5330,7 @@ class TestCV(unittest.TestCase):
 
     self.assertTrue(matrix_equal(finite_diff, J, tol, True))
 
-  def test_chessboard_detector(selfl):
+  def test_chessboard_detector(self):
     # Load the image
     # euroc_data = Path("/data/euroc")
     # calib_dir = euroc_data / "cam_checkerboard" / "mav0" / "cam0" / "data"
@@ -5348,6 +5348,7 @@ class TestCV(unittest.TestCase):
 ################################################################################
 # POINT CLOUD
 ################################################################################
+
 
 def umeyama(X: MatNx3, Y: MatNx3) -> tuple[float, Mat3, Vec3]:
   """
@@ -5533,8 +5534,6 @@ class TestPointCloud(unittest.TestCase):
     # Assert
     self.assertTrue(np.linalg.norm(t_est - t_gnd) < 1e-3)
     self.assertTrue(rot_diff(R_est, R_gnd) < 1e-3)
-
-
 
 
 ################################################################################
@@ -6005,6 +6004,7 @@ class TestKitti(unittest.TestCase):
 
     lidar_timestamps = dataset.velodyne_data.timestamps
     xyzi = dataset.velodyne_data.load_scan(lidar_timestamps[0])
+    print(xyzi[0:10, :])
 
     # fig = plt.figure(figsize=(12, 10))
     # ax: Axes3D = plt.axes(projection='3d')
@@ -9787,7 +9787,6 @@ class FactorGraph:
       factor_params = [self.params[pid] for pid in factor.param_ids]
       solver.add(factor, factor_params)
     solver.solve(verbose)
-
 
 
 class TestFactorGraph(unittest.TestCase):
