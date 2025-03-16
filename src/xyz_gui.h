@@ -207,11 +207,26 @@ void gl_lookat(const gl_float_t eye[3],
                const gl_float_t at[3],
                const gl_float_t up[3],
                gl_float_t V[4 * 4]);
+void gl_euler321(const gl_float_t ypr[3], gl_float_t C[3 * 3]);
+void gl_euler2quat(const gl_float_t ypr[3], gl_quat_t *q);
 void gl_quat2rot(const gl_quat_t *q, gl_float_t C[3 * 3]);
 void gl_rot2quat(const gl_float_t C[3 * 3], gl_quat_t *q);
+
+void gl_tf(const gl_float_t params[7], gl_float_t T[4 * 4]);
+void gl_tf_cr(const gl_float_t C[3 * 3],
+              const gl_float_t r[3],
+              gl_float_t T[4 * 4]);
+void gl_tf_qr(const gl_quat_t *q, const gl_float_t r[3], gl_float_t T[4 * 4]);
+void gl_tf_er(const gl_float_t ypr[3],
+              const gl_float_t r[3],
+              gl_float_t T[4 * 4]);
 void gl_tf2pose(const gl_float_t T[4 * 4], gl_pose_t *pose);
 int gl_save_frame_buffer(const int width, const int height, const char *fp);
 
+void gl_jet_colormap(const gl_float_t value,
+                     gl_float_t *r,
+                     gl_float_t *g,
+                     gl_float_t *b);
 /******************************************************************************
  * GL-SHADER
  *****************************************************************************/
