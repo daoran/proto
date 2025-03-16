@@ -15,9 +15,11 @@ char _window_title[100] = {0};
 int _window_loop = 1;
 int _window_width = 0;
 int _window_height = 0;
+float _frame_dt;
+float _frame_last;
 
 gl_camera_t _camera;
-float _camera_speed = 0.001f;
+float _camera_speed = 20.0f;
 
 float _mouse_sensitivity = 0.02f;
 int _mouse_button_left = 0;
@@ -36,6 +38,7 @@ int _key_w = 0;
 int _key_a = 0;
 int _key_s = 0;
 int _key_d = 0;
+int _key_n = 0;
 int _key_esc = 0;
 int _key_equal = 0;
 int _key_minus = 0;
@@ -483,6 +486,70 @@ void gl_lookat(const gl_float_t eye[3],
 }
 
 /**
+ * Convert Euler angles `euler` in degrees to a 3x3 rotation
+ * matrix `C`.
+ */
+void gl_euler321(const gl_float_t euler[3], gl_float_t C[3 * 3]) {
+  assert(euler != NULL);
+  assert(C != NULL);
+
+  const gl_float_t psi = euler[2];
+  const gl_float_t theta = euler[1];
+  const gl_float_t phi = euler[0];
+
+  const gl_float_t cpsi = cos(psi);
+  const gl_float_t spsi = sin(psi);
+
+  const gl_float_t ctheta = cos(theta);
+  const gl_float_t stheta = sin(theta);
+
+  const gl_float_t cphi = cos(phi);
+  const gl_float_t sphi = sin(phi);
+
+  // 1st row
+  C[0] = cpsi * ctheta;
+  C[3] = cpsi * stheta * sphi - spsi * cphi;
+  C[6] = cpsi * stheta * cphi + spsi * sphi;
+
+  // 2nd row
+  C[1] = spsi * ctheta;
+  C[4] = spsi * stheta * sphi + cpsi * cphi;
+  C[7] = spsi * stheta * cphi - cpsi * sphi;
+
+  // 3rd row
+  C[2] = -stheta;
+  C[5] = ctheta * sphi;
+  C[8] = ctheta * cphi;
+}
+
+/**
+ * Convert Euler angles `euler` in radians to a Hamiltonian Quaternion.
+ */
+void gl_euler2quat(const gl_float_t euler[3], gl_quat_t *q) {
+  const gl_float_t psi = euler[2];
+  const gl_float_t theta = euler[1];
+  const gl_float_t phi = euler[0];
+
+  const gl_float_t cphi = cos(phi / 2.0);
+  const gl_float_t ctheta = cos(theta / 2.0);
+  const gl_float_t cpsi = cos(psi / 2.0);
+  const gl_float_t sphi = sin(phi / 2.0);
+  const gl_float_t stheta = sin(theta / 2.0);
+  const gl_float_t spsi = sin(psi / 2.0);
+
+  const gl_float_t qx = sphi * ctheta * cpsi - cphi * stheta * spsi;
+  const gl_float_t qy = cphi * stheta * cpsi + sphi * ctheta * spsi;
+  const gl_float_t qz = cphi * ctheta * spsi - sphi * stheta * cpsi;
+  const gl_float_t qw = cphi * ctheta * cpsi + sphi * stheta * spsi;
+
+  const gl_float_t mag = sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
+  q->w = qw / mag;
+  q->x = qx / mag;
+  q->y = qy / mag;
+  q->z = qz / mag;
+}
+
+/**
  * Convert Quaternion `q` to 3x3 rotation matrix `C`.
  */
 void gl_quat2rot(const gl_quat_t *q, gl_float_t C[3 * 3]) {
@@ -554,6 +621,125 @@ void gl_rot2quat(const gl_float_t C[3 * 3], gl_quat_t *q) {
   }
 }
 
+/**
+ * Form 4x4 homogeneous transformation matrix `T` from a 7x1 pose vector
+ * `params`.
+ *
+ *    pose = (translation, rotation)
+ *    pose = (rx, ry, rz, qw, qx, qy, qz)
+ */
+void gl_tf(const gl_float_t params[7], gl_float_t T[4 * 4]) {
+  assert(params != NULL);
+  assert(T != NULL);
+
+  const gl_float_t r[3] = {params[0], params[1], params[2]};
+  const gl_quat_t q = {.w = params[3],
+                       .x = params[4],
+                       .y = params[5],
+                       .z = params[6]};
+
+  gl_float_t C[3 * 3] = {0};
+  gl_quat2rot(&q, C);
+
+  T[0] = C[0];
+  T[1] = C[1];
+  T[2] = C[2];
+  T[3] = 0.0f;
+
+  T[4] = C[3];
+  T[5] = C[4];
+  T[6] = C[5];
+  T[7] = 0.0f;
+
+  T[8] = C[6];
+  T[9] = C[7];
+  T[10] = C[8];
+  T[11] = 0.0f;
+
+  T[12] = r[0];
+  T[13] = r[1];
+  T[14] = r[2];
+  T[15] = 1.0f;
+}
+
+/**
+ * Form 4x4 homogeneous transformation matrix `T` from a rotation matrix `C`
+ * and translation vector `r`.
+ */
+void gl_tf_cr(const gl_float_t C[3 * 3],
+              const gl_float_t r[3],
+              gl_float_t T[4 * 4]) {
+  T[0] = C[0];
+  T[1] = C[1];
+  T[2] = C[2];
+  T[3] = 0.0f;
+
+  T[4] = C[3];
+  T[5] = C[4];
+  T[6] = C[5];
+  T[7] = 0.0f;
+
+  T[8] = C[6];
+  T[9] = C[7];
+  T[10] = C[8];
+  T[11] = 0.0f;
+
+  T[12] = r[0];
+  T[13] = r[1];
+  T[14] = r[2];
+  T[15] = 1.0f;
+}
+
+/**
+ * Form 4x4 homogeneous transformation matrix `T` from a quaternion `q` and
+ * translation vector `r`.
+ */
+void gl_tf_qr(const gl_quat_t *q, const gl_float_t r[3], gl_float_t T[4 * 4]) {
+  gl_float_t C[3 * 3] = {0};
+  gl_quat2rot(q, C);
+  gl_tf_cr(C, r, T);
+}
+
+/**
+ * Form 4x4 homogeneous transformation matrix `T` from a euler-angles `euler`
+ * (yaw-pitch-roll) and translation vector `r`.
+ */
+void gl_tf_er(const gl_float_t euler[3],
+              const gl_float_t r[3],
+              gl_float_t T[4 * 4]) {
+  gl_float_t C[3 * 3] = {0};
+  gl_euler321(euler, C);
+  gl_tf_cr(C, r, T);
+}
+
+void gl_flu2rub(const gl_float_t T_flu[4 * 4], gl_float_t *T_rub) {
+  // T_rub = T * T_flu * T'
+  //
+  // FLU X (Forward) -> RUB -Z (Back)
+  // FLU Y (Left)    -> RUB -X (Right)
+  // FLU Z (Up)      -> RUB  Y (Up)
+  //
+  // [row major]
+  // T = [ 0 -1  0  0
+  //       0  0  1  0
+  //      -1  0  0  0
+  //       0  0  0  1]
+
+  // clang-format off
+  gl_float_t T[4* 4] = {0};
+  gl_float_t T_[4* 4] = {0};
+  T[0] =  0.0f; T[4] = -1.0f; T[8]  = 0.0f; T[12] = 0.0f;
+  T[1] =  0.0f; T[5] =  0.0f; T[9]  = 1.0f; T[13] = 0.0f;
+  T[2] = -1.0f; T[6] =  0.0f; T[10] = 0.0f; T[14] = 0.0f;
+  T[3] =  0.0f; T[7] =  0.0f; T[11] = 0.0f; T[15] = 1.0f;
+  gl_transpose(T, 4, 4, T_);
+  // clang-format on
+
+  gl_float_t tmp[4 * 4] = {0};
+  gl_dot(T, 4, 4, T_flu, 4, 4, tmp);
+  gl_dot(tmp, 4, 4, T_, 4, 4, T_rub);
+}
+
 void gl_tf2pose(const gl_float_t T[4 * 4], gl_pose_t *pose) {
   pose->pos.x = T[12];
   pose->pos.y = T[13];
@@ -603,6 +789,47 @@ int gl_save_frame_buffer(const int width, const int height, const char *fp) {
   }
 
   return 0;
+}
+
+void gl_jet_colormap(const gl_float_t value,
+                     gl_float_t *r,
+                     gl_float_t *g,
+                     gl_float_t *b) {
+  // Clamp value to [0,1]
+  gl_float_t value_ = (value < 0.0f) ? 0.0f : value;
+  value_ = (value_ > 1.0f) ? 1.0f : value_;
+
+  gl_float_t four_value = value_ * 4.0f;      // Scale to 0-4
+  int region = (int) four_value;              // Get integer part
+  gl_float_t remainder = four_value - region; // Fractional part
+
+  switch (region) {
+    case 0:
+      *r = 0.0f;
+      *g = remainder;
+      *b = 1.0f;
+      break; // Blue to Cyan
+    case 1:
+      *r = 0.0f;
+      *g = 1.0f;
+      *b = 1.0f - remainder;
+      break; // Cyan to Green
+    case 2:
+      *r = remainder;
+      *g = 1.0f;
+      *b = 0.0f;
+      break; // Green to Yellow
+    case 3:
+      *r = 1.0f;
+      *g = 1.0f - remainder;
+      *b = 0.0f;
+      break; // Yellow to Red
+    default:
+      *r = 1.0f;
+      *g = 0.0f;
+      *b = 0.0f;
+      break; // Red (value >= 1)
+  }
 }
 
 /******************************************************************************
@@ -1033,6 +1260,7 @@ void gui_process_input(GLFWwindow *window) {
   _key_a = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
   _key_s = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
   _key_d = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+  _key_n = glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS;
   _key_equal = glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS;
   _key_minus = glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS;
   if (_key_esc || _key_q) {
@@ -1042,31 +1270,31 @@ void gui_process_input(GLFWwindow *window) {
   // -- FPS MODE
   if (_camera.view_mode == FPS) {
     if (_key_w) {
-      _camera.position[0] += _camera_speed * _camera.front[0];
-      _camera.position[1] += _camera_speed * _camera.front[1];
-      _camera.position[2] += _camera_speed * _camera.front[2];
+      _camera.position[0] += _camera_speed * _camera.front[0] * _frame_dt;
+      _camera.position[1] += _camera_speed * _camera.front[1] * _frame_dt;
+      _camera.position[2] += _camera_speed * _camera.front[2] * _frame_dt;
     } else if (_key_s) {
-      _camera.position[0] -= _camera_speed * _camera.front[0];
-      _camera.position[1] -= _camera_speed * _camera.front[1];
-      _camera.position[2] -= _camera_speed * _camera.front[2];
+      _camera.position[0] -= _camera_speed * _camera.front[0] * _frame_dt;
+      _camera.position[1] -= _camera_speed * _camera.front[1] * _frame_dt;
+      _camera.position[2] -= _camera_speed * _camera.front[2] * _frame_dt;
     } else if (_key_a) {
       gl_float_t camera_left[3] = {0};
       gl_vec3_cross(_camera.front, _camera.up, camera_left);
       gl_normalize(camera_left, 3);
-      _camera.position[0] -= camera_left[0] * _camera_speed;
-      _camera.position[1] -= camera_left[1] * _camera_speed;
-      _camera.position[2] -= camera_left[2] * _camera_speed;
+      _camera.position[0] -= camera_left[0] * _camera_speed * _frame_dt;
+      _camera.position[1] -= camera_left[1] * _camera_speed * _frame_dt;
+      _camera.position[2] -= camera_left[2] * _camera_speed * _frame_dt;
     } else if (_key_d) {
       gl_float_t camera_left[3] = {0};
       gl_vec3_cross(_camera.front, _camera.up, camera_left);
       gl_normalize(camera_left, 3);
-      _camera.position[0] += camera_left[0] * _camera_speed;
-      _camera.position[1] += camera_left[1] * _camera_speed;
-      _camera.position[2] += camera_left[2] * _camera_speed;
+      _camera.position[0] += camera_left[0] * _camera_speed * _frame_dt;
+      _camera.position[1] += camera_left[1] * _camera_speed * _frame_dt;
+      _camera.position[2] += camera_left[2] * _camera_speed * _frame_dt;
     } else if (_key_equal) {
-      gl_camera_zoom(&_camera, 1.0, 0, _camera_speed);
+      gl_camera_zoom(&_camera, 1.0, 0, _camera_speed * _frame_dt);
     } else if (_key_minus) {
-      gl_camera_zoom(&_camera, 1.0, 0, -_camera_speed);
+      gl_camera_zoom(&_camera, 1.0, 0, -_camera_speed * _frame_dt);
     }
   }
 
@@ -1151,6 +1379,16 @@ gui_t *gui_malloc(const char *window_title,
   gui->fps_limit = 1.0 / 60.0;
   gui->last_time = 0;
   gui->last_frame = 0;
+
+  // gui->key_q = &_key_q;
+  // gui->key_w = &_key_w;
+  // gui->key_a = &_key_a;
+  // gui->key_s = &_key_s;
+  // gui->key_d = &_key_d;
+  gui->key_n = &_key_n;
+  // gui->key_esc = &_key_esc;
+  // gui->key_equal = &_key_equal;
+  // gui->key_minus = &_key_minus;
 
   strcpy(_window_title, window_title);
   _window_width = window_width;
@@ -1263,15 +1501,18 @@ int gui_poll(gui_t *gui) {
 
 void gui_update(gui_t *gui) {
   assert(gui);
+  glfwSwapBuffers(gui->window);
 
   const double time_now = glfwGetTime();
-  const double dt = time_now - gui->last_frame;
-  if (dt >= gui->fps_limit) {
-    glfwSwapBuffers(gui->window);
-    gui->last_frame = time_now;
-  }
-  glfwSwapBuffers(gui->window);
-  gui->last_time = time_now;
+  _frame_dt = time_now - _frame_last;
+  _frame_last = time_now;
+  // const double time_now = glfwGetTime();
+  // const double dt = time_now - gui->last_frame;
+  // if (dt >= gui->fps_limit) {
+  //   glfwSwapBuffers(gui->window);
+  //   gui->last_frame = time_now;
+  // }
+  // gui->last_time = time_now;
 }
 
 // RECT //////////////////////////////////////////////////////////////////////
@@ -1307,72 +1548,72 @@ void setup_rect_shader(gl_shader_t *rect) {
   }
 }
 
-void gl_rect_setup(gl_rect_t *rect,
-                   const gl_bounds_t bounds,
-                   const gl_color_t color) {
-  assert(rect);
-
+gl_rect_t *gl_rect_malloc(const gl_bounds_t bounds, const gl_color_t color) {
+  gl_rect_t *rect = malloc(sizeof(gl_rect_t));
   rect->VAO = 0;
   rect->VBO = 0;
   rect->EBO = 0;
-
   rect->bounds = bounds;
   rect->color = color;
+
+  // Vertices
+  // clang-format off
+  const float vertices[2 * 4] = {
+     1.0f, 0.0f,  // Top-right
+     1.0f, 1.0f,  // Bottom-right
+     0.0f, 1.0f,  // Bottom-left
+     0.0f, 0.0f,  // Top-left
+  };
+  const gl_int_t indices[6] = {
+      0, 3, 1, // First triangle
+      2, 1, 3  // Second triangle
+  };
+  const size_t vertex_size = sizeof(gl_float_t) * 2;
+  const size_t vbo_size = sizeof(vertices);
+  const size_t ebo_size = sizeof(indices);
+  // clang-format on
+
+  // VAO
+  glGenVertexArrays(1, &rect->VAO);
+  glBindVertexArray(rect->VAO);
+  assert(rect->VAO != 0);
+
+  // VBO
+  glGenBuffers(1, &rect->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, rect->VBO);
+  glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
+  assert(rect->VBO != 0);
+
+  // EBO
+  glGenBuffers(1, &rect->EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect->EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, ebo_size, indices, GL_STATIC_DRAW);
+  assert(rect->EBO != 0);
+
+  // Position attribute
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+
+  // Unbind VBO and VAO
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  return rect;
 }
 
-void gl_rect_cleanup(gl_rect_t *rect) {
+void gl_rect_free(gl_rect_t *rect) {
+  if (rect == NULL) {
+    return;
+  }
   GL_DEL_VERTEX_ARRAY(rect->VAO);
   GL_DEL_BUFFER(rect->VBO);
   GL_DEL_BUFFER(rect->EBO);
+  free(rect);
 }
 
 void draw_rect(gl_rect_t *rect) {
   assert(rect);
-
-  if (rect->VAO == 0) {
-    // Vertices
-    // clang-format off
-    const float vertices[2 * 4] = {
-       1.0f, 0.0f,  // Top-right
-       1.0f, 1.0f,  // Bottom-right
-       0.0f, 1.0f,  // Bottom-left
-       0.0f, 0.0f,  // Top-left
-    };
-    const gl_int_t indices[6] = {
-        0, 3, 1, // First triangle
-        2, 1, 3  // Second triangle
-    };
-    const size_t vertex_size = sizeof(gl_float_t) * 2;
-    const size_t vbo_size = sizeof(vertices);
-    const size_t ebo_size = sizeof(indices);
-    // clang-format on
-
-    // VAO
-    glGenVertexArrays(1, &rect->VAO);
-    glBindVertexArray(rect->VAO);
-    assert(rect->VAO != 0);
-
-    // VBO
-    glGenBuffers(1, &rect->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, rect->VBO);
-    glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
-    assert(rect->VBO != 0);
-
-    // EBO
-    glGenBuffers(1, &rect->EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, ebo_size, indices, GL_STATIC_DRAW);
-    assert(rect->EBO != 0);
-
-    // Position attribute
-    void *pos_offset = (void *) 0;
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-    glEnableVertexAttribArray(0);
-
-    // Unbind VBO and VAO
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-  }
 
   // Use shader
   const gl_shader_t *shader = &_shader_rect;
@@ -1456,102 +1697,104 @@ void setup_cube_shader(gl_shader_t *shader) {
   }
 }
 
-void gl_cube_setup(gl_cube_t *cube,
-                   const gl_float_t T[4 * 4],
-                   const gl_float_t size,
-                   const gl_color_t color) {
-  assert(cube);
+gl_cube_t *gl_cube_malloc(const gl_float_t T[4 * 4],
+                          const gl_float_t size,
+                          const gl_color_t color) {
   assert(T);
   assert(size > 0);
 
+  gl_cube_t *cube = malloc(sizeof(gl_cube_t));
   cube->VAO = 0;
   cube->VBO = 0;
-
   for (int i = 0; i < 16; ++i) {
     cube->T[i] = T[i];
   }
   cube->size = size;
   cube->color = color;
+
+  // clang-format off
+  // Vertices
+  gl_float_t vertices[] = {
+    -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+
+    -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
+    -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
+    -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
+    -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
+    -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
+    -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
+
+     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
+     1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
+     1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
+     1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
+     1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
+     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
+
+    -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
+     1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
+     1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
+     1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
+    -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
+    -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
+
+    -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+     1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+     1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+     1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+    -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+    -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f
+  };
+  const size_t vertex_size = sizeof(gl_float_t) * 6;
+  // clang-format on
+
+  // VAO
+  glGenVertexArrays(1, &cube->VAO);
+  glBindVertexArray(cube->VAO);
+
+  // VBO
+  glGenBuffers(1, &cube->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, cube->VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  // -- Position attribute
+  const void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+  // -- Normal attribute
+  const void *normal_offset = (void *) (3 * sizeof(gl_float_t));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, normal_offset);
+  glEnableVertexAttribArray(1);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+
+  return cube;
 }
 
-void gl_cube_cleanup(gl_cube_t *cube) {
+void gl_cube_free(gl_cube_t *cube) {
+  if (cube == NULL) {
+    return;
+  }
   GL_DEL_VERTEX_ARRAY(cube->VAO);
   GL_DEL_BUFFER(cube->VBO);
+  free(cube);
 }
 
 void draw_cube(gl_cube_t *cube) {
   assert(cube);
-
-  if (cube->VAO == 0) {
-    // clang-format off
-    // Vertices
-    gl_float_t vertices[] = {
-        -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
-
-        -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-         1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-
-        -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
-        -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
-        -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
-        -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f,
-        -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
-        -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f,
-
-         1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
-         1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
-         1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
-         1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,
-         1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
-         1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f,
-
-        -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
-         1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
-         1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
-         1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
-        -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f,
-        -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f,
-
-        -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-         1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-         1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-         1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-        -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-        -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f
-    };
-    const size_t vertex_size = sizeof(gl_float_t) * 6;
-    // clang-format on
-
-    // VAO
-    glGenVertexArrays(1, &cube->VAO);
-    glBindVertexArray(cube->VAO);
-
-    // VBO
-    glGenBuffers(1, &cube->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, cube->VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // -- Position attribute
-    const void *pos_offset = (void *) 0;
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-    glEnableVertexAttribArray(0);
-    // -- Normal attribute
-    const void *normal_offset = (void *) (3 * sizeof(gl_float_t));
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, normal_offset);
-    glEnableVertexAttribArray(1);
-
-    // Clean up
-    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-    glBindVertexArray(0);             // Unbind VAO
-  }
 
   // Disable cull face
   int cull_face_mode = 0;
@@ -1618,86 +1861,88 @@ void setup_frustum_shader(gl_shader_t *shader) {
   }
 }
 
-void gl_frustum_setup(gl_frustum_t *frustum,
-                      const gl_float_t T[4 * 4],
-                      const gl_float_t size,
-                      const gl_color_t color,
-                      const gl_float_t lw) {
-  assert(frustum);
+gl_frustum_t *gl_frustum_malloc(const gl_float_t T[4 * 4],
+                                const gl_float_t size,
+                                const gl_color_t color,
+                                const gl_float_t lw) {
   assert(T);
   assert(size > 0);
   assert(lw > 0);
 
+  gl_frustum_t *frustum = malloc(sizeof(gl_frustum_t));
   frustum->VAO = 0;
   frustum->VBO = 0;
-
   for (int i = 0; i < 16; ++i) {
     frustum->T[i] = T[i];
   }
   frustum->size = size;
   frustum->color = color;
   frustum->lw = lw;
+
+  // Form the camera fov frame
+  gl_float_t fov = gl_deg2rad(60.0);
+  gl_float_t hfov = fov / 2.0f;
+  gl_float_t scale = 1.0f;
+  gl_float_t z = scale;
+  gl_float_t hwidth = z * tan(hfov);
+  const gl_float_t lb[3] = {-hwidth, hwidth, z};  // Left bottom
+  const gl_float_t lt[3] = {-hwidth, -hwidth, z}; // Left top
+  const gl_float_t rt[3] = {hwidth, -hwidth, z};  // Right top
+  const gl_float_t rb[3] = {hwidth, hwidth, z};   // Right bottom
+
+  // Rectangle frame
+  // clang-format off
+  const size_t vertex_size = sizeof(gl_float_t) * 3;
+  const gl_float_t vertices[8 * 6] = {
+    // -- Left bottom to left top
+    lb[0], lb[1], lb[2], lt[0], lt[1], lt[2],
+    // -- Left top to right top
+    lt[0], lt[1], lt[2], rt[0], rt[1], rt[2],
+    // -- Right top to right bottom
+    rt[0], rt[1], rt[2], rb[0], rb[1], rb[2],
+    // -- Right bottom to left bottom
+    rb[0], rb[1], rb[2], lb[0], lb[1], lb[2],
+    // Rectangle frame to origin
+    // -- Origin to left bottom
+    0.0f, 0.0f, 0.0f, lb[0], lb[1], lb[2],
+    // -- Origin to left top
+    0.0f, 0.0f, 0.0f, lt[0], lt[1], lt[2],
+    // -- Origin to right top
+    0.0f, 0.0f, 0.0f, rt[0], rt[1], rt[2],
+    // -- Origin to right bottom
+    0.0f, 0.0f, 0.0f, rb[0], rb[1], rb[2]
+  };
+  // clang-format on
+
+  // VAO
+  glGenVertexArrays(1, &frustum->VAO);
+  glBindVertexArray(frustum->VAO);
+
+  // VBO
+  glGenBuffers(1, &frustum->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, frustum->VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, (void *) 0);
+  glEnableVertexAttribArray(0);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+
+  return frustum;
 }
 
-void gl_frustum_cleanup(gl_frustum_t *frustum) {
+void gl_frustum_free(gl_frustum_t *frustum) {
+  if (frustum == NULL) {
+    return;
+  }
   GL_DEL_VERTEX_ARRAY(frustum->VAO);
   GL_DEL_BUFFER(frustum->VBO);
+  free(frustum);
 }
 
 void draw_frustum(gl_frustum_t *frustum) {
   assert(frustum);
-
-  if (frustum->VAO == 0) {
-    // Form the camera fov frame
-    gl_float_t fov = gl_deg2rad(60.0);
-    gl_float_t hfov = fov / 2.0f;
-    gl_float_t scale = 1.0f;
-    gl_float_t z = scale;
-    gl_float_t hwidth = z * tan(hfov);
-    const gl_float_t lb[3] = {-hwidth, hwidth, z};  // Left bottom
-    const gl_float_t lt[3] = {-hwidth, -hwidth, z}; // Left top
-    const gl_float_t rt[3] = {hwidth, -hwidth, z};  // Right top
-    const gl_float_t rb[3] = {hwidth, hwidth, z};   // Right bottom
-
-    // Rectangle frame
-    // clang-format off
-    const size_t vertex_size = sizeof(gl_float_t) * 3;
-    const gl_float_t vertices[8 * 6] = {
-      // -- Left bottom to left top
-      lb[0], lb[1], lb[2], lt[0], lt[1], lt[2],
-      // -- Left top to right top
-      lt[0], lt[1], lt[2], rt[0], rt[1], rt[2],
-      // -- Right top to right bottom
-      rt[0], rt[1], rt[2], rb[0], rb[1], rb[2],
-      // -- Right bottom to left bottom
-      rb[0], rb[1], rb[2], lb[0], lb[1], lb[2],
-      // Rectangle frame to origin
-      // -- Origin to left bottom
-      0.0f, 0.0f, 0.0f, lb[0], lb[1], lb[2],
-      // -- Origin to left top
-      0.0f, 0.0f, 0.0f, lt[0], lt[1], lt[2],
-      // -- Origin to right top
-      0.0f, 0.0f, 0.0f, rt[0], rt[1], rt[2],
-      // -- Origin to right bottom
-      0.0f, 0.0f, 0.0f, rb[0], rb[1], rb[2]
-    };
-    // clang-format on
-
-    // VAO
-    glGenVertexArrays(1, &frustum->VAO);
-    glBindVertexArray(frustum->VAO);
-
-    // VBO
-    glGenBuffers(1, &frustum->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, frustum->VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, (void *) 0);
-    glEnableVertexAttribArray(0);
-
-    // Clean up
-    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-    glBindVertexArray(0);             // Unbind VAO
-  }
 
   // Use shader program
   const gl_shader_t *shader = &_shader_frustum;
@@ -1756,71 +2001,74 @@ void setup_axes3d_shader(gl_shader_t *shader) {
   }
 }
 
-void gl_axes3d_setup(gl_axes3d_t *axes,
-                     const gl_float_t T[4 * 4],
-                     const gl_float_t size,
-                     const gl_float_t lw) {
-  assert(axes);
+gl_axes3d_t *gl_axes3d_malloc(const gl_float_t T[4 * 4],
+                              const gl_float_t size,
+                              const gl_float_t lw) {
   assert(T);
   assert(size > 0);
   assert(lw > 0);
 
+  gl_axes3d_t *axes = malloc(sizeof(gl_axes3d_t));
   axes->VAO = 0;
   axes->VBO = 0;
-
   for (int i = 0; i < 16; ++i) {
     axes->T[i] = T[i];
   }
   axes->size = size;
   axes->lw = lw;
+
+  // Vertices
+  // clang-format off
+  static const gl_float_t vertices[] = {
+    // Line 1 : x-axis + color
+    0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    // Line 2 : y-axis + color
+    0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    // Line 3 : z-axis + color
+    0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
+  };
+  // clang-format on
+
+  // VAO
+  glGenVertexArrays(1, &axes->VAO);
+  glBindVertexArray(axes->VAO);
+
+  // VBO
+  glGenBuffers(1, &axes->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, axes->VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  // -- Position attribute
+  size_t vertex_size = 6 * sizeof(float);
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+  // -- Color attribute
+  void *color_offset = (void *) (3 * sizeof(float));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
+  glEnableVertexAttribArray(1);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+
+  return axes;
 }
 
-void gl_axes3d_cleanup(gl_axes3d_t *axes3d) {
-  GL_DEL_VERTEX_ARRAY(axes3d->VAO);
-  GL_DEL_BUFFER(axes3d->VBO);
+void gl_axes3d_free(gl_axes3d_t *axes) {
+  if (axes == NULL) {
+    return;
+  }
+
+  GL_DEL_VERTEX_ARRAY(axes->VAO);
+  GL_DEL_BUFFER(axes->VBO);
+  free(axes);
 }
 
 void draw_axes3d(gl_axes3d_t *axes) {
   assert(axes);
-
-  if (axes->VAO == 0) {
-    // Vertices
-    // clang-format off
-    static const gl_float_t vertices[] = {
-      // Line 1 : x-axis + color
-      0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-      1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-      // Line 2 : y-axis + color
-      0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-      0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-      // Line 3 : z-axis + color
-      0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-      0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
-    };
-    // clang-format on
-
-    // VAO
-    glGenVertexArrays(1, &axes->VAO);
-    glBindVertexArray(axes->VAO);
-
-    // VBO
-    glGenBuffers(1, &axes->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, axes->VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // -- Position attribute
-    size_t vertex_size = 6 * sizeof(float);
-    void *pos_offset = (void *) 0;
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-    glEnableVertexAttribArray(0);
-    // -- Color attribute
-    void *color_offset = (void *) (3 * sizeof(float));
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
-    glEnableVertexAttribArray(1);
-
-    // Clean up
-    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-    glBindVertexArray(0);             // Unbind VAO
-  }
 
   // Use shader program
   const gl_shader_t *shader = &_shader_axes;
@@ -1924,56 +2172,59 @@ void setup_grid3d_shader(gl_shader_t *shader) {
   }
 }
 
-void gl_grid3d_setup(gl_grid3d_t *grid,
-                     const gl_float_t size,
-                     const gl_color_t color,
-                     const gl_float_t lw) {
-  assert(grid);
+gl_grid3d_t *gl_grid3d_malloc(const gl_float_t size,
+                              const gl_color_t color,
+                              const gl_float_t lw) {
   assert(size > 0);
   assert(lw > 0);
 
+  gl_grid3d_t *grid = malloc(sizeof(gl_grid3d_t));
   grid->VAO = 0;
   grid->VBO = 0;
-
   grid->size = size;
   grid->color = color;
   grid->lw = lw;
+
+  // Create vertices
+  const int grid_size = 10;
+  const size_t vertex_size = sizeof(gl_float_t) * 3;
+  const void *offset = (void *) 0;
+  const int num_lines = (grid_size + 1) * 2;
+  const int num_vertices = num_lines * 2;
+  gl_float_t *vertices = gl_grid3d_create_vertices(grid_size);
+  const size_t buffer_size = sizeof(gl_float_t) * num_vertices * 3;
+
+  // VAO
+  glGenVertexArrays(1, &grid->VAO);
+  glBindVertexArray(grid->VAO);
+
+  // VBO
+  glGenBuffers(1, &grid->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, grid->VBO);
+  glBufferData(GL_ARRAY_BUFFER, buffer_size, vertices, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, offset);
+  glEnableVertexAttribArray(0);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+  free(vertices);
+
+  return grid;
 }
 
-void gl_grid3d_cleanup(gl_grid3d_t *grid) {
+void gl_grid3d_free(gl_grid3d_t *grid) {
+  if (grid == NULL) {
+    return;
+  }
+
   GL_DEL_VERTEX_ARRAY(grid->VAO);
   GL_DEL_BUFFER(grid->VBO);
+  free(grid);
 }
 
 void draw_grid3d(gl_grid3d_t *grid) {
   assert(grid);
-
-  if (grid->VAO == 0) {
-    // Create vertices
-    const int grid_size = 10;
-    const size_t vertex_size = sizeof(gl_float_t) * 3;
-    const void *offset = (void *) 0;
-    const int num_lines = (grid_size + 1) * 2;
-    const int num_vertices = num_lines * 2;
-    gl_float_t *vertices = gl_grid3d_create_vertices(grid_size);
-    const size_t buffer_size = sizeof(gl_float_t) * num_vertices * 3;
-
-    // VAO
-    glGenVertexArrays(1, &grid->VAO);
-    glBindVertexArray(grid->VAO);
-
-    // VBO
-    glGenBuffers(1, &grid->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, grid->VBO);
-    glBufferData(GL_ARRAY_BUFFER, buffer_size, vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, offset);
-    glEnableVertexAttribArray(0);
-
-    // Clean up
-    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-    glBindVertexArray(0);             // Unbind VAO
-    free(vertices);
-  }
 
   // Use shader program
   const gl_shader_t *shader = &_shader_grid;
@@ -2027,55 +2278,108 @@ void setup_points3d_shader(gl_shader_t *shader) {
   }
 }
 
-void gl_points3d_setup(gl_points3d_t *points3d,
-                       const gl_float_t *points_data,
-                       const size_t num_points,
-                       const gl_float_t point_size) {
-  assert(points3d);
-  assert(points_data);
-  assert(num_points > 0);
-  assert(point_size > 0);
+gl_points3d_t *gl_points3d_malloc(const gl_float_t *points_data,
+                                  const size_t num_points,
+                                  const gl_float_t point_size) {
+  assert(num_points >= 0);
+  assert(point_size >= 0);
 
-  points3d->VAO = 0;
-  points3d->VBO = 0;
+  gl_points3d_t *points = malloc(sizeof(gl_points3d_t));
+  points->VAO = 0;
+  points->VBO = 0;
+  points->points_data = points_data;
+  points->num_points = num_points;
+  points->point_size = point_size;
+  if (num_points == 0) {
+    return points;
+  }
 
-  points3d->points_data = points_data;
-  points3d->num_points = num_points;
-  points3d->point_size = point_size;
+  // VAO
+  glGenVertexArrays(1, &points->VAO);
+  glBindVertexArray(points->VAO);
+
+  // VBO
+  const size_t vbo_size = sizeof(points->points_data);
+  glGenBuffers(1, &points->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, points->VBO);
+  glBufferData(GL_ARRAY_BUFFER, vbo_size, points->points_data, GL_STATIC_DRAW);
+  // -- Position attribute
+  size_t vertex_size = 6 * sizeof(float);
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+  // -- Color attribute
+  void *color_offset = (void *) (3 * sizeof(float));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
+  glEnableVertexAttribArray(1);
+
+  // Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+
+  return points;
 }
 
-void gl_points3d_cleanup(gl_points3d_t *points) {
+void gl_points3d_free(gl_points3d_t *points) {
+  if (points == NULL) {
+    return;
+  }
+
   GL_DEL_VERTEX_ARRAY(points->VAO);
   GL_DEL_BUFFER(points->VBO);
+  free(points);
+}
+
+void gl_points3d_update(gl_points3d_t *points,
+                        const gl_float_t *points_data,
+                        const size_t num_points,
+                        const gl_float_t point_size) {
+  points->points_data = points_data;
+  points->num_points = num_points;
+  points->point_size = point_size;
+
+  // Clear GPU memory of previous data
+  if (points->VAO != 0) {
+    GL_DEL_VERTEX_ARRAY(points->VAO);
+    GL_DEL_BUFFER(points->VBO);
+    points->VAO = 0;
+    points->VBO = 0;
+  }
+
+  // Check if we have data to upload
+  if (num_points == 0) {
+    return;
+  }
+
+  // Upload data to GPU
+  // -- VAO
+  glGenVertexArrays(1, &points->VAO);
+  glBindVertexArray(points->VAO);
+
+  // -- VBO
+  const size_t vbo_size = sizeof(gl_float_t) * 6 * points->num_points;
+  glGenBuffers(1, &points->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, points->VBO);
+  glBufferData(GL_ARRAY_BUFFER, vbo_size, points->points_data, GL_STATIC_DRAW);
+  // ---- Position attribute
+  size_t vertex_size = 6 * sizeof(float);
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+  // ---- Color attribute
+  void *color_offset = (void *) (3 * sizeof(float));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
+  glEnableVertexAttribArray(1);
+
+  // -- Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
 }
 
 void draw_points3d(gl_points3d_t *points) {
-  if (points->VAO == 0) {
-    // VAO
-    glGenVertexArrays(1, &points->VAO);
-    glBindVertexArray(points->VAO);
-
-    // VBO
-    const size_t vbo_size = sizeof(gl_float_t) * 6 * points->num_points;
-    glGenBuffers(1, &points->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, points->VBO);
-    glBufferData(GL_ARRAY_BUFFER,
-                 vbo_size,
-                 points->points_data,
-                 GL_STATIC_DRAW);
-    // -- Position attribute
-    size_t vertex_size = 6 * sizeof(float);
-    void *pos_offset = (void *) 0;
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-    glEnableVertexAttribArray(0);
-    // -- Color attribute
-    void *color_offset = (void *) (3 * sizeof(float));
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
-    glEnableVertexAttribArray(1);
-
-    // Clean up
-    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-    glBindVertexArray(0);             // Unbind VAO
+  assert(points);
+  if (points->num_points == 0) {
+    return;
   }
 
   // Use shader program
@@ -2122,54 +2426,53 @@ void setup_line3d_shader(gl_shader_t *shader) {
   }
 }
 
-void gl_line3d_setup(gl_line3d_t *line,
-                     const gl_float_t *data,
-                     const size_t num_points,
-                     const gl_color_t color,
-                     const gl_float_t lw) {
-  assert(line);
+gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
+                              const size_t num_points,
+                              const gl_color_t color,
+                              const gl_float_t lw) {
   assert(data);
   assert(num_points > 0);
   assert(lw > 0);
 
+  gl_line3d_t *line = malloc(sizeof(gl_line3d_t));
   line->VAO = 0;
   line->VBO = 0;
-
   line->data = data;
   line->num_points = num_points;
   line->color = color;
   line->lw = lw;
+
+  // Upload data
+  // -- VAO
+  glGenVertexArrays(1, &line->VAO);
+  glBindVertexArray(line->VAO);
+  // -- VBO
+  const size_t vbo_size = sizeof(gl_float_t) * 3 * line->num_points;
+  glGenBuffers(1, &line->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, line->VBO);
+  glBufferData(GL_ARRAY_BUFFER, vbo_size, line->data, GL_STATIC_DRAW);
+  // -- Position attribute
+  const size_t vertex_size = sizeof(gl_float_t) * 3;
+  const void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+  // -- Clean up
+  glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
+  glBindVertexArray(0);             // Unbind VAO
+
+  return line;
 }
 
-void gl_line3d_cleanup(gl_line3d_t *line) {
+void gl_line3d_free(gl_line3d_t *line) {
+  if (line == NULL) {
+    return;
+  }
   GL_DEL_VERTEX_ARRAY(line->VAO);
   GL_DEL_BUFFER(line->VBO);
+  free(line);
 }
 
 void draw_line3d(gl_line3d_t *line) {
-  // Upload data
-  if (line->VAO == -1) {
-    // VAO
-    glGenVertexArrays(1, &line->VAO);
-    glBindVertexArray(line->VAO);
-
-    // VBO
-    const size_t vbo_size = sizeof(gl_float_t) * 3 * line->num_points;
-    glGenBuffers(1, &line->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, line->VBO);
-    glBufferData(GL_ARRAY_BUFFER, vbo_size, line->data, GL_STATIC_DRAW);
-
-    // Position attribute
-    const size_t vertex_size = sizeof(gl_float_t) * 3;
-    const void *pos_offset = (void *) 0;
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-    glEnableVertexAttribArray(0);
-
-    // Clean up
-    glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-    glBindVertexArray(0);             // Unbind VAO
-  }
-
   // Use shader program
   gl_shader_t *shader = &_shader_line;
   glUseProgram(shader->program_id);
@@ -2230,114 +2533,115 @@ void setup_image_shader(gl_shader_t *shader) {
   }
 }
 
-void gl_image_setup(gl_image_t *image,
-                    const int x,
-                    const int y,
-                    const uint8_t *data,
-                    const int width,
-                    const int height,
-                    const int channels) {
+gl_image_t *gl_image_malloc(const int x,
+                            const int y,
+                            const uint8_t *data,
+                            const int width,
+                            const int height,
+                            const int channels) {
   assert(x > 0 && y > 0);
-  assert(image);
   assert(data);
   assert(width > 0);
   assert(height > 0);
   assert(channels > 0);
 
+  gl_image_t *image = malloc(sizeof(gl_image_t));
   image->VAO = 0;
   image->VBO = 0;
   image->EBO = 0;
   image->texture_id = 0;
-
   image->x = x;
   image->y = y;
-
   image->data = data;
   image->width = width;
   image->height = height;
   image->channels = channels;
+
+  // Rectangle vertices and texture coordinates
+  // clang-format off
+  const gl_float_t vertices[4 * 4] = {
+     // Positions // Texture coords
+     1.0f,  0.0f, 1.0f,  1.0f, // Top-right
+     1.0f,  1.0f, 1.0f,  0.0f, // Bottom-right
+     0.0f,  1.0f, 0.0f,  0.0f, // Bottom-left
+     0.0f,  0.0f, 0.0f,  1.0f  // Top-left
+  };
+  const gl_uint_t indices[2 * 3] = {
+    0, 3, 1, // First Triangle
+    2, 1, 3  // Second Triangle
+  };
+  const size_t num_vertices = 4;
+  const size_t vertex_size = sizeof(gl_float_t) * 4;
+  const size_t vbo_size = sizeof(vertices);
+  const size_t ebo_size = sizeof(indices);
+  assert(vbo_size == vertex_size * num_vertices);
+  assert(ebo_size == sizeof(gl_uint_t) * 6);
+  // clang-format on
+
+  // VAO
+  glGenVertexArrays(1, &image->VAO);
+  glBindVertexArray(image->VAO);
+  assert(image->VAO != 0);
+
+  // VBO
+  glGenBuffers(1, &image->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, image->VBO);
+  glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
+  assert(image->VBO != 0);
+
+  // EBO
+  glGenBuffers(1, &image->EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, image->EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, ebo_size, indices, GL_STATIC_DRAW);
+  assert(image->EBO != 0);
+
+  // Position attribute
+  const void *pos_offset = (void *) (sizeof(gl_float_t) * 0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+
+  // Texture coordinate attribute
+  const void *tex_offset = (void *) (sizeof(gl_float_t) * 2);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vertex_size, tex_offset);
+  glEnableVertexAttribArray(1);
+
+  // Load texture
+  glGenTextures(1, &image->texture_id);
+  glBindTexture(GL_TEXTURE_2D, image->texture_id);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D,
+               0,
+               GL_RGB,
+               image->width,
+               image->height,
+               0,
+               GL_RGB,
+               GL_UNSIGNED_BYTE,
+               image->data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+
+  // Unbind VBO and VAO
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  return image;
 }
 
-void gl_image_cleanup(gl_image_t *image) {
+void gl_image_free(gl_image_t *image) {
+  if (image == NULL) {
+    return ;
+  }
   GL_DEL_VERTEX_ARRAY(image->VAO);
   GL_DEL_BUFFER(image->VBO);
   GL_DEL_BUFFER(image->EBO);
+  free(image);
 }
 
 void draw_image(gl_image_t *image) {
   assert(image);
-
-  if (image->VAO == 0) {
-    // Rectangle vertices and texture coordinates
-    // clang-format off
-    const gl_float_t vertices[4 * 4] = {
-       // Positions // Texture coords
-       1.0f,  0.0f, 1.0f,  1.0f, // Top-right
-       1.0f,  1.0f, 1.0f,  0.0f, // Bottom-right
-       0.0f,  1.0f, 0.0f,  0.0f, // Bottom-left
-       0.0f,  0.0f, 0.0f,  1.0f  // Top-left
-    };
-    const gl_uint_t indices[2 * 3] = {
-      0, 3, 1, // First Triangle
-      2, 1, 3  // Second Triangle
-    };
-    const size_t num_vertices = 4;
-    const size_t vertex_size = sizeof(gl_float_t) * 4;
-    const size_t vbo_size = sizeof(vertices);
-    const size_t ebo_size = sizeof(indices);
-    assert(vbo_size == vertex_size * num_vertices);
-    assert(ebo_size == sizeof(gl_uint_t) * 6);
-    // clang-format on
-
-    // VAO
-    glGenVertexArrays(1, &image->VAO);
-    glBindVertexArray(image->VAO);
-    assert(image->VAO != 0);
-
-    // VBO
-    glGenBuffers(1, &image->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, image->VBO);
-    glBufferData(GL_ARRAY_BUFFER, vbo_size, vertices, GL_STATIC_DRAW);
-    assert(image->VBO != 0);
-
-    // EBO
-    glGenBuffers(1, &image->EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, image->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, ebo_size, indices, GL_STATIC_DRAW);
-    assert(image->EBO != 0);
-
-    // Position attribute
-    const void *pos_offset = (void *) (sizeof(gl_float_t) * 0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-    glEnableVertexAttribArray(0);
-
-    // Texture coordinate attribute
-    const void *tex_offset = (void *) (sizeof(gl_float_t) * 2);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vertex_size, tex_offset);
-    glEnableVertexAttribArray(1);
-
-    // Load texture
-    glGenTextures(1, &image->texture_id);
-    glBindTexture(GL_TEXTURE_2D, image->texture_id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGB,
-                 image->width,
-                 image->height,
-                 0,
-                 GL_RGB,
-                 GL_UNSIGNED_BYTE,
-                 image->data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    // Unbind VBO and VAO
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-  }
 
   // Use shader program
   gl_shader_t *shader = &_shader_image;
@@ -2401,7 +2705,9 @@ void setup_text_shader(gl_shader_t *shader) {
   }
 }
 
-void gl_text_setup(gl_text_t *text, const int text_size) {
+gl_text_t *gl_text_malloc(const int text_size) {
+  gl_text_t *text = malloc(sizeof(gl_text_t));
+
   // VAO
   glGenVertexArrays(1, &text->VAO);
   glBindVertexArray(text->VAO);
@@ -2482,12 +2788,18 @@ void gl_text_setup(gl_text_t *text, const int text_size) {
   glBindTexture(GL_TEXTURE_2D, 0);
   FT_Done_Face(face);
   FT_Done_FreeType(ft);
+
+  return text;
 }
 
-void gl_text_cleanup(gl_text_t *text) {
+void gl_text_free(gl_text_t *text) {
+  if (text == NULL) {
+    return;
+  }
   GL_DEL_VERTEX_ARRAY(text->VAO);
   GL_DEL_BUFFER(text->VBO);
   GL_DEL_BUFFER(text->EBO);
+  free(text);
 }
 
 void text_width_height(gl_text_t *text,
