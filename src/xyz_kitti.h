@@ -90,13 +90,6 @@ void kitti_oxts_free(kitti_oxts_t *data);
  * kitti_velodyne_t
  ****************************************************************************/
 
-typedef struct {
-  float x;
-  float y;
-  float z;
-  float r;
-} point_xyzr_t;
-
 typedef struct kitti_velodyne_t {
   int num_timestamps;
   timestamp_t *timestamps;
@@ -105,7 +98,7 @@ typedef struct kitti_velodyne_t {
   char **pcd_paths;
 } kitti_velodyne_t;
 
-point_xyzr_t *kitti_load_points(const char *pcd_path);
+float *kitti_load_points(const char *pcd_path, size_t *num_points);
 kitti_velodyne_t *kitti_velodyne_load(const char *data_dir);
 void kitti_velodyne_free(kitti_velodyne_t *data);
 
@@ -179,7 +172,7 @@ typedef struct kitti_raw_t {
   kitti_camera_t *image_02;
   kitti_camera_t *image_03;
   kitti_oxts_t *oxts;
-  kitti_velodyne_t *velodyne_points;
+  kitti_velodyne_t *velodyne;
   kitti_calib_t *calib;
 } kitti_raw_t;
 

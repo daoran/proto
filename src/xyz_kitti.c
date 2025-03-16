@@ -290,7 +290,7 @@ kitti_oxts_t *kitti_oxts_load(const char *data_dir) {
     strcat(format, "%lf %lf %lf %lf %lf ");     // Velocity
     strcat(format, "%lf %lf %lf %lf %lf %lf "); // Acceleration
     strcat(format, "%lf %lf %lf %lf %lf %lf "); // Angular velocity
-    strcat(format, "%lf %lf %d %d %d %d %d");   // Satellite tracking
+    strcat(format, "%lf %lf %s %s %s %s %s");   // Satellite tracking
 
     for (int i = 0; i < num_rows; ++i) {
       // Open oxts entry
@@ -301,7 +301,12 @@ kitti_oxts_t *kitti_oxts_load(const char *data_dir) {
         KITTI_FATAL("Failed to open [%s]!\n", timestamps_path);
       }
 
-      // Others
+      // Parse
+      char navstat_str[30] = {0}; // Navigation status
+      char numsats_str[30] = {0}; // Number of satelllites tracked by GPS
+      char posmode_str[30] = {0}; // Position mode
+      char velmode_str[30] = {0}; // Velocity mode
+      char orimode_str[30] = {0}; // Orientation mode
       int retval = fscanf(fp,
                           format,
                           // GPS
@@ -335,13 +340,23 @@ kitti_oxts_t *kitti_oxts_load(const char *data_dir) {
                           // Satellite tracking
                           &data->pos_accuracy[i],
                           &data->vel_accuracy[i],
-                          &data->navstat[i],
-                          &data->numsats[i],
-                          &data->posmode[i],
-                          &data->velmode[i],
-                          &data->orimode[i]);
+                          navstat_str,
+                          numsats_str,
+                          posmode_str,
+                          velmode_str,
+                          orimode_str);
+
+      // There's a bug in the KITTI OXTS data where in should be integer
+      // but sometimes its float. Here we are parsing the satellite
+      // tracking data as a string and converting it to integers.
+      data->navstat[i] = strtol(navstat_str, NULL, 10);
+      data->numsats[i] = strtol(numsats_str, NULL, 10);
+      data->posmode[i] = strtol(posmode_str, NULL, 10);
+      data->velmode[i] = strtol(velmode_str, NULL, 10);
+      data->orimode[i] = strtol(orimode_str, NULL, 10);
+
       if (retval != 30) {
-        KITTI_FATAL("Failed to parse line in [%s]\n", entry_path);
+        KITTI_FATAL("Failed to parse [%s]\n", entry_path);
       }
       fclose(fp);
     }
@@ -424,7 +439,7 @@ static timestamp_t *load_timestamps(const char *file_path) {
   return timestamps;
 }
 
-point_xyzr_t *kitti_load_points(const char *pcd_path) {
+float *kitti_load_points(const char *pcd_path, size_t *num_points) {
   // Load pcd file
   FILE *pcd_file = fopen(pcd_path, "rb");
   if (!pcd_file) {
@@ -434,12 +449,12 @@ point_xyzr_t *kitti_load_points(const char *pcd_path) {
 
   // Get the size of the file to know how many points
   fseek(pcd_file, 0, SEEK_END);
-  const long file_size = ftell(pcd_file);
-  fseek(pcd_file, 0, SEEK_SET);
+  const long int file_size = ftell(pcd_file);
+  rewind(pcd_file);
 
   // Allocate memory for the points
-  const int num_points = file_size / 16;
-  point_xyzr_t *points = malloc(sizeof(point_xyzr_t) * num_points);
+  *num_points = file_size / (sizeof(float) * 4);
+  float *points = malloc(sizeof(float) * 4 * *num_points);
   if (!points) {
     KITTI_LOG("Failed to allocate memory for points");
     fclose(pcd_file);
@@ -447,9 +462,9 @@ point_xyzr_t *kitti_load_points(const char *pcd_path) {
   }
 
   // Read points from the file
-  const size_t point_size = sizeof(point_xyzr_t);
-  const size_t read_count = fread(points, point_size, num_points, pcd_file);
-  if (read_count != num_points) {
+  const size_t point_size = sizeof(float) * 4;
+  const size_t read_count = fread(points, point_size, *num_points, pcd_file);
+  if (read_count != *num_points) {
     KITTI_LOG("Failed to read all points");
     free(points);
     fclose(pcd_file);
@@ -691,7 +706,7 @@ kitti_raw_t *kitti_raw_load(const char *data_dir, const char *seq_name) {
   data->image_02 = kitti_camera_load(image_02_path);
   data->image_03 = kitti_camera_load(image_03_path);
   data->oxts = kitti_oxts_load(oxts_path);
-  data->velodyne_points = kitti_velodyne_load(velodyne_points_path);
+  data->velodyne = kitti_velodyne_load(velodyne_points_path);
   data->calib = kitti_calib_load(data_dir);
 
   return data;
@@ -703,7 +718,7 @@ void kitti_raw_free(kitti_raw_t *data) {
   kitti_camera_free(data->image_02);
   kitti_camera_free(data->image_03);
   kitti_oxts_free(data->oxts);
-  kitti_velodyne_free(data->velodyne_points);
+  kitti_velodyne_free(data->velodyne);
   kitti_calib_free(data->calib);
   free(data);
 }
