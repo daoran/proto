@@ -11,6 +11,8 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <errno.h>
+#include <termios.h>
+#include <poll.h>
 
 #include <netdb.h>
 #include <netinet/in.h>
@@ -261,6 +263,8 @@ typedef double real_t;
 /*******************************************************************************
  * DATA
  ******************************************************************************/
+
+char wait_key(int delay);
 
 size_t string_copy(char *dst, const char *src);
 void string_subcopy(char *dst, const char *src, const int s, const int n);

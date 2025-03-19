@@ -4,6 +4,29 @@
  * DATA
  ******************************************************************************/
 
+char wait_key(int delay) {
+  // Enable raw mode
+  struct termios term;
+  tcgetattr(STDIN_FILENO, &term);
+  term.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &term);
+
+  // Wait
+  struct pollfd fd = {STDIN_FILENO, POLLIN, 0};
+  int ret = poll(&fd, 1, delay);
+  char key = -1;
+  if (ret > 0) {
+    read(STDIN_FILENO, &key, 1);
+  }
+
+  // Disable raw mode
+  tcgetattr(STDIN_FILENO, &term);
+  term.c_lflag |= (ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &term);
+
+  return key;
+}
+
 /**
  * String copy from `src` to `dst`.
  */
