@@ -878,11 +878,6 @@ int test_imu_propagate(void) {
   vec_copy(test_data.velocities[0], 3, vel_k);
   imu_propagate(pose_k, vel_k, &imu_buf, pose_kp1, vel_kp1);
 
-  MU_PRINT_VECTOR("[gnd] pose_kp1", test_data.poses[n], 7);
-  MU_PRINT_VECTOR("[est] pose_kp1", pose_kp1, 7);
-  MU_PRINT_VECTOR("[gnd] vel_kp1", test_data.velocities[n], 3);
-  MU_PRINT_VECTOR("[est] vel_kp1", vel_kp1, 3);
-
   real_t dr[3] = {0};
   real_t dtheta = 0;
   pose_diff2(test_data.poses[n], pose_kp1, dr, &dtheta);
@@ -918,8 +913,6 @@ int test_imu_initial_attitude(void) {
   // Test imu initial attitude
   real_t q_WS[4] = {0};
   imu_initial_attitude(&imu_buf, q_WS);
-  MU_PRINT_VECTOR("[gnd] q_WS", test_data.poses[0], 7);
-  MU_PRINT_VECTOR("[est] q_WS", q_WS, 4);
 
   // Clean up
   free_imu_test_data(&test_data);
@@ -1125,73 +1118,23 @@ int test_imu_factor(void) {
                    &biases_j);
   imu_factor_eval(&factor);
 
-  // print_vector("pose_i", pose_i.data, 7);
-  // print_vector("pose_j", pose_j.data, 7);
-  // print_vector("vel_i", vel_i.data, 3);
-  // print_vector("vel_j", vel_j.data, 3);
-  // print_vector("dr", factor.dr, 3);
-  // print_vector("dv", factor.dv, 3);
-  // print_vector("dq", factor.dq, 4);
-  // printf("dt: %f\n", factor.Dt);
-  // print_vector("r", factor.r, 15);
-  // mat_save("/tmp/F.csv", factor.F, 15, 15);
-  // mat_save("/tmp/P.csv", factor.P, 15, 15);
-  // mat_save("/tmp/r.csv", factor.r, 15, 1);
-  // mat_save("/tmp/pose_i.csv", factor.params[0], 7, 1);
-  // mat_save("/tmp/vel_i.csv", factor.params[1], 3, 1);
-  // mat_save("/tmp/pose_j.csv", factor.params[3], 7, 1);
-  // mat_save("/tmp/vel_j.csv", factor.params[4], 3, 1);
+  MU_ASSERT(factor.pose_i == &pose_i);
+  MU_ASSERT(factor.vel_i == &vel_i);
+  MU_ASSERT(factor.biases_i == &biases_i);
+  MU_ASSERT(factor.pose_i == &pose_i);
+  MU_ASSERT(factor.vel_j == &vel_j);
+  MU_ASSERT(factor.biases_j == &biases_j);
 
-  for (int i =0; i < 15; i++) {
-    printf("%.4e\n", factor.r[i]);
-  }
-  printf("\n");
-
-  /*
-  const char *cmd = "\
-F = csvread('/tmp/F.csv'); \
-state_F = csvread('/tmp/F_.csv'); \
-subplot(311); \
-imagesc(F); \
-title('Python'); \
-axis 'equal'; \
-colorbar(); \
-subplot(312); \
-imagesc(state_F); \
-title('C'); \
-axis 'equal'; \
-colorbar(); \
-subplot(313); \
-imagesc(F - state_F); \
-title('F - stateF'); \
-colorbar(); \
-axis 'equal'; \
-F(1:3, 1:3); \
-state_F(1:3, 1:3); \
-ginput();\
-";
-  char syscmd[9046] = {0};
-  sprintf(syscmd, "octave-cli --eval \"%s\"", cmd);
-  system(syscmd);
-  */
-
-  // MU_ASSERT(factor.pose_i == &pose_i);
-  // MU_ASSERT(factor.vel_i == &vel_i);
-  // MU_ASSERT(factor.biases_i == &biases_i);
-  // MU_ASSERT(factor.pose_i == &pose_i);
-  // MU_ASSERT(factor.vel_j == &vel_j);
-  // MU_ASSERT(factor.biases_j == &biases_j);
-  //
-  // // Check Jacobians
-  // const double tol = 1e-4;
-  // const double step_size = 1e-8;
-  // eye(factor.sqrt_info, 15, 15);
-  // CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, tol, 0);
-  // CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
-  // CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 0);
-  // CHECK_FACTOR_J(3, factor, imu_factor_eval, step_size, tol, 0);
-  // CHECK_FACTOR_J(4, factor, imu_factor_eval, step_size, tol, 0);
-  // CHECK_FACTOR_J(5, factor, imu_factor_eval, step_size, tol, 0);
+  // Check Jacobians
+  const double tol = 1e-4;
+  const double step_size = 1e-8;
+  eye(factor.sqrt_info, 15, 15);
+  CHECK_FACTOR_J(0, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(1, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(2, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(3, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(4, factor, imu_factor_eval, step_size, tol, 0);
+  CHECK_FACTOR_J(5, factor, imu_factor_eval, step_size, tol, 0);
 
   // Clean up
   free_imu_test_data(&test_data);
@@ -1367,7 +1310,7 @@ int test_marg(void) {
     marg_factor_add(marg, CAMERA_FACTOR, &factors[i]);
   }
   marg_factor_marginalize(marg);
-  // marg_factor_eval(marg);
+  marg_factor_eval(marg);
 
   // Print timings
   // printf("marg->time_hessian_form:     %.4fs\n", marg->time_hessian_form);
