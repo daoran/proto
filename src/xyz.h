@@ -585,6 +585,14 @@ void bdiag_dot(const real_t *A,
                const real_t *x,
                real_t *b);
 
+#define VEC_ADD(X, Y, Z, N)                                                    \
+  real_t Z[N] = {0};                                                           \
+  vec_add(X, Y, Z, N);
+
+#define VEC_SUB(X, Y, Z, N)                                                    \
+  real_t Z[N] = {0};                                                           \
+  vec_add(X, Y, Z, N);
+
 #define MAT_TRANSPOSE(A, M, N, B)                                              \
   real_t B[N * M] = {0};                                                       \
   mat_transpose(A, M, N, B);
