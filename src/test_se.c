@@ -239,8 +239,6 @@ int test_feature(void) {
   real_t data[3] = {0.1, 0.2, 0.3};
   feature_init(&feature, feature_id, data);
 
-  printf("sizeof(feature_t): %ld bytes\n", sizeof(feature_t));
-
   MU_ASSERT(feature.feature_id == feature_id);
   MU_ASSERT(fltcmp(feature.data[0], 0.1) == 0.0);
   MU_ASSERT(fltcmp(feature.data[1], 0.2) == 0.0);
@@ -669,80 +667,6 @@ int test_camera_factor(void) {
 
   return 0;
 }
-
-// int test_idf_factor(void) {
-//   // Timestamp
-//   timestamp_t ts = 0;
-
-//   // Body pose
-//   pose_t pose;
-//   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-//   pose_setup(&pose, ts, pose_data);
-
-//   // Extrinsic
-//   extrinsic_t cam_ext;
-//   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
-//   extrinsic_setup(&cam_ext, ext_data);
-
-//   // Camera parameters
-//   camera_params_t cam;
-//   const int cam_idx = 0;
-//   const int cam_res[2] = {640, 480};
-//   const char *proj_model = "pinhole";
-//   const char *dist_model = "radtan4";
-//   const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
-
-//   // Setup feature and image point
-//   TF(pose_data, T_WB);
-//   TF(ext_data, T_BCi);
-//   TF_INV(T_WB, T_BW);
-//   TF_INV(T_BCi, T_CiB);
-//   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-//   TF_INV(T_CiW, T_WCi);
-//   TF_TRANS(T_WCi, r_WCi);
-
-//   const size_t feature_id = 0;
-//   const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
-//   real_t z[2] = {0};
-//   TF_POINT(T_CiW, p_W, p_Ci);
-//   pinhole_radtan4_project(cam_data, p_Ci, z);
-
-//   // Setup IDF
-//   pos_t idf_pos;
-//   pos_setup(&idf_pos, r_WCi);
-
-//   feature_t idf_param;
-//   TF_ROT(T_WCi, C_WCi);
-//   idf_setup(&idf_param, feature_id, 0, &cam, C_WCi, z);
-
-//   // Setup IDF Factor
-//   const real_t var[2] = {1.0, 1.0};
-//   idf_factor_t factor;
-//   idf_factor_setup(&factor,
-//                    &pose,
-//                    &cam_ext,
-//                    &cam,
-//                    &idf_pos,
-//                    &idf_param,
-//                    ts,
-//                    cam_idx,
-//                    feature_id,
-//                    z,
-//                    var);
-
-//   // Check Jacobians
-//   const real_t step_size = 1e-8;
-//   const real_t tol = 1e-4;
-//   const int debug = 0;
-//   CHECK_FACTOR_J(0, factor, idf_factor_eval, step_size, tol, debug);
-//   CHECK_FACTOR_J(1, factor, idf_factor_eval, step_size, tol, debug);
-//   CHECK_FACTOR_J(2, factor, idf_factor_eval, step_size, tol, debug);
-//   CHECK_FACTOR_J(3, factor, idf_factor_eval, step_size, tol, debug);
-//   CHECK_FACTOR_J(4, factor, idf_factor_eval, step_size, tol, debug);
-
-//   return 0;
-// }
 
 int test_imu_buffer_setup(void) {
   imu_buffer_t imu_buf;
@@ -2186,7 +2110,6 @@ void test_suite(void) {
   MU_ADD_TEST(test_pose_factor);
   MU_ADD_TEST(test_ba_factor);
   MU_ADD_TEST(test_camera_factor);
-  // MU_ADD_TEST(test_idf_factor);
   MU_ADD_TEST(test_imu_buffer_setup);
   MU_ADD_TEST(test_imu_buffer_add);
   MU_ADD_TEST(test_imu_buffer_clear);
