@@ -4284,7 +4284,9 @@ void marg_factor_free(marg_factor_t *marg) {
 
   // Jacobians
   free(marg->param_types);
-  free(marg->param_ptrs);
+  if (marg->param_ptrs) {
+    free(marg->param_ptrs);
+  }
   free(marg->params);
   free(marg->r);
   for (int i = 0; i < marg->num_params; i++) {
@@ -4647,14 +4649,12 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
     for (int i = 0; i < (r * r); i++) {
       diff += pow(H_[i] - marg->H_marg[i], 2);
     }
-    diff = sqrt(diff);
 
     if (diff > 1e-2) {
       marg->eigen_decomp_ok = 0;
       LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
       LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
     }
-    printf("J' * J != H_marg. Diff is %.2e\n", diff);
 
     free(Jt);
     free(H_);

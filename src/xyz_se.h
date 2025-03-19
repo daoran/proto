@@ -319,6 +319,16 @@ void time_delay_copy(const time_delay_t *src, time_delay_t *dst);
 void time_delay_print(const char *prefix, const time_delay_t *exts);
 
 ///////////
+// POINT //
+///////////
+
+typedef struct point_t {
+  real_t x;
+  real_t y;
+  real_t z;
+} point_t;
+
+///////////
 // JOINT //
 ///////////
 
@@ -495,12 +505,13 @@ typedef struct pose_factor_t {
   real_t covar[6 * 6];
   real_t sqrt_info[6 * 6];
 
-  int r_size;
-  int num_params;
-  int param_types[1];
-
-  real_t *params[1];
   real_t r[6];
+  int r_size;
+
+  int param_types[1];
+  real_t *params[1];
+  int num_params;
+
   real_t *jacs[1];
   real_t J_pose[6 * 6];
 } pose_factor_t;
@@ -523,12 +534,13 @@ typedef struct ba_factor_t {
   real_t sqrt_info[2 * 2];
   real_t z[2];
 
-  int r_size;
-  int num_params;
-  int param_types[3];
-
-  real_t *params[3];
   real_t r[2];
+  int r_size;
+
+  int param_types[3];
+  real_t *params[3];
+  int num_params;
+
   real_t *jacs[3];
   real_t J_pose[2 * 6];
   real_t J_feature[2 * 3];
@@ -557,12 +569,13 @@ typedef struct camera_factor_t {
   real_t sqrt_info[2 * 2];
   real_t z[2];
 
+  real_t r[2];
   int r_size;
+
   int num_params;
   int param_types[4];
-
   real_t *params[4];
-  real_t r[2];
+
   real_t *jacs[4];
   real_t J_pose[2 * 6];
   real_t J_extrinsic[2 * 6];
