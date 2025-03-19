@@ -47,7 +47,6 @@ typedef double real_t;
 #define status_t __attribute__((warn_unused_result)) int
 #endif
 
-
 /** Terminal ANSI colors */
 #define KRED "\x1B[1;31m"
 #define KGRN "\x1B[1;32m"
@@ -187,7 +186,6 @@ typedef double real_t;
     }                                                                          \
     MEAN_VAR = VALUE / (real_t) BUF_SIZE;                                      \
   }
-
 
 /*******************************************************************************
  * LOGGING
@@ -360,8 +358,8 @@ status_t tcp_server_setup(tcp_server_t *server, const int port);
 status_t tcp_server_loop(tcp_server_t *server);
 
 status_t tcp_client_setup(tcp_client_t *client,
-                        const char *server_ip,
-                        const int server_port);
+                          const char *server_ip,
+                          const int server_port);
 status_t tcp_client_loop(tcp_client_t *client);
 
 /*******************************************************************************
@@ -542,6 +540,13 @@ void dot(const real_t *A,
          const size_t B_m,
          const size_t B_n,
          real_t *C);
+void dotf(const float *A,
+          const size_t A_m,
+          const size_t A_n,
+          const float *B,
+          const size_t B_m,
+          const size_t B_n,
+          float *C);
 void dot3(const real_t *A,
           const size_t A_m,
           const size_t A_n,
