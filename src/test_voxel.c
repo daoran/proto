@@ -145,11 +145,11 @@ int test_voxel_hash_expand(void) {
 }
 
 int test_voxel_hash_add(void) {
-  const size_t capacity = pow(2, 17);
+  const size_t capacity = pow(2, 20);
   voxel_hash_t *voxel_hash = voxel_hash_malloc(capacity);
 
   // Create random points
-  const int N = 80000;
+  const int N = 200000;
   float *points = malloc(sizeof(float) * N * 3);
   for (int i = 0; i < N; ++i) {
     points[i * 3 + 0] = randf(-100.0, 100.0);
@@ -158,22 +158,38 @@ int test_voxel_hash_add(void) {
   }
 
   // Insert random points into voxel hash
-  struct timespec t = tic();
-  for (int i = 0; i < N; ++i) {
-    voxel_hash_add(voxel_hash, &points[i * 3]);
+  {
+    // struct timespec t = tic();
+    for (int i = 0; i < N; ++i) {
+      voxel_hash_add(voxel_hash, &points[i * 3]);
+    }
+    // printf("[voxel hash add points] time taken: %.4f [s]\n", toc(&t));
   }
-  printf("time taken: %.4f [s]\n", toc(&t));
 
   // Iterate through voxel hash
-  size_t num_points = 0;
-  voxel_hash_iter_t it = voxel_hash_iterator(voxel_hash);
-  while (voxel_hash_next(&it)) {
-    voxel_t *voxel = it.value;
-    num_points += voxel->length;
+  {
+    // struct timespec t = tic();
+
+    float *points_ = malloc(sizeof(float) * N * 3);
+    size_t num_points = 0;
+    voxel_hash_iter_t it = voxel_hash_iterator(voxel_hash);
+    while (voxel_hash_next(&it)) {
+      voxel_t *voxel = it.value;
+
+      for (size_t i = 0; i < voxel->length; ++i) {
+        points_[num_points * 3 + 0] = voxel->points[i * 3 + 0];
+        points_[num_points * 3 + 1] = voxel->points[i * 3 + 1];
+        points_[num_points * 3 + 2] = voxel->points[i * 3 + 2];
+        num_points++;
+      }
+    }
+    free(points_);
+
+    // printf("[voxel hash get points] time taken: %.4f [s]\n", toc(&t));
+    // printf("num_points inserted:  %d\n", N);
+    // printf("num_points retrieved: %ld\n", num_points);
+    MU_ASSERT(num_points == N);
   }
-  printf("N: %d\n", N);
-  printf("num_points: %ld\n", num_points);
-  MU_ASSERT(num_points == N);
 
   voxel_hash_free(voxel_hash);
   free(points);

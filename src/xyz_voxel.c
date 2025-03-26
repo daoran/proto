@@ -171,11 +171,12 @@ int voxel_hash_add(voxel_hash_t *voxel_hash, const float p[3]) {
   }
 
   // Add point to voxel
+  voxel_t *voxel = &voxel_hash->voxels[index];
   voxel_hash->length += (voxel_hash->voxels[index].length == 0) ? 1 : 0;
-  voxel_hash->voxels[index].key[0] = key[0];
-  voxel_hash->voxels[index].key[1] = key[1];
-  voxel_hash->voxels[index].key[2] = key[2];
-  voxel_add(&voxel_hash->voxels[index], p);
+  voxel->key[0] = key[0];
+  voxel->key[1] = key[1];
+  voxel->key[2] = key[2];
+  voxel_add(voxel, p);
 
   return 0;
 }
