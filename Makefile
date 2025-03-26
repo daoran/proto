@@ -71,6 +71,7 @@ install: ## Install libxyz
 	ln -sf $(CUR_DIR)/xyz_se.h         $(PREFIX)/include/xyz_se.h
 	ln -sf $(CUR_DIR)/xyz_sim.h        $(PREFIX)/include/xyz_sim.h
 	ln -sf $(CUR_DIR)/xyz_timeline.h   $(PREFIX)/include/xyz_timeline.h
+	ln -sf $(CUR_DIR)/xyz_voxel.h   $(PREFIX)/include/xyz_voxel.h
 
 uninstall: ## Uninstall libxyz
 	rm $(PYTHON3_PATH)/xyz.py
@@ -91,6 +92,7 @@ uninstall: ## Uninstall libxyz
 	rm $(PREFIX)/include/xyz_se.h
 	rm $(PREFIX)/include/xyz_sim.h
 	rm $(PREFIX)/include/xyz_timeline.h
+	rm $(PREFIX)/include/xyz_voxel.h
 
 avs: $(BLD_DIR)/libxyz.a
 	@g++ \

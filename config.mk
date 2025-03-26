@@ -8,10 +8,10 @@ PREFIX := /opt/xyz
 PYTHON3_PATH := $(shell python3 -c "import site; print(site.getsitepackages()[0])")
 
 # COMPILER SETTINGS
-BUILD_TYPE := debug
-# BUILD_TYPE := release
-ADDRESS_SANITIZER := 1
-# ADDRESS_SANITIZER := 0
+# BUILD_TYPE := debug
+BUILD_TYPE := release
+# ADDRESS_SANITIZER := 1
+ADDRESS_SANITIZER := 0
 CI_MODE := 0
 # CC := clang
 CC := gcc
@@ -112,7 +112,8 @@ LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz_calib.o \
 	$(BLD_DIR)/xyz_octree.o \
 	$(BLD_DIR)/xyz_ceres.o \
-	$(BLD_DIR)/xyz_gui.o
+	$(BLD_DIR)/xyz_gui.o \
+	$(BLD_DIR)/xyz_voxel.o
 
 
 # TESTS
@@ -132,4 +133,5 @@ TESTS := \
 	$(BLD_DIR)/test_octree \
 	$(BLD_DIR)/test_se \
 	$(BLD_DIR)/test_sim \
+	$(BLD_DIR)/test_voxel \
 	$(BLD_DIR)/test_xyz
