@@ -16,7 +16,9 @@ char wait_key(int delay) {
   int ret = poll(&fd, 1, delay);
   char key = -1;
   if (ret > 0) {
-    read(STDIN_FILENO, &key, 1);
+    if (read(STDIN_FILENO, &key, 1) == -1) {
+      return -1;
+    }
   }
 
   // Disable raw mode
@@ -65,7 +67,7 @@ void string_cat(char *dst, const char *src) {
  */
 char *string_malloc(const char *s) {
   assert(s != NULL);
-  char *retval = MALLOC(char, strlen(s) + 1);
+  char *retval = malloc(sizeof(char) * strlen(s) + 1);
   memcpy(retval, s, strlen(s));
   retval[strlen(s)] = '\0'; // Null terminate
   return retval;
@@ -194,7 +196,7 @@ static int *parse_iarray_line(char *line) {
     if (c == ',' || c == '\n') {
       if (data == NULL) {
         size_t array_size = strtod(entry, NULL);
-        data = CALLOC(int, array_size + 1);
+        data = calloc(array_size + 1, sizeof(int));
       }
       data[index] = strtod(entry, NULL);
       index++;
@@ -217,7 +219,7 @@ int **load_iarrays(const char *csv_path, int *num_arrays) {
   assert(csv_path != NULL);
   FILE *csv_file = fopen(csv_path, "r");
   *num_arrays = dsv_rows(csv_path);
-  int **array = CALLOC(int *, *num_arrays);
+  int **array = calloc(*num_arrays, sizeof(int *));
 
   char line[MAX_LINE_LENGTH] = {0};
   int frame_idx = 0;
@@ -255,7 +257,7 @@ static double *parse_darray_line(char *line) {
     if (c == ',' || c == '\n') {
       if (data == NULL) {
         size_t array_size = strtod(entry, NULL);
-        data = CALLOC(double, array_size);
+        data = calloc(array_size, sizeof(double));
       }
       data[index] = strtod(entry, NULL);
       index++;
@@ -280,7 +282,7 @@ double **load_darrays(const char *csv_path, int *num_arrays) {
   assert(num_arrays != NULL);
   FILE *csv_file = fopen(csv_path, "r");
   *num_arrays = dsv_rows(csv_path);
-  double **array = CALLOC(double *, *num_arrays);
+  double **array = calloc(*num_arrays, sizeof(double *));
 
   char line[MAX_LINE_LENGTH] = {0};
   int frame_idx = 0;
@@ -301,7 +303,7 @@ double **load_darrays(const char *csv_path, int *num_arrays) {
  * Allocate heap memory for integer `val`.
  */
 int *int_malloc(const int val) {
-  int *i = MALLOC(int, 1);
+  int *i = malloc(sizeof(int));
   *i = val;
   return i;
 }
@@ -310,7 +312,7 @@ int *int_malloc(const int val) {
  * Allocate heap memory for float `val`.
  */
 float *float_malloc(const float val) {
-  float *f = MALLOC(float, 1);
+  float *f = malloc(sizeof(float));
   *f = val;
   return f;
 }
@@ -319,7 +321,7 @@ float *float_malloc(const float val) {
  * Allocate heap memory for double `val`.
  */
 double *double_malloc(const double val) {
-  double *d = MALLOC(double, 1);
+  double *d = malloc(sizeof(double));
   *d = val;
   return d;
 }
@@ -328,7 +330,7 @@ double *double_malloc(const double val) {
  * Allocate heap memory for vector `vec` with length `N`.
  */
 double *vector_malloc(const double *vec, const double N) {
-  double *retval = MALLOC(double, N);
+  double *retval = malloc(sizeof(double) * N);
   for (int i = 0; i < N; i++) {
     retval[i] = vec[i];
   }
@@ -433,7 +435,7 @@ char **dsv_fields(const char *fp, const char delim, int *num_fields) {
 
   // Parse fields
   *num_fields = dsv_cols(fp, delim);
-  char **fields = MALLOC(char *, *num_fields);
+  char **fields = malloc(sizeof(char *) * *num_fields);
   int field_idx = 0;
   char field_name[100] = {0};
 
@@ -491,7 +493,7 @@ dsv_data(const char *fp, const char delim, int *num_rows, int *num_cols) {
   int col_idx = 0;
 
   // Loop through data line by line
-  double **data = MALLOC(double *, *num_rows);
+  double **data = malloc(sizeof(double *) * *num_rows);
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
     // Ignore if comment line
     if (line[0] == '#') {
@@ -499,7 +501,7 @@ dsv_data(const char *fp, const char delim, int *num_rows, int *num_cols) {
     }
 
     // Iterate through values in line separated by commas
-    data[row_idx] = MALLOC(double, *num_cols);
+    data[row_idx] = malloc(sizeof(double) * *num_cols);
     char entry[100] = {0};
     for (size_t i = 0; i < strlen(line); i++) {
       char c = line[i];
@@ -616,11 +618,11 @@ char *path_join(const char *x, const char *y) {
 
   char *retval = NULL;
   if (x[strlen(x) - 1] == '/') {
-    retval = MALLOC(char, (strlen(x) + strlen(y)) + 1);
+    retval = malloc(sizeof(char) * (strlen(x) + strlen(y)) + 1);
     string_copy(retval, x);
     string_copy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
   } else {
-    retval = MALLOC(char, (strlen(x) + strlen(y)) + 2);
+    retval = malloc(sizeof(char) * (strlen(x) + strlen(y)) + 2);
     string_copy(retval, x);
     string_cat(retval + strlen(retval), "/");
     string_copy(retval + strlen(retval), (y[0] == '/') ? y + 1 : y);
@@ -648,7 +650,7 @@ char **list_files(const char *path, int *n) {
   free(namelist[1]);
 
   // Allocate memory for list of files
-  char **files = MALLOC(char *, num_files - 2);
+  char **files = malloc(sizeof(char *) * num_files - 2);
   *n = 0;
 
   // Create list of files
@@ -659,7 +661,7 @@ char **list_files(const char *path, int *n) {
     string_cat(fp, c);
     string_cat(fp, namelist[i]->d_name);
 
-    files[*n] = MALLOC(char, strlen(fp) + 1);
+    files[*n] = malloc(sizeof(char) * strlen(fp) + 1);
     memcpy(files[*n], fp, strlen(fp));
     files[*n][strlen(fp)] = '\0'; // strncpy does not null terminate
     (*n)++;
@@ -699,7 +701,7 @@ char *file_read(const char *fp) {
   long int len = ftell(f);
   fseek(f, 0, SEEK_SET);
 
-  char *buf = MALLOC(char, len + 1);
+  char *buf = malloc(sizeof(char) * len + 1);
   if (buf == NULL) {
     fclose(f);
     return NULL;
@@ -937,13 +939,12 @@ status_t tcp_server_setup(tcp_server_t *server, const int port) {
   if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEADDR, &en, int_sz) < 0) {
     LOG_ERROR("setsockopt(SO_REUSEADDR) failed");
   }
-  if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEPORT, &en, int_sz) < 0) {
-    LOG_ERROR("setsockopt(SO_REUSEPORT) failed");
-  }
+  // if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEPORT, &en, int_sz) < 0) {
+  //   LOG_ERROR("setsockopt(SO_REUSEPORT) failed");
+  // }
 
   // Assign IP, PORT
-  struct sockaddr_in addr;
-  bzero(&addr, sizeof(addr));
+  struct sockaddr_in addr = {0};
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
   addr.sin_port = htons(server->port);
@@ -1329,7 +1330,7 @@ real_t median(const real_t *x, const size_t n) {
   assert(n > 0);
 
   // Make a copy of the original input vector x
-  real_t *vals = MALLOC(real_t, n);
+  real_t *vals = malloc(sizeof(real_t) * n);
   for (size_t i = 0; i < n; i++) {
     vals[i] = x[i];
   }
@@ -1635,7 +1636,7 @@ void enforce_spd(real_t *A, const int m, const int n) {
 real_t *mat_malloc(const size_t m, const size_t n) {
   assert(m > 0);
   assert(n > 0);
-  return CALLOC(real_t, m * n);
+  return calloc(m * n, sizeof(real_t));
 }
 
 /**
@@ -1747,7 +1748,7 @@ int mat_equals(const real_t *A,
 //   }
 //
 //   // Initialize memory for csv data
-//   real_t *A = MALLOC(real_t, *num_rows * *num_cols);
+//   real_t *A = malloc(sizeof(real_t) * *num_rows * *num_cols);
 //
 //   // Load file
 //   FILE *infile = fopen(mat_path, "r");
@@ -2178,7 +2179,7 @@ void mat3_sub(const real_t A[3 * 3], const real_t B[3 * 3], real_t C[3 * 3]) {
  */
 real_t *vec_malloc(const real_t *x, const size_t n) {
   assert(n > 0);
-  real_t *vec = CALLOC(real_t, n);
+  real_t *vec = calloc(n, sizeof(real_t));
   for (size_t i = 0; i < n; i++) {
     vec[i] = x[i];
   }
@@ -2316,7 +2317,7 @@ void vec_range(const real_t *x,
 //   }
 //
 //   // Initialize memory for csv data
-//   real_t *x = MALLOC(real_t, *m * *n);
+//   real_t *x = malloc(sizeof(real_t) * *m * *n);
 //
 //   // Load file
 //   FILE *infile = fopen(vec_path, "r");
@@ -2606,7 +2607,7 @@ void dot3(const real_t *A,
           const size_t C_m,
           const size_t C_n,
           real_t *D) {
-  real_t *AB = MALLOC(real_t, A_m * B_n);
+  real_t *AB = malloc(sizeof(real_t) * A_m * B_n);
   dot(A, A_m, A_n, B, B_m, B_n, AB);
   dot(AB, A_m, B_m, C, C_m, C_n, D);
   free(AB);
@@ -2627,8 +2628,8 @@ void dot_XtAX(const real_t *X,
   assert(Y != NULL);
   assert(X_m == A_m);
 
-  real_t *XtA = MALLOC(real_t, (X_m * A_m));
-  real_t *Xt = MALLOC(real_t, (X_m * X_n));
+  real_t *XtA = malloc(sizeof(real_t) * (X_m * A_m));
+  real_t *Xt = malloc(sizeof(real_t) * (X_m * X_n));
 
   mat_transpose(X, X_m, X_n, Xt);
   dot(Xt, X_n, X_m, A, A_m, A_n, XtA);
@@ -2653,8 +2654,8 @@ void dot_XAXt(const real_t *X,
   assert(Y != NULL);
   assert(X_n == A_m);
 
-  real_t *Xt = MALLOC(real_t, (X_m * X_n));
-  real_t *XA = MALLOC(real_t, (X_m * A_n));
+  real_t *Xt = malloc(sizeof(real_t) * (X_m * X_n));
+  real_t *XA = malloc(sizeof(real_t) * (X_m * A_n));
 
   mat_transpose(X, X_m, X_n, Xt);
   dot(X, X_m, X_n, A, A_m, A_n, XA);
@@ -2668,8 +2669,8 @@ void dot_XAXt(const real_t *X,
  * Invert a block diagonal matrix.
  */
 void bdiag_inv(const real_t *A, const int m, const int bs, real_t *A_inv) {
-  real_t *A_sub = MALLOC(real_t, bs * bs);
-  real_t *A_sub_inv = MALLOC(real_t, bs * bs);
+  real_t *A_sub = malloc(sizeof(real_t) * bs * bs);
+  real_t *A_sub_inv = malloc(sizeof(real_t) * bs * bs);
   zeros(A_inv, m, m);
 
   for (int idx = 0; idx < m; idx += bs) {
@@ -2700,8 +2701,8 @@ void bdiag_inv_sub(const real_t *A,
                    const int m,
                    const int bs,
                    real_t *A_inv) {
-  real_t *A_sub = MALLOC(real_t, bs * bs);
-  real_t *A_sub_inv = MALLOC(real_t, bs * bs);
+  real_t *A_sub = malloc(sizeof(real_t) * bs * bs);
+  real_t *A_sub_inv = malloc(sizeof(real_t) * bs * bs);
   zeros(A_inv, m, m);
 
   for (int idx = 0; idx < m; idx += bs) {
@@ -2734,8 +2735,8 @@ void bdiag_dot(const real_t *A,
                const int bs,
                const real_t *x,
                real_t *b) {
-  real_t *A_sub = MALLOC(real_t, bs * bs);
-  real_t *x_sub = MALLOC(real_t, bs);
+  real_t *A_sub = malloc(sizeof(real_t) * bs * bs);
+  real_t *x_sub = malloc(sizeof(real_t) * bs);
 
   for (int idx = 0; idx < m; idx += bs) {
     const int rs = idx;
@@ -2757,7 +2758,7 @@ void bdiag_dot(const real_t *A,
  */
 int check_inv(const real_t *A, const real_t *A_inv, const int m) {
   const real_t tol = 1e-2;
-  real_t *inv_check = CALLOC(real_t, m * m);
+  real_t *inv_check = calloc(m * m, sizeof(real_t));
   dot(A, m, m, A_inv, m, m, inv_check);
   // print_matrix("inv_check", inv_check, m, m);
   // gnuplot_matshow(inv_check, m, m);
@@ -2789,8 +2790,8 @@ real_t check_Axb(const real_t *A,
                  const real_t *b,
                  const int m,
                  const int n) {
-  real_t *b_est = MALLOC(real_t, m);
-  real_t *diff = MALLOC(real_t, m);
+  real_t *b_est = malloc(sizeof(real_t) * m);
+  real_t *diff = malloc(sizeof(real_t) * m);
   real_t r_sq = 0.0;
 
   dot(A, m, n, x, n, 1, b_est);
@@ -2908,7 +2909,7 @@ extern void dgesdd_(char *jobz,
  */
 int __lapack_svd(real_t *A, int m, int n, real_t *s, real_t *U, real_t *Vt) {
   // Transpose matrix A because LAPACK is column major
-  real_t *At = MALLOC(real_t, m * n);
+  real_t *At = malloc(sizeof(real_t) * m * n);
   mat_transpose(A, m, n, At);
 
   // Query and allocate optimal workspace
@@ -2918,7 +2919,7 @@ int __lapack_svd(real_t *A, int m, int n, real_t *s, real_t *U, real_t *Vt) {
   real_t work_size;
   real_t *work = &work_size;
   int num_sv = (m < n) ? m : n;
-  int *iwork = MALLOC(int, 8 * num_sv);
+  int *iwork = malloc(sizeof(int) * 8 * num_sv);
 
 #if PRECISION == 1
   sgesdd_("A", &m, &n, At, &lda, s, U, &m, Vt, &n, work, &lwork, iwork, &info);
@@ -2926,7 +2927,7 @@ int __lapack_svd(real_t *A, int m, int n, real_t *s, real_t *U, real_t *Vt) {
   dgesdd_("A", &m, &n, At, &lda, s, U, &m, Vt, &n, work, &lwork, iwork, &info);
 #endif
   lwork = work_size;
-  work = MALLOC(real_t, lwork);
+  work = malloc(sizeof(real_t) * lwork);
 
   // Compute SVD
 #if PRECISION == 1
@@ -2968,7 +2969,7 @@ int __svd(real_t *A, const int m, const int n, real_t *w, real_t *V) {
   double anorm, c, f, g, h, s, scale, x, y, z, *rv1;
   l = 0;
 
-  rv1 = MALLOC(double, n);
+  rv1 = malloc(sizeof(double) * n);
   if (rv1 == NULL) {
     printf("svd(): Unable to allocate vector\n");
     return (-1);
@@ -3205,10 +3206,10 @@ int svd(const real_t *A,
         real_t *s,
         real_t *V) {
 #ifdef USE_LAPACK
-  real_t *A_copy = MALLOC(real_t, m * n);
-  real_t *U_ = MALLOC(real_t, m * m);
-  real_t *Ut_ = MALLOC(real_t, m * m);
-  real_t *Vt = MALLOC(real_t, n * n);
+  real_t *A_copy = malloc(sizeof(real_t) * m * n);
+  real_t *U_ = malloc(sizeof(real_t) * m * m);
+  real_t *Ut_ = malloc(sizeof(real_t) * m * m);
+  real_t *Vt = malloc(sizeof(real_t) * n * n);
 
   mat_copy(A, m, n, A_copy);
   const int retval = __lapack_svd(A_copy, m, n, s, U_, Vt);
@@ -3237,13 +3238,13 @@ void pinv(const real_t *A, const int m, const int n, real_t *A_inv) {
 
   // Decompose A = U * S * Vt
   const int diag_size = (m < n) ? m : n;
-  real_t *s = CALLOC(real_t, diag_size);
-  real_t *U = CALLOC(real_t, m * n);
-  real_t *V = CALLOC(real_t, n * n);
+  real_t *s = calloc(diag_size, sizeof(real_t));
+  real_t *U = calloc(m * n, sizeof(real_t));
+  real_t *V = calloc(n * n, sizeof(real_t));
   svd(A, m, n, U, s, V);
 
   // Form Sinv diagonal matrix
-  real_t *Si = CALLOC(real_t, m * n);
+  real_t *Si = calloc(m * n, sizeof(real_t));
   zeros(Si, n, m);
   for (int idx = 0; idx < m; idx++) {
     const int diag_idx = idx * n + idx;
@@ -3256,14 +3257,14 @@ void pinv(const real_t *A, const int m, const int n, real_t *A_inv) {
   }
 
   // A_inv = Vt * Si * U
-  // real_t *V_Si = MALLOC(real_t, m * m);
+  // real_t *V_Si = malloc(sizeof(real_t) * m * m);
   // zeros(A_inv, m, n);
   // dot(V, m, n, Si, n, m, V_Si);
   // dot(V_Si, m, m, Ut, m, n, A_inv);
 
   // A_inv = U * Si * Ut
-  real_t *Ut = CALLOC(real_t, m * n);
-  real_t *Si_Ut = CALLOC(real_t, diag_size * n);
+  real_t *Ut = calloc(m * n, sizeof(real_t));
+  real_t *Si_Ut = calloc(diag_size * n, sizeof(real_t));
   mat_transpose(U, m, n, Ut);
   dot(Si, diag_size, diag_size, Ut, m, n, Si_Ut);
   dot(V, m, n, Si_Ut, diag_size, n, A_inv);
@@ -3290,9 +3291,9 @@ int svd_det(const real_t *A, const int m, const int n, real_t *det) {
 
   // Decompose matrix A with SVD
   const int k = (m < n) ? m : n;
-  real_t *U = MALLOC(real_t, m * n);
-  real_t *s = MALLOC(real_t, k);
-  real_t *V = MALLOC(real_t, k * k);
+  real_t *U = malloc(sizeof(real_t) * m * n);
+  real_t *s = malloc(sizeof(real_t) * k);
+  real_t *V = malloc(sizeof(real_t) * k * k);
   int retval = svd(A, m, n, U, s, V);
 
   // Calculate determinant by via product of the diagonal singular values
@@ -3315,9 +3316,9 @@ int svd_det(const real_t *A, const int m, const int n, real_t *det) {
 int svd_rank(const real_t *A, const int m, const int n, real_t tol) {
   // Decompose matrix A with SVD
   const int k = (m < n) ? m : n;
-  real_t *U = MALLOC(real_t, m * n);
-  real_t *s = MALLOC(real_t, k);
-  real_t *V = MALLOC(real_t, k * k);
+  real_t *U = malloc(sizeof(real_t) * m * n);
+  real_t *s = malloc(sizeof(real_t) * k);
+  real_t *V = malloc(sizeof(real_t) * k * k);
   int retval = svd(A, m, n, U, s, V);
   if (retval != 0) {
     free(U);
@@ -3492,9 +3493,9 @@ void __chol_solve(const real_t *A, const real_t *b, real_t *x, const size_t n) {
   assert(n > 0);
 
   // Allocate memory
-  real_t *L = CALLOC(real_t, n * n);
-  real_t *Lt = CALLOC(real_t, n * n);
-  real_t *y = CALLOC(real_t, n);
+  real_t *L = calloc(n * n, sizeof(real_t));
+  real_t *Lt = calloc(n * n, sizeof(real_t));
+  real_t *y = calloc(n, sizeof(real_t));
 
   // Cholesky decomposition
   chol(A, n, L);
@@ -3590,7 +3591,7 @@ void dgeqrf_(const int *M,
 
 void __lapack_qr(real_t *A, int m, int n, real_t *R) {
   // Transpose matrix A because LAPACK is column major
-  real_t *At = MALLOC(real_t, m * n);
+  real_t *At = malloc(sizeof(real_t) * m * n);
   mat_transpose(A, m, n, At);
 
   // Query and allocate optimal workspace
@@ -3599,7 +3600,7 @@ void __lapack_qr(real_t *A, int m, int n, real_t *R) {
   int info = 0;
   real_t work_size;
   real_t *work = &work_size;
-  real_t *tau = MALLOC(real_t, (m < n) ? m : n);
+  real_t *tau = malloc(sizeof(real_t) * ((m < n) ? m : n));
 
 #if PRECISION == 1
   sgeqrf_(&m, &n, At, &lda, tau, work, &lwork, &info);
@@ -3607,7 +3608,7 @@ void __lapack_qr(real_t *A, int m, int n, real_t *R) {
   dgeqrf_(&m, &n, At, &lda, tau, work, &lwork, &info);
 #endif
   lwork = work_size;
-  work = MALLOC(real_t, lwork);
+  work = malloc(sizeof(real_t) * lwork);
 
   // Compute QR
 #if PRECISION == 1
@@ -3652,8 +3653,8 @@ void __lapack_qr(real_t *A, int m, int n, real_t *R) {
   //   A(i+1:m,i)
   //   Q = Q*(eye(6) - tau(i)*v'*v);
   // end
-  // real_t *Q = CALLOC(real_t, m * m);
-  // real_t *v = CALLOC(real_t, m);
+  // real_t *Q = calloc(m * m, sizeof(real_t));
+  // real_t *v = calloc(m, sizeof(real_t));
   // for (int i = 0; i < n; i++) {
   //   for (int ii = 0; ii < i; i++) {
   //     v[ii] = 0.0;
@@ -3735,7 +3736,7 @@ int __lapack_eig(const real_t *A,
   dsyev_("Vectors", "Lower", &n_, V, &lda, w, &wkopt, &lwork, &info);
 #endif // Precision
   lwork = (int) wkopt;
-  real_t *work = MALLOC(double, lwork);
+  real_t *work = malloc(sizeof(double) * lwork);
 
   // Solve eigenproblem
 #if PRECISION == 1
@@ -3750,7 +3751,7 @@ int __lapack_eig(const real_t *A,
   }
 
   // Clean up
-  real_t *Vt = MALLOC(real_t, n * n);
+  real_t *Vt = malloc(sizeof(real_t) * n * n);
   mat_transpose(V, n, n, Vt);
   mat_copy(Vt, n, n, V);
   free(Vt);
@@ -3790,10 +3791,10 @@ int eig_inv(real_t *A, const int m, const int n, const int c, real_t *A_inv) {
   }
 
   // Invert matrix via Eigen-decomposition
-  real_t *V = MALLOC(real_t, m * m);
-  real_t *Vt = MALLOC(real_t, m * m);
-  real_t *Lambda_inv = MALLOC(real_t, m * m);
-  real_t *w = MALLOC(real_t, m);
+  real_t *V = malloc(sizeof(real_t) * m * m);
+  real_t *Vt = malloc(sizeof(real_t) * m * m);
+  real_t *Lambda_inv = malloc(sizeof(real_t) * m * m);
+  real_t *w = malloc(sizeof(real_t) * m);
 
   eig_sym(A, m, m, V, w);
   for (int i = 0; i < m; i++) {
@@ -3820,8 +3821,8 @@ int eig_rank(const real_t *A, const int m, const int n, const real_t tol) {
   assert(m > 0 && n > 0);
   assert(m == n);
 
-  real_t *V = MALLOC(real_t, m * n);
-  real_t *w = MALLOC(real_t, m);
+  real_t *V = malloc(sizeof(real_t) * m * n);
+  real_t *w = malloc(sizeof(real_t) * m);
   int retval = eig_sym(A, m, n, V, w);
   if (retval != 0) {
     free(V);

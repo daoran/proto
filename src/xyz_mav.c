@@ -124,7 +124,7 @@ void mav_model_velocity(const mav_model_t *mav, real_t vel[3]) {
 }
 
 mav_model_telem_t *mav_model_telem_malloc() {
-  mav_model_telem_t *telem = MALLOC(mav_model_telem_t, 1);
+  mav_model_telem_t *telem = malloc(sizeof(mav_model_telem_t) * 1);
 
   telem->num_events = 0;
   telem->time = NULL;
@@ -167,19 +167,19 @@ void mav_model_telem_update(mav_model_telem_t *telem,
   const int idx = telem->num_events;
   const int ns = idx + 1;
 
-  telem->time = REALLOC(telem->time, real_t, ns);
-  telem->roll = REALLOC(telem->roll, real_t, ns);
-  telem->pitch = REALLOC(telem->pitch, real_t, ns);
-  telem->yaw = REALLOC(telem->yaw, real_t, ns);
-  telem->wx = REALLOC(telem->wx, real_t, ns);
-  telem->wy = REALLOC(telem->wy, real_t, ns);
-  telem->wz = REALLOC(telem->wz, real_t, ns);
-  telem->x = REALLOC(telem->x, real_t, ns);
-  telem->y = REALLOC(telem->y, real_t, ns);
-  telem->z = REALLOC(telem->z, real_t, ns);
-  telem->vx = REALLOC(telem->vx, real_t, ns);
-  telem->vy = REALLOC(telem->vy, real_t, ns);
-  telem->vz = REALLOC(telem->vz, real_t, ns);
+  telem->time = realloc(telem->time, sizeof(real_t) * ns);
+  telem->roll = realloc(telem->roll, sizeof(real_t) * ns);
+  telem->pitch = realloc(telem->pitch, sizeof(real_t) * ns);
+  telem->yaw = realloc(telem->yaw, sizeof(real_t) * ns);
+  telem->wx = realloc(telem->wx, sizeof(real_t) * ns);
+  telem->wy = realloc(telem->wy, sizeof(real_t) * ns);
+  telem->wz = realloc(telem->wz, sizeof(real_t) * ns);
+  telem->x = realloc(telem->x, sizeof(real_t) * ns);
+  telem->y = realloc(telem->y, sizeof(real_t) * ns);
+  telem->z = realloc(telem->z, sizeof(real_t) * ns);
+  telem->vx = realloc(telem->vx, sizeof(real_t) * ns);
+  telem->vy = realloc(telem->vy, sizeof(real_t) * ns);
+  telem->vz = realloc(telem->vz, sizeof(real_t) * ns);
 
   telem->num_events = ns;
   telem->time[idx] = time;
@@ -418,7 +418,7 @@ void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
 }
 
 mav_waypoints_t *mav_waypoints_malloc(void) {
-  mav_waypoints_t *wps = MALLOC(mav_waypoints_t, 1);
+  mav_waypoints_t *wps = malloc(sizeof(mav_waypoints_t) * 1);
 
   wps->num_waypoints = 0;
   wps->waypoints = NULL;
@@ -456,7 +456,7 @@ int mav_waypoints_done(const mav_waypoints_t *wps) {
 
 void mav_waypoints_add(mav_waypoints_t *wps, real_t wp[4]) {
   const int n = wps->num_waypoints;
-  wps->waypoints = REALLOC(wps->waypoints, real_t, (n + 1) * 4);
+  wps->waypoints = realloc(wps->waypoints, sizeof(real_t) * (n + 1) * 4);
   wps->waypoints[n * 4 + 0] = wp[0];
   wps->waypoints[n * 4 + 1] = wp[1];
   wps->waypoints[n * 4 + 2] = wp[2];

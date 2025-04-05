@@ -61,64 +61,6 @@ typedef double real_t;
 #define __FILENAME__                                                           \
   (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-/** Macro that adds the ability to switch between C / C++ style mallocs */
-#ifdef __cplusplus
-
-#ifndef MALLOC
-#define MALLOC(TYPE, N) (TYPE *) malloc(sizeof(TYPE) * (N));
-#endif
-
-#ifndef REALLOC
-#define REALLOC(PTR, TYPE, N) (TYPE *) realloc(PTR, sizeof(TYPE) * (N));
-#endif
-
-#ifndef CALLOC
-#define CALLOC(TYPE, N) (TYPE *) calloc((N), sizeof(TYPE));
-#endif
-
-#else
-
-#ifndef MALLOC
-#define MALLOC(TYPE, N) malloc(sizeof(TYPE) * (N));
-#endif
-
-#ifndef REALLOC
-#define REALLOC(PTR, TYPE, N) realloc(PTR, sizeof(TYPE) * (N));
-#endif
-
-#ifndef CALLOC
-#define CALLOC(TYPE, N) calloc((N), sizeof(TYPE));
-#endif
-
-#endif
-
-/**
- * Free macro
- */
-#ifndef FREE
-#define FREE(X) free(X);
-#endif
-
-/**
- * Free memory
- */
-#ifndef FREE_MEM
-#define FREE_MEM(TARGET, FREE_FUNC)                                            \
-  if (TARGET) {                                                                \
-    FREE_FUNC((void *) TARGET);                                                \
-  }
-#endif
-
-/**
- * Assert if condition is true
- */
-#ifndef ASSERT_IF
-#define ASSERT_IF(COND, ASSERT_COND)                                           \
-  if (COND) {                                                                  \
-    assert(ASSERT_COND);                                                       \
-  }
-#endif
-
 /**
  * Mark variable unused.
  * @param[in] expr Variable to mark as unused
@@ -308,7 +250,8 @@ status_t file_copy(const char *src, const char *dest);
  ******************************************************************************/
 
 // Timestamp Type
-#ifndef timestamp_t
+#ifndef TIMESTAMP_TYPE
+#define TIMESTAMP_TYPE
 typedef int64_t timestamp_t;
 #endif
 
@@ -641,12 +584,12 @@ int check_jacobian(const char *jac_name,
     const int p_size = param_global_size(FACTOR.param_types[JAC_IDX]);         \
     const int J_cols = param_local_size(FACTOR.param_types[JAC_IDX]);          \
                                                                                \
-    real_t *param_copy = MALLOC(real_t, p_size);                               \
-    real_t *r_fwd = MALLOC(real_t, r_size);                                    \
-    real_t *r_bwd = MALLOC(real_t, r_size);                                    \
-    real_t *r_diff = MALLOC(real_t, r_size);                                   \
-    real_t *J_fdiff = MALLOC(real_t, r_size * J_cols);                         \
-    real_t *J = MALLOC(real_t, r_size * J_cols);                               \
+    real_t *param_copy = malloc(sizeof(real_t) * p_size);                      \
+    real_t *r_fwd = malloc(sizeof(real_t) * r_size);                           \
+    real_t *r_bwd = malloc(sizeof(real_t) * r_size);                           \
+    real_t *r_diff = malloc(sizeof(real_t) * r_size);                          \
+    real_t *J_fdiff = malloc(sizeof(real_t) * r_size * J_cols);                \
+    real_t *J = malloc(sizeof(real_t) * r_size * J_cols);                      \
                                                                                \
     /* Evaluate factor to get analytical Jacobian */                           \
     FACTOR_EVAL((void *) &FACTOR);                                             \
@@ -695,11 +638,11 @@ int check_jacobian(const char *jac_name,
     const int r_size = FACTOR.r_size;                                          \
     const int J_cols = param_local_size(FACTOR.param_types[JAC_IDX]);          \
                                                                                \
-    real_t *r = MALLOC(real_t, r_size);                                        \
-    real_t *r_fwd = MALLOC(real_t, r_size);                                    \
-    real_t *r_diff = MALLOC(real_t, r_size);                                   \
-    real_t *J_fdiff = MALLOC(real_t, r_size * J_cols);                         \
-    real_t *J = MALLOC(real_t, r_size * J_cols);                               \
+    real_t *r = malloc(sizeof(real_t) * r_size);                                        \
+    real_t *r_fwd = malloc(sizeof(real_t) * r_size);                                    \
+    real_t *r_diff = malloc(sizeof(real_t) * r_size);                                   \
+    real_t *J_fdiff = malloc(sizeof(real_t) * r_size * J_cols);                         \
+    real_t *J = malloc(sizeof(real_t) * r_size * J_cols);                               \
                                                                                \
     /* Eval */                                                                 \
     FACTOR_EVAL(&FACTOR);                                                      \

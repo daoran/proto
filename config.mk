@@ -13,8 +13,8 @@ BUILD_TYPE := release
 # ADDRESS_SANITIZER := 1
 ADDRESS_SANITIZER := 0
 CI_MODE := 0
-# CC := clang
-CC := gcc
+CC := clang
+# CC := gcc
 # CC := tcc
 
 
@@ -36,7 +36,7 @@ XYZ_LDFLAGS := -L$(BLD_DIR) -lxyz
 
 
 # CFLAGS
-CFLAGS := -Wall -Wpedantic -Wstrict-prototypes
+CFLAGS := -std=c99 -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE -Wall -Wpedantic -Wstrict-prototypes
 
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += -g -fopenmp
@@ -103,23 +103,23 @@ LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz_aprilgrid.o \
 	$(BLD_DIR)/xyz_cv.o \
 	$(BLD_DIR)/xyz_timeline.o \
-	$(BLD_DIR)/xyz_se.o \
-	$(BLD_DIR)/xyz_sim.o \
 	$(BLD_DIR)/xyz_control.o \
 	$(BLD_DIR)/xyz_gimbal.o \
 	$(BLD_DIR)/xyz_mav.o \
 	$(BLD_DIR)/xyz_euroc.o \
-	$(BLD_DIR)/xyz_calib.o \
+	$(BLD_DIR)/xyz_sim.o \
 	$(BLD_DIR)/xyz_octree.o \
 	$(BLD_DIR)/xyz_ceres.o \
 	$(BLD_DIR)/xyz_gui.o \
-	$(BLD_DIR)/xyz_voxel.o
+	$(BLD_DIR)/xyz_voxel.o \
+	$(BLD_DIR)/xyz_kdtree.o \
+	$(BLD_DIR)/xyz_se.o \
+	$(BLD_DIR)/xyz_calib.o
 
 
 # TESTS
 TESTS := \
 	$(BLD_DIR)/test_aprilgrid \
-	$(BLD_DIR)/test_calib \
 	$(BLD_DIR)/test_control \
 	$(BLD_DIR)/test_cv \
 	$(BLD_DIR)/test_ds \
@@ -131,7 +131,9 @@ TESTS := \
 	$(BLD_DIR)/test_kitti \
 	$(BLD_DIR)/test_mav \
 	$(BLD_DIR)/test_octree \
+	$(BLD_DIR)/test_voxel \
+	$(BLD_DIR)/test_xyz \
+	$(BLD_DIR)/test_kdtree \
 	$(BLD_DIR)/test_se \
 	$(BLD_DIR)/test_sim \
-	$(BLD_DIR)/test_voxel \
-	$(BLD_DIR)/test_xyz
+	$(BLD_DIR)/test_calib

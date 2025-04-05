@@ -118,7 +118,7 @@ void print_fiducial_event(const fiducial_event_t *event) {
  * Malloc timeline.
  */
 timeline_t *timeline_malloc(void) {
-  timeline_t *timeline = MALLOC(timeline_t, 1);
+  timeline_t *timeline = malloc(sizeof(timeline_t) * 1);
 
   // Stats
   timeline->num_cams = 0;
@@ -213,7 +213,7 @@ void timeline_free(timeline_t *timeline) {
 //   }
 //
 //   // Load fiducial events
-//   timeline_event_t *events = MALLOC(timeline_event_t, *num_events);
+//   timeline_event_t *events = malloc(sizeof(timeline_event_t) * *num_events);
 //
 //   for (int view_idx = 0; view_idx < *num_events; view_idx++) {
 //     // Load aprilgrid
@@ -222,10 +222,10 @@ void timeline_free(timeline_t *timeline) {
 //     // Get aprilgrid measurements
 //     const timestamp_t ts = grid->timestamp;
 //     const int num_corners = grid->corners_detected;
-//     int *tag_ids = MALLOC(int, num_corners);
-//     int *corner_indices = MALLOC(int, num_corners);
-//     real_t *kps = MALLOC(real_t, num_corners * 2);
-//     real_t *pts = MALLOC(real_t, num_corners * 3);
+//     int *tag_ids = malloc(sizeof(int) * num_corners);
+//     int *corner_indices = malloc(sizeof(int) * num_corners);
+//     real_t *kps = malloc(sizeof(real_t) * num_corners * 2);
+//     real_t *pts = malloc(sizeof(real_t) * num_corners * 3);
 //     aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
 //
 //     // Create event
@@ -263,7 +263,7 @@ timeline_event_t *timeline_load_imu(const char *csv_path, int *num_events) {
   // Malloc
   assert(num_rows > 0);
   *num_events = num_rows - 1;
-  timeline_event_t *events = MALLOC(timeline_event_t, *num_events);
+  timeline_event_t *events = malloc(sizeof(timeline_event_t) * *num_events);
 
   // Parse file
   for (size_t k = 0; k < *num_events; k++) {
@@ -306,10 +306,12 @@ timeline_event_t *timeline_load_imu(const char *csv_path, int *num_events) {
 static void timeline_load_events(timeline_t *timeline, const char *data_dir) {
   // Load events
   const int num_event_types = timeline->num_event_types;
-  timeline_event_t **events = MALLOC(timeline_event_t *, num_event_types);
-  int *events_lengths = CALLOC(int, num_event_types);
-  int *events_types = CALLOC(int, num_event_types);
-  timestamp_t **events_timestamps = MALLOC(timestamp_t *, num_event_types);
+  timeline_event_t **events =
+      malloc(sizeof(timeline_event_t *) * num_event_types);
+  int *events_lengths = calloc(num_event_types, sizeof(int));
+  int *events_types = calloc(num_event_types, sizeof(int));
+  timestamp_t **events_timestamps =
+      malloc(sizeof(timestamp_t *) * num_event_types);
   int type_idx = 0;
 
   // -- Load fiducial events
@@ -323,7 +325,7 @@ static void timeline_load_events(timeline_t *timeline, const char *data_dir) {
   //   events_types[type_idx] = FIDUCIAL_EVENT;
   //
   //   // Form timestamps
-  //   events_timestamps[type_idx] = CALLOC(timestamp_t, num_events);
+  //   events_timestamps[type_idx] = calloc(num_events, sizeof(timestamp_t));
   //   for (int k = 0; k < num_events; k++) {
   //     events_timestamps[type_idx][k] = events[type_idx][k].ts;
   //   }
@@ -343,7 +345,7 @@ static void timeline_load_events(timeline_t *timeline, const char *data_dir) {
     events_types[type_idx] = IMU_EVENT;
 
     // Form timestamps
-    events_timestamps[type_idx] = CALLOC(timestamp_t, num_events);
+    events_timestamps[type_idx] = calloc(num_events, sizeof(timestamp_t));
     for (int k = 0; k < num_events; k++) {
       events_timestamps[type_idx][k] = events[type_idx][k].ts;
     }
@@ -370,7 +372,7 @@ void timeline_form_timeline(timeline_t *tl) {
   }
 
   tl->timeline_length = 0;
-  tl->timeline_timestamps = CALLOC(timestamp_t, max_timeline_length);
+  tl->timeline_timestamps = calloc(max_timeline_length, sizeof(timestamp_t));
   for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {
     timestamps_unique(tl->timeline_timestamps,
                       &tl->timeline_length,
@@ -379,13 +381,15 @@ void timeline_form_timeline(timeline_t *tl) {
   }
 
   // Form timeline events
-  tl->timeline_events = CALLOC(timeline_event_t **, tl->timeline_length);
-  tl->timeline_events_lengths = CALLOC(int, tl->timeline_length);
+  tl->timeline_events =
+      calloc(tl->timeline_length, sizeof(timeline_event_t **));
+  tl->timeline_events_lengths = calloc(tl->timeline_length, sizeof(int));
 
-  int *indices = CALLOC(int, tl->num_event_types);
+  int *indices = calloc(tl->num_event_types, sizeof(int));
   for (int k = 0; k < tl->timeline_length; k++) {
     // Allocate memory
-    tl->timeline_events[k] = CALLOC(timeline_event_t *, tl->num_event_types);
+    tl->timeline_events[k] =
+        calloc(tl->num_event_types, sizeof(timeline_event_t *));
 
     // Add events at k
     int k_len = 0; // Number of events at k

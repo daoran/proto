@@ -10,7 +10,6 @@ octree_node_t *octree_node_malloc(const double center[3],
                                   const int max_depth) {
   octree_node_t *node = malloc(sizeof(octree_node_t));
 
-
   node->center[0] = center[0];
   node->center[1] = center[1];
   node->center[2] = center[2];
@@ -53,7 +52,7 @@ octree_t *octree_malloc(const double center[3],
   octree->root = octree_node_malloc(center, size, depth, max_depth);
 
   for (size_t i = 0; i < num_points; i++) {
-    octree_add_point(octree->root, &(points[i]));
+    octree_add_point(octree->root, &points[i * 3]);
   }
 
   return octree;
@@ -70,6 +69,9 @@ void octree_free(octree_t *octree) {
 void octree_add_point(octree_node_t *node, const double point[3]) {
   // Max depth reached? Add the point
   if (node->depth == node->max_depth) {
+    if (node->num_points >= OCTREE_MAX_POINTS) {
+      return;
+    }
     node->points[node->num_points * 3 + 0] = point[0];
     node->points[node->num_points * 3 + 1] = point[1];
     node->points[node->num_points * 3 + 2] = point[2];

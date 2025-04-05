@@ -54,6 +54,7 @@ run_memcheck() {
 # python3 src/xyz.py TestCV.test_solvepnp
 # python3 src/xyz.py TestCV.test_harris_corner
 # python3 src/xyz.py TestCV.test_shi_tomasi_corner
+# python3 src/xyz.py TestPointCloud
 # python3 src/xyz.py TestOctree
 # python3 src/xyz.py TestOctree.test_octree
 # python3 src/xyz.py TestOctree.test_point_plane
@@ -99,6 +100,8 @@ run_memcheck() {
 # python3 src/xyz.py TestEuroc
 # python3 src/xyz.py TestKitti
 # python3 src/xyz.py TestKalmanFilter
+# python3 src/xyz.py TestOctree
+# python3 src/xyz.py TestOctree.test_octree
 # python3 src/xyz.py TestSimulation
 # python3 src/xyz.py TestSimulation.test_create_3d_features
 # python3 src/xyz.py TestSimulation.test_create_3d_features_perimeter
@@ -135,16 +138,22 @@ run_test() {
   tmux send-keys -t $TARGET -R "\
     cd ~/code/xyz \
       && clear \
+      && make libxyz -j \
       && time make tests -j \
-      && cd build && ./$1 --target $2 \
+      && cd build \
+      && ./$1 --target $2 \
   " C-m C-m
   exit
 }
 
-# tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "cd ~/code/xyz && make libxyz -j" C-m
-# tmux send-keys -t dev -R "cd ~/code/xyz && make ci" C-m
-# exit
+# CMD="cd ~/code/xyz && make libxyz -j"
+# CMD="cd ~/code/xyz && make ci"
+CMD="cd ~/code/xyz && make tests"
+# CMD="cd ~/code/xyz && make clean && make libxyz -j"
+tmux send-keys -t dev q C-l C-m
+tmux send-keys -t dev -R "${CMD}" C-m C-m
+exit
+
 
 # XYZ
 # run_all_tests
@@ -273,6 +282,11 @@ run_test() {
 # run_test test_ds test_hashmap_get_set
 # run_test test_ds test_hashmap_delete
 # run_test test_ds test_hashmap_traverse
+# XYZ-OCTREE
+# run_test test_octree
+# run_test test_octree test_octree_node
+# run_test test_octree test_octree
+# run_test test_kdtree
 # XYZ-CV
 # run_test test_linear_triangulation
 # run_test test_homography_find
@@ -314,6 +328,7 @@ run_test() {
 # run_test test_mav test_mav_pos_ctrl
 # run_test test_mav test_mav_waypoints
 # XYZ - STATE ESTIMATION
+# run_test test_se
 # run_test test_se test_schur_complement
 # run_test test_se test_timeline
 # run_test test_se test_pose
@@ -347,6 +362,7 @@ run_test() {
 # run_test test_se test_visual_odometry_batch
 # run_test test_se test_inertial_odometry_batch
 # run_test test_se test_visual_inertial_odometry_batch
+# run_test test_se test_icp
 # run_test test_se test_tsf
 # run_test test_se test_se test_assoc_pose_data
 # run_test test_se test_ceres_example
@@ -355,7 +371,7 @@ run_test() {
 # run_test test_se test_solver_print
 # run_test test_se test_solver_eval
 # XYZ - CALIBRATION
-run_test test_calib test_camchain
+# run_test test_calib test_camchain
 # run_test test_calib test_calib_camera_mono_batch
 # run_test test_calib_camera_mono_ceres
 # run_test test_calib_camera_mono_incremental
@@ -372,8 +388,12 @@ run_test test_calib test_camchain
 # XYZ-GNUPLOT
 # run_test test_gnuplot test_gnuplot_xyplot
 # run_test test_gnuplot test_gnuplot_multiplot
+# XYZ - EUROC
+# run_test test_euroc
 # XYZ-KITTI
+# run_test test_kitti
 # run_test test_kitti test_kitti_raw_load
+# XYZ - OCTREE
 # XYZ-SIM
 # run_test test_sim_features_load
 # run_test test_sim_imu_data_load
@@ -384,22 +404,26 @@ run_test test_calib test_camchain
 # run_test test_sim_gimbal_view
 # run_test test_sim_gimbal_solve
 # XYZ-GUI
-# run_test test_gl_zeros
-# run_test test_gl_ones
-# run_test test_gl_eye
-# run_test test_gl_matf_set
-# run_test test_gl_matf_val
-# run_test test_gl_transpose
-# run_test test_gl_equals
-# run_test test_gl_vec3_cross
-# run_test test_gl_dot
-# run_test test_gl_norm
-# run_test test_gl_normalize
-# run_test test_gl_perspective
-# run_test test_gl_lookat
-# run_test test_gl_shader_compile
-# run_test test_gl_shaders_link
-# run_test test_gl_prog_setup
-# run_test test_gl_camera_setup
 # run_test test_gui
+# run_test test_gui test_gl_zeros
+# run_test test_gui test_gl_ones
+# run_test test_gui test_gl_eye
+# run_test test_gui test_gl_matf_set
+# run_test test_gui test_gl_matf_val
+# run_test test_gui test_gl_transpose
+# run_test test_gui test_gl_equals
+# run_test test_gui test_gl_vec3_cross
+# run_test test_gui test_gl_dot
+# run_test test_gui test_gl_norm
+# run_test test_gui test_gl_normalize
+# run_test test_gui test_gl_perspective
+# run_test test_gui test_gl_lookat
+# run_test test_gui test_gl_shader_compile
+# run_test test_gui test_gl_shaders_link
+# run_test test_gui test_gl_prog_setup
+# run_test test_gui test_gl_camera_setup
+# run_test test_gui test_gui
+# run_test test_gui test_components
 # run_test test_imshow
+# XYZ-VOXEL
+# run_test test_voxel

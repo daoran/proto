@@ -2114,7 +2114,7 @@ def quat_rot(q: Vec4, x: Vec3) -> Vec4:
   q_conj = np.array([q[0], -q[1], -q[2], -q[3]])
   p = np.array([0.0, x[0], x[1], x[2]])
   p_new = quat_mul(quat_mul(q, p), q_conj)
-  return np.array([p[1], p[2], p[3]])
+  return np.array([p_new[1], p_new[2], p_new[3]])
 
 
 def quat_omega(w: Vec3) -> Mat4:

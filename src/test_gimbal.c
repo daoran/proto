@@ -19,10 +19,10 @@ int test_gimbal(void) {
 
   int idx = 0;
   const int N = t_end / dt;
-  real_t *time_vals = CALLOC(real_t, N);
-  real_t *roll_vals = CALLOC(real_t, N);
-  real_t *pitch_vals = CALLOC(real_t, N);
-  real_t *yaw_vals = CALLOC(real_t, N);
+  real_t *time_vals = calloc(N, sizeof(real_t));
+  real_t *roll_vals = calloc(N, sizeof(real_t));
+  real_t *pitch_vals = calloc(N, sizeof(real_t));
+  real_t *yaw_vals = calloc(N, sizeof(real_t));
 
   while (idx < N) {
     const real_t pv[3] = {model.x[0], model.x[2], model.x[4]};

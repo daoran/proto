@@ -8,22 +8,22 @@
  * Allocate memory for the camchain initialzer.
  */
 camchain_t *camchain_malloc(const int num_cams) {
-  camchain_t *cc = MALLOC(camchain_t, 1);
+  camchain_t *cc = malloc(sizeof(camchain_t) * 1);
 
   // Flags
   cc->analyzed = 0;
   cc->num_cams = num_cams;
 
   // Allocate memory for the adjacency list and extrinsics
-  cc->adj_list = CALLOC(int *, cc->num_cams);
-  cc->adj_exts = CALLOC(real_t *, cc->num_cams);
+  cc->adj_list = calloc(cc->num_cams, sizeof(int *));
+  cc->adj_exts = calloc(cc->num_cams, sizeof(real_t *));
   for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
-    cc->adj_list[cam_idx] = CALLOC(int, cc->num_cams);
-    cc->adj_exts[cam_idx] = CALLOC(real_t, cc->num_cams * (4 * 4));
+    cc->adj_list[cam_idx] = calloc(cc->num_cams, sizeof(int));
+    cc->adj_exts[cam_idx] = calloc(cc->num_cams * (4 * 4), sizeof(real_t));
   }
 
   // Allocate memory for camera poses
-  cc->cam_poses = CALLOC(camchain_pose_hash_t *, num_cams);
+  cc->cam_poses = calloc(num_cams, sizeof(camchain_pose_hash_t *));
   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
     cc->cam_poses[cam_idx] = NULL;
     hmdefault(cc->cam_poses[cam_idx], NULL);
@@ -64,7 +64,7 @@ void camchain_add_pose(camchain_t *cc,
                        const int cam_idx,
                        const timestamp_t ts,
                        const real_t T_CiF[4 * 4]) {
-  real_t *tf = MALLOC(real_t, 4 * 4);
+  real_t *tf = malloc(sizeof(real_t) * 4 * 4);
   mat_copy(T_CiF, 4, 4, tf);
   hmput(cc->cam_poses[cam_idx], ts, tf);
 }
@@ -753,7 +753,7 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
                                               pose_t *pose,
                                               extrinsic_t *cam_ext,
                                               camera_params_t *cam_params) {
-  calib_camera_view_t *view = MALLOC(calib_camera_view_t, 1);
+  calib_camera_view_t *view = malloc(sizeof(calib_camera_view_t) * 1);
 
   // Properties
   view->ts = ts;
@@ -763,10 +763,10 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
 
   // Measurements
   if (num_corners) {
-    view->tag_ids = MALLOC(int, num_corners);
-    view->corner_indices = MALLOC(int, num_corners);
-    view->object_points = MALLOC(real_t, num_corners * 3);
-    view->keypoints = MALLOC(real_t, num_corners * 2);
+    view->tag_ids = malloc(sizeof(int) * num_corners);
+    view->corner_indices = malloc(sizeof(int) * num_corners);
+    view->object_points = malloc(sizeof(real_t) * num_corners * 3);
+    view->keypoints = malloc(sizeof(real_t) * num_corners * 2);
     assert(view->tag_ids != NULL);
     assert(view->corner_indices != NULL);
     assert(view->object_points != NULL);
@@ -774,7 +774,7 @@ calib_camera_view_t *calib_camera_view_malloc(const timestamp_t ts,
   }
 
   // Factors
-  view->factors = MALLOC(struct calib_camera_factor_t, num_corners);
+  view->factors = malloc(sizeof(struct calib_camera_factor_t) * num_corners);
   assert(view->factors != NULL);
 
   for (int i = 0; i < num_corners; i++) {
@@ -835,7 +835,7 @@ void calib_camera_view_free(calib_camera_view_t *view) {
  * Malloc camera calibration problem
  */
 calib_camera_t *calib_camera_malloc(void) {
-  calib_camera_t *calib = MALLOC(calib_camera_t, 1);
+  calib_camera_t *calib = malloc(sizeof(calib_camera_t) * 1);
 
   // Settings
   calib->fix_cam_exts = 0;
@@ -977,8 +977,9 @@ void calib_camera_add_camera(calib_camera_t *calib,
 
   if (cam_idx > (calib->num_cams - 1)) {
     const int new_size = calib->num_cams + 1;
-    calib->cam_params = REALLOC(calib->cam_params, camera_params_t, new_size);
-    calib->cam_exts = REALLOC(calib->cam_exts, extrinsic_t, new_size);
+    calib->cam_params =
+        realloc(calib->cam_params, sizeof(camera_params_t) * new_size);
+    calib->cam_exts = realloc(calib->cam_exts, sizeof(extrinsic_t) * new_size);
   }
 
   camera_params_setup(&calib->cam_params[cam_idx],
@@ -1035,7 +1036,7 @@ void calib_camera_add_view(calib_camera_t *calib,
 
     // New pose
     arrput(calib->timestamps, ts);
-    pose = MALLOC(pose_t, 1);
+    pose = malloc(sizeof(pose_t) * 1);
     pose_setup(pose, ts, pose_vector);
     hmput(calib->poses, ts, pose);
   }
@@ -1043,7 +1044,7 @@ void calib_camera_add_view(calib_camera_t *calib,
   // Form new view
   calib_camera_view_t **cam_views = hmgets(calib->view_sets, ts).value;
   if (cam_views == NULL) {
-    cam_views = CALLOC(calib_camera_view_t **, calib->num_cams);
+    cam_views = calloc(calib->num_cams, sizeof(calib_camera_view_t **));
     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
       cam_views[cam_idx] = NULL;
     }
@@ -1144,10 +1145,10 @@ int calib_camera_add_data(calib_camera_t *calib,
     // Get aprilgrid measurements
     const timestamp_t ts = grid->timestamp;
     const int num_corners = grid->corners_detected;
-    int *tag_ids = MALLOC(int, num_corners);
-    int *corner_indices = MALLOC(int, num_corners);
-    real_t *kps = MALLOC(real_t, num_corners * 2);
-    real_t *pts = MALLOC(real_t, num_corners * 3);
+    int *tag_ids = malloc(sizeof(int) * num_corners);
+    int *corner_indices = malloc(sizeof(int) * num_corners);
+    real_t *kps = malloc(sizeof(real_t) * num_corners * 2);
+    real_t *pts = malloc(sizeof(real_t) * num_corners * 3);
     aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
 
     // Add view
@@ -1184,7 +1185,7 @@ void calib_camera_errors(calib_camera_t *calib,
   // Setup
   const int N = calib->num_factors;
   const int r_size = N * 2;
-  real_t *r = CALLOC(real_t, r_size);
+  real_t *r = calloc(r_size, sizeof(real_t));
 
   // Evaluate residuals
   int r_idx = 0;
@@ -1206,7 +1207,7 @@ void calib_camera_errors(calib_camera_t *calib,
   }     // For each views
 
   // Calculate reprojection errors
-  real_t *errors = CALLOC(real_t, N);
+  real_t *errors = calloc(N, sizeof(real_t));
   for (int i = 0; i < N; i++) {
     const real_t x = r[i * 2 + 0];
     const real_t y = r[i * 2 + 1];
@@ -1236,13 +1237,13 @@ int calib_camera_shannon_entropy(calib_camera_t *calib, real_t *entropy) {
   param_order_t *hash = calib_camera_param_order(calib, &sv_size, &r_size);
 
   // Form Hessian H
-  real_t *H = CALLOC(real_t, sv_size * sv_size);
-  real_t *g = CALLOC(real_t, sv_size);
-  real_t *r = CALLOC(real_t, r_size);
+  real_t *H = calloc(sv_size * sv_size, sizeof(real_t));
+  real_t *g = calloc(sv_size, sizeof(real_t));
+  real_t *r = calloc(r_size, sizeof(real_t));
   calib_camera_linearize_compact(calib, sv_size, hash, H, g, r);
 
   // Estimate covariance
-  real_t *covar = CALLOC(real_t, sv_size * sv_size);
+  real_t *covar = calloc(sv_size * sv_size, sizeof(real_t));
   pinv(H, sv_size, sv_size, covar);
 
   // Grab the rows and columns corresponding to calib parameters
@@ -1261,7 +1262,7 @@ int calib_camera_shannon_entropy(calib_camera_t *calib, real_t *entropy) {
   const int idx_s = hmgets(hash, data).idx + 6;
   const int idx_e = sv_size - 1;
   const int m = idx_e - idx_s + 1;
-  real_t *covar_params = CALLOC(real_t, m * m);
+  real_t *covar_params = calloc(m * m, sizeof(real_t));
   mat_block_get(covar, sv_size, idx_s, idx_e, idx_s, idx_e, covar_params);
 
   // Calculate shannon-entropy
@@ -1463,18 +1464,18 @@ void calib_camera_linsolve(const void *data,
   // Extract sub-blocks of matrix H
   // H = [A, B,
   //      C, D]
-  real_t *B = MALLOC(real_t, m * r);
-  real_t *C = MALLOC(real_t, r * m);
-  real_t *D = MALLOC(real_t, r * r);
-  real_t *A_inv = MALLOC(real_t, m * m);
+  real_t *B = malloc(sizeof(real_t) * m * r);
+  real_t *C = malloc(sizeof(real_t) * r * m);
+  real_t *D = malloc(sizeof(real_t) * r * r);
+  real_t *A_inv = malloc(sizeof(real_t) * m * m);
   mat_block_get(H, H_size, 0, m - 1, m, H_size - 1, B);
   mat_block_get(H, H_size, m, H_size - 1, 0, m - 1, C);
   mat_block_get(H, H_size, m, H_size - 1, m, H_size - 1, D);
 
   // Extract sub-blocks of vector b
   // b = [b0, b1]
-  real_t *b0 = MALLOC(real_t, m);
-  real_t *b1 = MALLOC(real_t, r);
+  real_t *b0 = malloc(sizeof(real_t) * m);
+  real_t *b1 = malloc(sizeof(real_t) * r);
   vec_copy(g, m, b0);
   vec_copy(g + m, r, b1);
 
@@ -1484,8 +1485,8 @@ void calib_camera_linsolve(const void *data,
   // Reduce H * dx = b with Shur-Complement
   // D_bar = D - C * A_inv * B
   // b1_bar = b1 - C * A_inv * b0
-  real_t *D_bar = MALLOC(real_t, r * r);
-  real_t *b1_bar = MALLOC(real_t, r * 1);
+  real_t *D_bar = malloc(sizeof(real_t) * r * r);
+  real_t *b1_bar = malloc(sizeof(real_t) * r * 1);
   dot3(C, r, m, A_inv, m, m, B, m, r, D_bar);
   dot3(C, r, m, A_inv, m, m, b0, m, 1, b1_bar);
   for (int i = 0; i < (r * r); i++) {
@@ -1496,7 +1497,7 @@ void calib_camera_linsolve(const void *data,
   }
 
   // Solve reduced system: D_bar * dx_r = b1_bar
-  real_t *dx_r = MALLOC(real_t, r * 1);
+  real_t *dx_r = malloc(sizeof(real_t) * r * 1);
   // Hack: precondition D_bar so linear-solver doesn't complain
   for (int i = 0; i < r; i++) {
     D_bar[i * r + i] += 1e-4;
@@ -1504,8 +1505,8 @@ void calib_camera_linsolve(const void *data,
   chol_solve(D_bar, b1_bar, dx_r, r);
 
   // Back-subsitute
-  real_t *B_dx_r = CALLOC(real_t, m * 1);
-  real_t *dx_m = CALLOC(real_t, m * 1);
+  real_t *B_dx_r = calloc(m * 1, sizeof(real_t));
+  real_t *dx_m = calloc(m * 1, sizeof(real_t));
   dot(B, m, r, dx_r, r, 1, B_dx_r);
   for (int i = 0; i < m; i++) {
     b0[i] = b0[i] - B_dx_r[i];
@@ -1593,14 +1594,14 @@ void calib_camera_solve(calib_camera_t *calib) {
 //
 //   // Measurements
 //   if (num_corners) {
-//     view->tag_ids = MALLOC(int, num_corners);
-//     view->corner_indices = MALLOC(int, num_corners);
-//     view->object_points = MALLOC(real_t, num_corners * 3);
-//     view->keypoints = MALLOC(real_t, num_corners * 2);
+//     view->tag_ids = malloc(sizeof(int) * num_corners);
+//     view->corner_indices = malloc(sizeof(int) * num_corners);
+//     view->object_points = malloc(sizeof(real_t) * num_corners * 3);
+//     view->keypoints = malloc(sizeof(real_t) * num_corners * 2);
 //   }
 //
 //   // Factors
-//   view->cam_factors = MALLOC(calib_imucam_factor_t, num_corners);
+//   view->cam_factors = malloc(sizeof(calib_imucam_factor_t) * num_corners);
 //   assert(view->tag_ids != NULL);
 //   assert(view->corner_indices != NULL);
 //   assert(view->object_points != NULL);
@@ -1670,7 +1671,7 @@ void calib_camera_solve(calib_camera_t *calib) {
 //  * Malloc imu-cam calibration problem.
 //  */
 // calib_imucam_t *calib_imucam_malloc(void) {
-//   calib_imucam_t *calib = MALLOC(calib_imucam_t, 1);
+//   calib_imucam_t *calib = malloc(sizeof(calib_imucam_t) * 1);
 //
 //   // Settings
 //   calib->fix_fiducial = 0;
@@ -1889,11 +1890,11 @@ void calib_camera_solve(calib_camera_t *calib) {
 //   calib->imu_params.g = g;
 //
 //   // IMU extrinsic
-//   calib->imu_ext = MALLOC(extrinsic_t, 1);
+//   calib->imu_ext = malloc(sizeof(extrinsic_t) * 1);
 //   extrinsic_setup(calib->imu_ext, imu_ext);
 //
 //   // Time delay
-//   calib->time_delay = MALLOC(time_delay_t, 1);
+//   calib->time_delay = malloc(sizeof(time_delay_t) * 1);
 //   time_delay_setup(calib->time_delay, 0.0);
 //
 //   // Update
@@ -1988,7 +1989,7 @@ void calib_camera_solve(calib_camera_t *calib) {
 //   TF_VECTOR(T_WF, fiducial_pose);
 //
 //   // Form fiducial
-//   calib->fiducial = MALLOC(fiducial_t, 1);
+//   calib->fiducial = malloc(sizeof(fiducial_t) * 1);
 //   fiducial_setup(calib->fiducial, fiducial_pose);
 // }
 //
@@ -2053,15 +2054,15 @@ void calib_camera_solve(calib_camera_t *calib) {
 //
 //   // Add state
 //   // -- Pose
-//   pose_t *imu_pose = MALLOC(pose_t, 1);
+//   pose_t *imu_pose = malloc(sizeof(pose_t) * 1);
 //   pose_setup(imu_pose, ts, pose_k);
 //   hmput(calib->poses, ts, imu_pose);
 //   // -- Velocity
-//   velocity_t *vel = MALLOC(velocity_t, 1);
+//   velocity_t *vel = malloc(sizeof(velocity_t) * 1);
 //   velocity_setup(vel, ts, vel_k);
 //   hmput(calib->velocities, ts, vel);
 //   // -- IMU biases
-//   imu_biases_t *imu_biases = MALLOC(imu_biases_t, 1);
+//   imu_biases_t *imu_biases = malloc(sizeof(imu_biases_t) * 1);
 //   imu_biases_setup(imu_biases, ts, ba_k, bg_k);
 //   hmput(calib->imu_biases, ts, imu_biases);
 //
@@ -2231,7 +2232,7 @@ void calib_camera_solve(calib_camera_t *calib) {
 // /*
 // static real_t *calib_imucam_optflow(calib_imucam_t *calib,
 //                                     const fiducial_event_t *fiducial) {
-//   real_t *optflows = CALLOC(real_t, fiducial->num_corners * 2);
+//   real_t *optflows = calloc(fiducial->num_corners * 2, sizeof(real_t));
 //   return optflows;
 //   // if (arrlen(calib->timestamps) < 2) {
 //   //   return optflows;
@@ -2301,7 +2302,7 @@ void calib_camera_solve(calib_camera_t *calib) {
 //   // Form new view
 //   calib_imucam_view_t **cam_views = hmgets(calib->view_sets, ts).value;
 //   if (cam_views == NULL) {
-//     cam_views = CALLOC(calib_camera_view_t **, calib->num_cams);
+//     cam_views = calloc(calib->num_cams, sizeof(calib_camera_view_t **));
 //     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
 //       cam_views[cam_idx] = NULL;
 //     }
@@ -2355,7 +2356,7 @@ void calib_camera_solve(calib_camera_t *calib) {
 //     // printf("ts_km1: %ld, ts_k: %ld\n", ts_km1, ts_k);
 //
 //     // Form IMU factor
-//     imu_factor_t *imu_factor = MALLOC(imu_factor_t, 1);
+//     imu_factor_t *imu_factor = malloc(sizeof(imu_factor_t) * 1);
 //     imu_factor_setup(imu_factor,
 //                      &calib->imu_params,
 //                      &calib->imu_buf,
@@ -2388,7 +2389,7 @@ void calib_camera_solve(calib_camera_t *calib) {
 //   // Setup
 //   const int N = calib->num_cam_factors;
 //   const int r_size = N * 2;
-//   real_t *r = CALLOC(real_t, r_size);
+//   real_t *r = calloc(r_size, sizeof(real_t));
 //
 //   // Evaluate residuals
 //   int r_idx = 0;
@@ -2410,7 +2411,7 @@ void calib_camera_solve(calib_camera_t *calib) {
 //   }     // For each timestamp
 //
 //   // Calculate reprojection errors
-//   real_t *errors = CALLOC(real_t, N);
+//   real_t *errors = calloc(N, sizeof(real_t));
 //   for (int i = 0; i < N; i++) {
 //     const real_t x = r[i * 2 + 0];
 //     const real_t y = r[i * 2 + 1];

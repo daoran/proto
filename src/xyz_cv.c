@@ -38,7 +38,7 @@ image_t *image_load(const char *file_path) {
     FATAL("Failed to load image file: [%s]", file_path);
   }
 
-  image_t *img = MALLOC(image_t, 1);
+  image_t *img = malloc(sizeof(image_t) * 1);
   img->width = img_w;
   img->height = img_h;
   img->channels = img_c;
@@ -1002,7 +1002,7 @@ int homography_find(const real_t *pts_i,
 
   const int Am = 2 * num_points;
   const int An = 9;
-  real_t *A = MALLOC(real_t, Am * An);
+  real_t *A = malloc(sizeof(real_t) * Am * An);
 
   for (int n = 0; n < num_points; n++) {
     const real_t x_i = pts_i[n * 2 + 0];
@@ -1033,9 +1033,9 @@ int homography_find(const real_t *pts_i,
     A[re + 8] = y_j;
   }
 
-  real_t *U = MALLOC(real_t, Am * Am);
-  real_t *s = MALLOC(real_t, Am);
-  real_t *V = MALLOC(real_t, An * An);
+  real_t *U = malloc(sizeof(real_t) * Am * Am);
+  real_t *s = malloc(sizeof(real_t) * Am);
+  real_t *V = malloc(sizeof(real_t) * An * An);
   if (svd(A, Am, An, U, s, V) != 0) {
     return -1;
   }
@@ -1097,7 +1097,7 @@ int homography_pose(const real_t *proj_params,
   const real_t fy = proj_params[1];
   const real_t cx = proj_params[2];
   const real_t cy = proj_params[3];
-  real_t *A = MALLOC(real_t, num_rows * num_cols);
+  real_t *A = malloc(sizeof(real_t) * num_rows * num_cols);
 
   for (int i = 0; i < N; i++) {
     const real_t kp[2] = {img_pts[i * 2 + 0], img_pts[i * 2 + 1]};
@@ -1129,9 +1129,9 @@ int homography_pose(const real_t *proj_params,
 
   const int Am = num_rows;
   const int An = num_cols;
-  real_t *U = MALLOC(real_t, Am * Am);
-  real_t *s = MALLOC(real_t, Am);
-  real_t *V = MALLOC(real_t, An * An);
+  real_t *U = malloc(sizeof(real_t) * Am * Am);
+  real_t *s = malloc(sizeof(real_t) * Am);
+  real_t *V = malloc(sizeof(real_t) * An * An);
   if (svd(A, Am, An, U, s, V) != 0) {
     free(A);
     free(U);
@@ -1572,7 +1572,7 @@ static real_t *_solvepnp_residuals(const real_t *proj_params,
                                    real_t *param) {
   POSE2TF(param, T_FC_est);
   TF_INV(T_FC_est, T_CF_est);
-  real_t *r = MALLOC(real_t, 2 * N);
+  real_t *r = malloc(sizeof(real_t) * 2 * N);
 
   for (int n = 0; n < N; n++) {
     // Calculate residual
@@ -1815,7 +1815,7 @@ int solvepnp(const real_t proj_params[4],
 
   // // Calculate reprojection errors
   // real_t *r = _solvepnp_residuals(proj_params, img_pts, obj_pts, N, param_kp1);
-  // real_t *errors = MALLOC(real_t, N);
+  // real_t *errors = malloc(sizeof(real_t) * N);
   // for (int i = 0; i < N; i++) {
   //   const real_t x = r[i * 2 + 0];
   //   const real_t y = r[i * 2 + 1];

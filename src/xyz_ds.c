@@ -8,7 +8,7 @@ darray_t *darray_new(size_t element_size, size_t initial_max) {
   assert(element_size > 0);
   assert(initial_max > 0);
 
-  darray_t *array = MALLOC(darray_t, 1);
+  darray_t *array = malloc(sizeof(darray_t) * 1);
   if (array == NULL) {
     return NULL;
   }
@@ -29,7 +29,9 @@ darray_t *darray_new(size_t element_size, size_t initial_max) {
 void darray_clear(darray_t *array) {
   assert(array != NULL);
   for (int i = 0; i < array->max; i++) {
-    FREE_MEM(array->contents[i], free);
+    if (array->contents[i]) {
+      free(array->contents[i]);
+    }
   }
 }
 
@@ -261,7 +263,9 @@ void list_free(list_t *list) {
   node = list->first;
   while (node != NULL) {
     next_node = node->next;
-    FREE_MEM(node, free);
+    if (node) {
+      free(node);
+    }
     node = next_node;
   }
 
@@ -467,7 +471,7 @@ int list_remove_destroy(list_t *list,
 ///////////
 
 mstack_t *stack_new(void) {
-  mstack_t *s = MALLOC(mstack_t, 1);
+  mstack_t *s = malloc(sizeof(mstack_t) * 1);
   s->size = 0;
   s->root = NULL;
   s->end = NULL;
@@ -502,7 +506,7 @@ void mstack_destroy(mstack_t *s) {
 }
 
 int mstack_push(mstack_t *s, void *value) {
-  mstack_node_t *n = MALLOC(mstack_node_t, 1);
+  mstack_node_t *n = malloc(sizeof(mstack_node_t) * 1);
   if (n == NULL) {
     return -1;
   }
@@ -627,7 +631,7 @@ static inline void *default_value_copy(void *target) {
 }
 
 hashmap_t *hashmap_new(void) {
-  hashmap_t *map = MALLOC(hashmap_t, 1);
+  hashmap_t *map = malloc(sizeof(hashmap_t) * 1);
   if (map == NULL) {
     return NULL;
   }

@@ -4,6 +4,8 @@
 #include "xyz_calib.h"
 #include "xyz_aprilgrid.h"
 #include "xyz_sim.h"
+#include "xyz_gui.h"
+#include "xyz_kitti.h"
 
 /* TEST PARAMS */
 #define TEST_DATA_PATH "./test_data/"
@@ -58,11 +60,11 @@ int test_schur_complement(void) {
   // print_vector("bmm", bmm, m);
   // print_vector("brr", brr, r);
 
-  // real_t *Hmm = MALLOC(real_t, m * m);
-  // real_t *Hmr = MALLOC(real_t, m * r);
-  // real_t *Hrm = MALLOC(real_t, m * r);
-  // real_t *Hrr = MALLOC(real_t, r * r);
-  // real_t *Hmm_inv = MALLOC(real_t, m * m);
+  // real_t *Hmm = malloc(sizeof(real_t) * m * m);
+  // real_t *Hmr = malloc(sizeof(real_t) * m * r);
+  // real_t *Hrm = malloc(sizeof(real_t) * m * r);
+  // real_t *Hrr = malloc(sizeof(real_t) * r * r);
+  // real_t *Hmm_inv = malloc(sizeof(real_t) * m * m);
 
   return 0;
 }
@@ -341,9 +343,9 @@ int test_feature(void) {
 
 //   // Setup inverse-depth features and keypoints
 //   size_t num_idfs = 10;
-//   size_t *idf_ids = MALLOC(size_t, num_idfs);
-//   real_t *idf_features = MALLOC(real_t, num_idfs * 3);
-//   real_t *idf_keypoints = MALLOC(real_t, num_idfs * 2);
+//   size_t *idf_ids = malloc(sizeof(size_t) * num_idfs);
+//   real_t *idf_features = malloc(sizeof(real_t) * num_idfs * 3);
+//   real_t *idf_keypoints = malloc(sizeof(real_t) * num_idfs * 2);
 //   for (size_t i = 0; i < num_idfs; i++) {
 //     const size_t feature_id = i + (4);
 //     const real_t p_W[3] = {10.0, randf(-0.5, 0.5), randf(-0.5, 0.5)};
@@ -478,11 +480,11 @@ int test_triangulation_batch(void) {
 
   // Setup 3D and 2D correspondance points
   int N = 10;
-  real_t *kps_i = MALLOC(real_t, N * 2);
-  real_t *kps_j = MALLOC(real_t, N * 2);
-  real_t *points_gnd = MALLOC(real_t, N * 3);
-  real_t *points_est = MALLOC(real_t, N * 3);
-  int *status = MALLOC(int, N);
+  real_t *kps_i = malloc(sizeof(real_t) * N * 2);
+  real_t *kps_j = malloc(sizeof(real_t) * N * 2);
+  real_t *points_gnd = malloc(sizeof(real_t) * N * 3);
+  real_t *points_est = malloc(sizeof(real_t) * N * 3);
+  int *status = malloc(sizeof(int) * N);
 
   for (int i = 0; i < N; i++) {
     const real_t p_W[3] = {5.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
@@ -765,11 +767,11 @@ static int setup_imu_test_data(imu_test_data_t *test_data,
 
   // Allocate memory for test data
   test_data->num_measurements = time_taken * imu_rate;
-  test_data->timestamps = CALLOC(real_t, test_data->num_measurements);
-  test_data->poses = CALLOC(real_t *, test_data->num_measurements);
-  test_data->velocities = CALLOC(real_t *, test_data->num_measurements);
-  test_data->imu_acc = CALLOC(real_t *, test_data->num_measurements);
-  test_data->imu_gyr = CALLOC(real_t *, test_data->num_measurements);
+  test_data->timestamps = calloc(test_data->num_measurements, sizeof(real_t));
+  test_data->poses = calloc(test_data->num_measurements, sizeof(real_t *));
+  test_data->velocities = calloc(test_data->num_measurements, sizeof(real_t *));
+  test_data->imu_acc = calloc(test_data->num_measurements, sizeof(real_t *));
+  test_data->imu_gyr = calloc(test_data->num_measurements, sizeof(real_t *));
 
   // Simulate IMU poses
   const real_t dt = 1.0 / imu_rate;
@@ -1284,9 +1286,9 @@ int test_marg(void) {
 
   // Form Hessian **before** marginalization
   int r_idx = 0;
-  real_t *H = CALLOC(real_t, sv_size * sv_size);
-  real_t *g = CALLOC(real_t, sv_size * 1);
-  real_t *r = CALLOC(real_t, r_size * 1);
+  real_t *H = calloc(sv_size * sv_size, sizeof(real_t));
+  real_t *g = calloc(sv_size, sizeof(real_t));
+  real_t *r = calloc(r_size, sizeof(real_t));
   for (int i = 0; i < (num_poses * num_features); i++) {
     camera_factor_t *factor = &factors[i];
     camera_factor_eval(factor);
@@ -1351,8 +1353,8 @@ int test_marg(void) {
   const int sv_size_ = col_idx_;
 
   // Form marg hessian
-  real_t *H_ = CALLOC(real_t, sv_size_ * sv_size_);
-  real_t *g_ = CALLOC(real_t, sv_size_ * 1);
+  real_t *H_ = calloc(sv_size_ * sv_size_, sizeof(real_t));
+  real_t *g_ = calloc(sv_size_ * 1, sizeof(real_t));
   solver_fill_hessian(hash_,
                       marg->num_params,
                       marg->params,
@@ -1459,7 +1461,6 @@ int test_visual_odometry_batch(void) {
 
   // Clean up
   sim_camera_data_free(cam0_data);
-  // fgraph_free(fg);
 
   return 0;
 }
@@ -1472,7 +1473,7 @@ int test_inertial_odometry_batch(void) {
   // Inertial Odometry
   const int num_partitions = test_data.num_measurements / 20.0;
   const size_t N = test_data.num_measurements / (real_t) num_partitions;
-  inertial_odometry_t *odom = MALLOC(inertial_odometry_t, 1);
+  inertial_odometry_t *odom = malloc(sizeof(inertial_odometry_t) * 1);
   // -- IMU params
   odom->imu_params.imu_idx = 0;
   odom->imu_params.rate = 200.0;
@@ -1483,10 +1484,10 @@ int test_inertial_odometry_batch(void) {
   odom->imu_params.g = 9.81;
   // -- Variables
   odom->num_factors = 0;
-  odom->factors = MALLOC(imu_factor_t, num_partitions);
-  odom->poses = MALLOC(pose_t, num_partitions + 1);
-  odom->vels = MALLOC(velocity_t, num_partitions + 1);
-  odom->biases = MALLOC(imu_biases_t, num_partitions + 1);
+  odom->factors = malloc(sizeof(imu_factor_t) * num_partitions);
+  odom->poses = malloc(sizeof(pose_t) * num_partitions + 1);
+  odom->vels = malloc(sizeof(velocity_t) * num_partitions + 1);
+  odom->biases = malloc(sizeof(imu_biases_t) * num_partitions + 1);
 
   const timestamp_t ts_i = test_data.timestamps[0];
   const real_t *v_i = test_data.velocities[0];
@@ -1729,6 +1730,98 @@ int test_inertial_odometry_batch(void) {
 
 //   return 0;
 // }
+
+void vis_kitti_scan(gl_points3d_t *gl_points,
+                    const gl_float_t *pcd,
+                    const size_t num_points) {
+  gl_float_t point_size = 2.0;
+  gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
+
+  for (size_t i = 0; i < num_points; ++i) {
+    // Point positions
+    points_data[i * 6 + 0] = pcd[i * 4 + 1];
+    points_data[i * 6 + 1] = pcd[i * 4 + 2] + 1.6;
+    points_data[i * 6 + 2] = -pcd[i * 4 + 0];
+
+    // Point color
+    gl_float_t r = 0.0f;
+    gl_float_t g = 0.0f;
+    gl_float_t b = 0.0f;
+    gl_jet_colormap((pcd[i * 4 + 2] + 1.6) / 3.0, &r, &g, &b);
+    points_data[i * 6 + 3] = r;
+    points_data[i * 6 + 4] = g;
+    points_data[i * 6 + 5] = b;
+  }
+  gl_points3d_update(gl_points, points_data, num_points, point_size);
+  free(points_data);
+}
+
+int test_icp(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
+
+  // Grid
+  gl_float_t grid_size = 0.5f;
+  gl_float_t grid_lw = 5.0f;
+  gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
+  gl_grid3d_t *gl_grid = gl_grid3d_malloc(grid_size, grid_color, grid_lw);
+
+  // KITTI
+  const char *data_dir = "/data/kitti_raw/2011_09_26";
+  const char *seq_name = "2011_09_26_drive_0001_sync";
+  kitti_raw_t *kitti = kitti_raw_load(data_dir, seq_name);
+  gl_points3d_t *gl_points = gl_points3d_malloc(NULL, 0, 0);
+
+  int pcd_index = 0;
+  double time_prev = glfwGetTime();
+
+  while (gui_poll(gui)) {
+    double time_dt = glfwGetTime() - time_prev;
+    if (pcd_index >= kitti->velodyne->num_timestamps) {
+      break;
+    }
+
+    if (*gui->key_n || time_dt > 0.1) {
+      printf("[pcd_index]: %d\n", pcd_index);
+      const timestamp_t ts_start = kitti->velodyne->timestamps_start[pcd_index];
+      const timestamp_t ts_end = kitti->velodyne->timestamps_end[pcd_index];
+      const char *pcd_path = kitti->velodyne->pcd_paths[pcd_index];
+
+      size_t num_points = 0;
+      float *points = kitti_load_points(pcd_path, &num_points);
+      float *time_diffs = malloc(sizeof(float) * num_points);
+      for (int i = 0; i < num_points; ++i) {
+        time_diffs[i] = 0.0;
+      }
+      pcd_t *pcd = pcd_malloc(ts_start, ts_end, points, time_diffs, num_points);
+
+      vis_kitti_scan(gl_points, points, num_points);
+      draw_points3d(gl_points);
+      time_prev = glfwGetTime();
+
+      free(points);
+      free(time_diffs);
+      pcd_free(pcd);
+
+      pcd_index++;
+    }
+
+    draw_grid3d(gl_grid);
+    draw_points3d(gl_points);
+    gui_update(gui);
+  }
+
+  // Clean up
+  kitti_raw_free(kitti);
+  gl_points3d_free(gl_points);
+  gl_grid3d_free(gl_grid);
+  gui_free(gui);
+
+  return 0;
+}
 
 int test_tsf(void) {
   // Camera config
@@ -2063,9 +2156,10 @@ void test_suite(void) {
   MU_ADD_TEST(test_imu_factor);
   MU_ADD_TEST(test_joint_factor);
   MU_ADD_TEST(test_marg);
-  // MU_ADD_TEST(test_visual_odometry_batch);
+  MU_ADD_TEST(test_visual_odometry_batch);
   MU_ADD_TEST(test_inertial_odometry_batch);
   // MU_ADD_TEST(test_visual_inertial_odometry_batch);
+  MU_ADD_TEST(test_icp);
   // MU_ADD_TEST(test_tsf);
   // MU_ADD_TEST(test_assoc_pose_data);
 #ifdef USE_CERES

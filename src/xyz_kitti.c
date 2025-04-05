@@ -43,8 +43,11 @@ static size_t file_lines(const char *path) {
     return -1;
   }
 
-  while (EOF != (fscanf(fp, "%*[^\n]"), fscanf(fp, "%*c"))) {
-    ++lines;
+  int ch;
+  while ((ch = getc(fp)) != EOF) {
+    if (ch == '\n') {
+      ++lines;
+    }
   }
 
   return lines;
@@ -55,9 +58,8 @@ static size_t file_lines(const char *path) {
  */
 static timestamp_t parse_dateline(const char *dt_str) {
   // Parse
-  struct tm tm;
+  struct tm tm = {0};
   int fractional_seconds;
-  memset(&tm, 0, sizeof(struct tm));
   sscanf(dt_str,
          "%d-%d-%d %d:%d:%d.%d",
          &tm.tm_year,
@@ -185,7 +187,10 @@ kitti_camera_t *kitti_camera_load(const char *data_dir) {
   for (int i = 0; i < num_rows; ++i) {
     // Timestamp
     char line[1024] = {0};
-    fgets(line, sizeof(line), fp);
+    if (fgets(line, sizeof(line), fp) == NULL) {
+      KITTI_FATAL("Failed to parse line %d in [%s]!\n", i, timestamps_path);
+    }
+
     timestamp_t ts = parse_dateline(line);
     data->timestamps[i] = ts;
 
@@ -275,9 +280,10 @@ kitti_oxts_t *kitti_oxts_load(const char *data_dir) {
     }
     for (int i = 0; i < num_rows; ++i) {
       char line[1024] = {0};
-      fgets(line, sizeof(line), fp);
-      timestamp_t ts = parse_dateline(line);
-      data->timestamps[i] = ts;
+      if (fgets(line, sizeof(line), fp) == NULL) {
+        KITTI_FATAL("Failed to parse line %d in [%s]!\n", i, timestamps_path);
+      }
+      data->timestamps[i] = parse_dateline(line);
     }
     fclose(fp);
   }
@@ -432,7 +438,9 @@ static timestamp_t *load_timestamps(const char *file_path) {
   timestamp_t *timestamps = malloc(sizeof(timestamp_t) * num_rows);
   for (int i = 0; i < num_rows; ++i) {
     char line[1024] = {0};
-    fgets(line, sizeof(line), fp);
+    if (fgets(line, sizeof(line), fp) == NULL) {
+      KITTI_FATAL("Failed to parse line %d in [%s]!\n", i, file_path);
+    }
     timestamps[i] = parse_dateline(line);
   }
 

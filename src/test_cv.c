@@ -721,8 +721,8 @@ int test_homography_find(void) {
 
   // Setup 3D and 2D correspondance points
   int num_points = 20;
-  real_t *pts_i = MALLOC(real_t, num_points * 2);
-  real_t *pts_j = MALLOC(real_t, num_points * 2);
+  real_t *pts_i = malloc(sizeof(real_t) * num_points * 2);
+  real_t *pts_j = malloc(sizeof(real_t) * num_points * 2);
   for (int i = 0; i < num_points; i++) {
     const real_t p_W[3] = {3.0, randf(-1.0, 1.0), randf(-1.0, 1.0)};
 
@@ -812,9 +812,9 @@ int test_homography_pose(void) {
 
   // Setup 3D and 2D correspondance points
   const int N = num_rows * num_cols;
-  real_t *world_pts = MALLOC(real_t, N * 3);
-  real_t *obj_pts = MALLOC(real_t, N * 3);
-  real_t *img_pts = MALLOC(real_t, N * 2);
+  real_t *world_pts = malloc(sizeof(real_t) * N * 3);
+  real_t *obj_pts = malloc(sizeof(real_t) * N * 3);
+  real_t *img_pts = malloc(sizeof(real_t) * N * 2);
 
   int idx = 0;
   for (int i = 0; i < num_rows; i++) {
@@ -928,9 +928,9 @@ int test_solvepnp(void) {
 
   // Setup 3D and 2D correspondance points
   const int N = num_rows * num_cols;
-  real_t *world_pts = MALLOC(real_t, N * 3);
-  real_t *obj_pts = MALLOC(real_t, N * 3);
-  real_t *img_pts = MALLOC(real_t, N * 2);
+  real_t *world_pts = malloc(sizeof(real_t) * N * 3);
+  real_t *obj_pts = malloc(sizeof(real_t) * N * 3);
+  real_t *img_pts = malloc(sizeof(real_t) * N * 2);
 
   int idx = 0;
   for (int i = 0; i < num_rows; i++) {

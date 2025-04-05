@@ -20,7 +20,7 @@ void sim_circle_defaults(sim_circle_t *conf) {
  * Load simulation feature data.
  */
 sim_features_t *sim_features_load(const char *csv_path) {
-  sim_features_t *features_data = MALLOC(sim_features_t, 1);
+  sim_features_t *features_data = malloc(sizeof(sim_features_t) * 1);
   int num_rows = 0;
   int num_cols = 0;
   features_data->features = csv_data(csv_path, &num_rows, &num_cols);
@@ -65,7 +65,7 @@ void sim_imu_data_setup(sim_imu_data_t *imu_data) {
  * Malloc sim imu data.
  */
 sim_imu_data_t *sim_imu_data_malloc(void) {
-  sim_imu_data_t *imu_data = MALLOC(sim_imu_data_t, 1);
+  sim_imu_data_t *imu_data = malloc(sizeof(sim_imu_data_t) * 1);
   sim_imu_data_setup(imu_data);
   return imu_data;
 }
@@ -112,11 +112,11 @@ sim_imu_data_t *sim_imu_circle_trajectory(const sim_circle_t *conf) {
   // Allocate memory for test data
   sim_imu_data_t *imu_data = sim_imu_data_malloc();
   imu_data->num_measurements = time_taken * imu_rate;
-  imu_data->timestamps = CALLOC(real_t, imu_data->num_measurements);
-  imu_data->poses = CALLOC(real_t, imu_data->num_measurements * 7);
-  imu_data->velocities = CALLOC(real_t, imu_data->num_measurements * 3);
-  imu_data->imu_acc = CALLOC(real_t, imu_data->num_measurements * 3);
-  imu_data->imu_gyr = CALLOC(real_t, imu_data->num_measurements * 3);
+  imu_data->timestamps = calloc(imu_data->num_measurements, sizeof(real_t));
+  imu_data->poses = calloc(imu_data->num_measurements * 7, sizeof(real_t));
+  imu_data->velocities = calloc(imu_data->num_measurements * 3, sizeof(real_t));
+  imu_data->imu_acc = calloc(imu_data->num_measurements * 3, sizeof(real_t));
+  imu_data->imu_gyr = calloc(imu_data->num_measurements * 3, sizeof(real_t));
 
   // Simulate IMU poses
   const real_t dt = 1.0 / imu_rate;
@@ -312,7 +312,7 @@ void sim_camera_frame_setup(sim_camera_frame_t *frame,
  */
 sim_camera_frame_t *sim_camera_frame_malloc(const timestamp_t ts,
                                             const int cam_idx) {
-  sim_camera_frame_t *frame = MALLOC(sim_camera_frame_t, 1);
+  sim_camera_frame_t *frame = malloc(sizeof(sim_camera_frame_t) * 1);
   sim_camera_frame_setup(frame, ts, cam_idx);
   return frame;
 }
@@ -340,8 +340,8 @@ void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame,
                                    const real_t kp[2]) {
   const int N = frame->n + 1;
   frame->n = N;
-  frame->feature_ids = REALLOC(frame->feature_ids, real_t, N);
-  frame->keypoints = REALLOC(frame->keypoints, real_t, N * 2);
+  frame->feature_ids = realloc(frame->feature_ids, sizeof(real_t) * N);
+  frame->keypoints = realloc(frame->keypoints, sizeof(real_t) * N * 2);
   frame->feature_ids[N - 1] = feature_id;
   frame->keypoints[(N - 1) * 2 + 0] = kp[0];
   frame->keypoints[(N - 1) * 2 + 1] = kp[1];
@@ -362,10 +362,10 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
   real_t **data = csv_data(csv_path, &num_rows, &num_cols);
 
   // Create sim_camera_frame_t
-  sim_camera_frame_t *frame_data = MALLOC(sim_camera_frame_t, 1);
+  sim_camera_frame_t *frame_data = malloc(sizeof(sim_camera_frame_t) * 1);
   frame_data->ts = path2ts(csv_path);
-  frame_data->feature_ids = MALLOC(size_t, num_rows);
-  frame_data->keypoints = MALLOC(real_t, num_rows * 2);
+  frame_data->feature_ids = malloc(sizeof(size_t) * num_rows);
+  frame_data->keypoints = malloc(sizeof(real_t) * num_rows * 2);
   frame_data->n = num_rows;
   for (int i = 0; i < num_rows; i++) {
     frame_data->feature_ids[i] = (int) data[i][0];
@@ -409,7 +409,7 @@ void sim_camera_data_setup(sim_camera_data_t *data) {
  * Malloc simulated camera frames.
  */
 sim_camera_data_t *sim_camerea_data_malloc(void) {
-  sim_camera_data_t *data = MALLOC(sim_camera_data_t, 1);
+  sim_camera_data_t *data = malloc(sizeof(sim_camera_data_t) * 1);
   sim_camera_data_setup(data);
   return data;
 }
@@ -461,11 +461,11 @@ sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
   }
 
   // Form sim_camera_frame_t
-  sim_camera_data_t *cam_data = MALLOC(sim_camera_data_t, 1);
-  cam_data->frames = MALLOC(sim_camera_frame_t *, num_rows);
+  sim_camera_data_t *cam_data = malloc(sizeof(sim_camera_data_t) * 1);
+  cam_data->frames = malloc(sizeof(sim_camera_frame_t *) * num_rows);
   cam_data->num_frames = num_rows;
-  cam_data->timestamps = MALLOC(timestamp_t, num_rows);
-  cam_data->poses = MALLOC(real_t *, num_rows * 7);
+  cam_data->timestamps = malloc(sizeof(timestamp_t) * num_rows);
+  cam_data->poses = malloc(sizeof(real_t *) * num_rows * 7);
 
   int line_idx = 0;
   char line[MAX_LINE_LENGTH] = {0};
@@ -544,10 +544,10 @@ sim_camera_circle_trajectory(const sim_circle_t *conf,
   const int num_frames = time_taken * cam_rate;
   sim_camera_data_t *data = sim_camerea_data_malloc();
   data->cam_idx = cam_idx;
-  data->frames = CALLOC(sim_camera_frame_t *, num_frames);
+  data->frames = calloc(num_frames, sizeof(sim_camera_frame_t *));
   data->num_frames = num_frames;
-  data->timestamps = CALLOC(real_t, data->num_frames);
-  data->poses = CALLOC(real_t, data->num_frames * 7);
+  data->timestamps = calloc(data->num_frames, sizeof(real_t));
+  data->poses = calloc(data->num_frames * 7, sizeof(real_t));
 
   // Simulate camera
   const real_t dt = 1.0 / cam_rate;
@@ -618,7 +618,7 @@ sim_camera_circle_trajectory(const sim_circle_t *conf,
 
 sim_circle_camera_imu_t *sim_circle_camera_imu(void) {
   // Malloc
-  sim_circle_camera_imu_t *sim_data = MALLOC(sim_circle_camera_imu_t, 1);
+  sim_circle_camera_imu_t *sim_data = malloc(sizeof(sim_circle_camera_imu_t) * 1);
 
   // Simulate features
   const real_t origin[3] = {0.0, 0.0, 0.0};
@@ -674,15 +674,15 @@ sim_circle_camera_imu_t *sim_circle_camera_imu(void) {
 
   // Form timeline
   const int num_event_types = 1;
-  timeline_event_t **events = MALLOC(timeline_event_t *, num_event_types);
-  timestamp_t **events_timestamps = MALLOC(timestamp_t *, num_event_types);
-  int *events_lengths = CALLOC(int, num_event_types);
-  int *events_types = CALLOC(int, num_event_types);
+  timeline_event_t **events = malloc(sizeof(timeline_event_t *) * num_event_types);
+  timestamp_t **events_timestamps = malloc(sizeof(timestamp_t *) * num_event_types);
+  int *events_lengths = calloc(num_event_types, sizeof(int));
+  int *events_types = calloc(num_event_types, sizeof(int));
   int type_idx = 0;
 
   // -- IMU data to timeline
   const size_t num_imu_events = sim_data->imu_data->num_measurements;
-  timeline_event_t *imu_events = MALLOC(timeline_event_t, num_imu_events);
+  timeline_event_t *imu_events = malloc(sizeof(timeline_event_t) * num_imu_events);
   for (size_t k = 0; k < sim_data->imu_data->num_measurements; k++) {
     imu_events[k].type = IMU_EVENT;
     imu_events[k].ts = sim_data->imu_data->timestamps[k];
@@ -695,7 +695,7 @@ sim_circle_camera_imu_t *sim_circle_camera_imu(void) {
     imu_events[k].data.imu.gyr[2] = sim_data->imu_data->imu_gyr[k * 3 + 2];
   }
   events[type_idx] = imu_events;
-  events_timestamps[type_idx] = CALLOC(timestamp_t, num_imu_events);
+  events_timestamps[type_idx] = calloc(num_imu_events, sizeof(timestamp_t));
   for (int k = 0; k < num_imu_events; k++) {
     events_timestamps[type_idx][k] = events[type_idx][k].ts;
   }
@@ -734,13 +734,13 @@ void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
 //  * Malloc a simulated gimbal view.
 //  */
 // sim_gimbal_view_t *sim_gimbal_view_malloc(const int max_corners) {
-//   sim_gimbal_view_t *view = MALLOC(sim_gimbal_view_t, 1);
+//   sim_gimbal_view_t *view = malloc(sizeof(sim_gimbal_view_t) * 1);
 //
 //   view->num_measurements = 0;
-//   view->tag_ids = MALLOC(int, max_corners);
-//   view->corner_indices = MALLOC(int, max_corners);
-//   view->object_points = MALLOC(real_t, max_corners * 3);
-//   view->keypoints = MALLOC(real_t, max_corners * 2);
+//   view->tag_ids = malloc(sizeof(int) * max_corners);
+//   view->corner_indices = malloc(sizeof(int) * max_corners);
+//   view->object_points = malloc(sizeof(real_t) * max_corners * 3);
+//   view->keypoints = malloc(sizeof(real_t) * max_corners * 2);
 //
 //   assert(view->tag_ids != NULL);
 //   assert(view->corner_indices != NULL);
@@ -782,7 +782,7 @@ void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
 //  * Malloc gimbal simulation.
 //  */
 // sim_gimbal_t *sim_gimbal_malloc(void) {
-//   sim_gimbal_t *sim = MALLOC(sim_gimbal_t, 1);
+//   sim_gimbal_t *sim = malloc(sizeof(sim_gimbal_t) * 1);
 //
 //   // Aprilgrid
 //   int num_rows = 6;
@@ -814,7 +814,7 @@ void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
 //
 //   // Links
 //   sim->num_links = 2;
-//   sim->gimbal_links = MALLOC(extrinsic_t, sim->num_links);
+//   sim->gimbal_links = malloc(sizeof(extrinsic_t) * sim->num_links);
 //   // -- Roll link
 //   const real_t ypr_L0M1[3] = {0.0, M_PI / 2, 0.0};
 //   const real_t r_L0M1[3] = {-0.1, 0.0, 0.15};
@@ -828,7 +828,7 @@ void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
 //
 //   // Joints
 //   sim->num_joints = 3;
-//   sim->gimbal_joints = MALLOC(joint_t, sim->num_joints);
+//   sim->gimbal_joints = malloc(sizeof(joint_t) * sim->num_joints);
 //   joint_setup(&sim->gimbal_joints[0], 0, 0, 0.0);
 //   joint_setup(&sim->gimbal_joints[1], 0, 1, 0.0);
 //   joint_setup(&sim->gimbal_joints[2], 0, 2, 0.0);
@@ -836,7 +836,7 @@ void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
 //   // Setup cameras
 //   sim->num_cams = 2;
 //   // -- Camera extrinsic
-//   sim->cam_exts = MALLOC(extrinsic_t, sim->num_cams);
+//   sim->cam_exts = malloc(sizeof(extrinsic_t) * sim->num_cams);
 //   // ---- cam0 extrinsic
 //   const real_t ypr_M2eC0[3] = {-M_PI / 2.0, M_PI / 2.0, 0.0};
 //   const real_t r_M2eC0[3] = {0.0, -0.05, 0.12};
@@ -857,7 +857,7 @@ void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
 //   const char *proj_model = "pinhole";
 //   const char *dist_model = "radtan4";
 //   const real_t data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
-//   sim->cam_params = MALLOC(camera_params_t, sim->num_cams);
+//   sim->cam_params = malloc(sizeof(camera_params_t) * sim->num_cams);
 //   camera_params_setup(&sim->cam_params[0],
 //                       0,
 //                       cam_res,

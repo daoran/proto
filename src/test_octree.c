@@ -21,7 +21,7 @@ int test_octree(void) {
   const int depth = 0;
   const int max_depth = 10;
 
-  const int N = 10000;
+  const int N = 200000;
   double *points = malloc(sizeof(double) * 3 * N);
   for (int i = 0; i < N; ++i) {
     const float x = randf(-1.0, 1.0);
@@ -33,7 +33,9 @@ int test_octree(void) {
   }
 
   // Build octree
+  struct timespec t = tic();
   octree_t *octree = octree_malloc(center, size, depth, max_depth, points, N);
+  printf("[octree malloc] time taken: %.4f [s]\n", toc(&t));
 
   // Clean up
   free(points);

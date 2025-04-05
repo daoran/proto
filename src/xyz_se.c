@@ -27,11 +27,11 @@ int schur_complement(const real_t *H,
   // Extract sub-blocks of matrix H
   // H = [Hmm, Hmr,
   //      Hrm, Hrr]
-  real_t *Hmm = MALLOC(real_t, m * m);
-  real_t *Hmr = MALLOC(real_t, m * r);
-  real_t *Hrm = MALLOC(real_t, m * r);
-  real_t *Hrr = MALLOC(real_t, r * r);
-  real_t *Hmm_inv = MALLOC(real_t, m * m);
+  real_t *Hmm = malloc(sizeof(real_t) * m * m);
+  real_t *Hmr = malloc(sizeof(real_t) * m * r);
+  real_t *Hrm = malloc(sizeof(real_t) * m * r);
+  real_t *Hrr = malloc(sizeof(real_t) * r * r);
+  real_t *Hmm_inv = malloc(sizeof(real_t) * m * m);
 
   mat_block_get(H, H_size, 0, m - 1, 0, m - 1, Hmm);
   mat_block_get(H, H_size, 0, m - 1, m, H_size - 1, Hmr);
@@ -40,8 +40,8 @@ int schur_complement(const real_t *H,
 
   // Extract sub-blocks of vector b
   // b = [b_mm, b_rr]
-  real_t *bmm = MALLOC(real_t, m);
-  real_t *brr = MALLOC(real_t, r);
+  real_t *bmm = malloc(sizeof(real_t) * m);
+  real_t *brr = malloc(sizeof(real_t) * r);
   vec_copy(b, m, bmm);
   vec_copy(b + m, r, brr);
 
@@ -473,8 +473,8 @@ void fiducial_print(const char *prefix, const fiducial_t *fiducial) {
 //  * Malloc fiducial buffer.
 //  */
 // fiducial_buffer_t *fiducial_buffer_malloc(void) {
-//   fiducial_buffer_t *buf = MALLOC(fiducial_buffer_t, 1);
-//   buf->data = CALLOC(fiducial_event_t *, 10);
+//   fiducial_buffer_t *buf = malloc(sizeof(fiducial_buffer_t) * 1);
+//   buf->data = calloc(10, sizeof(fiducial_event_t *));
 //   buf->size = 0;
 //   buf->capacity = 10;
 //   return buf;
@@ -534,15 +534,15 @@ void fiducial_print(const char *prefix, const fiducial_t *fiducial) {
 //   // Add to buffer
 //   int idx = buf->size;
 //
-//   buf->data[idx] = MALLOC(fiducial_event_t, 1);
+//   buf->data[idx] = malloc(sizeof(fiducial_event_t) * 1);
 //   buf->data[idx]->ts = ts;
 //   buf->data[idx]->cam_idx = cam_idx;
 //   buf->data[idx]->num_corners = num_corners;
 //
-//   buf->data[idx]->tag_ids = CALLOC(int, num_corners);
-//   buf->data[idx]->corner_indices = CALLOC(int, num_corners);
-//   buf->data[idx]->object_points = CALLOC(real_t, num_corners * 3);
-//   buf->data[idx]->keypoints = CALLOC(real_t, num_corners * 2);
+//   buf->data[idx]->tag_ids = calloc(num_corners, sizeof(int));
+//   buf->data[idx]->corner_indices = calloc(num_corners, sizeof(int));
+//   buf->data[idx]->object_points = calloc(num_corners * 3, sizeof(real_t));
+//   buf->data[idx]->keypoints = calloc(num_corners * 2, sizeof(real_t));
 //   for (int i = 0; i < num_corners; i++) {
 //     buf->data[idx]->tag_ids[i] = tag_ids[i];
 //     buf->data[idx]->corner_indices[i] = corner_indices[i];
@@ -727,7 +727,7 @@ int solvepnp_camera(const camera_params_t *cam_params,
   assert(T_CO != NULL);
 
   // Undistort keypoints
-  real_t *img_pts_ud = MALLOC(real_t, N * 2);
+  real_t *img_pts_ud = malloc(sizeof(real_t) * N * 2);
   camera_undistort_points(cam_params, img_pts, N, img_pts_ud);
 
   // Estimate relative pose T_CO
@@ -997,13 +997,13 @@ void feature_print(const feature_t *f) {
 //  * Malloc features.
 //  */
 // features_t *features_malloc(void) {
-//   features_t *features = MALLOC(features_t, 1);
+//   features_t *features = malloc(sizeof(features_t) * 1);
 
-//   features->data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
+//   features->data = calloc(FEATURES_CAPACITY_INITIAL, sizeof(feature_t *));
 //   features->num_features = 0;
 //   features->feature_capacity = FEATURES_CAPACITY_INITIAL;
 
-//   features->pos_data = CALLOC(feature_t *, FEATURES_CAPACITY_INITIAL);
+//   features->pos_data = calloc(FEATURES_CAPACITY_INITIAL, sizeof(feature_t *));
 //   features->num_positions = 0;
 //   features->position_capacity = FEATURES_CAPACITY_INITIAL;
 
@@ -1052,7 +1052,7 @@ void feature_print(const feature_t *f) {
 //   if (feature_ids[num_features - 1] >= features->feature_capacity) {
 //     size_t old_size = features->feature_capacity;
 //     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-//     features->data = REALLOC(features->data, feature_t *, new_size);
+//     features->data = realloc(features->data, sizeof(feature_t *) * new_size);
 //     features->feature_capacity = new_size;
 //     for (size_t i = old_size; i < new_size; i++) {
 //       features->data[i] = NULL;
@@ -1095,7 +1095,7 @@ void feature_print(const feature_t *f) {
 //   if (feature_ids[num_keypoints - 1] >= features->feature_capacity) {
 //     size_t old_size = features->feature_capacity;
 //     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-//     features->data = REALLOC(features->data, feature_t *, new_size);
+//     features->data = realloc(features->data, sizeof(feature_t *) * new_size);
 //     features->feature_capacity = new_size;
 //     for (size_t i = old_size; i < new_size; i++) {
 //       features->data[i] = NULL;
@@ -1110,7 +1110,7 @@ void feature_print(const feature_t *f) {
 //   if (pos_id >= features->position_capacity) {
 //     size_t old_size = features->position_capacity;
 //     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-//     features->data = REALLOC(features->pos_data, pos_t *, new_size);
+//     features->data = realloc(features->pos_data, sizeof(pos_t *) * new_size);
 //     features->position_capacity = new_size;
 //     for (size_t i = old_size; i < new_size; i++) {
 //       features->pos_data[i] = NULL;
@@ -1127,14 +1127,14 @@ void feature_print(const feature_t *f) {
 //   // Add feature
 //   for (size_t i = 0; i < num_keypoints; i++) {
 //     const size_t feature_id = feature_ids[i];
-//     feature_t *f = MALLOC(feature_t, 1);
+//     feature_t *f = malloc(sizeof(feature_t) * 1);
 //     idf_setup(f, feature_id, pos_id, cam_params, C_WC, keypoints + i * 2);
 //     features->data[feature_id] = f;
 //     features->num_features++;
 //   }
 
 //   // Add inverse-depth "first-seen" position
-//   pos_t *pos = MALLOC(pos_t, 1);
+//   pos_t *pos = malloc(sizeof(pos_t) * 1);
 //   pos_setup(pos, r_WC);
 //   features->pos_data[pos_id] = pos;
 //   features->num_positions++;
@@ -1193,8 +1193,8 @@ void feature_print(const feature_t *f) {
 //                  real_t **points,
 //                  size_t *num_points) {
 //   *num_points = hmlen(idfb->params);
-//   *feature_ids = MALLOC(size_t, *num_points);
-//   *points = MALLOC(real_t, *num_points * 3);
+//   *feature_ids = malloc(sizeof(size_t) * *num_points);
+//   *points = malloc(sizeof(real_t) * *num_points * 3);
 
 //   for (size_t i = 0; i < hmlen(idfb->params); i++) {
 //     (*feature_ids)[i] = idfb->params[i].key;
@@ -1570,8 +1570,8 @@ int check_factor_jacobian(const void *factor,
   }
 
   // Setup
-  real_t *r = CALLOC(real_t, r_size);
-  real_t *J_numdiff = CALLOC(real_t, r_size * param_size);
+  real_t *r = calloc(r_size, sizeof(real_t));
+  real_t *J_numdiff = calloc(r_size * param_size, sizeof(real_t));
 
   // Evaluate factor
   if (factor_eval(factor, params, r, NULL) != 0) {
@@ -1582,8 +1582,8 @@ int check_factor_jacobian(const void *factor,
 
   // Numerical diff - forward finite difference
   for (int i = 0; i < param_size; i++) {
-    real_t *r_fwd = CALLOC(real_t, r_size);
-    real_t *r_diff = CALLOC(real_t, r_size);
+    real_t *r_fwd = calloc(r_size, sizeof(real_t));
+    real_t *r_diff = calloc(r_size, sizeof(real_t));
 
     params[param_idx][i] += step_size;
     factor_eval(factor, params, r_fwd, NULL);
@@ -1628,8 +1628,8 @@ int check_factor_so3_jacobian(const void *factor,
 
   // Setup
   const int param_size = 3;
-  real_t *r = CALLOC(real_t, r_size);
-  real_t *J_numdiff = CALLOC(real_t, r_size * param_size);
+  real_t *r = calloc(r_size, sizeof(real_t));
+  real_t *J_numdiff = calloc(r_size * param_size, sizeof(real_t));
 
   // Evaluate factor
   if (factor_eval(factor, params, r, NULL) != 0) {
@@ -1639,8 +1639,8 @@ int check_factor_so3_jacobian(const void *factor,
   }
 
   for (int i = 0; i < param_size; i++) {
-    real_t *r_fwd = CALLOC(real_t, r_size);
-    real_t *r_diff = CALLOC(real_t, r_size);
+    real_t *r_fwd = calloc(r_size, sizeof(real_t));
+    real_t *r_diff = calloc(r_size, sizeof(real_t));
 
     quat_perturb(params[param_idx], i, step_size);
     factor_eval(factor, params, r_fwd, NULL);
@@ -4040,6 +4040,190 @@ int imu_factor_ceres_eval(void *factor_ptr,
                     J_out);
 }
 
+//////////////////
+// LIDAR FACTOR //
+//////////////////
+
+pcd_t *pcd_malloc(const timestamp_t ts_start,
+                  const timestamp_t ts_end,
+                  const float *data,
+                  const float *time_diffs,
+                  const size_t num_points) {
+  pcd_t *pcd = malloc(sizeof(pcd_t));
+
+  pcd->ts_start = ts_start;
+  pcd->ts_end = ts_end;
+
+  pcd->data = malloc(sizeof(float) * 3 * num_points);
+  for (size_t i = 0; i < num_points; ++i) {
+    pcd->data[i * 3 + 0] = data[i * 3 + 0];
+    pcd->data[i * 3 + 1] = data[i * 3 + 1];
+    pcd->data[i * 3 + 2] = data[i * 3 + 2];
+  }
+
+  pcd->time_diffs = malloc(sizeof(float) * num_points);
+  for (size_t i = 0; i < num_points; ++i) {
+    pcd->time_diffs[i] = time_diffs[i];
+  }
+  pcd->num_points = num_points;
+
+  return pcd;
+}
+
+void pcd_free(pcd_t *pcd) {
+  if (pcd == NULL) {
+    return;
+  }
+
+  free(pcd->data);
+  free(pcd->time_diffs);
+  free(pcd);
+}
+
+void pcd_deskew(pcd_t *pcd,
+                const real_t T_WL_km1[4 * 4],
+                const real_t T_WL_km2[4 * 4]) {
+  assert(pcd);
+  assert(T_WL_km1);
+  assert(T_WL_km2);
+
+  // Setup
+  const real_t ts_start = ts2sec(pcd->ts_start);
+  const real_t ts_end = ts2sec(pcd->ts_end);
+  const real_t dt = ts_end - ts_start;
+  TF_ROT(T_WL_km2, C_WL_km2);
+  TF_ROT(T_WL_km1, C_WL_km1);
+  TF_TRANS(T_WL_km2, r_WL_km2);
+  TF_TRANS(T_WL_km1, r_WL_km1);
+
+  // v_WL = (C_WL_km2' * (r_WL_km1 - r_WL_km2)) / dt
+  VEC_SUB(r_WL_km1, r_WL_km2, dr, 3);
+  MAT_TRANSPOSE(C_WL_km2, 3, 3, C_WL_t_km2);
+  DOT(C_WL_t_km2, 3, 3, dr, 3, 1, v_WL);
+  vec_scale(v_WL, 3, 1.0 / dt);
+
+  // w_WL = (Log(C_WL_km2' * C_WL_km1)) / dt
+  real_t w_WL[3] = {0};
+  DOT(C_WL_t_km2, 3, 3, C_WL_km1, 3, 3, dC);
+  lie_Log(dC, w_WL);
+  vec_scale(w_WL, 3, 1.0 / dt);
+
+  // Deskew point cloud
+  // p = Exp(s_i * w_WL) * p + s_i * v_WL
+  //
+  for (size_t i = 0; i < pcd->num_points; ++i) {
+    real_t p[3] = {
+        pcd->data[i * 3 + 0],
+        pcd->data[i * 3 + 1],
+        pcd->data[i * 3 + 2],
+    };
+
+    const real_t s_i = pcd->time_diffs[i];
+    const real_t v_WL_i[3] = {s_i * v_WL[0], s_i * v_WL[1], s_i * v_WL[2]};
+    const real_t w_WL_i[3] = {s_i * w_WL[0], s_i * w_WL[1], s_i * w_WL[2]};
+
+    real_t dC[3 * 3] = {0};
+    lie_Exp(w_WL_i, dC);
+    DOT(dC, 3, 3, p, 3, 1, p_new);
+    vec_add(p_new, v_WL_i, p, 3);
+  }
+}
+
+/**
+ * Setup lidar factor
+ */
+void lidar_factor_setup(lidar_factor_t *factor,
+                        pcd_t *pcd,
+                        pose_t *pose,
+                        const real_t var[3]) {
+  assert(factor != NULL);
+  assert(pcd != NULL);
+  assert(pose != NULL);
+  assert(var != NULL);
+
+  // Parameters
+  factor->pcd = pcd;
+  factor->pose = pose;
+
+  // Measurement covariance
+  zeros(factor->covar, 3, 3);
+  factor->covar[0] = var[0];
+  factor->covar[4] = var[1];
+  factor->covar[8] = var[2];
+
+  // Square-root information matrix
+  zeros(factor->sqrt_info, 3, 3);
+  factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
+  factor->sqrt_info[4] = sqrt(1.0 / factor->covar[1]);
+  factor->sqrt_info[8] = sqrt(1.0 / factor->covar[2]);
+
+  // Factor parameters, residuals and Jacobians
+  factor->r_size = pcd->num_points * 3;
+  factor->num_params = 1;
+  factor->param_types[0] = POSE_PARAM;
+  factor->params[0] = factor->pose->data;
+  factor->jacs[0] = factor->J_pose;
+}
+
+/**
+ * Evaluate lidar factor
+ */
+void lidar_factor_eval(void *factor_ptr) {
+  lidar_factor_t *factor = (lidar_factor_t *) factor_ptr;
+  assert(factor != NULL);
+  assert(factor->pose);
+  assert(factor->pcd);
+
+  // Map params
+  // TF(factor->params[0], T_WB);
+  // TF(factor->params[1], T_BL);
+  // TF_CHAIN(T_WL, 2, T_WB, T_BL);
+  // TF_INV(T_WL, T_LW);
+  // TF_ROT(T_LW, C_LW);
+  // TF_TRANS(T_LW, r_LW);
+
+  // Calculate residuals
+  // points_W = points_L * C_LW + r_LW
+  // real_t *points_W_hat = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
+  // dot(factor->pcd->data, factor->pcd->num_points, 3, C_LW, 3, 3, points_W_hat);
+  // for (size_t i = 0; i < factor->pcd->num_points; ++i) {
+  //   points_W_hat[i * 3 + 0] += r_LW[0];
+  //   points_W_hat[i * 3 + 1] += r_LW[1];
+  //   points_W_hat[i * 3 + 2] += r_LW[2];
+  // }
+  // r = points_W - points_W_hat
+  // factor->r = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
+  // for (size_t i = 0; i < factor->num_points; ++i) {
+  //   factor->r[i * 3 + 0] = points_W[i * 3 + 0] - points_W_hat[i * 3 + 0];
+  //   factor->r[i * 3 + 1] = points_W[i * 3 + 1] - points_W_hat[i * 3 + 1];
+  //   factor->r[i * 3 + 2] = points_W[i * 3 + 2] - points_W_hat[i * 3 + 2];
+  // }
+
+  // Calculate jacobians
+  // -- Form: -1 * sqrt_info
+  // real_t neg_sqrt_info[3 * 3] = {0};
+  // mat_copy(factor->sqrt_info, 3, 3, neg_sqrt_info);
+  // mat_scale(neg_sqrt_info, 3, 3, -1.0);
+  // -- Fill jacobians
+  // const size_t num_rows = 3 * factor->num_points;
+  // const size_t num_cols = 6;
+  // factor->J_pose = malloc(sizeof(real_t) * num_rows * num_cols);
+  // const int stride = 6;
+  // for (size_t i = 0; i < factor->num_points; ++i) {
+  //   const int rs = i * 3 + 0;
+  //   const int re = i * 3 + 2;
+  //   const int cs = 0;
+  //   const int ce = 5;
+  //   mat_block_set(factor->J_pose,
+  //                 stride,
+  //                 rs,
+  //                 re,
+  //                 cs,
+  //                 ce,
+  //                 J_pose_i);
+  // }
+}
+
 ////////////////////////
 // JOINT-ANGLE FACTOR //
 ////////////////////////
@@ -4145,7 +4329,7 @@ error:
  * Malloc marginalization factor.
  */
 marg_factor_t *marg_factor_malloc(void) {
-  marg_factor_t *marg = MALLOC(marg_factor_t, 1);
+  marg_factor_t *marg = malloc(sizeof(marg_factor_t) * 1);
 
   // Settings
   marg->debug = 1;
@@ -4501,11 +4685,11 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
 
   int param_idx = 0;
   int x0_idx = 0;
-  marg->x0 = MALLOC(real_t, gr);
+  marg->x0 = malloc(sizeof(real_t) * gr);
   marg->num_params = nr;
-  marg->param_types = MALLOC(int, nr);
-  marg->param_ptrs = MALLOC(void *, nr);
-  marg->params = MALLOC(real_t *, nr);
+  marg->param_types = malloc(sizeof(int) * nr);
+  marg->param_ptrs = malloc(sizeof(void *) * nr);
+  marg->params = malloc(sizeof(real_t *) * nr);
   MARG_PARAMS(marg, marg->r_positions, POSITION_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_rotations, ROTATION_PARAM, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_poses, POSE_PARAM, param_idx, x0_idx);
@@ -4522,8 +4706,8 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   marg->m_size = m;
   marg->r_size = r;
   const int ls = m + r;
-  real_t *H = CALLOC(real_t, ls * ls);
-  real_t *b = CALLOC(real_t, ls * 1);
+  real_t *H = calloc(ls * ls, sizeof(real_t));
+  real_t *b = calloc(ls * 1, sizeof(real_t));
 
   // Fill Hessian
   if (marg->marg_factor) {
@@ -4562,8 +4746,8 @@ static void marg_factor_schur_complement(marg_factor_t *marg) {
   const int ls = m + r;
   const real_t *H = marg->H;
   const real_t *b = marg->b;
-  real_t *H_marg = MALLOC(real_t, r * r);
-  real_t *b_marg = MALLOC(real_t, r * 1);
+  real_t *H_marg = malloc(sizeof(real_t) * r * r);
+  real_t *b_marg = malloc(sizeof(real_t) * r * 1);
   if (schur_complement(H, b, ls, m, r, H_marg, b_marg) == 0) {
     marg->schur_complement_ok = 1;
   }
@@ -4597,13 +4781,13 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
   //
   // -- Setup
   const int r = marg->r_size;
-  real_t *J = CALLOC(real_t, r * r);
-  real_t *J_inv = CALLOC(real_t, r * r);
-  real_t *V = CALLOC(real_t, r * r);
-  real_t *Vt = CALLOC(real_t, r * r);
-  real_t *w = CALLOC(real_t, r);
-  real_t *W_sqrt = CALLOC(real_t, r * r);
-  real_t *W_inv_sqrt = CALLOC(real_t, r * r);
+  real_t *J = calloc(r * r, sizeof(real_t));
+  real_t *J_inv = calloc(r * r, sizeof(real_t));
+  real_t *V = calloc(r * r, sizeof(real_t));
+  real_t *Vt = calloc(r * r, sizeof(real_t));
+  real_t *w = calloc(r, sizeof(real_t));
+  real_t *W_sqrt = calloc(r * r, sizeof(real_t));
+  real_t *W_inv_sqrt = calloc(r * r, sizeof(real_t));
 
   // -- Eigen decomposition
   if (eig_sym(marg->H_marg, r, r, V, w) != 0) {
@@ -4640,8 +4824,8 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
 
   // Check J' * J == H_marg
   if (marg->debug) {
-    real_t *Jt = CALLOC(real_t, r * r);
-    real_t *H_ = CALLOC(real_t, r * r);
+    real_t *Jt = calloc(r * r, sizeof(real_t));
+    real_t *H_ = calloc(r * r, sizeof(real_t));
     mat_transpose(J, r, r, Jt);
     dot(Jt, r, r, J, r, r, H_);
 
@@ -4683,7 +4867,7 @@ static void marg_factor_hessian_decomp(marg_factor_t *marg) {
 static void marg_factor_form_fejs(marg_factor_t *marg) {
   // Track Linearized residuals, jacobians
   // -- Linearized residuals: r0 = -J0_inv * b_marg;
-  marg->r0 = MALLOC(real_t, marg->r_size);
+  marg->r0 = malloc(sizeof(real_t) * marg->r_size);
   dot(marg->J0_inv,
       marg->r_size,
       marg->r_size,
@@ -4692,16 +4876,16 @@ static void marg_factor_form_fejs(marg_factor_t *marg) {
       1,
       marg->r0);
   // -- Linearized jacobians: J0 = J;
-  marg->dchi = MALLOC(real_t, marg->r_size);
-  marg->J0_dchi = MALLOC(real_t, marg->r_size);
+  marg->dchi = malloc(sizeof(real_t) * marg->r_size);
+  marg->J0_dchi = malloc(sizeof(real_t) * marg->r_size);
 
   // Form First-Estimate Jacobians (FEJ)
   const size_t m = marg->r_size;
   const int col_offset = -marg->m_size;
   const int rs = 0;
   const int re = m - 1;
-  marg->r = MALLOC(real_t, m);
-  marg->jacs = MALLOC(real_t *, marg->num_params);
+  marg->r = malloc(sizeof(real_t) * m);
+  marg->jacs = malloc(sizeof(real_t *) * marg->num_params);
 
   char param_type[100] = {0};
   for (size_t i = 0; i < marg->num_params; i++) {
@@ -4712,7 +4896,7 @@ static void marg_factor_form_fejs(marg_factor_t *marg) {
     const int cs = param_info->idx + col_offset;
     const int ce = cs + n - 1;
 
-    marg->jacs[i] = MALLOC(real_t, m * n);
+    marg->jacs[i] = malloc(sizeof(real_t) * m * n);
     mat_block_get(marg->J0, m, rs, re, cs, ce, marg->jacs[i]);
   }
 }
@@ -4854,7 +5038,7 @@ pose_t *load_poses(const char *fp, int *num_poses) {
 
   // Initialize memory for pose data
   *num_poses = num_rows;
-  pose_t *poses = MALLOC(pose_t, num_rows);
+  pose_t *poses = malloc(sizeof(pose_t) * num_rows);
 
   // Load file
   FILE *infile = fopen(fp, "r");
@@ -4925,7 +5109,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
       (num_gnd_poses > num_est_poses) ? num_est_poses : num_gnd_poses;
 
   size_t match_idx = 0;
-  int **matches = MALLOC(int *, k_end);
+  int **matches = malloc(sizeof(int *) * k_end);
 
   while ((gnd_idx + 1) < num_gnd_poses && (est_idx + 1) < num_est_poses) {
     // Calculate time difference between ground truth and
@@ -4950,7 +5134,7 @@ int **assoc_pose_data(pose_t *gnd_poses,
     // Mark pairs as a match or increment appropriate
     // indices
     if (threshold_met && smallest_diff) {
-      matches[match_idx] = MALLOC(int, 2);
+      matches[match_idx] = malloc(sizeof(int) * 2);
       matches[match_idx][0] = gnd_idx;
       matches[match_idx][1] = est_idx;
       match_idx++;
@@ -5057,8 +5241,8 @@ void solver_fill_jacobian(param_order_t *hash,
     mat_block_set(J, sv_size, rs, re, cs, ce, J_i);
 
     // Fill in the R.H.S of H dx = g, where g = -J_i' * r
-    real_t *Jt_i = MALLOC(real_t, r_size * size_i);
-    real_t *g_i = MALLOC(real_t, size_i);
+    real_t *Jt_i = malloc(sizeof(real_t) * r_size * size_i);
+    real_t *g_i = malloc(sizeof(real_t) * size_i);
     mat_transpose(J_i, r_size, size_i, Jt_i);
     mat_scale(Jt_i, size_i, r_size, -1);
     dot(Jt_i, size_i, r_size, r, r_size, 1, g_i);
@@ -5098,7 +5282,7 @@ void solver_fill_hessian(param_order_t *hash,
     int idx_i = hmgets(hash, params[i]).idx;
     int size_i = param_local_size(hmgets(hash, params[i]).type);
     const real_t *J_i = jacs[i];
-    real_t *Jt_i = MALLOC(real_t, r_size * size_i);
+    real_t *Jt_i = malloc(sizeof(real_t) * r_size * size_i);
     mat_transpose(J_i, r_size, size_i, Jt_i);
 
     for (int j = i; j < num_params; j++) {
@@ -5111,7 +5295,7 @@ void solver_fill_hessian(param_order_t *hash,
       int idx_j = hmgets(hash, params[j]).idx;
       int size_j = param_local_size(hmgets(hash, params[j]).type);
       const real_t *J_j = jacs[j];
-      real_t *H_ij = MALLOC(real_t, size_i * size_j);
+      real_t *H_ij = malloc(sizeof(real_t) * size_i * size_j);
       dot(Jt_i, size_i, r_size, J_j, r_size, size_j, H_ij);
 
       // Fill Hessian H
@@ -5125,7 +5309,7 @@ void solver_fill_hessian(param_order_t *hash,
         mat_block_add(H, sv_size, rs, re, cs, ce, H_ij);
       } else {
         // Fill off-diagonal
-        real_t *H_ji = MALLOC(real_t, size_j * size_i);
+        real_t *H_ji = malloc(sizeof(real_t) * size_j * size_i);
         mat_transpose(H_ij, size_i, size_j, H_ji);
         mat_block_add(H, sv_size, rs, re, cs, ce, H_ij);
         mat_block_add(H, sv_size, cs, ce, rs, re, H_ji);
@@ -5137,7 +5321,7 @@ void solver_fill_hessian(param_order_t *hash,
     }
 
     // Fill in the R.H.S of H dx = g, where g = -J_i' * r
-    real_t *g_i = MALLOC(real_t, size_i);
+    real_t *g_i = malloc(sizeof(real_t) * size_i);
     mat_scale(Jt_i, size_i, r_size, -1);
     dot(Jt_i, size_i, r_size, r, r_size, 1, g_i);
     for (int g_idx = 0; g_idx < size_i; g_idx++) {
@@ -5154,11 +5338,11 @@ void solver_fill_hessian(param_order_t *hash,
  * Create a copy of the parameter vector
  */
 real_t **solver_params_copy(const solver_t *solver) {
-  real_t **x = MALLOC(real_t *, hmlen(solver->hash));
+  real_t **x = malloc(sizeof(real_t *) * hmlen(solver->hash));
 
   for (int idx = 0; idx < hmlen(solver->hash); idx++) {
     const int global_size = param_global_size(solver->hash[idx].type);
-    x[idx] = MALLOC(real_t, global_size);
+    x[idx] = malloc(sizeof(real_t) * global_size);
 
     for (int i = 0; i < global_size; i++) {
       x[idx][i] = ((real_t *) solver->hash[idx].key)[i];
@@ -5330,11 +5514,11 @@ int solver_solve(solver_t *solver, void *data) {
   solver->linearize = 1;
   solver->r_size = r_size;
   solver->sv_size = sv_size;
-  solver->H_damped = CALLOC(real_t, sv_size * sv_size);
-  solver->H = CALLOC(real_t, sv_size * sv_size);
-  solver->g = CALLOC(real_t, sv_size);
-  solver->r = CALLOC(real_t, r_size);
-  solver->dx = CALLOC(real_t, sv_size);
+  solver->H_damped = calloc(sv_size * sv_size, sizeof(real_t));
+  solver->H = calloc(sv_size * sv_size, sizeof(real_t));
+  solver->g = calloc(sv_size, sizeof(real_t));
+  solver->r = calloc(r_size, sizeof(real_t));
+  solver->dx = calloc(sv_size, sizeof(real_t));
   real_t J_km1 = solver_cost(solver, data);
   if (solver->verbose) {
     printf("iter 0: lambda_k: %.2e, J: %.4e\n", solver->lambda, J_km1);
@@ -5342,7 +5526,7 @@ int solver_solve(solver_t *solver, void *data) {
 
   // Start cholmod workspace
 #ifdef SOLVER_USE_SUITESPARSE
-  solver->common = MALLOC(cholmod_common, 1);
+  solver->common = malloc(sizeof(cholmod_common) * 1);
   cholmod_start(solver->common);
 #endif
 
@@ -5417,7 +5601,7 @@ int solver_solve(solver_t *solver, void *data) {
  * Malloc inertial odometry.
  */
 inertial_odometry_t *inertial_odometry_malloc(void) {
-  inertial_odometry_t *io = MALLOC(inertial_odometry_t, 1);
+  inertial_odometry_t *io = malloc(sizeof(inertial_odometry_t) * 1);
 
   io->num_factors = 0;
   io->factors = NULL;
@@ -5584,7 +5768,7 @@ void tsf_frameset_reset(tsf_frameset_t *fs) { tsf_frameset_setup(fs); }
  * TSF Malloc.
  */
 tsf_t *tsf_malloc(void) {
-  tsf_t *tsf = MALLOC(tsf_t, 1);
+  tsf_t *tsf = malloc(sizeof(tsf_t) * 1);
 
   // Flags
   tsf->state = 0;
@@ -5715,8 +5899,8 @@ void tsf_add_camera(tsf_t *tsf,
 
   if (cam_idx > (tsf->num_cams - 1)) {
     const int new_size = tsf->num_cams + 1;
-    tsf->cam_params = REALLOC(tsf->cam_params, camera_params_t, new_size);
-    tsf->cam_exts = REALLOC(tsf->cam_exts, extrinsic_t, new_size);
+    tsf->cam_params = realloc(tsf->cam_params, sizeof(camera_params_t) * new_size);
+    tsf->cam_exts = realloc(tsf->cam_exts, sizeof(extrinsic_t) * new_size);
   }
 
   camera_params_setup(&tsf->cam_params[cam_idx],
@@ -5953,7 +6137,7 @@ void tsf_camera_event(tsf_t *tsf,
 }
 
 // static size_t *tsf_unique_feature_ids(tsf_t *tsf, size_t *n) {
-//   size_t *fids_unique = MALLOC(size_t, tsf->num_factors_i + tsf->num_factors_j);
+//   size_t *fids_unique = malloc(sizeof(size_t) * tsf->num_factors_i + tsf->num_factors_j);
 //   size_t fid_idx = 0;
 
 //   // Load unique feature ids with feature ids from the previous step
@@ -6094,7 +6278,7 @@ void tsf_cost(const void *data, real_t *r) {
 //   const int N = (tsf->num_factors_i + tsf->num_factors_j);
 //   const int r_size = N * 2;
 //   int r_idx = 0;
-//   real_t *r = CALLOC(real_t, r_size);
+//   real_t *r = calloc(r_size, sizeof(real_t));
 //   for (int i = 0; i < tsf->num_factors_i; i++) {
 //     idf_factor_t *factor = &tsf->idf_factors_i[i];
 //     idf_factor_eval(factor);
@@ -6109,7 +6293,7 @@ void tsf_cost(const void *data, real_t *r) {
 //   }
 
 //   // Calculate reprojection errors
-//   real_t *errors = CALLOC(real_t, N);
+//   real_t *errors = calloc(N, sizeof(real_t));
 //   for (int i = 0; i < N; i++) {
 //     const real_t x = r[i * 2 + 0];
 //     const real_t y = r[i * 2 + 1];
@@ -6224,12 +6408,12 @@ void tsf_linearize_compact(const void *data,
 //   // Initialize pose at k
 //   pose_t *pose_k = NULL;
 //   if (tsf->frame_idx == 0) {
-//     pose_k = MALLOC(pose_t, 1);
+//     pose_k = malloc(sizeof(pose_t) * 1);
 //     const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
 //     pose_setup(pose_k, ts, pose_data);
 //     tsf->pose_i = pose_k;
 //   } else {
-//     pose_k = MALLOC(pose_t, 1);
+//     pose_k = malloc(sizeof(pose_t) * 1);
 //     pose_setup(pose_k, ts, tsf->pose_i->data);
 //     tsf->pose_j = pose_k;
 //   }
@@ -6244,8 +6428,8 @@ void tsf_linearize_compact(const void *data,
 //     features_add_idfs(tsf->features, fids, cam, T_WCi_k, kps, n);
 
 //   } else {
-//     size_t *fids_new = MALLOC(size_t, n);
-//     real_t *kps_new = MALLOC(real_t, n * 2);
+//     size_t *fids_new = malloc(sizeof(size_t) * n);
+//     real_t *kps_new = malloc(sizeof(real_t) * n * 2);
 //     int n_new = 0;
 //     for (int i = 0; i < n; i++) {
 //       if (features_exists(tsf->features, fids[i]) == 0) {
@@ -6262,7 +6446,7 @@ void tsf_linearize_compact(const void *data,
 
 //   // Create IDF factors
 //   const real_t var[2] = {1.0, 1.0};
-//   idf_factor_t *factors = MALLOC(idf_factor_t, n);
+//   idf_factor_t *factors = malloc(sizeof(idf_factor_t) * n);
 
 //   for (int i = 0; i < n; i++) {
 //     // Get IDF

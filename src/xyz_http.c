@@ -188,13 +188,10 @@ status_t tcp_server_setup(tcp_server_t *server, const int port) {
   if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEADDR, &en, int_sz) < 0) {
     HTTP_ERROR("setsockopt(SO_REUSEADDR) failed");
   }
-  if (setsockopt(server->sockfd, SOL_SOCKET, SO_REUSEPORT, &en, int_sz) < 0) {
-    HTTP_ERROR("setsockopt(SO_REUSEPORT) failed");
-  }
 
   // Assign IP, PORT
   struct sockaddr_in addr;
-  bzero(&addr, sizeof(addr));
+  memset(&addr, '\0', sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
   addr.sin_port = htons(server->port);
@@ -465,7 +462,7 @@ void ws_frame_print(ws_frame_t *frame) {
 uint8_t *ws_frame_serialize(ws_frame_t *frame) {
   // Setup
   uint8_t header[10];
-  bzero(header, 10);
+  memset(&header, '\0', sizeof(header));
   header[0] = frame->header;
 
   // Payload details

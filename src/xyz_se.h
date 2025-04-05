@@ -787,6 +787,57 @@ int imu_factor_ceres_eval(void *factor_ptr,
                           real_t *r_out,
                           real_t **J_out);
 
+//////////////////
+// LIDAR FACTOR //
+//////////////////
+
+typedef struct pcd_t {
+  timestamp_t ts_start;
+  timestamp_t ts_end;
+  float *data;
+  float *time_diffs;
+  size_t num_points;
+} pcd_t;
+
+typedef struct lidar_factor_t {
+  pcd_t *pcd;
+  pose_t *pose;
+  extrinsic_t *extrinsic;
+
+  real_t *points_W;
+  size_t *indices;
+  size_t num_points;
+
+  real_t covar[3 * 3];
+  real_t sqrt_info[3 * 3];
+
+  real_t *r;
+  int r_size;
+
+  int param_types[2];
+  real_t *params[2];
+  int num_params;
+
+  real_t *jacs[1];
+  real_t *J_pose;
+} lidar_factor_t;
+
+pcd_t *pcd_malloc(const timestamp_t ts_start,
+                  const timestamp_t ts_end,
+                  const float *data,
+                  const float *time_diffs,
+                  const size_t num_points);
+void pcd_free(pcd_t *pcd);
+void pcd_deskew(pcd_t *points,
+                const real_t T_WL_km1[4 * 4],
+                const real_t T_WL_km2[4 * 4]);
+
+void lidar_factor_setup(lidar_factor_t *factor,
+                        pcd_t *pcd,
+                        pose_t *pose_k,
+                        const real_t var[3]);
+void lidar_factor_eval(void *factor);
+
 ////////////////////////
 // JOINT-ANGLE FACTOR //
 ////////////////////////
