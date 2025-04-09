@@ -109,15 +109,8 @@ void _kdtree_search(const kdtree_node_t *node,
   const float diff = target[axis] - node->p[axis];
 
   // Search the closer subtree first
-  kdtree_node_t *closer = NULL;
-  kdtree_node_t *farther = NULL;
-  if (diff <= 0) {
-    closer = node->left;
-    farther = node->right;
-  } else {
-    closer = node->right;
-    farther = node->left;
-  }
+  const kdtree_node_t *closer = (diff <= 0) ? node->left: node->right;
+  const kdtree_node_t *farther = (diff <= 0) ? node->right: node->left;
   _kdtree_search(closer, target, best_dist, best_point, depth + 1);
 
   // Search the farther subtree
