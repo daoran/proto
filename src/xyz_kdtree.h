@@ -17,4 +17,8 @@ kdtree_node_t *kdtree_insert(kdtree_node_t *root,
                              const int depth);
 kdtree_node_t *
 kdtree_build(float *points, const int start, const int end, const int depth);
-void kdtree_inorder_traversal(kdtree_node_t *root);
+void kdtree_points(const kdtree_node_t *root, float *points, size_t *n);
+void kdtree_nn(const kdtree_node_t *root,
+               const float target[3],
+               float *best_point,
+               float *best_dist);

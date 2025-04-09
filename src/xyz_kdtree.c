@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "xyz_kdtree.h"
 
@@ -42,26 +43,10 @@ kdtree_node_t *kdtree_insert(kdtree_node_t *root,
   return root;
 }
 
-// kdtree_node_t *kdtree_build(const float *points,
-//                             const size_t num_points,
-//                             const int kdim) {
-//   if (points == NULL || num_points == 0) {
-//     return NULL;
-//   }
-//
-//   kdtree_node_t *root = NULL;
-//   for (size_t i = 0; i < num_points; i++) {
-//     root = kdtree_insert(root, &points[i], kdim, 0);
-//   }
-//
-//   return root;
-// }
-
 int point_cmp(const void *a, const void *b, void *k) {
-  return ((float *) a)[*(int *) k] - ((float *) b)[*(int *) k];
+  return (((float *) a)[*(int *) k] < ((float *) b)[*(int *) k]) ? -1 : 1;
 }
 
-// Function to construct a balanced k-d tree
 kdtree_node_t *
 kdtree_build(float *points, const int start, const int end, const int depth) {
   if (start > end) {
@@ -69,21 +54,85 @@ kdtree_build(float *points, const int start, const int end, const int depth) {
   }
 
   int k = depth % KDTREE_KDIM;
-  const int mid = (start + end) / 2;
-  qsort_r(points + start, end - start + 1, sizeof(float), point_cmp, &k);
+  const int mid = (start + end + 1) / 2;
+  qsort_r(points + start * 3,
+          end - start + 1,
+          sizeof(float) * 3,
+          point_cmp,
+          &k);
 
-  kdtree_node_t *root = kdtree_node_malloc(&points[mid], k);
+  kdtree_node_t *root = kdtree_node_malloc(points + mid * 3, k);
   root->left = kdtree_build(points, start, mid - 1, depth + 1);
   root->right = kdtree_build(points, mid + 1, end, depth + 1);
 
   return root;
 }
 
-void kdtree_inorder_traversal(kdtree_node_t *root) {
+void kdtree_points(const kdtree_node_t *root, float *points, size_t *n) {
   if (root == NULL) {
     return;
   }
-  kdtree_inorder_traversal(root->left);
-  printf("(%.2f, %.2f, %.2f)\n", root->p[0], root->p[1], root->p[2]);
-  kdtree_inorder_traversal(root->right);
+
+  points[*n * 3 + 0] = root->p[0];
+  points[*n * 3 + 1] = root->p[1];
+  points[*n * 3 + 2] = root->p[2];
+  (*n)++;
+
+  kdtree_points(root->left, points, n);
+  kdtree_points(root->right, points, n);
+}
+
+void _kdtree_search(const kdtree_node_t *node,
+                    const float target[3],
+                    float *best_dist,
+                    float *best_point,
+                    int depth) {
+  // Pre-check
+  if (node == NULL) {
+    return;
+  }
+
+  // Calculate distance and keep track of best
+  float sq_dist = 0.0f;
+  sq_dist += (node->p[0] - target[0]) * (node->p[0] - target[0]);
+  sq_dist += (node->p[1] - target[1]) * (node->p[1] - target[1]);
+  sq_dist += (node->p[2] - target[2]) * (node->p[2] - target[2]);
+  if (sq_dist <= *best_dist) {
+    best_point[0] = node->p[0];
+    best_point[1] = node->p[1];
+    best_point[2] = node->p[2];
+    *best_dist = sq_dist;
+  }
+
+  // Determine which side to search first
+  const int axis = node->k;
+  const float diff = target[axis] - node->p[axis];
+
+  // Search the closer subtree first
+  kdtree_node_t *closer = NULL;
+  kdtree_node_t *farther = NULL;
+  if (diff <= 0) {
+    closer = node->left;
+    farther = node->right;
+  } else {
+    closer = node->right;
+    farther = node->left;
+  }
+  _kdtree_search(closer, target, best_dist, best_point, depth + 1);
+
+  // Search the farther subtree
+  if (fabs(diff) < *best_dist) {
+    _kdtree_search(farther, target, best_dist, best_point, depth + 1);
+  }
+}
+
+void kdtree_nn(const kdtree_node_t *root,
+               const float target[3],
+               float *best_point,
+               float *best_dist) {
+  *best_dist = INFINITY;
+  best_point[0] = target[0];
+  best_point[1] = target[1];
+  best_point[2] = target[2];
+  _kdtree_search(root, target, best_dist, best_point, 0);
 }

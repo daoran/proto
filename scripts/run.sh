@@ -141,18 +141,18 @@ run_test() {
       && make libxyz -j \
       && time make tests -j \
       && cd build \
-      && ./$1 --target $2 \
+      && ./$1 --target $2
   " C-m C-m
   exit
 }
 
 # CMD="cd ~/code/xyz && make libxyz -j"
 # CMD="cd ~/code/xyz && make ci"
-CMD="cd ~/code/xyz && make tests"
+# CMD="cd ~/code/xyz && make tests -j"
 # CMD="cd ~/code/xyz && make clean && make libxyz -j"
-tmux send-keys -t dev q C-l C-m
-tmux send-keys -t dev -R "${CMD}" C-m C-m
-exit
+# tmux send-keys -t dev -R "q" C-m C-l
+# tmux send-keys -t dev -R "${CMD}" C-m C-m
+# exit
 
 
 # XYZ
@@ -286,7 +286,7 @@ exit
 # run_test test_octree
 # run_test test_octree test_octree_node
 # run_test test_octree test_octree
-# run_test test_kdtree
+run_test test_kdtree
 # XYZ-CV
 # run_test test_linear_triangulation
 # run_test test_homography_find

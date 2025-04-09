@@ -46,9 +46,9 @@ endif
 
 ifeq ($(ADDRESS_SANITIZER), 1)
 ifeq ($(CC), gcc)
-  CFLAGS += -fsanitize=address -static-libasan
+	CFLAGS += -fsanitize=address -static-libasan
 else
-  CFLAGS += -fsanitize=address -static-libsan
+	CFLAGS += -fsanitize=address -static-libsan
 endif
 endif
 
@@ -70,7 +70,7 @@ CFLAGS += \
 RPATH := -Wl,-rpath,$(DEPS_DIR)/lib
 LDFLAGS= \
 	$(RPATH) \
-  $(XYZ_LDFLAGS) \
+	$(XYZ_LDFLAGS) \
 	$(CERES_LDFLAGS) \
 	$(APRILTAG_LDFLAGS) \
 	$(OPENGL_LDFLAGS) \
@@ -83,7 +83,7 @@ LDFLAGS= \
 	-lglfw3 \
 	-lstdc++ \
 	-lpthread \
-  -lm \
+	-lm \
 	-ldl
 
 
