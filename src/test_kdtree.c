@@ -28,18 +28,19 @@ static int point_cmp(const void *a, const void *b, void *arg) {
 static int vec3_cmp(const void *a, const void *b, void *arg) {
   const float *v0 = (const float *) a;
   const float *v1 = (const float *) b;
-  if (v0[0] < v1[0])
+  if (v0[0] < v1[0]) {
     return -1;
-  if (v0[0] > v1[0])
+  } else if (v0[0] > v1[0]) {
     return 1;
-  if (v0[1] < v1[1])
+  } else if (v0[1] < v1[1]) {
     return -1;
-  if (v0[1] > v1[1])
+  } else if (v0[1] > v1[1]) {
     return 1;
-  if (v0[2] < v1[2])
+  } else if (v0[2] < v1[2]) {
     return -1;
-  if (v0[2] > v1[2])
+  } else if (v0[2] > v1[2]) {
     return 1;
+  }
   return 0;
 }
 
@@ -115,18 +116,20 @@ int test_kdtree(void) {
   }
 
   // Build kdtree
-  size_t n_ = 0;
-  float *points_est = malloc(sizeof(float) * 3 * N);
-  kdtree_node_t *root = kdtree_build(points, 0, N - 1, 0);
-  kdtree_points(root, points_est, &n_);
+  kdtree_t *kdtree = kdtree_malloc(points, N);
+  kdtree_data_t data = {0};
+  data.points = malloc(sizeof(float) * 3 * N);
+  data.num_points = 0;
+  data.capacity = N;
+  kdtree_points(kdtree, &data);
 
   // Assert
   size_t checked = 0;
   int k = 0;
-  qsort_r(points_est, n_, sizeof(float) * 3, vec3_cmp, &k);
+  qsort_r(data.points, N, sizeof(float) * 3, vec3_cmp, &k);
   qsort_r(points_gnd, N, sizeof(float) * 3, vec3_cmp, &k);
   for (int i = 0; i < N; ++i) {
-    if (vec3_equals(&points_gnd[i * 3], &points_est[i * 3])) {
+    if (vec3_equals(&points_gnd[i * 3], &data.points[i * 3])) {
       checked++;
       continue;
     }
@@ -136,8 +139,8 @@ int test_kdtree(void) {
   // Clean up
   free(points);
   free(points_gnd);
-  free(points_est);
-  kdtree_node_free(root);
+  free(data.points);
+  kdtree_free(kdtree);
 
   return 0;
 }
@@ -160,13 +163,13 @@ int test_kdtree_nn(void) {
   }
 
   // Build kdtree
-  kdtree_node_t *root = kdtree_build(points, 0, N - 1, 0);
+  kdtree_t *kdtree = kdtree_malloc(points, N);
 
   // Search closest point
   float p[3] = {5.0, 3.0, 0.0};
   float best_point[3] = {0};
   float best_dist = INFINITY;
-  kdtree_nn(root, p, best_point, &best_dist);
+  kdtree_nn(kdtree, p, best_point, &best_dist);
 
   // Check
   // -- Brute force get closest point
@@ -191,7 +194,7 @@ int test_kdtree_nn(void) {
   MU_ASSERT(fabs(best_dist - assert_dist) < 1e-3);
 
   // Clean up
-  kdtree_node_free(root);
+  kdtree_free(kdtree);
   free(points);
   free(points_gnd);
 

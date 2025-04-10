@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-
 /*****************************************************************************
- * Octree Node
+ * OCTREE NODE
  ****************************************************************************/
+
 typedef struct octree_node_t {
   float center[3];
   float size;
@@ -27,7 +27,7 @@ octree_node_t *octree_node_malloc(const float center[3],
 void octree_node_free(octree_node_t *node);
 
 /*****************************************************************************
- * Octree
+ * OCTREE
  ****************************************************************************/
 
 typedef struct octree_data_t {
