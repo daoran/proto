@@ -42,16 +42,16 @@ typedef struct octree_t {
   octree_node_t *root;
 } octree_t;
 
-octree_t *octree_malloc(const float center[3],
-                        const float voxel_size,
-                        const int max_depth,
-                        const int max_points,
-                        const float *points,
+octree_t *octree_malloc(const float octree_center[3],
+                        const float octree_size,
+                        const int octree_max_depth,
+                        const int voxel_max_points,
+                        const float *octree_points,
                         const size_t num_points);
 void octree_free(octree_t *octree);
 void octree_add_point(octree_node_t *node, const float point[3]);
 void octree_points(const octree_node_t *node, octree_data_t *data);
-float *octree_downsample(const float *points,
+float *octree_downsample(const float *octree_points,
                          const size_t n,
                          const float voxel_size,
                          const size_t voxel_limit,
