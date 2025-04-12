@@ -51,8 +51,7 @@ void octree_node_free(octree_node_t *node) {
  ****************************************************************************/
 
 octree_t *octree_malloc(const float center[3],
-                        const float size,
-                        const int depth,
+                        const float voxel_size,
                         const int max_depth,
                         const int max_points,
                         const float *points,
@@ -63,9 +62,12 @@ octree_t *octree_malloc(const float center[3],
   octree->center[0] = center[0];
   octree->center[1] = center[1];
   octree->center[2] = center[2];
-  octree->size = size;
-  octree->root = octree_node_malloc(center, size, depth, max_depth, max_points);
-
+  octree->size = max_depth * voxel_size;
+  octree->root = octree_node_malloc(octree->center,
+                                    octree->size,
+                                    0,
+                                    max_depth,
+                                    max_points);
   for (size_t i = 0; i < num_points; i++) {
     octree_add_point(octree->root, &points[i * 3]);
   }
@@ -146,7 +148,8 @@ void octree_points(const octree_node_t *node, octree_data_t *data) {
       data->num_points++;
       if (data->num_points >= data->capacity) {
         data->capacity = data->capacity * 2;
-        data->points = realloc(data->points, sizeof(float) * 3 * data->capacity);
+        data->points =
+            realloc(data->points, sizeof(float) * 3 * data->capacity);
       }
     }
   }
@@ -156,4 +159,58 @@ void octree_points(const octree_node_t *node, octree_data_t *data) {
       octree_points(node->children[i], data);
     }
   }
+}
+
+float *octree_downsample(const float *points,
+                         const size_t n,
+                         const float voxel_size,
+                         const size_t voxel_limit,
+                         size_t *n_out) {
+  assert(points);
+  assert(n > 0);
+
+  // Find center
+  float x_range[2] = {INFINITY, -INFINITY};
+  float y_range[2] = {INFINITY, -INFINITY};
+  float z_range[2] = {INFINITY, -INFINITY};
+  for (size_t i = 0; i < n; ++i) {
+    const float x = points[i * 3 + 0];
+    const float y = points[i * 3 + 1];
+    const float z = points[i * 3 + 2];
+    x_range[0] = (x < x_range[0]) ? x : x_range[0];
+    x_range[1] = (x > x_range[1]) ? x : x_range[0];
+    y_range[0] = (y < y_range[0]) ? y : y_range[0];
+    y_range[1] = (y > y_range[1]) ? y : y_range[0];
+    z_range[0] = (z < z_range[0]) ? z : z_range[0];
+    z_range[1] = (z > z_range[1]) ? z : z_range[0];
+  }
+  const float octree_center[3] = {
+      x_range[1] - x_range[0] / 2.0,
+      y_range[1] - y_range[0] / 2.0,
+      z_range[1] - z_range[0] / 2.0,
+  };
+
+  // Create octree
+  const int max_depth = 8;
+  octree_t *octree = octree_malloc(octree_center,
+                                   voxel_size,
+                                   max_depth,
+                                   voxel_limit,
+                                   points,
+                                   n);
+
+  // Get points
+  octree_data_t data = {0};
+  data.points = malloc(sizeof(float) * 3 * n);
+  data.num_points = 0;
+  data.capacity = n;
+  octree_points(octree->root, &data);
+
+  // Clean up
+  octree_free(octree);
+
+  // Return
+  *n_out = data.num_points;
+  data.points = realloc(data.points, sizeof(float) * 3 * *n_out);
+  return data.points;
 }
