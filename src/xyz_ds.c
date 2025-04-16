@@ -1,8 +1,8 @@
 #include "xyz_ds.h"
 
-////////////
-// DARRAY //
-////////////
+/*******************************************************************************
+ * DARRAY
+ ******************************************************************************/
 
 darray_t *darray_new(size_t element_size, size_t initial_max) {
   assert(element_size > 0);
@@ -241,9 +241,9 @@ int darray_contract(darray_t *array) {
   return darray_resize(array, (size_t) new_size + 1);
 }
 
-//////////
-// LIST //
-//////////
+/*******************************************************************************
+ * LIST
+ ******************************************************************************/
 
 list_t *list_malloc(void) {
   list_t *list = calloc(1, sizeof(list_t));
@@ -344,11 +344,6 @@ void *list_pop(list_t *list) {
   }
   list->length--;
 
-  if (before_last == NULL) {
-    return NULL;
-  }
-  before_last->next = NULL;
-
   return value;
 }
 
@@ -356,7 +351,7 @@ void *list_pop_front(list_t *list) {
   assert(list != NULL);
   assert(list->first != NULL);
 
-  // pop front
+  // Pop front
   list_node_t *first_node = list->first;
   void *data = first_node->value;
   list_node_t *next_node = first_node->next;
@@ -368,7 +363,7 @@ void *list_pop_front(list_t *list) {
   }
   list->length--;
 
-  // clean up
+  // Clean up
   free(first_node);
 
   return data;
@@ -464,139 +459,6 @@ int list_remove_destroy(list_t *list,
   void *result = list_remove(list, value, cmp);
   free_func(result);
   return 0;
-}
-
-///////////
-// STACK //
-///////////
-
-mstack_t *stack_new(void) {
-  mstack_t *s = malloc(sizeof(mstack_t) * 1);
-  s->size = 0;
-  s->root = NULL;
-  s->end = NULL;
-  return s;
-}
-
-void mstack_destroy_traverse(mstack_node_t *n, void (*free_func)(void *)) {
-  if (n->next) {
-    mstack_destroy_traverse(n->next, free_func);
-  }
-  if (free_func) {
-    free_func(n->value);
-  }
-  free(n);
-  n = NULL;
-}
-
-void mstack_clear_destroy(mstack_t *s, void (*free_func)(void *)) {
-  if (s->root) {
-    mstack_destroy_traverse(s->root, free_func);
-  }
-  free(s);
-  s = NULL;
-}
-
-void mstack_destroy(mstack_t *s) {
-  if (s->root) {
-    mstack_destroy_traverse(s->root, NULL);
-  }
-  free(s);
-  s = NULL;
-}
-
-int mstack_push(mstack_t *s, void *value) {
-  mstack_node_t *n = malloc(sizeof(mstack_node_t) * 1);
-  if (n == NULL) {
-    return -1;
-  }
-
-  mstack_node_t *prev_end = s->end;
-  n->value = value;
-  n->next = NULL;
-  n->prev = prev_end;
-
-  if (s->size == 0) {
-    s->root = n;
-    s->end = n;
-  } else {
-    prev_end->next = n;
-    s->end = n;
-  }
-  s->size++;
-
-  return 0;
-}
-
-void *mstack_pop(mstack_t *s) {
-  void *value = s->end->value;
-  mstack_node_t *previous = s->end->prev;
-
-  free(s->end);
-  if (s->size > 1) {
-    previous->next = NULL;
-    s->end = previous;
-  } else {
-    s->root = NULL;
-    s->end = NULL;
-  }
-  s->size--;
-
-  return value;
-}
-
-///////////
-// QUEUE //
-///////////
-
-queue_t *queue_malloc(void) {
-  queue_t *q = calloc(1, sizeof(queue_t));
-  q->queue = list_malloc();
-  q->count = 0;
-  return q;
-}
-
-void queue_free(queue_t *q) {
-  assert(q != NULL);
-  list_free(q->queue);
-  free(q);
-  q = NULL;
-}
-
-int queue_enqueue(queue_t *q, void *data) {
-  assert(q != NULL);
-  list_push(q->queue, data);
-  q->count++;
-  return 0;
-}
-
-void *queue_dequeue(queue_t *q) {
-  assert(q != NULL);
-  void *data = list_pop_front(q->queue);
-  q->count--;
-
-  return data;
-}
-
-int queue_empty(queue_t *q) {
-  assert(q != NULL);
-  return (q->count == 0) ? 1 : 0;
-}
-
-void *queue_first(queue_t *q) {
-  assert(q != NULL);
-  if (q->count != 0) {
-    return q->queue->first->value;
-  }
-  return NULL;
-}
-
-void *queue_last(queue_t *q) {
-  assert(q != NULL);
-  if (q->count != 0) {
-    return q->queue->last->value;
-  }
-  return NULL;
 }
 
 /////////////

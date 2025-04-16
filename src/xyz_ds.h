@@ -6,9 +6,9 @@
 
 #include "xyz.h"
 
-////////////
-// DARRAY //
-////////////
+/*******************************************************************************
+ * DARRAY
+ ******************************************************************************/
 
 #ifndef DEFAULT_EXPAND_RATE
 #define DEFAULT_EXPAND_RATE 300
@@ -42,9 +42,9 @@ void *darray_remove(darray_t *array, int i);
 int darray_expand(darray_t *array);
 int darray_contract(darray_t *array);
 
-//////////
-// LIST //
-//////////
+/*******************************************************************************
+ * LIST
+ ******************************************************************************/
 
 typedef struct list_node_t list_node_t;
 struct list_node_t {
@@ -76,52 +76,9 @@ int list_remove_destroy(list_t *list,
                         int (*cmp)(const void *, const void *),
                         void (*free_func)(void *));
 
-///////////
-// STACK //
-///////////
-
-typedef struct mstack_node_t mstack_node_t;
-struct mstack_node_t {
-  void *value;
-  mstack_node_t *next;
-  mstack_node_t *prev;
-};
-
-typedef struct mstack_t {
-  int size;
-  mstack_node_t *root;
-  mstack_node_t *end;
-} mstack_t;
-
-mstack_t *stack_new(void);
-void mstack_destroy_traverse(mstack_node_t *n, void (*free_func)(void *));
-void mstack_clear_destroy(mstack_t *s, void (*free_func)(void *));
-void mstack_destroy(mstack_t *s);
-int mstack_push(mstack_t *s, void *value);
-void *mstack_pop(mstack_t *s);
-
-///////////
-// QUEUE //
-///////////
-
-typedef struct queue_t {
-  int count;
-  list_t *queue;
-} queue_t;
-
-queue_t *queue_malloc(void);
-void queue_free(queue_t *q);
-int queue_enqueue(queue_t *q, void *data);
-void *queue_dequeue(queue_t *q);
-int queue_count(queue_t *q);
-int queue_empty(queue_t *q);
-int queue_full(queue_t *q);
-void *queue_first(queue_t *q);
-void *queue_last(queue_t *q);
-
-/////////////
-// HASHMAP //
-/////////////
+/*******************************************************************************
+ * HASHMAP
+ ******************************************************************************/
 
 #ifndef DEFEAULT_NUMBER_OF_BUCKETS
 #define DEFAULT_NUMBER_OF_BUCKETS 10000

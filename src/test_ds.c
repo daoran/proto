@@ -2,8 +2,9 @@
 #include "xyz.h"
 #include "xyz_ds.h"
 
-
-// DARRAY ////////////////////////////////////////////////////////////////////
+/*******************************************************************************
+ * DARRAY
+ ******************************************************************************/
 
 int test_darray_new_and_destroy(void) {
   darray_t *array = darray_new(sizeof(int), 100);
@@ -177,7 +178,9 @@ int test_darray_expand_and_contract(void) {
   return 0;
 }
 
-// LIST //////////////////////////////////////////////////////////////////////
+/*******************************************************************************
+ * LIST
+ ******************************************************************************/
 
 int test_list_malloc_and_free(void) {
   list_t *list = list_malloc();
@@ -348,165 +351,9 @@ int test_list_remove_destroy(void) {
   return 0;
 }
 
-// STACK /////////////////////////////////////////////////////////////////////
-
-int test_mstack_new_and_destroy(void) {
-  mstack_t *s = stack_new();
-
-  MU_ASSERT(s->size == 0);
-  MU_ASSERT(s->root == NULL);
-  MU_ASSERT(s->end == NULL);
-
-  mstack_destroy(s);
-  return 0;
-}
-
-int test_mstack_push(void) {
-  mstack_t *s = stack_new();
-  float f1 = 2.0;
-  float f2 = 4.0;
-  float f3 = 8.0;
-
-  /* push float 1 */
-  mstack_push(s, &f1);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f1) == 0);
-  MU_ASSERT(s->size == 1);
-  MU_ASSERT(s->root->value == &f1);
-  MU_ASSERT(s->end->prev == NULL);
-
-  /* push float 2 */
-  mstack_push(s, &f2);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f2) == 0);
-  MU_ASSERT(s->size == 2);
-  MU_ASSERT(s->root->value == &f1);
-  MU_ASSERT(s->end->prev->value == &f1);
-  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f1) == 0);
-
-  /* push float 3 */
-  mstack_push(s, &f3);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f3) == 0);
-  MU_ASSERT(s->size == 3);
-  MU_ASSERT(s->root->value == &f1);
-  MU_ASSERT(s->end->prev->value == &f2);
-  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f2) == 0);
-
-  mstack_destroy(s);
-  return 0;
-}
-
-int test_mstack_pop(void) {
-  mstack_t *s = stack_new();
-  float f1 = 2.0;
-  float f2 = 4.0;
-  float f3 = 8.0;
-
-  /* push float 1 */
-  mstack_push(s, &f1);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f1) == 0);
-  MU_ASSERT(s->size == 1);
-  MU_ASSERT(s->root->value == &f1);
-  MU_ASSERT(s->end->prev == NULL);
-
-  /* push float 2 */
-  mstack_push(s, &f2);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f2) == 0);
-  MU_ASSERT(s->size == 2);
-  MU_ASSERT(s->root->value == &f1);
-  MU_ASSERT(s->end->prev->value == &f1);
-  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f1) == 0);
-
-  /* push float 3 */
-  mstack_push(s, &f3);
-  MU_ASSERT(fltcmp(*(float *) s->end->value, *(float *) &f3) == 0);
-  MU_ASSERT(s->size == 3);
-  MU_ASSERT(s->root->value == &f1);
-  MU_ASSERT(s->end->prev->value == &f2);
-  MU_ASSERT(fltcmp(*(float *) s->end->prev->value, *(float *) &f2) == 0);
-
-  /* pop float 3 */
-  float *flt_ptr = mstack_pop(s);
-  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f3) == 0);
-  MU_ASSERT(s->size == 2);
-  MU_ASSERT(s->root->value == &f1);
-  MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) &f1) == 0);
-
-  /* pop float 2 */
-  flt_ptr = mstack_pop(s);
-  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f2) == 0);
-  MU_ASSERT(s->size == 1);
-  MU_ASSERT(s->root->value == &f1);
-  MU_ASSERT(fltcmp(*(float *) s->root->value, *(float *) &f1) == 0);
-
-  /* pop float 1 */
-  flt_ptr = mstack_pop(s);
-  MU_ASSERT(fltcmp(*(float *) flt_ptr, *(float *) &f1) == 0);
-  MU_ASSERT(s->size == 0);
-  MU_ASSERT(s->root == NULL);
-  MU_ASSERT(s->end == NULL);
-
-  mstack_destroy(s);
-  return 0;
-}
-
-// QUEUE /////////////////////////////////////////////////////////////////////
-
-int test_queue_malloc_and_free(void) {
-  queue_t *q = queue_malloc();
-  MU_ASSERT(q != NULL);
-  MU_ASSERT(q->count == 0);
-  queue_free(q);
-
-  return 0;
-}
-
-int test_queue_enqueue_dequeue(void) {
-  queue_t *q = queue_malloc();
-  char *t1 = "test1 data";
-  char *t2 = "test2 data";
-  char *t3 = "test3 data";
-
-  /* Enqueue tests */
-  queue_enqueue(q, t1);
-  MU_ASSERT(queue_first(q) == t1);
-  MU_ASSERT(queue_last(q) == t1);
-  MU_ASSERT(q->count == 1);
-
-  queue_enqueue(q, t2);
-  MU_ASSERT(queue_first(q) == t1);
-  MU_ASSERT(queue_last(q) == t2);
-  MU_ASSERT(q->count == 2);
-
-  queue_enqueue(q, t3);
-  MU_ASSERT(queue_first(q) == t1);
-  MU_ASSERT(queue_last(q) == t3);
-  MU_ASSERT(q->count == 3);
-
-  /* Dequeue tests */
-  char *val = queue_dequeue(q);
-  MU_ASSERT(val == t1);
-  MU_ASSERT(queue_first(q) == t2);
-  MU_ASSERT(queue_last(q) == t3);
-  MU_ASSERT(q->count == 2);
-
-  val = queue_dequeue(q);
-  MU_ASSERT(val == t2);
-  MU_ASSERT(queue_first(q) == t3);
-  MU_ASSERT(queue_last(q) == t3);
-  MU_ASSERT(q->count == 1);
-
-  val = queue_dequeue(q);
-  MU_ASSERT(val == t3);
-  MU_ASSERT(queue_first(q) == NULL);
-  MU_ASSERT(queue_last(q) == NULL);
-  MU_ASSERT(q->count == 0);
-
-  // Clean up
-  queue_free(q);
-
-  return 0;
-}
-
-// HASHMAP ///////////////////////////////////////////////////////////////////
+/*******************************************************************************
+ * HASHMAP
+ ******************************************************************************/
 
 static int traverse_called;
 
@@ -527,26 +374,18 @@ static int traverse_fail_cb(hashmap_node_t *node) {
 }
 
 hashmap_t *hashmap_test_setup(void) {
-  hashmap_t *map;
-  char *test1;
-  char *test2;
-  char *test3;
-  char *expect1;
-  char *expect2;
-  char *expect3;
+  // Setup
+  hashmap_t *map = hashmap_new();
 
-  /* setup */
-  map = hashmap_new();
+  // Key and values
+  char *test1 = "test data 1";
+  char *test2 = "test data 2";
+  char *test3 = "xest data 3";
+  char *expect1 = "THE VALUE 1";
+  char *expect2 = "THE VALUE 2";
+  char *expect3 = "THE VALUE 3";
 
-  /* key and values */
-  test1 = "test data 1";
-  test2 = "test data 2";
-  test3 = "xest data 3";
-  expect1 = "THE VALUE 1";
-  expect2 = "THE VALUE 2";
-  expect3 = "THE VALUE 3";
-
-  /* set */
+  // Set
   hashmap_set(map, test1, expect1);
   hashmap_set(map, test2, expect2);
   hashmap_set(map, test3, expect3);
@@ -698,16 +537,11 @@ void test_suite(void) {
   MU_ADD_TEST(test_darray_remove);
   MU_ADD_TEST(test_darray_expand_and_contract);
   MU_ADD_TEST(test_list_malloc_and_free);
-  // MU_ADD_TEST(test_list_push_pop);
+  MU_ADD_TEST(test_list_push_pop);
   MU_ADD_TEST(test_list_shift);
   MU_ADD_TEST(test_list_unshift);
   MU_ADD_TEST(test_list_remove);
   MU_ADD_TEST(test_list_remove_destroy);
-  MU_ADD_TEST(test_mstack_new_and_destroy);
-  MU_ADD_TEST(test_mstack_push);
-  MU_ADD_TEST(test_mstack_pop);
-  MU_ADD_TEST(test_queue_malloc_and_free);
-  MU_ADD_TEST(test_queue_enqueue_dequeue);
   MU_ADD_TEST(test_hashmap_new_destroy);
   MU_ADD_TEST(test_hashmap_clear_destroy);
   MU_ADD_TEST(test_hashmap_get_set);
