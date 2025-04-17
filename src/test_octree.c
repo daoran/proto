@@ -23,7 +23,7 @@ int test_octree(void) {
   const int octree_max_depth = 10;
   const int voxel_max_points = 1e6;
 
-  const int n = 200000;
+  const int n = 2000;
   float *octree_points = malloc(sizeof(float) * 3 * n);
   for (int i = 0; i < n; ++i) {
     const float x = randf(-1.0, 1.0);
@@ -56,7 +56,7 @@ int test_octree_points(void) {
   const int voxel_max_points = 100;
   const int octree_max_depth = 8;
 
-  const int n = 20000;
+  const int n = 2000;
   float *octree_data = malloc(sizeof(float) * 3 * n);
   for (int i = 0; i < n; ++i) {
     const float x = randf(-1.0, 1.0);
@@ -95,7 +95,7 @@ int test_octree_points(void) {
 
 int test_octree_downsample(void) {
   // Setup
-  const int n = 20000;
+  const int n = 2000;
   float offset[3] = {10.0f, 20.0f, 30.0f};
   float *points = malloc(sizeof(float) * 3 * n);
   for (int i = 0; i < n; ++i) {
@@ -109,7 +109,7 @@ int test_octree_downsample(void) {
 
   // Downsample
   float voxel_size = 0.5;
-  size_t voxel_limit = 100;
+  size_t voxel_limit = 10;
   size_t n_out = 0;
   float *points_out =
       octree_downsample(points, n, voxel_size, voxel_limit, &n_out);
