@@ -355,178 +355,166 @@ int test_list_remove_destroy(void) {
  * HASHMAP
  ******************************************************************************/
 
-static int traverse_called;
-
-static int traverse_good_cb(hashmap_node_t *node) {
-  UNUSED(node);
-  traverse_called++;
-  return 0;
-}
-
-static int traverse_fail_cb(hashmap_node_t *node) {
-  UNUSED(node);
-  traverse_called++;
-  if (traverse_called == 2) {
-    return 1;
-  } else {
+static int int_cmp(const void *x, const void *y) {
+  if (*(int *) x == *(int *) y) {
     return 0;
   }
+  return (*(int *) x < *(int *) y) ? -1 : 1;
 }
 
-hashmap_t *hashmap_test_setup(void) {
-  // Setup
-  hashmap_t *map = hashmap_new();
-
-  // Key and values
-  char *test1 = "test data 1";
-  char *test2 = "test data 2";
-  char *test3 = "xest data 3";
-  char *expect1 = "THE VALUE 1";
-  char *expect2 = "THE VALUE 2";
-  char *expect3 = "THE VALUE 3";
-
-  // Set
-  hashmap_set(map, test1, expect1);
-  hashmap_set(map, test2, expect2);
-  hashmap_set(map, test3, expect3);
-
-  return map;
+static int float_cmp(const void *x, const void *y) {
+  if (fabs(*(float *) x - *(float *) y) < 1e-18) {
+    return 0;
+  }
+  return (*(float *) x < *(float *) y) ? -1 : 1;
 }
 
-void hashmap_test_teardown(hashmap_t *map) {
-  hashmap_destroy(map);
+static int string_cmp(const void *x, const void *y) {
+  return strcmp((char *) x, (char *) y);
 }
 
-int test_hashmap_new_destroy(void) {
-  hashmap_t *map;
+int test_hm_malloc_and_free(void) {
+  {
+    hm_t *hm = hm_malloc(100, hm_int_hash, int_cmp);
+    hm_free(hm, NULL, NULL);
+  }
 
-  map = hashmap_new();
-  MU_ASSERT(map != NULL);
-  hashmap_destroy(map);
+  {
+    hm_t *hm = hm_malloc(100, hm_float_hash, float_cmp);
+    hm_free(hm, NULL, NULL);
+  }
+
+  {
+    hm_t *hm = hm_malloc(100, hm_string_hash, string_cmp);
+    hm_free(hm, NULL, NULL);
+  }
 
   return 0;
 }
 
-int test_hashmap_clear_destroy(void) {
-  hashmap_t *map;
+int test_hm_set_and_get(void) {
+  // Test integer-integer hashmap
+  {
+    const size_t hm_capacity = 10000;
+    hm_t *hm = hm_malloc(hm_capacity, hm_int_hash, int_cmp);
 
-  map = hashmap_new();
-  hashmap_set(map, "test", "hello");
-  hashmap_clear_destroy(map);
+    int k0 = 0;
+    int v0 = 0;
+    hm_set(hm, &k0, &v0);
+    MU_ASSERT(hm->length == 1);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    int k1 = 1;
+    int v1 = 1;
+    hm_set(hm, &k1, &v1);
+    MU_ASSERT(hm->length == 2);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    int k2 = 2;
+    int v2 = 2;
+    hm_set(hm, &k2, &v2);
+    MU_ASSERT(hm->length == 3);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    int k3 = 3;
+    int v3 = 3;
+    hm_set(hm, &k3, &v3);
+    MU_ASSERT(hm->length == 4);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    MU_ASSERT(*(int *) hm_get(hm, &k0) == v0);
+    MU_ASSERT(*(int *) hm_get(hm, &k1) == v1);
+    MU_ASSERT(*(int *) hm_get(hm, &k2) == v2);
+    MU_ASSERT(*(int *) hm_get(hm, &k3) == v3);
+
+    hm_free(hm, NULL, NULL);
+    printf(" -- \n");
+  }
+
+  // Test float-integer hashmap
+  {
+    const size_t hm_capacity = 10000;
+    hm_t *hm = hm_malloc(hm_capacity, hm_float_hash, float_cmp);
+
+    float k0 = 0;
+    int v0 = 0;
+    hm_set(hm, &k0, &v0);
+    MU_ASSERT(hm->length == 1);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    float k1 = 1;
+    int v1 = 1;
+    hm_set(hm, &k1, &v1);
+    MU_ASSERT(hm->length == 2);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    float k2 = 2;
+    int v2 = 2;
+    hm_set(hm, &k2, &v2);
+    MU_ASSERT(hm->length == 3);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    float k3 = 3;
+    int v3 = 3;
+    hm_set(hm, &k3, &v3);
+    MU_ASSERT(hm->length == 4);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    MU_ASSERT(*(int *) hm_get(hm, &k0) == v0);
+    MU_ASSERT(*(int *) hm_get(hm, &k1) == v1);
+    MU_ASSERT(*(int *) hm_get(hm, &k2) == v2);
+    MU_ASSERT(*(int *) hm_get(hm, &k3) == v3);
+
+    hm_free(hm, NULL, NULL);
+    printf(" -- \n");
+  }
+
+  // Test string-integer hashmap
+  {
+    const size_t hm_capacity = 10000;
+    hm_t *hm = hm_malloc(hm_capacity, hm_string_hash, string_cmp);
+
+    char* k0 = "ABC";
+    int v0 = 0;
+    hm_set(hm, &k0, &v0);
+    MU_ASSERT(hm->length == 1);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    char* k1 = "DEF";
+    int v1 = 1;
+    hm_set(hm, &k1, &v1);
+    MU_ASSERT(hm->length == 2);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    char* k2 = "GHI";
+    int v2 = 2;
+    hm_set(hm, &k2, &v2);
+    MU_ASSERT(hm->length == 3);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    char* k3 = "JKL";
+    int v3 = 3;
+    hm_set(hm, &k3, &v3);
+    MU_ASSERT(hm->length == 4);
+    MU_ASSERT(hm->capacity == hm_capacity);
+
+    MU_ASSERT(*(int *) hm_get(hm, &k0) == v0);
+    MU_ASSERT(*(int *) hm_get(hm, &k1) == v1);
+    MU_ASSERT(*(int *) hm_get(hm, &k2) == v2);
+    MU_ASSERT(*(int *) hm_get(hm, &k3) == v3);
+
+    hm_free(hm, NULL, NULL);
+  }
+
 
   return 0;
 }
 
-int test_hashmap_get_set(void) {
-  /* Setup */
-  int rc;
-  char *result;
-
-  hashmap_t *map = hashmap_test_setup();
-  char *test1 = "test data 1";
-  char *test2 = "test data 2";
-  char *test3 = "xest data 3";
-  char *expect1 = "THE VALUE 1";
-  char *expect2 = "THE VALUE 2";
-  char *expect3 = "THE VALUE 3";
-
-  /* Set and get test1 */
-  rc = hashmap_set(map, test1, expect1);
-  MU_ASSERT(rc == 0);
-  result = hashmap_get(map, test1);
-  MU_ASSERT(strcmp(result, expect1) == 0);
-
-  /* Set and get test2 */
-  rc = hashmap_set(map, test2, expect2);
-  MU_ASSERT(rc == 0);
-  result = hashmap_get(map, test2);
-  MU_ASSERT(strcmp(result, expect2) == 0);
-
-  /* Set and get test3 */
-  rc = hashmap_set(map, test3, expect3);
-  MU_ASSERT(rc == 0);
-  result = hashmap_get(map, test3);
-  MU_ASSERT(strcmp(result, expect3) == 0);
-
-  /* Clean up */
-  hashmap_test_teardown(map);
-
-  return 0;
-}
-
-int test_hashmap_delete(void) {
-  /* Setup */
-  char *deleted = NULL;
-  char *result = NULL;
-
-  hashmap_t *map = hashmap_test_setup();
-  char *test1 = "test data 1";
-  char *test2 = "test data 2";
-  char *test3 = "xest data 3";
-  char *expect1 = "THE VALUE 1";
-  char *expect2 = "THE VALUE 2";
-  char *expect3 = "THE VALUE 3";
-
-  /* Delete test1 */
-  deleted = hashmap_delete(map, test1);
-  MU_ASSERT(deleted != NULL);
-  MU_ASSERT(strcmp(deleted, expect1) == 0);
-  free(deleted);
-
-  result = hashmap_get(map, test1);
-  MU_ASSERT(result == NULL);
-
-  /* Delete test2 */
-  deleted = hashmap_delete(map, test2);
-  MU_ASSERT(deleted != NULL);
-  MU_ASSERT(strcmp(deleted, expect2) == 0);
-  free(deleted);
-
-  result = hashmap_get(map, test2);
-  MU_ASSERT(result == NULL);
-
-  /* Delete test3 */
-  deleted = hashmap_delete(map, test3);
-  MU_ASSERT(deleted != NULL);
-  MU_ASSERT(strcmp(deleted, expect3) == 0);
-  free(deleted);
-
-  result = hashmap_get(map, test3);
-  MU_ASSERT(result == NULL);
-
-  /* Clean up */
-  hashmap_test_teardown(map);
-
-  return 0;
-}
-
-int test_hashmap_traverse(void) {
-  int retval;
-  hashmap_t *map;
-
-  /* setup */
-  map = hashmap_test_setup();
-
-  /* traverse good cb */
-  traverse_called = 0;
-  retval = hashmap_traverse(map, traverse_good_cb);
-  MU_ASSERT(retval == 0);
-  MU_ASSERT(traverse_called == 3);
-
-  /* traverse good bad */
-  traverse_called = 0;
-  retval = hashmap_traverse(map, traverse_fail_cb);
-  MU_ASSERT(retval == 1);
-  MU_ASSERT(traverse_called == 2);
-
-  /* clean up */
-  hashmap_test_teardown(map);
-
-  return 0;
-}
+/*******************************************************************************
+ * TEST SUITE
+ ******************************************************************************/
 
 void test_suite(void) {
-  // DATA-STRUCTURE
   MU_ADD_TEST(test_darray_new_and_destroy);
   MU_ADD_TEST(test_darray_push_pop);
   MU_ADD_TEST(test_darray_contains);
@@ -542,10 +530,7 @@ void test_suite(void) {
   MU_ADD_TEST(test_list_unshift);
   MU_ADD_TEST(test_list_remove);
   MU_ADD_TEST(test_list_remove_destroy);
-  MU_ADD_TEST(test_hashmap_new_destroy);
-  MU_ADD_TEST(test_hashmap_clear_destroy);
-  MU_ADD_TEST(test_hashmap_get_set);
-  MU_ADD_TEST(test_hashmap_delete);
-  MU_ADD_TEST(test_hashmap_traverse);
+  MU_ADD_TEST(test_hm_malloc_and_free);
+  MU_ADD_TEST(test_hm_set_and_get);
 }
 MU_RUN_TESTS(test_suite)

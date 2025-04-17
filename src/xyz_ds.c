@@ -465,294 +465,180 @@ int list_remove_destroy(list_t *list,
 // HASHMAP //
 /////////////
 
-static inline int default_cmp(void *a, void *b) { return strcmp(a, b); }
+// FNV-1a constants (64-bit version is generally recommended for wider distribution)
+#define FNV_PRIME_64 1099511628211ULL
+#define FNV_OFFSET_BASIS_64 14695981039346656037ULL
 
-static uint32_t default_hash(void *a) {
-  // Simple bob jenkins's hash algorithm
-  char *k = a;
-  uint32_t hash = 0;
-  for (uint32_t i = 0; i < strlen(a); i++) {
-    hash += (uint32_t) k[i];
-    hash += (hash << 10);
-    hash ^= (hash >> 6);
+size_t hm_default_hash(const void *key, const size_t key_size) {
+  size_t hash = FNV_OFFSET_BASIS_64;
+  const uint8_t *p = (const uint8_t *) key;
+  for (size_t i = 0; i < key_size; i++) {
+    hash ^= (size_t) p[i];
+    hash *= FNV_PRIME_64;
   }
-
-  hash += (hash << 3);
-  hash ^= (hash >> 11);
-  hash += (hash << 15);
-
   return hash;
 }
 
-static inline void *default_key_copy(void *target) {
-  return string_malloc(target);
+size_t hm_int_hash(const void *key) {
+  return hm_default_hash(key, sizeof(int));
 }
 
-static inline void *default_value_copy(void *target) {
-  return string_malloc(target);
+size_t hm_float_hash(const void *key) {
+  return hm_default_hash(key, sizeof(float));
 }
 
-hashmap_t *hashmap_new(void) {
-  hashmap_t *map = malloc(sizeof(hashmap_t) * 1);
-  if (map == NULL) {
-    return NULL;
+size_t hm_double_hash(const void *key) {
+  return hm_default_hash(key, sizeof(float));
+}
+
+size_t hm_string_hash(const void *key) {
+  return hm_default_hash(key, strlen((char *) key));
+}
+
+hm_t *hm_malloc(const size_t capacity,
+                size_t (*hash)(const void *),
+                int (*cmp)(const void *, const void *)) {
+  hm_t *hm = malloc(sizeof(hm_t));
+  hm->entries = calloc(capacity, sizeof(hm_entry_t));
+  hm->length = 0;
+  hm->capacity = capacity;
+  hm->hash = hash;
+  hm->cmp = cmp;
+  return hm;
+}
+
+void hm_free(hm_t *hm, void (*free_key)(void *), void (*free_value)(void *)) {
+  assert(hm);
+
+  for (size_t i = 0; i < hm->capacity; ++i) {
+    hm_entry_t *entry = &hm->entries[i];
+    if (entry->key == NULL) {
+      continue;
+    }
+    if (free_key) {
+      free_key(entry->key);
+    }
+    if (free_value) {
+      free_value(entry->value);
+    }
+  }
+  free(hm->entries);
+  free(hm);
+}
+
+void *hm_get(const hm_t *hm, const void *key) {
+  assert(hm);
+  assert(hm->hash);
+  assert(key);
+
+  // Hash key
+  const size_t hash = hm->hash(key);
+  size_t index = hash & (hm->capacity - 1);
+
+  // Linear probing
+  while (hm->entries[index].key != NULL) {
+    if (hm->cmp(key, hm->entries[index].key) == 0) {
+      return hm->entries[index].value;
+    }
+    index = ((index + 1) >= hm->capacity) ? 0 : index + 1;
   }
 
-  // Create bucket
-  map->buckets = darray_new(sizeof(darray_t *), DEFAULT_NUMBER_OF_BUCKETS);
-  map->buckets->end = map->buckets->max; // fake out expanding it
-  if (map->buckets == NULL) {
-    free(map);
-    return NULL;
-  }
-
-  // Set comparator and hash functions
-  map->cmp = default_cmp;
-  map->hash = default_hash;
-
-  // Set key and value copy functions
-  map->copy_kv = 1;
-  map->k_copy = default_key_copy;
-  map->v_copy = default_value_copy;
-  map->k_free = free;
-  map->v_free = free;
-
-  return map;
+  return NULL;
 }
 
-static void free_bucket(darray_t *bucket) {
-  assert(bucket != NULL);
+int hm_expand(hm_t *hm) {
+  assert(hm);
+  assert(hm->hash);
 
-  for (int i = 0; i < bucket->end; i++) {
-    hashmap_node_t *n = darray_get(bucket, i);
-    free(n);
+  // Allocate new voxels array.
+  const size_t new_capacity = hm->capacity * 2;
+  hm_entry_t *new_entries = calloc(new_capacity, sizeof(hm_entry_t));
+  if (new_entries == NULL) {
+    return -1;
   }
 
-  darray_destroy(bucket);
-}
+  // Iterate and move
+  for (size_t i = 0; i < hm->capacity; ++i) {
+    hm_entry_t *entry = &hm->entries[i];
+    if (entry->key == NULL) {
+      continue;
+    }
 
-static void clear_free_bucket(hashmap_t *map, darray_t *bucket) {
-  assert(map != NULL);
-  assert(bucket != NULL);
+    // Hash key
+    const size_t hash = hm->hash(entry->key);
+    size_t index = hash & (new_capacity - 1);
 
-  // Clear free bucket
-  for (int i = 0; i < bucket->end; i++) {
-    hashmap_node_t *n = darray_get(bucket, i);
-    map->k_free(n->key);
-    map->k_free(n->value);
-    free(n);
-  }
-
-  darray_destroy(bucket);
-}
-
-static void free_buckets(hashmap_t *map) {
-  assert(map != NULL);
-
-  // Free buckets
-  for (int i = 0; i < map->buckets->end; i++) {
-    darray_t *bucket = darray_get(map->buckets, i);
-
-    if (bucket) {
-      if (map->copy_kv) {
-        clear_free_bucket(map, bucket);
-      } else {
-        free_bucket(bucket);
+    // Linear probing
+    while (new_entries[index].key != NULL) {
+      if (hm->cmp(entry->key, new_entries[index].key) == 0) {
+        break;
       }
+      index = ((index + 1) >= new_capacity) ? 0 : index + 1;
     }
+
+    // Copy
+    new_entries[index].key = entry->key;
+    new_entries[index].value = entry->value;
   }
 
-  darray_destroy(map->buckets);
-}
-
-void hashmap_clear_destroy(hashmap_t *map) {
-  if (map) {
-    if (map->buckets) {
-      free_buckets(map);
-    }
-    free(map);
-  }
-}
-
-void hashmap_destroy(hashmap_t *map) {
-  if (map) {
-    if (map->buckets) {
-      free_buckets(map);
-    }
-    free(map);
-  }
-}
-
-static hashmap_node_t *hashmap_node_new(uint32_t h, void *k, void *v) {
-  assert(k != NULL);
-  assert(v != NULL);
-
-  // Setup
-  hashmap_node_t *node = calloc(1, sizeof(hashmap_node_t));
-  if (node == NULL) {
-    return NULL;
-  }
-
-  // Create hashmap node
-  node->key = k;
-  node->value = v;
-  node->hash = h;
-
-  return node;
-}
-
-static darray_t *
-hashmap_find_bucket(hashmap_t *map, void *k, int create, uint32_t *hash_out) {
-  assert(map != NULL);
-  assert(k != NULL);
-  assert(hash_out != NULL);
-
-  // Pre-check
-  uint32_t hash = map->hash(k);
-  int bucket_n = hash % DEFAULT_NUMBER_OF_BUCKETS;
-  if ((bucket_n >= 0) == 0) {
-    return NULL;
-  }
-  *hash_out = hash; // Store it for return so caller can use it
-
-  // Find bucket
-  darray_t *bucket = darray_get(map->buckets, bucket_n);
-
-  // Coundn't find bucket, create one instead
-  if (!bucket && create) {
-    // New bucket, set it up
-    bucket = darray_new(sizeof(void *), DEFAULT_NUMBER_OF_BUCKETS);
-    if (bucket == NULL) {
-      return NULL;
-    }
-    darray_set(map->buckets, bucket_n, bucket);
-  }
-
-  return bucket;
-}
-
-int hashmap_set(hashmap_t *map, void *k, void *v) {
-  assert(map != NULL);
-  assert(map->k_copy != NULL);
-  assert(map->v_copy != NULL);
-  assert(k != NULL);
-  assert(v != NULL);
-
-  // Pre-check
-  uint32_t hash = 0;
-  darray_t *bucket = hashmap_find_bucket(map, k, 1, &hash);
-  if (bucket == NULL) {
-    return -1;
-  }
-
-  // Set hashmap
-  hashmap_node_t *node = hashmap_node_new(hash, map->k_copy(k), map->v_copy(v));
-  if (node == NULL) {
-    return -1;
-  }
-  darray_push(bucket, node);
+  // Update
+  free(hm->entries);
+  hm->entries = new_entries;
+  hm->capacity = new_capacity;
 
   return 0;
 }
 
-static inline int
-hashmap_get_node(hashmap_t *map, uint32_t hash, darray_t *bucket, void *k) {
-  assert(map != NULL);
-  assert(bucket != NULL);
-  assert(k != NULL);
-
-  for (int i = 0; i < bucket->end; i++) {
-    hashmap_node_t *node = darray_get(bucket, i);
-    if (node->hash == hash && map->cmp(node->key, k) == 0) {
-      return i;
+int hm_set(hm_t *hm, void *key, void *value) {
+  // Expand?
+  if (hm->length >= hm->capacity / 2) {
+    if (hm_expand(hm) == -1) {
+      return -1;
     }
   }
 
-  return -1;
-}
+  // Hash key
+  const size_t hash = hm->hash(key);
+  size_t index = hash & (hm->capacity - 1);
 
-void *hashmap_get(hashmap_t *map, void *k) {
-  assert(map != NULL);
-  assert(k != NULL);
-
-  // Find bucket
-  uint32_t hash = 0;
-  darray_t *bucket = hashmap_find_bucket(map, k, 0, &hash);
-  if (bucket == NULL) {
-    return NULL;
-  }
-
-  // Find hashmap node
-  int i = hashmap_get_node(map, hash, bucket, k);
-  if (i == -1) {
-    return NULL;
-  }
-
-  // Get value
-  hashmap_node_t *node = darray_get(bucket, i);
-  if (node == NULL) {
-    return NULL;
-  }
-
-  return node->value;
-}
-
-int hashmap_traverse(hashmap_t *map,
-                     int (*hashmap_traverse_cb)(hashmap_node_t *)) {
-  assert(map != NULL);
-  assert(hashmap_traverse_cb != NULL);
-
-  // Traverse
-  int rc = 0;
-  for (int i = 0; i < map->buckets->end; i++) {
-    darray_t *bucket = darray_get(map->buckets, i);
-
-    if (bucket) {
-      for (int j = 0; j < bucket->end; j++) {
-        hashmap_node_t *node = darray_get(bucket, j);
-        rc = hashmap_traverse_cb(node);
-
-        if (rc != 0) {
-          return rc;
-        }
-      }
+  // Linear probing
+  int is_new = 1;
+  while (hm->entries[index].key != NULL) {
+    if (hm->cmp(key, hm->entries[index].key) == 0) {
+      is_new = 0;
+      break;
     }
+    index = ((index + 1) >= hm->capacity) ? 0 : index + 1;
   }
+
+  // Add value
+  hm_entry_t *entry = &hm->entries[index];
+  entry->key = key;
+  entry->value = value;
+  hm->length += is_new;
 
   return 0;
 }
 
-void *hashmap_delete(hashmap_t *map, void *k) {
-  assert(map != NULL);
-  assert(k != NULL);
+hm_iter_t hm_iterator(hm_t *hm) {
+  hm_iter_t it;
+  it._hm = hm;
+  it._index = 0;
+  return it;
+}
 
-  // Find bucket containing hashmap node
-  uint32_t hash = 0;
-  darray_t *bucket = hashmap_find_bucket(map, k, 0, &hash);
-  if (bucket == NULL) {
-    return NULL;
+int hm_next(hm_iter_t *it) {
+  hm_t *hm = it->_hm;
+  while (it->_index < hm->capacity) {
+    size_t i = it->_index;
+    it->_index++;
+
+    if (hm->entries[i].key) {
+      it->key = hm->entries[i].key;
+      it->value = hm->entries[i].value;
+      return 1;
+    }
   }
 
-  // From bucket get hashmap node and free it
-  int i = hashmap_get_node(map, hash, bucket, k);
-  if (i == -1) {
-    return NULL;
-  }
-
-  // Get node
-  hashmap_node_t *node = darray_get(bucket, i);
-  void *v = node->value;
-  if (map->copy_kv) {
-    map->k_free(node->key);
-  }
-  free(node);
-
-  // Check to see if last element in bucket is a node
-  hashmap_node_t *ending = darray_pop(bucket);
-  if (ending != node) {
-    // Alright looks like it's not the last one, swap it
-    darray_set(bucket, i, ending);
-  }
-
-  return v;
+  return 0;
 }

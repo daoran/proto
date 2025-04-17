@@ -80,33 +80,39 @@ int list_remove_destroy(list_t *list,
  * HASHMAP
  ******************************************************************************/
 
-#ifndef DEFEAULT_NUMBER_OF_BUCKETS
-#define DEFAULT_NUMBER_OF_BUCKETS 10000
-#endif
-
-typedef struct hashmap_node_t {
-  uint32_t hash;
+typedef struct hm_entry_t {
   void *key;
   void *value;
-} hashmap_node_t;
+  size_t key_size;
+} hm_entry_t;
 
-typedef struct hashmap_t {
-  darray_t *buckets;
-  int (*cmp)(void *, void *);
-  uint32_t (*hash)(void *);
+typedef struct hm_t {
+  hm_entry_t *entries;
+  size_t length;
+  size_t capacity;
+  size_t (*hash)(const void *);
+  int (*cmp)(const void *, const void *);
+} hm_t;
 
-  int copy_kv;
-  void *(*k_copy)(void *);
-  void *(*v_copy)(void *);
-  void (*k_free)(void *);
-  void (*v_free)(void *);
-} hashmap_t;
+typedef struct hm_iter_t {
+  void *key;
+  void *value;
+  hm_t *_hm;
+  size_t _index;
+} hm_iter_t;
 
-hashmap_t *hashmap_new(void);
-void hashmap_clear_destroy(hashmap_t *map);
-void hashmap_destroy(hashmap_t *map);
-int hashmap_set(hashmap_t *map, void *key, void *data);
-void *hashmap_get(hashmap_t *map, void *key);
-int hashmap_traverse(hashmap_t *map,
-                     int (*hashmap_traverse_cb)(hashmap_node_t *node));
-void *hashmap_delete(hashmap_t *map, void *key);
+size_t hm_default_hash(const void *data, const size_t size);
+size_t hm_int_hash(const void *data);
+size_t hm_float_hash(const void *data);
+size_t hm_double_hash(const void *data);
+size_t hm_string_hash(const void *data);
+
+hm_t *hm_malloc(const size_t capacity,
+                size_t (*hash)(const void *),
+                int (*cmp)(const void *, const void *));
+void hm_free(hm_t *hm, void (*free_key)(void *), void (*free_value)(void *));
+void *hm_get(const hm_t *hm, const void *key);
+int hm_expand(hm_t *hm);
+int hm_set(hm_t *hm, void *key, void *value);
+hm_iter_t hm_iterator(hm_t *hm);
+int hm_next(hm_iter_t *it);
