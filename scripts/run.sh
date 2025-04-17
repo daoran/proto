@@ -143,6 +143,26 @@ run_test() {
       && cd build \
       && ./$1 --target $2
   " C-m C-m
+
+#   tmux send-keys -t $TARGET -R "\
+# python3 - <<EOF
+# import numpy as np
+# import matplotlib.pyplot as plt
+#
+# points = np.genfromtxt('/tmp/points.csv')
+# points_out = np.genfromtxt('/tmp/points_downsampled.csv')
+#
+# fig = plt.figure(figsize=(12, 6))
+# ax1 = fig.add_subplot(121, projection='3d')
+# ax1.scatter(points[:, 0], points[:, 1], points[:, 2])
+# ax2 = fig.add_subplot(122, projection='3d')
+# ax2.scatter(points_out[:, 0], points_out[:, 1], points_out[:, 2])
+#
+# plt.tight_layout()
+# plt.show()
+# EOF
+#   " C-m C-m
+
   exit
 }
 
@@ -157,7 +177,7 @@ run_test() {
 
 # XYZ
 # run_all_tests
-# run_test test_xyz
+run_test test_xyz
 # run_test test_xyz test_tic
 # run_test test_xyz test_toc
 # run_test test_xyz test_mtoc
@@ -179,6 +199,21 @@ run_test() {
 # run_test test_xyz test_dsv_fields
 # run_test test_xyz test_dsv_data
 # run_test test_xyz test_dsv_free
+# run_test test_xyz test_darray_new_and_destroy
+# run_test test_xyz test_darray_push_pop
+# run_test test_xyz test_darray_contains
+# run_test test_xyz test_darray_copy
+# run_test test_xyz test_darray_new_element
+# run_test test_xyz test_darray_set_and_get
+# run_test test_xyz test_darray_update
+# run_test test_xyz test_darray_remove
+# run_test test_xyz test_darray_expand_and_contract
+# run_test test_xyz test_list_new_and_destroy
+# run_test test_xyz test_list_push_pop
+# run_test test_xyz test_list_shift
+# run_test test_xyz test_list_unshift
+# run_test test_xyz test_list_remove
+# run_test test_xyz test_list_remove_destroy
 # run_test test_xyz test_tcp_server_setup
 # run_test test_xyz test_http_parse_request
 # run_test test_xyz test_websocket_hash
@@ -255,38 +290,14 @@ run_test() {
 # run_test test_xyz test_pose_set_get_trans
 # run_test test_xyz test_pose2tf
 # run_test test_xyz test_load_poses
-# XYZ - DATA STRUCTURE
-# run_test test_ds
-# run_test test_ds test_darray_new_and_destroy
-# run_test test_ds test_darray_push_pop
-# run_test test_ds test_darray_contains
-# run_test test_ds test_darray_copy
-# run_test test_ds test_darray_new_element
-# run_test test_ds test_darray_set_and_get
-# run_test test_ds test_darray_update
-# run_test test_ds test_darray_remove
-# run_test test_ds test_darray_expand_and_contract
-# run_test test_ds test_list_new_and_destroy
-# run_test test_ds test_list_push_pop
-# run_test test_ds test_list_shift
-# run_test test_ds test_list_unshift
-# run_test test_ds test_list_remove
-# run_test test_ds test_list_remove_destroy
-# run_test test_ds test_stack_new_and_destroy
-# run_test test_ds test_stack_push
-# run_test test_ds test_stack_pop
-# run_test test_ds test_queue_new_and_destroy
-# run_test test_ds test_queue_enqueue_dequeue
-# run_test test_ds test_hashmap_new_destroy
-# run_test test_ds test_hashmap_clear_destroy
-# run_test test_ds test_hashmap_get_set
-# run_test test_ds test_hashmap_delete
-# run_test test_ds test_hashmap_traverse
 # XYZ-OCTREE
 # run_test test_octree
 # run_test test_octree test_octree_node
 # run_test test_octree test_octree
-run_test test_kdtree
+# run_test test_octree test_octree_points
+# run_test test_octree test_octree_downsample
+# XYZ-KDTREE
+# run_test test_kdtree
 # XYZ-CV
 # run_test test_linear_triangulation
 # run_test test_homography_find

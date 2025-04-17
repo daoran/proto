@@ -8,10 +8,8 @@ PREFIX := /opt/xyz
 PYTHON3_PATH := $(shell python3 -c "import site; print(site.getsitepackages()[0])")
 
 # COMPILER SETTINGS
-# BUILD_TYPE := debug
-BUILD_TYPE := release
-# ADDRESS_SANITIZER := 1
-ADDRESS_SANITIZER := 0
+BUILD_TYPE := debug
+# BUILD_TYPE := release
 CI_MODE := 0
 CC := clang
 # CC := gcc
@@ -40,8 +38,10 @@ CFLAGS := -std=c99 -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE -Wall -Wpedantic -Wst
 
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += -g -fopenmp
+	ADDRESS_SANITIZER := 1
 else
 	CFLAGS += -g -O2 -march=native -mtune=native -DNDEBUG -fopenmp
+	ADDRESS_SANITIZER := 0
 endif
 
 ifeq ($(ADDRESS_SANITIZER), 1)
@@ -96,7 +96,6 @@ ARFLAGS = rvs
 LIBXYZ := $(BLD_DIR)/libxyz.a
 LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz.o \
-	$(BLD_DIR)/xyz_ds.o \
 	$(BLD_DIR)/xyz_http.o \
 	$(BLD_DIR)/xyz_kitti.o \
 	$(BLD_DIR)/xyz_gnuplot.o \
@@ -122,7 +121,6 @@ TESTS := \
 	$(BLD_DIR)/test_aprilgrid \
 	$(BLD_DIR)/test_control \
 	$(BLD_DIR)/test_cv \
-	$(BLD_DIR)/test_ds \
 	$(BLD_DIR)/test_euroc \
 	$(BLD_DIR)/test_gimbal \
 	$(BLD_DIR)/test_gnuplot \
