@@ -6,7 +6,7 @@
 #include "xyz_octree.h"
 
 /*****************************************************************************
- * Octree Node
+ * OCTREE NODE
  ****************************************************************************/
 
 octree_node_t *octree_node_malloc(const float center[3],
@@ -47,7 +47,7 @@ void octree_node_free(octree_node_t *node) {
 }
 
 /*****************************************************************************
- * Octree
+ * OCTREE
  ****************************************************************************/
 
 octree_t *octree_malloc(const float octree_center[3],
@@ -158,7 +158,7 @@ float *octree_downsample(const float *octree_data,
                          const float voxel_size,
                          const size_t voxel_max_points,
                          size_t *n_out) {
-  assert(points);
+  assert(octree_data);
   assert(n > 0);
 
   // Find center

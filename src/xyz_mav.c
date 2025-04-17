@@ -123,7 +123,7 @@ void mav_model_velocity(const mav_model_t *mav, real_t vel[3]) {
   vel[2] = mav->x[11];
 }
 
-mav_model_telem_t *mav_model_telem_malloc() {
+mav_model_telem_t *mav_model_telem_malloc(void) {
   mav_model_telem_t *telem = malloc(sizeof(mav_model_telem_t) * 1);
 
   telem->num_events = 0;
