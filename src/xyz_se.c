@@ -4110,7 +4110,6 @@ void pcd_deskew(pcd_t *pcd,
 
   // Deskew point cloud
   // p = Exp(s_i * w_WL) * p + s_i * v_WL
-  //
   for (size_t i = 0; i < pcd->num_points; ++i) {
     real_t p[3] = {
         pcd->data[i * 3 + 0],
