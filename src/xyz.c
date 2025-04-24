@@ -875,6 +875,32 @@ double ts2sec(const timestamp_t ts) { return ts * 1e-9; }
 timestamp_t sec2ts(const double time_s) { return time_s * 1e9; }
 
 /*******************************************************************************
+ * ARRAY
+ ******************************************************************************/
+
+arr_t *arr_malloc(const size_t capacity) {
+  arr_t *arr = malloc(sizeof(arr_t));
+  arr->data = malloc(sizeof(void **) * capacity);
+  arr->size = 0;
+  arr->capacity = capacity;
+  return arr;
+}
+
+void arr_free(arr_t *keys) {
+  free(keys->data);
+  free(keys);
+}
+
+void arr_push_back(arr_t *arr, void *data) {
+  if ((arr->size * 2.0) >= arr->capacity) {
+    size_t new_capacity = arr->capacity * 2.0;
+    arr->data = realloc(arr->data, sizeof(void *) * new_capacity);
+    arr->capacity = new_capacity;
+  }
+  arr->data[arr->size++] = data;
+}
+
+/*******************************************************************************
  * DARRAY
  ******************************************************************************/
 
@@ -1335,11 +1361,423 @@ int list_remove_destroy(list_t *list,
   return 0;
 }
 
-/////////////
-// HASHMAP //
-/////////////
+/*******************************************************************************
+ * RED-BLACK-TREE
+ ******************************************************************************/
 
-// FNV-1a constants (64-bit version is generally recommended for wider distribution)
+rbt_node_t *rbt_node_malloc(const int color, void *key, void *value) {
+  rbt_node_t *node = malloc(sizeof(rbt_node_t));
+  node->key = key;
+  node->value = value;
+  node->color = color;
+  node->child[0] = NULL;
+  node->child[1] = NULL;
+  node->size = 1;
+  return node;
+}
+
+void rbt_node_free(rbt_node_t *n) {
+  if (n == NULL) {
+    return;
+  }
+  rbt_node_free(n->child[0]);
+  rbt_node_free(n->child[1]);
+  free(n);
+}
+
+bool rbt_node_is_red(const rbt_node_t *n) {
+  if (n == NULL) {
+    return false;
+  }
+  return n->color == RB_RED;
+}
+
+rbt_node_t *rbt_node_min(rbt_node_t *n) {
+  if (n->child[0] == NULL) {
+    return n;
+  }
+  return rbt_node_min(n->child[0]);
+}
+
+rbt_node_t *rbt_node_max(rbt_node_t *n) {
+  if (n->child[1] == NULL) {
+    return n;
+  }
+  return rbt_node_max(n->child[1]);
+}
+
+size_t rbt_node_height(const rbt_node_t *n) {
+  if (n == NULL) {
+    return -1;
+  }
+  return 1 + MAX(rbt_node_height(n->child[0]), rbt_node_height(n->child[1]));
+}
+
+size_t rbt_node_size(const rbt_node_t *n) {
+  if (n == NULL) {
+    return 0;
+  }
+  return n->size;
+}
+
+void rbt_node_keys(const rbt_node_t *n,
+                   const void *lo,
+                   const void *hi,
+                   arr_t *keys,
+                   cmp_t cmp) {
+  if (n == NULL) {
+    return;
+  }
+
+  const int cmplo = cmp(lo, n->key);
+  const int cmphi = cmp(hi, n->key);
+  if (cmplo < 0) {
+    rbt_node_keys(n->child[0], lo, hi, keys, cmp);
+  }
+  if (cmplo <= 0 && cmphi >= 0) {
+    arr_push_back(keys, n->key);
+  }
+  if (cmphi > 0) {
+    rbt_node_keys(n->child[1], lo, hi, keys, cmp);
+  }
+}
+
+int rbt_node_rank(rbt_node_t *n, void *key, cmp_t cmp) {
+  if (n == NULL) {
+    return 0;
+  }
+
+  int cmp_val = cmp(key, n->key);
+  if (cmp_val < 0) {
+    return rbt_node_rank(n->child[0], key, cmp);
+  } else if (cmp_val > 0) {
+    return 1 + rbt_node_size(n->child[0]) +
+           rbt_node_rank(n->child[0], key, cmp);
+  }
+
+  return rbt_node_size(n->child[0]);
+}
+
+void *rbt_node_select(rbt_node_t *n, const int rank) {
+  if (n == NULL) {
+    return NULL;
+  }
+
+  const int left_size = rbt_node_size(n->child[0]);
+  if (left_size > rank) {
+    return rbt_node_select(n->child[0], rank);
+  } else if (left_size < rank) {
+    return rbt_node_select(n->child[1], rank - left_size - 1);
+  }
+  return n->key;
+}
+
+void rbt_node_flip_colors(rbt_node_t *n) {
+  assert(n);
+  n->color = !n->color;
+  if (n->child[0]) {
+    n->child[0]->color = !n->child[0]->color;
+  }
+  if (n->child[1]) {
+    n->child[1]->color = !n->child[1]->color;
+  }
+}
+
+rbt_node_t *rbt_node_rotate(rbt_node_t *n, const bool dir) {
+  assert(n);
+  rbt_node_t *tmp = n->child[!dir];
+  n->child[!dir] = tmp->child[dir];
+  tmp->child[dir] = n;
+  tmp->color = n->color;
+  n->color = RB_RED;
+  n->size = rbt_node_size(n->child[0]) + rbt_node_size(n->child[1]) + 1;
+  return tmp;
+}
+
+rbt_node_t *rbt_node_move_red_left(rbt_node_t *n) {
+  assert(n);
+  rbt_node_flip_colors(n);
+  if (rbt_node_is_red(n->child[1]->child[0])) {
+    n->child[1] = rbt_node_rotate(n->child[1], 1);
+    n = rbt_node_rotate(n, 0);
+    rbt_node_flip_colors(n);
+  }
+  return n;
+}
+
+rbt_node_t *rbt_node_move_red_right(rbt_node_t *n) {
+  assert(n);
+  rbt_node_flip_colors(n);
+  if (rbt_node_is_red(n->child[0]->child[0])) {
+    n = rbt_node_rotate(n, 1);
+    rbt_node_flip_colors(n);
+  }
+  return n;
+}
+
+rbt_node_t *rbt_node_balance(rbt_node_t *n) {
+  assert(n);
+  if (rbt_node_is_red(n->child[1]) && !rbt_node_is_red(n->child[0])) {
+    n = rbt_node_rotate(n, 0);
+  }
+  if (rbt_node_is_red(n->child[0]) && rbt_node_is_red(n->child[0]->child[0])) {
+    n = rbt_node_rotate(n, 1);
+  }
+  if (rbt_node_is_red(n->child[0]) && rbt_node_is_red(n->child[1])) {
+    rbt_node_flip_colors(n);
+  }
+  n->size = 1;
+  n->size += rbt_node_size(n->child[0]);
+  n->size += rbt_node_size(n->child[1]);
+
+  return n;
+}
+
+bool rbt_node_bst_check(const rbt_node_t *n, void *min, void *max, cmp_t cmp) {
+  if (n == NULL) {
+    return true;
+  }
+  if (min != NULL && cmp(n->key, min) <= 0) {
+    return false;
+  }
+  if (max != NULL && cmp(n->key, max) >= 0) {
+    return false;
+  }
+
+  return rbt_node_bst_check(n->child[0], min, n->key, cmp) &&
+         rbt_node_bst_check(n->child[1], n->key, max, cmp);
+}
+
+bool rbt_node_size_check(const rbt_node_t *n) {
+  if (n == NULL) {
+    return true;
+  }
+
+  const int left_size = rbt_node_size(n->child[0]);
+  const int right_size = rbt_node_size(n->child[1]);
+  if (n->size != (left_size + right_size + 1)) {
+    return false;
+  }
+
+  return rbt_node_size_check(n->child[0]) && rbt_node_size_check(n->child[1]);
+}
+
+bool rbt_node_23_check(const rbt_node_t *root, rbt_node_t *n) {
+  if (n == NULL) {
+    return true;
+  }
+  if (rbt_node_is_red(n->child[1])) {
+    return false;
+  }
+  if (n != root && rbt_node_is_red(n) && rbt_node_is_red(n->child[0])) {
+    return false;
+  }
+  return rbt_node_23_check(root, n->child[0]) &&
+         rbt_node_23_check(root, n->child[1]);
+}
+
+static bool __rbt_node_balance_check(const rbt_node_t *n, int black) {
+  if (n == NULL) {
+    return black == 0;
+  }
+  if (!rbt_node_is_red(n)) {
+    black--;
+  }
+  return __rbt_node_balance_check(n->child[0], black) &&
+         __rbt_node_balance_check(n->child[1], black);
+}
+
+bool rbt_node_balance_check(rbt_node_t *root) {
+  int black = 0;
+  rbt_node_t *n = root;
+  while (n != NULL) {
+    black += (!rbt_node_is_red(n)) ? 1 : 0;
+    n = n->child[0];
+  }
+  return __rbt_node_balance_check(root, black);
+}
+
+bool rbt_node_check(rbt_node_t *root, cmp_t cmp) {
+  if (!rbt_node_bst_check(root, NULL, NULL, cmp)) {
+    printf("Not BST!\n");
+    return false;
+  }
+  if (!rbt_node_size_check(root)) {
+    printf("Not size consistent!\n");
+    return false;
+  }
+  if (!rbt_node_23_check(root, root)) {
+    printf("Not 2-3 tree!\n");
+    return false;
+  }
+  if (!rbt_node_balance_check(root)) {
+    printf("Not balanced!\n");
+    return false;
+  }
+
+  return true;
+}
+
+rbt_node_t *rbt_node_insert(rbt_node_t *n, void *k, void *v, cmp_t cmp) {
+  if (n == NULL) {
+    return rbt_node_malloc(RB_RED, k, v);
+  }
+
+  const int c = cmp(k, n->key);
+  if (c < 0) {
+    n->child[0] = rbt_node_insert(n->child[0], k, v, cmp);
+  } else if (c > 0) {
+    n->child[1] = rbt_node_insert(n->child[1], k, v, cmp);
+  } else {
+    n->value = v;
+  }
+
+  return rbt_node_balance(n);
+}
+
+rbt_node_t *rbt_node_delete_min(rbt_node_t *n) {
+  if (n->child[0] == NULL) {
+    return NULL;
+  }
+  if (!rbt_node_is_red(n->child[0]) &&
+      !rbt_node_is_red(n->child[0]->child[0])) {
+    n = rbt_node_move_red_left(n);
+  }
+  return rbt_node_balance(n);
+}
+
+rbt_node_t *rbt_node_delete_max(rbt_node_t *n) {
+  if (n->child[0] == NULL) {
+    n = rbt_node_rotate(n, 1);
+  }
+  if (n->child[1] == NULL) {
+    return NULL;
+  }
+  if (!rbt_node_is_red(n->child[1]) &&
+      !rbt_node_is_red(n->child[1]->child[0])) {
+    n = rbt_node_move_red_right(n);
+  }
+
+  n->child[1] = rbt_node_delete_max(n->child[1]);
+  return rbt_node_balance(n);
+}
+
+rbt_node_t *rbt_node_delete(rbt_node_t *n, void *key, cmp_t cmp_func) {
+  if (cmp_func(key, n->key) < 0) {
+    if (!rbt_node_is_red(n->child[0]) &&
+        !rbt_node_is_red(n->child[0]->child[0])) {
+      n = rbt_node_move_red_left(n);
+    }
+    n->child[0] = rbt_node_delete(n->child[0], key, cmp_func);
+
+  } else {
+    if (rbt_node_is_red(n->child[0])) {
+      n = rbt_node_rotate(n, 0);
+    }
+    if (cmp_func(key, n->key) == 0 && (n->child[1] == NULL)) {
+      free(n);
+      return NULL;
+    }
+    if (!rbt_node_is_red(n->child[1]) &&
+        !rbt_node_is_red(n->child[1]->child[0])) {
+      n = rbt_node_move_red_right(n);
+    }
+    if (cmp_func(key, n->key) == 0) {
+      rbt_node_t *tmp = rbt_node_min(n->child[1]);
+      n->key = tmp->key;
+      n->value = tmp->value;
+      n->child[1] = rbt_node_delete_min(n->child[1]);
+      free(tmp);
+    } else {
+      n->child[1] = rbt_node_delete(n->child[1], key, cmp_func);
+    }
+  }
+
+  return rbt_node_balance(n);
+}
+
+void *rbt_node_search(rbt_node_t *n, void *key, cmp_t cmp_func) {
+  while (n != NULL) {
+    const int cmp = cmp_func(key, n->key);
+    if (cmp < 0) {
+      n = n->child[0];
+    } else if (cmp > 0) {
+      n = n->child[1];
+    } else {
+      return n->value;
+    }
+  }
+
+  return NULL;
+}
+
+bool rbt_node_contains(rbt_node_t *n, void *key, cmp_t cmp_func) {
+  return rbt_node_search(n, key, cmp_func) != NULL;
+}
+
+rbt_t *rbt_malloc(cmp_t cmp) {
+  rbt_t *rbt = malloc(sizeof(rbt_t));
+  rbt->root = NULL;
+  rbt->cmp = cmp;
+  return rbt;
+}
+
+void rbt_free(rbt_t *rbt) {
+  rbt_node_free(rbt->root);
+  free(rbt);
+}
+
+void rbt_insert(rbt_t *rbt, void *key, void *value) {
+  rbt->root = rbt_node_insert(rbt->root, key, value, rbt->cmp);
+}
+
+void rbt_delete(rbt_t *rbt, void *key) {
+  rbt->root = rbt_node_delete(rbt->root, key, rbt->cmp);
+}
+
+void *rbt_search(rbt_t *rbt, void *key) {
+  return rbt_node_search(rbt->root, key, rbt->cmp);
+}
+
+bool rbt_contains(rbt_t *rbt, void *key) {
+  return rbt_node_contains(rbt->root, key, rbt->cmp);
+}
+
+rbt_node_t *rbt_min(const rbt_t *rbt) {
+  return rbt_node_min(rbt->root);
+}
+
+rbt_node_t *rbt_max(const rbt_t *rbt) {
+  return rbt_node_max(rbt->root);
+}
+
+size_t rbt_height(const rbt_t *rbt) {
+  return rbt_node_height(rbt->root);
+}
+
+size_t rbt_size(const rbt_t *rbt) {
+  return rbt_node_size(rbt->root);
+}
+
+void rbt_keys(const rbt_t *rbt, arr_t *keys) {
+  rbt_node_t *lo = rbt_node_min(rbt->root);
+  rbt_node_t *hi = rbt_node_max(rbt->root);
+  rbt_node_keys(rbt->root, lo, hi, keys, rbt->cmp);
+}
+
+int rbt_rank(const rbt_t *rbt, void *key) {
+  return rbt_node_rank(rbt->root, key, rbt->cmp);
+}
+
+void *rbt_select(const rbt_t *rbt, const int rank) {
+  return rbt_node_select(rbt->root, rank);
+}
+
+/*******************************************************************************
+ * HASHMAP
+ ******************************************************************************/
+
+// FNV-1a constants (64-bit version is recommended for wider distribution)
 #define FNV_PRIME_64 1099511628211ULL
 #define FNV_OFFSET_BASIS_64 14695981039346656037ULL
 

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include <time.h>
 #include <math.h>
@@ -272,6 +273,20 @@ double ts2sec(const timestamp_t ts);
 timestamp_t sec2ts(const double time_s);
 
 /*******************************************************************************
+ * ARRAY
+ ******************************************************************************/
+
+typedef struct arr_t {
+  void **data;
+  size_t size;
+  size_t capacity;
+} arr_t;
+
+arr_t *arr_malloc(const size_t capacity);
+void arr_free(arr_t *arr);
+void arr_push_back(arr_t *arr, void *data);
+
+/*******************************************************************************
  * DARRAY
  ******************************************************************************/
 
@@ -340,6 +355,74 @@ int list_remove_destroy(list_t *list,
                         void *value,
                         int (*cmp)(const void *, const void *),
                         void (*free_func)(void *));
+
+/*******************************************************************************
+ * RED-BLACK-TREE
+ ******************************************************************************/
+
+#define RB_RED 1
+#define RB_BLACK 0
+
+typedef int (*cmp_t)(const void *, const void *);
+
+typedef struct rbt_node_t rbt_node_t;
+struct rbt_node_t {
+  bool color;
+  void *key;
+  void *value;
+  rbt_node_t *child[2];
+  size_t size;
+};
+
+typedef struct rbt_t {
+  rbt_node_t *root;
+  cmp_t cmp;
+} rbt_t;
+
+rbt_node_t *rbt_node_malloc(const int color, void *key, void *value);
+void rbt_node_free(rbt_node_t *n);
+bool rbt_node_is_red(const rbt_node_t *n);
+rbt_node_t *rbt_node_min(rbt_node_t *n);
+rbt_node_t *rbt_node_max(rbt_node_t *n);
+size_t rbt_node_height(const rbt_node_t *n);
+size_t rbt_node_size(const rbt_node_t *n);
+void rbt_node_keys(const rbt_node_t *n,
+                   const void *lo,
+                   const void *hi,
+                   arr_t *keys,
+                   cmp_t cmp);
+int rbt_node_rank(rbt_node_t *n, void *key, cmp_t cmp);
+void *rbt_node_select(rbt_node_t *n, const int rank);
+void rbt_node_flip_colors(rbt_node_t *n);
+rbt_node_t *rbt_node_rotate(rbt_node_t *n, const bool dir);
+rbt_node_t *rbt_node_move_red_left(rbt_node_t *n);
+rbt_node_t *rbt_node_move_red_right(rbt_node_t *n);
+rbt_node_t *rbt_node_balance(rbt_node_t *n);
+bool rbt_node_bst_check(const rbt_node_t *n, void *min, void *max, cmp_t cmp);
+bool rbt_node_size_check(const rbt_node_t *n);
+bool rbt_node_23_check(const rbt_node_t *root, rbt_node_t *n);
+bool rbt_node_balance_check(rbt_node_t *n);
+bool rbt_node_check(rbt_node_t *root, cmp_t cmp);
+rbt_node_t *rbt_node_insert(rbt_node_t *n, void *key, void *value, cmp_t cmp);
+rbt_node_t *rbt_node_delete_min(rbt_node_t *n);
+rbt_node_t *rbt_node_delete_max(rbt_node_t *n);
+rbt_node_t *rbt_node_delete(rbt_node_t *n, void *key, cmp_t cmp_func);
+void *rbt_node_search(rbt_node_t *rbt, void *key, cmp_t cmp_func);
+bool rbt_node_contains(rbt_node_t *rbt, void *key, cmp_t cmp_func);
+
+rbt_t *rbt_malloc(cmp_t cmp_func);
+void rbt_free(rbt_t *rbt);
+void rbt_insert(rbt_t *rbt, void *key, void *value);
+void rbt_delete(rbt_t *rbt, void *key);
+void *rbt_search(rbt_t *rbt, void *key);
+bool rbt_contains(rbt_t *rbt, void *key);
+rbt_node_t *rbt_min(const rbt_t *rbt);
+rbt_node_t *rbt_max(const rbt_t *rbt);
+size_t rbt_height(const rbt_t *rbt);
+size_t rbt_size(const rbt_t *rbt);
+void rbt_keys(const rbt_t *rbt, arr_t *keys);
+int rbt_rank(const rbt_t *rbt, void *key);
+void *rbt_select(const rbt_t *rbt, const int rank);
 
 /*******************************************************************************
  * HASHMAP
@@ -749,11 +832,11 @@ int check_jacobian(const char *jac_name,
     const int r_size = FACTOR.r_size;                                          \
     const int J_cols = param_local_size(FACTOR.param_types[JAC_IDX]);          \
                                                                                \
-    real_t *r = malloc(sizeof(real_t) * r_size);                                        \
-    real_t *r_fwd = malloc(sizeof(real_t) * r_size);                                    \
-    real_t *r_diff = malloc(sizeof(real_t) * r_size);                                   \
-    real_t *J_fdiff = malloc(sizeof(real_t) * r_size * J_cols);                         \
-    real_t *J = malloc(sizeof(real_t) * r_size * J_cols);                               \
+    real_t *r = malloc(sizeof(real_t) * r_size);                               \
+    real_t *r_fwd = malloc(sizeof(real_t) * r_size);                           \
+    real_t *r_diff = malloc(sizeof(real_t) * r_size);                          \
+    real_t *J_fdiff = malloc(sizeof(real_t) * r_size * J_cols);                \
+    real_t *J = malloc(sizeof(real_t) * r_size * J_cols);                      \
                                                                                \
     /* Eval */                                                                 \
     FACTOR_EVAL(&FACTOR);                                                      \

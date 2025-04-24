@@ -2,6 +2,28 @@
 #include "munit.h"
 
 /******************************************************************************
+ * TEST UTILS
+ *****************************************************************************/
+
+static int int_cmp(const void *x, const void *y) {
+  if (*(int *) x == *(int *) y) {
+    return 0;
+  }
+  return (*(int *) x < *(int *) y) ? -1 : 1;
+}
+
+static int float_cmp(const void *x, const void *y) {
+  if (fabs(*(float *) x - *(float *) y) < 1e-18) {
+    return 0;
+  }
+  return (*(float *) x < *(float *) y) ? -1 : 1;
+}
+
+static int string_cmp(const void *x, const void *y) {
+  return strcmp((char *) x, (char *) y);
+}
+
+/******************************************************************************
  * MACROS
  *****************************************************************************/
 
@@ -398,26 +420,375 @@ int test_list_remove_destroy(void) {
 }
 
 /*******************************************************************************
- * HASHMAP
+ * RED-BLACK-TREE
  ******************************************************************************/
 
-static int int_cmp(const void *x, const void *y) {
-  if (*(int *) x == *(int *) y) {
-    return 0;
-  }
-  return (*(int *) x < *(int *) y) ? -1 : 1;
+int test_rbt_node_malloc_and_free(void) {
+  rbt_node_t *node = rbt_node_malloc(RB_RED, NULL, NULL);
+  MU_ASSERT(node->key == NULL);
+  MU_ASSERT(node->value == NULL);
+  MU_ASSERT(node->color == RB_RED);
+  MU_ASSERT(node->child[0] == NULL);
+  MU_ASSERT(node->child[1] == NULL);
+  MU_ASSERT(node->size == 0);
+  rbt_node_free(node);
+  return 0;
 }
 
-static int float_cmp(const void *x, const void *y) {
-  if (fabs(*(float *) x - *(float *) y) < 1e-18) {
-    return 0;
-  }
-  return (*(float *) x < *(float *) y) ? -1 : 1;
+int test_rbt_node_min_max(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_node_t *node_0 = rbt_node_malloc(RB_BLACK, &key_0, NULL);
+  rbt_node_t *node_1 = rbt_node_malloc(RB_BLACK, &key_1, NULL);
+  rbt_node_t *node_2 = rbt_node_malloc(RB_BLACK, &key_2, NULL);
+  rbt_node_t *node_3 = rbt_node_malloc(RB_BLACK, &key_3, NULL);
+  rbt_node_t *node_4 = rbt_node_malloc(RB_BLACK, &key_4, NULL);
+
+  // Form BST
+  //   1
+  //  / \
+  // 0   3
+  //    / \
+  //   2   4
+  node_1->child[0] = node_0;
+  node_1->child[1] = node_3;
+  node_3->child[0] = node_2;
+  node_3->child[1] = node_4;
+
+  MU_ASSERT(rbt_node_min(node_1) == node_0);
+  MU_ASSERT(rbt_node_max(node_1) == node_4);
+  rbt_node_free(node_1);
+
+  return 0;
 }
 
-static int string_cmp(const void *x, const void *y) {
-  return strcmp((char *) x, (char *) y);
+int test_rbt_node_height_size(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_node_t *root = rbt_node_malloc(RB_BLACK, &key_0, NULL);
+  root = rbt_node_insert(root, &key_1, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_2, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_3, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_4, NULL, int_cmp);
+
+  //       3
+  //      / \
+  //     1   4
+  //    / \
+  //   0   2
+  MU_ASSERT(rbt_node_height(root) == 2);
+  MU_ASSERT(rbt_node_size(root) == 5);
+  rbt_node_free(root);
+
+  return 0;
 }
+
+int test_rbt_node_keys(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_node_t *root = rbt_node_malloc(RB_BLACK, &key_0, NULL);
+  root = rbt_node_insert(root, &key_1, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_2, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_3, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_4, NULL, int_cmp);
+
+  //       3
+  //      / \
+  //     1   4
+  //    / \
+  //   0   2
+  arr_t *keys = arr_malloc(10);
+  rbt_node_keys(root, &key_0, &key_4, keys, int_cmp);
+  for (int i = 0; i < keys->size; ++i) {
+    MU_ASSERT(*(int *) keys->data[i] == i);
+  }
+
+  // Clean up
+  rbt_node_free(root);
+  arr_free(keys);
+
+  return 0;
+}
+
+int test_rbt_node_flip_colors(void) {
+  // Setup
+  char *key_a = "a";
+  char *key_b = "b";
+  char *key_c = "c";
+  rbt_node_t *node_a = rbt_node_malloc(RB_RED, key_a, NULL);
+  rbt_node_t *node_b = rbt_node_malloc(RB_BLACK, key_b, NULL);
+  rbt_node_t *node_c = rbt_node_malloc(RB_BLACK, key_c, NULL);
+  node_a->child[0] = node_b;
+  node_a->child[1] = node_c;
+
+  // Flip colors and assert
+  rbt_node_flip_colors(node_a);
+  MU_ASSERT(node_a->color == RB_BLACK);
+  MU_ASSERT(node_b->color == RB_RED);
+  MU_ASSERT(node_c->color == RB_RED);
+
+  // Clean up
+  rbt_node_free(node_a);
+
+  return 0;
+}
+
+int test_rbt_node_rotate(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_node_t *node_0 = rbt_node_malloc(RB_BLACK, &key_0, NULL);
+  rbt_node_t *node_1 = rbt_node_malloc(RB_BLACK, &key_1, NULL);
+  rbt_node_t *node_2 = rbt_node_malloc(RB_BLACK, &key_2, NULL);
+  rbt_node_t *node_3 = rbt_node_malloc(RB_BLACK, &key_3, NULL);
+  rbt_node_t *node_4 = rbt_node_malloc(RB_BLACK, &key_4, NULL);
+
+  // Form BST
+  //   1
+  //  / \
+  // 0   3
+  //    / \
+  //   2   4
+  node_1->child[0] = node_0;
+  node_1->child[1] = node_3;
+  node_3->child[0] = node_2;
+  node_3->child[1] = node_4;
+
+  // Test rotate left
+  //   1               3
+  //  / \             / \
+  // 0   3    -->    1   4
+  //    / \         / \
+  //   2   4       0   2
+  rbt_node_rotate(node_1, 0);
+  MU_ASSERT(node_3->child[0] == node_1);
+  MU_ASSERT(node_3->child[1] == node_4);
+  MU_ASSERT(node_1->child[0] == node_0);
+  MU_ASSERT(node_1->child[1] == node_2);
+
+  // Test rotate right
+  //     3             1
+  //    / \           / \
+  //   1   4  -->    0   3
+  //  / \               / \
+  // 0   2             2   4
+  rbt_node_rotate(node_3, 1);
+  MU_ASSERT(node_1->child[0] == node_0);
+  MU_ASSERT(node_1->child[1] == node_3);
+  MU_ASSERT(node_3->child[0] == node_2);
+  MU_ASSERT(node_3->child[1] == node_4);
+
+  // Clean up
+  rbt_node_free(node_1);
+
+  return 0;
+}
+
+int test_rbt_node_move_red_left(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  rbt_node_t *node_0 = rbt_node_malloc(RB_RED, &key_0, NULL);
+  rbt_node_t *node_1 = rbt_node_malloc(RB_BLACK, &key_1, NULL);
+  rbt_node_t *node_2 = rbt_node_malloc(RB_RED, &key_2, NULL);
+
+  // Form BST
+  //    0
+  //     \
+  //      2
+  //     /
+  //    1
+  node_0->child[0] = NULL;
+  node_0->child[1] = node_2;
+  node_1->child[0] = NULL;
+  node_1->child[1] = NULL;
+  node_2->child[0] = node_1;
+  node_2->child[1] = NULL;
+
+  // Test move red left
+  //   0            1
+  //    \          / \
+  //     2  -->   0   2
+  //    /
+  //   1
+  node_0 = rbt_node_move_red_left(node_0);
+  MU_ASSERT(node_0->child[0] == NULL);
+  MU_ASSERT(node_0->child[1] == NULL);
+  MU_ASSERT(node_2->child[0] == NULL);
+  MU_ASSERT(node_2->child[1] == NULL);
+  // MU_ASSERT(node_1->child[0] == node_0);
+  // MU_ASSERT(node_1->child[1] == node_2);
+
+  // printf("%d\n", *(int *) node_1->key);
+  // printf("%d", (*(int *) (node_1->child[0])->key));
+  // printf("\t");
+  // printf("%d", (*(int *) (node_1->child[1])->key));
+  // printf("\n");
+
+  // Clean up
+  rbt_node_free(node_1);
+
+  return 0;
+}
+
+int test_rbt_node_move_red_right(void) { return 0; }
+
+int test_rbt_node_insert(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_node_t *root = rbt_node_malloc(RB_BLACK, &key_0, NULL);
+  root = rbt_node_insert(root, &key_1, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_2, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_3, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_4, NULL, int_cmp);
+
+  //       3
+  //      / \
+  //     1   4
+  //    / \
+  //   0   2
+  MU_ASSERT(root->key == &key_3);
+  MU_ASSERT(root->child[0]->key == &key_1);
+  MU_ASSERT(root->child[1]->key == &key_4);
+  MU_ASSERT(root->child[0]->child[0]->key == &key_0);
+  MU_ASSERT(root->child[0]->child[1]->key == &key_2);
+  MU_ASSERT(root->child[1]->child[0] == NULL);
+  MU_ASSERT(root->child[1]->child[1] == NULL);
+
+  // Clean up
+  rbt_node_free(root);
+
+  return 0;
+}
+
+int test_rbt_node_delete(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_node_t *root = rbt_node_malloc(RB_BLACK, &key_0, NULL);
+  root = rbt_node_insert(root, &key_1, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_2, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_3, NULL, int_cmp);
+  root = rbt_node_insert(root, &key_4, NULL, int_cmp);
+
+  // Test deletes
+  root = rbt_node_delete(root, &key_0, int_cmp);
+  MU_ASSERT(rbt_node_size(root) == 4);
+  MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
+
+  root = rbt_node_delete(root, &key_1, int_cmp);
+  MU_ASSERT(rbt_node_size(root) == 3);
+  MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
+
+  root = rbt_node_delete(root, &key_2, int_cmp);
+  MU_ASSERT(rbt_node_size(root) == 2);
+  MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
+
+  root = rbt_node_delete(root, &key_3, int_cmp);
+  MU_ASSERT(rbt_node_size(root) == 1);
+  MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
+
+  root = rbt_node_delete(root, &key_4, int_cmp);
+  MU_ASSERT(rbt_node_size(root) == 0);
+  MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
+
+  // Clean up
+  rbt_node_free(root);
+
+  return 0;
+}
+
+int test_rbt_malloc_and_free(void) {
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_free(rbt);
+  return 0;
+}
+
+int test_rbt_insert(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_insert(rbt, &key_0, NULL);
+  rbt_insert(rbt, &key_1, NULL);
+  rbt_insert(rbt, &key_2, NULL);
+  rbt_insert(rbt, &key_3, NULL);
+  rbt_insert(rbt, &key_4, NULL);
+
+  //       3
+  //      / \
+  //     1   4
+  //    / \
+  //   0   2
+  MU_ASSERT(rbt->root->key == &key_3);
+  MU_ASSERT(rbt->root->child[0]->key == &key_1);
+  MU_ASSERT(rbt->root->child[1]->key == &key_4);
+  MU_ASSERT(rbt->root->child[0]->child[0]->key == &key_0);
+  MU_ASSERT(rbt->root->child[0]->child[1]->key == &key_2);
+  MU_ASSERT(rbt->root->child[1]->child[0] == NULL);
+  MU_ASSERT(rbt->root->child[1]->child[1] == NULL);
+
+  // Clean up
+  rbt_free(rbt);
+
+  return 0;
+}
+
+int test_rbt_delete(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_insert(rbt, &key_0, NULL);
+  rbt_insert(rbt, &key_1, NULL);
+  rbt_insert(rbt, &key_2, NULL);
+  rbt_insert(rbt, &key_3, NULL);
+  rbt_insert(rbt, &key_4, NULL);
+
+  rbt_delete(rbt, &key_0);
+  rbt_delete(rbt, &key_1);
+  rbt_delete(rbt, &key_2);
+  rbt_delete(rbt, &key_3);
+  rbt_delete(rbt, &key_4);
+
+  // Clean up
+  rbt_free(rbt);
+
+  return 0;
+}
+
+/*******************************************************************************
+ * HASHMAP
+ ******************************************************************************/
 
 int test_hm_malloc_and_free(void) {
   {
@@ -518,25 +889,25 @@ int test_hm_set_and_get(void) {
     const size_t hm_capacity = 10000;
     hm_t *hm = hm_malloc(hm_capacity, hm_string_hash, string_cmp);
 
-    char* k0 = "ABC";
+    char *k0 = "ABC";
     int v0 = 0;
     hm_set(hm, &k0, &v0);
     MU_ASSERT(hm->length == 1);
     MU_ASSERT(hm->capacity == hm_capacity);
 
-    char* k1 = "DEF";
+    char *k1 = "DEF";
     int v1 = 1;
     hm_set(hm, &k1, &v1);
     MU_ASSERT(hm->length == 2);
     MU_ASSERT(hm->capacity == hm_capacity);
 
-    char* k2 = "GHI";
+    char *k2 = "GHI";
     int v2 = 2;
     hm_set(hm, &k2, &v2);
     MU_ASSERT(hm->length == 3);
     MU_ASSERT(hm->capacity == hm_capacity);
 
-    char* k3 = "JKL";
+    char *k3 = "JKL";
     int v3 = 3;
     hm_set(hm, &k3, &v3);
     MU_ASSERT(hm->length == 4);
@@ -703,9 +1074,7 @@ int test_lerp3(void) {
   return 0;
 }
 
-int test_sinc(void) {
-  return 0;
-}
+int test_sinc(void) { return 0; }
 
 int test_mean(void) {
   real_t vals[4] = {1.0, 2.0, 3.0, 4.0};
@@ -1920,6 +2289,21 @@ void test_suite(void) {
   MU_ADD_TEST(test_list_unshift);
   MU_ADD_TEST(test_list_remove);
   MU_ADD_TEST(test_list_remove_destroy);
+
+  // RED-BLACK-TREE
+  MU_ADD_TEST(test_rbt_node_malloc_and_free);
+  MU_ADD_TEST(test_rbt_node_min_max);
+  MU_ADD_TEST(test_rbt_node_height_size);
+  MU_ADD_TEST(test_rbt_node_keys);
+  MU_ADD_TEST(test_rbt_node_flip_colors);
+  MU_ADD_TEST(test_rbt_node_rotate);
+  MU_ADD_TEST(test_rbt_node_move_red_left);
+  MU_ADD_TEST(test_rbt_node_move_red_right);
+  MU_ADD_TEST(test_rbt_node_insert);
+  MU_ADD_TEST(test_rbt_node_delete);
+  MU_ADD_TEST(test_rbt_malloc_and_free);
+  MU_ADD_TEST(test_rbt_insert);
+  MU_ADD_TEST(test_rbt_delete);
 
   // HASHMAP
   MU_ADD_TEST(test_hm_malloc_and_free);
