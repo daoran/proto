@@ -34,3 +34,15 @@
 	path = third_party/src/lz4
 	url = https://github.com/lz4/lz4
   ignore = dirty
+[submodule "third_party/src/yaml-cpp"]
+	path = third_party/src/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp
+[submodule "third_party/src/opencv"]
+	path = third_party/src/opencv
+	url = https://github.com/opencv/opencv
+[submodule "third_party/src/eigen"]
+	path = third_party/src/eigen
+	url = https://gitlab.com/libeigen/eigen
+[submodule "third_party/src/assimp"]
+	path = third_party/src/assimp
+	url = https://github.com/assimp/assimp
