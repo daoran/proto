@@ -391,8 +391,8 @@ void rbt_node_keys(const rbt_node_t *n,
                    const void *hi,
                    arr_t *keys,
                    cmp_t cmp);
-int rbt_node_rank(rbt_node_t *n, void *key, cmp_t cmp);
-void *rbt_node_select(rbt_node_t *n, const int rank);
+int rbt_node_rank(const rbt_node_t *n, const void *key, cmp_t cmp);
+void *rbt_node_select(const rbt_node_t *n, const int rank);
 void rbt_node_flip_colors(rbt_node_t *n);
 rbt_node_t *rbt_node_rotate(rbt_node_t *n, const bool dir);
 rbt_node_t *rbt_node_move_red_left(rbt_node_t *n);
@@ -421,7 +421,7 @@ rbt_node_t *rbt_max(const rbt_t *rbt);
 size_t rbt_height(const rbt_t *rbt);
 size_t rbt_size(const rbt_t *rbt);
 void rbt_keys(const rbt_t *rbt, arr_t *keys);
-int rbt_rank(const rbt_t *rbt, void *key);
+int rbt_rank(const rbt_t *rbt, const void *key);
 void *rbt_select(const rbt_t *rbt, const int rank);
 
 /*******************************************************************************

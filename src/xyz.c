@@ -1365,6 +1365,23 @@ int list_remove_destroy(list_t *list,
  * RED-BLACK-TREE
  ******************************************************************************/
 
+/**
+ * The following Red-Black tree implementation is based on Robert Sedgewick's
+ * Left Leaninng Red-Black tree (LLRBT), where we have implemented the 2-3
+ * variant instead of the 2-3-4 variant for simplicity. Compared to other
+ * implementations Sedgewick's by far the simmplest, and requirest the
+ * fewest lines of code.
+ *
+ * Source:
+ *
+ *   Robert Sedgewick, Kevin Wayne
+ *   Algorithms, 4th Edition. Addison-Wesley 2011
+ *   Chapter 3.3: Balanced Search Trees, Page 424
+ *
+ *   Left-leaning Red-Black Trees by Robert Sedgewick
+ *   https://sedgewick.io/wp-content/themes/sedgewick/papers/2008LLRB.pdf
+ */
+
 rbt_node_t *rbt_node_malloc(const int color, void *key, void *value) {
   rbt_node_t *node = malloc(sizeof(rbt_node_t));
   node->key = key;
@@ -1442,7 +1459,7 @@ void rbt_node_keys(const rbt_node_t *n,
   }
 }
 
-int rbt_node_rank(rbt_node_t *n, void *key, cmp_t cmp) {
+int rbt_node_rank(const rbt_node_t *n, const void *key, cmp_t cmp) {
   if (n == NULL) {
     return 0;
   }
@@ -1452,13 +1469,13 @@ int rbt_node_rank(rbt_node_t *n, void *key, cmp_t cmp) {
     return rbt_node_rank(n->child[0], key, cmp);
   } else if (cmp_val > 0) {
     return 1 + rbt_node_size(n->child[0]) +
-           rbt_node_rank(n->child[0], key, cmp);
+           rbt_node_rank(n->child[1], key, cmp);
   }
 
   return rbt_node_size(n->child[0]);
 }
 
-void *rbt_node_select(rbt_node_t *n, const int rank) {
+void *rbt_node_select(const rbt_node_t *n, const int rank) {
   if (n == NULL) {
     return NULL;
   }
@@ -1728,48 +1745,59 @@ void rbt_free(rbt_t *rbt) {
 }
 
 void rbt_insert(rbt_t *rbt, void *key, void *value) {
+  assert(rbt);
   rbt->root = rbt_node_insert(rbt->root, key, value, rbt->cmp);
 }
 
 void rbt_delete(rbt_t *rbt, void *key) {
+  assert(rbt);
   rbt->root = rbt_node_delete(rbt->root, key, rbt->cmp);
 }
 
 void *rbt_search(rbt_t *rbt, void *key) {
+  assert(rbt);
   return rbt_node_search(rbt->root, key, rbt->cmp);
 }
 
 bool rbt_contains(rbt_t *rbt, void *key) {
+  assert(rbt);
   return rbt_node_contains(rbt->root, key, rbt->cmp);
 }
 
 rbt_node_t *rbt_min(const rbt_t *rbt) {
+  assert(rbt);
   return rbt_node_min(rbt->root);
 }
 
 rbt_node_t *rbt_max(const rbt_t *rbt) {
+  assert(rbt);
   return rbt_node_max(rbt->root);
 }
 
 size_t rbt_height(const rbt_t *rbt) {
+  assert(rbt);
   return rbt_node_height(rbt->root);
 }
 
 size_t rbt_size(const rbt_t *rbt) {
+  assert(rbt);
   return rbt_node_size(rbt->root);
 }
 
 void rbt_keys(const rbt_t *rbt, arr_t *keys) {
-  rbt_node_t *lo = rbt_node_min(rbt->root);
-  rbt_node_t *hi = rbt_node_max(rbt->root);
-  rbt_node_keys(rbt->root, lo, hi, keys, rbt->cmp);
+  assert(rbt);
+  const rbt_node_t *lo = rbt_node_min(rbt->root);
+  const rbt_node_t *hi = rbt_node_max(rbt->root);
+  rbt_node_keys(rbt->root, lo->key, hi->key, keys, rbt->cmp);
 }
 
-int rbt_rank(const rbt_t *rbt, void *key) {
+int rbt_rank(const rbt_t *rbt, const void *key) {
+  assert(rbt);
   return rbt_node_rank(rbt->root, key, rbt->cmp);
 }
 
 void *rbt_select(const rbt_t *rbt, const int rank) {
+  assert(rbt);
   return rbt_node_select(rbt->root, rank);
 }
 

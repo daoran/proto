@@ -430,7 +430,7 @@ int test_rbt_node_malloc_and_free(void) {
   MU_ASSERT(node->color == RB_RED);
   MU_ASSERT(node->child[0] == NULL);
   MU_ASSERT(node->child[1] == NULL);
-  MU_ASSERT(node->size == 0);
+  MU_ASSERT(node->size == 1);
   rbt_node_free(node);
   return 0;
 }
@@ -605,8 +605,8 @@ int test_rbt_node_move_red_left(void) {
   int key_1 = 1;
   int key_2 = 2;
   rbt_node_t *node_0 = rbt_node_malloc(RB_RED, &key_0, NULL);
-  rbt_node_t *node_1 = rbt_node_malloc(RB_BLACK, &key_1, NULL);
-  rbt_node_t *node_2 = rbt_node_malloc(RB_RED, &key_2, NULL);
+  rbt_node_t *node_1 = rbt_node_malloc(RB_RED, &key_1, NULL);
+  rbt_node_t *node_2 = rbt_node_malloc(RB_BLACK, &key_2, NULL);
 
   // Form BST
   //    0
@@ -627,19 +627,13 @@ int test_rbt_node_move_red_left(void) {
   //     2  -->   0   2
   //    /
   //   1
-  node_0 = rbt_node_move_red_left(node_0);
+  rbt_node_t *root = rbt_node_move_red_left(node_0);
+  MU_ASSERT(root->child[0] == node_0);
+  MU_ASSERT(root->child[1] == node_2);
   MU_ASSERT(node_0->child[0] == NULL);
   MU_ASSERT(node_0->child[1] == NULL);
   MU_ASSERT(node_2->child[0] == NULL);
   MU_ASSERT(node_2->child[1] == NULL);
-  // MU_ASSERT(node_1->child[0] == node_0);
-  // MU_ASSERT(node_1->child[1] == node_2);
-
-  // printf("%d\n", *(int *) node_1->key);
-  // printf("%d", (*(int *) (node_1->child[0])->key));
-  // printf("\t");
-  // printf("%d", (*(int *) (node_1->child[1])->key));
-  // printf("\n");
 
   // Clean up
   rbt_node_free(node_1);
@@ -647,7 +641,47 @@ int test_rbt_node_move_red_left(void) {
   return 0;
 }
 
-int test_rbt_node_move_red_right(void) { return 0; }
+int test_rbt_node_move_red_right(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  rbt_node_t *node_0 = rbt_node_malloc(RB_RED, &key_0, NULL);
+  rbt_node_t *node_1 = rbt_node_malloc(RB_RED, &key_1, NULL);
+  rbt_node_t *node_2 = rbt_node_malloc(RB_BLACK, &key_2, NULL);
+
+  // Form BST
+  //      2
+  //     /
+  //    1
+  //   /
+  //  0
+  node_0->child[0] = NULL;
+  node_0->child[1] = NULL;
+  node_1->child[0] = node_0;
+  node_1->child[1] = NULL;
+  node_2->child[0] = node_1;
+  node_2->child[1] = NULL;
+
+  // Test move red left
+  //      2
+  //     /
+  //    1    -->    1
+  //   /           / \
+  //  0           0   2
+  rbt_node_t *root = rbt_node_move_red_right(node_2);
+  MU_ASSERT(root->child[0] == node_0);
+  MU_ASSERT(root->child[1] == node_2);
+  MU_ASSERT(node_0->child[0] == NULL);
+  MU_ASSERT(node_0->child[1] == NULL);
+  MU_ASSERT(node_2->child[0] == NULL);
+  MU_ASSERT(node_2->child[1] == NULL);
+
+  // Clean up
+  rbt_node_free(node_1);
+
+  return 0;
+}
 
 int test_rbt_node_insert(void) {
   // Setup
@@ -779,6 +813,178 @@ int test_rbt_delete(void) {
   rbt_delete(rbt, &key_2);
   rbt_delete(rbt, &key_3);
   rbt_delete(rbt, &key_4);
+
+  // Clean up
+  rbt_free(rbt);
+
+  return 0;
+}
+
+int test_rbt_search(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  int val_0 = 0;
+  int val_1 = 1;
+  int val_2 = 2;
+  int val_3 = 3;
+  int val_4 = 4;
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_insert(rbt, &key_0, &val_0);
+  rbt_insert(rbt, &key_1, &val_1);
+  rbt_insert(rbt, &key_2, &val_2);
+  rbt_insert(rbt, &key_3, &val_3);
+  rbt_insert(rbt, &key_4, &val_4);
+
+  // Search
+  MU_ASSERT(rbt_search(rbt, &key_0) == &val_0);
+  MU_ASSERT(rbt_search(rbt, &key_1) == &val_1);
+  MU_ASSERT(rbt_search(rbt, &key_2) == &val_2);
+  MU_ASSERT(rbt_search(rbt, &key_3) == &val_3);
+  MU_ASSERT(rbt_search(rbt, &key_4) == &val_4);
+
+  // Clean up
+  rbt_free(rbt);
+
+  return 0;
+}
+
+int test_rbt_contains(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  int val_0 = 0;
+  int val_1 = 1;
+  int val_2 = 2;
+  int val_3 = 3;
+  int val_4 = 4;
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_insert(rbt, &key_0, &val_0);
+  rbt_insert(rbt, &key_1, &val_1);
+  rbt_insert(rbt, &key_2, &val_2);
+  rbt_insert(rbt, &key_3, &val_3);
+  rbt_insert(rbt, &key_4, &val_4);
+
+  // Search
+  MU_ASSERT(rbt_contains(rbt, &key_0) == true);
+  MU_ASSERT(rbt_contains(rbt, &key_1) == true);
+  MU_ASSERT(rbt_contains(rbt, &key_2) == true);
+  MU_ASSERT(rbt_contains(rbt, &key_3) == true);
+  MU_ASSERT(rbt_contains(rbt, &key_4) == true);
+
+  // Clean up
+  rbt_free(rbt);
+
+  return 0;
+}
+
+int test_rbt_min_max(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_insert(rbt, &key_0, NULL);
+  rbt_insert(rbt, &key_1, NULL);
+  rbt_insert(rbt, &key_2, NULL);
+  rbt_insert(rbt, &key_3, NULL);
+  rbt_insert(rbt, &key_4, NULL);
+
+  // Min and max
+  MU_ASSERT(rbt_min(rbt)->key == &key_0);
+  MU_ASSERT(rbt_max(rbt)->key == &key_4);
+
+  // Clean up
+  rbt_free(rbt);
+
+  return 0;
+}
+
+int test_rbt_keys(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_insert(rbt, &key_0, NULL);
+  rbt_insert(rbt, &key_1, NULL);
+  rbt_insert(rbt, &key_2, NULL);
+  rbt_insert(rbt, &key_3, NULL);
+  rbt_insert(rbt, &key_4, NULL);
+
+  arr_t *keys = arr_malloc(10);
+  rbt_keys(rbt, keys);
+  MU_ASSERT(keys->size == 5);
+  MU_ASSERT(keys->data[0] == &key_0);
+  MU_ASSERT(keys->data[1] == &key_1);
+  MU_ASSERT(keys->data[2] == &key_2);
+  MU_ASSERT(keys->data[3] == &key_3);
+  MU_ASSERT(keys->data[4] == &key_4);
+
+  // Clean up
+  rbt_free(rbt);
+  arr_free(keys);
+
+  return 0;
+}
+
+int test_rbt_rank(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_insert(rbt, &key_0, NULL);
+  rbt_insert(rbt, &key_1, NULL);
+  rbt_insert(rbt, &key_2, NULL);
+  rbt_insert(rbt, &key_3, NULL);
+  rbt_insert(rbt, &key_4, NULL);
+
+  // Rank
+  MU_ASSERT(rbt_rank(rbt, &key_0) == 0);
+  MU_ASSERT(rbt_rank(rbt, &key_1) == 1);
+  MU_ASSERT(rbt_rank(rbt, &key_2) == 2);
+  MU_ASSERT(rbt_rank(rbt, &key_3) == 3);
+  MU_ASSERT(rbt_rank(rbt, &key_4) == 4);
+
+  // Clean up
+  rbt_free(rbt);
+
+  return 0;
+}
+
+int test_rbt_select(void) {
+  // Setup
+  int key_0 = 0;
+  int key_1 = 1;
+  int key_2 = 2;
+  int key_3 = 3;
+  int key_4 = 4;
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt_insert(rbt, &key_0, NULL);
+  rbt_insert(rbt, &key_1, NULL);
+  rbt_insert(rbt, &key_2, NULL);
+  rbt_insert(rbt, &key_3, NULL);
+  rbt_insert(rbt, &key_4, NULL);
+
+  // Rank
+  MU_ASSERT(rbt_select(rbt, 0) == &key_0);
+  MU_ASSERT(rbt_select(rbt, 1) == &key_1);
+  MU_ASSERT(rbt_select(rbt, 2) == &key_2);
+  MU_ASSERT(rbt_select(rbt, 3) == &key_3);
+  MU_ASSERT(rbt_select(rbt, 4) == &key_4);
 
   // Clean up
   rbt_free(rbt);
@@ -2304,6 +2510,12 @@ void test_suite(void) {
   MU_ADD_TEST(test_rbt_malloc_and_free);
   MU_ADD_TEST(test_rbt_insert);
   MU_ADD_TEST(test_rbt_delete);
+  MU_ADD_TEST(test_rbt_search);
+  MU_ADD_TEST(test_rbt_contains);
+  MU_ADD_TEST(test_rbt_min_max);
+  MU_ADD_TEST(test_rbt_keys);
+  MU_ADD_TEST(test_rbt_rank);
+  MU_ADD_TEST(test_rbt_select);
 
   // HASHMAP
   MU_ADD_TEST(test_hm_malloc_and_free);
