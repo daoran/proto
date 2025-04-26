@@ -1,10 +1,11 @@
-MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-MKFILE_DIR := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
-PREFIX := $(MKFILE_DIR)
-SRC_PATH := $(PREFIX)/src
+include config.mk
 
-default: dirs install
-.PHONY: dirs install
+help:
+	@echo "make targets:"
+	@echo "----------------------------------------"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile \
+		| awk 'BEGIN {FS = ":.*?## "}; \
+		{printf "%-20s%s\n", $$1, $$2}'
 
 setup:
 	@mkdir -p bin
@@ -13,16 +14,31 @@ setup:
 	@mkdir -p log
 	@mkdir -p share
 
-clean:
+clean: ## Clean
 	@rm -rf bin
 	@rm -rf include
 	@rm -rf lib
 	@rm -rf log
 	@rm -rf share
+	@# utils
+	@rm -rf "$(SRC_PATH)/yamlcpp/build"
+	@# linear algebra
+	@rm -rf "$(SRC_PATH)/GKlib/build"
+	@rm -rf "$(SRC_PATH)/SuiteSparse/build"
+	@rm -rf "$(SRC_PATH)/eigen/build"
+	@rm -rf "$(SRC_PATH)/ceres-solver/build"
+	@# computer vision
+	@rm -rf "$(SRC_PATH)/opencv/build"
+	@rm -rf "$(SRC_PATH)/apriltag/build"
+	@# computer graphics
+	@rm -rf "$(SRC_PATH)/assimp/build"
+	@rm -rf "$(SRC_PATH)/glad/build"
+	@rm -rf "$(SRC_PATH)/glfw/build"
 
-install: setup apt_base install_apt_pkgs build_pkgs
+install: setup apt_pkgs build_deps ## Install all dependencies
 
-apt_base:
+apt_pkgs:  ## Install apt packages
+	@sudo apt-get update -qqq
 	@sudo apt-get install -y -qqq \
 		dialog \
 		apt-utils \
@@ -31,127 +47,98 @@ apt_base:
 		cmake \
 		g++ \
 		clang \
-		tcc \
-		libboost-dev \
-		libyaml-dev \
-		python3-pip \
-		python3-setuptools
-	@pip3 install --upgrade pip
-	@pip3 install --user dataclasses
-
-install_apt_pkgs:
-	@sudo apt-get update -qqq
+		tcc
 	@sudo apt-get install -y -qqq liblapacke liblapacke-dev
-	@sudo apt-get install -y -qqq libsuitesparse-dev libsuitesparse-doc
-	@sudo apt-get install -y -qqq libeigen3-dev libeigen3-doc
-	@sudo apt-get install -y -qqq libceres-dev
 	@sudo apt-get install -y -qqq libomp-dev
-	@sudo apt-get install -y -qqq libopencv-*
-	@sudo apt-get install -y -qqq libglew-dev
-	@sudo apt-get install -y -qqq libsdl2-*
-	@sudo apt-get install -y -qqq libassimp-dev libassimp-doc
-	@sudo apt-get install -y -qqq libyaml-cpp-dev
 
-build_pkgs: build_apriltag build_glfw build_stb build_dbow2 build_flann
+build_deps: setup ## Build dependencies
+	@# utils
+	make -s build_yamlcpp
+	make -s build_stb
+	make -s build_lz4
+	@# linear algebra
+	make -s build_gklib
+	make -s build_metis
+	make -s build_suitesparse
+	make -s build_eigen
+	make -s build_ceres
+	@# computer vision
+	make -s build_opencv
+	make -s build_apriltag
+	make -s build_dbow2
+	make -s build_fbow
+	make -s build_flann
+	@# computer graphics
+	make -s build_assimp
+	make -s build_khr
+	make -s build_glad
+	make -s build_glfw
 
-build_apriltag:
-	@sudo apt-get install -y -qqq cmake libeigen3-dev libv4l-dev libopencv-*
-	@cd "$(SRC_PATH)/apriltag" \
-		&& mkdir -p build \
-		&& cd build || return \
-		&& cmake \
-			-DCMAKE_BUILD_TYPE=Release \
-			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
-			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			.. \
-		&& make \
-		&& make install
+###############################################################################
+# UTILS
+###############################################################################
 
-build_khr:
-	@cd "$(SRC_PATH)/KHR" \
-		&& mkdir -p "$(PREFIX)/include/KHR" \
-		&& ln -sf $(SRC_PATH)/KHR/khrplatform.h "$(PREFIX)/include/KHR"
+build_yamlcpp:  ## Build yaml-cpp
+	@{ ${BUILD_YAMLCPP_CMD} } > $(PREFIX)/log/yamlcpp.log 2>&1
 
-build_glad: build_khr
-	@cd "$(SRC_PATH)/glad" \
-		&& mkdir -p "$(PREFIX)/include/glad" \
-		&& ln -sf $(SRC_PATH)/glad/glad.h "$(PREFIX)/include/glad" \
-		&& gcc -I$(PREFIX)/include -c glad.c -o glad.o \
-		&& ar rcs libglad.a glad.o \
-		&& ln -sf $(SRC_PATH)/glad/libglad.a "$(PREFIX)/lib/libglad.a"
+build_stb:  ## Build stb
+	@{ $(BUILD_STB_CMD) } > $(PREFIX)/log/stb.log 2>&1
 
+build_lz4:  ## Build lz4
+	@{ $(BUILD_LZ4_CMD) } > $(PREFIX)/log/lz4.log 2>&1
 
-build_glfw: build_glad
-	@cd "$(SRC_PATH)/glfw" \
-		&& mkdir -p build \
-		&& cd build || return \
-		&& cmake \
-			-DCMAKE_BUILD_TYPE=Release \
-			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
-			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			.. \
-		&& make \
-		&& make install
+###############################################################################
+# LINEAR ALGEBRA
+###############################################################################
 
-build_stb:
-	@cd "$(PREFIX)/include" \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_c_lexer.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_connected_components.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_divide.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_ds.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_dxt.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_easy_font.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_herringbone_wang_tile.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_hexwave.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_image.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_image_resize.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_image_write.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_include.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_leakcheck.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_perlin.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_rect_pack.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_sprintf.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_textedit.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_tilemap_editor.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_truetype.h . \
-		&& ln -svf $(MKFILE_DIR)/src/stb/stb_voxel_render.h
+build_suitesparse: ## Build suitesparse
+	@echo "building suitesparse ..."
+	@{ $(BUILD_SUITESPARSE_CMD) } > $(PREFIX)/log/suitesparse.log 2>&1
 
-build_dbow2:
-	@cd "$(SRC_PATH)/DBoW2" \
-		&& mkdir -p build \
-		&& cd build || return \
-		&& cmake \
-			-DCMAKE_BUILD_TYPE=Release \
-			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
-			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			.. \
-		&& make \
-		&& make install
+build_eigen: build_suitesparse ## Build eigen
+	@echo "building eigen ..."
+	@{ $(BUILD_EIGEN_CMD) } > $(PREFIX)/log/eigen.log 2>&1
 
-build_fbow:
-	@cd "$(SRC_PATH)/fbow" \
-		&& mkdir -p build \
-		&& cd build || return \
-		&& cmake \
-			-DCMAKE_BUILD_TYPE=Release \
-			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
-			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			.. \
-		&& make \
-		&& make install
+build_ceres: build_eigen build_suitesparse  ## Build ceres-solver
+	@echo "building ceres ..."
+	@{ $(BUILD_CERES_CMD) } > $(PREFIX)/log/ceres.log 2>&1
 
-build_lz4:
-	@cd "$(SRC_PATH)/lz4" && make install PREFIX="$(PREFIX)"
+###############################################################################
+# COMPUTER VISION
+###############################################################################
 
-build_flann: build_lz4
-	@cd "$(SRC_PATH)/flann" \
-		&& mkdir -p build \
-		&& cd build || return \
-		&& cmake \
-			-DCMAKE_BUILD_TYPE=Release \
-			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
-			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			-DBUILD_MATLAB_BINDINGS=OFF \
-			.. \
-		&& make \
-		&& make install
+build_opencv: build_eigen build_suitesparse ## Build opencv
+	@echo "building opencv ..."
+	@{ $(BUILD_OPENCV_CMD) } > $(PREFIX)/log/opencv.log 2>&1
+
+build_apriltag: build_opencv ## Build apriltag
+	@echo "building apriltag ..."
+	@{ $(BUILD_APRILTAG_CMD) } > $(PREFIX)/log/apriltag.log 2>&1
+
+build_dbow2:  ## Build dbow2
+	@echo "building dbow2 ..."
+	@{ $(BUILD_DBOW2_CMD) } > $(PREFIX)/log/dbow2.log 2>&1
+
+build_fbow:  ## Build fbow
+	@echo "building fbow ..."
+	@{ $(BUILD_FBOW_CMD) } > $(PREFIX)/log/fbow.log 2>&1
+
+build_flann: build_lz4  ## Build flann
+	@echo "building flann ..."
+	@{ $(BUILD_FLANN_CMD) } > $(PREFIX)/log/flann.log 2>&1
+
+###############################################################################
+# COMPUTER GRAPHICS
+###############################################################################
+
+build_assimp: ## Build assimp
+	@{ $(BUILD_ASSIMP_CMD) } > $(PREFIX)/log/assimp.log 2>&1
+
+build_khr:  ## Build khr
+	@{ $(BUILD_KHR_CMD) } > $(PREFIX)/log/khr.log 2>&1
+
+build_glad: build_khr  ## Build glad
+	@{ $(BUILD_GLAD_CMD) } > $(PREFIX)/log/glad.log 2>&1
+
+build_glfw: build_glad  ## Build glfw
+	@{ $(BUILD_GLFW_CMD) } > $(PREFIX)/log/glfw.log 2>&1
