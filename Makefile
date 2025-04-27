@@ -11,7 +11,7 @@ help:
 third_party: ## Install dependencies
 	@git submodule init
 	@git submodule update
-	@make -s -C third_party
+	@make -s -C third_party build_deps
 
 docs: ## Build docs
 	@livereload .
