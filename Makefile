@@ -122,3 +122,8 @@ all: libxyz tests
 
 cppcheck: ## Run cppcheck on xyz.c
 	@cppcheck src/xyz.c src/xyz.h
+
+docker:  ## Build docker
+	@docker build -t xyz:latest \
+		--build-arg UID=$(shell id -u) \
+		--build-arg GID=$(shell id -g) .

@@ -42,12 +42,22 @@ apt_pkgs:  ## Install apt packages
 	@sudo apt-get install -y -qqq \
 		dialog \
 		apt-utils \
+		build-essential \
+		pkg-config \
+		make \
+		cmake \
 		git \
 		mercurial \
-		cmake \
 		g++ \
 		clang \
-		tcc
+		tcc \
+		libx11-dev \
+		libwayland-dev \
+		libxkbcommon-dev \
+		libxrandr-dev \
+		libxinerama-dev \
+		libxcursor-dev \
+		libxi-dev
 	@sudo apt-get install -y -qqq \
 		libomp-dev \
 		libmpfr-dev \
@@ -56,7 +66,26 @@ apt_pkgs:  ## Install apt packages
 		liblapacke-dev \
 		libmetis-dev
 
-build_deps: setup ## Build dependencies
+# clone_repos:
+# 	@# utils
+# 	git clone -b $(YAMLCPP_TAG), https://github.com/jbeder/yaml-cpp
+# 	git clone -b $(STB_TAG), https://github.com/nothings/stb
+# 	git clone -b $(LZ4_TAG), https://github.com/lz4/lz4
+# 	git clone -b $(GFLAGS_TAG), https://github.com/gflags/gflags
+# 	git clone -b $(GLOG_TAG), https://github.com/google/glog
+# 	@# linear algebra
+# 	git clone -b $(SUITESPARSE_TAG), https://github.com/DrTimothyAldenDavis/SuiteSparse
+# 	git clone -b $(EIGEN_TAG), https://gitlab.com/libeigen/eigen.git
+# 	git clone -b $(CERES_TAG), https://github.com/ceres-solver/ceres-solver
+# 	@# computer vision
+# 	git clone -b $(OPENCV_TAG), https://github.com/opencv/opencv
+# 	git clone -b $(APRILTAG_TAG), https://github.com/AprilRobotics/apriltag
+# 	git clone -b "master", https://github.com/AprilRobotics/apriltag-imgs
+# 	@# computer graphics
+# 	git clone -b $(ASSIMP_TAG), https://github.com/assimp/assimp
+# 	git clone -b $(GLFW_TAG), https://github.com/glfw/glfw
+
+build_deps: setup clone_repos ## Build dependencies
 	@make -s build_utils
 	@make -s build_linalg
 	@make -s build_cv
@@ -78,7 +107,15 @@ build_lz4:
 	@echo "building lz4 ..."
 	@{ $(BUILD_LZ4_CMD) } > $(PREFIX)/log/lz4.log 2>&1
 
-build_utils: build_yamlcpp build_stb build_lz4
+build_gflags:
+	@echo "building gflags ..."
+	@{ $(BUILD_GFLAGS_CMD) } > $(PREFIX)/log/gflags.log 2>&1
+
+build_glog:
+	@echo "building glog ..."
+	@{ $(BUILD_GLOG_CMD) } > $(PREFIX)/log/glog.log 2>&1
+
+build_utils: build_yamlcpp build_stb build_lz4 build_gflags build_glog
 
 ###############################################################################
 # LINEAR ALGEBRA
@@ -86,7 +123,7 @@ build_utils: build_yamlcpp build_stb build_lz4
 
 build_suitesparse: ## Build suitesparse
 	@echo "building suitesparse ..."
-	@{ $(BUILD_SUITESPARSE_CMD) > $(PREFIX)/log/suitesparse.log 2>&1 || { cat $(PREFIX)/log/suitesparse.log; exit 1; }; }
+	@{ $(BUILD_SUITESPARSE_CMD) } > $(PREFIX)/log/suitesparse.log 2>&1
 
 build_eigen: build_suitesparse ## Build eigen
 	@echo "building eigen ..."
