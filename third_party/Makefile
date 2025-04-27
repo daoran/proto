@@ -81,7 +81,7 @@ build_utils: build_yamlcpp build_stb build_lz4
 
 build_suitesparse: ## Build suitesparse
 	@echo "building suitesparse ..."
-	@{ $(BUILD_SUITESPARSE_CMD) } > $(PREFIX)/log/suitesparse.log 2>&1
+	@{ $(BUILD_SUITESPARSE_CMD) > $(PREFIX)/log/suitesparse.log 2>&1 || cat $(PREFIX)/log/suitesparse.log; }
 
 build_eigen: build_suitesparse ## Build eigen
 	@echo "building eigen ..."

@@ -34,7 +34,7 @@
 	url = https://github.com/opencv/opencv
 [submodule "third_party/src/eigen"]
 	path = third_party/src/eigen
-	url = https://gitlab.com/libeigen/eigen
+	url = https://gitlab.com/libeigen/eigen.git
 [submodule "third_party/src/assimp"]
 	path = third_party/src/assimp
 	url = https://github.com/assimp/assimp
