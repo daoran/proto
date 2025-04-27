@@ -48,8 +48,12 @@ apt_pkgs:  ## Install apt packages
 		g++ \
 		clang \
 		tcc
-	@sudo apt-get install -y -qqq libomp-dev
-	@sudo apt-get install -y -qqq liblapacke liblapacke-dev libmetis5 libmetis-dev
+	@sudo apt-get install -y -qqq \
+		libomp-dev \
+		libblas-dev \
+		liblapack-dev \
+		liblapacke-dev \
+		libmetis-dev
 
 build_deps: setup ## Build dependencies
 	@make -s build_utils
@@ -81,7 +85,7 @@ build_utils: build_yamlcpp build_stb build_lz4
 
 build_suitesparse: ## Build suitesparse
 	@echo "building suitesparse ..."
-	@{ $(BUILD_SUITESPARSE_CMD) > $(PREFIX)/log/suitesparse.log 2>&1 || cat $(PREFIX)/log/suitesparse.log; }
+	@{ $(BUILD_SUITESPARSE_CMD) > $(PREFIX)/log/suitesparse.log 2>&1 || { cat $(PREFIX)/log/suitesparse.log; exit 1; }; }
 
 build_eigen: build_suitesparse ## Build eigen
 	@echo "building eigen ..."
