@@ -50,6 +50,7 @@ apt_pkgs:  ## Install apt packages
 		tcc
 	@sudo apt-get install -y -qqq \
 		libomp-dev \
+		libmpfr-dev \
 		libblas-dev \
 		liblapack-dev \
 		liblapacke-dev \
