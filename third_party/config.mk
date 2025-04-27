@@ -21,7 +21,7 @@ export CLICOLOR=0
 ###############################################################################
 
 BUILD_YAMLCPP_CMD := \
-	if [ -f $(PREFIX)/lib/libGKlib.a ]; then return 0; fi \
+	if [ -f $(PREFIX)/lib/libyaml-cpp.a ]; then return 0; fi \
 		&& cd "$(SRC_PATH)/yaml-cpp" \
 		&& git checkout $(YAMLCPP_TAG) \
 		&& mkdir -p build \
@@ -58,14 +58,17 @@ BUILD_STB_CMD := \
 		&& ln -svf $(MKFILE_DIR)/src/stb/stb_voxel_render.h;
 
 BUILD_LZ4_CMD := \
-	cd "$(SRC_PATH)/lz4" && make install PREFIX="$(PREFIX)";
+	if [ -f $(PREFIX)/lib/liblz4.a ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/lz4" \
+		&& make install PREFIX="$(PREFIX)";
 
 ###############################################################################
 # LINEAR ALGEBRA
 ###############################################################################
 
 BUILD_SUITESPARSE_CMD := \
-	cd "$(SRC_PATH)/SuiteSparse" \
+	if [ -f $(PREFIX)/lib/libsuitesparseconfig.so ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/SuiteSparse" \
 		&& git checkout $(SUITESPARSE_TAG) \
 		&& if [ -f $(PREFIX)/lib/libsuitesparseconfig.a ]; then return 0; fi \
 		&& mkdir -p build \
@@ -79,7 +82,8 @@ BUILD_SUITESPARSE_CMD := \
 		&& make install;
 
 BUILD_EIGEN_CMD := \
-	cd "$(SRC_PATH)/eigen" \
+	if [ -f $(PREFIX)/include/eigen3/Eigen/Core ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/eigen" \
 		&& git checkout $(EIGEN_TAG) \
 		&& if [ -f $(PREFIX)/include/eigen3/Eigen/Core ]; then return 0; fi \
 		&& mkdir -p build \
@@ -93,7 +97,8 @@ BUILD_EIGEN_CMD := \
 		&& make install;
 
 BUILD_CERES_CMD := \
-	cd "$(SRC_PATH)/ceres-solver" \
+	if [ -f $(PREFIX)/lib/libceres.a ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/ceres-solver" \
 		&& git checkout $(CERES_TAG) \
 		&& mkdir -p build \
 		&& cd build || return \
@@ -110,8 +115,8 @@ BUILD_CERES_CMD := \
 ###############################################################################
 
 BUILD_OPENCV_CMD := \
-	cd "$(SRC_PATH)/opencv" \
-		&& if [ -f $(PREFIX)/lib/libopencv_core.so ]; then return 0; fi \
+	if [ -f $(PREFIX)/lib/libopencv_core.so ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/opencv" \
 		&& mkdir -p build \
 		&& cd build || return \
 		&& cmake \
@@ -123,51 +128,14 @@ BUILD_OPENCV_CMD := \
 		&& make install;
 
 BUILD_APRILTAG_CMD := \
-	cd "$(SRC_PATH)/apriltag" \
-		&& if [ -f $(PREFIX)/lib/libapriltag.so ]; then return 0; fi \
+	if [ -f $(PREFIX)/lib/libapriltag.so ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/apriltag" \
 		&& mkdir -p build \
 		&& cd build || return \
 		&& cmake \
 			-DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
 			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			.. \
-		&& make -j$(NUM_CPU) \
-		&& make install;
-
-BUILD_DBOW2_CMD := \
-	cd "$(SRC_PATH)/DBoW2" \
-		&& mkdir -p build \
-		&& cd build || return \
-		&& cmake \
-			-DCMAKE_BUILD_TYPE=Release \
-			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
-			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			.. \
-		&& make -j$(NUM_CPU) \
-		&& make install;
-
-BUILD_FBOW_CMD := \
-	cd "$(SRC_PATH)/fbow" \
-		&& mkdir -p build \
-		&& cd build || return \
-		&& cmake \
-			-DCMAKE_BUILD_TYPE=Release \
-			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
-			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			.. \
-		&& make -j$(NUM_CPU) \
-		&& make install;
-
-BUILD_FLANN := \
-	cd "$(SRC_PATH)/flann" \
-		&& mkdir -p build \
-		&& cd build || return \
-		&& cmake \
-			-DCMAKE_BUILD_TYPE=Release \
-			-DCMAKE_PREFIX_PATH="$(PREFIX)" \
-			-DCMAKE_INSTALL_PREFIX="$(PREFIX)" \
-			-DBUILD_MATLAB_BINDINGS=OFF \
 			.. \
 		&& make -j$(NUM_CPU) \
 		&& make install;
@@ -177,7 +145,8 @@ BUILD_FLANN := \
 ###############################################################################
 
 BUILD_ASSIMP_CMD := \
-	cd "$(SRC_PATH)/assimp" \
+	if [ -f $(PREFIX)/lib/libassimp.so ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/assimp" \
 		&& mkdir -p build \
 		&& cd build || return \
 		&& cmake \
@@ -189,12 +158,14 @@ BUILD_ASSIMP_CMD := \
 		&& make install;
 
 BUILD_KHR_CMD := \
-	cd "$(SRC_PATH)/KHR" \
+	if [ -f $(PREFIX)/include/KHR/khrplatform.h ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/KHR" \
 		&& mkdir -p "$(PREFIX)/include/KHR" \
 		&& ln -sf $(SRC_PATH)/KHR/khrplatform.h "$(PREFIX)/include/KHR";
 
 BUILD_GLAD_CMD := \
-	cd "$(SRC_PATH)/glad" \
+	if [ -f $(PREFIX)/lib/libglad.a ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/glad" \
 		&& mkdir -p "$(PREFIX)/include/glad" \
 		&& ln -sf $(SRC_PATH)/glad/glad.h "$(PREFIX)/include/glad" \
 		&& gcc -I$(PREFIX)/include -c glad.c -o glad.o \
@@ -202,7 +173,8 @@ BUILD_GLAD_CMD := \
 		&& ln -sf $(SRC_PATH)/glad/libglad.a "$(PREFIX)/lib/libglad.a";
 
 BUILD_GLFW_CMD := \
-	cd "$(SRC_PATH)/glfw" \
+	if [ -f $(PREFIX)/lib/libglfw3.a ]; then return 0; fi \
+		&& cd "$(SRC_PATH)/glfw" \
 		&& mkdir -p build \
 		&& cd build || return \
 		&& cmake \
