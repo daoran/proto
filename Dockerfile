@@ -22,10 +22,9 @@ RUN mkdir -p ${XYZ_DIR}/third_party
 COPY third_party/src/KHR ${XYZ_DIR}/third_party/src/KHR
 COPY third_party/src/glad ${XYZ_DIR}/third_party/src/glad
 COPY third_party/Makefile ${XYZ_DIR}/third_party/Makefile
-COPY third_party/config.mk ${XYZ_DIR}/third_party/config.mk
-RUN apt-get install -yqq build-essential make
-# RUN cd ${XYZ_DIR}/third_party && make install
+COPY third_party/build_deps.bash ${XYZ_DIR}/third_party/build_deps.bash
+RUN cd ${XYZ_DIR}/third_party && ./build_deps.bash
 
 # Build xyz
-COPY . .
-RUN make libxyz
+# COPY . .
+# RUN make libxyz
