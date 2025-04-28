@@ -26,5 +26,6 @@ COPY third_party/build_deps.bash ${XYZ_DIR}/third_party/build_deps.bash
 RUN cd ${XYZ_DIR}/third_party && ./build_deps.bash
 
 # Build xyz
-# COPY . .
-# RUN make libxyz
+WORKDIR ${XYZ_DIR}
+COPY . .
+RUN make libxyz

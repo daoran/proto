@@ -27,6 +27,19 @@ third_party/lib
 third_party/share
 third_party/src/glad/glad.o
 third_party/src/glad/libglad.a
+third_party/src/SuiteSparse
+third_party/src/assimp
+third_party/src/apriltag
+third_party/src/apriltag-imgs
+third_party/src/ceres-solver
+third_party/src/eigen.git
+third_party/src/gflags
+third_party/src/glfw
+third_party/src/glog
+third_party/src/lz4
+third_party/src/opencv
+third_party/src/stb
+third_party/src/yaml-cpp
 
 # Python
 .venv
