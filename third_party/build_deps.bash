@@ -10,6 +10,7 @@ export CLICOLOR=0
 
 # THIRD PARTY VERSIONS
 # -- UTILS
+LIBYAML_TAG="0.2.5"
 YAMLCPP_TAG="0.8.0"
 STB_TAG="master"
 LZ4_TAG="v1.10.0"
@@ -27,20 +28,37 @@ APRILTAG_TAG="v3.4.3"
 GLFW_TAG="3.4"
 ASSIMP_TAG="v5.4.3"
 
-install_base() {
+setup_env() {
+  mkdir -p bin
+  mkdir -p include
+  mkdir -p lib
+  mkdir -p log
+  mkdir -p share
+
+  # Update apt
   sudo apt-get update -qqq
 
   # Base dev tools
   sudo apt-get install -y -qqq \
     build-essential \
     pkg-config \
+    autoconf \
     make \
     cmake \
     git \
     mercurial \
     g++ \
     clang \
-    tcc
+    tcc \
+    vim \
+    vifm
+
+  # Base packages
+  sudo apt-get install -y -qqq \
+    libssl-dev \
+    libfreetype-dev \
+    libfreetype6 \
+    libgl1-mesa-dev
 
   # Computer graphics base
   sudo apt-get install -y -qqq \
@@ -60,6 +78,31 @@ install_base() {
     liblapack-dev \
     liblapacke-dev \
     libmetis-dev
+}
+
+clean() {
+  rm -rf bin
+  rm -rf include
+  rm -rf lib
+  rm -rf log
+  rm -rf share
+}
+
+distclean() {
+  # utils
+  rm -rf "$(SRC_PATH)/yaml-cpp/build"
+  rm -rf "$(SRC_PATH)/gflags/build"
+  rm -rf "$(SRC_PATH)/glog/build"
+  # linear algebra
+  rm -rf "$(SRC_PATH)/SuiteSparse/build"
+  rm -rf "$(SRC_PATH)/eigen/build"
+  rm -rf "$(SRC_PATH)/ceres-solver/build"
+  # computer vision
+  rm -rf "$(SRC_PATH)/opencv/build"
+  rm -rf "$(SRC_PATH)/apriltag/build"
+  # computer graphics
+  rm -rf "$(SRC_PATH)/glfw/build"
+  rm -rf "$(SRC_PATH)/assimp/build"
 }
 
 cmake_build() {
@@ -105,11 +148,20 @@ download_zip_repo() {
   cd "$2" || return
 }
 
+# SETUP ENVIRONMENT
+setup_env
+
 ###############################################################################
 # UTILS
 ###############################################################################
 
-install_base
+# LIBYAML
+git_clone ${LIBYAML_TAG} https://github.com/yaml/libyaml
+cmake_build libyaml
+
+# YAML-CPP
+git_clone ${YAMLCPP_TAG} https://github.com/jbeder/yaml-cpp
+cmake_build yaml-cpp
 
 # YAML-CPP
 git_clone ${YAMLCPP_TAG} https://github.com/jbeder/yaml-cpp
@@ -127,7 +179,7 @@ cd "${PREFIX}/include" \
   && ln -svf ${PREFIX}/src/stb/stb_herringbone_wang_tile.h . \
   && ln -svf ${PREFIX}/src/stb/stb_hexwave.h . \
   && ln -svf ${PREFIX}/src/stb/stb_image.h . \
-  && ln -svf ${PREFIX}/src/stb/stb_image_resize.h . \
+  && ln -svf ${PREFIX}/src/stb/stb_image_resize2.h . \
   && ln -svf ${PREFIX}/src/stb/stb_image_write.h . \
   && ln -svf ${PREFIX}/src/stb/stb_include.h . \
   && ln -svf ${PREFIX}/src/stb/stb_leakcheck.h . \
@@ -171,9 +223,9 @@ cmake_build ceres-solver
 # COMPUTER VISION
 ###############################################################################
 
-# # OPENCV
-# git_clone ${OPENCV_TAG} https://github.com/opencv/opencv
-# cmake_build opencv
+# OPENCV
+git_clone ${OPENCV_TAG} https://github.com/opencv/opencv
+cmake_build opencv
 
 # APRILTAG
 git_clone ${APRILTAG_IMGS_TAG} https://github.com/AprilRobotics/apriltag-imgs
@@ -185,18 +237,17 @@ cmake_build apriltag
 ###############################################################################
 
 # KHR
-cd "${PREFIX}/KHR" \
-  && mkdir -p "${PREFIX}/include/KHR" \
-  && ln -sf ${PREFIX}/KHR/khrplatform.h "${PREFIX}/include/KHR";
+mkdir -p "${PREFIX}/include/KHR" \
+  && ln -sf ${PREFIX}/src/KHR/khrplatform.h "${PREFIX}/include/KHR";
 
 # GLAD
-cd "${PREFIX}/glad" \
+cd ${PREFIX}/src/glad \
   && mkdir -p "${PREFIX}/include/glad" \
-  && ln -sf ${PREFIX}/glad/glad.h "${PREFIX}/include/glad" \
+  && ln -sf ${PREFIX}/src/glad/glad.h "${PREFIX}/include/glad" \
   && gcc -I${PREFIX}/include -c glad.c -o glad.o \
   && ar rcs libglad.a glad.o \
   && rm glad.o \
-  && mv ${PREFIX}/glad/libglad.a "${PREFIX}/lib/libglad.a";
+  && mv libglad.a "${PREFIX}/lib/libglad.a";
 
 # GLFW
 git_clone ${GLFW_TAG} https://github.com/glfw/glfw
@@ -204,4 +255,14 @@ cmake_build glfw
 
 # ASSIMP
 git_clone ${ASSIMP_TAG} https://github.com/assimp/assimp
-cmake_build assimp
+cd "${PREFIX}/src/assimp" || return
+mkdir -p build
+cd build || return
+cmake \
+  -DCMAKE_BUILD_TYPE=RELEASE \
+  -DCMAKE_PREFIX_PATH="${PREFIX}" \
+  -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+  -DBUILD_SHARED_LIBS=1 \
+  -DASSIMP_BUILD_ZLIB=1 \
+  ..
+make -j${NUM_CPU} && make install

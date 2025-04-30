@@ -10,34 +10,31 @@ help:
 		| awk 'BEGIN {FS = ":.*?## "}; \
 		{printf "%-20s%s\n", $$1, $$2}'
 
-setup:
+build: ## Build
 	@mkdir -p bin
 	@mkdir -p include
 	@mkdir -p lib
 	@mkdir -p log
 	@mkdir -p share
+	@bash build_deps.bash
 
 clean: ## Clean
 	@rm -rf bin
+	@rm -rf cmake
 	@rm -rf include
 	@rm -rf lib
 	@rm -rf log
 	@rm -rf share
-
-distclean:
-	@# utils
-	@rm -rf "$(SRC_PATH)/yaml-cpp/build"
-	@rm -rf "$(SRC_PATH)/gflags/build"
-	@rm -rf "$(SRC_PATH)/glog/build"
-	@# linear algebra
-	@rm -rf "$(SRC_PATH)/SuiteSparse/build"
-	@rm -rf "$(SRC_PATH)/eigen/build"
-	@rm -rf "$(SRC_PATH)/ceres-solver/build"
-	@# computer vision
-	@rm -rf "$(SRC_PATH)/opencv/build"
-	@rm -rf "$(SRC_PATH)/apriltag/build"
-	@# computer graphics
-	@rm -rf "$(SRC_PATH)/glfw/build"
-	@rm -rf "$(SRC_PATH)/assimp/build"
-
-install: setup apt_pkgs build_deps ## Install all dependencies
+	@rm -rf "$(SRC_PATH)/SuiteSparse"
+	@rm -rf "$(SRC_PATH)/apriltag-imgs"
+	@rm -rf "$(SRC_PATH)/apriltag"
+	@rm -rf "$(SRC_PATH)/assimp"
+	@rm -rf "$(SRC_PATH)/ceres-solver"
+	@rm -rf "$(SRC_PATH)/eigen.git"
+	@rm -rf "$(SRC_PATH)/gflags"
+	@rm -rf "$(SRC_PATH)/glfw"
+	@rm -rf "$(SRC_PATH)/glog"
+	@rm -rf "$(SRC_PATH)/lz4"
+	@rm -rf "$(SRC_PATH)/opencv"
+	@rm -rf "$(SRC_PATH)/stb"
+	@rm -rf "$(SRC_PATH)/yaml-cpp"

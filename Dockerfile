@@ -27,5 +27,14 @@ RUN cd ${XYZ_DIR}/third_party && ./build_deps.bash
 
 # Build xyz
 WORKDIR ${XYZ_DIR}
-COPY . .
+COPY src src
+COPY Makefile Makefile
+COPY config.mk config.mk
+RUN git clone https://gitlab.freedesktop.org/freetype/freetype.git \
+  && cd freetype \
+  && mkdir -p build \
+  && cd build \
+  && cmake -DCMAKE_PREFIX_PATH=$HOME/xyz/third_party .. \
+  && make install
+RUN apt-get install libssl-dev libyaml-dev
 RUN make libxyz
