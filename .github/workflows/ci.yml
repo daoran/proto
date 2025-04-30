@@ -6,11 +6,30 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    - name: Install dependencies
-      run: make third_party
+    - name: Load cached Docker image
+        id: load-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.docker-cache
+          key: docker-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            docker-${{ runner.os }}-
 
-    - name: Build libproto
-      run: make libxyz
+    - name: Load Docker image from cache if available
+      run: |
+        if [ -f /tmp/.docker-cache/image.tar ]; then
+          docker load -i /tmp/.docker-cache/image.tar
+        fi
 
-    - name: Run CI tests
-      run: make ci
+    - name: Build Docker image
+      run: |
+        make docker
+
+    - name: Save Docker image to cache
+      run: |
+        mkdir -p /tmp/.docker-cache
+        docker save myapp:latest -o /tmp/.docker-cache/image.tar
+
+    - name: Run unit tests inside Docker
+      run: |
+        docker run --rm xyz:latest bash -c "make ci"
