@@ -9,9 +9,60 @@ help:
 		{printf "%-16s%s\n", $$1, $$2}'
 
 third_party: ## Install dependencies
-	@git submodule init
-	@git submodule update
-	@make -s -C third_party install
+	@# Update apt
+	@sudo apt-get update -qq
+
+	@# Base dev tools
+	@sudo apt-get install -y -q \
+		build-essential \
+		pkg-config \
+		autoconf \
+		make \
+		cmake \
+		git \
+		mercurial \
+		g++ \
+		clang \
+		tcc \
+		vim \
+		vifm
+
+	@# Base packages
+	@sudo apt-get install -y -q \
+		libyaml-dev \
+		libssl-dev \
+		libfreetype-dev \
+		libfreetype6 \
+		libgl1-mesa-dev
+
+	@# Linear algebra base
+	@sudo apt-get install -y -q \
+		libomp-dev \
+		libmpfr-dev \
+		libblas-dev \
+		liblapack-dev \
+		liblapacke-dev \
+		libmetis-dev \
+		libsuitesparse-dev \
+		libceres-dev \
+		libeigen3-dev
+
+	@# Computer vision
+	@sudo apt-get install -y -q \
+		libopencv-dev \
+		libapriltag-dev \
+
+	@# Computer graphics base
+	@sudo apt-get install -y -q \
+		libx11-dev \
+		libwayland-dev \
+		libxkbcommon-dev \
+		libxrandr-dev \
+		libxinerama-dev \
+		libxcursor-dev \
+		libxi-dev \
+		libassimp-dev \
+		libglfw3-dev
 
 docs: ## Build docs
 	@livereload .
