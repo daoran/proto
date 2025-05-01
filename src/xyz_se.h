@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stb_ds.h>
+#include "stb_ds.h"
 
 #include "xyz.h"
 #include "xyz_cv.h"

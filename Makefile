@@ -39,6 +39,10 @@ $(BLD_DIR)/xyz_ceres.o: src/xyz_ceres.cpp Makefile
 		-o $(BLD_DIR)/$(basename $(notdir $<)).o \
 		-I/usr/include/eigen3
 
+$(BLD_DIR)/libglad.a:
+	@gcc -c src/glad/glad.c -o $(BLD_DIR)/glad.o \
+		&& ar rcs $(BLD_DIR)/libglad.a $(BLD_DIR)/glad.o
+
 $(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
 	@echo "AR [libxyz.a]"
 	@$(AR) $(ARFLAGS) \
@@ -46,7 +50,7 @@ $(BLD_DIR)/libxyz.a: $(LIBXYZ_OBJS)
 		$(LIBXYZ_OBJS) \
 		> /dev/null 2>&1
 
-libxyz: setup $(BLD_DIR)/libxyz.a  ## Build libxyz
+libxyz: setup $(BLD_DIR)/libglad.a $(BLD_DIR)/libxyz.a  ## Build libxyz
 
 install: ## Install libxyz
 	mkdir -p $(PREFIX)
