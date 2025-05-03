@@ -113,8 +113,7 @@ LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz_gui.o \
 	$(BLD_DIR)/xyz_voxel.o \
 	$(BLD_DIR)/xyz_kdtree.o \
-	$(BLD_DIR)/xyz_se.o \
-	$(BLD_DIR)/xyz_calib.o
+	$(BLD_DIR)/xyz_se.o
 
 
 # TESTS
@@ -133,6 +132,4 @@ TESTS := \
 	$(BLD_DIR)/test_voxel \
 	$(BLD_DIR)/test_xyz \
 	$(BLD_DIR)/test_kdtree \
-	$(BLD_DIR)/test_se \
-	$(BLD_DIR)/test_sim \
-	$(BLD_DIR)/test_calib
+	$(BLD_DIR)/test_se
