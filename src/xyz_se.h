@@ -1,27 +1,7 @@
 #pragma once
 
-// #include "stb_ds.h"
-
 #include "xyz.h"
 #include "xyz_cv.h"
-
-/*******************************************************************************
- * STATE ESTIMATION
- ******************************************************************************/
-
-#define POSITION_PARAM 1
-#define ROTATION_PARAM 2
-#define POSE_PARAM 3
-#define EXTRINSIC_PARAM 4
-#define FIDUCIAL_PARAM 5
-#define VELOCITY_PARAM 6
-#define IMU_BIASES_PARAM 7
-#define FEATURE_PARAM 8
-#define IDF_BEARING_PARAM 9
-#define IDF_POSITION_PARAM 10
-#define JOINT_PARAM 11
-#define CAMERA_PARAM 12
-#define TIME_DELAY_PARAM 13
 
 ///////////
 // UTILS //
@@ -36,6 +16,82 @@ int schur_complement(const real_t *H,
                      real_t *b_marg);
 
 int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
+
+//////////////
+// TIMELINE //
+//////////////
+
+#define CAMERA_EVENT 1
+#define IMU_EVENT 2
+#define FIDUCIAL_EVENT 3
+
+typedef struct camera_event_t {
+  timestamp_t ts;
+  int cam_idx;
+  char *image_path;
+
+  int num_features;
+  size_t *feature_ids;
+  real_t *keypoints;
+} camera_event_t;
+
+typedef struct imu_event_t {
+  timestamp_t ts;
+  real_t acc[3];
+  real_t gyr[3];
+} imu_event_t;
+
+typedef struct fiducial_event_t {
+  timestamp_t ts;
+  int cam_idx;
+  int num_corners;
+  int *tag_ids;
+  int *corner_indices;
+  real_t *object_points;
+  real_t *keypoints;
+} fiducial_event_t;
+
+union event_data_t {
+  camera_event_t camera;
+  imu_event_t imu;
+  fiducial_event_t fiducial;
+};
+
+typedef struct timeline_event_t {
+  int type;
+  timestamp_t ts;
+  union event_data_t data;
+} timeline_event_t;
+
+typedef struct timeline_t {
+  // Stats
+  int num_cams;
+  int num_imus;
+  int num_event_types;
+
+  // Events
+  timeline_event_t **events;
+  timestamp_t **events_timestamps;
+  int *events_lengths;
+  int *events_types;
+
+  // Timeline
+  size_t timeline_length;
+  timestamp_t *timeline_timestamps;
+  timeline_event_t ***timeline_events;
+  int *timeline_events_lengths;
+} timeline_t;
+
+void print_camera_event(const camera_event_t *event);
+void print_imu_event(const imu_event_t *event);
+void print_fiducial_event(const fiducial_event_t *event);
+
+timeline_t *timeline_malloc(void);
+void timeline_free(timeline_t *timeline);
+void timeline_form_timeline(timeline_t *tl);
+timeline_t *timeline_load_data(const char *data_dir,
+                               const int num_cams,
+                               const int num_imus);
 
 //////////////
 // POSITION //
@@ -343,59 +399,51 @@ void joint_print(const char *prefix, const joint_t *joint);
 // PARAMETERS //
 ////////////////
 
-// typedef struct param_hash_t {
-//   int64_t key;
-//   int param_type;
-//   void *param_ptr;
-// } param_hash_t;
-//
-// #define PARAM_HASH(HASH_NAME, KEY_TYPE, VALUE_TYPE)                            \
-//   typedef struct HASH_NAME {                                                   \
-//     KEY_TYPE key;                                                              \
-//     VALUE_TYPE *value;                                                         \
-//   } HASH_NAME;
+#define POSITION_PARAM 1
+#define ROTATION_PARAM 2
+#define POSE_PARAM 3
+#define EXTRINSIC_PARAM 4
+#define FIDUCIAL_PARAM 5
+#define VELOCITY_PARAM 6
+#define IMU_BIASES_PARAM 7
+#define FEATURE_PARAM 8
+#define IDF_BEARING_PARAM 9
+#define IDF_POSITION_PARAM 10
+#define JOINT_PARAM 11
+#define CAMERA_PARAM 12
+#define TIME_DELAY_PARAM 13
 
-// PARAM_HASH(pos_hash_t, timestamp_t, pos_t)
-// PARAM_HASH(rot_hash_t, timestamp_t, rot_t)
-// PARAM_HASH(pose_hash_t, timestamp_t, pose_t)
-// PARAM_HASH(velocity_hash_t, timestamp_t, velocity_t)
-// PARAM_HASH(imu_biases_hash_t, timestamp_t, imu_biases_t)
-// PARAM_HASH(feature_hash_t, size_t, feature_t)
-// PARAM_HASH(joint_hash_t, size_t, joint_t)
-// PARAM_HASH(extrinsic_hash_t, size_t, extrinsic_t)
-// PARAM_HASH(fiducial_hash_t, size_t, fiducial_t)
-// PARAM_HASH(camera_params_hash_t, size_t, camera_params_t)
-// PARAM_HASH(time_delay_hash_t, size_t, time_delay_t)
+typedef struct param_info_t {
+  real_t *data;
+  int idx;
+  int type;
+  int fix;
+} param_info_t;
 
-// typedef struct param_order_t {
-//   void *key;
-//   int idx;
-//   int type;
-//   int fix;
-// } param_order_t;
-
-// void param_order_free(param_order_t *hash);
 void param_type_string(const int param_type, char *s);
 size_t param_global_size(const int param_type);
 size_t param_local_size(const int param_type);
-// void param_order_print(const param_order_t *hash);
-// int param_order_exists(param_order_t **hash, real_t *data);
-// void param_order_add(param_order_t **hash,
-//                      const int param_type,
-//                      const int fix,
-//                      real_t *data,
-//                      int *col_idx);
-// void param_order_add_position(param_order_t **h, pos_t *p, int *c);
-// void param_order_add_rotation(param_order_t **h, rot_t *p, int *c);
-// void param_order_add_pose(param_order_t **h, pose_t *p, int *c);
-// void param_order_add_extrinsic(param_order_t **h, extrinsic_t *p, int *c);
-// void param_order_add_fiducial(param_order_t **h, fiducial_t *p, int *c);
-// void param_order_add_velocity(param_order_t **h, velocity_t *p, int *c);
-// void param_order_add_imu_biases(param_order_t **h, imu_biases_t *p, int *c);
-// void param_order_add_feature(param_order_t **h, feature_t *p, int *c);
-// void param_order_add_joint(param_order_t **h, joint_t *p, int *c);
-// void param_order_add_camera(param_order_t **h, camera_params_t *p, int *c);
-// void param_order_add_time_delay(param_order_t **h, time_delay_t *p, int *c);
+
+rbt_t *param_index_malloc(void);
+void param_index_free(rbt_t *param_index);
+void param_index_print(const rbt_t *param_index);
+bool param_index_exists(rbt_t *param_index, real_t *key);
+void param_index_add(rbt_t *param_index,
+                     const int param_type,
+                     const int fix,
+                     real_t *data,
+                     int *col_idx);
+void param_index_add_position(rbt_t *param_index, pos_t *p, int *c);
+void param_index_add_rotation(rbt_t *param_index, rot_t *p, int *c);
+void param_index_add_pose(rbt_t *param_index, pose_t *p, int *c);
+void param_index_add_extrinsic(rbt_t *param_index, extrinsic_t *p, int *c);
+void param_index_add_fiducial(rbt_t *param_index, fiducial_t *p, int *c);
+void param_index_add_velocity(rbt_t *param_index, velocity_t *p, int *c);
+void param_index_add_imu_biases(rbt_t *param_index, imu_biases_t *p, int *c);
+void param_index_add_feature(rbt_t *param_index, feature_t *p, int *c);
+void param_index_add_joint(rbt_t *param_index, joint_t *p, int *c);
+void param_index_add_camera(rbt_t *param_index, camera_params_t *p, int *c);
+void param_index_add_time_delay(rbt_t *param_index, time_delay_t *p, int *c);
 
 ////////////
 // FACTOR //
@@ -816,328 +864,276 @@ int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
 // MARGINALIZER //
 //////////////////
 
-#define MARG_FACTOR 1
-#define BA_FACTOR 2
-#define CAMERA_FACTOR 3
-#define IDF_FACTOR 4
-#define IMU_FACTOR 5
-#define CALIB_CAMERA_FACTOR 6
-#define CALIB_IMUCAM_FACTOR 7
+// #define MARG_FACTOR 1
+// #define BA_FACTOR 2
+// #define CAMERA_FACTOR 3
+// #define IDF_FACTOR 4
+// #define IMU_FACTOR 5
+// #define CALIB_CAMERA_FACTOR 6
+// #define CALIB_IMUCAM_FACTOR 7
 
-// #define MARG_TRACK(RHASH, MHASH, PARAM)                                        \
-//   if (PARAM->marginalize == 0) {                                               \
-//     hmput(RHASH, PARAM, PARAM);                                                \
-//   } else {                                                                     \
-//     hmput(MHASH, PARAM, PARAM);                                                \
-//   }
+enum param_enum_t {
+  MARG_FACTOR = 1,
+  BA_FACTOR = 2,
+  CAMERA_FACTOR = 3,
+  IDF_FACTOR = 4,
+  IMU_FACTOR = 5,
+  CALIB_CAMERA_FACTOR = 6,
+  CALIB_IMUCAM_FACTOR = 7,
+};
 
-// #define MARG_TRACK_FACTOR(PARAM, PARAM_TYPE)                                   \
-//   switch (PARAM_TYPE) {                                                        \
-//     case POSITION_PARAM:                                                       \
-//       MARG_TRACK(marg->r_positions, marg->m_positions, ((pos_t *) PARAM));     \
-//       break;                                                                   \
-//     case ROTATION_PARAM:                                                       \
-//       MARG_TRACK(marg->r_rotations, marg->m_rotations, ((rot_t *) PARAM));     \
-//       break;                                                                   \
-//     case POSE_PARAM:                                                           \
-//       MARG_TRACK(marg->r_poses, marg->m_poses, ((pose_t *) PARAM));            \
-//       break;                                                                   \
-//     case VELOCITY_PARAM:                                                       \
-//       MARG_TRACK(marg->r_velocities,                                           \
-//                  marg->m_velocities,                                           \
-//                  ((velocity_t *) PARAM));                                      \
-//       break;                                                                   \
-//     case IMU_BIASES_PARAM:                                                     \
-//       MARG_TRACK(marg->r_imu_biases,                                           \
-//                  marg->m_imu_biases,                                           \
-//                  ((imu_biases_t *) PARAM));                                    \
-//       break;                                                                   \
-//     case FEATURE_PARAM:                                                        \
-//       MARG_TRACK(marg->r_features, marg->m_features, ((feature_t *) PARAM));   \
-//       break;                                                                   \
-//     case FIDUCIAL_PARAM:                                                       \
-//       MARG_TRACK(marg->r_fiducials,                                            \
-//                  marg->m_fiducials,                                            \
-//                  ((fiducial_t *) PARAM));                                      \
-//       break;                                                                   \
-//     case EXTRINSIC_PARAM:                                                      \
-//       MARG_TRACK(marg->r_extrinsics,                                           \
-//                  marg->m_extrinsics,                                           \
-//                  ((extrinsic_t *) PARAM));                                     \
-//       break;                                                                   \
-//     case JOINT_PARAM:                                                          \
-//       MARG_TRACK(marg->r_joints, marg->m_joints, ((joint_t *) PARAM));         \
-//       break;                                                                   \
-//     case CAMERA_PARAM:                                                         \
-//       MARG_TRACK(marg->r_cam_params,                                           \
-//                  marg->m_cam_params,                                           \
-//                  ((camera_params_t *) PARAM));                                 \
-//       break;                                                                   \
-//     case TIME_DELAY_PARAM:                                                     \
-//       MARG_TRACK(marg->r_time_delays,                                          \
-//                  marg->m_time_delays,                                          \
-//                  ((time_delay_t *) PARAM));                                    \
-//       break;                                                                   \
-//     default:                                                                   \
-//       FATAL("Implementation Error!\n");                                        \
-//       break;                                                                   \
-//   }
-//
-// #define MARG_INDEX(HASH, PARAM_TYPE, PARAM_ORDER, COL_IDX, SZ, GZ, N)          \
-//   for (size_t i = 0; i < hmlen(HASH); i++) {                                   \
-//     real_t *data = HASH[i].value->data;                                        \
-//     const int fix = HASH[i].value->fix;                                        \
-//     if (fix == 0) {                                                            \
-//       SZ += param_local_size(PARAM_TYPE);                                      \
-//       GZ += param_global_size(PARAM_TYPE);                                     \
-//       N += 1;                                                                  \
-//     }                                                                          \
-//     param_order_add(&PARAM_ORDER, PARAM_TYPE, fix, data, COL_IDX);             \
-//   }
-//
-// #define MARG_PARAMS(MARG, HASH, PARAM_TYPE, PARAM_IDX, X0_IDX)                 \
-//   for (size_t i = 0; i < hmlen(HASH); i++) {                                   \
-//     const size_t param_size = param_global_size(PARAM_TYPE);                   \
-//     if (HASH[i].value->fix) {                                                  \
-//       continue;                                                                \
-//     }                                                                          \
-//     void *param = HASH[i].value;                                               \
-//     real_t *data = HASH[i].value->data;                                        \
-//                                                                                \
-//     MARG->param_types[PARAM_IDX] = PARAM_TYPE;                                 \
-//     MARG->param_ptrs[PARAM_IDX] = param;                                       \
-//     MARG->params[PARAM_IDX] = data;                                            \
-//     PARAM_IDX++;                                                               \
-//                                                                                \
-//     vec_copy(data, param_size, MARG->x0 + X0_IDX);                             \
-//     X0_IDX += param_size;                                                      \
-//   }
-//
-// #define MARG_H(MARG, FACTOR_TYPE, FACTORS, H, G, LOCAL_SIZE)                   \
-//   {                                                                            \
-//     list_node_t *node = FACTORS->first;                                        \
-//     while (node != NULL) {                                                     \
-//       FACTOR_TYPE *factor = (FACTOR_TYPE *) node->value;                       \
-//       solver_fill_hessian(marg->hash,                                          \
-//                           factor->num_params,                                  \
-//                           factor->params,                                      \
-//                           factor->jacs,                                        \
-//                           factor->r,                                           \
-//                           factor->r_size,                                      \
-//                           LOCAL_SIZE,                                          \
-//                           H,                                                   \
-//                           G);                                                  \
-//       node = node->next;                                                       \
-//     }                                                                          \
-//   }
-//
-// #define MARG_PARAM_HASH(PARAM_TYPE, HASH_NAME)                                 \
-//   typedef struct HASH_NAME {                                                   \
-//     void *key;                                                                 \
-//     PARAM_TYPE *value;                                                         \
-//   } HASH_NAME;
-//
-// MARG_PARAM_HASH(pos_t, marg_pos_t)
-// MARG_PARAM_HASH(rot_t, marg_rot_t)
-// MARG_PARAM_HASH(pose_t, marg_pose_t)
-// MARG_PARAM_HASH(velocity_t, marg_velocity_t)
-// MARG_PARAM_HASH(imu_biases_t, marg_imu_biases_t)
-// MARG_PARAM_HASH(feature_t, marg_feature_t)
-// MARG_PARAM_HASH(joint_t, marg_joint_t)
-// MARG_PARAM_HASH(extrinsic_t, marg_extrinsic_t)
-// MARG_PARAM_HASH(fiducial_t, marg_fiducial_t)
-// MARG_PARAM_HASH(camera_params_t, marg_camera_params_t)
-// MARG_PARAM_HASH(time_delay_t, marg_time_delay_t)
-//
-// typedef struct marg_factor_t {
-//   // Settings
-//   int debug;
-//   int cond_hessian;
-//
-//   // Flags
-//   int marginalized;
-//   int schur_complement_ok;
-//   int eigen_decomp_ok;
-//
-//   // parameters
-//   // -- Remain parameters
-//   marg_pos_t *r_positions;
-//   marg_rot_t *r_rotations;
-//   marg_pose_t *r_poses;
-//   marg_velocity_t *r_velocities;
-//   marg_imu_biases_t *r_imu_biases;
-//   marg_fiducial_t *r_fiducials;
-//   marg_joint_t *r_joints;
-//   marg_extrinsic_t *r_extrinsics;
-//   marg_feature_t *r_features;
-//   marg_camera_params_t *r_cam_params;
-//   marg_time_delay_t *r_time_delays;
-//   // -- Marginal parameters
-//   marg_pos_t *m_positions;
-//   marg_rot_t *m_rotations;
-//   marg_pose_t *m_poses;
-//   marg_velocity_t *m_velocities;
-//   marg_imu_biases_t *m_imu_biases;
-//   marg_feature_t *m_features;
-//   marg_fiducial_t *m_fiducials;
-//   marg_extrinsic_t *m_extrinsics;
-//   marg_joint_t *m_joints;
-//   marg_camera_params_t *m_cam_params;
-//   marg_time_delay_t *m_time_delays;
-//
-//   // Factors
-//   list_t *ba_factors;
-//   list_t *camera_factors;
-//   list_t *idf_factors;
-//   list_t *imu_factors;
-//   list_t *calib_camera_factors;
-//   list_t *calib_imucam_factors;
-//   struct marg_factor_t *marg_factor;
-//
-//   // Hessian, Jacobians and residuals
-//   param_order_t *hash;
-//   int m_size;
-//   int r_size;
-//
-//   real_t *x0;
-//   real_t *r0;
-//   real_t *J0;
-//   real_t *J0_inv;
-//   real_t *dchi;
-//   real_t *J0_dchi;
-//
-//   real_t *H;
-//   real_t *b;
-//   real_t *H_marg;
-//   real_t *b_marg;
-//
-//   // Parameters, residuals and Jacobians (needed by the solver)
-//   int num_params;
-//   int *param_types;
-//   void **param_ptrs;
-//   real_t **params;
-//   real_t *r;
-//   real_t **jacs;
-//
-//   // Profiling
-//   real_t time_hessian_form;
-//   real_t time_schur_complement;
-//   real_t time_hessian_decomp;
-//   real_t time_fejs;
-//   real_t time_total;
-// } marg_factor_t;
-//
+#define MARG_INDEX(PARAM_LIST,                                                 \
+                   PARAM_ENUM,                                                 \
+                   PARAM_TYPE,                                                 \
+                   PARAM_INDEX,                                                \
+                   COL_IDX,                                                    \
+                   SZ,                                                         \
+                   GZ,                                                         \
+                   N)                                                          \
+  {                                                                            \
+    list_node_t *node = PARAM_LIST->first;                                     \
+    while (node != NULL) {                                                     \
+      PARAM_TYPE *param = node->value;                                         \
+      real_t *data = param->data;                                              \
+      const int fix = param->fix;                                              \
+      if (fix == 0) {                                                          \
+        SZ += param_local_size(PARAM_ENUM);                                    \
+        GZ += param_global_size(PARAM_ENUM);                                   \
+        N += 1;                                                                \
+      }                                                                        \
+      param_index_add(PARAM_INDEX, PARAM_ENUM, fix, data, COL_IDX);            \
+    }                                                                          \
+  }
+
+#define MARG_PARAMS(MARG,                                                      \
+                    PARAM_LIST,                                                \
+                    PARAM_ENUM,                                                \
+                    PARAM_TYPE,                                                \
+                    PARAM_IDX,                                                 \
+                    X0_IDX)                                                    \
+  {                                                                            \
+    list_node_t *node = PARAM_LIST->first;                                     \
+    while (node != NULL) {                                                     \
+      PARAM_TYPE *param = node->value;                                         \
+      const size_t param_size = param_global_size(PARAM_ENUM);                 \
+      if (param->fix) {                                                        \
+        continue;                                                              \
+      }                                                                        \
+      MARG->param_types[PARAM_IDX] = PARAM_ENUM;                               \
+      MARG->param_ptrs[PARAM_IDX] = param;                                     \
+      MARG->params[PARAM_IDX] = param->data;                                   \
+      PARAM_IDX++;                                                             \
+                                                                               \
+      vec_copy(param->data, param_size, MARG->x0 + X0_IDX);                    \
+      X0_IDX += param_size;                                                    \
+    }                                                                          \
+  }
+
+#define MARG_H(MARG, FACTOR_TYPE, FACTORS, H, G, LOCAL_SIZE)                   \
+  {                                                                            \
+    list_node_t *node = FACTORS->first;                                        \
+    while (node != NULL) {                                                     \
+      FACTOR_TYPE *factor = (FACTOR_TYPE *) node->value;                       \
+      solver_fill_hessian(marg->param_index,                                          \
+                          factor->num_params,                                  \
+                          factor->params,                                      \
+                          factor->jacs,                                        \
+                          factor->r,                                           \
+                          factor->r_size,                                      \
+                          LOCAL_SIZE,                                          \
+                          H,                                                   \
+                          G);                                                  \
+      node = node->next;                                                       \
+    }                                                                          \
+  }
+
+typedef struct marg_factor_t {
+  // Settings
+  int debug;
+  int cond_hessian;
+
+  // Flags
+  int marginalized;
+  int schur_complement_ok;
+  int eigen_decomp_ok;
+
+  // parameters
+  // -- Remain parameters
+  list_t *r_positions;
+  list_t *r_rotations;
+  list_t *r_poses;
+  list_t *r_velocities;
+  list_t *r_imu_biases;
+  list_t *r_fiducials;
+  list_t *r_joints;
+  list_t *r_extrinsics;
+  list_t *r_features;
+  list_t *r_cam_params;
+  list_t *r_time_delays;
+  // -- Marginal parameters
+  list_t *m_positions;
+  list_t *m_rotations;
+  list_t *m_poses;
+  list_t *m_velocities;
+  list_t *m_imu_biases;
+  list_t *m_features;
+  list_t *m_fiducials;
+  list_t *m_extrinsics;
+  list_t *m_joints;
+  list_t *m_cam_params;
+  list_t *m_time_delays;
+
+  // Factors
+  list_t *ba_factors;
+  list_t *camera_factors;
+  list_t *idf_factors;
+  list_t *imu_factors;
+  list_t *calib_camera_factors;
+  list_t *calib_imucam_factors;
+  struct marg_factor_t *marg_factor;
+
+  // Hessian, Jacobians and residuals
+  rbt_t *param_index;
+  int m_size;
+  int r_size;
+
+  real_t *x0;
+  real_t *r0;
+  real_t *J0;
+  real_t *J0_inv;
+  real_t *dchi;
+  real_t *J0_dchi;
+
+  real_t *H;
+  real_t *b;
+  real_t *H_marg;
+  real_t *b_marg;
+
+  // Parameters, residuals and Jacobians (needed by the solver)
+  int num_params;
+  int *param_types;
+  void **param_ptrs;
+  real_t **params;
+  real_t *r;
+  real_t **jacs;
+
+  // Profiling
+  real_t time_hessian_form;
+  real_t time_schur_complement;
+  real_t time_hessian_decomp;
+  real_t time_fejs;
+  real_t time_total;
+} marg_factor_t;
+
 // marg_factor_t *marg_factor_malloc(void);
 // void marg_factor_free(marg_factor_t *marg);
 // void marg_factor_print_stats(const marg_factor_t *marg);
 // void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr);
 // void marg_factor_marginalize(marg_factor_t *marg);
 // int marg_factor_eval(void *marg_ptr);
-//
-// ////////////////
-// // DATA UTILS //
-// ////////////////
-//
-// pose_t *load_poses(const char *fp, int *num_poses);
-// int **assoc_pose_data(pose_t *gnd_poses,
-//                       size_t num_gnd_poses,
-//                       pose_t *est_poses,
-//                       size_t num_est_poses,
-//                       double threshold,
-//                       size_t *num_matches);
-//
-// ////////////
-// // SOLVER //
-// ////////////
-//
-// #define SOLVER_USE_SUITESPARSE
-//
-// #define SOLVER_EVAL_FACTOR_COMPACT(HASH,                                       \
-//                                    SV_SIZE,                                    \
-//                                    H,                                          \
-//                                    G,                                          \
-//                                    FACTOR_EVAL,                                \
-//                                    FACTOR_PTR,                                 \
-//                                    R,                                          \
-//                                    R_IDX)                                      \
-//   FACTOR_EVAL(FACTOR_PTR);                                                     \
-//   vec_copy(FACTOR_PTR->r, FACTOR_PTR->r_size, &R[R_IDX]);                      \
-//   R_IDX += FACTOR_PTR->r_size;                                                 \
-//   solver_fill_hessian(HASH,                                                    \
-//                       FACTOR_PTR->num_params,                                  \
-//                       FACTOR_PTR->params,                                      \
-//                       FACTOR_PTR->jacs,                                        \
-//                       FACTOR_PTR->r,                                           \
-//                       FACTOR_PTR->r_size,                                      \
-//                       SV_SIZE,                                                 \
-//                       H,                                                       \
-//                       G);
-//
-// typedef struct solver_t {
-//   // Settings
-//   int verbose;
-//   int max_iter;
-//   real_t lambda;
-//   real_t lambda_factor;
-//
-//   // Data
-//   param_order_t *hash;
-//   int linearize;
-//   int r_size;
-//   int sv_size;
-//   real_t *H_damped;
-//   real_t *H;
-//   real_t *g;
-//   real_t *r;
-//   real_t *dx;
-//
-//   // SuiteSparse
-// #ifdef SOLVER_USE_SUITESPARSE
-//   cholmod_common *common;
-// #endif
-//
-//   // Callbacks
-//   param_order_t *(*param_order_func)(const void *data,
-//                                      int *sv_size,
-//                                      int *r_size);
-//   void (*cost_func)(const void *data, real_t *r);
-//   void (*linearize_func)(const void *data,
-//                          const int sv_size,
-//                          param_order_t *hash,
-//                          real_t *H,
-//                          real_t *g,
-//                          real_t *r);
-//   void (*linsolve_func)(const void *data,
-//                         const int sv_size,
-//                         param_order_t *hash,
-//                         real_t *H,
-//                         real_t *g,
-//                         real_t *dx);
-// } solver_t;
-//
-// void solver_setup(solver_t *solver);
-// void solver_print_param_order(const solver_t *solver);
-// real_t solver_cost(const solver_t *solver, const void *data);
-// void solver_fill_jacobian(param_order_t *hash,
-//                           int num_params,
-//                           real_t **params,
-//                           real_t **jacs,
-//                           real_t *r,
-//                           int r_size,
-//                           int sv_size,
-//                           int J_row_idx,
-//                           real_t *J,
-//                           real_t *g);
-// void solver_fill_hessian(param_order_t *hash,
-//                          int num_params,
-//                          real_t **params,
-//                          real_t **jacs,
-//                          real_t *r,
-//                          int r_size,
-//                          int sv_size,
-//                          real_t *H,
-//                          real_t *g);
-// real_t **solver_params_copy(const solver_t *solver);
+
+////////////////
+// DATA UTILS //
+////////////////
+
+pose_t *load_poses(const char *fp, int *num_poses);
+int **assoc_pose_data(pose_t *gnd_poses,
+                      size_t num_gnd_poses,
+                      pose_t *est_poses,
+                      size_t num_est_poses,
+                      double threshold,
+                      size_t *num_matches);
+
+////////////
+// SOLVER //
+////////////
+
+#define SOLVER_USE_SUITESPARSE
+
+#define SOLVER_EVAL_FACTOR_COMPACT(HASH,                                       \
+                                   SV_SIZE,                                    \
+                                   H,                                          \
+                                   G,                                          \
+                                   FACTOR_EVAL,                                \
+                                   FACTOR_PTR,                                 \
+                                   R,                                          \
+                                   R_IDX)                                      \
+  FACTOR_EVAL(FACTOR_PTR);                                                     \
+  vec_copy(FACTOR_PTR->r, FACTOR_PTR->r_size, &R[R_IDX]);                      \
+  R_IDX += FACTOR_PTR->r_size;                                                 \
+  solver_fill_hessian(HASH,                                                    \
+                      FACTOR_PTR->num_params,                                  \
+                      FACTOR_PTR->params,                                      \
+                      FACTOR_PTR->jacs,                                        \
+                      FACTOR_PTR->r,                                           \
+                      FACTOR_PTR->r_size,                                      \
+                      SV_SIZE,                                                 \
+                      H,                                                       \
+                      G);
+
+typedef struct solver_t {
+  // Settings
+  int verbose;
+  int max_iter;
+  real_t lambda;
+  real_t lambda_factor;
+
+  // Data
+  rbt_t *param_index;
+  int linearize;
+  int r_size;
+  int sv_size;
+  real_t *H_damped;
+  real_t *H;
+  real_t *g;
+  real_t *r;
+  real_t *dx;
+
+  // SuiteSparse
+#ifdef SOLVER_USE_SUITESPARSE
+  cholmod_common *common;
+#endif
+
+  // Callbacks
+  rbt_t *(*param_index_func)(const void *data, int *sv_size, int *r_size);
+  void (*cost_func)(const void *data, real_t *r);
+  void (*linearize_func)(const void *data,
+                         const int sv_size,
+                         rbt_t *hash,
+                         real_t *H,
+                         real_t *g,
+                         real_t *r);
+  void (*linsolve_func)(const void *data,
+                        const int sv_size,
+                        rbt_t *hash,
+                        real_t *H,
+                        real_t *g,
+                        real_t *dx);
+} solver_t;
+
+void solver_setup(solver_t *solver);
+void solver_print_param_order(const solver_t *solver);
+real_t solver_cost(const solver_t *solver, const void *data);
+void solver_fill_jacobian(rbt_t *param_index,
+                          int num_params,
+                          real_t **params,
+                          real_t **jacs,
+                          real_t *r,
+                          int r_size,
+                          int sv_size,
+                          int J_row_idx,
+                          real_t *J,
+                          real_t *g);
+void solver_fill_hessian(rbt_t *param_index,
+                         int num_params,
+                         real_t **params,
+                         real_t **jacs,
+                         real_t *r,
+                         int r_size,
+                         int sv_size,
+                         real_t *H,
+                         real_t *g);
+real_t **solver_params_copy(const solver_t *solver);
 // void solver_params_restore(solver_t *solver, real_t **x);
 // void solver_params_free(const solver_t *solver, real_t **x);
 // void solver_update(solver_t *solver, real_t *dx, int sv_size);

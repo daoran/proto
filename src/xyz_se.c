@@ -1,11 +1,6 @@
+#include <inttypes.h>
+
 #include "xyz_se.h"
-
-// #define STB_DS_IMPLEMENTATION
-// #include "stb_ds.h"
-
-/******************************************************************************
- * STATE ESTIMATION
- *****************************************************************************/
 
 ///////////
 // UTILS //
@@ -100,6 +95,452 @@ int shannon_entropy(const real_t *covar, const int m, real_t *entropy) {
   *entropy = 0.5 * log(k * covar_det);
 
   return 0;
+}
+
+//////////////
+// TIMELINE //
+//////////////
+
+/**
+ * Sort timestamps `timestamps` of length `n` with insertion sort.
+ */
+static void timestamps_insertion_sort(timestamp_t *timestamps, const size_t n) {
+  for (size_t i = 1; i < n; i++) {
+    timestamp_t key = timestamps[i];
+    size_t j = i - 1;
+
+    while (j >= 0 && timestamps[j] > key) {
+      timestamps[j + 1] = timestamps[j];
+      j = j - 1;
+    }
+    timestamps[j + 1] = key;
+  }
+}
+
+/**
+ * This function only adds unique timestamps to `set` if it does not already exists.
+ */
+static void timestamps_unique(timestamp_t *set,
+                              size_t *set_len,
+                              const timestamp_t *timestamps,
+                              const size_t num_timestamps) {
+  for (size_t i = 0; i < num_timestamps; i++) {
+    const timestamp_t ts_k = timestamps[i];
+
+    // Check duplicate in set
+    int dup = 0;
+    for (size_t j = 0; j < *set_len; j++) {
+      if (set[j] == ts_k) {
+        dup = 1;
+        break;
+      }
+    }
+
+    // Add to set if no duplicate
+    if (dup == 0) {
+      set[*set_len] = ts_k;
+      (*set_len)++;
+    }
+  }
+
+  // Sort timestamps (just to be sure)
+  timestamps_insertion_sort(set, *set_len);
+}
+
+/**
+ * Print camera event.
+ */
+void print_camera_event(const camera_event_t *event) {
+  printf("camera_event:\n");
+  printf("  ts: %ld\n", event->ts);
+  printf("  cam_idx: %d\n", event->cam_idx);
+  if (event->image_path) {
+    printf("  image_path: %s\n", event->image_path);
+  }
+  printf("\n");
+  printf("  num_features: %d\n", event->num_features);
+  printf("  features: [\n");
+  for (size_t i = 0; i < event->num_features; i++) {
+    const size_t feature_id = event->feature_ids[i];
+    const real_t *kps = &event->keypoints[i * 2 + 0];
+    printf("    %zu: [%.2f, %.2f]\n", feature_id, kps[0], kps[1]);
+  }
+  printf("  ]\n");
+}
+
+/**
+ * Print IMU event.
+ */
+void print_imu_event(const imu_event_t *event) {
+  printf("imu_event:\n");
+  printf("  ts: %ld\n", event->ts);
+  printf("  acc: [%.4f, %.4f, %.4f]\n",
+         event->acc[0],
+         event->acc[1],
+         event->acc[2]);
+  printf("  gyr: [%.4f, %.4f, %.4f]\n",
+         event->gyr[0],
+         event->gyr[1],
+         event->gyr[2]);
+  printf("\n");
+}
+
+/**
+ * Print Fiducial event.
+ */
+void print_fiducial_event(const fiducial_event_t *event) {
+  printf("fiducial_event:\n");
+  printf("  ts: %ld\n", event->ts);
+  printf("  cam_idx: %d\n", event->cam_idx);
+  printf("  num_corners: %d\n", event->num_corners);
+  printf("\n");
+  printf("  #tag_id, corner_idx, kp_x, kp_y, p_x, p_y, p_z\n");
+  for (int i = 0; i < event->num_corners; i++) {
+    const int tag_id = event->tag_ids[i];
+    const int corner_idx = event->corner_indices[i];
+    printf("  ");
+    printf("%d, ", tag_id);
+    printf("%d, ", corner_idx);
+    printf("%.2f, ", event->keypoints[i * 2 + 0]);
+    printf("%.2f, ", event->keypoints[i * 2 + 1]);
+    printf("%.2f, ", event->object_points[i * 3 + 0]);
+    printf("%.2f, ", event->object_points[i * 3 + 1]);
+    printf("%.2f", event->object_points[i * 3 + 2]);
+    printf("\n");
+  }
+  printf("\n");
+}
+
+/**
+ * Malloc timeline.
+ */
+timeline_t *timeline_malloc(void) {
+  timeline_t *timeline = malloc(sizeof(timeline_t) * 1);
+
+  // Stats
+  timeline->num_cams = 0;
+  timeline->num_imus = 0;
+  timeline->num_event_types = 0;
+
+  // Events
+  timeline->events = NULL;
+  timeline->events_timestamps = NULL;
+  timeline->events_lengths = NULL;
+  timeline->events_types = NULL;
+
+  // Timeline
+  timeline->timeline_length = 0;
+  timeline->timeline_timestamps = 0;
+  timeline->timeline_events = 0;
+  timeline->timeline_events_lengths = 0;
+
+  return timeline;
+}
+
+/**
+ * Free timeline.
+ */
+void timeline_free(timeline_t *timeline) {
+  // Pre-check
+  if (timeline == NULL) {
+    return;
+  }
+
+  // Free events
+  for (size_t type_idx = 0; type_idx < timeline->num_event_types; type_idx++) {
+    for (int k = 0; k < timeline->events_lengths[type_idx]; k++) {
+      timeline_event_t *event = &timeline->events[type_idx][k];
+      if (event == NULL) {
+        continue;
+      }
+
+      switch (event->type) {
+        case CAMERA_EVENT:
+          free(event->data.camera.image_path);
+          free(event->data.camera.keypoints);
+          break;
+        case IMU_EVENT:
+          // Do nothing
+          break;
+        case FIDUCIAL_EVENT:
+          free(event->data.fiducial.tag_ids);
+          free(event->data.fiducial.corner_indices);
+          free(event->data.fiducial.object_points);
+          free(event->data.fiducial.keypoints);
+          break;
+      }
+    }
+    free(timeline->events[type_idx]);
+    free(timeline->events_timestamps[type_idx]);
+  }
+  free(timeline->events);
+  free(timeline->events_timestamps);
+  free(timeline->events_lengths);
+  free(timeline->events_types);
+
+  // Free timeline
+  free(timeline->timeline_timestamps);
+  for (int k = 0; k < timeline->timeline_length; k++) {
+    free(timeline->timeline_events[k]);
+  }
+  free(timeline->timeline_events);
+  free(timeline->timeline_events_lengths);
+
+  // Free timeline
+  free(timeline);
+}
+
+// /**
+//  * Load timeline fiducial data.
+//  */
+// timeline_event_t *timeline_load_fiducial(const char *data_dir,
+//                                          const int cam_idx,
+//                                          int *num_events) {
+//   // Load fiducial files
+//   *num_events = 0;
+//   char **files = list_files(data_dir, num_events);
+//
+//   // Exit if no data
+//   if (*num_events == 0) {
+//     for (int view_idx = 0; view_idx < *num_events; view_idx++) {
+//       free(files[view_idx]);
+//     }
+//     free(files);
+//     return NULL;
+//   }
+//
+//   // Load fiducial events
+//   timeline_event_t *events = malloc(sizeof(timeline_event_t) * *num_events);
+//
+//   for (int view_idx = 0; view_idx < *num_events; view_idx++) {
+//     // Load aprilgrid
+//     aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
+//
+//     // Get aprilgrid measurements
+//     const timestamp_t ts = grid->timestamp;
+//     const int num_corners = grid->corners_detected;
+//     int *tag_ids = malloc(sizeof(int) * num_corners);
+//     int *corner_indices = malloc(sizeof(int) * num_corners);
+//     real_t *kps = malloc(sizeof(real_t) * num_corners * 2);
+//     real_t *pts = malloc(sizeof(real_t) * num_corners * 3);
+//     aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
+//
+//     // Create event
+//     events[view_idx].type = FIDUCIAL_EVENT;
+//     events[view_idx].ts = ts;
+//     events[view_idx].data.fiducial.ts = ts;
+//     events[view_idx].data.fiducial.cam_idx = cam_idx;
+//     events[view_idx].data.fiducial.num_corners = num_corners;
+//     events[view_idx].data.fiducial.corner_indices = corner_indices;
+//     events[view_idx].data.fiducial.tag_ids = tag_ids;
+//     events[view_idx].data.fiducial.object_points = pts;
+//     events[view_idx].data.fiducial.keypoints = kps;
+//
+//     // Clean up
+//     free(files[view_idx]);
+//     aprilgrid_free(grid);
+//   }
+//   free(files);
+//
+//   return events;
+// }
+
+/**
+ * Load timeline IMU data.
+ */
+timeline_event_t *timeline_load_imu(const char *csv_path, int *num_events) {
+  // Open file for loading
+  const int num_rows = file_rows(csv_path);
+  FILE *fp = fopen(csv_path, "r");
+  if (fp == NULL) {
+    FATAL("Failed to open [%s]!\n", csv_path);
+  }
+  skip_line(fp);
+
+  // Malloc
+  assert(num_rows > 0);
+  *num_events = num_rows - 1;
+  timeline_event_t *events = malloc(sizeof(timeline_event_t) * *num_events);
+
+  // Parse file
+  for (size_t k = 0; k < *num_events; k++) {
+    // Parse line
+    timestamp_t ts = 0;
+    double w[3] = {0};
+    double a[3] = {0};
+    int retval = fscanf(fp,
+                        "%" SCNd64 ",%lf,%lf,%lf,%lf,%lf,%lf",
+                        &ts,
+                        &w[0],
+                        &w[1],
+                        &w[2],
+                        &a[0],
+                        &a[1],
+                        &a[2]);
+    if (retval != 7) {
+      FATAL("Failed to parse line in [%s]\n", csv_path);
+    }
+
+    // Add data
+    events[k].type = IMU_EVENT;
+    events[k].ts = ts;
+    events[k].data.imu.ts = ts;
+    events[k].data.imu.acc[0] = a[0];
+    events[k].data.imu.acc[1] = a[1];
+    events[k].data.imu.acc[2] = a[2];
+    events[k].data.imu.gyr[0] = w[0];
+    events[k].data.imu.gyr[1] = w[1];
+    events[k].data.imu.gyr[2] = w[2];
+  }
+  fclose(fp);
+
+  return events;
+}
+
+/**
+ * Load events.
+ */
+static void timeline_load_events(timeline_t *timeline, const char *data_dir) {
+  // Load events
+  const int num_event_types = timeline->num_event_types;
+  timeline_event_t **events =
+      malloc(sizeof(timeline_event_t *) * num_event_types);
+  int *events_lengths = calloc(num_event_types, sizeof(int));
+  int *events_types = calloc(num_event_types, sizeof(int));
+  timestamp_t **events_timestamps =
+      malloc(sizeof(timestamp_t *) * num_event_types);
+  int type_idx = 0;
+
+  // -- Load fiducial events
+  // for (int cam_idx = 0; cam_idx < timeline->num_cams; cam_idx++) {
+  //   // Form events
+  //   int num_events = 0;
+  //   char dir[1024] = {0};
+  //   sprintf(dir, "%s/cam%d", data_dir, cam_idx);
+  //   events[type_idx] = timeline_load_fiducial(dir, cam_idx, &num_events);
+  //   events_lengths[type_idx] = num_events;
+  //   events_types[type_idx] = FIDUCIAL_EVENT;
+  //
+  //   // Form timestamps
+  //   events_timestamps[type_idx] = calloc(num_events, sizeof(timestamp_t));
+  //   for (int k = 0; k < num_events; k++) {
+  //     events_timestamps[type_idx][k] = events[type_idx][k].ts;
+  //   }
+  //
+  //   // Update
+  //   type_idx++;
+  // }
+
+  // -- Load imu events
+  for (int imu_idx = 0; imu_idx < timeline->num_imus; imu_idx++) {
+    // Form events
+    int num_events = 0;
+    char csv_path[1024] = {0};
+    sprintf(csv_path, "%s/imu%d/data.csv", data_dir, imu_idx);
+    events[type_idx] = timeline_load_imu(csv_path, &num_events);
+    events_lengths[type_idx] = num_events;
+    events_types[type_idx] = IMU_EVENT;
+
+    // Form timestamps
+    events_timestamps[type_idx] = calloc(num_events, sizeof(timestamp_t));
+    for (int k = 0; k < num_events; k++) {
+      events_timestamps[type_idx][k] = events[type_idx][k].ts;
+    }
+
+    // Update
+    type_idx++;
+  }
+
+  // Set timeline events
+  timeline->events = events;
+  timeline->events_timestamps = events_timestamps;
+  timeline->events_lengths = events_lengths;
+  timeline->events_types = events_types;
+}
+
+/**
+ * Form timeline.
+ */
+void timeline_form_timeline(timeline_t *tl) {
+  // Determine timeline timestamps
+  int max_timeline_length = 0;
+  for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {
+    max_timeline_length += tl->events_lengths[type_idx];
+  }
+
+  tl->timeline_length = 0;
+  tl->timeline_timestamps = calloc(max_timeline_length, sizeof(timestamp_t));
+  for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {
+    timestamps_unique(tl->timeline_timestamps,
+                      &tl->timeline_length,
+                      tl->events_timestamps[type_idx],
+                      tl->events_lengths[type_idx]);
+  }
+
+  // Form timeline events
+  tl->timeline_events =
+      calloc(tl->timeline_length, sizeof(timeline_event_t **));
+  tl->timeline_events_lengths = calloc(tl->timeline_length, sizeof(int));
+
+  int *indices = calloc(tl->num_event_types, sizeof(int));
+  for (int k = 0; k < tl->timeline_length; k++) {
+    // Allocate memory
+    tl->timeline_events[k] =
+        calloc(tl->num_event_types, sizeof(timeline_event_t *));
+
+    // Add events at k
+    int k_len = 0; // Number of events at k
+    for (int type_idx = 0; type_idx < tl->num_event_types; type_idx++) {
+      // Find timestamp index
+      int ts_found = 0;
+      int ts_idx = 0;
+      for (int i = indices[type_idx]; i < tl->events_lengths[type_idx]; i++) {
+        timeline_event_t *event = &tl->events[type_idx][i];
+        if (event->ts == tl->timeline_timestamps[k]) {
+          indices[type_idx] = i;
+          ts_found = 1;
+          ts_idx = i;
+          break;
+        } else if (event->ts > tl->timeline_timestamps[k]) {
+          break;
+        }
+      }
+
+      // Add event to timeline
+      if (ts_found) {
+        tl->timeline_events[k][k_len] = &tl->events[type_idx][ts_idx];
+        k_len++;
+      }
+    }
+
+    // Set number of events at timestep k
+    tl->timeline_events_lengths[k] = k_len;
+  }
+
+  // Clean-up
+  free(indices);
+}
+
+/**
+ * Load timeline
+ */
+timeline_t *timeline_load_data(const char *data_dir,
+                               const int num_cams,
+                               const int num_imus) {
+  assert(num_cams >= 0);
+  assert(num_imus >= 0 && num_imus <= 1);
+
+  // Form timeline
+  timeline_t *timeline = timeline_malloc();
+  timeline->num_cams = num_cams;
+  timeline->num_imus = num_imus;
+  timeline->num_event_types = num_cams + num_imus;
+  // -- Events
+  timeline_load_events(timeline, data_dir);
+  // -- Timeline
+  timeline_form_timeline(timeline);
+
+  return timeline;
 }
 
 //////////////
@@ -1229,11 +1670,6 @@ void joint_print(const char *prefix, const joint_t *joint) {
 // PARAMETERS //
 ////////////////
 
-// /**
-//  * Free parameter order.
-//  */
-// void param_order_free(param_order_t *hash) { hmfree(hash); }
-
 /**
  * Return parameter type as a string
  */
@@ -1378,122 +1814,151 @@ size_t param_local_size(const int param_type) {
   return param_size;
 }
 
-// /**
-//  * Print parameter order.
-//  */
-// void param_order_print(const param_order_t *hash) {
-//   for (int idx = 0; idx < hmlen(hash); idx++) {
-//     const int param_type = hash[idx].type;
-//     const int col_idx = hash[idx].idx;
-//     if (col_idx != -1) {
-//       char s[100] = {0};
-//       param_type_string(param_type, s);
-//       printf("param[%d]: %s, idx: %d\n", idx, s, col_idx);
-//     }
-//   }
-// }
-//
-// /**
-//  * Check if param has already been added.
-//  */
-// int param_order_exists(param_order_t **hash, real_t *data) {
-//   return hmgetp_null(*hash, data) != NULL;
-// }
+/**
+ * Malloc param index.
+ */
+rbt_t *param_index_malloc(void) { return rbt_malloc(default_cmp); }
 
-// /**
-//  * Add parameter to hash
-//  */
-// void param_order_add(param_order_t **hash,
-//                      const int param_type,
-//                      const int fix,
-//                      real_t *data,
-//                      int *col_idx) {
-//   if (fix == 0) {
-//     param_order_t kv = {data, *col_idx, param_type, fix};
-//     hmputs(*hash, kv);
-//     *col_idx += param_local_size(param_type);
-//   } else {
-//     param_order_t kv = {data, -1, param_type, fix};
-//     hmputs(*hash, kv);
-//   }
-// }
-//
-// /** Add position parameter **/
-// void param_order_add_position(param_order_t **h, pos_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, POSITION_PARAM, fix, data, c);
-// }
-//
-// /** Add rotation parameter **/
-// void param_order_add_rotation(param_order_t **h, rot_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, ROTATION_PARAM, fix, data, c);
-// }
-//
-// /** Add pose parameter **/
-// void param_order_add_pose(param_order_t **h, pose_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, POSE_PARAM, fix, data, c);
-// }
-//
-// /** Add extrinsic parameter **/
-// void param_order_add_extrinsic(param_order_t **h, extrinsic_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, EXTRINSIC_PARAM, fix, data, c);
-// }
-//
-// /** Add fiducial parameter **/
-// void param_order_add_fiducial(param_order_t **h, fiducial_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, FIDUCIAL_PARAM, fix, data, c);
-// }
-//
-// /** Add velocity parameter **/
-// void param_order_add_velocity(param_order_t **h, velocity_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, VELOCITY_PARAM, fix, data, c);
-// }
-//
-// /** Add IMU biases parameter **/
-// void param_order_add_imu_biases(param_order_t **h, imu_biases_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, IMU_BIASES_PARAM, fix, data, c);
-// }
-//
-// /** Add feature parameter **/
-// void param_order_add_feature(param_order_t **h, feature_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, FEATURE_PARAM, fix, data, c);
-// }
-//
-// /** Add joint parameter **/
-// void param_order_add_joint(param_order_t **h, joint_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, JOINT_PARAM, fix, data, c);
-// }
-//
-// /** Add camera parameter **/
-// void param_order_add_camera(param_order_t **h, camera_params_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, CAMERA_PARAM, fix, data, c);
-// }
-//
-// /** Add time delay parameter **/
-// void param_order_add_time_delay(param_order_t **h, time_delay_t *p, int *c) {
-//   void *data = p->data;
-//   int fix = p->fix || p->marginalize;
-//   param_order_add(h, TIME_DELAY_PARAM, fix, data, c);
-// }
+/**
+ * Free param index.
+ */
+void param_index_free(rbt_t *param_index) {
+  const size_t n = rbt_size(param_index);
+  arr_t *keys = arr_malloc(n);
+  rbt_keys(param_index, keys);
+
+  for (size_t i = 0; i < n; ++i) {
+    free(rbt_search(param_index, keys->data[i]));
+  }
+  rbt_free(param_index);
+}
+
+/**
+ * Print param index.
+ */
+void param_index_print(const rbt_t *param_orders) {
+  for (int i = 0; i < rbt_size(param_orders); ++i) {
+    param_info_t *param = rbt_select(param_orders, i);
+    const int param_type = param->type;
+    const int col_idx = param->idx;
+    if (col_idx != -1) {
+      char s[100] = {0};
+      param_type_string(param_type, s);
+      printf("param[%d]: %s, idx: %d\n", i, s, col_idx);
+    }
+  }
+}
+
+/**
+ * Check if param has already been added.
+ */
+bool param_index_exists(rbt_t *param_index, real_t *key) {
+  return rbt_contains(param_index, key);
+}
+
+/**
+ * Add parameter to hash
+ */
+void param_index_add(rbt_t *param_index,
+                     const int param_type,
+                     const int fix,
+                     real_t *data,
+                     int *col_idx) {
+  if (fix == 0) {
+    param_info_t *param_meta = malloc(sizeof(param_info_t));
+    param_meta->data = data;
+    param_meta->idx = *col_idx;
+    param_meta->type = param_type;
+    param_meta->fix = fix;
+    rbt_insert(param_index, data, param_meta);
+    *col_idx += param_local_size(param_type);
+
+  } else {
+    param_info_t *param_meta = malloc(sizeof(param_info_t));
+    param_meta->data = data;
+    param_meta->idx = -1;
+    param_meta->type = param_type;
+    param_meta->fix = fix;
+    rbt_insert(param_index, data, param_meta);
+  }
+}
+
+/** Add position parameter **/
+void param_index_add_position(rbt_t *param_index, pos_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, POSITION_PARAM, fix, data, c);
+}
+
+/** Add rotation parameter **/
+void param_index_add_rotation(rbt_t *param_index, rot_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, ROTATION_PARAM, fix, data, c);
+}
+
+/** Add pose parameter **/
+void param_index_add_pose(rbt_t *param_index, pose_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, POSE_PARAM, fix, data, c);
+}
+
+/** Add extrinsic parameter **/
+void param_index_add_extrinsic(rbt_t *param_index, extrinsic_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, EXTRINSIC_PARAM, fix, data, c);
+}
+
+/** Add fiducial parameter **/
+void param_index_add_fiducial(rbt_t *param_index, fiducial_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, FIDUCIAL_PARAM, fix, data, c);
+}
+
+/** Add velocity parameter **/
+void param_index_add_velocity(rbt_t *param_index, velocity_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, VELOCITY_PARAM, fix, data, c);
+}
+
+/** Add IMU biases parameter **/
+void param_index_add_imu_biases(rbt_t *param_index, imu_biases_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, IMU_BIASES_PARAM, fix, data, c);
+}
+
+/** Add feature parameter **/
+void param_index_add_feature(rbt_t *param_index, feature_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, FEATURE_PARAM, fix, data, c);
+}
+
+/** Add joint parameter **/
+void param_index_add_joint(rbt_t *param_index, joint_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, JOINT_PARAM, fix, data, c);
+}
+
+/** Add camera parameter **/
+void param_index_add_camera(rbt_t *param_index, camera_params_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, CAMERA_PARAM, fix, data, c);
+}
+
+/** Add time delay parameter **/
+void param_index_add_time_delay(rbt_t *param_index, time_delay_t *p, int *c) {
+  void *data = p->data;
+  int fix = p->fix || p->marginalize;
+  param_index_add(param_index, TIME_DELAY_PARAM, fix, data, c);
+}
 
 ////////////
 // FACTOR //
@@ -3890,1019 +4355,1141 @@ error:
   return 0;
 }
 
-// //////////////////
-// // MARGINALIZER //
-// //////////////////
-//
-// /**
-//  * Malloc marginalization factor.
-//  */
-// marg_factor_t *marg_factor_malloc(void) {
-//   marg_factor_t *marg = malloc(sizeof(marg_factor_t) * 1);
-//
-//   // Settings
-//   marg->debug = 1;
-//   marg->cond_hessian = 1;
-//
-//   // Flags
-//   marg->marginalized = 0;
-//   marg->schur_complement_ok = 0;
-//   marg->eigen_decomp_ok = 0;
-//
-//   // Parameters
-//   // -- Remain parameters
-//   marg->r_positions = NULL;
-//   marg->r_rotations = NULL;
-//   marg->r_poses = NULL;
-//   marg->r_velocities = NULL;
-//   marg->r_imu_biases = NULL;
-//   marg->r_fiducials = NULL;
-//   marg->r_joints = NULL;
-//   marg->r_extrinsics = NULL;
-//   marg->r_features = NULL;
-//   marg->r_cam_params = NULL;
-//   marg->r_time_delays = NULL;
-//   // -- Marginal parameters
-//   marg->m_positions = NULL;
-//   marg->m_rotations = NULL;
-//   marg->m_poses = NULL;
-//   marg->m_velocities = NULL;
-//   marg->m_imu_biases = NULL;
-//   marg->m_fiducials = NULL;
-//   marg->m_joints = NULL;
-//   marg->m_extrinsics = NULL;
-//   marg->m_features = NULL;
-//   marg->m_cam_params = NULL;
-//   marg->m_time_delays = NULL;
-//
-//   // Factors
-//   marg->ba_factors = list_malloc();
-//   marg->camera_factors = list_malloc();
-//   marg->idf_factors = list_malloc();
-//   marg->imu_factors = list_malloc();
-//   marg->calib_camera_factors = list_malloc();
-//   marg->calib_imucam_factors = list_malloc();
-//   marg->marg_factor = NULL;
-//
-//   // Hessian and residuals
-//   marg->hash = NULL;
-//   marg->m_size = 0;
-//   marg->r_size = 0;
-//
-//   marg->x0 = NULL;
-//   marg->r0 = NULL;
-//   marg->J0 = NULL;
-//   marg->dchi = NULL;
-//   marg->J0_dchi = NULL;
-//
-//   marg->J0 = NULL;
-//   marg->J0_inv = NULL;
-//   marg->H = NULL;
-//   marg->b = NULL;
-//   marg->H_marg = NULL;
-//   marg->b_marg = NULL;
-//
-//   // Parameters, residuals and Jacobians
-//   marg->num_params = 0;
-//   marg->param_types = NULL;
-//   marg->params = NULL;
-//   marg->r = NULL;
-//   marg->jacs = NULL;
-//
-//   // Profiling
-//   marg->time_hessian_form = 0;
-//   marg->time_schur_complement = 0;
-//   marg->time_hessian_decomp = 0;
-//   marg->time_fejs = 0;
-//   marg->time_total = 0;
-//
-//   return marg;
-// }
-//
-// /**
-//  * Free marginalization factor.
-//  */
-// void marg_factor_free(marg_factor_t *marg) {
-//   if (marg == NULL) {
-//     return;
-//   }
-//
-//   // Parameters
-//   // -- Remain parameters
-//   hmfree(marg->r_positions);
-//   hmfree(marg->r_rotations);
-//   hmfree(marg->r_poses);
-//   hmfree(marg->r_velocities);
-//   hmfree(marg->r_imu_biases);
-//   hmfree(marg->r_features);
-//   hmfree(marg->r_joints);
-//   hmfree(marg->r_extrinsics);
-//   // hmfree(marg->r_fiducials);
-//   hmfree(marg->r_cam_params);
-//   hmfree(marg->r_time_delays);
-//   // -- Marginal parameters
-//   hmfree(marg->m_positions);
-//   hmfree(marg->m_rotations);
-//   hmfree(marg->m_poses);
-//   hmfree(marg->m_velocities);
-//   hmfree(marg->m_imu_biases);
-//   hmfree(marg->m_features);
-//   hmfree(marg->m_joints);
-//   hmfree(marg->m_extrinsics);
-//   // hmfree(marg->m_fiducials);
-//   hmfree(marg->m_cam_params);
-//   hmfree(marg->m_time_delays);
-//
-//   // Factors
-//   list_free(marg->ba_factors);
-//   list_free(marg->camera_factors);
-//   list_free(marg->idf_factors);
-//   list_free(marg->imu_factors);
-//   list_free(marg->calib_camera_factors);
-//   list_free(marg->calib_imucam_factors);
-//
-//   // Residuals
-//   hmfree(marg->hash);
-//   free(marg->x0);
-//   free(marg->r0);
-//   free(marg->J0);
-//   free(marg->J0_inv);
-//   free(marg->dchi);
-//   free(marg->J0_dchi);
-//
-//   free(marg->H);
-//   free(marg->b);
-//   free(marg->H_marg);
-//   free(marg->b_marg);
-//
-//   // Jacobians
-//   free(marg->param_types);
-//   if (marg->param_ptrs) {
-//     free(marg->param_ptrs);
-//   }
-//   free(marg->params);
-//   free(marg->r);
-//   for (int i = 0; i < marg->num_params; i++) {
-//     free(marg->jacs[i]);
-//   }
-//   free(marg->jacs);
-//
-//   free(marg);
-// }
-//
-// void marg_factor_print_stats(const marg_factor_t *marg) {
-//   printf("Parameters to be marginalized:\n");
-//   printf("------------------------------\n");
-//   printf("m_positions: %ld\n", hmlen(marg->m_positions));
-//   printf("m_rotations: %ld\n", hmlen(marg->m_rotations));
-//   printf("m_poses: %ld\n", hmlen(marg->m_poses));
-//   printf("m_velocities: %ld\n", hmlen(marg->m_velocities));
-//   printf("m_imu_biases: %ld\n", hmlen(marg->m_imu_biases));
-//   printf("m_features: %ld\n", hmlen(marg->m_features));
-//   printf("m_joints: %ld\n", hmlen(marg->m_joints));
-//   printf("m_extrinsics: %ld\n", hmlen(marg->m_extrinsics));
-//   // printf("m_fiducials: %ld\n", hmlen(marg->m_fiducials));
-//   printf("m_cam_params: %ld\n", hmlen(marg->m_cam_params));
-//   printf("m_time_delays: %ld\n", hmlen(marg->m_time_delays));
-//   printf("\n");
-//
-//   printf("Parameters to remain:\n");
-//   printf("---------------------\n");
-//   printf("r_positions: %ld\n", hmlen(marg->r_positions));
-//   printf("r_rotations: %ld\n", hmlen(marg->r_rotations));
-//   printf("r_poses: %ld\n", hmlen(marg->r_poses));
-//   printf("r_velocities: %ld\n", hmlen(marg->r_velocities));
-//   printf("r_imu_biases: %ld\n", hmlen(marg->r_imu_biases));
-//   printf("r_features: %ld\n", hmlen(marg->r_features));
-//   printf("r_joints: %ld\n", hmlen(marg->r_joints));
-//   printf("r_extrinsics: %ld\n", hmlen(marg->r_extrinsics));
-//   // printf("r_fiducials: %ld\n", hmlen(marg->r_fiducials));
-//   printf("r_cam_params: %ld\n", hmlen(marg->r_cam_params));
-//   printf("r_time_delays: %ld\n", hmlen(marg->r_time_delays));
-//   printf("\n");
-// }
-//
-// /**
-//  * Add factor to marginalization factor.
-//  */
-// void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr) {
-//   assert(marg != NULL);
-//   assert(factor_ptr != NULL);
-//
-//   switch (factor_type) {
-//     case MARG_FACTOR:
-//       if (marg->marg_factor == NULL) {
-//         marg->marg_factor = factor_ptr;
-//       } else {
-//         LOG_ERROR("Marginalization factor already set!");
-//         FATAL("Implementation Error!\n");
-//       }
-//       break;
-//     case BA_FACTOR:
-//       list_push(marg->ba_factors, factor_ptr);
-//       break;
-//     case CAMERA_FACTOR:
-//       list_push(marg->camera_factors, factor_ptr);
-//       break;
-//     case IDF_FACTOR:
-//       list_push(marg->idf_factors, factor_ptr);
-//       break;
-//     case IMU_FACTOR:
-//       list_push(marg->imu_factors, factor_ptr);
-//       break;
-//     case CALIB_CAMERA_FACTOR:
-//       list_push(marg->calib_camera_factors, factor_ptr);
-//       break;
-//     case CALIB_IMUCAM_FACTOR:
-//       list_push(marg->calib_imucam_factors, factor_ptr);
-//       break;
-//     default:
-//       FATAL("Implementation Error!\n");
-//       break;
-//   };
-// }
-//
-// /**
-//  * Form Hessian matrix using data in marginalization factor.
-//  */
-// static void marg_factor_hessian_form(marg_factor_t *marg) {
-//   // Track Factor Params
-//   // -- Track marginalization factor params
-//   if (marg->marg_factor) {
-//     for (int i = 0; i < marg->marg_factor->num_params; i++) {
-//       void *param = marg->marg_factor->param_ptrs[i];
-//       int param_type = marg->marg_factor->param_types[i];
-//       MARG_TRACK_FACTOR(param, param_type);
-//     }
-//   }
-//   // -- Track BA factor params
-//   {
-//     list_node_t *node = marg->ba_factors->first;
-//     while (node != NULL) {
-//       ba_factor_t *factor = (ba_factor_t *) node->value;
-//       MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
-//       MARG_TRACK(marg->r_features, marg->m_features, factor->feature);
-//       MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->camera);
-//       node = node->next;
-//     }
-//   }
-//   // -- Track camera factor params
-//   {
-//     list_node_t *node = marg->camera_factors->first;
-//     while (node != NULL) {
-//       camera_factor_t *factor = (camera_factor_t *) node->value;
-//       MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
-//       MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->extrinsic);
-//       MARG_TRACK(marg->r_features, marg->m_features, factor->feature);
-//       MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->camera);
-//       node = node->next;
-//     }
-//   }
-//   // -- Track IDF factor params
-//   // {
-//   //   list_node_t *node = marg->idf_factors->first;
-//   //   while (node != NULL) {
-//   //     idf_factor_t *factor = (idf_factor_t *) node->value;
-//   //     MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
-//   //     MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->extrinsic);
-//   //     MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->camera);
-//   //     MARG_TRACK(marg->r_positions, marg->m_positions, factor->idf_pos);
-//   //     MARG_TRACK(marg->r_features, marg->m_features, factor->idf_param);
-//   //     node = node->next;
-//   //   }
-//   // }
-//   // -- Track IMU factor params
-//   {
-//     list_node_t *node = marg->imu_factors->first;
-//     while (node != NULL) {
-//       imu_factor_t *factor = (imu_factor_t *) node->value;
-//       MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose_i);
-//       MARG_TRACK(marg->r_velocities, marg->m_velocities, factor->vel_i);
-//       MARG_TRACK(marg->r_imu_biases, marg->m_imu_biases, factor->biases_i);
-//       MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose_j);
-//       MARG_TRACK(marg->r_velocities, marg->m_velocities, factor->vel_j);
-//       MARG_TRACK(marg->r_imu_biases, marg->m_imu_biases, factor->biases_j);
-//       node = node->next;
-//     }
-//   }
-//   // // -- Track calib camera factor params
-//   // {
-//   //   list_node_t *node = marg->calib_camera_factors->first;
-//   //   while (node != NULL) {
-//   //     calib_camera_factor_t *factor = (calib_camera_factor_t *) node->value;
-//   //     MARG_TRACK(marg->r_poses, marg->m_poses, factor->pose);
-//   //     MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->cam_ext);
-//   //     MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->cam_params);
-//   //     node = node->next;
-//   //   }
-//   // }
-//   // // -- Track calib imucam factor params
-//   // {
-//   //   list_node_t *node = marg->calib_imucam_factors->first;
-//   //   while (node != NULL) {
-//   //     calib_imucam_factor_t *factor = (calib_imucam_factor_t *) node->value;
-//   //     MARG_TRACK(marg->r_fiducials, marg->m_fiducials, factor->fiducial);
-//   //     MARG_TRACK(marg->r_poses, marg->m_poses, factor->imu_pose);
-//   //     MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->imu_ext);
-//   //     MARG_TRACK(marg->r_extrinsics, marg->m_extrinsics, factor->cam_ext);
-//   //     MARG_TRACK(marg->r_cam_params, marg->m_cam_params, factor->cam_params);
-//   //     MARG_TRACK(marg->r_time_delays, marg->m_time_delays, factor->time_delay);
-//   //     node = node->next;
-//   //   }
-//   // }
-//
-//   // Determine parameter block column indicies for Hessian matrix H
-//   // clang-format off
-//   int H_idx = 0; // Column / row index of Hessian matrix H
-//   int m = 0;     // Marginal local parameter length
-//   int r = 0;     // Remain local parameter length
-//   int gm = 0;    // Marginal global parameter length
-//   int gr = 0;    // Remain global parameter length
-//   int nm = 0;    // Number of marginal parameters
-//   int nr = 0;    // Number of remain parameters
-//   // -- Column indices for parameter blocks to be marginalized
-//   MARG_INDEX(marg->m_positions, POSITION_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_rotations, ROTATION_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_poses, POSE_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_velocities, VELOCITY_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_features, FEATURE_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_joints, JOINT_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_cam_params, CAMERA_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   MARG_INDEX(marg->m_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, m, gm, nm);
-//   // -- Column indices for parameter blocks to remain
-//   MARG_INDEX(marg->r_positions, POSITION_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_rotations, ROTATION_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_poses, POSE_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_velocities, VELOCITY_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_imu_biases, IMU_BIASES_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_features, FEATURE_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_joints, JOINT_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_extrinsics, EXTRINSIC_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_fiducials, FIDUCIAL_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_cam_params, CAMERA_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   MARG_INDEX(marg->r_time_delays, TIME_DELAY_PARAM, marg->hash, &H_idx, r, gr, nr);
-//   // clang-format on
-//
-//   // Track linearization point x0 and parameter pointers
-//   assert(gm > 0);
-//   assert(nm > 0);
-//   assert(gr > 0);
-//   assert(nr > 0);
-//
-//   int param_idx = 0;
-//   int x0_idx = 0;
-//   marg->x0 = malloc(sizeof(real_t) * gr);
-//   marg->num_params = nr;
-//   marg->param_types = malloc(sizeof(int) * nr);
-//   marg->param_ptrs = malloc(sizeof(void *) * nr);
-//   marg->params = malloc(sizeof(real_t *) * nr);
-//   MARG_PARAMS(marg, marg->r_positions, POSITION_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_rotations, ROTATION_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_poses, POSE_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_velocities, VELOCITY_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_imu_biases, IMU_BIASES_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_features, FEATURE_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_joints, JOINT_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_extrinsics, EXTRINSIC_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_fiducials, FIDUCIAL_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_cam_params, CAMERA_PARAM, param_idx, x0_idx);
-//   MARG_PARAMS(marg, marg->r_time_delays, TIME_DELAY_PARAM, param_idx, x0_idx);
-//
-//   // Allocate memory LHS and RHS of Gauss newton
-//   marg->m_size = m;
-//   marg->r_size = r;
-//   const int ls = m + r;
-//   real_t *H = calloc(ls * ls, sizeof(real_t));
-//   real_t *b = calloc(ls * 1, sizeof(real_t));
-//
-//   // Fill Hessian
-//   if (marg->marg_factor) {
-//     solver_fill_hessian(marg->hash,
-//                         marg->marg_factor->num_params,
-//                         marg->marg_factor->params,
-//                         marg->marg_factor->jacs,
-//                         marg->marg_factor->r,
-//                         marg->marg_factor->r_size,
-//                         ls,
-//                         H,
-//                         b);
-//   }
-//
-//   // param_order_print(marg->hash);
-//   MARG_H(marg, ba_factor_t, marg->ba_factors, H, b, ls);
-//   MARG_H(marg, camera_factor_t, marg->camera_factors, H, b, ls);
-//   // MARG_H(marg, idf_factor_t, marg->idf_factors, H, b, ls);
-//   MARG_H(marg, imu_factor_t, marg->imu_factors, H, b, ls);
-//   // MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
-//   // MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
-//   marg->H = H;
-//   marg->b = b;
-//   // param_order_print(marg->hash);
-//   // mat_save("/tmp/H.csv", marg->H, ls, ls);
-//   // mat_save("/tmp/b.csv", marg->b, ls, 1);
-// }
-//
-// /**
-//  * Perform Schur-Complement.
-//  */
-// static void marg_factor_schur_complement(marg_factor_t *marg) {
-//   // Compute Schurs Complement
-//   const int m = marg->m_size;
-//   const int r = marg->r_size;
-//   const int ls = m + r;
-//   const real_t *H = marg->H;
-//   const real_t *b = marg->b;
-//   real_t *H_marg = malloc(sizeof(real_t) * r * r);
-//   real_t *b_marg = malloc(sizeof(real_t) * r * 1);
-//   if (schur_complement(H, b, ls, m, r, H_marg, b_marg) == 0) {
-//     marg->schur_complement_ok = 1;
-//   }
-//   marg->H_marg = H_marg;
-//   marg->b_marg = b_marg;
-//
-//   // Enforce symmetry: H_marg = 0.5 * (H_marg + H_marg')
-//   // if (marg->cond_hessian) {
-//   //   enforce_spd(marg->H_marg, r, r);
-//   // }
-//
-//   // printf("m: %d\n", m);
-//   // printf("r: %d\n", r);
-//   // mat_save("/tmp/H.csv", marg->H, ls, ls);
-//   // mat_save("/tmp/b.csv", marg->b, ls, 1);
-//   // mat_save("/tmp/H_marg.csv", marg->H_marg, r, r);
-//   // mat_save("/tmp/b_marg.csv", marg->b_marg, r, 1);
-//   // exit(0);
-// }
-//
-// /**
-//  * Decompose Hessian into two Jacobians.
-//  */
-// static void marg_factor_hessian_decomp(marg_factor_t *marg) {
-//   // Decompose H_marg into Jt and J, and in the process also obtain inv(J).
-//   // Hessian H_marg can be decomposed via Eigen-decomposition:
-//   //
-//   //   H_marg = J' * J = V * diag(w) * V'
-//   //   J = diag(w^{0.5}) * V'
-//   //   J_inv = diag(w^-0.5) * V'
-//   //
-//   // -- Setup
-//   const int r = marg->r_size;
-//   real_t *J = calloc(r * r, sizeof(real_t));
-//   real_t *J_inv = calloc(r * r, sizeof(real_t));
-//   real_t *V = calloc(r * r, sizeof(real_t));
-//   real_t *Vt = calloc(r * r, sizeof(real_t));
-//   real_t *w = calloc(r, sizeof(real_t));
-//   real_t *W_sqrt = calloc(r * r, sizeof(real_t));
-//   real_t *W_inv_sqrt = calloc(r * r, sizeof(real_t));
-//
-//   // -- Eigen decomposition
-//   if (eig_sym(marg->H_marg, r, r, V, w) != 0) {
-//     free(J);
-//     free(J_inv);
-//     free(V);
-//     free(Vt);
-//     free(w);
-//     free(W_sqrt);
-//     free(W_inv_sqrt);
-//     return;
-//   }
-//   mat_transpose(V, r, r, Vt);
-//
-//   // -- Form J and J_inv:
-//   //
-//   //   J = diag(w^0.5) * V'
-//   //   J_inv = diag(w^-0.5) * V'
-//   //
-//   const real_t tol = 1e-18;
-//   for (int i = 0; i < r; i++) {
-//     if (w[i] > tol) {
-//       W_sqrt[(i * r) + i] = sqrt(w[i]);
-//       W_inv_sqrt[(i * r) + i] = sqrt(1.0 / w[i]);
-//     } else {
-//       W_sqrt[(i * r) + i] = 0.0;
-//       W_inv_sqrt[(i * r) + i] = 0.0;
-//     }
-//   }
-//   dot(W_sqrt, r, r, Vt, r, r, J);
-//   dot(W_inv_sqrt, r, r, Vt, r, r, J_inv);
-//   mat_scale(J_inv, r, r, -1.0);
-//   marg->eigen_decomp_ok = 1;
-//
-//   // Check J' * J == H_marg
-//   if (marg->debug) {
-//     real_t *Jt = calloc(r * r, sizeof(real_t));
-//     real_t *H_ = calloc(r * r, sizeof(real_t));
-//     mat_transpose(J, r, r, Jt);
-//     dot(Jt, r, r, J, r, r, H_);
-//
-//     real_t diff = 0.0;
-//     for (int i = 0; i < (r * r); i++) {
-//       diff += pow(H_[i] - marg->H_marg[i], 2);
-//     }
-//
-//     if (diff > 1e-2) {
-//       marg->eigen_decomp_ok = 0;
-//       LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
-//       LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
-//     }
-//
-//     free(Jt);
-//     free(H_);
-//   }
-//
-//   // Check J_inv * J == eye
-//   // if (marg->debug) {
-//   //   if (check_inv(J, J_inv, r) != 0) {
-//   //     marg->eigen_decomp_ok = 0;
-//   //     LOG_WARN("inv(J) * J != eye\n");
-//   //   }
-//   // }
-//
-//   // Update
-//   marg->J0 = J;
-//   marg->J0_inv = J_inv;
-//
-//   // Clean up
-//   free(V);
-//   free(Vt);
-//   free(w);
-//   free(W_sqrt);
-//   free(W_inv_sqrt);
-// }
-//
-// static void marg_factor_form_fejs(marg_factor_t *marg) {
-//   // Track Linearized residuals, jacobians
-//   // -- Linearized residuals: r0 = -J0_inv * b_marg;
-//   marg->r0 = malloc(sizeof(real_t) * marg->r_size);
-//   dot(marg->J0_inv,
-//       marg->r_size,
-//       marg->r_size,
-//       marg->b_marg,
-//       marg->r_size,
-//       1,
-//       marg->r0);
-//   // -- Linearized jacobians: J0 = J;
-//   marg->dchi = malloc(sizeof(real_t) * marg->r_size);
-//   marg->J0_dchi = malloc(sizeof(real_t) * marg->r_size);
-//
-//   // Form First-Estimate Jacobians (FEJ)
-//   const size_t m = marg->r_size;
-//   const int col_offset = -marg->m_size;
-//   const int rs = 0;
-//   const int re = m - 1;
-//   marg->r = malloc(sizeof(real_t) * m);
-//   marg->jacs = malloc(sizeof(real_t *) * marg->num_params);
-//
-//   char param_type[100] = {0};
-//   for (size_t i = 0; i < marg->num_params; i++) {
-//     real_t *param_ptr = marg->params[i];
-//     const param_order_t *param_info = &hmgets(marg->hash, param_ptr);
-//     param_type_string(param_info->type, param_type);
-//     const int n = param_local_size(param_info->type);
-//     const int cs = param_info->idx + col_offset;
-//     const int ce = cs + n - 1;
-//
-//     marg->jacs[i] = malloc(sizeof(real_t) * m * n);
-//     mat_block_get(marg->J0, m, rs, re, cs, ce, marg->jacs[i]);
-//   }
-// }
-//
-// void marg_factor_marginalize(marg_factor_t *marg) {
-//   // Form Hessian and RHS of Gauss newton
-//   TIC(hessian_form);
-//   marg_factor_hessian_form(marg);
-//   marg->time_hessian_form = TOC(hessian_form);
-//   marg->time_total += marg->time_hessian_form;
-//
-//   // Apply Schur Complement
-//   TIC(schur);
-//   marg_factor_schur_complement(marg);
-//   marg->time_schur_complement = TOC(schur);
-//   marg->time_total += marg->time_schur_complement;
-//
-//   // Decompose marginalized Hessian
-//   TIC(hessian_decomp);
-//   marg_factor_hessian_decomp(marg);
-//   marg->time_hessian_decomp = TOC(hessian_decomp);
-//   marg->time_total += marg->time_hessian_decomp;
-//
-//   // Form FEJs
-//   TIC(fejs);
-//   marg_factor_form_fejs(marg);
-//   marg->time_fejs = TOC(fejs);
-//   marg->time_total += marg->time_fejs;
-//
-//   // Update state
-//   marg->marginalized = 1;
-// }
-//
-// int marg_factor_eval(void *marg_ptr) {
-//   assert(marg_ptr);
-//
-//   // Map factor
-//   marg_factor_t *marg = (marg_factor_t *) marg_ptr;
-//   assert(marg->marginalized == 1);
-//
-//   // Compute residuals
-//   // -- Compute dchi vector
-//   int param_row_idx = 0;
-//   int dchi_row_idx = 0;
-//   for (size_t i = 0; i < marg->num_params; i++) {
-//     const int param_type = marg->param_types[i];
-//     const int param_size = param_global_size(param_type);
-//     const int local_size = param_local_size(param_type);
-//     const real_t *x0 = marg->x0 + param_row_idx;
-//     const real_t *x = marg->params[i];
-//
-//     // Calculate i-th dchi
-//     switch (param_type) {
-//       case POSE_PARAM:
-//       case FIDUCIAL_PARAM:
-//       case EXTRINSIC_PARAM: {
-//         // Pose minus
-//         // dr = r - r0
-//         const real_t dr[3] = {x[0] - x0[0], x[1] - x0[1], x[2] - x0[2]};
-//
-//         // dq = q0.inverse() * q
-//         const real_t q[4] = {x[3], x[4], x[5], x[6]};
-//         const real_t q0[4] = {x0[3], x0[4], x0[5], x0[6]};
-//         real_t q0_inv[4] = {0};
-//         real_t dq[4] = {0};
-//         quat_inv(q0, q0_inv);
-//         quat_mul(q0_inv, q, dq);
-//
-//         marg->dchi[dchi_row_idx + 0] = dr[0];
-//         marg->dchi[dchi_row_idx + 1] = dr[1];
-//         marg->dchi[dchi_row_idx + 2] = dr[2];
-//         marg->dchi[dchi_row_idx + 3] = 2.0 * dq[1];
-//         marg->dchi[dchi_row_idx + 4] = 2.0 * dq[2];
-//         marg->dchi[dchi_row_idx + 5] = 2.0 * dq[3];
-//       } break;
-//       default:
-//         // Trivial minus: x - x0
-//         vec_sub(x, x0, marg->dchi + dchi_row_idx, param_size);
-//         break;
-//     }
-//     param_row_idx += param_size;
-//     dchi_row_idx += local_size;
-//   }
-//   // -- Compute residuals: r = r0 + J0 * dchi;
-//   dot(marg->J0,
-//       marg->r_size,
-//       marg->r_size,
-//       marg->dchi,
-//       marg->r_size,
-//       1,
-//       marg->J0_dchi);
-//   for (int i = 0; i < marg->r_size; i++) {
-//     marg->r[i] = marg->r0[i] + marg->J0_dchi[i];
-//   }
-//
-//   return 0;
-// }
-//
-// ////////////////
-// // DATA UTILS //
-// ////////////////
-//
-// static int
-// parse_pose_data(const int i, const int j, const char *entry, pose_t *poses) {
-//   switch (j) {
-//     case 0:
-//       poses[i].ts = strtol(entry, NULL, 10);
-//       break;
-//     case 1:
-//     case 2:
-//     case 3:
-//     case 4:
-//     case 5:
-//     case 6:
-//     case 7:
-//       poses[i].data[j - 1] = strtod(entry, NULL);
-//       break;
-//     default:
-//       return -1;
-//   }
-//
-//   return 0;
-// }
-//
-// /**
-//  * Load poses from file `fp`. The number of poses in file
-//  * will be outputted to `num_poses`.
-//  */
-// pose_t *load_poses(const char *fp, int *num_poses) {
-//   assert(fp != NULL);
-//   assert(num_poses != NULL);
-//
-//   // Obtain number of rows and columns in dsv data
-//   int num_rows = dsv_rows(fp);
-//   int num_cols = dsv_cols(fp, ',');
-//   if (num_rows == -1 || num_cols == -1) {
-//     return NULL;
-//   }
-//
-//   // Initialize memory for pose data
-//   *num_poses = num_rows;
-//   pose_t *poses = malloc(sizeof(pose_t) * num_rows);
-//
-//   // Load file
-//   FILE *infile = fopen(fp, "r");
-//   if (infile == NULL) {
-//     free(poses);
-//     return NULL;
-//   }
-//
-//   // Loop through data
-//   char line[MAX_LINE_LENGTH] = {0};
-//   int row_idx = 0;
-//   int col_idx = 0;
-//
-//   // Loop through data line by line
-//   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-//     // Ignore if comment line
-//     if (line[0] == '#') {
-//       continue;
-//     }
-//
-//     // Iterate through values in line separated by commas
-//     char entry[100] = {0};
-//     for (size_t i = 0; i < strlen(line); i++) {
-//       char c = line[i];
-//       if (c == ' ') {
-//         continue;
-//       }
-//
-//       if (c == ',' || c == '\n') {
-//         if (parse_pose_data(row_idx, col_idx, entry, poses) != 0) {
-//           return NULL;
-//         }
-//         memset(entry, '\0', sizeof(char) * 100);
-//         col_idx++;
-//
-//       } else {
-//         entry[strlen(entry)] = c;
-//       }
-//     }
-//
-//     col_idx = 0;
-//     row_idx++;
-//   }
-//
-//   // Clean up
-//   fclose(infile);
-//
-//   return poses;
-// }
-//
-// /**
-//  * Associate pose data
-//  */
-// int **assoc_pose_data(pose_t *gnd_poses,
-//                       size_t num_gnd_poses,
-//                       pose_t *est_poses,
-//                       size_t num_est_poses,
-//                       double threshold,
-//                       size_t *num_matches) {
-//   assert(gnd_poses != NULL);
-//   assert(est_poses != NULL);
-//   assert(num_gnd_poses != 0);
-//   assert(num_est_poses != 0);
-//
-//   size_t gnd_idx = 0;
-//   size_t est_idx = 0;
-//   size_t k_end =
-//       (num_gnd_poses > num_est_poses) ? num_est_poses : num_gnd_poses;
-//
-//   size_t match_idx = 0;
-//   int **matches = malloc(sizeof(int *) * k_end);
-//
-//   while ((gnd_idx + 1) < num_gnd_poses && (est_idx + 1) < num_est_poses) {
-//     // Calculate time difference between ground truth and
-//     // estimate
-//     double gnd_k_time = ts2sec(gnd_poses[gnd_idx].ts);
-//     double est_k_time = ts2sec(est_poses[est_idx].ts);
-//     double t_k_diff = fabs(gnd_k_time - est_k_time);
-//
-//     // Check to see if next ground truth timestamp forms
-//     // a smaller time diff
-//     double t_kp1_diff = threshold;
-//     if ((gnd_idx + 1) < num_gnd_poses) {
-//       double gnd_kp1_time = ts2sec(gnd_poses[gnd_idx + 1].ts);
-//       t_kp1_diff = fabs(gnd_kp1_time - est_k_time);
-//     }
-//
-//     // Conditions to call this pair (ground truth and
-//     // estimate) a match
-//     int threshold_met = t_k_diff < threshold;
-//     int smallest_diff = t_k_diff < t_kp1_diff;
-//
-//     // Mark pairs as a match or increment appropriate
-//     // indices
-//     if (threshold_met && smallest_diff) {
-//       matches[match_idx] = malloc(sizeof(int) * 2);
-//       matches[match_idx][0] = gnd_idx;
-//       matches[match_idx][1] = est_idx;
-//       match_idx++;
-//
-//       gnd_idx++;
-//       est_idx++;
-//
-//     } else if (gnd_k_time > est_k_time) {
-//       est_idx++;
-//
-//     } else if (gnd_k_time < est_k_time) {
-//       gnd_idx++;
-//     }
-//   }
-//
-//   // Clean up
-//   if (match_idx == 0) {
-//     free(matches);
-//     matches = NULL;
-//   }
-//
-//   *num_matches = match_idx;
-//   return matches;
-// }
-//
-// ////////////
-// // SOLVER //
-// ////////////
-//
-// /**
-//  * Setup Solver
-//  */
-// void solver_setup(solver_t *solver) {
-//   assert(solver);
-//
-//   // Settings
-//   solver->verbose = 0;
-//   solver->max_iter = 10;
-//   solver->lambda = 1e4;
-//   solver->lambda_factor = 10.0;
-//
-//   // Data
-//   solver->hash = NULL;
-//   solver->linearize = 0;
-//   solver->r_size = 0;
-//   solver->sv_size = 0;
-//   solver->H_damped = NULL;
-//   solver->H = NULL;
-//   solver->g = NULL;
-//   solver->r = NULL;
-//   solver->dx = NULL;
-//
-//   // SuiteSparse
-// #ifdef SOLVER_USE_SUITESPARSE
-//   solver->common = NULL;
-// #endif
-//
-//   // Callbacks
-//   solver->param_order_func = NULL;
-//   solver->cost_func = NULL;
-//   solver->linearize_func = NULL;
-//   solver->linsolve_func = NULL;
-// }
-//
-// /**
-//  * Calculate cost with residual vector `r` of length `r_size`.
-//  */
-// real_t solver_cost(const solver_t *solver, const void *data) {
-//   solver->cost_func(data, solver->r);
-//   real_t r_sq = {0};
-//   dot(solver->r, 1, solver->r_size, solver->r, solver->r_size, 1, &r_sq);
-//   return 0.5 * r_sq;
-// }
-//
-// /**
-//  * Fill Jacobian matrix
-//  */
-// void solver_fill_jacobian(param_order_t *hash,
-//                           int num_params,
-//                           real_t **params,
-//                           real_t **jacs,
-//                           real_t *r,
-//                           int r_size,
-//                           int sv_size,
-//                           int J_row_idx,
-//                           real_t *J,
-//                           real_t *g) {
-//   for (int i = 0; i < num_params; i++) {
-//     // Check if i-th parameter is fixed
-//     if (hmgets(hash, params[i]).fix) {
-//       continue;
-//     }
-//
-//     // Get i-th parameter and corresponding Jacobian
-//     int idx_i = hmgets(hash, params[i]).idx;
-//     int size_i = param_local_size(hmgets(hash, params[i]).type);
-//     const real_t *J_i = jacs[i];
-//
-//     // Fill in the Jacobian
-//     const int rs = J_row_idx;
-//     const int re = rs + r_size - 1;
-//     const int cs = idx_i;
-//     const int ce = idx_i + size_i - 1;
-//     mat_block_set(J, sv_size, rs, re, cs, ce, J_i);
-//
-//     // Fill in the R.H.S of H dx = g, where g = -J_i' * r
-//     real_t *Jt_i = malloc(sizeof(real_t) * r_size * size_i);
-//     real_t *g_i = malloc(sizeof(real_t) * size_i);
-//     mat_transpose(J_i, r_size, size_i, Jt_i);
-//     mat_scale(Jt_i, size_i, r_size, -1);
-//     dot(Jt_i, size_i, r_size, r, r_size, 1, g_i);
-//     for (int g_idx = 0; g_idx < size_i; g_idx++) {
-//       g[idx_i + g_idx] += g_i[g_idx];
-//     }
-//
-//     // Clean up
-//     free(g_i);
-//     free(Jt_i);
-//   }
-// }
-//
-// /**
-//  * Fill Hessian matrix
-//  */
-// void solver_fill_hessian(param_order_t *hash,
-//                          int num_params,
-//                          real_t **params,
-//                          real_t **jacs,
-//                          real_t *r,
-//                          int r_size,
-//                          int sv_size,
-//                          real_t *H,
-//                          real_t *g) {
-//   if (H == NULL || g == NULL) {
-//     return;
-//   }
-//
-//   for (int i = 0; i < num_params; i++) {
-//     // Check if i-th parameter is fixed
-//     if (hmgets(hash, params[i]).fix) {
-//       continue;
-//     }
-//
-//     // Get i-th parameter and corresponding Jacobian
-//     int idx_i = hmgets(hash, params[i]).idx;
-//     int size_i = param_local_size(hmgets(hash, params[i]).type);
-//     const real_t *J_i = jacs[i];
-//     real_t *Jt_i = malloc(sizeof(real_t) * r_size * size_i);
-//     mat_transpose(J_i, r_size, size_i, Jt_i);
-//
-//     for (int j = i; j < num_params; j++) {
-//       // Check if j-th parameter is fixed
-//       if (hmgets(hash, params[j]).fix) {
-//         continue;
-//       }
-//
-//       // Get j-th parameter and corresponding Jacobian
-//       int idx_j = hmgets(hash, params[j]).idx;
-//       int size_j = param_local_size(hmgets(hash, params[j]).type);
-//       const real_t *J_j = jacs[j];
-//       real_t *H_ij = malloc(sizeof(real_t) * size_i * size_j);
-//       dot(Jt_i, size_i, r_size, J_j, r_size, size_j, H_ij);
-//
-//       // Fill Hessian H
-//       int rs = idx_i;
-//       int re = idx_i + size_i - 1;
-//       int cs = idx_j;
-//       int ce = idx_j + size_j - 1;
-//
-//       if (i == j) {
-//         // Fill diagonal
-//         mat_block_add(H, sv_size, rs, re, cs, ce, H_ij);
-//       } else {
-//         // Fill off-diagonal
-//         real_t *H_ji = malloc(sizeof(real_t) * size_j * size_i);
-//         mat_transpose(H_ij, size_i, size_j, H_ji);
-//         mat_block_add(H, sv_size, rs, re, cs, ce, H_ij);
-//         mat_block_add(H, sv_size, cs, ce, rs, re, H_ji);
-//         free(H_ji);
-//       }
-//
-//       // Clean up
-//       free(H_ij);
-//     }
-//
-//     // Fill in the R.H.S of H dx = g, where g = -J_i' * r
-//     real_t *g_i = malloc(sizeof(real_t) * size_i);
-//     mat_scale(Jt_i, size_i, r_size, -1);
-//     dot(Jt_i, size_i, r_size, r, r_size, 1, g_i);
-//     for (int g_idx = 0; g_idx < size_i; g_idx++) {
-//       g[idx_i + g_idx] += g_i[g_idx];
-//     }
-//
-//     // Clean up
-//     free(g_i);
-//     free(Jt_i);
-//   }
-// }
-//
+//////////////////
+// MARGINALIZER //
+//////////////////
+
+/**
+ * Malloc marginalization factor.
+ */
+marg_factor_t *marg_factor_malloc(void) {
+  marg_factor_t *marg = malloc(sizeof(marg_factor_t) * 1);
+
+  // Settings
+  marg->debug = 1;
+  marg->cond_hessian = 1;
+
+  // Flags
+  marg->marginalized = 0;
+  marg->schur_complement_ok = 0;
+  marg->eigen_decomp_ok = 0;
+
+  // Parameters
+  // -- Remain parameters
+  marg->r_positions = list_malloc();
+  marg->r_rotations = list_malloc();
+  marg->r_poses = list_malloc();
+  marg->r_velocities = list_malloc();
+  marg->r_imu_biases = list_malloc();
+  marg->r_fiducials = list_malloc();
+  marg->r_joints = list_malloc();
+  marg->r_extrinsics = list_malloc();
+  marg->r_features = list_malloc();
+  marg->r_cam_params = list_malloc();
+  marg->r_time_delays = list_malloc();
+  // -- Marginal parameters
+  marg->m_positions = list_malloc();
+  marg->m_rotations = list_malloc();
+  marg->m_poses = list_malloc();
+  marg->m_velocities = list_malloc();
+  marg->m_imu_biases = list_malloc();
+  marg->m_fiducials = list_malloc();
+  marg->m_joints = list_malloc();
+  marg->m_extrinsics = list_malloc();
+  marg->m_features = list_malloc();
+  marg->m_cam_params = list_malloc();
+  marg->m_time_delays = list_malloc();
+
+  // Factors
+  marg->ba_factors = list_malloc();
+  marg->camera_factors = list_malloc();
+  marg->idf_factors = list_malloc();
+  marg->imu_factors = list_malloc();
+  marg->calib_camera_factors = list_malloc();
+  marg->calib_imucam_factors = list_malloc();
+  marg->marg_factor = NULL;
+
+  // Hessian and residuals
+  marg->param_index = NULL;
+  marg->m_size = 0;
+  marg->r_size = 0;
+
+  marg->x0 = NULL;
+  marg->r0 = NULL;
+  marg->J0 = NULL;
+  marg->dchi = NULL;
+  marg->J0_dchi = NULL;
+
+  marg->J0 = NULL;
+  marg->J0_inv = NULL;
+  marg->H = NULL;
+  marg->b = NULL;
+  marg->H_marg = NULL;
+  marg->b_marg = NULL;
+
+  // Parameters, residuals and Jacobians
+  marg->num_params = 0;
+  marg->param_types = NULL;
+  marg->params = NULL;
+  marg->r = NULL;
+  marg->jacs = NULL;
+
+  // Profiling
+  marg->time_hessian_form = 0;
+  marg->time_schur_complement = 0;
+  marg->time_hessian_decomp = 0;
+  marg->time_fejs = 0;
+  marg->time_total = 0;
+
+  return marg;
+}
+
+/**
+ * Free marginalization factor.
+ */
+void marg_factor_free(marg_factor_t *marg) {
+  if (marg == NULL) {
+    return;
+  }
+
+  // Parameters
+  // -- Remain parameters
+  list_free(marg->r_positions);
+  list_free(marg->r_rotations);
+  list_free(marg->r_poses);
+  list_free(marg->r_velocities);
+  list_free(marg->r_imu_biases);
+  list_free(marg->r_features);
+  list_free(marg->r_joints);
+  list_free(marg->r_extrinsics);
+  // list_free(marg->r_fiducials);
+  list_free(marg->r_cam_params);
+  list_free(marg->r_time_delays);
+  // -- Marginal parameters
+  list_free(marg->m_positions);
+  list_free(marg->m_rotations);
+  list_free(marg->m_poses);
+  list_free(marg->m_velocities);
+  list_free(marg->m_imu_biases);
+  list_free(marg->m_features);
+  list_free(marg->m_joints);
+  list_free(marg->m_extrinsics);
+  // list_free(marg->m_fiducials);
+  list_free(marg->m_cam_params);
+  list_free(marg->m_time_delays);
+
+  // Factors
+  list_free(marg->ba_factors);
+  list_free(marg->camera_factors);
+  list_free(marg->idf_factors);
+  list_free(marg->imu_factors);
+  list_free(marg->calib_camera_factors);
+  list_free(marg->calib_imucam_factors);
+
+  // Residuals
+  // list_free(marg->hash);
+  free(marg->x0);
+  free(marg->r0);
+  free(marg->J0);
+  free(marg->J0_inv);
+  free(marg->dchi);
+  free(marg->J0_dchi);
+
+  free(marg->H);
+  free(marg->b);
+  free(marg->H_marg);
+  free(marg->b_marg);
+
+  // Jacobians
+  free(marg->param_types);
+  if (marg->param_ptrs) {
+    free(marg->param_ptrs);
+  }
+  free(marg->params);
+  free(marg->r);
+  for (int i = 0; i < marg->num_params; i++) {
+    free(marg->jacs[i]);
+  }
+  free(marg->jacs);
+
+  free(marg);
+}
+
+void marg_factor_print_stats(const marg_factor_t *marg) {
+  printf("Parameters to be marginalized:\n");
+  printf("------------------------------\n");
+  printf("m_positions: %ld\n", marg->m_positions->length);
+  printf("m_rotations: %ld\n", marg->m_rotations->length);
+  printf("m_poses: %ld\n", marg->m_poses->length);
+  printf("m_velocities: %ld\n", marg->m_velocities->length);
+  printf("m_imu_biases: %ld\n", marg->m_imu_biases->length);
+  printf("m_features: %ld\n", marg->m_features->length);
+  printf("m_joints: %ld\n", marg->m_joints->length);
+  printf("m_extrinsics: %ld\n", marg->m_extrinsics->length);
+  // printf("m_fiducials: %ld\n", marg->m_fiducials->length);
+  printf("m_cam_params: %ld\n", marg->m_cam_params->length);
+  printf("m_time_delays: %ld\n", marg->m_time_delays->length);
+  printf("\n");
+
+  printf("Parameters to remain:\n");
+  printf("---------------------\n");
+  printf("r_positions: %ld\n", marg->r_positions->length);
+  printf("r_rotations: %ld\n", marg->r_rotations->length);
+  printf("r_poses: %ld\n", marg->r_poses->length);
+  printf("r_velocities: %ld\n", marg->r_velocities->length);
+  printf("r_imu_biases: %ld\n", marg->r_imu_biases->length);
+  printf("r_features: %ld\n", marg->r_features->length);
+  printf("r_joints: %ld\n", marg->r_joints->length);
+  printf("r_extrinsics: %ld\n", marg->r_extrinsics->length);
+  // printf("r_fiducials: %ld\n", marg->r_fiducials->length);
+  printf("r_cam_params: %ld\n", marg->r_cam_params->length);
+  printf("r_time_delays: %ld\n", marg->r_time_delays->length);
+  printf("\n");
+}
+
+/**
+ * Add factor to marginalization factor.
+ */
+void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr) {
+  assert(marg != NULL);
+  assert(factor_ptr != NULL);
+
+  switch (factor_type) {
+    case MARG_FACTOR:
+      if (marg->marg_factor == NULL) {
+        marg->marg_factor = factor_ptr;
+      } else {
+        LOG_ERROR("Marginalization factor already set!");
+        FATAL("Implementation Error!\n");
+      }
+      break;
+    case BA_FACTOR:
+      list_push(marg->ba_factors, factor_ptr);
+      break;
+    case CAMERA_FACTOR:
+      list_push(marg->camera_factors, factor_ptr);
+      break;
+    case IDF_FACTOR:
+      list_push(marg->idf_factors, factor_ptr);
+      break;
+    case IMU_FACTOR:
+      list_push(marg->imu_factors, factor_ptr);
+      break;
+    case CALIB_CAMERA_FACTOR:
+      list_push(marg->calib_camera_factors, factor_ptr);
+      break;
+    case CALIB_IMUCAM_FACTOR:
+      list_push(marg->calib_imucam_factors, factor_ptr);
+      break;
+    default:
+      FATAL("Implementation Error!\n");
+      break;
+  };
+}
+
+static void marg_track_pos(marg_factor_t *marg, pos_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_positions, p);
+  } else {
+    list_push(marg->m_positions, p);
+  }
+}
+
+static void marg_track_rot(marg_factor_t *marg, rot_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_rotations, p);
+  } else {
+    list_push(marg->m_rotations, p);
+  }
+}
+
+static void marg_track_pose(marg_factor_t *marg, pose_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_poses, p);
+  } else {
+    list_push(marg->m_poses, p);
+  }
+}
+
+static void marg_track_extrinsic(marg_factor_t *marg, extrinsic_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_extrinsics, p);
+  } else {
+    list_push(marg->m_extrinsics, p);
+  }
+}
+
+static void marg_track_fiducial(marg_factor_t *marg, fiducial_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_fiducials, p);
+  } else {
+    list_push(marg->m_fiducials, p);
+  }
+}
+
+static void marg_track_velocity(marg_factor_t *marg, velocity_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_velocities, p);
+  } else {
+    list_push(marg->m_velocities, p);
+  }
+}
+
+static void marg_track_imu_biases(marg_factor_t *marg, imu_biases_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_imu_biases, p);
+  } else {
+    list_push(marg->m_imu_biases, p);
+  }
+}
+
+static void marg_track_feature(marg_factor_t *marg, feature_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_features, p);
+  } else {
+    list_push(marg->m_features, p);
+  }
+}
+
+static void marg_track_joint(marg_factor_t *marg, joint_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_joints, p);
+  } else {
+    list_push(marg->m_joints, p);
+  }
+}
+
+static void marg_track_camera(marg_factor_t *marg, camera_params_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_cam_params, p);
+  } else {
+    list_push(marg->m_cam_params, p);
+  }
+}
+
+static void marg_track_time_delay(marg_factor_t *marg, time_delay_t *p) {
+  if (p->marginalize == 0) {
+    list_push(marg->r_time_delays, p);
+  } else {
+    list_push(marg->m_time_delays, p);
+  }
+}
+
+static void marg_track_factor(marg_factor_t *marg,
+                              const int param_type,
+                              void *param) {
+  switch (param_type) {
+    case POSITION_PARAM:
+      marg_track_pos(marg, (pos_t *) param);
+      break;
+    case ROTATION_PARAM:
+      marg_track_rot(marg, (rot_t *) param);
+      break;
+    case POSE_PARAM:
+      marg_track_pose(marg, (pose_t *) param);
+      break;
+    case VELOCITY_PARAM:
+      marg_track_velocity(marg, (velocity_t *) param);
+      break;
+    case IMU_BIASES_PARAM:
+      marg_track_imu_biases(marg, (imu_biases_t *) param);
+      break;
+    case FEATURE_PARAM:
+      marg_track_feature(marg, (feature_t *) param);
+      break;
+    case FIDUCIAL_PARAM:
+      marg_track_fiducial(marg, (fiducial_t *) param);
+      break;
+    case EXTRINSIC_PARAM:
+      marg_track_extrinsic(marg, (extrinsic_t *) param);
+      break;
+    case JOINT_PARAM:
+      marg_track_joint(marg, (joint_t *) param);
+      break;
+    case CAMERA_PARAM:
+      marg_track_camera(marg, (camera_params_t *) param);
+      break;
+    case TIME_DELAY_PARAM:
+      marg_track_time_delay(marg, (time_delay_t *) param);
+      break;
+    default:
+      FATAL("Implementation Error!\n");
+      break;
+  }
+}
+
+/**
+ * Form Hessian matrix using data in marginalization factor.
+ */
+static void marg_factor_hessian_form(marg_factor_t *marg) {
+  // Track Factor Params
+  // -- Track marginalization factor params
+  if (marg->marg_factor) {
+    for (int i = 0; i < marg->marg_factor->num_params; i++) {
+      void *param = marg->marg_factor->param_ptrs[i];
+      int param_type = marg->marg_factor->param_types[i];
+      marg_track_factor(marg, param_type, param);
+    }
+  }
+  // -- Track BA factor params
+  {
+    list_node_t *node = marg->ba_factors->first;
+    while (node != NULL) {
+      ba_factor_t *factor = (ba_factor_t *) node->value;
+      marg_track_pose(marg, factor->pose);
+      marg_track_feature(marg, factor->feature);
+      marg_track_camera(marg, factor->camera);
+      node = node->next;
+    }
+  }
+  // -- Track camera factor params
+  {
+    list_node_t *node = marg->camera_factors->first;
+    while (node != NULL) {
+      camera_factor_t *factor = (camera_factor_t *) node->value;
+      marg_track_pose(marg, factor->pose);
+      marg_track_extrinsic(marg, factor->extrinsic);
+      marg_track_feature(marg, factor->feature);
+      marg_track_camera(marg, factor->camera);
+      node = node->next;
+    }
+  }
+  // -- Track IMU factor params
+  {
+    list_node_t *node = marg->imu_factors->first;
+    while (node != NULL) {
+      imu_factor_t *factor = (imu_factor_t *) node->value;
+      marg_track_pose(marg, factor->pose_i);
+      marg_track_velocity(marg, factor->vel_i);
+      marg_track_imu_biases(marg, factor->biases_i);
+      marg_track_pose(marg, factor->pose_j);
+      marg_track_velocity(marg, factor->vel_j);
+      marg_track_imu_biases(marg, factor->biases_j);
+      node = node->next;
+    }
+  }
+  // -- Track calib camera factor params
+  // {
+  //   list_node_t *node = marg->calib_camera_factors->first;
+  //   while (node != NULL) {
+  //     calib_camera_factor_t *factor = (calib_camera_factor_t *) node->value;
+  //     marg_track_pose(marg, factor->pose);
+  //     marg_track_extrinsic(marg, factor->cam_ext);
+  //     marg_track_camera(marg, factor->cam_params);
+  //     node = node->next;
+  //   }
+  // }
+  // // -- Track calib imucam factor params
+  // {
+  //   list_node_t *node = marg->calib_imucam_factors->first;
+  //   while (node != NULL) {
+  //     calib_imucam_factor_t *factor = (calib_imucam_factor_t *) node->value;
+  //     marg_track_fiducial(marg, factor->fiducial);
+  //     marg_track_pose(marg, factor->imu_pose);
+  //     marg_track_extrinsic(marg, factor->imu_ext);
+  //     marg_track_extrinsic(marg, factor->cam_ext);
+  //     marg_track_camera(marg, factor->cam_params);
+  //     marg_track_time_delay(marg, factor->time_delay);
+  //     node = node->next;
+  //   }
+  // }
+
+  // Determine parameter block column indicies for Hessian matrix H
+  // clang-format off
+  int H_idx = 0; // Column / row index of Hessian matrix H
+  int m = 0;     // Marginal local parameter length
+  int r = 0;     // Remain local parameter length
+  int gm = 0;    // Marginal global parameter length
+  int gr = 0;    // Remain global parameter length
+  int nm = 0;    // Number of marginal parameters
+  int nr = 0;    // Number of remain parameters
+  // -- Column indices for parameter blocks to be marginalized
+  rbt_t *pi = marg->param_index;
+  MARG_INDEX(marg->m_positions, POSITION_PARAM, pos_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_rotations, ROTATION_PARAM, rot_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_poses, POSE_PARAM, pose_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_velocities, VELOCITY_PARAM, velocity_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_imu_biases, IMU_BIASES_PARAM, imu_biases_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_features, FEATURE_PARAM, feature_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_joints, JOINT_PARAM, joint_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_extrinsics, EXTRINSIC_PARAM, extrinsic_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_fiducials, FIDUCIAL_PARAM, fiducial_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_cam_params, CAMERA_PARAM, camera_params_t, pi, &H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_time_delays, TIME_DELAY_PARAM, time_delay_t, pi, &H_idx, m, gm, nm);
+  // -- Column indices for parameter blocks to remain
+  MARG_INDEX(marg->r_positions, POSITION_PARAM, pos_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_rotations, ROTATION_PARAM, rot_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_poses, POSE_PARAM, pose_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_velocities, VELOCITY_PARAM, velocity_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_imu_biases, IMU_BIASES_PARAM, imu_biases_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_features, FEATURE_PARAM, feature_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_joints, JOINT_PARAM, joint_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_extrinsics, EXTRINSIC_PARAM, extrinsic_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_fiducials, FIDUCIAL_PARAM, fiducial_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_cam_params, CAMERA_PARAM, camera_params_t, pi, &H_idx, m, gr, nr);
+  MARG_INDEX(marg->r_time_delays, TIME_DELAY_PARAM, time_delay_t, pi, &H_idx, m, gr, nr);
+  // clang-format on
+
+  // Track linearization point x0 and parameter pointers
+  // clang-format off
+  assert(gm > 0);
+  assert(nm > 0);
+  assert(gr > 0);
+  assert(nr > 0);
+  int param_idx = 0;
+  int x0_idx = 0;
+  marg->x0 = malloc(sizeof(real_t) * gr);
+  marg->num_params = nr;
+  marg->param_types = malloc(sizeof(int) * nr);
+  marg->param_ptrs = malloc(sizeof(void *) * nr);
+  marg->params = malloc(sizeof(real_t *) * nr);
+  MARG_PARAMS(marg, marg->r_positions, POSITION_PARAM, pos_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_rotations, ROTATION_PARAM, rot_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_poses, POSE_PARAM, pose_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_velocities, VELOCITY_PARAM, velocity_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_imu_biases, IMU_BIASES_PARAM, imu_biases_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_features, FEATURE_PARAM, feature_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_joints, JOINT_PARAM, joint_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_extrinsics, EXTRINSIC_PARAM, extrinsic_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_fiducials, FIDUCIAL_PARAM, fiducial_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_cam_params, CAMERA_PARAM, camera_params_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_time_delays, TIME_DELAY_PARAM, time_delay_t, param_idx, x0_idx);
+  // clang-format on
+
+  // Allocate memory LHS and RHS of Gauss newton
+  marg->m_size = m;
+  marg->r_size = r;
+  const int ls = m + r;
+  real_t *H = calloc(ls * ls, sizeof(real_t));
+  real_t *b = calloc(ls * 1, sizeof(real_t));
+
+  // Fill Hessian
+  if (marg->marg_factor) {
+    solver_fill_hessian(marg->param_index,
+                        marg->marg_factor->num_params,
+                        marg->marg_factor->params,
+                        marg->marg_factor->jacs,
+                        marg->marg_factor->r,
+                        marg->marg_factor->r_size,
+                        ls,
+                        H,
+                        b);
+  }
+
+  // param_order_print(marg->hash);
+  MARG_H(marg, ba_factor_t, marg->ba_factors, H, b, ls);
+  MARG_H(marg, camera_factor_t, marg->camera_factors, H, b, ls);
+  MARG_H(marg, imu_factor_t, marg->imu_factors, H, b, ls);
+  // MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
+  // MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
+  marg->H = H;
+  marg->b = b;
+  // param_order_print(marg->hash);
+  // mat_save("/tmp/H.csv", marg->H, ls, ls);
+  // mat_save("/tmp/b.csv", marg->b, ls, 1);
+}
+
+/**
+ * Perform Schur-Complement.
+ */
+static void marg_factor_schur_complement(marg_factor_t *marg) {
+  // Compute Schurs Complement
+  const int m = marg->m_size;
+  const int r = marg->r_size;
+  const int ls = m + r;
+  const real_t *H = marg->H;
+  const real_t *b = marg->b;
+  real_t *H_marg = malloc(sizeof(real_t) * r * r);
+  real_t *b_marg = malloc(sizeof(real_t) * r * 1);
+  if (schur_complement(H, b, ls, m, r, H_marg, b_marg) == 0) {
+    marg->schur_complement_ok = 1;
+  }
+  marg->H_marg = H_marg;
+  marg->b_marg = b_marg;
+
+  // Enforce symmetry: H_marg = 0.5 * (H_marg + H_marg')
+  if (marg->cond_hessian) {
+    enforce_spd(marg->H_marg, r, r);
+  }
+
+  // printf("m: %d\n", m);
+  // printf("r: %d\n", r);
+  // mat_save("/tmp/H.csv", marg->H, ls, ls);
+  // mat_save("/tmp/b.csv", marg->b, ls, 1);
+  // mat_save("/tmp/H_marg.csv", marg->H_marg, r, r);
+  // mat_save("/tmp/b_marg.csv", marg->b_marg, r, 1);
+  // exit(0);
+}
+
+/**
+ * Decompose Hessian into two Jacobians.
+ */
+static void marg_factor_hessian_decomp(marg_factor_t *marg) {
+  // Decompose H_marg into Jt and J, and in the process also obtain inv(J).
+  // Hessian H_marg can be decomposed via Eigen-decomposition:
+  //
+  //   H_marg = J' * J = V * diag(w) * V'
+  //   J = diag(w^{0.5}) * V'
+  //   J_inv = diag(w^-0.5) * V'
+  //
+  // -- Setup
+  const int r = marg->r_size;
+  real_t *J = calloc(r * r, sizeof(real_t));
+  real_t *J_inv = calloc(r * r, sizeof(real_t));
+  real_t *V = calloc(r * r, sizeof(real_t));
+  real_t *Vt = calloc(r * r, sizeof(real_t));
+  real_t *w = calloc(r, sizeof(real_t));
+  real_t *W_sqrt = calloc(r * r, sizeof(real_t));
+  real_t *W_inv_sqrt = calloc(r * r, sizeof(real_t));
+
+  // -- Eigen decomposition
+  if (eig_sym(marg->H_marg, r, r, V, w) != 0) {
+    free(J);
+    free(J_inv);
+    free(V);
+    free(Vt);
+    free(w);
+    free(W_sqrt);
+    free(W_inv_sqrt);
+    return;
+  }
+  mat_transpose(V, r, r, Vt);
+
+  // -- Form J and J_inv:
+  //
+  //   J = diag(w^0.5) * V'
+  //   J_inv = diag(w^-0.5) * V'
+  //
+  const real_t tol = 1e-18;
+  for (int i = 0; i < r; i++) {
+    if (w[i] > tol) {
+      W_sqrt[(i * r) + i] = sqrt(w[i]);
+      W_inv_sqrt[(i * r) + i] = sqrt(1.0 / w[i]);
+    } else {
+      W_sqrt[(i * r) + i] = 0.0;
+      W_inv_sqrt[(i * r) + i] = 0.0;
+    }
+  }
+  dot(W_sqrt, r, r, Vt, r, r, J);
+  dot(W_inv_sqrt, r, r, Vt, r, r, J_inv);
+  mat_scale(J_inv, r, r, -1.0);
+  marg->eigen_decomp_ok = 1;
+
+  // Check J' * J == H_marg
+  if (marg->debug) {
+    real_t *Jt = calloc(r * r, sizeof(real_t));
+    real_t *H_ = calloc(r * r, sizeof(real_t));
+    mat_transpose(J, r, r, Jt);
+    dot(Jt, r, r, J, r, r, H_);
+
+    real_t diff = 0.0;
+    for (int i = 0; i < (r * r); i++) {
+      diff += pow(H_[i] - marg->H_marg[i], 2);
+    }
+
+    if (diff > 1e-2) {
+      marg->eigen_decomp_ok = 0;
+      LOG_WARN("J' * J != H_marg. Diff is %.2e\n", diff);
+      LOG_WARN("This is bad ... Usually means marginalization is bad!\n");
+    }
+
+    free(Jt);
+    free(H_);
+  }
+
+  // Check J_inv * J == eye
+  // if (marg->debug) {
+  //   if (check_inv(J, J_inv, r) != 0) {
+  //     marg->eigen_decomp_ok = 0;
+  //     LOG_WARN("inv(J) * J != eye\n");
+  //   }
+  // }
+
+  // Update
+  marg->J0 = J;
+  marg->J0_inv = J_inv;
+
+  // Clean up
+  free(V);
+  free(Vt);
+  free(w);
+  free(W_sqrt);
+  free(W_inv_sqrt);
+}
+
+static void marg_factor_form_fejs(marg_factor_t *marg) {
+  // Track Linearized residuals, jacobians
+  // -- Linearized residuals: r0 = -J0_inv * b_marg;
+  marg->r0 = malloc(sizeof(real_t) * marg->r_size);
+  dot(marg->J0_inv,
+      marg->r_size,
+      marg->r_size,
+      marg->b_marg,
+      marg->r_size,
+      1,
+      marg->r0);
+  // -- Linearized jacobians: J0 = J;
+  marg->dchi = malloc(sizeof(real_t) * marg->r_size);
+  marg->J0_dchi = malloc(sizeof(real_t) * marg->r_size);
+
+  // Form First-Estimate Jacobians (FEJ)
+  const size_t m = marg->r_size;
+  const int col_offset = -marg->m_size;
+  const int rs = 0;
+  const int re = m - 1;
+  marg->r = malloc(sizeof(real_t) * m);
+  marg->jacs = malloc(sizeof(real_t *) * marg->num_params);
+
+  char param_type[100] = {0};
+  for (size_t i = 0; i < marg->num_params; i++) {
+    real_t *param_ptr = marg->params[i];
+    const param_info_t *param_info = rbt_search(marg->param_index, param_ptr);
+    param_type_string(param_info->type, param_type);
+    const int n = param_local_size(param_info->type);
+    const int cs = param_info->idx + col_offset;
+    const int ce = cs + n - 1;
+
+    marg->jacs[i] = malloc(sizeof(real_t) * m * n);
+    mat_block_get(marg->J0, m, rs, re, cs, ce, marg->jacs[i]);
+  }
+}
+
+void marg_factor_marginalize(marg_factor_t *marg) {
+  // Form Hessian and RHS of Gauss newton
+  TIC(hessian_form);
+  marg_factor_hessian_form(marg);
+  marg->time_hessian_form = TOC(hessian_form);
+  marg->time_total += marg->time_hessian_form;
+
+  // Apply Schur Complement
+  TIC(schur);
+  marg_factor_schur_complement(marg);
+  marg->time_schur_complement = TOC(schur);
+  marg->time_total += marg->time_schur_complement;
+
+  // Decompose marginalized Hessian
+  TIC(hessian_decomp);
+  marg_factor_hessian_decomp(marg);
+  marg->time_hessian_decomp = TOC(hessian_decomp);
+  marg->time_total += marg->time_hessian_decomp;
+
+  // Form FEJs
+  TIC(fejs);
+  marg_factor_form_fejs(marg);
+  marg->time_fejs = TOC(fejs);
+  marg->time_total += marg->time_fejs;
+
+  // Update state
+  marg->marginalized = 1;
+}
+
+int marg_factor_eval(void *marg_ptr) {
+  assert(marg_ptr);
+
+  // Map factor
+  marg_factor_t *marg = (marg_factor_t *) marg_ptr;
+  assert(marg->marginalized == 1);
+
+  // Compute residuals
+  // -- Compute dchi vector
+  int param_row_idx = 0;
+  int dchi_row_idx = 0;
+  for (size_t i = 0; i < marg->num_params; i++) {
+    const int param_type = marg->param_types[i];
+    const int param_size = param_global_size(param_type);
+    const int local_size = param_local_size(param_type);
+    const real_t *x0 = marg->x0 + param_row_idx;
+    const real_t *x = marg->params[i];
+
+    // Calculate i-th dchi
+    switch (param_type) {
+      case POSE_PARAM:
+      case FIDUCIAL_PARAM:
+      case EXTRINSIC_PARAM: {
+        // Pose minus
+        // dr = r - r0
+        const real_t dr[3] = {x[0] - x0[0], x[1] - x0[1], x[2] - x0[2]};
+
+        // dq = q0.inverse() * q
+        const real_t q[4] = {x[3], x[4], x[5], x[6]};
+        const real_t q0[4] = {x0[3], x0[4], x0[5], x0[6]};
+        real_t q0_inv[4] = {0};
+        real_t dq[4] = {0};
+        quat_inv(q0, q0_inv);
+        quat_mul(q0_inv, q, dq);
+
+        marg->dchi[dchi_row_idx + 0] = dr[0];
+        marg->dchi[dchi_row_idx + 1] = dr[1];
+        marg->dchi[dchi_row_idx + 2] = dr[2];
+        marg->dchi[dchi_row_idx + 3] = 2.0 * dq[1];
+        marg->dchi[dchi_row_idx + 4] = 2.0 * dq[2];
+        marg->dchi[dchi_row_idx + 5] = 2.0 * dq[3];
+      } break;
+      default:
+        // Trivial minus: x - x0
+        vec_sub(x, x0, marg->dchi + dchi_row_idx, param_size);
+        break;
+    }
+    param_row_idx += param_size;
+    dchi_row_idx += local_size;
+  }
+  // -- Compute residuals: r = r0 + J0 * dchi;
+  dot(marg->J0,
+      marg->r_size,
+      marg->r_size,
+      marg->dchi,
+      marg->r_size,
+      1,
+      marg->J0_dchi);
+  for (int i = 0; i < marg->r_size; i++) {
+    marg->r[i] = marg->r0[i] + marg->J0_dchi[i];
+  }
+
+  return 0;
+}
+
+////////////////
+// DATA UTILS //
+////////////////
+
+static int
+parse_pose_data(const int i, const int j, const char *entry, pose_t *poses) {
+  switch (j) {
+    case 0:
+      poses[i].ts = strtol(entry, NULL, 10);
+      break;
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+      poses[i].data[j - 1] = strtod(entry, NULL);
+      break;
+    default:
+      return -1;
+  }
+
+  return 0;
+}
+
+/**
+ * Load poses from file `fp`. The number of poses in file
+ * will be outputted to `num_poses`.
+ */
+pose_t *load_poses(const char *fp, int *num_poses) {
+  assert(fp != NULL);
+  assert(num_poses != NULL);
+
+  // Obtain number of rows and columns in dsv data
+  int num_rows = dsv_rows(fp);
+  int num_cols = dsv_cols(fp, ',');
+  if (num_rows == -1 || num_cols == -1) {
+    return NULL;
+  }
+
+  // Initialize memory for pose data
+  *num_poses = num_rows;
+  pose_t *poses = malloc(sizeof(pose_t) * num_rows);
+
+  // Load file
+  FILE *infile = fopen(fp, "r");
+  if (infile == NULL) {
+    free(poses);
+    return NULL;
+  }
+
+  // Loop through data
+  char line[MAX_LINE_LENGTH] = {0};
+  int row_idx = 0;
+  int col_idx = 0;
+
+  // Loop through data line by line
+  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
+    // Ignore if comment line
+    if (line[0] == '#') {
+      continue;
+    }
+
+    // Iterate through values in line separated by commas
+    char entry[100] = {0};
+    for (size_t i = 0; i < strlen(line); i++) {
+      char c = line[i];
+      if (c == ' ') {
+        continue;
+      }
+
+      if (c == ',' || c == '\n') {
+        if (parse_pose_data(row_idx, col_idx, entry, poses) != 0) {
+          return NULL;
+        }
+        memset(entry, '\0', sizeof(char) * 100);
+        col_idx++;
+
+      } else {
+        entry[strlen(entry)] = c;
+      }
+    }
+
+    col_idx = 0;
+    row_idx++;
+  }
+
+  // Clean up
+  fclose(infile);
+
+  return poses;
+}
+
+/**
+ * Associate pose data
+ */
+int **assoc_pose_data(pose_t *gnd_poses,
+                      size_t num_gnd_poses,
+                      pose_t *est_poses,
+                      size_t num_est_poses,
+                      double threshold,
+                      size_t *num_matches) {
+  assert(gnd_poses != NULL);
+  assert(est_poses != NULL);
+  assert(num_gnd_poses != 0);
+  assert(num_est_poses != 0);
+
+  size_t gnd_idx = 0;
+  size_t est_idx = 0;
+  size_t k_end =
+      (num_gnd_poses > num_est_poses) ? num_est_poses : num_gnd_poses;
+
+  size_t match_idx = 0;
+  int **matches = malloc(sizeof(int *) * k_end);
+
+  while ((gnd_idx + 1) < num_gnd_poses && (est_idx + 1) < num_est_poses) {
+    // Calculate time difference between ground truth and
+    // estimate
+    double gnd_k_time = ts2sec(gnd_poses[gnd_idx].ts);
+    double est_k_time = ts2sec(est_poses[est_idx].ts);
+    double t_k_diff = fabs(gnd_k_time - est_k_time);
+
+    // Check to see if next ground truth timestamp forms
+    // a smaller time diff
+    double t_kp1_diff = threshold;
+    if ((gnd_idx + 1) < num_gnd_poses) {
+      double gnd_kp1_time = ts2sec(gnd_poses[gnd_idx + 1].ts);
+      t_kp1_diff = fabs(gnd_kp1_time - est_k_time);
+    }
+
+    // Conditions to call this pair (ground truth and
+    // estimate) a match
+    int threshold_met = t_k_diff < threshold;
+    int smallest_diff = t_k_diff < t_kp1_diff;
+
+    // Mark pairs as a match or increment appropriate
+    // indices
+    if (threshold_met && smallest_diff) {
+      matches[match_idx] = malloc(sizeof(int) * 2);
+      matches[match_idx][0] = gnd_idx;
+      matches[match_idx][1] = est_idx;
+      match_idx++;
+
+      gnd_idx++;
+      est_idx++;
+
+    } else if (gnd_k_time > est_k_time) {
+      est_idx++;
+
+    } else if (gnd_k_time < est_k_time) {
+      gnd_idx++;
+    }
+  }
+
+  // Clean up
+  if (match_idx == 0) {
+    free(matches);
+    matches = NULL;
+  }
+
+  *num_matches = match_idx;
+  return matches;
+}
+
+////////////
+// SOLVER //
+////////////
+
+/**
+ * Setup Solver
+ */
+void solver_setup(solver_t *solver) {
+  assert(solver);
+
+  // Settings
+  solver->verbose = 0;
+  solver->max_iter = 10;
+  solver->lambda = 1e4;
+  solver->lambda_factor = 10.0;
+
+  // Data
+  solver->param_index = NULL;
+  solver->linearize = 0;
+  solver->r_size = 0;
+  solver->sv_size = 0;
+  solver->H_damped = NULL;
+  solver->H = NULL;
+  solver->g = NULL;
+  solver->r = NULL;
+  solver->dx = NULL;
+
+  // SuiteSparse
+#ifdef SOLVER_USE_SUITESPARSE
+  solver->common = NULL;
+#endif
+
+  // Callbacks
+  solver->param_index_func = NULL;
+  solver->cost_func = NULL;
+  solver->linearize_func = NULL;
+  solver->linsolve_func = NULL;
+}
+
+/**
+ * Calculate cost with residual vector `r` of length `r_size`.
+ */
+real_t solver_cost(const solver_t *solver, const void *data) {
+  solver->cost_func(data, solver->r);
+  real_t r_sq = {0};
+  dot(solver->r, 1, solver->r_size, solver->r, solver->r_size, 1, &r_sq);
+  return 0.5 * r_sq;
+}
+
+/**
+ * Fill Jacobian matrix
+ */
+void solver_fill_jacobian(rbt_t *param_index,
+                          int num_params,
+                          real_t **params,
+                          real_t **jacs,
+                          real_t *r,
+                          int r_size,
+                          int sv_size,
+                          int J_row_idx,
+                          real_t *J,
+                          real_t *g) {
+  for (int i = 0; i < num_params; i++) {
+    // Check if i-th parameter is fixed
+    param_info_t *info = rbt_search(param_index, params[i]);
+    if (info->fix) {
+      continue;
+    }
+
+    // Get i-th parameter and corresponding Jacobian
+    int idx_i = info->idx;
+    int size_i = param_local_size(info->type);
+    const real_t *J_i = jacs[i];
+
+    // Fill in the Jacobian
+    const int rs = J_row_idx;
+    const int re = rs + r_size - 1;
+    const int cs = idx_i;
+    const int ce = idx_i + size_i - 1;
+    mat_block_set(J, sv_size, rs, re, cs, ce, J_i);
+
+    // Fill in the R.H.S of H dx = g, where g = -J_i' * r
+    real_t *Jt_i = malloc(sizeof(real_t) * r_size * size_i);
+    real_t *g_i = malloc(sizeof(real_t) * size_i);
+    mat_transpose(J_i, r_size, size_i, Jt_i);
+    mat_scale(Jt_i, size_i, r_size, -1);
+    dot(Jt_i, size_i, r_size, r, r_size, 1, g_i);
+    for (int g_idx = 0; g_idx < size_i; g_idx++) {
+      g[idx_i + g_idx] += g_i[g_idx];
+    }
+
+    // Clean up
+    free(g_i);
+    free(Jt_i);
+  }
+}
+
+/**
+ * Fill Hessian matrix
+ */
+void solver_fill_hessian(rbt_t *param_index,
+                         int num_params,
+                         real_t **params,
+                         real_t **jacs,
+                         real_t *r,
+                         int r_size,
+                         int sv_size,
+                         real_t *H,
+                         real_t *g) {
+  if (H == NULL || g == NULL) {
+    return;
+  }
+
+  for (int i = 0; i < num_params; i++) {
+    // Check if i-th parameter is fixed
+    param_info_t *info_i = rbt_search(param_index, params[i]);
+    if (info_i->fix) {
+      continue;
+    }
+
+    // Get i-th parameter and corresponding Jacobian
+    int idx_i = info_i->idx;
+    int size_i = param_local_size(info_i->type);
+    const real_t *J_i = jacs[i];
+    real_t *Jt_i = malloc(sizeof(real_t) * r_size * size_i);
+    mat_transpose(J_i, r_size, size_i, Jt_i);
+
+    for (int j = i; j < num_params; j++) {
+      // Check if j-th parameter is fixed
+      param_info_t *info_j = rbt_search(param_index, params[j]);
+      if (info_j->fix) {
+        continue;
+      }
+
+      // Get j-th parameter and corresponding Jacobian
+      int idx_j = info_j->idx;
+      int size_j = param_local_size(info_j->type);
+      const real_t *J_j = jacs[j];
+      real_t *H_ij = malloc(sizeof(real_t) * size_i * size_j);
+      dot(Jt_i, size_i, r_size, J_j, r_size, size_j, H_ij);
+
+      // Fill Hessian H
+      int rs = idx_i;
+      int re = idx_i + size_i - 1;
+      int cs = idx_j;
+      int ce = idx_j + size_j - 1;
+
+      if (i == j) {
+        // Fill diagonal
+        mat_block_add(H, sv_size, rs, re, cs, ce, H_ij);
+      } else {
+        // Fill off-diagonal
+        real_t *H_ji = malloc(sizeof(real_t) * size_j * size_i);
+        mat_transpose(H_ij, size_i, size_j, H_ji);
+        mat_block_add(H, sv_size, rs, re, cs, ce, H_ij);
+        mat_block_add(H, sv_size, cs, ce, rs, re, H_ji);
+        free(H_ji);
+      }
+
+      // Clean up
+      free(H_ij);
+    }
+
+    // Fill in the R.H.S of H dx = g, where g = -J_i' * r
+    real_t *g_i = malloc(sizeof(real_t) * size_i);
+    mat_scale(Jt_i, size_i, r_size, -1);
+    dot(Jt_i, size_i, r_size, r, r_size, 1, g_i);
+    for (int g_idx = 0; g_idx < size_i; g_idx++) {
+      g[idx_i + g_idx] += g_i[g_idx];
+    }
+
+    // Clean up
+    free(g_i);
+    free(Jt_i);
+  }
+}
+
 // /**
 //  * Create a copy of the parameter vector
 //  */
@@ -4975,11 +5562,6 @@ error:
 //         }
 //         break;
 //       case FEATURE_PARAM:
-//         for (int i = 0; i < 3; i++) {
-//           data[i] += dx[idx + i];
-//         }
-//         break;
-//       case IDF_BEARING_PARAM:
 //         for (int i = 0; i < 3; i++) {
 //           data[i] += dx[idx + i];
 //         }

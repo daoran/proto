@@ -103,12 +103,10 @@ LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz_gnuplot.o \
 	$(BLD_DIR)/xyz_aprilgrid.o \
 	$(BLD_DIR)/xyz_cv.o \
-	$(BLD_DIR)/xyz_timeline.o \
 	$(BLD_DIR)/xyz_control.o \
 	$(BLD_DIR)/xyz_gimbal.o \
 	$(BLD_DIR)/xyz_mav.o \
 	$(BLD_DIR)/xyz_euroc.o \
-	$(BLD_DIR)/xyz_sim.o \
 	$(BLD_DIR)/xyz_octree.o \
 	$(BLD_DIR)/xyz_gui.o \
 	$(BLD_DIR)/xyz_voxel.o \

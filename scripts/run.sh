@@ -177,7 +177,7 @@ run_test() {
 
 # XYZ
 # run_all_tests
-run_test test_xyz
+# run_test test_xyz
 # run_test test_xyz test_tic
 # run_test test_xyz test_toc
 # run_test test_xyz test_mtoc
@@ -358,7 +358,7 @@ run_test test_xyz
 # run_test test_mav test_mav_pos_ctrl
 # run_test test_mav test_mav_waypoints
 # XYZ - STATE ESTIMATION
-# run_test test_se
+run_test test_se
 # run_test test_se test_schur_complement
 # run_test test_se test_timeline
 # run_test test_se test_pose

@@ -1365,6 +1365,15 @@ int list_remove_destroy(list_t *list,
  * RED-BLACK-TREE
  ******************************************************************************/
 
+int default_cmp(const void *x, const void *y) {
+  if (x > y) {
+    return 1;
+  } else if (x < y) {
+    return -1;
+  }
+  return 0;
+}
+
 /**
  * The following Red-Black tree implementation is based on Robert Sedgewick's
  * Left Leaninng Red-Black tree (LLRBT), where we have implemented the 2-3
@@ -1453,6 +1462,30 @@ void rbt_node_keys(const rbt_node_t *n,
   }
   if (cmplo <= 0 && cmphi >= 0) {
     arr_push_back(keys, n->key);
+  }
+  if (cmphi > 0) {
+    rbt_node_keys(n->child[1], lo, hi, keys, cmp);
+  }
+}
+
+void rbt_node_keys_values(const rbt_node_t *n,
+                          const void *lo,
+                          const void *hi,
+                          arr_t *keys,
+                          arr_t *values,
+                          cmp_t cmp) {
+  if (n == NULL) {
+    return;
+  }
+
+  const int cmplo = cmp(lo, n->key);
+  const int cmphi = cmp(hi, n->key);
+  if (cmplo < 0) {
+    rbt_node_keys(n->child[0], lo, hi, keys, cmp);
+  }
+  if (cmplo <= 0 && cmphi >= 0) {
+    arr_push_back(keys, n->key);
+    arr_push_back(values, n->value);
   }
   if (cmphi > 0) {
     rbt_node_keys(n->child[1], lo, hi, keys, cmp);
@@ -1789,6 +1822,13 @@ void rbt_keys(const rbt_t *rbt, arr_t *keys) {
   const rbt_node_t *lo = rbt_node_min(rbt->root);
   const rbt_node_t *hi = rbt_node_max(rbt->root);
   rbt_node_keys(rbt->root, lo->key, hi->key, keys, rbt->cmp);
+}
+
+void rbt_keys_values(const rbt_t *rbt, arr_t *keys, arr_t *values) {
+  assert(rbt);
+  const rbt_node_t *lo = rbt_node_min(rbt->root);
+  const rbt_node_t *hi = rbt_node_max(rbt->root);
+  rbt_node_keys_values(rbt->root, lo->key, hi->key, keys, values, rbt->cmp);
 }
 
 int rbt_rank(const rbt_t *rbt, const void *key) {

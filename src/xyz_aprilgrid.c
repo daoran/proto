@@ -98,7 +98,8 @@ int aprilgrid_equals(const aprilgrid_t *grid0, const aprilgrid_t *grid1) {
 
   for (size_t i = 0; i < (grid0->num_rows * grid0->num_cols * 4); i++) {
     for (size_t j = 0; j < 6; j++) {
-      APRILGRID_CHECK(fabs(grid0->data[i * 6 + j] - grid1->data[i * 6 + j]) < 1e-8);
+      APRILGRID_CHECK(fabs(grid0->data[i * 6 + j] - grid1->data[i * 6 + j]) <
+                      1e-8);
     }
   }
 

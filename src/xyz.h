@@ -334,7 +334,7 @@ struct list_node_t {
 };
 
 typedef struct list_t {
-  int length;
+  size_t length;
   list_node_t *first;
   list_node_t *last;
 } list_t;
@@ -364,6 +364,7 @@ int list_remove_destroy(list_t *list,
 #define RB_BLACK 0
 
 typedef int (*cmp_t)(const void *, const void *);
+int default_cmp(const void *x, const void *y);
 
 typedef struct rbt_node_t rbt_node_t;
 struct rbt_node_t {
@@ -391,6 +392,12 @@ void rbt_node_keys(const rbt_node_t *n,
                    const void *hi,
                    arr_t *keys,
                    cmp_t cmp);
+void rbt_node_keys_values(const rbt_node_t *n,
+                          const void *lo,
+                          const void *hi,
+                          arr_t *keys,
+                          arr_t *values,
+                          cmp_t cmp);
 int rbt_node_rank(const rbt_node_t *n, const void *key, cmp_t cmp);
 void *rbt_node_select(const rbt_node_t *n, const int rank);
 void rbt_node_flip_colors(rbt_node_t *n);
@@ -421,6 +428,7 @@ rbt_node_t *rbt_max(const rbt_t *rbt);
 size_t rbt_height(const rbt_t *rbt);
 size_t rbt_size(const rbt_t *rbt);
 void rbt_keys(const rbt_t *rbt, arr_t *keys);
+void rbt_keys_values(const rbt_t *rbt, arr_t *keys, arr_t *values);
 int rbt_rank(const rbt_t *rbt, const void *key);
 void *rbt_select(const rbt_t *rbt, const int rank);
 
