@@ -102,7 +102,6 @@ LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz_kitti.o \
 	$(BLD_DIR)/xyz_gnuplot.o \
 	$(BLD_DIR)/xyz_aprilgrid.o \
-	$(BLD_DIR)/xyz_cv.o \
 	$(BLD_DIR)/xyz_control.o \
 	$(BLD_DIR)/xyz_gimbal.o \
 	$(BLD_DIR)/xyz_mav.o \
@@ -118,7 +117,6 @@ LIBXYZ_OBJS := \
 TESTS := \
 	$(BLD_DIR)/test_aprilgrid \
 	$(BLD_DIR)/test_control \
-	$(BLD_DIR)/test_cv \
 	$(BLD_DIR)/test_euroc \
 	$(BLD_DIR)/test_gimbal \
 	$(BLD_DIR)/test_gnuplot \
