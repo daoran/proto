@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <termios.h>
 #include <poll.h>
+#include <execinfo.h>
 
 #include <netdb.h>
 #include <netinet/in.h>
@@ -200,6 +201,12 @@ typedef double real_t;
   } while (0);                                                                 \
   exit(-1)
 #endif
+
+/*******************************************************************************
+ * SYSTEM
+ ******************************************************************************/
+
+void print_stacktrace(void);
 
 /*******************************************************************************
  * DATA

@@ -1,6 +1,27 @@
 #include "xyz.h"
 
 /*******************************************************************************
+ * SYSTEM
+ ******************************************************************************/
+
+void print_stacktrace() {
+  void *buffer[9046] = {0};
+  int nptrs = backtrace(buffer, 100);
+  char **strings = backtrace_symbols(buffer, nptrs);
+  if (strings == NULL) {
+    perror("backtrace_symbols");
+    exit(EXIT_FAILURE);
+  }
+
+  printf("Stack trace:\n");
+  for (int i = 0; i < nptrs; i++) {
+    printf("%s\n", strings[i]);
+  }
+
+  free(strings);
+}
+
+/*******************************************************************************
  * DATA
  ******************************************************************************/
 
@@ -1366,10 +1387,10 @@ int list_remove_destroy(list_t *list,
  ******************************************************************************/
 
 int default_cmp(const void *x, const void *y) {
-  if (x > y) {
-    return 1;
-  } else if (x < y) {
+  if (x < y) {
     return -1;
+  } else if (x > y) {
+    return 1;
   }
   return 0;
 }
@@ -1481,14 +1502,14 @@ void rbt_node_keys_values(const rbt_node_t *n,
   const int cmplo = cmp(lo, n->key);
   const int cmphi = cmp(hi, n->key);
   if (cmplo < 0) {
-    rbt_node_keys(n->child[0], lo, hi, keys, cmp);
+    rbt_node_keys_values(n->child[0], lo, hi, keys, values, cmp);
   }
   if (cmplo <= 0 && cmphi >= 0) {
     arr_push_back(keys, n->key);
     arr_push_back(values, n->value);
   }
   if (cmphi > 0) {
-    rbt_node_keys(n->child[1], lo, hi, keys, cmp);
+    rbt_node_keys_values(n->child[1], lo, hi, keys, values, cmp);
   }
 }
 
@@ -1762,7 +1783,18 @@ void *rbt_node_search(rbt_node_t *n, void *key, cmp_t cmp_func) {
 }
 
 bool rbt_node_contains(rbt_node_t *n, void *key, cmp_t cmp_func) {
-  return rbt_node_search(n, key, cmp_func) != NULL;
+  while (n != NULL) {
+    const int cmp = cmp_func(key, n->key);
+    if (cmp < 0) {
+      n = n->child[0];
+    } else if (cmp > 0) {
+      n = n->child[1];
+    } else {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 rbt_t *rbt_malloc(cmp_t cmp) {
