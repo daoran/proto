@@ -2,7 +2,6 @@
 #include "xyz.h"
 #include "xyz_se.h"
 #include "xyz_gui.h"
-#include "xyz_kitti.h"
 #include "xyz_octree.h"
 #include "xyz_kdtree.h"
 
