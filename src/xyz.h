@@ -2788,6 +2788,111 @@ timeline_t *timeline_load_data(const char *data_dir,
                                const int num_imus);
 
 /*******************************************************************************
+ * OCTREE
+ ******************************************************************************/
+
+/////////////////
+// OCTREE NODE //
+/////////////////
+
+typedef struct octree_node_t {
+  float center[3];
+  float size;
+  int depth;
+  int max_depth;
+  int max_points;
+
+  struct octree_node_t *children[8];
+  float *points;
+  size_t num_points;
+  size_t capacity;
+} octree_node_t;
+
+octree_node_t *octree_node_malloc(const float center[3],
+                                  const float size,
+                                  const int depth,
+                                  const int max_depth,
+                                  const int max_points);
+void octree_node_free(octree_node_t *node);
+
+////////////
+// OCTREE //
+////////////
+
+typedef struct octree_data_t {
+  float *points;
+  size_t num_points;
+  size_t capacity;
+} octree_data_t;
+
+typedef struct octree_t {
+  float center[3];
+  float size;
+  octree_node_t *root;
+} octree_t;
+
+octree_t *octree_malloc(const float octree_center[3],
+                        const float octree_size,
+                        const int octree_max_depth,
+                        const int voxel_max_points,
+                        const float *octree_points,
+                        const size_t num_points);
+void octree_free(octree_t *octree);
+void octree_add_point(octree_node_t *node, const float point[3]);
+void octree_points(const octree_node_t *node, octree_data_t *data);
+float *octree_downsample(const float *octree_points,
+                         const size_t n,
+                         const float voxel_size,
+                         const size_t voxel_limit,
+                         size_t *n_out);
+
+/*****************************************************************************
+ * KD-TREE
+ ****************************************************************************/
+
+#define KDTREE_KDIM 3
+
+//////////////////
+// KD-TREE NODE //
+//////////////////
+
+typedef struct kdtree_node_t {
+  float p[3];
+  int k;
+  struct kdtree_node_t *left;
+  struct kdtree_node_t *right;
+} kdtree_node_t;
+
+kdtree_node_t *kdtree_node_malloc(const float p[3], const int k);
+void kdtree_node_free(kdtree_node_t *node);
+
+/////////////
+// KD-TREE //
+/////////////
+
+typedef struct kdtree_data_t {
+  float *points;
+  size_t num_points;
+  size_t capacity;
+} kdtree_data_t;
+
+typedef struct kdtree_t {
+  kdtree_node_t *root;
+} kdtree_t;
+
+kdtree_node_t *kdtree_insert(kdtree_node_t *node,
+                             const float p[3],
+                             const int depth);
+
+kdtree_t *kdtree_malloc(float *points, size_t num_points);
+void kdtree_free(kdtree_t *kdtree);
+void kdtree_points(const kdtree_t *kdtree, kdtree_data_t *data);
+void kdtree_nn(const kdtree_t *kdtree,
+               const float target[3],
+               float *best_point,
+               float *best_dist);
+
+/*******************************************************************************
  * SIMULATION
  ******************************************************************************/
 

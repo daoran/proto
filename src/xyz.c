@@ -15949,6 +15949,382 @@ timeline_t *timeline_load_data(const char *data_dir,
 }
 
 /*******************************************************************************
+ * OCTREE
+ ******************************************************************************/
+
+/////////////////
+// OCTREE NODE //
+/////////////////
+
+octree_node_t *octree_node_malloc(const float center[3],
+                                  const float size,
+                                  const int depth,
+                                  const int max_depth,
+                                  const int max_points) {
+  octree_node_t *node = malloc(sizeof(octree_node_t));
+
+  node->center[0] = center[0];
+  node->center[1] = center[1];
+  node->center[2] = center[2];
+  node->size = size;
+  node->depth = depth;
+  node->max_depth = max_depth;
+  node->max_points = max_points;
+
+  for (int i = 0; i < 8; ++i) {
+    node->children[i] = NULL;
+  }
+  node->points = malloc(sizeof(float) * 3 * max_points);
+  node->num_points = 0;
+  node->capacity = max_points;
+
+  return node;
+}
+
+void octree_node_free(octree_node_t *node) {
+  if (node == NULL) {
+    return;
+  }
+
+  for (int i = 0; i < 8; ++i) {
+    octree_node_free(node->children[i]);
+  }
+  free(node->points);
+  free(node);
+}
+
+////////////
+// OCTREE //
+////////////
+
+octree_t *octree_malloc(const float octree_center[3],
+                        const float octree_size,
+                        const int octree_max_depth,
+                        const int voxel_max_points,
+                        const float *octree_points,
+                        const size_t num_points) {
+  assert(octree_center);
+  octree_t *octree = malloc(sizeof(octree_t));
+
+  octree->center[0] = octree_center[0];
+  octree->center[1] = octree_center[1];
+  octree->center[2] = octree_center[2];
+  octree->size = octree_size;
+  octree->root = octree_node_malloc(octree->center,
+                                    octree->size,
+                                    0,
+                                    octree_max_depth,
+                                    voxel_max_points);
+  for (size_t i = 0; i < num_points; i++) {
+    octree_add_point(octree->root, &octree_points[i * 3]);
+  }
+
+  return octree;
+}
+
+void octree_free(octree_t *octree) {
+  if (octree == NULL) {
+    return;
+  }
+  octree_node_free(octree->root);
+  free(octree);
+}
+
+void octree_add_point(octree_node_t *node, const float point[3]) {
+  assert(node);
+  assert(point);
+
+  // Max depth reached? Add the point
+  if (node->depth == node->max_depth) {
+    if (node->num_points >= node->max_points) {
+      return;
+    }
+    node->points[node->num_points * 3 + 0] = point[0];
+    node->points[node->num_points * 3 + 1] = point[1];
+    node->points[node->num_points * 3 + 2] = point[2];
+    node->num_points++;
+    if (node->num_points >= node->capacity) {
+      node->capacity = node->capacity * 2;
+      node->points = realloc(node->points, sizeof(float) * 3 * node->capacity);
+    }
+    return;
+  }
+
+  // Calculate node index
+  int index = 0;
+  index |= (point[0] > node->center[0]) ? 1 : 0;
+  index |= (point[1] > node->center[1]) ? 2 : 0;
+  index |= (point[2] > node->center[2]) ? 4 : 0;
+
+  // Create new child node if it doesn't exist already
+  octree_node_t *child = node->children[index];
+  if (child == NULL) {
+    const float offset = node->size / 2;
+    const float center[3] = {node->center[0] + (index & 1 ? offset : -offset),
+                             node->center[1] + (index & 2 ? offset : -offset),
+                             node->center[2] + (index & 4 ? offset : -offset)};
+    const float size = node->size / 2.0;
+    const int depth = node->depth + 1;
+    const int max_depth = node->max_depth;
+    const int max_points = node->max_points;
+    child = octree_node_malloc(center, size, depth, max_depth, max_points);
+    node->children[index] = child;
+  }
+
+  // Recurse down the octree
+  octree_add_point(child, point);
+}
+
+void octree_points(const octree_node_t *node, octree_data_t *data) {
+  assert(node);
+  assert(data && data->points && data->capacity > 0);
+
+  if (node->num_points > 0) {
+    for (size_t i = 0; i < node->num_points; ++i) {
+      data->points[data->num_points * 3 + 0] = node->points[i * 3 + 0];
+      data->points[data->num_points * 3 + 1] = node->points[i * 3 + 1];
+      data->points[data->num_points * 3 + 2] = node->points[i * 3 + 2];
+      data->num_points++;
+      if (data->num_points >= data->capacity) {
+        data->capacity = data->capacity * 2;
+        data->points =
+            realloc(data->points, sizeof(float) * 3 * data->capacity);
+      }
+    }
+  }
+
+  for (size_t i = 0; i < 8; ++i) {
+    if (node->children[i]) {
+      octree_points(node->children[i], data);
+    }
+  }
+}
+
+float *octree_downsample(const float *octree_data,
+                         const size_t n,
+                         const float voxel_size,
+                         const size_t voxel_max_points,
+                         size_t *n_out) {
+  assert(octree_data);
+  assert(n > 0);
+
+  // Find center
+  float xmin, ymin, zmin = INFINITY;
+  float xmax, ymax, zmax = -INFINITY;
+  for (size_t i = 0; i < n; ++i) {
+    const float x = octree_data[i * 3 + 0];
+    const float y = octree_data[i * 3 + 1];
+    const float z = octree_data[i * 3 + 2];
+    xmin = (x < xmin) ? x : xmin;
+    xmax = (x > xmax) ? x : xmax;
+    ymin = (y < ymin) ? y : ymin;
+    ymax = (y > ymax) ? y : ymax;
+    zmin = (z < zmin) ? z : zmin;
+    zmax = (z > zmax) ? z : zmax;
+  }
+  const float octree_center[3] = {
+      (xmax + xmin) / 2.0,
+      (ymax + ymin) / 2.0,
+      (zmax + zmin) / 2.0,
+  };
+
+  // Find octree size
+  float octree_size = 0.0f;
+  octree_size = (fabs(xmin) > octree_size) ? fabs(xmin) : octree_size;
+  octree_size = (fabs(ymin) > octree_size) ? fabs(ymin) : octree_size;
+  octree_size = (fabs(zmin) > octree_size) ? fabs(zmin) : octree_size;
+  octree_size = (xmax > octree_size) ? xmax : octree_size;
+  octree_size = (ymax > octree_size) ? ymax : octree_size;
+  octree_size = (zmax > octree_size) ? zmax : octree_size;
+
+  // Create octree
+  const int octree_max_depth = ceil(log2(octree_size / voxel_size));
+  octree_t *octree = octree_malloc(octree_center,
+                                   octree_size,
+                                   octree_max_depth,
+                                   voxel_max_points,
+                                   octree_data,
+                                   n);
+
+  // Get points
+  octree_data_t data = {0};
+  data.points = malloc(sizeof(float) * 3 * n);
+  data.num_points = 0;
+  data.capacity = n;
+  octree_points(octree->root, &data);
+
+  // Clean up
+  octree_free(octree);
+
+  // Return
+  *n_out = data.num_points;
+  data.points = realloc(data.points, sizeof(float) * 3 * *n_out);
+  return data.points;
+}
+
+/*****************************************************************************
+ * KD-TREE
+ ****************************************************************************/
+
+//////////////////
+// KD-TREE NODE //
+//////////////////
+
+kdtree_node_t *kdtree_node_malloc(const float p[3], const int k) {
+  assert(p);
+  assert(k >= 0 && k <= 2);
+  kdtree_node_t *node = malloc(sizeof(kdtree_node_t));
+
+  node->p[0] = p[0];
+  node->p[1] = p[1];
+  node->p[2] = p[2];
+  node->k = k;
+  node->left = NULL;
+  node->right = NULL;
+
+  return node;
+}
+
+void kdtree_node_free(kdtree_node_t *node) {
+  if (node == NULL) {
+    return;
+  }
+  kdtree_node_free(node->left);
+  kdtree_node_free(node->right);
+  free(node);
+}
+
+/////////////
+// KD-TREE //
+/////////////
+
+int point_cmp(const void *a, const void *b, void *k) {
+  return (((float *) a)[*(int *) k] < ((float *) b)[*(int *) k]) ? -1 : 1;
+}
+
+kdtree_node_t *kdtree_insert(kdtree_node_t *node,
+                             const float p[3],
+                             const int depth) {
+  const int k = depth % KDTREE_KDIM;
+  if (node == NULL) {
+    return kdtree_node_malloc(p, k);
+  }
+
+  if (p[k] < node->p[k]) {
+    node->left = kdtree_insert(node->left, p, depth + 1);
+  } else {
+    node->right = kdtree_insert(node->right, p, depth + 1);
+  }
+
+  return node;
+}
+
+static kdtree_node_t *
+_kdtree_build(float *points, const int start, const int end, const int depth) {
+  if (start > end) {
+    return NULL;
+  }
+
+  int k = depth % KDTREE_KDIM;
+  const int mid = (start + end + 1) / 2;
+  qsort_r(points + start * 3,
+          end - start + 1,
+          sizeof(float) * 3,
+          point_cmp,
+          &k);
+
+  kdtree_node_t *root = kdtree_node_malloc(points + mid * 3, k);
+  root->left = _kdtree_build(points, start, mid - 1, depth + 1);
+  root->right = _kdtree_build(points, mid + 1, end, depth + 1);
+
+  return root;
+}
+
+kdtree_t *kdtree_malloc(float *points, size_t num_points) {
+  kdtree_t *kdtree = malloc(sizeof(kdtree_t));
+  kdtree->root = _kdtree_build(points, 0, num_points - 1, 0);
+  return kdtree;
+}
+
+void kdtree_free(kdtree_t *kdtree) {
+  kdtree_node_free(kdtree->root);
+  free(kdtree);
+}
+
+static void _kdtree_points(const kdtree_node_t *node, kdtree_data_t *data) {
+  assert(data);
+  if (node == NULL) {
+    return;
+  }
+
+  data->points[data->num_points * 3 + 0] = node->p[0];
+  data->points[data->num_points * 3 + 1] = node->p[1];
+  data->points[data->num_points * 3 + 2] = node->p[2];
+  data->num_points++;
+  if (data->num_points >= data->capacity) {
+    data->capacity = data->capacity * 2;
+    data->points = realloc(data->points, sizeof(float) * 3 * data->capacity);
+  }
+
+  _kdtree_points(node->left, data);
+  _kdtree_points(node->right, data);
+}
+
+void kdtree_points(const kdtree_t *kdtree, kdtree_data_t *data) {
+  assert(kdtree && kdtree->root);
+  assert(data && data->points && data->capacity > 0);
+  _kdtree_points(kdtree->root, data);
+}
+
+void _kdtree_nn(const kdtree_node_t *node,
+                const float target[3],
+                float *best_dist,
+                float *best_point,
+                int depth) {
+  // Pre-check
+  if (node == NULL) {
+    return;
+  }
+
+  // Calculate distance and keep track of best
+  float sq_dist = 0.0f;
+  sq_dist += (node->p[0] - target[0]) * (node->p[0] - target[0]);
+  sq_dist += (node->p[1] - target[1]) * (node->p[1] - target[1]);
+  sq_dist += (node->p[2] - target[2]) * (node->p[2] - target[2]);
+  if (sq_dist <= *best_dist) {
+    best_point[0] = node->p[0];
+    best_point[1] = node->p[1];
+    best_point[2] = node->p[2];
+    *best_dist = sq_dist;
+  }
+
+  // Determine which side to search first
+  const int axis = node->k;
+  const float diff = target[axis] - node->p[axis];
+
+  // Search the closer subtree first
+  const kdtree_node_t *closer = (diff <= 0) ? node->left : node->right;
+  const kdtree_node_t *farther = (diff <= 0) ? node->right : node->left;
+  _kdtree_nn(closer, target, best_dist, best_point, depth + 1);
+
+  // Search the farther subtree
+  if (fabs(diff) < *best_dist) {
+    _kdtree_nn(farther, target, best_dist, best_point, depth + 1);
+  }
+}
+
+void kdtree_nn(const kdtree_t *kdtree,
+               const float target[3],
+               float *best_point,
+               float *best_dist) {
+  *best_dist = INFINITY;
+  best_point[0] = target[0];
+  best_point[1] = target[1];
+  best_point[2] = target[2];
+  _kdtree_nn(kdtree->root, target, best_dist, best_point, 0);
+}
+
+/*******************************************************************************
  * SIMULATION
  ******************************************************************************/
 

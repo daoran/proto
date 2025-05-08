@@ -99,19 +99,15 @@ LIBXYZ := $(BLD_DIR)/libxyz.a
 LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz.o \
 	$(BLD_DIR)/xyz_http.o \
-	$(BLD_DIR)/xyz_octree.o \
 	$(BLD_DIR)/xyz_gui.o \
 	$(BLD_DIR)/xyz_voxel.o \
-	$(BLD_DIR)/xyz_kdtree.o \
 	$(BLD_DIR)/xyz_se.o
 
 
 # TESTS
 TESTS := \
+	$(BLD_DIR)/test_xyz \
 	$(BLD_DIR)/test_http \
 	$(BLD_DIR)/test_gui \
-	$(BLD_DIR)/test_octree \
 	$(BLD_DIR)/test_voxel \
-	$(BLD_DIR)/test_xyz \
-	$(BLD_DIR)/test_kdtree \
 	$(BLD_DIR)/test_se

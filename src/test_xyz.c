@@ -5392,6 +5392,335 @@ int test_marg_factor(void) {
 // }
 
 /*******************************************************************************
+ * OCTREE
+ ******************************************************************************/
+
+int test_octree_node(void) {
+  const float center[3] = {0.0, 0.0, 0.0};
+  const float size = 1.0;
+  const int depth = 0;
+  const int max_depth = 10;
+  const int max_points = 100;
+
+  octree_node_t *n =
+      octree_node_malloc(center, size, depth, max_depth, max_points);
+  octree_node_free(n);
+
+  return 0;
+}
+
+int test_octree(void) {
+  // Setup
+  const float octree_center[3] = {0.0, 0.0, 0.0};
+  const float octree_size = 1.0;
+  const int octree_max_depth = 3;
+  const int voxel_max_points = 5;
+
+  const int n = 2000;
+  float *octree_points = malloc(sizeof(float) * 3 * n);
+  for (int i = 0; i < n; ++i) {
+    const float x = randf(-1.0, 1.0);
+    const float y = randf(-1.0, 1.0);
+    const float z = randf(-1.0, 1.0);
+    octree_points[i * 3 + 0] = x;
+    octree_points[i * 3 + 1] = y;
+    octree_points[i * 3 + 2] = z;
+  }
+
+  // Build octree
+  octree_t *octree = octree_malloc(octree_center,
+                                   octree_size,
+                                   octree_max_depth,
+                                   voxel_max_points,
+                                   octree_points,
+                                   n);
+
+  // Clean up
+  free(octree_points);
+  octree_free(octree);
+
+  return 0;
+}
+
+int test_octree_points(void) {
+  // Setup
+  const float octree_center[3] = {0.0, 0.0, 0.0};
+  const float octree_size = 1.0;
+  const int voxel_max_points = 100;
+  const int octree_max_depth = 8;
+
+  const int n = 2000;
+  float *octree_data = malloc(sizeof(float) * 3 * n);
+  for (int i = 0; i < n; ++i) {
+    const float x = randf(-1.0, 1.0);
+    const float y = randf(-1.0, 1.0);
+    const float z = randf(-1.0, 1.0);
+    octree_data[i * 3 + 0] = x;
+    octree_data[i * 3 + 1] = y;
+    octree_data[i * 3 + 2] = z;
+  }
+
+  // Build octree
+  octree_t *octree = octree_malloc(octree_center,
+                                   octree_size,
+                                   octree_max_depth,
+                                   voxel_max_points,
+                                   octree_data,
+                                   n);
+
+  // Get points
+  octree_data_t data = {0};
+  data.points = malloc(sizeof(float) * 3 * n);
+  data.num_points = 0;
+  data.capacity = n;
+  octree_points(octree->root, &data);
+
+  // Assert
+  MU_ASSERT(data.num_points == n);
+
+  // Clean up
+  free(octree_data);
+  octree_free(octree);
+  free(data.points);
+
+  return 0;
+}
+
+int test_octree_downsample(void) {
+  // Setup
+  const int n = 2000;
+  float offset[3] = {10.0f, 20.0f, 30.0f};
+  float *points = malloc(sizeof(float) * 3 * n);
+  for (int i = 0; i < n; ++i) {
+    const float x = randf(-1.0 + offset[0], 1.0 + offset[0]);
+    const float y = randf(-1.0 + offset[1], 1.0 + offset[1]);
+    const float z = randf(-1.0 + offset[2], 1.0 + offset[2]);
+    points[i * 3 + 0] = x;
+    points[i * 3 + 1] = y;
+    points[i * 3 + 2] = z;
+  }
+
+  // Downsample
+  float voxel_size = 0.5;
+  size_t voxel_limit = 10;
+  size_t n_out = 0;
+  float *points_out =
+      octree_downsample(points, n, voxel_size, voxel_limit, &n_out);
+
+  // Assert
+  MU_ASSERT(n_out < n);
+
+  // Clean up
+  free(points);
+  free(points_out);
+
+  return 0;
+}
+
+/*******************************************************************************
+ * KD-TREE
+ ******************************************************************************/
+
+static int vec3_equals(const float src[3], const float target[3]) {
+  const float eps = 1e-3;
+  for (int i = 0; i < 3; ++i) {
+    if (fabs(src[i] - target[i]) >= eps) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+static int point_cmp(const void *a, const void *b, void *arg) {
+  const float *vecA = (const float *) a;
+  const float *vecB = (const float *) b;
+  const int k = *(int *) arg;
+  const float valA = vecA[k];
+  const float valB = vecB[k];
+  if (valA < valB)
+    return -1;
+  if (valA > valB)
+    return 1;
+  return 0;
+}
+
+static int vec3_cmp(const void *a, const void *b, void *arg) {
+  const float *v0 = (const float *) a;
+  const float *v1 = (const float *) b;
+  if (v0[0] < v1[0]) {
+    return -1;
+  } else if (v0[0] > v1[0]) {
+    return 1;
+  } else if (v0[1] < v1[1]) {
+    return -1;
+  } else if (v0[1] > v1[1]) {
+    return 1;
+  } else if (v0[2] < v1[2]) {
+    return -1;
+  } else if (v0[2] > v1[2]) {
+    return 1;
+  }
+  return 0;
+}
+
+int test_sort(void) {
+  // Setup
+  const int N = 10;
+  float *points = malloc(sizeof(float) * 3 * N);
+  float *points_ = malloc(sizeof(float) * 3 * N);
+  for (int i = 0; i < N; ++i) {
+    const float x = randf(-1.0, 1.0);
+    const float y = randf(-1.0, 1.0);
+    const float z = randf(-1.0, 1.0);
+
+    points[i * 3 + 0] = x;
+    points[i * 3 + 1] = y;
+    points[i * 3 + 2] = z;
+
+    points_[i * 3 + 0] = points[i * 3 + 0];
+    points_[i * 3 + 1] = points[i * 3 + 1];
+    points_[i * 3 + 2] = points[i * 3 + 2];
+  }
+
+  printf("original:\n");
+  for (int i = 0; i < N; ++i) {
+    printf("(%.2f, %.2f, %.2f)\n",
+           points_[i * 3 + 0],
+           points_[i * 3 + 1],
+           points_[i * 3 + 2]);
+  }
+  printf("\n");
+
+  int start = 0;
+  int end = N - 1;
+  int k = 0;
+  qsort_r(points + start, end - start + 1, sizeof(float) * 3, point_cmp, &k);
+
+  printf("sorted:\n");
+  for (int i = 0; i < N; ++i) {
+    printf("(%.2f, %.2f, %.2f)\n",
+           points[i * 3 + 0],
+           points[i * 3 + 1],
+           points[i * 3 + 2]);
+  }
+  printf("\n");
+
+  return 0;
+}
+
+int test_kdtree_node(void) {
+  const float p[3] = {0.0, 0.0, 0.0};
+  const int k = 1;
+  kdtree_node_t *node = kdtree_node_malloc(p, k);
+  kdtree_node_free(node);
+
+  return 0;
+}
+
+int test_kdtree(void) {
+  // Generate random 3d points
+  const int N = 20000;
+  float *points = malloc(sizeof(float) * N * 3);
+  float *points_gnd = malloc(sizeof(float) * N * 3);
+  for (int i = 0; i < N; ++i) {
+    const float x = randf(-10000.0, 10000.0);
+    const float y = randf(-10000.0, 10000.0);
+    const float z = randf(-10000.0, 10000.0);
+    points[i * 3 + 0] = x;
+    points[i * 3 + 1] = y;
+    points[i * 3 + 2] = z;
+    points_gnd[i * 3 + 0] = x;
+    points_gnd[i * 3 + 1] = y;
+    points_gnd[i * 3 + 2] = z;
+  }
+
+  // Build kdtree
+  kdtree_t *kdtree = kdtree_malloc(points, N);
+  kdtree_data_t data = {0};
+  data.points = malloc(sizeof(float) * 3 * N);
+  data.num_points = 0;
+  data.capacity = N;
+  kdtree_points(kdtree, &data);
+
+  // Assert
+  size_t checked = 0;
+  int k = 0;
+  qsort_r(data.points, N, sizeof(float) * 3, vec3_cmp, &k);
+  qsort_r(points_gnd, N, sizeof(float) * 3, vec3_cmp, &k);
+  for (int i = 0; i < N; ++i) {
+    if (vec3_equals(&points_gnd[i * 3], &data.points[i * 3])) {
+      checked++;
+      continue;
+    }
+  }
+  MU_ASSERT(checked == N);
+
+  // Clean up
+  free(points);
+  free(points_gnd);
+  free(data.points);
+  kdtree_free(kdtree);
+
+  return 0;
+}
+
+int test_kdtree_nn(void) {
+  // Generate random 3d points
+  const int N = 2000;
+  float *points = malloc(sizeof(float) * N * 3);
+  float *points_gnd = malloc(sizeof(float) * N * 3);
+  for (int i = 0; i < N; ++i) {
+    const float x = randf(-100.0, 100.0);
+    const float y = randf(-100.0, 100.0);
+    const float z = randf(-100.0, 100.0);
+    points[i * 3 + 0] = x;
+    points[i * 3 + 1] = y;
+    points[i * 3 + 2] = z;
+    points_gnd[i * 3 + 0] = x;
+    points_gnd[i * 3 + 1] = y;
+    points_gnd[i * 3 + 2] = z;
+  }
+
+  // Build kdtree
+  kdtree_t *kdtree = kdtree_malloc(points, N);
+
+  // Search closest point
+  float p[3] = {5.0, 3.0, 0.0};
+  float best_point[3] = {0};
+  float best_dist = INFINITY;
+  kdtree_nn(kdtree, p, best_point, &best_dist);
+
+  // Check
+  // -- Brute force get closest point
+  float assert_point[3] = {0};
+  float assert_dist = INFINITY;
+  for (int i = 0; i < N; ++i) {
+    float sq_dist = 0.0f;
+    sq_dist += (points_gnd[i * 3 + 0] - p[0]) * (points_gnd[i * 3 + 0] - p[0]);
+    sq_dist += (points_gnd[i * 3 + 1] - p[1]) * (points_gnd[i * 3 + 1] - p[1]);
+    sq_dist += (points_gnd[i * 3 + 2] - p[2]) * (points_gnd[i * 3 + 2] - p[2]);
+    if (sq_dist <= assert_dist) {
+      assert_point[0] = points_gnd[i * 3 + 0];
+      assert_point[1] = points_gnd[i * 3 + 1];
+      assert_point[2] = points_gnd[i * 3 + 2];
+      assert_dist = sq_dist;
+    }
+  }
+  // -- Assert
+  MU_ASSERT(fabs(best_point[0] - assert_point[0]) < 1e-3);
+  MU_ASSERT(fabs(best_point[1] - assert_point[1]) < 1e-3);
+  MU_ASSERT(fabs(best_point[2] - assert_point[2]) < 1e-3);
+  MU_ASSERT(fabs(best_dist - assert_dist) < 1e-3);
+
+  // Clean up
+  kdtree_free(kdtree);
+  free(points);
+  free(points_gnd);
+
+  return 0;
+}
+
+/*******************************************************************************
  * SIMULATION
  ******************************************************************************/
 
@@ -5820,6 +6149,18 @@ void test_suite(void) {
 
   // TIMELINE
   // MU_ADD_TEST(test_timeline);
+
+  // OCTREE
+  MU_ADD_TEST(test_octree_node);
+  MU_ADD_TEST(test_octree);
+  MU_ADD_TEST(test_octree_points);
+  MU_ADD_TEST(test_octree_downsample);
+
+  // KD-TREE
+  // MU_ADD_TEST(test_sort);
+  MU_ADD_TEST(test_kdtree_node);
+  MU_ADD_TEST(test_kdtree);
+  MU_ADD_TEST(test_kdtree_nn);
 
   // SIMULATION
   MU_ADD_TEST(test_sim_features_load);

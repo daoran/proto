@@ -2,8 +2,6 @@
 #include "xyz.h"
 #include "xyz_se.h"
 #include "xyz_gui.h"
-#include "xyz_octree.h"
-#include "xyz_kdtree.h"
 
 /* TEST PARAMS */
 #define TEST_DATA_PATH "./test_data/"
