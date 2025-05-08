@@ -99,13 +99,6 @@ LIBXYZ := $(BLD_DIR)/libxyz.a
 LIBXYZ_OBJS := \
 	$(BLD_DIR)/xyz.o \
 	$(BLD_DIR)/xyz_http.o \
-	$(BLD_DIR)/xyz_kitti.o \
-	$(BLD_DIR)/xyz_gnuplot.o \
-	$(BLD_DIR)/xyz_aprilgrid.o \
-	$(BLD_DIR)/xyz_control.o \
-	$(BLD_DIR)/xyz_gimbal.o \
-	$(BLD_DIR)/xyz_mav.o \
-	$(BLD_DIR)/xyz_euroc.o \
 	$(BLD_DIR)/xyz_octree.o \
 	$(BLD_DIR)/xyz_gui.o \
 	$(BLD_DIR)/xyz_voxel.o \
@@ -115,15 +108,8 @@ LIBXYZ_OBJS := \
 
 # TESTS
 TESTS := \
-	$(BLD_DIR)/test_aprilgrid \
-	$(BLD_DIR)/test_control \
-	$(BLD_DIR)/test_euroc \
-	$(BLD_DIR)/test_gimbal \
-	$(BLD_DIR)/test_gnuplot \
-	$(BLD_DIR)/test_gui \
 	$(BLD_DIR)/test_http \
-	$(BLD_DIR)/test_kitti \
-	$(BLD_DIR)/test_mav \
+	$(BLD_DIR)/test_gui \
 	$(BLD_DIR)/test_octree \
 	$(BLD_DIR)/test_voxel \
 	$(BLD_DIR)/test_xyz \

@@ -141,7 +141,8 @@ run_test() {
       && make libxyz -j \
       && time make tests -j \
       && cd build \
-      && ./$1 --target $2
+      && ./$1 --target $2 \
+      && cd ~/code/xyz
   " C-m C-m
 
 #   tmux send-keys -t $TARGET -R "\
@@ -177,7 +178,7 @@ run_test() {
 
 # XYZ
 # run_all_tests
-# run_test test_xyz
+run_test test_xyz
 # run_test test_xyz test_tic
 # run_test test_xyz test_toc
 # run_test test_xyz test_mtoc
@@ -222,17 +223,18 @@ run_test() {
 # run_test test_xyz test_rbt_node_rotate
 # run_test test_xyz test_rbt_node_move_red_left
 # run_test test_xyz test_rbt_node_move_red_right
+# run_test test_xyz test_rbt_node_insert
+# run_test test_xyz test_rbt_node_delete
+# run_test test_xyz test_rbt_malloc_and_free
+# run_test test_xyz test_rbt_insert
+# run_test test_xyz test_rbt_delete
 # run_test test_xyz test_rbt_search
 # run_test test_xyz test_rbt_contains
 # run_test test_xyz test_rbt_min_max
 # run_test test_xyz test_rbt_keys
 # run_test test_xyz test_rbt_rank
 # run_test test_xyz test_rbt_select
-# run_test test_xyz test_rbt_node_insert
-# run_test test_xyz test_rbt_node_delete
-# run_test test_xyz test_rbt_malloc_and_free
-# run_test test_xyz test_rbt_insert
-# run_test test_xyz test_rbt_delete
+# run_test test_xyz test_rbt_sandbox
 # run_test test_xyz test_tcp_server_setup
 # run_test test_xyz test_http_parse_request
 # run_test test_xyz test_websocket_hash
@@ -358,7 +360,7 @@ run_test() {
 # run_test test_mav test_mav_pos_ctrl
 # run_test test_mav test_mav_waypoints
 # XYZ - STATE ESTIMATION
-run_test test_se
+# run_test test_se
 # run_test test_se test_schur_complement
 # run_test test_se test_timeline
 # run_test test_se test_pose
@@ -388,7 +390,7 @@ run_test test_se
 # run_test test_se test_calib_camera_factor
 # run_test test_se test_calib_imucam_factor
 # run_test test_se test_calib_gimbal_factor
-# run_test test_se test_marg
+# run_test test_se test_marg_factor
 # run_test test_se test_visual_odometry_batch
 # run_test test_se test_inertial_odometry_batch
 # run_test test_se test_visual_inertial_odometry_batch

@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <inttypes.h>
 #include <time.h>
 #include <math.h>
 #include <string.h>
@@ -23,6 +24,7 @@
 #include <sys/socket.h>
 #include <sys/poll.h>
 
+#include <yaml.h>
 #include <cblas.h>
 #include <suitesparse/cholmod.h>
 
@@ -961,6 +963,16 @@ int eig_sym(const real_t *A, const int m, const int n, real_t *V, real_t *w);
 int eig_inv(real_t *A, const int m, const int n, const int c, real_t *A_inv);
 int eig_rank(const real_t *A, const int m, const int n, const real_t tol);
 
+int schur_complement(const real_t *H,
+                     const real_t *b,
+                     const int H_size,
+                     const int m,
+                     const int r,
+                     real_t *H_marg,
+                     real_t *b_marg);
+
+int shannon_entropy(const real_t *covar, const int m, real_t *entropy);
+
 /*******************************************************************************
  * SUITE-SPARSE
  ******************************************************************************/
@@ -1158,8 +1170,195 @@ void box_plus(const real_t C[3 * 3],
 void box_minus(const real_t Ca[3 * 3], const real_t Cb[3 * 3], real_t alpha[3]);
 
 /*******************************************************************************
- * CV
+ * GNUPLOT
  ******************************************************************************/
+
+FILE *gnuplot_init(void);
+void gnuplot_close(FILE *pipe);
+void gnuplot_multiplot(FILE *pipe, const int num_rows, const int num_cols);
+void gnuplot_send(FILE *pipe, const char *cmd);
+void gnuplot_xrange(FILE *pipe, const double xmin, const double xmax);
+void gnuplot_yrange(FILE *pipe, const double ymin, const double ymax);
+void gnuplot_send_xy(FILE *pipe,
+                     const char *data_name,
+                     const double *xvals,
+                     const double *yvals,
+                     const int n);
+void gnuplot_send_matrix(FILE *pipe,
+                         const char *data_name,
+                         const double *A,
+                         const int m,
+                         const int n);
+void gnuplot_matshow(const double *A, const int m, const int n);
+
+/*******************************************************************************
+ * CONTROL
+ ******************************************************************************/
+
+typedef struct pid_ctrl_t {
+  real_t error_prev;
+  real_t error_sum;
+
+  real_t error_p;
+  real_t error_i;
+  real_t error_d;
+
+  real_t k_p;
+  real_t k_i;
+  real_t k_d;
+} pid_ctrl_t;
+
+void pid_ctrl_setup(pid_ctrl_t *pid,
+                    const real_t kp,
+                    const real_t ki,
+                    const real_t kd);
+real_t pid_ctrl_update(pid_ctrl_t *pid,
+                       const real_t setpoint,
+                       const real_t input,
+                       const real_t dt);
+void pid_ctrl_reset(pid_ctrl_t *pid);
+
+
+/******************************************************************************
+ * MAV
+ *****************************************************************************/
+
+/** MAV Model **/
+typedef struct mav_model_t {
+  real_t x[12];      // State
+  real_t inertia[3]; // Moment of inertia
+  real_t kr;         // Rotation drag constant
+  real_t kt;         // Translation drag constant
+  real_t l;          // Arm length
+  real_t d;          // Drag
+  real_t m;          // Mass
+  real_t g;          // Gravitational constant
+} mav_model_t;
+
+void mav_model_setup(mav_model_t *mav,
+                     const real_t x[12],
+                     const real_t inertia[3],
+                     const real_t kr,
+                     const real_t kt,
+                     const real_t l,
+                     const real_t d,
+                     const real_t m,
+                     const real_t g);
+void mav_model_attitude(const mav_model_t *mav, real_t rpy[3]);
+void mav_model_angular_velocity(const mav_model_t *mav, real_t pqr[3]);
+void mav_model_position(const mav_model_t *mav, real_t pos[3]);
+void mav_model_velocity(const mav_model_t *mav, real_t vel[3]);
+void mav_model_print_state(const mav_model_t *mav, const real_t time);
+void mav_model_update(mav_model_t *mav, const real_t u[4], const real_t dt);
+
+/** MAV Model Telemetry **/
+typedef struct mav_model_telem_t {
+  int num_events;
+  real_t *time;
+
+  real_t *roll;
+  real_t *pitch;
+  real_t *yaw;
+
+  real_t *wx;
+  real_t *wy;
+  real_t *wz;
+
+  real_t *x;
+  real_t *y;
+  real_t *z;
+
+  real_t *vx;
+  real_t *vy;
+  real_t *vz;
+
+} mav_model_telem_t;
+
+mav_model_telem_t *mav_model_telem_malloc(void);
+void mav_model_telem_free(mav_model_telem_t *telem);
+void mav_model_telem_update(mav_model_telem_t *telem,
+                            const mav_model_t *mav,
+                            const real_t time);
+void mav_model_telem_plot(const mav_model_telem_t *telem);
+void mav_model_telem_plot_xy(const mav_model_telem_t *telem);
+
+/** MAV Attitude Controller **/
+typedef struct mav_att_ctrl_t {
+  real_t dt;
+  pid_ctrl_t roll;
+  pid_ctrl_t pitch;
+  pid_ctrl_t yaw;
+  real_t u[4];
+} mav_att_ctrl_t;
+
+void mav_att_ctrl_setup(mav_att_ctrl_t *ctrl);
+void mav_att_ctrl_update(mav_att_ctrl_t *ctrl,
+                         const real_t sp[4],
+                         const real_t pv[3],
+                         const real_t dt,
+                         real_t u[4]);
+
+/** MAV Velocity Controller **/
+typedef struct mav_vel_ctrl_t {
+  real_t dt;
+  pid_ctrl_t vx;
+  pid_ctrl_t vy;
+  pid_ctrl_t vz;
+  real_t u[4];
+} mav_vel_ctrl_t;
+
+void mav_vel_ctrl_setup(mav_vel_ctrl_t *ctrl);
+void mav_vel_ctrl_update(mav_vel_ctrl_t *ctrl,
+                         const real_t sp[4],
+                         const real_t pv[4],
+                         const real_t dt,
+                         real_t u[4]);
+
+/** MAV Position Controller **/
+typedef struct mav_pos_ctrl_t {
+  real_t dt;
+  pid_ctrl_t x;
+  pid_ctrl_t y;
+  pid_ctrl_t z;
+  real_t u[4];
+} mav_pos_ctrl_t;
+
+void mav_pos_ctrl_setup(mav_pos_ctrl_t *ctrl);
+void mav_pos_ctrl_update(mav_pos_ctrl_t *ctrl,
+                         const real_t sp[4],
+                         const real_t pv[4],
+                         const real_t dt,
+                         real_t u[4]);
+
+/** MAV Waypoints **/
+typedef struct mav_waypoints_t {
+  int num_waypoints;
+  real_t *waypoints;
+  int index;
+
+  int wait_mode;
+  real_t wait_time;
+
+  real_t threshold_dist;
+  real_t threshold_yaw;
+  real_t threshold_wait;
+} mav_waypoints_t;
+
+mav_waypoints_t *mav_waypoints_malloc(void);
+void mav_waypoints_free(mav_waypoints_t *ctrl);
+void mav_waypoints_print(const mav_waypoints_t *wps);
+int mav_waypoints_done(const mav_waypoints_t *wps);
+void mav_waypoints_add(mav_waypoints_t *wps, real_t wp[4]);
+void mav_waypoints_target(const mav_waypoints_t *wps, real_t wp[4]);
+int mav_waypoints_update(mav_waypoints_t *wps,
+                         const real_t state[4],
+                         const real_t dt,
+                         real_t wp[4]);
+
+
+/******************************************************************************
+ * COMPUTER-VISION
+ *****************************************************************************/
 
 ///////////
 // IMAGE //
@@ -1311,3 +1510,1780 @@ int solvepnp(const real_t proj_params[4],
              const real_t *obj_pts,
              const int N,
              real_t T_CO[4 * 4]);
+
+/*******************************************************************************
+ * APRILGRID
+ ******************************************************************************/
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+#include "apriltag/apriltag.h"
+#include "apriltag/common/image_u8.h"
+#include "apriltag/common/pjpeg.h"
+#include "apriltag/tag36h11.h"
+#include "apriltag/tagStandard41h12.h"
+#pragma GCC diagnostic pop
+
+#ifndef APRILGRID_LOG
+#define APRILGRID_LOG(...) printf(__VA_ARGS__);
+#endif
+
+#ifndef APRILGRID_FATAL
+#define APRILGRID_FATAL(...)                                                   \
+  printf(__VA_ARGS__);                                                         \
+  exit(-1);
+#endif
+
+#ifndef APRILGRID_UNUSED
+#define APRILGRID_UNUSED(expr)                                                 \
+  do {                                                                         \
+    (void) (expr);                                                             \
+  } while (0)
+#endif
+
+#ifndef APRILGRID_CHECK
+#define APRILGRID_CHECK(X)                                                     \
+  if (!(X)) {                                                                  \
+    APRILGRID_LOG(#X " Failed!\n");                                            \
+    goto error;                                                                \
+  }
+#endif
+
+// APRILGRID /////////////////////////////////////////////////////////////////
+
+typedef struct aprilgrid_t {
+  // Grid properties
+  int num_rows;
+  int num_cols;
+  real_t tag_size;
+  real_t tag_spacing;
+
+  // Grid data
+  timestamp_t timestamp;
+  int corners_detected;
+  real_t *data;
+} aprilgrid_t;
+
+aprilgrid_t *aprilgrid_malloc(const int num_rows,
+                              const int num_cols,
+                              const real_t tag_size,
+                              const real_t tag_spacing);
+void aprilgrid_free(aprilgrid_t *grid);
+void aprilgrid_clear(aprilgrid_t *grid);
+void aprilgrid_reset(aprilgrid_t *grid);
+void aprilgrid_copy(const aprilgrid_t *src, aprilgrid_t *dst);
+int aprilgrid_equals(const aprilgrid_t *grid0, const aprilgrid_t *grid1);
+void aprilgrid_center(const aprilgrid_t *grid, real_t *cx, real_t *cy);
+void aprilgrid_grid_index(const aprilgrid_t *grid,
+                          const int tag_id,
+                          int *i,
+                          int *j);
+void aprilgrid_object_point(const aprilgrid_t *grid,
+                            const int tag_id,
+                            const int corner_idx,
+                            real_t object_point[3]);
+void aprilgrid_add_corner(aprilgrid_t *grid,
+                          const int tag_id,
+                          const int corner_idx,
+                          const real_t kp[2]);
+void aprilgrid_remove_corner(aprilgrid_t *grid,
+                             const int tag_id,
+                             const int corner_idx);
+void aprilgrid_add_tag(aprilgrid_t *grid,
+                       const int tag_id,
+                       const real_t kp[4][2]);
+void aprilgrid_remove_tag(aprilgrid_t *grid, const int tag_id);
+void aprilgrid_measurements(const aprilgrid_t *grid,
+                            int *tag_ids,
+                            int *corner_idxs,
+                            real_t *tag_kps,
+                            real_t *obj_pts);
+int aprilgrid_save(const aprilgrid_t *grid, const char *save_path);
+aprilgrid_t *aprilgrid_load(const char *data_path);
+
+// APRILGRID DETECTOR ////////////////////////////////////////////////////////
+
+typedef struct aprilgrid_detector_t {
+  apriltag_family_t *tf;
+  apriltag_detector_t *td;
+
+  int num_rows;
+  int num_cols;
+  real_t tag_size;
+  real_t tag_spacing;
+} aprilgrid_detector_t;
+
+aprilgrid_detector_t *aprilgrid_detector_malloc(int num_rows,
+                                                int num_cols,
+                                                real_t tag_size,
+                                                real_t tag_spacing);
+void aprilgrid_detector_free(aprilgrid_detector_t *det);
+aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
+                                       const timestamp_t ts,
+                                       const int32_t image_width,
+                                       const int32_t image_height,
+                                       const int32_t image_stride,
+                                       uint8_t *image_data);
+
+/*******************************************************************************
+ * STATE-ESTIMATION
+ ******************************************************************************/
+
+//////////////
+// POSITION //
+//////////////
+
+typedef struct pos_t {
+  int marginalize;
+  int fix;
+  real_t data[3];
+} pos_t;
+
+void pos_setup(pos_t *pos, const real_t *data);
+void pos_copy(const pos_t *src, pos_t *dst);
+void pos_fprint(const char *prefix, const pos_t *pos, FILE *f);
+void pos_print(const char *prefix, const pos_t *pos);
+
+//////////////
+// ROTATION //
+//////////////
+
+typedef struct rot_t {
+  int marginalize;
+  int fix;
+  real_t data[4];
+} rot_t;
+
+void rot_setup(rot_t *rot, const real_t *data);
+void rot_fprint(const char *prefix, const rot_t *rot, FILE *f);
+void rot_print(const char *prefix, const rot_t *rot);
+
+//////////
+// POSE //
+//////////
+
+typedef struct pose_t {
+  int marginalize;
+  int fix;
+  timestamp_t ts;
+  real_t data[7];
+} pose_t;
+
+void pose_init(real_t *pose);
+void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
+void pose_copy(const pose_t *src, pose_t *dst);
+void pose_fprint(const char *prefix, const pose_t *pose, FILE *f);
+void pose_print(const char *prefix, const pose_t *pose);
+
+///////////////
+// EXTRINSIC //
+///////////////
+
+typedef struct extrinsic_t {
+  int marginalize;
+  int fix;
+  real_t data[7];
+} extrinsic_t;
+
+void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
+void extrinsic_copy(const extrinsic_t *src, extrinsic_t *dst);
+void extrinsic_fprint(const char *prefix, const extrinsic_t *exts, FILE *f);
+void extrinsic_print(const char *prefix, const extrinsic_t *exts);
+
+//////////////
+// FIDUCIAL //
+//////////////
+
+/** Fiducial **/
+typedef struct fiducial_t {
+  int marginalize;
+  int fix;
+  real_t data[7];
+} fiducial_t;
+
+void fiducial_setup(fiducial_t *fiducial, const real_t *param);
+void fiducial_copy(const fiducial_t *src, fiducial_t *dst);
+void fiducial_fprint(const char *prefix, const fiducial_t *exts, FILE *f);
+void fiducial_print(const char *prefix, const fiducial_t *exts);
+
+/** Fiducial Buffer **/
+// typedef struct fiducial_buffer_t {
+//   fiducial_event_t **data;
+//   int size;
+//   int capacity;
+// } fiducial_buffer_t;
+
+// fiducial_buffer_t *fiducial_buffer_malloc(void); void fiducial_buffer_clear(fiducial_buffer_t *buf);
+// void fiducial_buffer_free(fiducial_buffer_t *buf);
+// int fiducial_buffer_total_corners(const fiducial_buffer_t *buf);
+// void fiducial_buffer_add(fiducial_buffer_t *buf,
+//                          const timestamp_t ts,
+//                          const int cam_idx,
+//                          const int num_corners,
+//                          const int *tag_ids,
+//                          const int *corner_indices,
+//                          const real_t *object_points,
+//                          const real_t *keypoints);
+
+///////////////////////
+// CAMERA-PARAMETERS //
+///////////////////////
+
+typedef struct camera_params_t {
+  int marginalize;
+  int fix;
+
+  int cam_idx;
+  int resolution[2];
+  char proj_model[30];
+  char dist_model[30];
+  real_t data[8];
+
+  project_func_t proj_func;
+  back_project_func_t back_proj_func;
+  undistort_func_t undistort_func;
+} camera_params_t;
+
+void camera_params_setup(camera_params_t *camera,
+                         const int cam_idx,
+                         const int cam_res[2],
+                         const char *proj_model,
+                         const char *dist_model,
+                         const real_t *data);
+void camera_params_copy(const camera_params_t *src, camera_params_t *dst);
+void camera_params_fprint(const camera_params_t *cam, FILE *f);
+void camera_params_print(const camera_params_t *camera);
+void camera_project(const camera_params_t *camera,
+                    const real_t p_C[3],
+                    real_t z[2]);
+void camera_back_project(const camera_params_t *camera,
+                         const real_t z[2],
+                         real_t bearing[3]);
+void camera_undistort_points(const camera_params_t *camera,
+                             const real_t *kps,
+                             const int num_points,
+                             real_t *kps_und);
+int solvepnp_camera(const camera_params_t *cam_params,
+                    const real_t *img_pts,
+                    const real_t *obj_pts,
+                    const int N,
+                    real_t T_CO[4 * 4]);
+void triangulate_batch(const camera_params_t *cam_i,
+                       const camera_params_t *cam_j,
+                       const real_t T_CiCj[4 * 4],
+                       const real_t *kps_i,
+                       const real_t *kps_j,
+                       const int n,
+                       real_t *points,
+                       int *status);
+void stereo_triangulate(const camera_params_t *cam_i,
+                        const camera_params_t *cam_j,
+                        const real_t T_WCi[4 * 4],
+                        const real_t T_CiCj[4 * 4],
+                        const real_t *kps_i,
+                        const real_t *kps_j,
+                        const int n,
+                        real_t *points,
+                        int *status);
+
+//////////////
+// VELOCITY //
+//////////////
+
+typedef struct velocity_t {
+  int marginalize;
+  int fix;
+
+  timestamp_t ts;
+  real_t data[3];
+} velocity_t;
+
+void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
+void velocity_copy(const velocity_t *src, velocity_t *dst);
+
+////////////////
+// IMU-PARAMS //
+////////////////
+
+/** IMU Parameters **/
+typedef struct imu_params_t {
+  int imu_idx;
+  real_t rate;
+
+  real_t sigma_aw;
+  real_t sigma_gw;
+  real_t sigma_a;
+  real_t sigma_g;
+  real_t g;
+} imu_params_t;
+
+////////////////
+// IMU-BUFFER //
+////////////////
+
+#define IMU_BUFFER_MAX_SIZE 1000
+
+typedef struct imu_buffer_t {
+  timestamp_t ts[IMU_BUFFER_MAX_SIZE];
+  real_t acc[IMU_BUFFER_MAX_SIZE][3];
+  real_t gyr[IMU_BUFFER_MAX_SIZE][3];
+  int size;
+} imu_buffer_t;
+
+void imu_buffer_setup(imu_buffer_t *imu_buf);
+void imu_buffer_add(imu_buffer_t *imu_buf,
+                    const timestamp_t ts,
+                    const real_t acc[3],
+                    const real_t gyr[3]);
+timestamp_t imu_buffer_first_ts(const imu_buffer_t *imu_buf);
+timestamp_t imu_buffer_last_ts(const imu_buffer_t *imu_buf);
+void imu_buffer_clear(imu_buffer_t *imu_buf);
+void imu_buffer_copy(const imu_buffer_t *from, imu_buffer_t *to);
+void imu_buffer_print(const imu_buffer_t *imu_buf);
+
+
+////////////////
+// IMU-BIASES //
+////////////////
+
+typedef struct imu_biases_t {
+  int marginalize;
+  int fix;
+
+  timestamp_t ts;
+  real_t data[6];
+} imu_biases_t;
+
+void imu_biases_setup(imu_biases_t *sb,
+                      const timestamp_t ts,
+                      const real_t ba[3],
+                      const real_t bg[3]);
+void imu_biases_copy(const imu_biases_t *src, imu_biases_t *dst);
+void imu_biases_get_accel_bias(const imu_biases_t *biases, real_t ba[3]);
+void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
+
+/////////////
+// FEATURE //
+/////////////
+
+#define FEATURE_XYZ 0
+#define FEATURE_INVERSE_DEPTH 1
+#define FEATURE_MAX_LENGTH 20
+
+#define FEATURES_CAPACITY_INITIAL 10000
+#define FEATURES_CAPACITY_GROWTH_FACTOR 2
+
+/** Feature **/
+typedef struct feature_t {
+  int marginalize;
+  int fix;
+  int type;
+
+  // Feature data
+  size_t feature_id;
+  int status;
+  real_t data[3];
+} feature_t;
+
+typedef struct feature_map_t {
+  size_t key;
+  feature_t feature;
+} feature_map_t;
+
+void feature_setup(feature_t *f, const size_t feature_id);
+void feature_init(feature_t *f, const size_t feature_id, const real_t *data);
+void feature_print(const feature_t *feature);
+
+// /** Features **/
+// typedef struct features_t {
+//   feature_t **data;
+//   size_t num_features;
+//   size_t feature_capacity;
+
+//   pos_t **pos_data;
+//   size_t num_positions;
+//   size_t position_capacity;
+// } features_t;
+
+// features_t *features_malloc(void); void features_free(features_t *features);
+// int features_exists(const features_t *features, const size_t feature_id);
+// void features_add_xyzs(features_t *features,
+//                        const size_t *feature_ids,
+//                        const real_t *params,
+//                        const size_t num_features);
+// void features_add_idfs(features_t *features,
+//                        const size_t *feature_ids,
+//                        const camera_params_t *cam_params,
+//                        const real_t T_WC[4 * 4],
+//                        const real_t *keypoints,
+//                        const size_t num_keypoints);
+// void features_get_xyz(const features_t *features,
+//                       const size_t feature_id,
+//                       feature_t **feature);
+// void features_get_idf(const features_t *features,
+//                       const size_t feature_id,
+//                       feature_t **feature,
+//                       pos_t **pos);
+// int features_point(const features_t *features,
+//                    const size_t feature_id,
+//                    real_t p_W[3]);
+
+////////////////
+// TIME-DELAY //
+////////////////
+
+typedef struct time_delay_t {
+  int marginalize;
+  int fix;
+  real_t data[1];
+} time_delay_t;
+
+void time_delay_setup(time_delay_t *time_delay, const real_t param);
+void time_delay_copy(const time_delay_t *src, time_delay_t *dst);
+void time_delay_print(const char *prefix, const time_delay_t *exts);
+
+///////////
+// POINT //
+///////////
+
+typedef struct point_t {
+  real_t x;
+  real_t y;
+  real_t z;
+} point_t;
+
+///////////
+// JOINT //
+///////////
+
+typedef struct joint_t {
+  int marginalize;
+  int fix;
+
+  timestamp_t ts;
+  int joint_idx;
+  real_t data[1];
+} joint_t;
+
+void joint_setup(joint_t *joint,
+                 const timestamp_t ts,
+                 const int joint_idx,
+                 const real_t theta);
+void joint_copy(const joint_t *src, joint_t *dst);
+void joint_print(const char *prefix, const joint_t *joint);
+
+////////////////
+// PARAMETERS //
+////////////////
+
+#define POSITION_PARAM 1
+#define ROTATION_PARAM 2
+#define POSE_PARAM 3
+#define EXTRINSIC_PARAM 4
+#define FIDUCIAL_PARAM 5
+#define VELOCITY_PARAM 6
+#define IMU_BIASES_PARAM 7
+#define FEATURE_PARAM 8
+#define JOINT_PARAM 9
+#define CAMERA_PARAM 10
+#define TIME_DELAY_PARAM 11
+
+typedef struct param_info_t {
+  real_t *data;
+  int idx;
+  int type;
+  int fix;
+} param_info_t;
+
+void param_type_string(const int param_type, char *s);
+size_t param_global_size(const int param_type);
+size_t param_local_size(const int param_type);
+
+rbt_t *param_index_malloc(void);
+void param_index_free(rbt_t *param_index);
+void param_index_print(const rbt_t *param_index);
+bool param_index_exists(rbt_t *param_index, real_t *key);
+void param_index_add(rbt_t *param_index,
+                     const int param_type,
+                     const int fix,
+                     real_t *data,
+                     int *col_idx);
+void param_index_add_position(rbt_t *param_index, pos_t *p, int *c);
+void param_index_add_rotation(rbt_t *param_index, rot_t *p, int *c);
+void param_index_add_pose(rbt_t *param_index, pose_t *p, int *c);
+void param_index_add_extrinsic(rbt_t *param_index, extrinsic_t *p, int *c);
+void param_index_add_fiducial(rbt_t *param_index, fiducial_t *p, int *c);
+void param_index_add_velocity(rbt_t *param_index, velocity_t *p, int *c);
+void param_index_add_imu_biases(rbt_t *param_index, imu_biases_t *p, int *c);
+void param_index_add_feature(rbt_t *param_index, feature_t *p, int *c);
+void param_index_add_joint(rbt_t *param_index, joint_t *p, int *c);
+void param_index_add_camera(rbt_t *param_index, camera_params_t *p, int *c);
+void param_index_add_time_delay(rbt_t *param_index, time_delay_t *p, int *c);
+
+////////////
+// FACTOR //
+////////////
+
+typedef struct factor_hash_t {
+  int64_t key;
+  int factor_type;
+  void *factor_ptr;
+} factor_hash_t;
+
+#define FACTOR_EVAL_PTR                                                        \
+  int (*factor_eval)(const void *factor,                                       \
+                     real_t **params,                                          \
+                     real_t *residuals,                                        \
+                     real_t **jacobians)
+
+#define CERES_FACTOR_EVAL(FACTOR_TYPE,                                         \
+                          FACTOR,                                              \
+                          FACTOR_EVAL,                                         \
+                          PARAMS,                                              \
+                          R_OUT,                                               \
+                          J_OUT)                                               \
+  {                                                                            \
+    assert(FACTOR);                                                            \
+    assert(PARAMS);                                                            \
+    assert(R_OUT);                                                             \
+                                                                               \
+    /* Copy parameters */                                                      \
+    for (int i = 0; i < FACTOR->num_params; i++) {                             \
+      const int global_size = param_global_size(FACTOR->param_types[i]);       \
+      vec_copy(PARAMS[i], global_size, FACTOR->params[i]);                     \
+    }                                                                          \
+                                                                               \
+    /* Evaluate factor */                                                      \
+    FACTOR_EVAL(factor_ptr);                                                   \
+                                                                               \
+    /* Residuals */                                                            \
+    vec_copy(FACTOR->r, FACTOR->r_size, r_out);                                \
+                                                                               \
+    /* Jacobians */                                                            \
+    if (J_OUT == NULL) {                                                       \
+      return 1;                                                                \
+    }                                                                          \
+                                                                               \
+    const int r_size = FACTOR->r_size;                                         \
+    for (int jac_idx = 0; jac_idx < FACTOR->num_params; jac_idx++) {           \
+      if (J_OUT[jac_idx]) {                                                    \
+        const int gs = param_global_size(FACTOR->param_types[jac_idx]);        \
+        const int ls = param_local_size(FACTOR->param_types[jac_idx]);         \
+        const int rs = 0;                                                      \
+        const int re = r_size - 1;                                             \
+        const int cs = 0;                                                      \
+        const int ce = ls - 1;                                                 \
+        zeros(J_OUT[jac_idx], r_size, gs);                                     \
+        mat_block_set(J_OUT[jac_idx],                                          \
+                      gs,                                                      \
+                      rs,                                                      \
+                      re,                                                      \
+                      cs,                                                      \
+                      ce,                                                      \
+                      FACTOR->jacs[jac_idx]);                                  \
+      }                                                                        \
+    }                                                                          \
+    return 1;                                                                  \
+  }
+
+int check_factor_jacobian(const void *factor,
+                          FACTOR_EVAL_PTR,
+                          real_t **params,
+                          real_t **jacobians,
+                          const int r_size,
+                          const int param_size,
+                          const int param_idx,
+                          const real_t step_size,
+                          const real_t tol,
+                          const int verbose);
+
+int check_factor_so3_jacobian(const void *factor,
+                              FACTOR_EVAL_PTR,
+                              real_t **params,
+                              real_t **jacobians,
+                              const int r_size,
+                              const int param_idx,
+                              const real_t step_size,
+                              const real_t tol,
+                              const int verbose);
+
+/////////////////
+// POSE FACTOR //
+/////////////////
+
+typedef struct pose_factor_t {
+  real_t pos_meas[3];
+  real_t quat_meas[4];
+  pose_t *pose_est;
+
+  real_t covar[6 * 6];
+  real_t sqrt_info[6 * 6];
+
+  real_t r[6];
+  int r_size;
+
+  int param_types[1];
+  real_t *params[1];
+  int num_params;
+
+  real_t *jacs[1];
+  real_t J_pose[6 * 6];
+} pose_factor_t;
+
+void pose_factor_setup(pose_factor_t *factor,
+                       pose_t *pose,
+                       const real_t var[6]);
+int pose_factor_eval(void *factor);
+
+///////////////
+// BA FACTOR //
+///////////////
+
+typedef struct ba_factor_t {
+  pose_t *pose;
+  feature_t *feature;
+  camera_params_t *camera;
+
+  real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
+  real_t z[2];
+
+  real_t r[2];
+  int r_size;
+
+  int param_types[3];
+  real_t *params[3];
+  int num_params;
+
+  real_t *jacs[3];
+  real_t J_pose[2 * 6];
+  real_t J_feature[2 * 3];
+  real_t J_camera[2 * 8];
+} ba_factor_t;
+
+void ba_factor_setup(ba_factor_t *factor,
+                     pose_t *pose,
+                     feature_t *feature,
+                     camera_params_t *camera,
+                     const real_t z[2],
+                     const real_t var[2]);
+int ba_factor_eval(void *factor_ptr);
+
+///////////////////
+// CAMERA FACTOR //
+///////////////////
+
+typedef struct camera_factor_t {
+  pose_t *pose;
+  extrinsic_t *extrinsic;
+  camera_params_t *camera;
+  feature_t *feature;
+
+  real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
+  real_t z[2];
+
+  real_t r[2];
+  int r_size;
+
+  int num_params;
+  int param_types[4];
+  real_t *params[4];
+
+  real_t *jacs[4];
+  real_t J_pose[2 * 6];
+  real_t J_extrinsic[2 * 6];
+  real_t J_feature[2 * 3];
+  real_t J_camera[2 * 8];
+} camera_factor_t;
+
+void camera_factor_setup(camera_factor_t *factor,
+                         pose_t *pose,
+                         extrinsic_t *extrinsic,
+                         feature_t *feature,
+                         camera_params_t *camera,
+                         const real_t z[2],
+                         const real_t var[2]);
+int camera_factor_eval(void *factor_ptr);
+
+////////////////
+// IMU FACTOR //
+////////////////
+
+/** IMU Factor **/
+typedef struct imu_factor_t {
+  // IMU parameters and buffer
+  const imu_params_t *imu_params;
+  imu_buffer_t imu_buf;
+
+  // Parameters
+  pose_t *pose_i;
+  velocity_t *vel_i;
+  imu_biases_t *biases_i;
+  pose_t *pose_j;
+  velocity_t *vel_j;
+  imu_biases_t *biases_j;
+  int num_params;
+  real_t *params[6];
+  int param_types[6];
+
+  // Residuals
+  int r_size;
+  real_t r[15];
+
+  // Jacobians
+  real_t *jacs[6];
+  real_t J_pose_i[15 * 6];
+  real_t J_vel_i[15 * 3];
+  real_t J_biases_i[15 * 6];
+  real_t J_pose_j[15 * 6];
+  real_t J_vel_j[15 * 3];
+  real_t J_biases_j[15 * 6];
+
+  // Preintegration variables
+  real_t Dt;         // Time difference between pose_i and pose_j in seconds
+  real_t F[15 * 15]; // State jacobian
+  real_t P[15 * 15]; // State covariance
+  real_t Q[18 * 18]; // Noise matrix
+  real_t dr[3];      // Relative position
+  real_t dv[3];      // Relative velocity
+  real_t dq[4];      // Relative rotation
+  real_t ba[3];      // Accel biase
+  real_t bg[3];      // Gyro biase
+  real_t ba_ref[3];
+  real_t bg_ref[3];
+
+  // Preintegration step variables
+  real_t r_i[3];
+  real_t v_i[3];
+  real_t q_i[4];
+  real_t ba_i[3];
+  real_t bg_i[3];
+
+  real_t r_j[3];
+  real_t v_j[3];
+  real_t q_j[4];
+  real_t ba_j[3];
+  real_t bg_j[3];
+
+  // Covariance and square-root info
+  real_t covar[15 * 15];
+  real_t sqrt_info[15 * 15];
+} imu_factor_t;
+
+void imu_state_vector(const real_t r[3],
+                      const real_t q[4],
+                      const real_t v[3],
+                      const real_t ba[3],
+                      const real_t bg[3],
+                      real_t x[16]);
+void imu_propagate(const real_t pose_k[7],
+                   const real_t vel_k[3],
+                   const imu_buffer_t *imu_buf,
+                   real_t pose_kp1[7],
+                   real_t vel_kp1[3]);
+void imu_initial_attitude(const imu_buffer_t *imu_buf, real_t q_WS[4]);
+void imu_factor_propagate_step(imu_factor_t *factor,
+                               const real_t a_i[3],
+                               const real_t w_i[3],
+                               const real_t a_j[3],
+                               const real_t w_j[3],
+                               const real_t dt);
+void imu_factor_F_matrix(const real_t q_i[4],
+                         const real_t q_j[4],
+                         const real_t ba_i[3],
+                         const real_t bg_i[3],
+                         const real_t a_i[3],
+                         const real_t w_i[3],
+                         const real_t a_j[3],
+                         const real_t w_j[3],
+                         const real_t dt,
+                         real_t F_dt[15 * 15]);
+void imu_factor_form_G_matrix(const imu_factor_t *factor,
+                              const real_t a_i[3],
+                              const real_t a_j[3],
+                              const real_t dt,
+                              real_t G_dt[15 * 18]);
+void imu_factor_setup(imu_factor_t *factor,
+                      const imu_params_t *imu_params,
+                      const imu_buffer_t *imu_buf,
+                      pose_t *pose_i,
+                      velocity_t *v_i,
+                      imu_biases_t *biases_i,
+                      pose_t *pose_j,
+                      velocity_t *v_j,
+                      imu_biases_t *biases_j);
+void imu_factor_reset(imu_factor_t *factor);
+void imu_factor_preintegrate(imu_factor_t *factor);
+int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
+int imu_factor_eval(void *factor_ptr);
+int imu_factor_ceres_eval(void *factor_ptr,
+                          real_t **params,
+                          real_t *r_out,
+                          real_t **J_out);
+
+// //////////////////
+// // LIDAR FACTOR //
+// //////////////////
+//
+// typedef struct pcd_t {
+//   timestamp_t ts_start;
+//   timestamp_t ts_end;
+//   float *data;
+//   float *time_diffs;
+//   size_t num_points;
+// } pcd_t;
+//
+// typedef struct lidar_factor_t {
+//   pcd_t *pcd;
+//   pose_t *pose;
+//   extrinsic_t *extrinsic;
+//
+//   real_t *points_W;
+//   size_t *indices;
+//   size_t num_points;
+//
+//   real_t covar[3 * 3];
+//   real_t sqrt_info[3 * 3];
+//
+//   real_t *r;
+//   int r_size;
+//
+//   int param_types[2];
+//   real_t *params[2];
+//   int num_params;
+//
+//   real_t *jacs[1];
+//   real_t *J_pose;
+// } lidar_factor_t;
+//
+// pcd_t *pcd_malloc(const timestamp_t ts_start,
+//                   const timestamp_t ts_end,
+//                   const float *data,
+//                   const float *time_diffs,
+//                   const size_t num_points);
+// void pcd_free(pcd_t *pcd);
+// void pcd_deskew(pcd_t *points,
+//                 const real_t T_WL_km1[4 * 4],
+//                 const real_t T_WL_km2[4 * 4]);
+//
+// void lidar_factor_setup(lidar_factor_t *factor,
+//                         pcd_t *pcd,
+//                         pose_t *pose_k,
+//                         const real_t var[3]);
+// void lidar_factor_eval(void *factor);
+
+////////////////////////
+// JOINT-ANGLE FACTOR //
+////////////////////////
+
+typedef struct joint_factor_t {
+  joint_t *joint;
+
+  real_t z[1];
+  real_t covar[1];
+  real_t sqrt_info[1];
+
+  int r_size;
+  int num_params;
+  int param_types[1];
+
+  real_t *params[1];
+  real_t r[1];
+  real_t *jacs[1];
+  real_t J_joint[1 * 1];
+} joint_factor_t;
+
+void joint_factor_setup(joint_factor_t *factor,
+                        joint_t *joint0,
+                        const real_t z,
+                        const real_t var);
+void joint_factor_copy(const joint_factor_t *src, joint_factor_t *dst);
+int joint_factor_eval(void *factor_ptr);
+int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
+
+/////////////////////////
+// CALIB-CAMERA FACTOR //
+/////////////////////////
+
+typedef struct calib_camera_factor_t {
+  pose_t *pose;
+  extrinsic_t *cam_ext;
+  camera_params_t *cam_params;
+
+  timestamp_t ts;
+  int cam_idx;
+  int tag_id;
+  int corner_idx;
+  real_t p_FFi[3];
+  real_t z[2];
+
+  real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
+
+  int r_size;
+  int num_params;
+  int param_types[3];
+
+  real_t *params[3];
+  real_t r[2];
+  real_t *jacs[3];
+  real_t J_pose[2 * 6];
+  real_t J_cam_ext[2 * 6];
+  real_t J_cam_params[2 * 8];
+} calib_camera_factor_t;
+
+void calib_camera_factor_setup(calib_camera_factor_t *factor,
+                               pose_t *pose,
+                               extrinsic_t *cam_ext,
+                               camera_params_t *cam_params,
+                               const int cam_idx,
+                               const int tag_id,
+                               const int corner_idx,
+                               const real_t p_FFi[3],
+                               const real_t z[2],
+                               const real_t var[2]);
+int calib_camera_factor_eval(void *factor_ptr);
+int calib_camera_factor_ceres_eval(void *factor_ptr,
+                                   real_t **params,
+                                   real_t *r_out,
+                                   real_t **J_out);
+
+/////////////////////////
+// CALIB-IMUCAM FACTOR //
+/////////////////////////
+
+typedef struct calib_imucam_factor_t {
+  fiducial_t *fiducial;        // fiducial pose: T_WF
+  pose_t *imu_pose;            // IMU pose: T_WS
+  extrinsic_t *imu_ext;        // IMU extrinsic: T_SC0
+  extrinsic_t *cam_ext;        // Camera extrinsic: T_C0Ci
+  camera_params_t *cam_params; // Camera parameters
+  time_delay_t *time_delay;    // Time delay
+
+  timestamp_t ts;
+  int cam_idx;
+  int tag_id;
+  int corner_idx;
+  real_t p_FFi[3];
+  real_t z[2];
+  real_t v[2];
+
+  real_t covar[2 * 2];
+  real_t sqrt_info[2 * 2];
+
+  int r_size;
+  int num_params;
+  int param_types[6];
+
+  real_t *params[6];
+  real_t r[2];
+  real_t *jacs[6];
+  real_t J_fiducial[2 * 6];
+  real_t J_imu_pose[2 * 6];
+  real_t J_imu_ext[2 * 6];
+  real_t J_cam_ext[2 * 6];
+  real_t J_cam_params[2 * 8];
+  real_t J_time_delay[2 * 1];
+} calib_imucam_factor_t;
+
+void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
+                               fiducial_t *fiducial,
+                               pose_t *pose,
+                               extrinsic_t *imu_ext,
+                               extrinsic_t *cam_ext,
+                               camera_params_t *cam_params,
+                               time_delay_t *time_delay,
+                               const int cam_idx,
+                               const int tag_id,
+                               const int corner_idx,
+                               const real_t p_FFi[3],
+                               const real_t z[2],
+                               const real_t v[2],
+                               const real_t var[2]);
+int calib_imucam_factor_eval(void *factor_ptr);
+int calib_imucam_factor_ceres_eval(void *factor_ptr,
+                                   real_t **params,
+                                   real_t *r_out,
+                                   real_t **J_out);
+
+//////////////////
+// MARGINALIZER //
+//////////////////
+
+#define MARG_FACTOR 1
+#define BA_FACTOR 2
+#define CAMERA_FACTOR 3
+#define IDF_FACTOR 4
+#define IMU_FACTOR 5
+#define CALIB_CAMERA_FACTOR 6
+#define CALIB_IMUCAM_FACTOR 7
+
+typedef struct marg_factor_t {
+  // Settings
+  int debug;
+  int cond_hessian;
+
+  // Flags
+  int marginalized;
+  int schur_complement_ok;
+  int eigen_decomp_ok;
+
+  // parameters
+  // -- Remain parameters
+  list_t *r_positions;
+  list_t *r_rotations;
+  list_t *r_poses;
+  list_t *r_velocities;
+  list_t *r_imu_biases;
+  list_t *r_fiducials;
+  list_t *r_joints;
+  list_t *r_extrinsics;
+  list_t *r_features;
+  list_t *r_cam_params;
+  list_t *r_time_delays;
+  // -- Marginal parameters
+  list_t *m_positions;
+  list_t *m_rotations;
+  list_t *m_poses;
+  list_t *m_velocities;
+  list_t *m_imu_biases;
+  list_t *m_features;
+  list_t *m_fiducials;
+  list_t *m_extrinsics;
+  list_t *m_joints;
+  list_t *m_cam_params;
+  list_t *m_time_delays;
+
+  // Factors
+  list_t *ba_factors;
+  list_t *camera_factors;
+  list_t *imu_factors;
+  list_t *calib_camera_factors;
+  list_t *calib_imucam_factors;
+  struct marg_factor_t *marg_factor;
+
+  // Hessian, Jacobians and residuals
+  rbt_t *param_seen;
+  rbt_t *param_index;
+  int m_size;
+  int r_size;
+
+  real_t *x0;
+  real_t *r0;
+  real_t *J0;
+  real_t *J0_inv;
+  real_t *dchi;
+  real_t *J0_dchi;
+
+  real_t *H;
+  real_t *b;
+  real_t *H_marg;
+  real_t *b_marg;
+
+  // Parameters, residuals and Jacobians (needed by the solver)
+  int num_params;
+  int *param_types;
+  void **param_ptrs;
+  real_t **params;
+  real_t *r;
+  real_t **jacs;
+
+  // Profiling
+  real_t time_hessian_form;
+  real_t time_schur_complement;
+  real_t time_hessian_decomp;
+  real_t time_fejs;
+  real_t time_total;
+} marg_factor_t;
+
+marg_factor_t *marg_factor_malloc(void);
+void marg_factor_free(marg_factor_t *marg);
+void marg_factor_print_stats(const marg_factor_t *marg);
+void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr);
+void marg_factor_marginalize(marg_factor_t *marg);
+int marg_factor_eval(void *marg_ptr);
+
+////////////////
+// DATA UTILS //
+////////////////
+
+pose_t *load_poses(const char *fp, int *num_poses);
+int **assoc_pose_data(pose_t *gnd_poses,
+                      size_t num_gnd_poses,
+                      pose_t *est_poses,
+                      size_t num_est_poses,
+                      double threshold,
+                      size_t *num_matches);
+
+////////////
+// SOLVER //
+////////////
+
+#define SOLVER_USE_SUITESPARSE
+
+#define SOLVER_EVAL_FACTOR_COMPACT(HASH,                                       \
+                                   SV_SIZE,                                    \
+                                   H,                                          \
+                                   G,                                          \
+                                   FACTOR_EVAL,                                \
+                                   FACTOR_PTR,                                 \
+                                   R,                                          \
+                                   R_IDX)                                      \
+  FACTOR_EVAL(FACTOR_PTR);                                                     \
+  vec_copy(FACTOR_PTR->r, FACTOR_PTR->r_size, &R[R_IDX]);                      \
+  R_IDX += FACTOR_PTR->r_size;                                                 \
+  solver_fill_hessian(HASH,                                                    \
+                      FACTOR_PTR->num_params,                                  \
+                      FACTOR_PTR->params,                                      \
+                      FACTOR_PTR->jacs,                                        \
+                      FACTOR_PTR->r,                                           \
+                      FACTOR_PTR->r_size,                                      \
+                      SV_SIZE,                                                 \
+                      H,                                                       \
+                      G);
+
+typedef struct solver_t {
+  // Settings
+  int verbose;
+  int max_iter;
+  real_t lambda;
+  real_t lambda_factor;
+
+  // Data
+  rbt_t *param_index;
+  int linearize;
+  int r_size;
+  int sv_size;
+  real_t *H_damped;
+  real_t *H;
+  real_t *g;
+  real_t *r;
+  real_t *dx;
+
+  // SuiteSparse
+#ifdef SOLVER_USE_SUITESPARSE
+  cholmod_common *common;
+#endif
+
+  // Callbacks
+  rbt_t *(*param_index_func)(const void *data, int *sv_size, int *r_size);
+  void (*cost_func)(const void *data, real_t *r);
+  void (*linearize_func)(const void *data,
+                         const int sv_size,
+                         rbt_t *hash,
+                         real_t *H,
+                         real_t *g,
+                         real_t *r);
+  void (*linsolve_func)(const void *data,
+                        const int sv_size,
+                        rbt_t *hash,
+                        real_t *H,
+                        real_t *g,
+                        real_t *dx);
+} solver_t;
+
+void solver_setup(solver_t *solver);
+void solver_print_param_order(const solver_t *solver);
+real_t solver_cost(const solver_t *solver, const void *data);
+void solver_fill_jacobian(rbt_t *param_index,
+                          int num_params,
+                          real_t **params,
+                          real_t **jacs,
+                          real_t *r,
+                          int r_size,
+                          int sv_size,
+                          int J_row_idx,
+                          real_t *J,
+                          real_t *g);
+void solver_fill_hessian(rbt_t *param_index,
+                         int num_params,
+                         real_t **params,
+                         real_t **jacs,
+                         real_t *r,
+                         int r_size,
+                         int sv_size,
+                         real_t *H,
+                         real_t *g);
+real_t **solver_params_copy(const solver_t *solver);
+void solver_params_restore(solver_t *solver, real_t **x);
+void solver_params_free(const solver_t *solver, real_t **x);
+void solver_update(solver_t *solver, real_t *dx, int sv_size);
+int solver_solve(solver_t *solver, void *data);
+
+/*******************************************************************************
+ * TIMELINE
+ ******************************************************************************/
+
+#define CAMERA_EVENT 1
+#define IMU_EVENT 2
+#define FIDUCIAL_EVENT 3
+
+typedef struct camera_event_t {
+  timestamp_t ts;
+  int cam_idx;
+  char *image_path;
+
+  int num_features;
+  size_t *feature_ids;
+  real_t *keypoints;
+} camera_event_t;
+
+typedef struct imu_event_t {
+  timestamp_t ts;
+  real_t acc[3];
+  real_t gyr[3];
+} imu_event_t;
+
+typedef struct fiducial_event_t {
+  timestamp_t ts;
+  int cam_idx;
+  int num_corners;
+  int *tag_ids;
+  int *corner_indices;
+  real_t *object_points;
+  real_t *keypoints;
+} fiducial_event_t;
+
+union event_data_t {
+  camera_event_t camera;
+  imu_event_t imu;
+  fiducial_event_t fiducial;
+};
+
+typedef struct timeline_event_t {
+  int type;
+  timestamp_t ts;
+  union event_data_t data;
+} timeline_event_t;
+
+typedef struct timeline_t {
+  // Stats
+  int num_cams;
+  int num_imus;
+  int num_event_types;
+
+  // Events
+  timeline_event_t **events;
+  timestamp_t **events_timestamps;
+  int *events_lengths;
+  int *events_types;
+
+  // Timeline
+  size_t timeline_length;
+  timestamp_t *timeline_timestamps;
+  timeline_event_t ***timeline_events;
+  int *timeline_events_lengths;
+} timeline_t;
+
+void print_camera_event(const camera_event_t *event);
+void print_imu_event(const imu_event_t *event);
+void print_fiducial_event(const fiducial_event_t *event);
+
+timeline_t *timeline_malloc(void);
+void timeline_free(timeline_t *timeline);
+void timeline_form_timeline(timeline_t *tl);
+timeline_t *timeline_load_data(const char *data_dir,
+                               const int num_cams,
+                               const int num_imus);
+
+/*******************************************************************************
+ * SIMULATION
+ ******************************************************************************/
+
+/** Sim Circle Trajectory **/
+typedef struct sim_circle_t {
+  real_t imu_rate;
+  real_t cam_rate;
+  real_t circle_r;
+  real_t circle_v;
+  real_t theta_init;
+  real_t yaw_init;
+} sim_circle_t;
+
+void sim_circle_defaults(sim_circle_t *conf);
+
+//////////////////
+// SIM FEATURES //
+//////////////////
+
+typedef struct sim_features_t {
+  real_t **features;
+  int num_features;
+} sim_features_t;
+
+sim_features_t *sim_features_load(const char *csv_path);
+void sim_features_free(sim_features_t *features_data);
+
+//////////////////
+// SIM IMU DATA //
+//////////////////
+
+typedef struct sim_imu_data_t {
+  size_t num_measurements;
+  real_t *timestamps;
+  real_t *poses;
+  real_t *velocities;
+  real_t *imu_acc;
+  real_t *imu_gyr;
+} sim_imu_data_t;
+
+void sim_imu_data_setup(sim_imu_data_t *imu_data);
+sim_imu_data_t *sim_imu_data_malloc(void);
+void sim_imu_data_free(sim_imu_data_t *imu_data);
+sim_imu_data_t *sim_imu_data_load(const char *csv_path);
+sim_imu_data_t *sim_imu_circle_trajectory(const sim_circle_t *conf);
+void sim_imu_measurements(const sim_imu_data_t *data,
+                          const int64_t ts_i,
+                          const int64_t ts_j,
+                          imu_buffer_t *imu_buf);
+
+/////////////////////
+// SIM CAMERA DATA //
+/////////////////////
+
+/** Simulation Utils **/
+void sim_create_features(const real_t origin[3],
+                         const real_t dim[3],
+                         const int num_features,
+                         real_t *features);
+
+/** Sim Camera Frame **/
+typedef struct sim_camera_frame_t {
+  timestamp_t ts;
+  int cam_idx;
+  size_t *feature_ids;
+  real_t *keypoints;
+  int n;
+} sim_camera_frame_t;
+
+void sim_camera_frame_setup(sim_camera_frame_t *frame,
+                            const timestamp_t ts,
+                            const int cam_idx);
+sim_camera_frame_t *sim_camera_frame_malloc(const timestamp_t ts,
+                                            const int cam_idx);
+void sim_camera_frame_free(sim_camera_frame_t *frame_data);
+void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame_data,
+                                   const size_t feature_id,
+                                   const real_t kp[2]);
+sim_camera_frame_t *sim_camera_frame_load(const char *csv_path);
+void sim_camera_frame_print(const sim_camera_frame_t *frame_data);
+
+/** Sim Camera Data **/
+typedef struct sim_camera_data_t {
+  int cam_idx;
+  sim_camera_frame_t **frames;
+  int num_frames;
+
+  timestamp_t *timestamps;
+  real_t *poses;
+} sim_camera_data_t;
+
+void sim_camera_data_setup(sim_camera_data_t *data);
+sim_camera_data_t *sim_camerea_data_malloc(void);
+void sim_camera_data_free(sim_camera_data_t *cam_data);
+sim_camera_data_t *sim_camera_data_load(const char *dir_path);
+
+sim_camera_data_t *
+sim_camera_circle_trajectory(const sim_circle_t *conf,
+                             const real_t T_BC[4 * 4],
+                             const camera_params_t *cam_params,
+                             const real_t *features,
+                             const int num_features);
+
+/////////////////////////
+// SIM CAMERA IMU DATA //
+/////////////////////////
+
+/** Sim Circle Camera-IMU Data **/
+typedef struct sim_circle_camera_imu_t {
+  sim_circle_t conf;
+  sim_imu_data_t *imu_data;
+  sim_camera_data_t *cam0_data;
+  sim_camera_data_t *cam1_data;
+
+  real_t feature_data[3 * 1000];
+  int num_features;
+
+  camera_params_t cam0_params;
+  camera_params_t cam1_params;
+  real_t cam0_ext[7];
+  real_t cam1_ext[7];
+  real_t imu0_ext[7];
+
+  timeline_t *timeline;
+} sim_circle_camera_imu_t;
+
+sim_circle_camera_imu_t *sim_circle_camera_imu(void);
+void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data);
+
+/******************************************************************************
+ * EUROC
+ ******************************************************************************/
+
+/**
+ * Fatal
+ *
+ * @param[in] M Message
+ * @param[in] ... Varadic arguments
+ */
+#ifndef EUROC_FATAL
+#define EUROC_FATAL(...)                                                       \
+  do {                                                                         \
+    fprintf(stderr,                                                            \
+            "[EUROC_FATAL] [%s:%d:%s()]: ",                                    \
+            __FILE__,                                                          \
+            __LINE__,                                                          \
+            __func__);                                                         \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0);                                                                 \
+  exit(-1)
+#endif
+
+#ifndef EUROC_LOG
+#define EUROC_LOG(...)                                                         \
+  do {                                                                         \
+    fprintf(stderr,                                                            \
+            "[EUROC_LOG] [%s:%d:%s()]: ",                                      \
+            __FILE__,                                                          \
+            __LINE__,                                                          \
+            __func__);                                                         \
+    fprintf(stderr, __VA_ARGS__);                                              \
+  } while (0);
+#endif
+
+/////////////////
+// euroc_imu_t //
+/////////////////
+
+/**
+ * EuRoC IMU data
+ */
+typedef struct euroc_imu_t {
+  // Data
+  int num_timestamps;
+  timestamp_t *timestamps;
+  double **w_B;
+  double **a_B;
+
+  // Sensor properties
+  char sensor_type[100];
+  char comment[9046];
+  double T_BS[4 * 4];
+  double rate_hz;
+  double gyro_noise_density;
+  double gyro_random_walk;
+  double accel_noise_density;
+  double accel_random_walk;
+} euroc_imu_t;
+
+euroc_imu_t *euroc_imu_load(const char *data_dir);
+void euroc_imu_free(euroc_imu_t *data);
+void euroc_imu_print(const euroc_imu_t *data);
+
+////////////////////
+// euroc_camera_t //
+////////////////////
+
+/**
+ * EuRoC camera data
+ */
+typedef struct euroc_camera_t {
+  // Data
+  int is_calib_data;
+  int num_timestamps;
+  timestamp_t *timestamps;
+  char **image_paths;
+
+  // Sensor properties
+  char sensor_type[100];
+  char comment[9046];
+  double T_BS[4 * 4];
+  double rate_hz;
+  int resolution[2];
+  char camera_model[100];
+  double intrinsics[4];
+  char distortion_model[100];
+  double distortion_coefficients[4];
+} euroc_camera_t;
+
+euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data);
+void euroc_camera_free(euroc_camera_t *data);
+void euroc_camera_print(const euroc_camera_t *data);
+
+//////////////////////////
+// euroc_ground_truth_t //
+//////////////////////////
+
+/**
+ * EuRoC ground truth
+ */
+typedef struct euroc_ground_truth_t {
+  // Data
+  int num_timestamps;
+  timestamp_t *timestamps;
+  double **p_RS_R;
+  double **q_RS;
+  double **v_RS_R;
+  double **b_w_RS_S;
+  double **b_a_RS_S;
+
+} euroc_ground_truth_t;
+
+euroc_ground_truth_t *euroc_ground_truth_load(const char *data_dir);
+void euroc_ground_truth_free(euroc_ground_truth_t *data);
+void euroc_ground_truth_print(const euroc_ground_truth_t *data);
+
+//////////////////////
+// euroc_timeline_t //
+//////////////////////
+
+typedef struct euroc_event_t {
+  int has_imu0;
+  int has_cam0;
+  int has_cam1;
+
+  timestamp_t ts;
+
+  size_t imu0_idx;
+  double *acc;
+  double *gyr;
+
+  size_t cam0_idx;
+  char *cam0_image;
+
+  size_t cam1_idx;
+  char *cam1_image;
+} euroc_event_t;
+
+typedef struct euroc_timeline_t {
+  int num_timestamps;
+  timestamp_t *timestamps;
+  euroc_event_t *events;
+
+} euroc_timeline_t;
+
+euroc_timeline_t *euroc_timeline_create(const euroc_imu_t *imu0_data,
+                                        const euroc_camera_t *cam0_data,
+                                        const euroc_camera_t *cam1_data);
+void euroc_timeline_free(euroc_timeline_t *timeline);
+
+//////////////////
+// euroc_data_t //
+//////////////////
+
+/**
+ * EuRoC data
+ */
+typedef struct euroc_data_t {
+  euroc_imu_t *imu0_data;
+  euroc_camera_t *cam0_data;
+  euroc_camera_t *cam1_data;
+  euroc_ground_truth_t *ground_truth;
+  euroc_timeline_t *timeline;
+} euroc_data_t;
+
+euroc_data_t *euroc_data_load(const char *data_path);
+void euroc_data_free(euroc_data_t *data);
+
+//////////////////////////
+// euroc_calib_target_t //
+//////////////////////////
+
+/**
+ * EuRoC calibration target
+ */
+typedef struct euroc_calib_target_t {
+  char type[100];
+  int tag_rows;
+  int tag_cols;
+  double tag_size;
+  double tag_spacing;
+} euroc_calib_target_t;
+
+euroc_calib_target_t *euroc_calib_target_load(const char *conf);
+void euroc_calib_target_free(euroc_calib_target_t *target);
+void euroc_calib_target_print(const euroc_calib_target_t *target);
+
+///////////////////
+// euroc_calib_t //
+///////////////////
+
+/**
+ * EuRoC calibration data
+ */
+typedef struct euroc_calib_t {
+  euroc_imu_t *imu0_data;
+  euroc_camera_t *cam0_data;
+  euroc_camera_t *cam1_data;
+  euroc_calib_target_t *calib_target;
+  euroc_timeline_t *timeline;
+} euroc_calib_t;
+
+euroc_calib_t *euroc_calib_load(const char *data_path);
+void euroc_calib_free(euroc_calib_t *data);
+
+/******************************************************************************
+ * KITTI
+ ******************************************************************************/
+////////////////////
+// kitti_camera_t //
+////////////////////
+
+typedef struct kitti_camera_t {
+  int camera_index;
+  int num_timestamps;
+  timestamp_t *timestamps;
+  char **image_paths;
+} kitti_camera_t;
+
+kitti_camera_t *kitti_camera_load(const char *data_dir);
+void kitti_camera_free(kitti_camera_t *data);
+
+//////////////////
+// kitti_oxts_t //
+//////////////////
+
+typedef struct kitti_oxts_t {
+  // Timestamps
+  int num_timestamps;
+  timestamp_t *timestamps;
+
+  // GPS
+  double *lat; // Latitude [deg]
+  double *lon; // Longitude [deg]
+  double *alt; // Altitude [m]
+
+  // Attitude
+  double *roll;  // Roll [rad]
+  double *pitch; // Pitch [rad]
+  double *yaw;   // Yaw [rad]
+
+  // Velocity
+  double *vn; // Velocity towards north [m/s]
+  double *ve; // Velocity towards east [m/s]
+  double *vf; // Forward velocity [m/s]
+  double *vl; // Leftward velocity [m/s]
+  double *vu; // Upward velocity [m/s]
+
+  // Acceleration
+  double *ax; // Acceleration in x [m/s^2]
+  double *ay; // Acceleration in y [m/s^2]
+  double *az; // Acceleration in z [m/s^2]
+  double *af; // Forward acceleration [m/s^2]
+  double *al; // Leftward acceleration [m/s^2]
+  double *au; // Upward acceleration [m/s^2]
+
+  // Angular velocity
+  double *wx; // Angular rate around x [rad/s]
+  double *wy; // Angular rate around y [rad/s]
+  double *wz; // Angular rate around z [rad/s]
+  double *wf; // Angular rate around foward axis [rad/s]
+  double *wl; // Angular rate around left axis [rad/s]
+  double *wu; // Angular rate around up axis [rad/s]
+
+  // Satellite tracking data
+  double *pos_accuracy; // Position accuracy [north / east in m]
+  double *vel_accuracy; // Velocity accuracy [north / east in m/s]
+  int *navstat;         // Navigation status
+  int *numsats;         // Number of satelllites tracked by GPS
+  int *posmode;         // Position mode
+  int *velmode;         // Velocity mode
+  int *orimode;         // Orientation mode
+} kitti_oxts_t;
+
+kitti_oxts_t *kitti_oxts_load(const char *data_dir);
+void kitti_oxts_free(kitti_oxts_t *data);
+
+//////////////////////
+// kitti_velodyne_t //
+//////////////////////
+
+typedef struct kitti_velodyne_t {
+  int num_timestamps;
+  timestamp_t *timestamps;
+  timestamp_t *timestamps_start;
+  timestamp_t *timestamps_end;
+  char **pcd_paths;
+} kitti_velodyne_t;
+
+float *kitti_load_points(const char *pcd_path, size_t *num_points);
+kitti_velodyne_t *kitti_velodyne_load(const char *data_dir);
+void kitti_velodyne_free(kitti_velodyne_t *data);
+
+///////////////////
+// kitti_calib_t //
+///////////////////
+
+typedef struct kitti_calib_t {
+  char calib_time_cam_to_cam[100];
+  char calib_time_imu_to_velo[100];
+  char calib_time_velo_to_cam[100];
+  double corner_dist;
+
+  double S_00[2];       // Image size [pixels]
+  double K_00[9];       // Camera 0 intrinsics
+  double D_00[5];       // Camera 0 distortion coefficients
+  double R_00[9];       // Rotation from camera 0 to camera 0
+  double T_00[3];       // Translation from camera 0 to camera 0
+  double S_rect_00[2];  // Image size after rectifcation [pixels]
+  double R_rect_00[9];  // Rotation after rectification
+  double P_rect_00[12]; // Projection matrix after rectification
+
+  double S_01[2];       // Image size [pixels]
+  double K_01[9];       // Camera 1 intrinsics
+  double D_01[5];       // Camera 1 distortion coefficients
+  double R_01[9];       // Rotation from camera 0 to camera 1
+  double T_01[3];       // Translation from camera 0 to camera 1
+  double S_rect_01[2];  // Image size after rectifcation [pixels]
+  double R_rect_01[9];  // Rotation after rectification
+  double P_rect_01[12]; // Projection matrix after rectification
+
+  double S_02[2];       // Image size [pixels]
+  double K_02[9];       // Camera 2 intrinsics
+  double D_02[5];       // Camera 2 distortion coefficients
+  double R_02[9];       // Rotation from camera 0 to camera 2
+  double T_02[3];       // Translation from camera 0 to camera 2
+  double S_rect_02[2];  // Image size after rectifcation [pixels]
+  double R_rect_02[9];  // Rotation after rectification
+  double P_rect_02[12]; // Projection matrix after rectification
+
+  double S_03[2];       // Image size [pixels]
+  double K_03[9];       // Camera 3 intrinsics
+  double D_03[5];       // Camera 3 distortion coefficients
+  double R_03[9];       // Rotation from camera 0 to camera 3
+  double T_03[3];       // Translation from camera 0 to camera 3
+  double S_rect_03[2];  // Image size after rectifcation [pixels]
+  double R_rect_03[9];  // Rotation after rectification
+  double P_rect_03[12]; // Projection matrix after rectification
+
+  double R_velo_imu[9]; // Rotation from imu to velodyne
+  double T_velo_imu[3]; // Translation from imu to velodyne
+
+  double R_cam_velo[9]; // Rotation from velodyne to camera
+  double T_cam_velo[3]; // Translation from velodyne to camera
+  double delta_f[2];
+  double delta_c[2];
+} kitti_calib_t;
+
+kitti_calib_t *kitti_calib_load(const char *data_dir);
+void kitti_calib_free(kitti_calib_t *data);
+void kitti_calib_print(const kitti_calib_t *data);
+
+/////////////////
+// kitti_raw_t //
+/////////////////
+
+typedef struct kitti_raw_t {
+  char seq_name[1024];
+  kitti_camera_t *image_00;
+  kitti_camera_t *image_01;
+  kitti_camera_t *image_02;
+  kitti_camera_t *image_03;
+  kitti_oxts_t *oxts;
+  kitti_velodyne_t *velodyne;
+  kitti_calib_t *calib;
+} kitti_raw_t;
+
+kitti_raw_t *kitti_raw_load(const char *data_dir, const char *seq_name);
+void kitti_raw_free(kitti_raw_t *data);
