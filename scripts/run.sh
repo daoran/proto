@@ -178,6 +178,7 @@ run_test() {
 
 # XYZ
 # run_all_tests
+run_test test_xyz
 ## XYZ-MACROS
 # run_test test_xyz test_median_value
 # run_test test_xyz test_mean_value
@@ -378,6 +379,9 @@ run_test() {
 # run_test test_xyz test_imu_factor_form_F_matrix
 # run_test test_xyz test_imu_factor
 # run_test test_xyz test_joint_factor
+# run_test test_xyz test_camchain
+# run_test test_xyz test_calib_camera_factor
+# run_test test_xyz test_calib_imucam_factor
 # run_test test_xyz test_marg_factor
 ## XYZ-TIMELINE
 # run_test test_xyz test_timeline
@@ -410,8 +414,6 @@ run_test() {
 # run_test test_xyz test_kitti_velodyne_load
 # run_test test_xyz test_kitti_calib_load
 # run_test test_xyz test_kitti_raw_load
-
-
 
 
 # XYZ-GUI
