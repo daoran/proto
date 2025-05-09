@@ -1218,7 +1218,6 @@ real_t pid_ctrl_update(pid_ctrl_t *pid,
                        const real_t dt);
 void pid_ctrl_reset(pid_ctrl_t *pid);
 
-
 /******************************************************************************
  * MAV
  *****************************************************************************/
@@ -1354,7 +1353,6 @@ int mav_waypoints_update(mav_waypoints_t *wps,
                          const real_t state[4],
                          const real_t dt,
                          real_t wp[4]);
-
 
 /******************************************************************************
  * COMPUTER-VISION
@@ -1706,30 +1704,11 @@ void fiducial_copy(const fiducial_t *src, fiducial_t *dst);
 void fiducial_fprint(const char *prefix, const fiducial_t *exts, FILE *f);
 void fiducial_print(const char *prefix, const fiducial_t *exts);
 
-/** Fiducial Buffer **/
-// typedef struct fiducial_buffer_t {
-//   fiducial_event_t **data;
-//   int size;
-//   int capacity;
-// } fiducial_buffer_t;
+////////////
+// CAMERA //
+////////////
 
-// fiducial_buffer_t *fiducial_buffer_malloc(void); void fiducial_buffer_clear(fiducial_buffer_t *buf);
-// void fiducial_buffer_free(fiducial_buffer_t *buf);
-// int fiducial_buffer_total_corners(const fiducial_buffer_t *buf);
-// void fiducial_buffer_add(fiducial_buffer_t *buf,
-//                          const timestamp_t ts,
-//                          const int cam_idx,
-//                          const int num_corners,
-//                          const int *tag_ids,
-//                          const int *corner_indices,
-//                          const real_t *object_points,
-//                          const real_t *keypoints);
-
-///////////////////////
-// CAMERA-PARAMETERS //
-///////////////////////
-
-typedef struct camera_params_t {
+typedef struct camera_t {
   int marginalize;
   int fix;
 
@@ -1742,42 +1721,40 @@ typedef struct camera_params_t {
   project_func_t proj_func;
   back_project_func_t back_proj_func;
   undistort_func_t undistort_func;
-} camera_params_t;
+} camera_t;
 
-void camera_params_setup(camera_params_t *camera,
-                         const int cam_idx,
-                         const int cam_res[2],
-                         const char *proj_model,
-                         const char *dist_model,
-                         const real_t *data);
-void camera_params_copy(const camera_params_t *src, camera_params_t *dst);
-void camera_params_fprint(const camera_params_t *cam, FILE *f);
-void camera_params_print(const camera_params_t *camera);
-void camera_project(const camera_params_t *camera,
-                    const real_t p_C[3],
-                    real_t z[2]);
-void camera_back_project(const camera_params_t *camera,
+void camera_setup(camera_t *camera,
+                  const int cam_idx,
+                  const int cam_res[2],
+                  const char *proj_model,
+                  const char *dist_model,
+                  const real_t *data);
+void camera_copy(const camera_t *src, camera_t *dst);
+void camera_fprint(const camera_t *cam, FILE *f);
+void camera_print(const camera_t *camera);
+void camera_project(const camera_t *camera, const real_t p_C[3], real_t z[2]);
+void camera_back_project(const camera_t *camera,
                          const real_t z[2],
                          real_t bearing[3]);
-void camera_undistort_points(const camera_params_t *camera,
+void camera_undistort_points(const camera_t *camera,
                              const real_t *kps,
                              const int num_points,
                              real_t *kps_und);
-int solvepnp_camera(const camera_params_t *cam_params,
+int solvepnp_camera(const camera_t *cam_params,
                     const real_t *img_pts,
                     const real_t *obj_pts,
                     const int N,
                     real_t T_CO[4 * 4]);
-void triangulate_batch(const camera_params_t *cam_i,
-                       const camera_params_t *cam_j,
+void triangulate_batch(const camera_t *cam_i,
+                       const camera_t *cam_j,
                        const real_t T_CiCj[4 * 4],
                        const real_t *kps_i,
                        const real_t *kps_j,
                        const int n,
                        real_t *points,
                        int *status);
-void stereo_triangulate(const camera_params_t *cam_i,
-                        const camera_params_t *cam_j,
+void stereo_triangulate(const camera_t *cam_i,
+                        const camera_t *cam_j,
                         const real_t T_WCi[4 * 4],
                         const real_t T_CiCj[4 * 4],
                         const real_t *kps_i,
@@ -1840,7 +1817,6 @@ timestamp_t imu_buffer_last_ts(const imu_buffer_t *imu_buf);
 void imu_buffer_clear(imu_buffer_t *imu_buf);
 void imu_buffer_copy(const imu_buffer_t *from, imu_buffer_t *to);
 void imu_buffer_print(const imu_buffer_t *imu_buf);
-
 
 ////////////////
 // IMU-BIASES //
@@ -1913,7 +1889,7 @@ void feature_print(const feature_t *feature);
 //                        const size_t num_features);
 // void features_add_idfs(features_t *features,
 //                        const size_t *feature_ids,
-//                        const camera_params_t *cam_params,
+//                        const camera_t *cam_params,
 //                        const real_t T_WC[4 * 4],
 //                        const real_t *keypoints,
 //                        const size_t num_keypoints);
@@ -2017,7 +1993,7 @@ void param_index_add_velocity(rbt_t *param_index, velocity_t *p, int *c);
 void param_index_add_imu_biases(rbt_t *param_index, imu_biases_t *p, int *c);
 void param_index_add_feature(rbt_t *param_index, feature_t *p, int *c);
 void param_index_add_joint(rbt_t *param_index, joint_t *p, int *c);
-void param_index_add_camera(rbt_t *param_index, camera_params_t *p, int *c);
+void param_index_add_camera(rbt_t *param_index, camera_t *p, int *c);
 void param_index_add_time_delay(rbt_t *param_index, time_delay_t *p, int *c);
 
 ////////////
@@ -2142,7 +2118,7 @@ int pose_factor_eval(void *factor);
 typedef struct ba_factor_t {
   pose_t *pose;
   feature_t *feature;
-  camera_params_t *camera;
+  camera_t *camera;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
@@ -2164,7 +2140,7 @@ typedef struct ba_factor_t {
 void ba_factor_setup(ba_factor_t *factor,
                      pose_t *pose,
                      feature_t *feature,
-                     camera_params_t *camera,
+                     camera_t *camera,
                      const real_t z[2],
                      const real_t var[2]);
 int ba_factor_eval(void *factor_ptr);
@@ -2176,7 +2152,7 @@ int ba_factor_eval(void *factor_ptr);
 typedef struct camera_factor_t {
   pose_t *pose;
   extrinsic_t *extrinsic;
-  camera_params_t *camera;
+  camera_t *camera;
   feature_t *feature;
 
   real_t covar[2 * 2];
@@ -2201,7 +2177,7 @@ void camera_factor_setup(camera_factor_t *factor,
                          pose_t *pose,
                          extrinsic_t *extrinsic,
                          feature_t *feature,
-                         camera_params_t *camera,
+                         camera_t *camera,
                          const real_t z[2],
                          const real_t var[2]);
 int camera_factor_eval(void *factor_ptr);
@@ -2440,7 +2416,7 @@ int camchain_find(camchain_t *cc,
 typedef struct calib_camera_factor_t {
   pose_t *pose;
   extrinsic_t *cam_ext;
-  camera_params_t *cam_params;
+  camera_t *cam_params;
 
   timestamp_t ts;
   int cam_idx;
@@ -2467,7 +2443,7 @@ typedef struct calib_camera_factor_t {
 void calib_camera_factor_setup(calib_camera_factor_t *factor,
                                pose_t *pose,
                                extrinsic_t *cam_ext,
-                               camera_params_t *cam_params,
+                               camera_t *cam_params,
                                const int cam_idx,
                                const int tag_id,
                                const int corner_idx,
@@ -2485,12 +2461,12 @@ int calib_camera_factor_ceres_eval(void *factor_ptr,
 /////////////////////////
 
 typedef struct calib_imucam_factor_t {
-  fiducial_t *fiducial;        // fiducial pose: T_WF
-  pose_t *imu_pose;            // IMU pose: T_WS
-  extrinsic_t *imu_ext;        // IMU extrinsic: T_SC0
-  extrinsic_t *cam_ext;        // Camera extrinsic: T_C0Ci
-  camera_params_t *cam_params; // Camera parameters
-  time_delay_t *time_delay;    // Time delay
+  fiducial_t *fiducial;     // fiducial pose: T_WF
+  pose_t *imu_pose;         // IMU pose: T_WS
+  extrinsic_t *imu_ext;     // IMU extrinsic: T_SC0
+  extrinsic_t *cam_ext;     // Camera extrinsic: T_C0Ci
+  camera_t *cam_params;     // Camera parameters
+  time_delay_t *time_delay; // Time delay
 
   timestamp_t ts;
   int cam_idx;
@@ -2523,7 +2499,7 @@ void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
                                pose_t *pose,
                                extrinsic_t *imu_ext,
                                extrinsic_t *cam_ext,
-                               camera_params_t *cam_params,
+                               camera_t *cam_params,
                                time_delay_t *time_delay,
                                const int cam_idx,
                                const int tag_id,
@@ -3020,12 +2996,11 @@ sim_camera_data_t *sim_camerea_data_malloc(void);
 void sim_camera_data_free(sim_camera_data_t *cam_data);
 sim_camera_data_t *sim_camera_data_load(const char *dir_path);
 
-sim_camera_data_t *
-sim_camera_circle_trajectory(const sim_circle_t *conf,
-                             const real_t T_BC[4 * 4],
-                             const camera_params_t *cam_params,
-                             const real_t *features,
-                             const int num_features);
+sim_camera_data_t *sim_camera_circle_trajectory(const sim_circle_t *conf,
+                                                const real_t T_BC[4 * 4],
+                                                const camera_t *cam_params,
+                                                const real_t *features,
+                                                const int num_features);
 
 /////////////////////////
 // SIM CAMERA IMU DATA //
@@ -3041,8 +3016,8 @@ typedef struct sim_circle_camera_imu_t {
   real_t feature_data[3 * 1000];
   int num_features;
 
-  camera_params_t cam0_params;
-  camera_params_t cam1_params;
+  camera_t cam0_params;
+  camera_t cam1_params;
   real_t cam0_ext[7];
   real_t cam1_ext[7];
   real_t imu0_ext[7];

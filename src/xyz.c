@@ -10074,106 +10074,19 @@ void fiducial_print(const char *prefix, const fiducial_t *fiducial) {
   fiducial_fprint(prefix, fiducial, stdout);
 }
 
-// /**
-//  * Malloc fiducial buffer.
-//  */
-// fiducial_buffer_t *fiducial_buffer_malloc(void) {
-//   fiducial_buffer_t *buf = malloc(sizeof(fiducial_buffer_t) * 1);
-//   buf->data = calloc(10, sizeof(fiducial_event_t *));
-//   buf->size = 0;
-//   buf->capacity = 10;
-//   return buf;
-// }
-//
-// /**
-//  * Clear fiducial buffer.
-//  */
-// void fiducial_buffer_clear(fiducial_buffer_t *buf) {
-//   for (int i = 0; i < buf->size; i++) {
-//     free(buf->data[i]->tag_ids);
-//     free(buf->data[i]->corner_indices);
-//     free(buf->data[i]->object_points);
-//     free(buf->data[i]->keypoints);
-//     free(buf->data[i]);
-//     buf->data[i] = NULL;
-//   }
-//   buf->size = 0;
-// }
-//
-// /**
-//  * Free fiducial buffer.
-//  */
-// void fiducial_buffer_free(fiducial_buffer_t *buf) {
-//   fiducial_buffer_clear(buf);
-//   free(buf->data);
-//   free(buf);
-// }
-//
-// /**
-//  * Obtain total number of corners in fiducial buffer.
-//  */
-// int fiducial_buffer_total_corners(const fiducial_buffer_t *buf) {
-//   int total_corners = 0;
-//   for (int i = 0; i < buf->size; i++) {
-//     total_corners += buf->data[i]->num_corners;
-//   }
-//   return total_corners;
-// }
-//
-// /**
-//  * Add fiducial data to buffer.
-//  */
-// void fiducial_buffer_add(fiducial_buffer_t *buf,
-//                          const timestamp_t ts,
-//                          const int cam_idx,
-//                          const int num_corners,
-//                          const int *tag_ids,
-//                          const int *corner_indices,
-//                          const real_t *object_points,
-//                          const real_t *keypoints) {
-//   // Pre-check
-//   if (buf->size == 10) {
-//     FATAL("Fiducial buffer is full!\n");
-//   }
-//
-//   // Add to buffer
-//   int idx = buf->size;
-//
-//   buf->data[idx] = malloc(sizeof(fiducial_event_t) * 1);
-//   buf->data[idx]->ts = ts;
-//   buf->data[idx]->cam_idx = cam_idx;
-//   buf->data[idx]->num_corners = num_corners;
-//
-//   buf->data[idx]->tag_ids = calloc(num_corners, sizeof(int));
-//   buf->data[idx]->corner_indices = calloc(num_corners, sizeof(int));
-//   buf->data[idx]->object_points = calloc(num_corners * 3, sizeof(real_t));
-//   buf->data[idx]->keypoints = calloc(num_corners * 2, sizeof(real_t));
-//   for (int i = 0; i < num_corners; i++) {
-//     buf->data[idx]->tag_ids[i] = tag_ids[i];
-//     buf->data[idx]->corner_indices[i] = corner_indices[i];
-//     buf->data[idx]->object_points[i * 3 + 0] = object_points[i * 3 + 0];
-//     buf->data[idx]->object_points[i * 3 + 1] = object_points[i * 3 + 1];
-//     buf->data[idx]->object_points[i * 3 + 2] = object_points[i * 3 + 2];
-//     buf->data[idx]->keypoints[i * 2 + 0] = keypoints[i * 2 + 0];
-//     buf->data[idx]->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
-//   }
-//
-//   buf->size++;
-// }
-
-///////////////////////
-// CAMERA-PARAMETERS //
-///////////////////////
+////////////
+// CAMERA //
+////////////
 
 /**
  * Setup camera parameters
  */
-void camera_params_setup(camera_params_t *camera,
-                         const int cam_idx,
-                         const int cam_res[2],
-                         const char *proj_model,
-                         const char *dist_model,
-                         const real_t *data) {
+void camera_setup(camera_t *camera,
+                  const int cam_idx,
+                  const int cam_res[2],
+                  const char *proj_model,
+                  const char *dist_model,
+                  const real_t *data) {
   assert(camera != NULL);
   assert(cam_res != NULL);
   assert(proj_model != NULL);
@@ -10215,7 +10128,7 @@ void camera_params_setup(camera_params_t *camera,
 /**
  * Copy camera parameters.
  */
-void camera_params_copy(const camera_params_t *src, camera_params_t *dst) {
+void camera_copy(const camera_t *src, camera_t *dst) {
   dst->marginalize = src->marginalize;
   dst->fix = src->fix;
 
@@ -10241,7 +10154,7 @@ void camera_params_copy(const camera_params_t *src, camera_params_t *dst) {
 /**
  * Print camera parameters
  */
-void camera_params_fprint(const camera_params_t *cam, FILE *f) {
+void camera_fprint(const camera_t *cam, FILE *f) {
   assert(cam != NULL);
 
   fprintf(f, "cam%d:\n", cam->cam_idx);
@@ -10265,17 +10178,15 @@ void camera_params_fprint(const camera_params_t *cam, FILE *f) {
 /**
  * Print camera parameters
  */
-void camera_params_print(const camera_params_t *cam) {
+void camera_print(const camera_t *cam) {
   assert(cam != NULL);
-  camera_params_fprint(cam, stdout);
+  camera_fprint(cam, stdout);
 }
 
 /**
  * Project 3D point to image point.
  */
-void camera_project(const camera_params_t *camera,
-                    const real_t p_C[3],
-                    real_t z[2]) {
+void camera_project(const camera_t *camera, const real_t p_C[3], real_t z[2]) {
   assert(camera != NULL);
   assert(camera->proj_func != NULL);
   assert(p_C != NULL);
@@ -10286,7 +10197,7 @@ void camera_project(const camera_params_t *camera,
 /**
  * Back project image point to bearing vector.
  */
-void camera_back_project(const camera_params_t *camera,
+void camera_back_project(const camera_t *camera,
                          const real_t z[2],
                          real_t bearing[3]) {
   assert(camera != NULL);
@@ -10298,7 +10209,7 @@ void camera_back_project(const camera_params_t *camera,
 /**
  * Undistort image points.
  */
-void camera_undistort_points(const camera_params_t *camera,
+void camera_undistort_points(const camera_t *camera,
                              const real_t *kps,
                              const int num_points,
                              real_t *kps_und) {
@@ -10320,7 +10231,7 @@ void camera_undistort_points(const camera_params_t *camera,
  * because the initialization step uses DLT to estimate the homography between
  * camera and planar object, then the relative pose between them is recovered.
  */
-int solvepnp_camera(const camera_params_t *cam_params,
+int solvepnp_camera(const camera_t *cam_params,
                     const real_t *img_pts,
                     const real_t *obj_pts,
                     const int N,
@@ -10345,8 +10256,8 @@ int solvepnp_camera(const camera_params_t *cam_params,
 /**
  * Triangulate features in batch.
  */
-void triangulate_batch(const camera_params_t *cam_i,
-                       const camera_params_t *cam_j,
+void triangulate_batch(const camera_t *cam_i,
+                       const camera_t *cam_j,
                        const real_t T_CiCj[4 * 4],
                        const real_t *kps_i,
                        const real_t *kps_j,
@@ -10741,7 +10652,7 @@ void feature_print(const feature_t *f) {
 //  */
 // void features_add_idfs(features_t *features,
 //                        const size_t *feature_ids,
-//                        const camera_params_t *cam_params,
+//                        const camera_t *cam_params,
 //                        const real_t T_WC[4 * 4],
 //                        const real_t *keypoints,
 //                        const size_t num_keypoints) {
@@ -11221,7 +11132,7 @@ void param_index_add_joint(rbt_t *param_index, joint_t *p, int *c) {
 }
 
 /** Add camera parameter **/
-void param_index_add_camera(rbt_t *param_index, camera_params_t *p, int *c) {
+void param_index_add_camera(rbt_t *param_index, camera_t *p, int *c) {
   void *data = p->data;
   int fix = p->fix || p->marginalize;
   param_index_add(param_index, CAMERA_PARAM, fix, data, c);
@@ -11499,7 +11410,7 @@ int pose_factor_eval(void *factor_ptr) {
 void ba_factor_setup(ba_factor_t *factor,
                      pose_t *pose,
                      feature_t *feature,
-                     camera_params_t *camera,
+                     camera_t *camera,
                      const real_t z[2],
                      const real_t var[2]) {
   assert(factor != NULL);
@@ -11722,7 +11633,7 @@ void camera_factor_setup(camera_factor_t *factor,
                          pose_t *pose,
                          extrinsic_t *extrinsic,
                          feature_t *feature,
-                         camera_params_t *camera,
+                         camera_t *camera,
                          const real_t z[2],
                          const real_t var[2]) {
   assert(factor != NULL);
@@ -13708,7 +13619,7 @@ error:
 void calib_camera_factor_setup(calib_camera_factor_t *factor,
                                pose_t *pose,
                                extrinsic_t *cam_ext,
-                               camera_params_t *cam_params,
+                               camera_t *cam_params,
                                const int cam_idx,
                                const int tag_id,
                                const int corner_idx,
@@ -13933,7 +13844,7 @@ void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
                                pose_t *imu_pose,
                                extrinsic_t *imu_ext,
                                extrinsic_t *cam_ext,
-                               camera_params_t *cam_params,
+                               camera_t *cam_params,
                                time_delay_t *time_delay,
                                const int cam_idx,
                                const int tag_id,
@@ -14506,7 +14417,7 @@ MARG_TRACK_FN(marg_track_feature, r_features, m_features, feature_t)
 MARG_TRACK_FN(marg_track_fiducial, r_fiducials, m_fiducials, fiducial_t)
 MARG_TRACK_FN(marg_track_extrinsic, r_extrinsics, m_extrinsics, extrinsic_t)
 MARG_TRACK_FN(marg_track_joint, r_joints, m_joints, joint_t)
-MARG_TRACK_FN(marg_track_camera, r_cam_params, m_cam_params, camera_params_t)
+MARG_TRACK_FN(marg_track_camera, r_cam_params, m_cam_params, camera_t)
 MARG_TRACK_FN(marg_track_time_delay, r_time_delays, m_time_delays, time_delay_t)
 
 static void marg_track_factor(marg_factor_t *marg,
@@ -14541,7 +14452,7 @@ static void marg_track_factor(marg_factor_t *marg,
       marg_track_joint(marg, (joint_t *) param);
       break;
     case CAMERA_PARAM:
-      marg_track_camera(marg, (camera_params_t *) param);
+      marg_track_camera(marg, (camera_t *) param);
       break;
     case TIME_DELAY_PARAM:
       marg_track_time_delay(marg, (time_delay_t *) param);
@@ -14725,7 +14636,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_INDEX(marg->m_joints, JOINT_PARAM, joint_t, pi, H_idx, m, gm, nm);
   MARG_INDEX(marg->m_extrinsics, EXTRINSIC_PARAM, extrinsic_t, pi, H_idx, m, gm, nm);
   MARG_INDEX(marg->m_fiducials, FIDUCIAL_PARAM, fiducial_t, pi, H_idx, m, gm, nm);
-  MARG_INDEX(marg->m_cam_params, CAMERA_PARAM, camera_params_t, pi, H_idx, m, gm, nm);
+  MARG_INDEX(marg->m_cam_params, CAMERA_PARAM, camera_t, pi, H_idx, m, gm, nm);
   MARG_INDEX(marg->m_time_delays, TIME_DELAY_PARAM, time_delay_t, pi, H_idx, m, gm, nm);
   // -- Column indices for parameter blocks to remain
   MARG_INDEX(marg->r_positions, POSITION_PARAM, pos_t, pi, H_idx, r, gr, nr);
@@ -14737,7 +14648,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_INDEX(marg->r_joints, JOINT_PARAM, joint_t, pi, H_idx, r, gr, nr);
   MARG_INDEX(marg->r_extrinsics, EXTRINSIC_PARAM, extrinsic_t, pi, H_idx, r, gr, nr);
   MARG_INDEX(marg->r_fiducials, FIDUCIAL_PARAM, fiducial_t, pi, H_idx, r, gr, nr);
-  MARG_INDEX(marg->r_cam_params, CAMERA_PARAM, camera_params_t, pi, H_idx, r, gr, nr);
+  MARG_INDEX(marg->r_cam_params, CAMERA_PARAM, camera_t, pi, H_idx, r, gr, nr);
   MARG_INDEX(marg->r_time_delays, TIME_DELAY_PARAM, time_delay_t, pi, H_idx, r, gr, nr);
   // clang-format on
 
@@ -14763,7 +14674,7 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_PARAMS(marg, marg->r_joints, JOINT_PARAM, joint_t, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_extrinsics, EXTRINSIC_PARAM, extrinsic_t, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_fiducials, FIDUCIAL_PARAM, fiducial_t, param_idx, x0_idx);
-  MARG_PARAMS(marg, marg->r_cam_params, CAMERA_PARAM, camera_params_t, param_idx, x0_idx);
+  MARG_PARAMS(marg, marg->r_cam_params, CAMERA_PARAM, camera_t, param_idx, x0_idx);
   MARG_PARAMS(marg, marg->r_time_delays, TIME_DELAY_PARAM, time_delay_t, param_idx, x0_idx);
   // clang-format on
 
@@ -17028,12 +16939,11 @@ sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
 /**
  * Simulate camera going round in a circle.
  */
-sim_camera_data_t *
-sim_camera_circle_trajectory(const sim_circle_t *conf,
-                             const real_t T_BC[4 * 4],
-                             const camera_params_t *cam_params,
-                             const real_t *features,
-                             const int num_features) {
+sim_camera_data_t *sim_camera_circle_trajectory(const sim_circle_t *conf,
+                                                const real_t T_BC[4 * 4],
+                                                const camera_t *cam_params,
+                                                const real_t *features,
+                                                const int num_features) {
   // Settings
   const real_t cam_rate = conf->cam_rate;
   const real_t circle_r = conf->circle_r;
@@ -17147,10 +17057,10 @@ sim_circle_camera_imu_t *sim_circle_camera_imu(void) {
   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
   const char *pmodel = "pinhole";
   const char *dmodel = "radtan4";
-  camera_params_t *cam0_params = &sim_data->cam0_params;
-  camera_params_t *cam1_params = &sim_data->cam1_params;
-  camera_params_setup(cam0_params, 0, res, pmodel, dmodel, cam_vec);
-  camera_params_setup(cam1_params, 1, res, pmodel, dmodel, cam_vec);
+  camera_t *cam0_params = &sim_data->cam0_params;
+  camera_t *cam1_params = &sim_data->cam1_params;
+  camera_setup(cam0_params, 0, res, pmodel, dmodel, cam_vec);
+  camera_setup(cam1_params, 1, res, pmodel, dmodel, cam_vec);
 
   // IMU-Camera0 extrinsic
   const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};

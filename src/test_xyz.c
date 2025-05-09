@@ -4307,13 +4307,13 @@ int test_feature(void) {
 //   extrinsic_setup(&cam_ext, ext_data);
 
 //   // Camera parameters
-//   camera_params_t cam;
+//   camera_t cam;
 //   const int cam_idx = 0;
 //   const int cam_res[2] = {640, 480};
 //   const char *proj_model = "pinhole";
 //   const char *dist_model = "radtan4";
 //   const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-//   camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+//   camera_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
 //   // Setup feature and image point
 //   TF(pose_data, T_WB);
@@ -4384,15 +4384,15 @@ int test_joint(void) {
   return 0;
 }
 
-int test_camera_params(void) {
-  camera_params_t camera;
+int test_camera(void) {
+  camera_t camera;
   const int cam_idx = 0;
   const int cam_res[2] = {752, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   const real_t data[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_setup(&camera, cam_idx, cam_res, proj_model, dist_model, data);
-  // camera_params_print(&camera);
+  camera_setup(&camera, cam_idx, cam_res, proj_model, dist_model, data);
+  // camera_print(&camera);
 
   return 0;
 }
@@ -4411,10 +4411,10 @@ int test_triangulate_batch(void) {
   const real_t cy = image_height / 2.0;
   const real_t proj_params[4] = {fx, fy, cx, cy};
   const real_t data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
-  camera_params_t cam_i;
-  camera_params_t cam_j;
-  camera_params_setup(&cam_i, 0, cam_res, pmodel, dmodel, data);
-  camera_params_setup(&cam_j, 1, cam_res, pmodel, dmodel, data);
+  camera_t cam_i;
+  camera_t cam_j;
+  camera_setup(&cam_i, 0, cam_res, pmodel, dmodel, data);
+  camera_setup(&cam_j, 1, cam_res, pmodel, dmodel, data);
 
   // Setup camera pose T_WC0
   const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
@@ -4544,8 +4544,8 @@ int test_ba_factor(void) {
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   const real_t cam_data[8] = {320, 240, 320, 240, 0.03, 0.01, 0.001, 0.001};
-  camera_params_t cam;
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+  camera_t cam;
+  camera_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   // Project point from world to image plane
   real_t T_WC[4 * 4] = {0};
@@ -4592,13 +4592,13 @@ int test_camera_factor(void) {
   feature_init(&feature, 0, p_W);
 
   // Camera parameters
-  camera_params_t cam;
+  camera_t cam;
   const int cam_idx = 0;
   const int cam_res[2] = {640, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   const real_t cam_data[8] = {320, 240, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+  camera_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   // Project point from world to image plane
   real_t z[2];
@@ -5134,7 +5134,7 @@ typedef struct test_calib_camera_data_t {
   pose_t pose;         // T_WB
   pose_t rel_pose;     // T_BF
   extrinsic_t cam_ext; // T_BCi
-  camera_params_t cam_params;
+  camera_t camera;
 
   int cam_idx;
   int tag_id;
@@ -5186,7 +5186,7 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   const real_t cam_data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  camera_params_setup(&data->cam_params,
+  camera_setup(&data->camera,
                       data->cam_idx,
                       cam_res,
                       proj_model,
@@ -5223,7 +5223,7 @@ int test_calib_camera_factor(void) {
   calib_camera_factor_setup(&factor,
                             &calib_data.rel_pose,
                             &calib_data.cam_ext,
-                            &calib_data.cam_params,
+                            &calib_data.camera,
                             calib_data.cam_idx,
                             calib_data.tag_id,
                             calib_data.corner_idx,
@@ -5254,7 +5254,7 @@ typedef struct test_calib_imucam_data_t {
   pose_t imu_pose;     // T_WB
   extrinsic_t imu_ext; // T_SC0
   extrinsic_t cam_ext; // T_C0Ci
-  camera_params_t cam_params;
+  camera_t camera;
   time_delay_t time_delay;
 
   int cam_idx;
@@ -5305,7 +5305,7 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   const real_t cam_data[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
-  camera_params_setup(&data->cam_params,
+  camera_setup(&data->camera,
                       data->cam_idx,
                       cam_res,
                       proj_model,
@@ -5350,7 +5350,7 @@ int test_calib_imucam_factor(void) {
                             &calib_data.imu_pose,
                             &calib_data.imu_ext,
                             &calib_data.cam_ext,
-                            &calib_data.cam_params,
+                            &calib_data.camera,
                             &calib_data.time_delay,
                             calib_data.cam_idx,
                             calib_data.tag_id,
@@ -5388,13 +5388,13 @@ int test_marg_factor(void) {
   cam_ext.fix = 1;
 
   // Camera parameters
-  camera_params_t cam;
+  camera_t cam;
   const int cam_idx = 0;
   const int cam_res[2] = {640, 480};
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   const real_t cam_data[8] = {320, 240, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
+  camera_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
 
   // Setup features and poses
   int num_poses = 5;
@@ -6036,8 +6036,8 @@ int test_sim_camera_circle_trajectory(void) {
   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
   const char *pmodel = "pinhole";
   const char *dmodel = "radtan4";
-  camera_params_t cam_params;
-  camera_params_setup(&cam_params, 0, cam_res, pmodel, dmodel, cam_vec);
+  camera_t camera;
+  camera_setup(&camera, 0, cam_res, pmodel, dmodel, cam_vec);
 
   // Camera Extrinsic T_BC0
   const real_t cam_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
@@ -6050,7 +6050,7 @@ int test_sim_camera_circle_trajectory(void) {
   sim_circle_defaults(&conf);
   sim_camera_data_t *cam_data = sim_camera_circle_trajectory(&conf,
                                                              T_BC0,
-                                                             &cam_params,
+                                                             &camera,
                                                              features,
                                                              num_features);
   // ASSERT
@@ -6384,7 +6384,7 @@ void test_suite(void) {
   // MU_ADD_TEST(test_features);
   MU_ADD_TEST(test_time_delay);
   MU_ADD_TEST(test_joint);
-  MU_ADD_TEST(test_camera_params);
+  MU_ADD_TEST(test_camera);
   MU_ADD_TEST(test_triangulate_batch);
   MU_ADD_TEST(test_pose_factor);
   MU_ADD_TEST(test_ba_factor);

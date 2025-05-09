@@ -116,7 +116,7 @@ typedef struct cam_view_t {
   pose_t pose;
   ba_factor_t factors[1000];
   int num_factors;
-  camera_params_t *cam_params;
+  camera_t *camera;
 } cam_view_t;
 
 int test_solver_eval(void) {
@@ -125,13 +125,13 @@ int test_solver_eval(void) {
   // sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
 
   // // Camera parameters
-  // camera_params_t cam;
+  // camera_t cam;
   // const int cam_idx = 0;
   // const int cam_res[2] = {640, 480};
   // const char *proj_model = "pinhole";
   // const char *dist_model = "radtan4";
   // const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  // camera_params_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
+  // camera_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
   //
   // // Setup features
   // // -- Load features csv
@@ -209,8 +209,8 @@ int test_solver_eval(void) {
 //   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
 //   const char *pmodel = "pinhole";
 //   const char *dmodel = "radtan4";
-//   camera_params_t cam0_params;
-//   camera_params_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
+//   camera_t cam0_params;
+//   camera_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
 //
 //   // IMU-Camera0 extrinsic
 //   const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
@@ -398,8 +398,8 @@ int test_solver_eval(void) {
 //   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
 //   const char *pmodel = "pinhole";
 //   const char *dmodel = "radtan4";
-//   camera_params_t cam0_params;
-//   camera_params_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
+//   camera_t cam0_params;
+//   camera_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
 
 //   // IMU configuration
 //   imu_params_t imu_params;
