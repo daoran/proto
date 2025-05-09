@@ -228,6 +228,7 @@ int **load_iarrays(const char *csv_path, int *num_arrays);
 double **load_darrays(const char *csv_path, int *num_arrays);
 
 int *int_malloc(const int val);
+int64_t *int64_malloc(const int64_t val);
 float *float_malloc(const float val);
 double *double_malloc(const double val);
 double *vector_malloc(const double *vec, const double N);
@@ -374,6 +375,10 @@ int list_remove_destroy(list_t *list,
 
 typedef int (*cmp_t)(const void *, const void *);
 int default_cmp(const void *x, const void *y);
+int int_cmp(const void *x, const void *y);
+int float_cmp(const void *x, const void *y);
+int double_cmp(const void *x, const void *y);
+int string_cmp(const void *x, const void *y);
 
 typedef struct rbt_node_t rbt_node_t;
 struct rbt_node_t {
@@ -423,15 +428,15 @@ rbt_node_t *rbt_node_insert(rbt_node_t *n, void *key, void *value, cmp_t cmp);
 rbt_node_t *rbt_node_delete_min(rbt_node_t *n);
 rbt_node_t *rbt_node_delete_max(rbt_node_t *n);
 rbt_node_t *rbt_node_delete(rbt_node_t *n, void *key, cmp_t cmp_func);
-void *rbt_node_search(rbt_node_t *rbt, void *key, cmp_t cmp_func);
-bool rbt_node_contains(rbt_node_t *rbt, void *key, cmp_t cmp_func);
+void *rbt_node_search(rbt_node_t *rbt, const void *key, cmp_t cmp_func);
+bool rbt_node_contains(rbt_node_t *rbt, const void *key, cmp_t cmp_func);
 
 rbt_t *rbt_malloc(cmp_t cmp_func);
 void rbt_free(rbt_t *rbt);
 void rbt_insert(rbt_t *rbt, void *key, void *value);
 void rbt_delete(rbt_t *rbt, void *key);
-void *rbt_search(rbt_t *rbt, void *key);
-bool rbt_contains(rbt_t *rbt, void *key);
+void *rbt_search(rbt_t *rbt, const void *key);
+bool rbt_contains(rbt_t *rbt, const void *key);
 rbt_node_t *rbt_min(const rbt_t *rbt);
 rbt_node_t *rbt_max(const rbt_t *rbt);
 size_t rbt_height(const rbt_t *rbt);
@@ -2383,17 +2388,12 @@ int joint_factor_equals(const joint_factor_t *j0, const joint_factor_t *j1);
 //////////////
 
 typedef struct {
-  timestamp_t key;
-  real_t *value;
-} camchain_pose_hash_t;
-
-typedef struct {
   int analyzed;
   int num_cams;
 
   int **adj_list;
   real_t **adj_exts;
-  // camchain_pose_hash_t **cam_poses;
+  rbt_t **cam_poses;
 } camchain_t;
 
 camchain_t *camchain_malloc(const int num_cams);

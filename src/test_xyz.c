@@ -10,27 +10,6 @@
 #define KITTI_TEST_SEQ_NAME "2011_09_26_drive_0001_sync"
 #define KITTI_TEST_SEQ KITTI_TEST_DATA "/" KITTI_TEST_SEQ_NAME
 
-/******************************************************************************
- * TEST UTILS
- *****************************************************************************/
-
-static int int_cmp(const void *x, const void *y) {
-  if (*(int *) x == *(int *) y) {
-    return 0;
-  }
-  return (*(int *) x < *(int *) y) ? -1 : 1;
-}
-
-static int float_cmp(const void *x, const void *y) {
-  if (fabs(*(float *) x - *(float *) y) < 1e-18) {
-    return 0;
-  }
-  return (*(float *) x < *(float *) y) ? -1 : 1;
-}
-
-static int string_cmp(const void *x, const void *y) {
-  return strcmp((char *) x, (char *) y);
-}
 
 /******************************************************************************
  * MACROS
@@ -5213,6 +5192,61 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   aprilgrid_free(grid);
 }
 
+int test_camchain(void) {
+  // Form camera poses
+  int num_cams = 5;
+  real_t T_C0F[4 * 4] = {0};
+  real_t T_C1F[4 * 4] = {0};
+  real_t T_C2F[4 * 4] = {0};
+  real_t T_C3F[4 * 4] = {0};
+  real_t T_C4F[4 * 4] = {0};
+  real_t *poses[5] = {T_C0F, T_C1F, T_C2F, T_C3F, T_C4F};
+
+  for (int k = 0; k < num_cams; k++) {
+    const real_t ypr[3] = {randf(-90, 90), randf(-90, 90), randf(-90, 90)};
+    const real_t r[3] = {randf(-1, 1), randf(-1, 1), randf(-1, 1)};
+    tf_er(ypr, r, poses[k]);
+  }
+
+  TF_INV(T_C0F, T_FC0);
+  TF_INV(T_C1F, T_FC1);
+  TF_INV(T_C2F, T_FC2);
+  TF_INV(T_C3F, T_FC3);
+  TF_INV(T_C4F, T_FC4);
+  real_t *poses_inv[5] = {T_FC0, T_FC1, T_FC2, T_FC3, T_FC4};
+
+  // Camchain
+  camchain_t *camchain = camchain_malloc(num_cams);
+  camchain_add_pose(camchain, 0, 0, T_C0F);
+  camchain_add_pose(camchain, 1, 0, T_C1F);
+  camchain_add_pose(camchain, 2, 0, T_C2F);
+  camchain_add_pose(camchain, 3, 0, T_C3F);
+  camchain_adjacency(camchain);
+  // camchain_adjacency_print(camchain);
+
+  for (int cam_i = 1; cam_i < num_cams; cam_i++) {
+    for (int cam_j = 1; cam_j < num_cams; cam_j++) {
+      // Get ground-truth
+      TF_CHAIN(T_CiCj_gnd, 2, poses[cam_i], poses_inv[cam_j]);
+
+      // Get camchain result
+      real_t T_CiCj_est[4 * 4] = {0};
+      int status = camchain_find(camchain, cam_i, cam_j, T_CiCj_est);
+
+      if (cam_i != 4 && cam_j != 4) { // Camera 4 was not added
+        MU_ASSERT(status == 0);
+      } else {
+        MU_ASSERT(status == -1);
+      }
+    }
+  }
+
+  // Clean up
+  camchain_free(camchain);
+
+  return 0;
+}
+
 int test_calib_camera_factor(void) {
   // Setup
   test_calib_camera_data_t calib_data;
@@ -6398,6 +6432,7 @@ void test_suite(void) {
   MU_ADD_TEST(test_imu_factor_form_F_matrix);
   MU_ADD_TEST(test_imu_factor);
   MU_ADD_TEST(test_joint_factor);
+  MU_ADD_TEST(test_camchain);
   MU_ADD_TEST(test_calib_camera_factor);
   MU_ADD_TEST(test_calib_imucam_factor);
   MU_ADD_TEST(test_marg_factor);

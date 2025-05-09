@@ -330,6 +330,15 @@ int *int_malloc(const int val) {
 }
 
 /**
+ * Allocate heap memory for integer `val`.
+ */
+int64_t *int64_malloc(const int64_t val) {
+  int64_t *i = malloc(sizeof(int64_t));
+  *i = val;
+  return i;
+}
+
+/**
  * Allocate heap memory for float `val`.
  */
 float *float_malloc(const float val) {
@@ -1395,6 +1404,37 @@ int default_cmp(const void *x, const void *y) {
   return 0;
 }
 
+int int_cmp(const void *x, const void *y) {
+  if (*(int *) x < *(int *) y) {
+    return -1;
+  } else if (*(int *) x > *(int *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+int float_cmp(const void *x, const void *y) {
+  if (*(float *) x < *(float *) y) {
+    return -1;
+  } else if (*(float *) x > *(float *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+int double_cmp(const void *x, const void *y) {
+  if (*(double *) x < *(double *) y) {
+    return -1;
+  } else if (*(double *) x > *(double *) y) {
+    return 1;
+  }
+  return 0;
+}
+
+int string_cmp(const void *x, const void *y) {
+  return strcmp((char *) x, (char *) y);
+}
+
 /**
  * The following Red-Black tree implementation is based on Robert Sedgewick's
  * Left Leaninng Red-Black tree (LLRBT), where we have implemented the 2-3
@@ -1767,7 +1807,7 @@ rbt_node_t *rbt_node_delete(rbt_node_t *n, void *key, cmp_t cmp_func) {
   return rbt_node_balance(n);
 }
 
-void *rbt_node_search(rbt_node_t *n, void *key, cmp_t cmp_func) {
+void *rbt_node_search(rbt_node_t *n, const void *key, cmp_t cmp_func) {
   while (n != NULL) {
     const int cmp = cmp_func(key, n->key);
     if (cmp < 0) {
@@ -1782,7 +1822,7 @@ void *rbt_node_search(rbt_node_t *n, void *key, cmp_t cmp_func) {
   return NULL;
 }
 
-bool rbt_node_contains(rbt_node_t *n, void *key, cmp_t cmp_func) {
+bool rbt_node_contains(rbt_node_t *n, const void *key, cmp_t cmp_func) {
   while (n != NULL) {
     const int cmp = cmp_func(key, n->key);
     if (cmp < 0) {
@@ -1819,12 +1859,12 @@ void rbt_delete(rbt_t *rbt, void *key) {
   rbt->root = rbt_node_delete(rbt->root, key, rbt->cmp);
 }
 
-void *rbt_search(rbt_t *rbt, void *key) {
+void *rbt_search(rbt_t *rbt, const void *key) {
   assert(rbt);
   return rbt_node_search(rbt->root, key, rbt->cmp);
 }
 
-bool rbt_contains(rbt_t *rbt, void *key) {
+bool rbt_contains(rbt_t *rbt, const void *key) {
   assert(rbt);
   return rbt_node_contains(rbt->root, key, rbt->cmp);
 }
@@ -13434,143 +13474,167 @@ error:
 // CAMCHAIN //
 //////////////
 
-// /**
-//  * Allocate memory for the camchain initialzer.
-//  */
-// camchain_t *camchain_malloc(const int num_cams) {
-//   camchain_t *cc = malloc(sizeof(camchain_t) * 1);
-//
-//   // Flags
-//   cc->analyzed = 0;
-//   cc->num_cams = num_cams;
-//
-//   // Allocate memory for the adjacency list and extrinsics
-//   cc->adj_list = calloc(cc->num_cams, sizeof(int *));
-//   cc->adj_exts = calloc(cc->num_cams, sizeof(real_t *));
-//   for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
-//     cc->adj_list[cam_idx] = calloc(cc->num_cams, sizeof(int));
-//     cc->adj_exts[cam_idx] = calloc(cc->num_cams * (4 * 4), sizeof(real_t));
-//   }
-//
-//   // Allocate memory for camera poses
-//   cc->cam_poses = calloc(num_cams, sizeof(camchain_pose_hash_t *));
-//   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
-//     cc->cam_poses[cam_idx] = NULL;
-//     hmdefault(cc->cam_poses[cam_idx], NULL);
-//   }
-//
-//   return cc;
-// }
-//
-// /**
-//  * Free camchain initialzer.
-//  */
-// void camchain_free(camchain_t *cc) {
-//   // Adjacency list and extrinsic
-//   for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
-//     free(cc->adj_list[cam_idx]);
-//     free(cc->adj_exts[cam_idx]);
-//   }
-//   free(cc->adj_list);
-//   free(cc->adj_exts);
-//
-//   // Camera poses
-//   for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
-//     for (int k = 0; k < hmlen(cc->cam_poses[cam_idx]); k++) {
-//       free(cc->cam_poses[cam_idx][k].value);
-//     }
-//     hmfree(cc->cam_poses[cam_idx]);
-//   }
-//   free(cc->cam_poses);
-//
-//   // Finish
-//   free(cc);
-// }
-//
-// /**
-//  * Add camera pose to camchain.
-//  */
-// void camchain_add_pose(camchain_t *cc,
-//                        const int cam_idx,
-//                        const timestamp_t ts,
-//                        const real_t T_CiF[4 * 4]) {
-//   real_t *tf = malloc(sizeof(real_t) * 4 * 4);
-//   mat_copy(T_CiF, 4, 4, tf);
-//   hmput(cc->cam_poses[cam_idx], ts, tf);
-// }
-//
-// /**
-//  * Form camchain adjacency list.
-//  */
-// void camchain_adjacency(camchain_t *cc) {
-//   // Iterate through camera i data
-//   for (int cam_i = 0; cam_i < cc->num_cams; cam_i++) {
-//     for (int k = 0; k < hmlen(cc->cam_poses[cam_i]); k++) {
-//       const timestamp_t ts_i = cc->cam_poses[cam_i][k].key;
-//       const real_t *T_CiF = hmgets(cc->cam_poses[cam_i], ts_i).value;
-//
-//       // Iterate through camera j data
-//       for (int cam_j = cam_i + 1; cam_j < cc->num_cams; cam_j++) {
-//         // Check if a link has already been discovered
-//         if (cc->adj_list[cam_i][cam_j] == 1) {
-//           continue;
-//         }
-//
-//         // Check if a link exists between camera i and j in the data
-//         const real_t *T_CjF = hmgets(cc->cam_poses[cam_j], ts_i).value;
-//         if (T_CjF == NULL) {
-//           continue;
-//         }
-//
-//         // TODO: Maybe move this outside this loop and collect
-//         // mutliple measurements and use the median to form T_CiCj and T_CjCi?
-//         // Form T_CiCj and T_CjCi
-//         TF_INV(T_CjF, T_FCj);
-//         TF_INV(T_CiF, T_FCi);
-//         TF_CHAIN(T_CiCj, 2, T_CiF, T_FCj);
-//         TF_CHAIN(T_CjCi, 2, T_CjF, T_FCi);
-//
-//         // Add link between camera i and j
-//         cc->adj_list[cam_i][cam_j] = 1;
-//         cc->adj_list[cam_j][cam_i] = 1;
-//         mat_copy(T_CiCj, 4, 4, &cc->adj_exts[cam_i][cam_j * (4 * 4)]);
-//         mat_copy(T_CjCi, 4, 4, &cc->adj_exts[cam_j][cam_i * (4 * 4)]);
-//       }
-//     }
-//   }
-//
-//   // Mark camchain as analyzed
-//   cc->analyzed = 1;
-// }
-//
-// /**
-//  * Print camchain adjacency matrix.
-//  */
-// void camchain_adjacency_print(const camchain_t *cc) {
-//   for (int i = 0; i < cc->num_cams; i++) {
-//     printf("%d: ", i);
-//     for (int j = 0; j < cc->num_cams; j++) {
-//       printf("%d ", cc->adj_list[i][j]);
-//     }
-//     printf("\n");
-//   }
-// }
+/**
+ * Allocate memory for the camchain initialzer.
+ */
+camchain_t *camchain_malloc(const int num_cams) {
+  camchain_t *cc = malloc(sizeof(camchain_t) * 1);
+
+  // Flags
+  cc->analyzed = 0;
+  cc->num_cams = num_cams;
+
+  // Allocate memory for the adjacency list and extrinsics
+  cc->adj_list = calloc(cc->num_cams, sizeof(int *));
+  cc->adj_exts = calloc(cc->num_cams, sizeof(real_t *));
+  for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
+    cc->adj_list[cam_idx] = calloc(cc->num_cams, sizeof(int));
+    cc->adj_exts[cam_idx] = calloc(cc->num_cams * (4 * 4), sizeof(real_t));
+  }
+
+  // Allocate memory for camera poses
+  cc->cam_poses = calloc(num_cams, sizeof(rbt_t *));
+  for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+    cc->cam_poses[cam_idx] = rbt_malloc(int_cmp);
+  }
+
+  return cc;
+}
 
 /**
- * The purpose of camchain initializer is to find the initial camera
- * to camera extrinsic of arbitrary cameras. So lets say you are calibrating a
- * N multi-camera rig observing the same calibration fiducial target (F). The
- * idea is as you add the relative pose between the i-th camera (Ci) and
- * fiducial target (F), the camchain initialzer will build an adjacency matrix
- * and form all possible camera-camera extrinsic combinations. This is useful
- * for multi-camera extrinsics where you need to initialize the
+ * Free camchain initialzer.
+ */
+void camchain_free(camchain_t *cc) {
+  // Adjacency list and extrinsic
+  for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
+    free(cc->adj_list[cam_idx]);
+    free(cc->adj_exts[cam_idx]);
+  }
+  free(cc->adj_list);
+  free(cc->adj_exts);
+
+  // Camera poses
+  for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
+    const size_t n = rbt_size(cc->cam_poses[cam_idx]);
+    if (n == 0) {
+      rbt_free(cc->cam_poses[cam_idx]);
+      continue;
+    }
+
+    arr_t *keys = arr_malloc(n);
+    arr_t *vals = arr_malloc(n);
+    rbt_keys_values(cc->cam_poses[cam_idx], keys, vals);
+    for (size_t i = 0; i < n; ++i) {
+      free(keys->data[i]);
+      free(vals->data[i]);
+    }
+    arr_free(keys);
+    arr_free(vals);
+    rbt_free(cc->cam_poses[cam_idx]);
+  }
+  free(cc->cam_poses);
+
+  // Finish
+  free(cc);
+}
+
+/**
+ * Add camera pose to camchain.
+ */
+void camchain_add_pose(camchain_t *cc,
+                       const int cam_idx,
+                       const timestamp_t ts,
+                       const real_t T_CiF[4 * 4]) {
+  void *key = int64_malloc(ts);
+  void *val = vector_malloc(T_CiF, 16);
+  rbt_insert(cc->cam_poses[cam_idx], key, val);
+}
+
+/**
+ * Form camchain adjacency list.
+ */
+void camchain_adjacency(camchain_t *cc) {
+  // Iterate through camera i data
+  for (int cam_i = 0; cam_i < cc->num_cams; ++cam_i) {
+    const size_t n = rbt_size(cc->cam_poses[cam_i]);
+    if (n == 0) {
+      continue;
+    }
+    arr_t *cam_i_ts = arr_malloc(n);
+    arr_t *cam_i_poses = arr_malloc(n);
+    rbt_keys_values(cc->cam_poses[cam_i], cam_i_ts, cam_i_poses);
+
+    for (size_t k = 0; k < n; ++k) {
+      const timestamp_t ts_i = *(timestamp_t *) cam_i_ts->data[k];
+      const real_t *T_CiF = cam_i_poses->data[k];
+
+      // Iterate through camera j data
+      for (int cam_j = cam_i + 1; cam_j < cc->num_cams; cam_j++) {
+        // Check if a link has already been discovered
+        if (cc->adj_list[cam_i][cam_j] == 1) {
+          continue;
+        }
+
+        // Check if a link exists between camera i and j in the data
+        if (rbt_contains(cc->cam_poses[cam_j], &ts_i) == false) {
+          continue;
+        }
+
+        // Form T_CiCj and T_CjCi
+        const real_t *T_CjF = rbt_search(cc->cam_poses[cam_j], &ts_i);
+        if (T_CjF == NULL) {
+          continue;
+        }
+        TF_INV(T_CjF, T_FCj);
+        TF_INV(T_CiF, T_FCi);
+        TF_CHAIN(T_CiCj, 2, T_CiF, T_FCj);
+        TF_CHAIN(T_CjCi, 2, T_CjF, T_FCi);
+
+        // Add link between camera i and j
+        // TODO: Maybe add to a list and then get the median
+        cc->adj_list[cam_i][cam_j] = 1;
+        cc->adj_list[cam_j][cam_i] = 1;
+        mat_copy(T_CiCj, 4, 4, &cc->adj_exts[cam_i][cam_j * (4 * 4)]);
+        mat_copy(T_CjCi, 4, 4, &cc->adj_exts[cam_j][cam_i * (4 * 4)]);
+      }
+    }
+
+    arr_free(cam_i_ts);
+    arr_free(cam_i_poses);
+  }
+
+  // Mark camchain as analyzed
+  cc->analyzed = 1;
+}
+
+/**
+ * Print camchain adjacency matrix.
+ */
+void camchain_adjacency_print(const camchain_t *cc) {
+  for (int i = 0; i < cc->num_cams; i++) {
+    printf("%d: ", i);
+    for (int j = 0; j < cc->num_cams; j++) {
+      printf("%d ", cc->adj_list[i][j]);
+    }
+    printf("\n");
+  }
+}
+
+/**
+ * The purpose of camchain initializer is to find the initial camera to camera
+ * extrinsic of arbitrary cameras. Lets suppose you are calibrating a
+ * multi-camera system with N cameras observing the same calibration fiducial
+ * target (F). The idea is as you add the relative pose between the i-th camera
+ * (Ci) and fiducial target (F), the camchain initialzer will build an adjacency
+ * matrix and form all possible camera-camera extrinsic combinations. This is
+ * useful for multi-camera extrinsics where you need to initialize the
  * camera-extrinsic parameter.
  *
  * Usage:
  *
  *   camchain_t *camchain = camchain_malloc(num_cams);
- *   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
- *     for (int ts_idx = 0; ts_idx < len(camera_poses); ts_idx++) {
+ *   for (int cam_idx = 0; cam_idx < num_cams; ++cam_idx) {
+ *     for (int ts_idx = 0; ts_idx < len(camera_poses); ++ts_idx) {
  *       timestamp_t ts = camera_timestamps[ts_idx];
  *       real_t *T_CiF = camera_poses[cam_idx][ts_idx];
  *       camchain_add_pose(camchain, cam_idx, ts, T_CiF);
@@ -13581,33 +13645,33 @@ error:
  *   camchain_find(camchain, cam_i, cam_j, T_CiCj);
  *
  */
-// int camchain_find(camchain_t *cc,
-//                   const int cam_i,
-//                   const int cam_j,
-//                   real_t T_CiCj[4 * 4]) {
-//   // Form adjacency
-//   if (cc->analyzed == 0) {
-//     camchain_adjacency(cc);
-//   }
-//
-//   // Straight forward case where extrinsic of itself is identity
-//   if (cam_i == cam_j) {
-//     if (hmlen(cc->cam_poses[cam_i])) {
-//       eye(T_CiCj, 4, 4);
-//       return 0;
-//     } else {
-//       return -1;
-//     }
-//   }
-//
-//   // Check if T_CiCj was formed before
-//   if (cc->adj_list[cam_i][cam_j] == 1) {
-//     mat_copy(&cc->adj_exts[cam_i][cam_j * (4 * 4)], 4, 4, T_CiCj);
-//     return 0;
-//   }
-//
-//   return -1;
-// }
+int camchain_find(camchain_t *cc,
+                  const int cam_i,
+                  const int cam_j,
+                  real_t T_CiCj[4 * 4]) {
+  // Form adjacency
+  if (cc->analyzed == 0) {
+    camchain_adjacency(cc);
+  }
+
+  // Straight forward case where extrinsic of itself is identity
+  if (cam_i == cam_j) {
+    if (rbt_size(cc->cam_poses[cam_i])) {
+      eye(T_CiCj, 4, 4);
+      return 0;
+    } else {
+      return -1;
+    }
+  }
+
+  // Check if T_CiCj was formed before
+  if (cc->adj_list[cam_i][cam_j] == 1) {
+    mat_copy(&cc->adj_exts[cam_i][cam_j * (4 * 4)], 4, 4, T_CiCj);
+    return 0;
+  }
+
+  return -1;
+}
 
 /////////////////////////
 // CALIB-CAMERA FACTOR //
