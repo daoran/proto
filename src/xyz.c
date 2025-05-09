@@ -13519,6 +13519,185 @@ error:
   return 0;
 }
 
+//////////////
+// CAMCHAIN //
+//////////////
+
+// /**
+//  * Allocate memory for the camchain initialzer.
+//  */
+// camchain_t *camchain_malloc(const int num_cams) {
+//   camchain_t *cc = malloc(sizeof(camchain_t) * 1);
+//
+//   // Flags
+//   cc->analyzed = 0;
+//   cc->num_cams = num_cams;
+//
+//   // Allocate memory for the adjacency list and extrinsics
+//   cc->adj_list = calloc(cc->num_cams, sizeof(int *));
+//   cc->adj_exts = calloc(cc->num_cams, sizeof(real_t *));
+//   for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
+//     cc->adj_list[cam_idx] = calloc(cc->num_cams, sizeof(int));
+//     cc->adj_exts[cam_idx] = calloc(cc->num_cams * (4 * 4), sizeof(real_t));
+//   }
+//
+//   // Allocate memory for camera poses
+//   cc->cam_poses = calloc(num_cams, sizeof(camchain_pose_hash_t *));
+//   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+//     cc->cam_poses[cam_idx] = NULL;
+//     hmdefault(cc->cam_poses[cam_idx], NULL);
+//   }
+//
+//   return cc;
+// }
+//
+// /**
+//  * Free camchain initialzer.
+//  */
+// void camchain_free(camchain_t *cc) {
+//   // Adjacency list and extrinsic
+//   for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
+//     free(cc->adj_list[cam_idx]);
+//     free(cc->adj_exts[cam_idx]);
+//   }
+//   free(cc->adj_list);
+//   free(cc->adj_exts);
+//
+//   // Camera poses
+//   for (int cam_idx = 0; cam_idx < cc->num_cams; cam_idx++) {
+//     for (int k = 0; k < hmlen(cc->cam_poses[cam_idx]); k++) {
+//       free(cc->cam_poses[cam_idx][k].value);
+//     }
+//     hmfree(cc->cam_poses[cam_idx]);
+//   }
+//   free(cc->cam_poses);
+//
+//   // Finish
+//   free(cc);
+// }
+//
+// /**
+//  * Add camera pose to camchain.
+//  */
+// void camchain_add_pose(camchain_t *cc,
+//                        const int cam_idx,
+//                        const timestamp_t ts,
+//                        const real_t T_CiF[4 * 4]) {
+//   real_t *tf = malloc(sizeof(real_t) * 4 * 4);
+//   mat_copy(T_CiF, 4, 4, tf);
+//   hmput(cc->cam_poses[cam_idx], ts, tf);
+// }
+//
+// /**
+//  * Form camchain adjacency list.
+//  */
+// void camchain_adjacency(camchain_t *cc) {
+//   // Iterate through camera i data
+//   for (int cam_i = 0; cam_i < cc->num_cams; cam_i++) {
+//     for (int k = 0; k < hmlen(cc->cam_poses[cam_i]); k++) {
+//       const timestamp_t ts_i = cc->cam_poses[cam_i][k].key;
+//       const real_t *T_CiF = hmgets(cc->cam_poses[cam_i], ts_i).value;
+//
+//       // Iterate through camera j data
+//       for (int cam_j = cam_i + 1; cam_j < cc->num_cams; cam_j++) {
+//         // Check if a link has already been discovered
+//         if (cc->adj_list[cam_i][cam_j] == 1) {
+//           continue;
+//         }
+//
+//         // Check if a link exists between camera i and j in the data
+//         const real_t *T_CjF = hmgets(cc->cam_poses[cam_j], ts_i).value;
+//         if (T_CjF == NULL) {
+//           continue;
+//         }
+//
+//         // TODO: Maybe move this outside this loop and collect
+//         // mutliple measurements and use the median to form T_CiCj and T_CjCi?
+//         // Form T_CiCj and T_CjCi
+//         TF_INV(T_CjF, T_FCj);
+//         TF_INV(T_CiF, T_FCi);
+//         TF_CHAIN(T_CiCj, 2, T_CiF, T_FCj);
+//         TF_CHAIN(T_CjCi, 2, T_CjF, T_FCi);
+//
+//         // Add link between camera i and j
+//         cc->adj_list[cam_i][cam_j] = 1;
+//         cc->adj_list[cam_j][cam_i] = 1;
+//         mat_copy(T_CiCj, 4, 4, &cc->adj_exts[cam_i][cam_j * (4 * 4)]);
+//         mat_copy(T_CjCi, 4, 4, &cc->adj_exts[cam_j][cam_i * (4 * 4)]);
+//       }
+//     }
+//   }
+//
+//   // Mark camchain as analyzed
+//   cc->analyzed = 1;
+// }
+//
+// /**
+//  * Print camchain adjacency matrix.
+//  */
+// void camchain_adjacency_print(const camchain_t *cc) {
+//   for (int i = 0; i < cc->num_cams; i++) {
+//     printf("%d: ", i);
+//     for (int j = 0; j < cc->num_cams; j++) {
+//       printf("%d ", cc->adj_list[i][j]);
+//     }
+//     printf("\n");
+//   }
+// }
+
+/**
+ * The purpose of camchain initializer is to find the initial camera
+ * to camera extrinsic of arbitrary cameras. So lets say you are calibrating a
+ * N multi-camera rig observing the same calibration fiducial target (F). The
+ * idea is as you add the relative pose between the i-th camera (Ci) and
+ * fiducial target (F), the camchain initialzer will build an adjacency matrix
+ * and form all possible camera-camera extrinsic combinations. This is useful
+ * for multi-camera extrinsics where you need to initialize the
+ * camera-extrinsic parameter.
+ *
+ * Usage:
+ *
+ *   camchain_t *camchain = camchain_malloc(num_cams);
+ *   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+ *     for (int ts_idx = 0; ts_idx < len(camera_poses); ts_idx++) {
+ *       timestamp_t ts = camera_timestamps[ts_idx];
+ *       real_t *T_CiF = camera_poses[cam_idx][ts_idx];
+ *       camchain_add_pose(camchain, cam_idx, ts, T_CiF);
+ *     }
+ *   }
+ *   camchain_adjacency(camchain);
+ *   camchain_adjacency_print(camchain);
+ *   camchain_find(camchain, cam_i, cam_j, T_CiCj);
+ *
+ */
+// int camchain_find(camchain_t *cc,
+//                   const int cam_i,
+//                   const int cam_j,
+//                   real_t T_CiCj[4 * 4]) {
+//   // Form adjacency
+//   if (cc->analyzed == 0) {
+//     camchain_adjacency(cc);
+//   }
+//
+//   // Straight forward case where extrinsic of itself is identity
+//   if (cam_i == cam_j) {
+//     if (hmlen(cc->cam_poses[cam_i])) {
+//       eye(T_CiCj, 4, 4);
+//       return 0;
+//     } else {
+//       return -1;
+//     }
+//   }
+//
+//   // Check if T_CiCj was formed before
+//   if (cc->adj_list[cam_i][cam_j] == 1) {
+//     mat_copy(&cc->adj_exts[cam_i][cam_j * (4 * 4)], 4, 4, T_CiCj);
+//     return 0;
+//   }
+//
+//   return -1;
+// }
+
 /////////////////////////
 // CALIB-CAMERA FACTOR //
 /////////////////////////
@@ -16946,7 +17125,8 @@ sim_camera_circle_trajectory(const sim_circle_t *conf,
 
 sim_circle_camera_imu_t *sim_circle_camera_imu(void) {
   // Malloc
-  sim_circle_camera_imu_t *sim_data = malloc(sizeof(sim_circle_camera_imu_t) * 1);
+  sim_circle_camera_imu_t *sim_data =
+      malloc(sizeof(sim_circle_camera_imu_t) * 1);
 
   // Simulate features
   const real_t origin[3] = {0.0, 0.0, 0.0};
@@ -17002,15 +17182,18 @@ sim_circle_camera_imu_t *sim_circle_camera_imu(void) {
 
   // Form timeline
   const int num_event_types = 1;
-  timeline_event_t **events = malloc(sizeof(timeline_event_t *) * num_event_types);
-  timestamp_t **events_timestamps = malloc(sizeof(timestamp_t *) * num_event_types);
+  timeline_event_t **events =
+      malloc(sizeof(timeline_event_t *) * num_event_types);
+  timestamp_t **events_timestamps =
+      malloc(sizeof(timestamp_t *) * num_event_types);
   int *events_lengths = calloc(num_event_types, sizeof(int));
   int *events_types = calloc(num_event_types, sizeof(int));
   int type_idx = 0;
 
   // -- IMU data to timeline
   const size_t num_imu_events = sim_data->imu_data->num_measurements;
-  timeline_event_t *imu_events = malloc(sizeof(timeline_event_t) * num_imu_events);
+  timeline_event_t *imu_events =
+      malloc(sizeof(timeline_event_t) * num_imu_events);
   for (size_t k = 0; k < sim_data->imu_data->num_measurements; k++) {
     imu_events[k].type = IMU_EVENT;
     imu_events[k].ts = sim_data->imu_data->timestamps[k];
@@ -18004,9 +18187,7 @@ euroc_calib_target_t *euroc_calib_target_load(const char *conf) {
 /**
  * Free EuRoC calibration target
  */
-void euroc_calib_target_free(euroc_calib_target_t *target) {
-  free(target);
-}
+void euroc_calib_target_free(euroc_calib_target_t *target) { free(target); }
 
 /**
  * EuRoC calibration target to output stream
