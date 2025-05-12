@@ -4205,31 +4205,6 @@ int test_fiducial(void) {
   return 0;
 }
 
-// int test_fiducial_buffer(void) {
-//   const timestamp_t ts = 0;
-//   const int cam_idx = 1;
-//   const int n = 2;
-//   const int tag_ids[2] = {1, 2};
-//   const int corner_idxs[2] = {1, 2};
-//   const real_t pts[2 * 3] = {0.0, 0.0, 0.0, 1.0, 1.0, 1.0};
-//   const real_t kps[2 * 2] = {0.0, 0.0, 1.0, 1.0};
-//
-//   fiducial_buffer_t *buf = fiducial_buffer_malloc();
-//   fiducial_buffer_add(buf, ts, cam_idx, n, tag_ids, corner_idxs, pts, kps);
-//
-//   MU_ASSERT(buf->data[0]->ts == ts);
-//   MU_ASSERT(buf->data[0]->cam_idx == cam_idx);
-//   MU_ASSERT(buf->data[0]->num_corners == n);
-//   MU_ASSERT(vec_equals(buf->data[0]->object_points, pts, n * 3) == 1);
-//   MU_ASSERT(vec_equals(buf->data[0]->keypoints, kps, n * 2) == 1);
-//   MU_ASSERT(buf->size == 1);
-//   MU_ASSERT(buf->capacity > 1);
-//
-//   fiducial_buffer_free(buf);
-//
-//   return 0;
-// }
-
 int test_imu_biases(void) {
   timestamp_t ts = 1;
   imu_biases_t biases;
@@ -4265,87 +4240,6 @@ int test_feature(void) {
 
   return 0;
 }
-
-// int test_features(void) {
-//   // XYZ Features
-//   // clang-format off
-//   size_t feature_ids[3] = {1, 2, 3};
-//   real_t params[3 * 3] = {0.1, 0.2, 0.3,
-//                           0.4, 0.5, 0.6,
-//                           0.7, 0.8, 0.9};
-//   // clang-format on
-
-//   // Body pose
-//   pose_t pose;
-//   const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-//   pose_setup(&pose, 0, pose_data);
-
-//   // Extrinsic
-//   extrinsic_t cam_ext;
-//   const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, -0.5, 0.5, -0.5};
-//   extrinsic_setup(&cam_ext, ext_data);
-
-//   // Camera parameters
-//   camera_t cam;
-//   const int cam_idx = 0;
-//   const int cam_res[2] = {640, 480};
-//   const char *proj_model = "pinhole";
-//   const char *dist_model = "radtan4";
-//   const real_t cam_data[8] = {320, 240, 320, 240, 0.01, 0.01, 0.001, 0.001};
-//   camera_setup(&cam, cam_idx, cam_res, proj_model, dist_model, cam_data);
-
-//   // Setup feature and image point
-//   TF(pose_data, T_WB);
-//   TF(ext_data, T_BCi);
-//   TF_INV(T_WB, T_BW);
-//   TF_INV(T_BCi, T_CiB);
-//   TF_CHAIN(T_CiW, 2, T_CiB, T_BW);
-//   TF_INV(T_CiW, T_WCi);
-
-
-//   // Setup
-//   features_t *features = features_malloc();
-
-//   // -- Add XYZ features
-//   features_add_xyzs(features, feature_ids, params, 3);
-//   MU_ASSERT(features->num_features == 3);
-
-//   // -- Check features exists
-//   MU_ASSERT(features_exists(features, 1) == 1);
-//   MU_ASSERT(features_exists(features, 2) == 1);
-//   MU_ASSERT(features_exists(features, 3) == 1);
-//   MU_ASSERT(features_exists(features, 99) == 0);
-
-//   // -- Get features
-//   feature_t *f0 = NULL;
-//   feature_t *f1 = NULL;
-//   feature_t *f2 = NULL;
-//   feature_t *f3 = NULL;
-
-//   features_get_xyz(features, 1, &f0);
-//   features_get_xyz(features, 2, &f1);
-//   features_get_xyz(features, 3, &f2);
-//   features_get_xyz(features, 99, &f3);
-
-//   MU_ASSERT(f0->feature_id == 1);
-//   MU_ASSERT(f0->status == 1);
-//   MU_ASSERT(vec_equals(f0->data, params + 0, 3) == 1);
-
-//   MU_ASSERT(f1->feature_id == 2);
-//   MU_ASSERT(f1->status == 1);
-//   MU_ASSERT(vec_equals(f1->data, params + 3, 3) == 1);
-
-//   MU_ASSERT(f2->feature_id == 3);
-//   MU_ASSERT(f2->status == 1);
-//   MU_ASSERT(vec_equals(f2->data, params + 6, 3) == 1);
-
-//   MU_ASSERT(f3 == NULL);
-
-//   // Clean up
-//   features_free(features);
-
-//   return 0;
-// }
 
 int test_time_delay(void) {
   time_delay_t td;
@@ -6412,10 +6306,8 @@ void test_suite(void) {
   MU_ADD_TEST(test_pose);
   MU_ADD_TEST(test_extrinsics);
   MU_ADD_TEST(test_fiducial);
-  // MU_ADD_TEST(test_fiducial_buffer);
   MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
-  // MU_ADD_TEST(test_features);
   MU_ADD_TEST(test_time_delay);
   MU_ADD_TEST(test_joint);
   MU_ADD_TEST(test_camera);

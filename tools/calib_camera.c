@@ -12,8 +12,8 @@ typedef struct calib_frame_t {
 
   int *tag_ids;
   int *corner_indices;
-  real_t *object_points;
-  real_t *keypoints;
+  real_t *pts;
+  real_t *kps;
 
   struct calib_camera_factor_t *factors;
 } calib_frame_t;
@@ -27,11 +27,11 @@ calib_frame_t *calib_frame_malloc(const timestamp_t ts,
                                   const int num_corners,
                                   const int *tag_ids,
                                   const int *corner_indices,
-                                  const real_t *object_points,
-                                  const real_t *keypoints,
+                                  const real_t *pts,
+                                  const real_t *kps,
                                   pose_t *pose,
                                   extrinsic_t *cam_ext,
-                                  camera_params_t *cam_params) {
+                                  camera_t *camera) {
   calib_frame_t *view = malloc(sizeof(calib_frame_t) * 1);
 
   // Properties
@@ -44,12 +44,12 @@ calib_frame_t *calib_frame_malloc(const timestamp_t ts,
   if (num_corners) {
     view->tag_ids = malloc(sizeof(int) * num_corners);
     view->corner_indices = malloc(sizeof(int) * num_corners);
-    view->object_points = malloc(sizeof(real_t) * num_corners * 3);
-    view->keypoints = malloc(sizeof(real_t) * num_corners * 2);
+    view->pts = malloc(sizeof(real_t) * num_corners * 3);
+    view->kps = malloc(sizeof(real_t) * num_corners * 2);
     assert(view->tag_ids != NULL);
     assert(view->corner_indices != NULL);
-    assert(view->object_points != NULL);
-    assert(view->keypoints != NULL);
+    assert(view->pts != NULL);
+    assert(view->kps != NULL);
   }
 
   // Factors
@@ -59,32 +59,32 @@ calib_frame_t *calib_frame_malloc(const timestamp_t ts,
   for (int i = 0; i < num_corners; i++) {
     view->tag_ids[i] = tag_ids[i];
     view->corner_indices[i] = corner_indices[i];
-    view->object_points[i * 3] = object_points[i * 3];
-    view->object_points[i * 3 + 1] = object_points[i * 3 + 1];
-    view->object_points[i * 3 + 2] = object_points[i * 3 + 2];
-    view->keypoints[i * 2] = keypoints[i * 2];
-    view->keypoints[i * 2 + 1] = keypoints[i * 2 + 1];
+    view->pts[i * 3] = pts[i * 3];
+    view->pts[i * 3 + 1] = pts[i * 3 + 1];
+    view->pts[i * 3 + 2] = pts[i * 3 + 2];
+    view->kps[i * 2] = kps[i * 2];
+    view->kps[i * 2 + 1] = kps[i * 2 + 1];
   }
 
   const real_t var[2] = {1.0, 1.0};
   for (int i = 0; i < view->num_corners; i++) {
     const int tag_id = tag_ids[i];
     const int corner_idx = corner_indices[i];
-    const real_t *p_FFi = &object_points[i * 3];
-    const real_t *z = &keypoints[i * 2];
+    const real_t *p_FFi = &pts[i * 3];
+    const real_t *z = &kps[i * 2];
 
     view->tag_ids[i] = tag_id;
     view->corner_indices[i] = corner_idx;
-    view->object_points[i * 3] = p_FFi[0];
-    view->object_points[i * 3 + 1] = p_FFi[1];
-    view->object_points[i * 3 + 2] = p_FFi[2];
-    view->keypoints[i * 2] = z[0];
-    view->keypoints[i * 2 + 1] = z[1];
+    view->pts[i * 3] = p_FFi[0];
+    view->pts[i * 3 + 1] = p_FFi[1];
+    view->pts[i * 3 + 2] = p_FFi[2];
+    view->kps[i * 2] = z[0];
+    view->kps[i * 2 + 1] = z[1];
 
     calib_camera_factor_setup(&view->factors[i],
                               pose,
                               cam_ext,
-                              cam_params,
+                              camera,
                               cam_idx,
                               tag_id,
                               corner_idx,
@@ -103,8 +103,8 @@ void calib_frame_free(calib_frame_t *view) {
   if (view) {
     free(view->tag_ids);
     free(view->corner_indices);
-    free(view->object_points);
-    free(view->keypoints);
+    free(view->pts);
+    free(view->kps);
     free(view->factors);
     free(view);
   }
@@ -121,7 +121,7 @@ typedef struct calib_frameset_t {
 
 typedef struct calib_camera_t {
   // Settings
-  int fix_cam_params;
+  int fix_camera;
   int fix_cam_exts;
   int verbose;
   int max_iter;
@@ -135,10 +135,10 @@ typedef struct calib_camera_t {
   int num_factors;
 
   // Variables
-  timestamp_t *timestamps;
-  // pose_hash_t *poses;
+  arr_t *timestamps;
+  rbt_t *poses;
   extrinsic_t *cam_exts;
-  camera_params_t *cam_params;
+  camera_t *camera;
 
   // Factors
   calib_frameset_t *view_sets;
@@ -153,7 +153,7 @@ calib_camera_t *calib_camera_malloc(void) {
 
   // Settings
   calib->fix_cam_exts = 0;
-  calib->fix_cam_params = 0;
+  calib->fix_camera = 0;
   calib->verbose = 1;
   calib->max_iter = 20;
 
@@ -167,14 +167,12 @@ calib_camera_t *calib_camera_malloc(void) {
 
   // Variables
   calib->timestamps = NULL;
-  // calib->poses = NULL;
+  calib->poses = NULL;
   calib->cam_exts = NULL;
-  calib->cam_params = NULL;
-  // hmdefault(calib->poses, NULL);
+  calib->camera = NULL;
 
   // Factors
   calib->view_sets = NULL;
-  // hmdefault(calib->view_sets, NULL);
   calib->marg = NULL;
 
   return calib;
@@ -185,29 +183,29 @@ calib_camera_t *calib_camera_malloc(void) {
  */
 void calib_camera_free(calib_camera_t *calib) {
   free(calib->cam_exts);
-  free(calib->cam_params);
+  free(calib->camera);
 
-  // if (calib->num_views) {
-  //   // View sets
-  //   for (int i = 0; i < arrlen(calib->timestamps); i++) {
-  //     const timestamp_t ts = calib->timestamps[i];
-  //     calib_frame_t **cam_views = hmgets(calib->view_sets, ts).value;
-  //     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-  //       calib_frame_free(cam_views[cam_idx]);
-  //     }
-  //     free(cam_views);
-  //   }
-  //
-  //   // Timestamps
-  //   arrfree(calib->timestamps);
-  //
-  //   // Poses
-  //   for (int i = 0; i < hmlen(calib->poses); i++) {
-  //     free(calib->poses[i].value);
-  //   }
-  // }
-  // hmfree(calib->poses);
-  // hmfree(calib->view_sets);
+  if (calib->num_views) {
+    // View sets
+    // for (int i = 0; i < arrlen(calib->timestamps); i++) {
+    //   const timestamp_t ts = calib->timestamps[i];
+    //   calib_frame_t **cam_views = hmgets(calib->view_sets, ts).value;
+    //   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    //     calib_frame_free(cam_views[cam_idx]);
+    //   }
+    //   free(cam_views);
+    // }
+
+    // Timestamps
+    // arr_free(calib->timestamps);
+
+    // Poses
+    // for (int i = 0; i < hmlen(calib->poses); i++) {
+    //   free(calib->poses[i].value);
+    // }
+  }
+  rbt_free(calib->poses);
+  // rbt_free(calib->view_sets);
 
   // Free previous marg_factor_t
   marg_factor_free(calib->marg);
@@ -215,60 +213,60 @@ void calib_camera_free(calib_camera_t *calib) {
   free(calib);
 }
 
-// /**
-//  * Camera calibration reprojection errors.
-//  */
-// void calib_camera_errors(calib_camera_t *calib,
-//                          real_t *reproj_rmse,
-//                          real_t *reproj_mean,
-//                          real_t *reproj_median) {
-//   // Setup
-//   const int N = calib->num_factors;
-//   const int r_size = N * 2;
-//   real_t *r = calloc(r_size, sizeof(real_t));
-//
-//   // Evaluate residuals
-//   int r_idx = 0;
-//   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
-//     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-//       const timestamp_t ts = calib->timestamps[view_idx];
-//       calib_frame_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
-//       if (view == NULL) {
-//         continue;
-//       }
-//
-//       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
-//         struct calib_camera_factor_t *factor = &view->factors[factor_idx];
-//         calib_camera_factor_eval(factor);
-//         vec_copy(factor->r, factor->r_size, &r[r_idx]);
-//         r_idx += factor->r_size;
-//       } // For each calib factor
-//     }   // For each cameras
-//   }     // For each views
-//
-//   // Calculate reprojection errors
-//   real_t *errors = calloc(N, sizeof(real_t));
-//   for (int i = 0; i < N; i++) {
-//     const real_t x = r[i * 2 + 0];
-//     const real_t y = r[i * 2 + 1];
-//     errors[i] = sqrt(x * x + y * y);
-//   }
-//
-//   // Calculate RMSE
-//   real_t sum = 0.0;
-//   real_t sse = 0.0;
-//   for (int i = 0; i < N; i++) {
-//     sum += errors[i];
-//     sse += errors[i] * errors[i];
-//   }
-//   *reproj_rmse = sqrt(sse / N);
-//   *reproj_mean = sum / N;
-//   *reproj_median = median(errors, N);
-//
-//   // Clean up
-//   free(errors);
-//   free(r);
-// }
+/**
+ * Camera calibration reprojection errors.
+ */
+void calib_camera_errors(calib_camera_t *calib,
+                         real_t *reproj_rmse,
+                         real_t *reproj_mean,
+                         real_t *reproj_median) {
+  // Setup
+  const int N = calib->num_factors;
+  const int r_size = N * 2;
+  real_t *r = calloc(r_size, sizeof(real_t));
+
+  // Evaluate residuals
+  // int r_idx = 0;
+  // for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+  //   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+  //     const timestamp_t ts = calib->timestamps[view_idx];
+  //     calib_frame_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
+  //     if (view == NULL) {
+  //       continue;
+  //     }
+  //
+  //     for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+  //       struct calib_camera_factor_t *factor = &view->factors[factor_idx];
+  //       calib_camera_factor_eval(factor);
+  //       vec_copy(factor->r, factor->r_size, &r[r_idx]);
+  //       r_idx += factor->r_size;
+  //     } // For each calib factor
+  //   }   // For each cameras
+  // }     // For each views
+
+  // Calculate reprojection errors
+  real_t *errors = calloc(N, sizeof(real_t));
+  for (int i = 0; i < N; i++) {
+    const real_t x = r[i * 2 + 0];
+    const real_t y = r[i * 2 + 1];
+    errors[i] = sqrt(x * x + y * y);
+  }
+
+  // Calculate RMSE
+  real_t sum = 0.0;
+  real_t sse = 0.0;
+  for (int i = 0; i < N; i++) {
+    sum += errors[i];
+    sse += errors[i] * errors[i];
+  }
+  *reproj_rmse = sqrt(sse / N);
+  *reproj_mean = sum / N;
+  *reproj_median = median(errors, N);
+
+  // Clean up
+  free(errors);
+  free(r);
+}
 
 /**
  * Print camera calibration.
@@ -281,7 +279,7 @@ void calib_camera_print(calib_camera_t *calib) {
 
   printf("settings:\n");
   printf("  fix_cam_exts: %d\n", calib->fix_cam_exts);
-  printf("  fix_cam_params: %d\n", calib->fix_cam_params);
+  printf("  fix_camera: %d\n", calib->fix_camera);
   printf("\n");
 
   printf("statistics:\n");
@@ -297,7 +295,7 @@ void calib_camera_print(calib_camera_t *calib) {
   // printf("\n");
 
   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-    camera_params_t *cam = &calib->cam_params[cam_idx];
+    camera_t *cam = &calib->camera[cam_idx];
     char param_str[100] = {0};
     vec2str(cam->data, 8, param_str);
 
@@ -334,29 +332,28 @@ void calib_camera_add_camera(calib_camera_t *calib,
                              const int cam_res[2],
                              const char *proj_model,
                              const char *dist_model,
-                             const real_t *cam_params,
+                             const real_t *camera,
                              const real_t *cam_ext) {
   assert(calib != NULL);
   assert(cam_idx <= calib->num_cams);
   assert(cam_res != NULL);
   assert(proj_model != NULL);
   assert(dist_model != NULL);
-  assert(cam_params != NULL);
+  assert(camera != NULL);
   assert(cam_ext != NULL);
 
   if (cam_idx > (calib->num_cams - 1)) {
     const int new_size = calib->num_cams + 1;
-    calib->cam_params =
-        realloc(calib->cam_params, sizeof(camera_params_t) * new_size);
+    calib->camera = realloc(calib->camera, sizeof(camera_t) * new_size);
     calib->cam_exts = realloc(calib->cam_exts, sizeof(extrinsic_t) * new_size);
   }
 
-  camera_params_setup(&calib->cam_params[cam_idx],
-                      cam_idx,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      cam_params);
+  camera_setup(&calib->camera[cam_idx],
+               cam_idx,
+               cam_res,
+               proj_model,
+               dist_model,
+               camera);
   extrinsic_setup(&calib->cam_exts[cam_idx], cam_ext);
   if (cam_idx == 0) {
     calib->cam_exts[0].fix = 1;
@@ -366,127 +363,128 @@ void calib_camera_add_camera(calib_camera_t *calib,
   calib->cams_ok = 1;
 }
 
-// /**
-//  * Add camera calibration view.
-//  */
-// void calib_camera_add_view(calib_camera_t *calib,
-//                            const timestamp_t ts,
-//                            const int view_idx,
-//                            const int cam_idx,
-//                            const int num_corners,
-//                            const int *tag_ids,
-//                            const int *corner_indices,
-//                            const real_t *object_points,
-//                            const real_t *keypoints) {
-//   assert(calib != NULL);
-//   assert(calib->cams_ok);
-//   if (num_corners == 0) {
-//     return;
-//   }
-//
-//   // Pose T_C0F
-//   pose_t *pose = hmgets(calib->poses, ts).value;
-//   if (pose == NULL) {
-//     // Estimate relative pose T_CiF
-//     real_t T_CiF[4 * 4] = {0};
-//     const int status = solvepnp_camera(&calib->cam_params[cam_idx],
-//                                        keypoints,
-//                                        object_points,
-//                                        num_corners,
-//                                        T_CiF);
-//     if (status != 0) {
-//       return;
-//     }
-//
-//     // Form T_BF
-//     POSE2TF(calib->cam_exts[cam_idx].data, T_BCi);
-//     TF_CHAIN(T_BF, 2, T_BCi, T_CiF);
-//     TF_VECTOR(T_BF, pose_vector);
-//
-//     // New pose
-//     arrput(calib->timestamps, ts);
-//     pose = malloc(sizeof(pose_t) * 1);
-//     pose_setup(pose, ts, pose_vector);
-//     hmput(calib->poses, ts, pose);
-//   }
-//
-//   // Form new view
-//   calib_frame_t **cam_views = hmgets(calib->view_sets, ts).value;
-//   if (cam_views == NULL) {
-//     cam_views = calloc(calib->num_cams, sizeof(calib_frame_t **));
-//     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-//       cam_views[cam_idx] = NULL;
-//     }
-//     hmput(calib->view_sets, ts, cam_views);
-//     calib->num_views++;
-//   }
-//
-//   calib_frame_t *view =
-//       calib_frame_malloc(ts,
-//                                view_idx,
-//                                cam_idx,
-//                                num_corners,
-//                                tag_ids,
-//                                corner_indices,
-//                                object_points,
-//                                keypoints,
-//                                pose,
-//                                &calib->cam_exts[cam_idx],
-//                                &calib->cam_params[cam_idx]);
-//   cam_views[cam_idx] = view;
-//   calib->num_factors += num_corners;
-// }
-//
-// void calib_camera_marginalize(calib_camera_t *calib) {
-//   // Setup marginalization factor
-//   marg_factor_t *marg = marg_factor_malloc();
-//
-//   // Get first timestamp
-//   const timestamp_t ts = calib->timestamps[0];
-//
-//   // Mark the pose at timestamp to be marginalized
-//   pose_t *pose = hmgets(calib->poses, ts).value;
-//   pose->marginalize = 1;
-//
-//   // Add calib camera factors to marginalization factor
-//   calib_frame_t **cam_views = hmgets(calib->view_sets, ts).value;
-//   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-//     calib_frame_t *view = cam_views[cam_idx];
-//     if (view == NULL) {
-//       continue;
-//     }
-//
-//     for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
-//       marg_factor_add(marg, CALIB_CAMERA_FACTOR, &view->factors[factor_idx]);
-//     }
-//   }
-//
-//   // Add previous marginalization factor to new marginalization factor
-//   if (calib->marg) {
-//     marg_factor_add(marg, MARG_FACTOR, calib->marg);
-//   }
-//
-//   // Marginalize
-//   marg_factor_marginalize(marg);
-//   if (calib->marg) {
-//     marg_factor_free(calib->marg);
-//   }
-//   calib->marg = marg;
-//
-//   // Remove viewset
-//   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-//     calib_frame_free(cam_views[cam_idx]);
-//   }
-//   free(cam_views);
-//   (void) hmdel(calib->view_sets, ts);
-//   // ^ (void) cast required for now: https://github.com/nothings/stb/issues/1574
-//
-//   // Remove timestamp
-//   arrdel(calib->timestamps, 0);
-//
-//   // Update number of views
-//   calib->num_views--;
-// }
+/**
+ * Add camera calibration view.
+ */
+void calib_camera_add_view(calib_camera_t *calib,
+                           const timestamp_t ts,
+                           const int view_idx,
+                           const int cam_idx,
+                           const int num_corners,
+                           const int *tag_ids,
+                           const int *corner_indices,
+                           const real_t *pts,
+                           const real_t *kps) {
+  assert(calib != NULL);
+  assert(calib->cams_ok);
+  if (num_corners == 0) {
+    return;
+  }
+
+  // Pose T_C0F
+  pose_t *pose = rbt_search(calib->poses, &ts);
+  if (pose == NULL) {
+    // Estimate relative pose T_CiF
+    real_t T_CiF[4 * 4] = {0};
+    const int status = solvepnp_camera(&calib->camera[cam_idx],
+                                       kps,
+                                       pts,
+                                       num_corners,
+                                       T_CiF);
+    if (status != 0) {
+      return;
+    }
+
+    // Form T_BF
+    POSE2TF(calib->cam_exts[cam_idx].data, T_BCi);
+    TF_CHAIN(T_BF, 2, T_BCi, T_CiF);
+    TF_VECTOR(T_BF, pose_vector);
+
+    // New pose
+    // timestamp_t *ts_ptr = timestamp_malloc(ts);
+    // arr_push_back(calib->timestamps, ts_ptr);
+    // pose = malloc(sizeof(pose_t) * 1);
+    // pose_setup(pose, ts, pose_vector);
+    // rbt_insert(calib->poses, ts_ptr, pose);
+  }
+
+  // Form new view
+  // calib_frame_t **cam_views = hmgets(calib->view_sets, ts).value;
+  // if (cam_views == NULL) {
+  //   cam_views = calloc(calib->num_cams, sizeof(calib_frame_t **));
+  //   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+  //     cam_views[cam_idx] = NULL;
+  //   }
+  //   hmput(calib->view_sets, ts, cam_views);
+  //   calib->num_views++;
+  // }
+
+  // calib_frame_t *view =
+  //     calib_frame_malloc(ts,
+  //                              view_idx,
+  //                              cam_idx,
+  //                              num_corners,
+  //                              tag_ids,
+  //                              corner_indices,
+  //                              pts,
+  //                              kps,
+  //                              pose,
+  //                              &calib->cam_exts[cam_idx],
+  //                              &calib->camera[cam_idx]);
+  // cam_views[cam_idx] = view;
+  // calib->num_factors += num_corners;
+}
+
+void calib_camera_marginalize(calib_camera_t *calib) {
+  // Setup marginalization factor
+  marg_factor_t *marg = marg_factor_malloc();
+
+  // Get first timestamp
+  const timestamp_t ts = calib->timestamps[0];
+
+  // Mark the pose at timestamp to be marginalized
+  pose_t *pose = hmgets(calib->poses, ts).value;
+  pose->marginalize = 1;
+
+  // Add calib camera factors to marginalization factor
+  calib_frame_t **cam_views = hmgets(calib->view_sets, ts).value;
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    calib_frame_t *view = cam_views[cam_idx];
+    if (view == NULL) {
+      continue;
+    }
+
+    for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+      marg_factor_add(marg, CALIB_CAMERA_FACTOR, &view->factors[factor_idx]);
+    }
+  }
+
+  // Add previous marginalization factor to new marginalization factor
+  if (calib->marg) {
+    marg_factor_add(marg, MARG_FACTOR, calib->marg);
+  }
+
+  // Marginalize
+  marg_factor_marginalize(marg);
+  if (calib->marg) {
+    marg_factor_free(calib->marg);
+  }
+  calib->marg = marg;
+
+  // Remove viewset
+  for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+    calib_frame_free(cam_views[cam_idx]);
+  }
+  free(cam_views);
+  (void) hmdel(calib->view_sets, ts);
+  // ^ (void) cast required for now: https://github.com/nothings/stb/issues/1574
+
+  // Remove timestamp
+  arrdel(calib->timestamps, 0);
+
+  // Update number of views
+  calib->num_views--;
+}
 
 // /**
 //  * Add camera calibration data.
@@ -619,7 +617,7 @@ void calib_camera_add_camera(calib_camera_t *calib,
 //
 //   // -- Add camera parameters
 //   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
-//     param_order_add_camera(&hash, &calib->cam_params[cam_idx], &col_idx);
+//     param_order_add_camera(&hash, &calib->camera[cam_idx], &col_idx);
 //   }
 //
 //   // Set state-vector and residual size
@@ -876,3 +874,524 @@ void calib_camera_add_camera(calib_camera_t *calib,
 //     calib_camera_print(calib);
 //   }
 // }
+
+/******************************************************************************
+ * TESTS
+ *****************************************************************************/
+
+#define TEST_DATA_PATH "./test_data/"
+#define TEST_CAM_APRIL TEST_DATA_PATH "cam_april"
+
+int test_calib_camera_mono_batch(void) {
+  const char *data_path = TEST_CAM_APRIL "/cam0";
+
+  // Initialize camera intrinsics
+  const int cam_res[2] = {752, 480};
+  const char *proj_model = "pinhole";
+  const char *dist_model = "radtan4";
+  const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+  const real_t camera[8] =
+      {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
+
+  // Setup camera calibration problem
+  calib_camera_t *calib = calib_camera_malloc();
+  calib->verbose = 0;
+  calib->max_iter = 30;
+  calib_camera_add_camera(calib,
+                          0,
+                          cam_res,
+                          proj_model,
+                          dist_model,
+                          camera,
+                          cam_ext);
+
+  // Batch solve
+  calib_camera_add_data(calib, 0, data_path);
+  calib_camera_solve(calib);
+
+  // Asserts
+  double reproj_rmse = 0.0;
+  double reproj_mean = 0.0;
+  double reproj_median = 0.0;
+  calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+  MU_ASSERT(reproj_rmse < 0.5);
+  MU_ASSERT(reproj_mean < 0.5);
+  MU_ASSERT(reproj_median < 0.5);
+
+  // Clean up
+  calib_camera_free(calib);
+
+  return 0;
+}
+
+// int test_calib_camera_mono_ceres(void) {
+//   const char *data_path = TEST_CAM_APRIL "/cam0";
+//
+//   // Initialize camera intrinsics
+//   const int cam_res[2] = {752, 480};
+//   const char *proj_model = "pinhole";
+//   const char *dist_model = "radtan4";
+//   const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   const real_t camera[8] =
+//       {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
+//
+//   // Setup camera calibration problem
+//   calib_camera_t *calib = calib_camera_malloc();
+//   calib->verbose = 0;
+//   calib_camera_add_camera(calib,
+//                           0,
+//                           cam_res,
+//                           proj_model,
+//                           dist_model,
+//                           camera,
+//                           cam_ext);
+//
+//   // Batch solve
+//   calib_camera_add_data(calib, 0, data_path);
+//
+//   // Setup solver
+//   ceres_init();
+//   ceres_problem_t *problem = ceres_create_problem();
+//   ceres_local_parameterization_t *pose_pm =
+//       ceres_create_pose_local_parameterization();
+//
+//   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+//     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+//       const timestamp_t ts = calib->timestamps[view_idx];
+//       calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
+//       if (view == NULL) {
+//         continue;
+//       }
+//
+//       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+//         calib_camera_factor_t *factor = &view->factors[factor_idx];
+//         real_t **param_ptrs = factor->params;
+//         int num_residuals = 2;
+//         int num_params = 3;
+//         int param_sizes[3] = {
+//             7, // Pose
+//             7, // Camera extrinsic
+//             8, // Camera parameters
+//         };
+//         ceres_problem_add_residual_block(problem,
+//                                          &calib_camera_factor_ceres_eval,
+//                                          factor,
+//                                          NULL,
+//                                          NULL,
+//                                          num_residuals,
+//                                          num_params,
+//                                          param_sizes,
+//                                          param_ptrs);
+//
+//         ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
+//         ceres_set_parameterization(problem, param_ptrs[1], pose_pm);
+//       } // For each calib factor
+//     }   // For each cameras
+//   }     // For each views
+//
+//   // Solve
+//   // ceres_solve(problem, 20, 0);
+//   ceres_solve(problem);
+//   // calib_camera_print(calib);
+//
+//   // Asserts
+//   double reproj_rmse = 0.0;
+//   double reproj_mean = 0.0;
+//   double reproj_median = 0.0;
+//   calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+//   MU_ASSERT(reproj_rmse < 0.5);
+//   MU_ASSERT(reproj_mean < 0.5);
+//   MU_ASSERT(reproj_median < 0.5);
+//
+//   // Clean up
+//   calib_camera_free(calib);
+//   ceres_free_problem(problem);
+//
+//   return 0;
+// }
+//
+// int test_calib_camera_mono_incremental(void) {
+//   const char *data_path = TEST_CAM_APRIL "/cam0";
+//
+//   // Initialize camera intrinsics
+//   const int res[2] = {752, 480};
+//   const char *pm = "pinhole";
+//   const char *dm = "radtan4";
+//   const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   const real_t cam_vec[8] =
+//       {495.864541, 495.864541, 375.500000, 239.500000, 0, 0, 0, 0};
+//
+//   // Setup camera calibration problem
+//   calib_camera_t *calib = calib_camera_malloc();
+//   calib->verbose = 0;
+//   calib_camera_add_camera(calib, 0, res, pm, dm, cam_vec, cam_ext);
+//
+//   // Incremental solve
+//   int window_size = 2;
+//   int cam_idx = 0;
+//   int num_files = 0;
+//   char **files = list_files(data_path, &num_files);
+//
+//   calib->verbose = 0;
+//   // TIC(calib_camera_loop);
+//
+//   for (int view_idx = 0; view_idx < num_files; view_idx++) {
+//     // Load aprilgrid
+//     aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
+//
+//     // Get aprilgrid measurements
+//     const timestamp_t ts = grid->timestamp;
+//     const int num_corners = grid->corners_detected;
+//     int *tag_ids = MALLOC(int, num_corners);
+//     int *corner_indices = MALLOC(int, num_corners);
+//     real_t *kps = MALLOC(real_t, num_corners * 2);
+//     real_t *pts = MALLOC(real_t, num_corners * 3);
+//     aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
+//
+//     // Add view
+//     calib_camera_add_view(calib,
+//                           ts,
+//                           view_idx,
+//                           cam_idx,
+//                           num_corners,
+//                           tag_ids,
+//                           corner_indices,
+//                           pts,
+//                           kps);
+//
+//     // Incremental solve
+//     if (calib->num_views >= window_size) {
+//       calib_camera_marginalize(calib);
+//     }
+//     calib_camera_solve(calib);
+//
+//     // Clean up
+//     free(tag_ids);
+//     free(corner_indices);
+//     free(kps);
+//     free(pts);
+//     aprilgrid_free(grid);
+//   }
+//
+//   // calib_camera_print(calib);
+//   // const real_t time_taken = TOC(calib_camera_loop);
+//   // const real_t rate_hz = num_files / time_taken;
+//   // printf("%d frames in %.2f [s] or %.2f Hz\n", num_files, time_taken, rate_hz);
+//
+//   // Clean up
+//   for (int view_idx = 0; view_idx < num_files; view_idx++) {
+//     free(files[view_idx]);
+//   }
+//   free(files);
+//   calib_camera_free(calib);
+//
+//   return 0;
+// }
+//
+// int test_calib_camera_stereo_batch(void) {
+//   // Initialize camera intrinsics
+//   int num_cams = 2;
+//   char *data_dir = TEST_CAM_APRIL "/cam%d";
+//   const int cam_res[2] = {752, 480};
+//   const char *pmodel = "pinhole";
+//   const char *dmodel = "radtan4";
+//   const real_t focal = pinhole_focal(cam_res[0], 90.0);
+//   const real_t cx = cam_res[0] / 2.0;
+//   const real_t cy = cam_res[1] / 2.0;
+//   const real_t cam_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   real_t cam[2][8] = {{focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0},
+//                       {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0}};
+//
+//   camera_t camera[2];
+//   camera_setup(&camera[0], 0, cam_res, pmodel, dmodel, cam[0]);
+//   camera_setup(&camera[1], 1, cam_res, pmodel, dmodel, cam[1]);
+//
+//   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+//     char data_path[1024] = {0};
+//     sprintf(data_path, data_dir, cam_idx);
+//
+//     calib_camera_t *cam_calib = calib_camera_malloc();
+//     cam_calib->verbose = 0;
+//     calib_camera_add_camera(cam_calib,
+//                             0,
+//                             cam_res,
+//                             pmodel,
+//                             dmodel,
+//                             cam[cam_idx],
+//                             cam_ext);
+//     calib_camera_add_data(cam_calib, 0, data_path);
+//     calib_camera_solve(cam_calib);
+//     vec_copy(cam_calib->camera[0].data, 8, camera[cam_idx].data);
+//     calib_camera_free(cam_calib);
+//   }
+//
+//   // Initialize camera extrinsics
+//   camchain_t *camchain = camchain_malloc(num_cams);
+//   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+//     char data_path[1024] = {0};
+//     sprintf(data_path, data_dir, cam_idx);
+//
+//     // Get camera data
+//     int num_files = 0;
+//     char **files = list_files(data_path, &num_files);
+//
+//     // Exit if no calibration data
+//     if (num_files == 0) {
+//       for (int view_idx = 0; view_idx < num_files; view_idx++) {
+//         free(files[view_idx]);
+//       }
+//       free(files);
+//       return -1;
+//     }
+//
+//     for (int view_idx = 0; view_idx < num_files; view_idx++) {
+//       // Load aprilgrid
+//       aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
+//       if (grid->corners_detected == 0) {
+//         free(files[view_idx]);
+//         aprilgrid_free(grid);
+//         continue;
+//       }
+//
+//       // Get aprilgrid measurements
+//       const timestamp_t ts = grid->timestamp;
+//       const int n = grid->corners_detected;
+//       int *tag_ids = MALLOC(int, n);
+//       int *corner_indices = MALLOC(int, n);
+//       real_t *kps = MALLOC(real_t, n * 2);
+//       real_t *pts = MALLOC(real_t, n * 3);
+//       aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
+//
+//       // Estimate relative pose T_CiF and add to camchain
+//       real_t T_CiF[4 * 4] = {0};
+//       if (solvepnp_camera(&camera[cam_idx], kps, pts, n, T_CiF) == 0) {
+//         camchain_add_pose(camchain, cam_idx, ts, T_CiF);
+//       }
+//
+//       // Clean up
+//       free(tag_ids);
+//       free(corner_indices);
+//       free(kps);
+//       free(pts);
+//       aprilgrid_free(grid);
+//       free(files[view_idx]);
+//     }
+//     free(files);
+//   }
+//   camchain_adjacency(camchain);
+//   real_t T_CiCj[4 * 4] = {0};
+//   camchain_find(camchain, 0, 1, T_CiCj);
+//   camchain_free(camchain);
+//
+//   // Setup Camera calibrator
+//   const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   TF_VECTOR(T_CiCj, cam1_ext);
+//
+//   calib_camera_t *stereo_calib = calib_camera_malloc();
+//   stereo_calib->verbose = 0;
+//   stereo_calib->max_iter = 50;
+//   calib_camera_add_camera(stereo_calib,
+//                           0,
+//                           cam_res,
+//                           pmodel,
+//                           dmodel,
+//                           camera[0].data,
+//                           cam0_ext);
+//   calib_camera_add_camera(stereo_calib,
+//                           1,
+//                           cam_res,
+//                           pmodel,
+//                           dmodel,
+//                           camera[1].data,
+//                           cam1_ext);
+//   for (int cam_idx = 0; cam_idx < stereo_calib->num_cams; cam_idx++) {
+//     char data_path[1024] = {0};
+//     sprintf(data_path, data_dir, cam_idx);
+//     calib_camera_add_data(stereo_calib, cam_idx, data_path);
+//   }
+//   calib_camera_solve(stereo_calib);
+//   // calib_camera_print(stereo_calib);
+//
+//   // Asserts
+//   double reproj_rmse = 0.0;
+//   double reproj_mean = 0.0;
+//   double reproj_median = 0.0;
+//   calib_camera_errors(stereo_calib, &reproj_rmse, &reproj_mean, &reproj_median);
+//   MU_ASSERT(reproj_rmse < 0.5);
+//   MU_ASSERT(reproj_mean < 0.5);
+//   MU_ASSERT(reproj_median < 0.5);
+//
+//   // Clean up
+//   calib_camera_free(stereo_calib);
+//
+//   return 0;
+// }
+//
+// int test_calib_camera_stereo_ceres(void) {
+//   // Initialize camera intrinsics
+//   int num_cams = 2;
+//   char *data_dir = TEST_CAM_APRIL "/cam%d";
+//   const int cam_res[2] = {752, 480};
+//   const char *pmodel = "pinhole";
+//   const char *dmodel = "radtan4";
+//   const real_t focal = pinhole_focal(cam_res[0], 90.0);
+//   const real_t cx = cam_res[0] / 2.0;
+//   const real_t cy = cam_res[1] / 2.0;
+//   real_t cam[2][8] = {{focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0},
+//                       {focal, focal, cx, cy, 0.0, 0.0, 0.0, 0.0}};
+//   camera_t camera[2];
+//   camera_setup(&camera[0], 0, cam_res, pmodel, dmodel, cam[0]);
+//   camera_setup(&camera[1], 1, cam_res, pmodel, dmodel, cam[1]);
+//
+//   // Initialize camera extrinsics
+//   camchain_t *camchain = camchain_malloc(num_cams);
+//   for (int cam_idx = 0; cam_idx < num_cams; cam_idx++) {
+//     char data_path[1024] = {0};
+//     sprintf(data_path, data_dir, cam_idx);
+//
+//     // Get camera data
+//     int num_files = 0;
+//     char **files = list_files(data_path, &num_files);
+//
+//     // Exit if no calibration data
+//     if (num_files == 0) {
+//       for (int view_idx = 0; view_idx < num_files; view_idx++) {
+//         free(files[view_idx]);
+//       }
+//       free(files);
+//       return -1;
+//     }
+//
+//     for (int view_idx = 0; view_idx < num_files; view_idx++) {
+//       // Load aprilgrid
+//       aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
+//       if (grid->corners_detected == 0) {
+//         free(files[view_idx]);
+//         aprilgrid_free(grid);
+//         continue;
+//       }
+//
+//       // Get aprilgrid measurements
+//       const timestamp_t ts = grid->timestamp;
+//       const int n = grid->corners_detected;
+//       int *tag_ids = MALLOC(int, n);
+//       int *corner_indices = MALLOC(int, n);
+//       real_t *kps = MALLOC(real_t, n * 2);
+//       real_t *pts = MALLOC(real_t, n * 3);
+//       aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
+//
+//       // Estimate relative pose T_CiF and add to camchain
+//       real_t T_CiF[4 * 4] = {0};
+//       if (solvepnp_camera(&camera[cam_idx], kps, pts, n, T_CiF) == 0) {
+//         camchain_add_pose(camchain, cam_idx, ts, T_CiF);
+//       }
+//
+//       // Clean up
+//       free(tag_ids);
+//       free(corner_indices);
+//       free(kps);
+//       free(pts);
+//       aprilgrid_free(grid);
+//       free(files[view_idx]);
+//     }
+//     free(files);
+//   }
+//   camchain_adjacency(camchain);
+//   real_t T_CiCj[4 * 4] = {0};
+//   camchain_find(camchain, 0, 1, T_CiCj);
+//   camchain_free(camchain);
+//
+//   // Setup Camera calibrator
+//   const real_t cam0_ext[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+//   TF_VECTOR(T_CiCj, cam1_ext);
+//
+//   calib_camera_t *calib = calib_camera_malloc();
+//   calib->verbose = 0;
+//   calib_camera_add_camera(calib,
+//                           0,
+//                           cam_res,
+//                           pmodel,
+//                           dmodel,
+//                           camera[0].data,
+//                           cam0_ext);
+//   calib_camera_add_camera(calib,
+//                           1,
+//                           cam_res,
+//                           pmodel,
+//                           dmodel,
+//                           camera[1].data,
+//                           cam1_ext);
+//   for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+//     char data_path[1024] = {0};
+//     sprintf(data_path, data_dir, cam_idx);
+//     calib_camera_add_data(calib, cam_idx, data_path);
+//   }
+//   // calib_camera_solve(calib);
+//
+//   // Setup solver
+//   ceres_init();
+//   ceres_problem_t *problem = ceres_create_problem();
+//   ceres_local_parameterization_t *pose_pm =
+//       ceres_create_pose_local_parameterization();
+//
+//   for (int view_idx = 0; view_idx < calib->num_views; view_idx++) {
+//     for (int cam_idx = 0; cam_idx < calib->num_cams; cam_idx++) {
+//       const timestamp_t ts = calib->timestamps[view_idx];
+//       calib_camera_view_t *view = hmgets(calib->view_sets, ts).value[cam_idx];
+//       if (view == NULL) {
+//         continue;
+//       }
+//
+//       for (int factor_idx = 0; factor_idx < view->num_corners; factor_idx++) {
+//         calib_camera_factor_t *factor = &view->factors[factor_idx];
+//         real_t **param_ptrs = factor->params;
+//         int num_residuals = 2;
+//         int num_params = 3;
+//         int param_sizes[3] = {
+//             7, // Pose
+//             7, // Camera extrinsic
+//             8, // Camera parameters
+//         };
+//         ceres_problem_add_residual_block(problem,
+//                                          &calib_camera_factor_ceres_eval,
+//                                          factor,
+//                                          NULL,
+//                                          NULL,
+//                                          num_residuals,
+//                                          num_params,
+//                                          param_sizes,
+//                                          param_ptrs);
+//
+//         ceres_set_parameterization(problem, param_ptrs[0], pose_pm);
+//         ceres_set_parameterization(problem, param_ptrs[1], pose_pm);
+//       } // For each calib factor
+//     }   // For each cameras
+//   }     // For each views
+//
+//   // Solve
+//   // ceres_solve(problem, 20, 0);
+//   ceres_solve(problem);
+//   // calib_camera_print(calib);
+//
+//   // Asserts
+//   double reproj_rmse = 0.0;
+//   double reproj_mean = 0.0;
+//   double reproj_median = 0.0;
+//   calib_camera_errors(calib, &reproj_rmse, &reproj_mean, &reproj_median);
+//   MU_ASSERT(reproj_rmse < 0.5);
+//   MU_ASSERT(reproj_mean < 0.5);
+//   MU_ASSERT(reproj_median < 0.5);
+//
+//   // Clean up
+//   calib_camera_free(calib);
+//   ceres_free_problem(problem);
+//
+//   return 0;
+// }
+//
+
+// MU_ADD_TEST(test_calib_camera_mono_batch);
+// MU_ADD_TEST(test_calib_camera_mono_ceres);
+// MU_ADD_TEST(test_calib_camera_mono_incremental);
+// MU_ADD_TEST(test_calib_camera_stereo_batch);
+// MU_ADD_TEST(test_calib_camera_stereo_ceres);

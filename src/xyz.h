@@ -228,7 +228,6 @@ int **load_iarrays(const char *csv_path, int *num_arrays);
 double **load_darrays(const char *csv_path, int *num_arrays);
 
 int *int_malloc(const int val);
-int64_t *int64_malloc(const int64_t val);
 float *float_malloc(const float val);
 double *double_malloc(const double val);
 double *vector_malloc(const double *vec, const double N);
@@ -272,6 +271,9 @@ typedef int64_t timestamp_t;
 #define MTOC(X) mtoc(&X)
 #define PRINT_TOC(PREFIX, X) printf("[%s]: %.4fs\n", PREFIX, toc(&X))
 #define PRINT_MTOC(PREFIX, X) printf("[%s]: %.4fms\n", PREFIX, mtoc(&X))
+
+timestamp_t *timestamp_malloc(timestamp_t ts);
+void timestamp_free(timestamp_t *ts_ptr);
 
 struct timespec tic(void);
 float toc(struct timespec *tic);
@@ -595,6 +597,15 @@ void fwdsubs(const real_t *L, const real_t *b, real_t *y, const size_t n);
 void bwdsubs(const real_t *U, const real_t *y, real_t *x, const size_t n);
 void enforce_spd(real_t *A, const int m, const int n);
 
+void eyef(float *A, const size_t m, const size_t n);
+void onesf(float *A, const size_t m, const size_t n);
+void zerosf(float *A, const size_t m, const size_t n);
+void hatf(const float x[3], float A[3 * 3]);
+void veef(const float A[3 * 3], float x[3]);
+void fwdsubsf(const float *L, const float *b, float *y, const size_t n);
+void bwdsubsf(const float *U, const float *y, float *x, const size_t n);
+void enforce_spdf(float *A, const int m, const int n);
+
 real_t *mat_malloc(const size_t m, const size_t n);
 int mat_cmp(const real_t *A, const real_t *B, const size_t m, const size_t n);
 int mat_equals(const real_t *A,
@@ -779,6 +790,18 @@ void bdiag_dot(const real_t *A,
 #define VEE(A, X)                                                              \
   real_t X[3] = {0};                                                           \
   vee(A, X);
+
+#define DOTF(A, AM, AN, B, BM, BN, C)                                          \
+  float C[AM * BN] = {0};                                                      \
+  dotf(A, AM, AN, B, BM, BN, C);
+
+#define HATF(X, X_HAT)                                                         \
+  float X_HAT[3 * 3] = {0};                                                    \
+  hatf(X, X_HAT);
+
+#define VEEF(A, X)                                                             \
+  float X[3] = {0};                                                            \
+  veef(A, X);
 
 int check_inv(const real_t *A, const real_t *A_inv, const int m);
 real_t check_Axb(const real_t *A,
@@ -1629,6 +1652,111 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
                                        uint8_t *image_data);
 
 /*******************************************************************************
+ * OCTREE
+ ******************************************************************************/
+
+/////////////////
+// OCTREE NODE //
+/////////////////
+
+typedef struct octree_node_t {
+  float center[3];
+  float size;
+  int depth;
+  int max_depth;
+  int max_points;
+
+  struct octree_node_t *children[8];
+  float *points;
+  size_t num_points;
+  size_t capacity;
+} octree_node_t;
+
+octree_node_t *octree_node_malloc(const float center[3],
+                                  const float size,
+                                  const int depth,
+                                  const int max_depth,
+                                  const int max_points);
+void octree_node_free(octree_node_t *node);
+
+////////////
+// OCTREE //
+////////////
+
+typedef struct octree_data_t {
+  float *points;
+  size_t num_points;
+  size_t capacity;
+} octree_data_t;
+
+typedef struct octree_t {
+  float center[3];
+  float size;
+  octree_node_t *root;
+} octree_t;
+
+octree_t *octree_malloc(const float octree_center[3],
+                        const float octree_size,
+                        const int octree_max_depth,
+                        const int voxel_max_points,
+                        const float *octree_points,
+                        const size_t num_points);
+void octree_free(octree_t *octree);
+void octree_add_point(octree_node_t *node, const float point[3]);
+void octree_points(const octree_node_t *node, octree_data_t *data);
+float *octree_downsample(const float *octree_points,
+                         const size_t n,
+                         const float voxel_size,
+                         const size_t voxel_limit,
+                         size_t *n_out);
+
+/*****************************************************************************
+ * KD-TREE
+ ****************************************************************************/
+
+#define KDTREE_KDIM 3
+
+//////////////////
+// KD-TREE NODE //
+//////////////////
+
+typedef struct kdtree_node_t {
+  float p[3];
+  int k;
+  struct kdtree_node_t *left;
+  struct kdtree_node_t *right;
+} kdtree_node_t;
+
+kdtree_node_t *kdtree_node_malloc(const float p[3], const int k);
+void kdtree_node_free(kdtree_node_t *node);
+
+/////////////
+// KD-TREE //
+/////////////
+
+typedef struct kdtree_data_t {
+  float *points;
+  size_t num_points;
+  size_t capacity;
+} kdtree_data_t;
+
+typedef struct kdtree_t {
+  kdtree_node_t *root;
+} kdtree_t;
+
+kdtree_node_t *kdtree_insert(kdtree_node_t *node,
+                             const float p[3],
+                             const int depth);
+
+kdtree_t *kdtree_malloc(float *points, size_t num_points);
+void kdtree_free(kdtree_t *kdtree);
+void kdtree_points(const kdtree_t *kdtree, kdtree_data_t *data);
+void kdtree_nn(const kdtree_t *kdtree,
+               const float target[3],
+               float *best_point,
+               float *best_dist);
+
+/*******************************************************************************
  * STATE-ESTIMATION
  ******************************************************************************/
 
@@ -1696,6 +1824,27 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts);
 //////////////
 // FIDUCIAL //
 //////////////
+
+/** Fiducial Info **/
+typedef struct fiducial_info_t {
+  timestamp_t ts;
+  int cam_idx;
+  int num_corners;
+  int capacity;
+  int *tag_ids;
+  int *corner_indices;
+  real_t *pts;
+  real_t *kps;
+} fiducial_info_t;
+
+fiducial_info_t *fiducial_info_malloc(const timestamp_t ts, const int cam_idx);
+void fiducial_info_free(fiducial_info_t *finfo);
+void fiducial_info_print(const fiducial_info_t *finfo);
+void fiducial_info_add(fiducial_info_t *finfo,
+                       const int tag_id,
+                       const int corner_index,
+                       const real_t p[3],
+                       const real_t z[2]);
 
 /** Fiducial **/
 typedef struct fiducial_t {
@@ -1874,40 +2023,6 @@ typedef struct feature_map_t {
 void feature_setup(feature_t *f, const size_t feature_id);
 void feature_init(feature_t *f, const size_t feature_id, const real_t *data);
 void feature_print(const feature_t *feature);
-
-// /** Features **/
-// typedef struct features_t {
-//   feature_t **data;
-//   size_t num_features;
-//   size_t feature_capacity;
-
-//   pos_t **pos_data;
-//   size_t num_positions;
-//   size_t position_capacity;
-// } features_t;
-
-// features_t *features_malloc(void); void features_free(features_t *features);
-// int features_exists(const features_t *features, const size_t feature_id);
-// void features_add_xyzs(features_t *features,
-//                        const size_t *feature_ids,
-//                        const real_t *params,
-//                        const size_t num_features);
-// void features_add_idfs(features_t *features,
-//                        const size_t *feature_ids,
-//                        const camera_t *cam_params,
-//                        const real_t T_WC[4 * 4],
-//                        const real_t *keypoints,
-//                        const size_t num_keypoints);
-// void features_get_xyz(const features_t *features,
-//                       const size_t feature_id,
-//                       feature_t **feature);
-// void features_get_idf(const features_t *features,
-//                       const size_t feature_id,
-//                       feature_t **feature,
-//                       pos_t **pos);
-// int features_point(const features_t *features,
-//                    const size_t feature_id,
-//                    real_t p_W[3]);
 
 ////////////////
 // TIME-DELAY //
@@ -2303,56 +2418,54 @@ int imu_factor_ceres_eval(void *factor_ptr,
                           real_t *r_out,
                           real_t **J_out);
 
-// //////////////////
-// // LIDAR FACTOR //
-// //////////////////
-//
-// typedef struct pcd_t {
-//   timestamp_t ts_start;
-//   timestamp_t ts_end;
-//   float *data;
-//   float *time_diffs;
-//   size_t num_points;
-// } pcd_t;
-//
-// typedef struct lidar_factor_t {
-//   pcd_t *pcd;
-//   pose_t *pose;
-//   extrinsic_t *extrinsic;
-//
-//   real_t *points_W;
-//   size_t *indices;
-//   size_t num_points;
-//
-//   real_t covar[3 * 3];
-//   real_t sqrt_info[3 * 3];
-//
-//   real_t *r;
-//   int r_size;
-//
-//   int param_types[2];
-//   real_t *params[2];
-//   int num_params;
-//
-//   real_t *jacs[1];
-//   real_t *J_pose;
-// } lidar_factor_t;
-//
-// pcd_t *pcd_malloc(const timestamp_t ts_start,
-//                   const timestamp_t ts_end,
-//                   const float *data,
-//                   const float *time_diffs,
-//                   const size_t num_points);
-// void pcd_free(pcd_t *pcd);
-// void pcd_deskew(pcd_t *points,
-//                 const real_t T_WL_km1[4 * 4],
-//                 const real_t T_WL_km2[4 * 4]);
-//
-// void lidar_factor_setup(lidar_factor_t *factor,
-//                         pcd_t *pcd,
-//                         pose_t *pose_k,
-//                         const real_t var[3]);
-// void lidar_factor_eval(void *factor);
+//////////////////
+// LIDAR FACTOR //
+//////////////////
+
+typedef struct pcd_t {
+  timestamp_t ts_start;
+  timestamp_t ts_end;
+  float *data;
+  float *time_diffs;
+  size_t num_points;
+} pcd_t;
+
+pcd_t *pcd_malloc(const timestamp_t ts_start,
+                  const timestamp_t ts_end,
+                  const float *data,
+                  const float *time_diffs,
+                  const size_t num_points);
+void pcd_free(pcd_t *pcd);
+void pcd_deskew(pcd_t *points,
+                const real_t T_WL_km1[4 * 4],
+                const real_t T_WL_km2[4 * 4]);
+
+typedef struct lidar_factor_t {
+  pcd_t *pcd;
+  kdtree_t *kdtree;
+
+  pose_t *pose;
+  extrinsic_t *extrinsic;
+
+  real_t covar[3 * 3];
+  real_t sqrt_info[3 * 3];
+
+  real_t *r;
+  int r_size;
+
+  int param_types[2];
+  real_t *params[2];
+  int num_params;
+
+  real_t *jacs[1];
+  real_t *J_pose;
+} lidar_factor_t;
+
+void lidar_factor_setup(lidar_factor_t *factor,
+                        pcd_t *pcd,
+                        pose_t *pose_k,
+                        const real_t var[3]);
+void lidar_factor_eval(void *factor);
 
 ////////////////////////
 // JOINT-ANGLE FACTOR //
@@ -2793,111 +2906,6 @@ void timeline_form_timeline(timeline_t *tl);
 timeline_t *timeline_load_data(const char *data_dir,
                                const int num_cams,
                                const int num_imus);
-
-/*******************************************************************************
- * OCTREE
- ******************************************************************************/
-
-/////////////////
-// OCTREE NODE //
-/////////////////
-
-typedef struct octree_node_t {
-  float center[3];
-  float size;
-  int depth;
-  int max_depth;
-  int max_points;
-
-  struct octree_node_t *children[8];
-  float *points;
-  size_t num_points;
-  size_t capacity;
-} octree_node_t;
-
-octree_node_t *octree_node_malloc(const float center[3],
-                                  const float size,
-                                  const int depth,
-                                  const int max_depth,
-                                  const int max_points);
-void octree_node_free(octree_node_t *node);
-
-////////////
-// OCTREE //
-////////////
-
-typedef struct octree_data_t {
-  float *points;
-  size_t num_points;
-  size_t capacity;
-} octree_data_t;
-
-typedef struct octree_t {
-  float center[3];
-  float size;
-  octree_node_t *root;
-} octree_t;
-
-octree_t *octree_malloc(const float octree_center[3],
-                        const float octree_size,
-                        const int octree_max_depth,
-                        const int voxel_max_points,
-                        const float *octree_points,
-                        const size_t num_points);
-void octree_free(octree_t *octree);
-void octree_add_point(octree_node_t *node, const float point[3]);
-void octree_points(const octree_node_t *node, octree_data_t *data);
-float *octree_downsample(const float *octree_points,
-                         const size_t n,
-                         const float voxel_size,
-                         const size_t voxel_limit,
-                         size_t *n_out);
-
-/*****************************************************************************
- * KD-TREE
- ****************************************************************************/
-
-#define KDTREE_KDIM 3
-
-//////////////////
-// KD-TREE NODE //
-//////////////////
-
-typedef struct kdtree_node_t {
-  float p[3];
-  int k;
-  struct kdtree_node_t *left;
-  struct kdtree_node_t *right;
-} kdtree_node_t;
-
-kdtree_node_t *kdtree_node_malloc(const float p[3], const int k);
-void kdtree_node_free(kdtree_node_t *node);
-
-/////////////
-// KD-TREE //
-/////////////
-
-typedef struct kdtree_data_t {
-  float *points;
-  size_t num_points;
-  size_t capacity;
-} kdtree_data_t;
-
-typedef struct kdtree_t {
-  kdtree_node_t *root;
-} kdtree_t;
-
-kdtree_node_t *kdtree_insert(kdtree_node_t *node,
-                             const float p[3],
-                             const int depth);
-
-kdtree_t *kdtree_malloc(float *points, size_t num_points);
-void kdtree_free(kdtree_t *kdtree);
-void kdtree_points(const kdtree_t *kdtree, kdtree_data_t *data);
-void kdtree_nn(const kdtree_t *kdtree,
-               const float target[3],
-               float *best_point,
-               float *best_dist);
 
 /*******************************************************************************
  * SIMULATION

@@ -167,18 +167,18 @@ run_test() {
   exit
 }
 
-# CMD="cd ~/code/xyz && make libxyz -j"
+CMD="cd ~/code/xyz && make libxyz -j"
 # CMD="cd ~/code/xyz && make ci"
 # CMD="cd ~/code/xyz && make tests -j"
 # CMD="cd ~/code/xyz && make clean && make libxyz -j"
-# tmux send-keys -t dev -R "q" C-m C-l
-# tmux send-keys -t dev -R "${CMD}" C-m C-m
-# exit
+tmux send-keys -t dev -R "q" C-m C-l
+tmux send-keys -t dev -R "${CMD}" C-m C-m
+exit
 
 
 # XYZ
 # run_all_tests
-run_test test_xyz
+# run_test test_xyz
 ## XYZ-MACROS
 # run_test test_xyz test_median_value
 # run_test test_xyz test_mean_value

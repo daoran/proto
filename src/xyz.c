@@ -4,7 +4,7 @@
  * SYSTEM
  ******************************************************************************/
 
-void print_stacktrace() {
+void print_stacktrace(void) {
   void *buffer[9046] = {0};
   int nptrs = backtrace(buffer, 100);
   char **strings = backtrace_symbols(buffer, nptrs);
@@ -325,15 +325,6 @@ double **load_darrays(const char *csv_path, int *num_arrays) {
  */
 int *int_malloc(const int val) {
   int *i = malloc(sizeof(int));
-  *i = val;
-  return i;
-}
-
-/**
- * Allocate heap memory for integer `val`.
- */
-int64_t *int64_malloc(const int64_t val) {
-  int64_t *i = malloc(sizeof(int64_t));
   *i = val;
   return i;
 }
@@ -838,6 +829,14 @@ int file_copy(const char *src, const char *dst) {
 /*******************************************************************************
  * TIME
  ******************************************************************************/
+
+timestamp_t *timestamp_malloc(timestamp_t ts) {
+  timestamp_t *ts_ptr = malloc(sizeof(timestamp_t));
+  *ts_ptr = ts;
+  return ts_ptr;
+}
+
+void timestamp_free(timestamp_t *ts_ptr) { free(ts_ptr); }
 
 /**
  * Tic, start timer.
@@ -2862,6 +2861,151 @@ void enforce_spd(real_t *A, const int m, const int n) {
     for (int j = 0; j < n; j++) {
       const real_t a = A[(i * n) + j];
       const real_t b = A[(j * n) + i];
+      A[(i * n) + j] = (a + b) / 2.0;
+    }
+  }
+}
+
+/**
+ * Form identity matrix `A` of size `m x n`.
+ */
+void eyef(float *A, const size_t m, const size_t n) {
+  assert(A != NULL);
+  assert(m != 0);
+  assert(n != 0);
+
+  size_t idx = 0.0;
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = 0; j < n; j++) {
+      A[idx] = (i == j) ? 1.0 : 0.0;
+      idx++;
+    }
+  }
+}
+
+/**
+ * Form ones matrix `A` of size `m x n`.
+ */
+void onesf(float *A, const size_t m, const size_t n) {
+  assert(A != NULL);
+  assert(m != 0);
+  assert(n != 0);
+
+  size_t idx = 0.0;
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = 0; j < n; j++) {
+      A[idx] = 1.0;
+      idx++;
+    }
+  }
+}
+
+/**
+ * Form zeros matrix `A` of size `m x n`.
+ */
+void zerosf(float *A, const size_t m, const size_t n) {
+  assert(A != NULL);
+  assert(m != 0);
+  assert(n != 0);
+
+  size_t idx = 0.0;
+  for (size_t i = 0; i < m; i++) {
+    for (size_t j = 0; j < n; j++) {
+      A[idx] = 0.0;
+      idx++;
+    }
+  }
+}
+
+/**
+ * Create skew-symmetric matrix `A` from a 3x1 vector `x`.
+ */
+void hatf(const float x[3], float A[3 * 3]) {
+  assert(x != NULL);
+  assert(A != NULL);
+
+  // First row
+  A[0] = 0.0;
+  A[1] = -x[2];
+  A[2] = x[1];
+
+  // Second row
+  A[3] = x[2];
+  A[4] = 0.0;
+  A[5] = -x[0];
+
+  // Third row
+  A[6] = -x[1];
+  A[7] = x[0];
+  A[8] = 0.0;
+}
+
+/**
+ * Opposite of the skew-symmetric matrix
+ */
+void veef(const float A[3 * 3], float x[3]) {
+  assert(A != NULL);
+  assert(x != NULL);
+
+  const float A02 = A[2];
+  const float A10 = A[3];
+  const float A21 = A[7];
+
+  x[0] = A21;
+  x[1] = A02;
+  x[2] = A10;
+}
+
+/**
+ * Perform forward substitution with a lower triangular matrix `L`, column
+ * vector `b` and solve for vector `y` of size `n`.
+ */
+void fwdsubsf(const float *L, const float *b, float *y, const size_t n) {
+  assert(L != NULL);
+  assert(b != NULL);
+  assert(y != NULL);
+  assert(n > 0);
+
+  for (size_t i = 0; i < n; i++) {
+    float alpha = b[i];
+    for (size_t j = 0; j < i; j++) {
+      alpha -= L[i * n + j] * y[j];
+    }
+    y[i] = alpha / L[i * n + i];
+  }
+}
+
+/**
+ * Perform backward substitution with a upper triangular matrix `U`, column
+ * vector `y` and solve for vector `x` of size `n`.
+ */
+void bwdsubsf(const float *U, const float *y, float *x, const size_t n) {
+  assert(U != NULL);
+  assert(y != NULL);
+  assert(x != NULL);
+  assert(n > 0);
+
+  for (int i = n - 1; i >= 0; i--) {
+    float alpha = y[i];
+    for (int j = i; j < (int) n; j++) {
+      alpha -= U[i * n + j] * x[j];
+    }
+    x[i] = alpha / U[i * n + i];
+  }
+}
+
+/**
+ * Enforce semi-positive definite. This function assumes the matrix `A` is
+ * square where number of rows `m` and columns `n` is equal, and symmetric.
+ */
+void enforce_spdf(float *A, const int m, const int n) {
+  assert(A != NULL);
+  assert(m == n);
+
+  for (int i = 0; i < m; i++) {
+    for (int j = 0; j < n; j++) {
+      const float a = A[(i * n) + j];
+      const float b = A[(j * n) + i];
       A[(i * n) + j] = (a + b) / 2.0;
     }
   }
@@ -9744,6 +9888,382 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
 }
 
 /*******************************************************************************
+ * OCTREE
+ ******************************************************************************/
+
+/////////////////
+// OCTREE NODE //
+/////////////////
+
+octree_node_t *octree_node_malloc(const float center[3],
+                                  const float size,
+                                  const int depth,
+                                  const int max_depth,
+                                  const int max_points) {
+  octree_node_t *node = malloc(sizeof(octree_node_t));
+
+  node->center[0] = center[0];
+  node->center[1] = center[1];
+  node->center[2] = center[2];
+  node->size = size;
+  node->depth = depth;
+  node->max_depth = max_depth;
+  node->max_points = max_points;
+
+  for (int i = 0; i < 8; ++i) {
+    node->children[i] = NULL;
+  }
+  node->points = malloc(sizeof(float) * 3 * max_points);
+  node->num_points = 0;
+  node->capacity = max_points;
+
+  return node;
+}
+
+void octree_node_free(octree_node_t *node) {
+  if (node == NULL) {
+    return;
+  }
+
+  for (int i = 0; i < 8; ++i) {
+    octree_node_free(node->children[i]);
+  }
+  free(node->points);
+  free(node);
+}
+
+////////////
+// OCTREE //
+////////////
+
+octree_t *octree_malloc(const float octree_center[3],
+                        const float octree_size,
+                        const int octree_max_depth,
+                        const int voxel_max_points,
+                        const float *octree_points,
+                        const size_t num_points) {
+  assert(octree_center);
+  octree_t *octree = malloc(sizeof(octree_t));
+
+  octree->center[0] = octree_center[0];
+  octree->center[1] = octree_center[1];
+  octree->center[2] = octree_center[2];
+  octree->size = octree_size;
+  octree->root = octree_node_malloc(octree->center,
+                                    octree->size,
+                                    0,
+                                    octree_max_depth,
+                                    voxel_max_points);
+  for (size_t i = 0; i < num_points; i++) {
+    octree_add_point(octree->root, &octree_points[i * 3]);
+  }
+
+  return octree;
+}
+
+void octree_free(octree_t *octree) {
+  if (octree == NULL) {
+    return;
+  }
+  octree_node_free(octree->root);
+  free(octree);
+}
+
+void octree_add_point(octree_node_t *node, const float point[3]) {
+  assert(node);
+  assert(point);
+
+  // Max depth reached? Add the point
+  if (node->depth == node->max_depth) {
+    if (node->num_points >= node->max_points) {
+      return;
+    }
+    node->points[node->num_points * 3 + 0] = point[0];
+    node->points[node->num_points * 3 + 1] = point[1];
+    node->points[node->num_points * 3 + 2] = point[2];
+    node->num_points++;
+    if (node->num_points >= node->capacity) {
+      node->capacity = node->capacity * 2;
+      node->points = realloc(node->points, sizeof(float) * 3 * node->capacity);
+    }
+    return;
+  }
+
+  // Calculate node index
+  int index = 0;
+  index |= (point[0] > node->center[0]) ? 1 : 0;
+  index |= (point[1] > node->center[1]) ? 2 : 0;
+  index |= (point[2] > node->center[2]) ? 4 : 0;
+
+  // Create new child node if it doesn't exist already
+  octree_node_t *child = node->children[index];
+  if (child == NULL) {
+    const float offset = node->size / 2;
+    const float center[3] = {node->center[0] + (index & 1 ? offset : -offset),
+                             node->center[1] + (index & 2 ? offset : -offset),
+                             node->center[2] + (index & 4 ? offset : -offset)};
+    const float size = node->size / 2.0;
+    const int depth = node->depth + 1;
+    const int max_depth = node->max_depth;
+    const int max_points = node->max_points;
+    child = octree_node_malloc(center, size, depth, max_depth, max_points);
+    node->children[index] = child;
+  }
+
+  // Recurse down the octree
+  octree_add_point(child, point);
+}
+
+void octree_points(const octree_node_t *node, octree_data_t *data) {
+  assert(node);
+  assert(data && data->points && data->capacity > 0);
+
+  if (node->num_points > 0) {
+    for (size_t i = 0; i < node->num_points; ++i) {
+      data->points[data->num_points * 3 + 0] = node->points[i * 3 + 0];
+      data->points[data->num_points * 3 + 1] = node->points[i * 3 + 1];
+      data->points[data->num_points * 3 + 2] = node->points[i * 3 + 2];
+      data->num_points++;
+      if (data->num_points >= data->capacity) {
+        data->capacity = data->capacity * 2;
+        data->points =
+            realloc(data->points, sizeof(float) * 3 * data->capacity);
+      }
+    }
+  }
+
+  for (size_t i = 0; i < 8; ++i) {
+    if (node->children[i]) {
+      octree_points(node->children[i], data);
+    }
+  }
+}
+
+float *octree_downsample(const float *octree_data,
+                         const size_t n,
+                         const float voxel_size,
+                         const size_t voxel_max_points,
+                         size_t *n_out) {
+  assert(octree_data);
+  assert(n > 0);
+
+  // Find center
+  float xmin, ymin, zmin = INFINITY;
+  float xmax, ymax, zmax = -INFINITY;
+  for (size_t i = 0; i < n; ++i) {
+    const float x = octree_data[i * 3 + 0];
+    const float y = octree_data[i * 3 + 1];
+    const float z = octree_data[i * 3 + 2];
+    xmin = (x < xmin) ? x : xmin;
+    xmax = (x > xmax) ? x : xmax;
+    ymin = (y < ymin) ? y : ymin;
+    ymax = (y > ymax) ? y : ymax;
+    zmin = (z < zmin) ? z : zmin;
+    zmax = (z > zmax) ? z : zmax;
+  }
+  const float octree_center[3] = {
+      (xmax + xmin) / 2.0,
+      (ymax + ymin) / 2.0,
+      (zmax + zmin) / 2.0,
+  };
+
+  // Find octree size
+  float octree_size = 0.0f;
+  octree_size = (fabs(xmin) > octree_size) ? fabs(xmin) : octree_size;
+  octree_size = (fabs(ymin) > octree_size) ? fabs(ymin) : octree_size;
+  octree_size = (fabs(zmin) > octree_size) ? fabs(zmin) : octree_size;
+  octree_size = (xmax > octree_size) ? xmax : octree_size;
+  octree_size = (ymax > octree_size) ? ymax : octree_size;
+  octree_size = (zmax > octree_size) ? zmax : octree_size;
+
+  // Create octree
+  const int octree_max_depth = ceil(log2(octree_size / voxel_size));
+  octree_t *octree = octree_malloc(octree_center,
+                                   octree_size,
+                                   octree_max_depth,
+                                   voxel_max_points,
+                                   octree_data,
+                                   n);
+
+  // Get points
+  octree_data_t data = {0};
+  data.points = malloc(sizeof(float) * 3 * n);
+  data.num_points = 0;
+  data.capacity = n;
+  octree_points(octree->root, &data);
+
+  // Clean up
+  octree_free(octree);
+
+  // Return
+  *n_out = data.num_points;
+  data.points = realloc(data.points, sizeof(float) * 3 * *n_out);
+  return data.points;
+}
+
+/*****************************************************************************
+ * KD-TREE
+ ****************************************************************************/
+
+//////////////////
+// KD-TREE NODE //
+//////////////////
+
+kdtree_node_t *kdtree_node_malloc(const float p[3], const int k) {
+  assert(p);
+  assert(k >= 0 && k <= 2);
+  kdtree_node_t *node = malloc(sizeof(kdtree_node_t));
+
+  node->p[0] = p[0];
+  node->p[1] = p[1];
+  node->p[2] = p[2];
+  node->k = k;
+  node->left = NULL;
+  node->right = NULL;
+
+  return node;
+}
+
+void kdtree_node_free(kdtree_node_t *node) {
+  if (node == NULL) {
+    return;
+  }
+  kdtree_node_free(node->left);
+  kdtree_node_free(node->right);
+  free(node);
+}
+
+/////////////
+// KD-TREE //
+/////////////
+
+int point_cmp(const void *a, const void *b, void *k) {
+  return (((float *) a)[*(int *) k] < ((float *) b)[*(int *) k]) ? -1 : 1;
+}
+
+kdtree_node_t *kdtree_insert(kdtree_node_t *node,
+                             const float p[3],
+                             const int depth) {
+  const int k = depth % KDTREE_KDIM;
+  if (node == NULL) {
+    return kdtree_node_malloc(p, k);
+  }
+
+  if (p[k] < node->p[k]) {
+    node->left = kdtree_insert(node->left, p, depth + 1);
+  } else {
+    node->right = kdtree_insert(node->right, p, depth + 1);
+  }
+
+  return node;
+}
+
+static kdtree_node_t *
+_kdtree_build(float *points, const int start, const int end, const int depth) {
+  if (start > end) {
+    return NULL;
+  }
+
+  int k = depth % KDTREE_KDIM;
+  const int mid = (start + end + 1) / 2;
+  qsort_r(points + start * 3,
+          end - start + 1,
+          sizeof(float) * 3,
+          point_cmp,
+          &k);
+
+  kdtree_node_t *root = kdtree_node_malloc(points + mid * 3, k);
+  root->left = _kdtree_build(points, start, mid - 1, depth + 1);
+  root->right = _kdtree_build(points, mid + 1, end, depth + 1);
+
+  return root;
+}
+
+kdtree_t *kdtree_malloc(float *points, size_t num_points) {
+  kdtree_t *kdtree = malloc(sizeof(kdtree_t));
+  kdtree->root = _kdtree_build(points, 0, num_points - 1, 0);
+  return kdtree;
+}
+
+void kdtree_free(kdtree_t *kdtree) {
+  kdtree_node_free(kdtree->root);
+  free(kdtree);
+}
+
+static void _kdtree_points(const kdtree_node_t *node, kdtree_data_t *data) {
+  assert(data);
+  if (node == NULL) {
+    return;
+  }
+
+  data->points[data->num_points * 3 + 0] = node->p[0];
+  data->points[data->num_points * 3 + 1] = node->p[1];
+  data->points[data->num_points * 3 + 2] = node->p[2];
+  data->num_points++;
+  if (data->num_points >= data->capacity) {
+    data->capacity = data->capacity * 2;
+    data->points = realloc(data->points, sizeof(float) * 3 * data->capacity);
+  }
+
+  _kdtree_points(node->left, data);
+  _kdtree_points(node->right, data);
+}
+
+void kdtree_points(const kdtree_t *kdtree, kdtree_data_t *data) {
+  assert(kdtree && kdtree->root);
+  assert(data && data->points && data->capacity > 0);
+  _kdtree_points(kdtree->root, data);
+}
+
+void _kdtree_nn(const kdtree_node_t *node,
+                const float target[3],
+                float *best_dist,
+                float *best_point,
+                int depth) {
+  // Pre-check
+  if (node == NULL) {
+    return;
+  }
+
+  // Calculate distance and keep track of best
+  float sq_dist = 0.0f;
+  sq_dist += (node->p[0] - target[0]) * (node->p[0] - target[0]);
+  sq_dist += (node->p[1] - target[1]) * (node->p[1] - target[1]);
+  sq_dist += (node->p[2] - target[2]) * (node->p[2] - target[2]);
+  if (sq_dist <= *best_dist) {
+    best_point[0] = node->p[0];
+    best_point[1] = node->p[1];
+    best_point[2] = node->p[2];
+    *best_dist = sq_dist;
+  }
+
+  // Determine which side to search first
+  const int axis = node->k;
+  const float diff = target[axis] - node->p[axis];
+
+  // Search the closer subtree first
+  const kdtree_node_t *closer = (diff <= 0) ? node->left : node->right;
+  const kdtree_node_t *farther = (diff <= 0) ? node->right : node->left;
+  _kdtree_nn(closer, target, best_dist, best_point, depth + 1);
+
+  // Search the farther subtree
+  if (fabs(diff) < *best_dist) {
+    _kdtree_nn(farther, target, best_dist, best_point, depth + 1);
+  }
+}
+
+void kdtree_nn(const kdtree_t *kdtree,
+               const float target[3],
+               float *best_point,
+               float *best_dist) {
+  *best_dist = INFINITY;
+  best_point[0] = target[0];
+  best_point[1] = target[1];
+  best_point[2] = target[2];
+  _kdtree_nn(kdtree->root, target, best_dist, best_point, 0);
+}
+
+/*******************************************************************************
  * STATE-ESTIMATION
  ******************************************************************************/
 
@@ -10038,6 +10558,74 @@ void extrinsic_print(const char *prefix, const extrinsic_t *exts) {
 //////////////
 // FIDUCIAL //
 //////////////
+
+fiducial_info_t *fiducial_info_malloc(const timestamp_t ts, const int cam_idx) {
+  fiducial_info_t *finfo = malloc(sizeof(fiducial_info_t));
+  finfo->ts = ts;
+  finfo->cam_idx = cam_idx;
+  finfo->num_corners = 0;
+  finfo->capacity = 200;
+  finfo->tag_ids = calloc(200, sizeof(int));
+  finfo->corner_indices = calloc(200, sizeof(int));
+  finfo->pts = calloc(200 * 3, sizeof(real_t));
+  finfo->kps = calloc(200 * 2, sizeof(real_t));
+  return finfo;
+}
+
+void fiducial_info_free(fiducial_info_t *finfo) {
+  free(finfo->tag_ids);
+  free(finfo->corner_indices);
+  free(finfo->pts);
+  free(finfo->kps);
+  free(finfo);
+}
+
+void fiducial_info_print(const fiducial_info_t *finfo) {
+  printf("ts: %ld\n", finfo->ts);
+  printf("cam_idx: %d\n", finfo->cam_idx);
+  printf("num_corners: %d\n", finfo->num_corners);
+  printf("\n");
+  printf("#tag_id, corner_idx, kp_x, kp_y, p_x, p_y, p_z\n");
+  for (int i = 0; i < finfo->num_corners; i++) {
+    const int tag_id = finfo->tag_ids[i];
+    const int corner_idx = finfo->corner_indices[i];
+    printf("%d, ", tag_id);
+    printf("%d, ", corner_idx);
+    printf("%.2f, ", finfo->kps[i * 2 + 0]);
+    printf("%.2f, ", finfo->kps[i * 2 + 1]);
+    printf("%.2f, ", finfo->pts[i * 3 + 0]);
+    printf("%.2f, ", finfo->pts[i * 3 + 1]);
+    printf("%.2f", finfo->pts[i * 3 + 2]);
+    printf("\n");
+  }
+  printf("\n");
+}
+
+void fiducial_info_add(fiducial_info_t *finfo,
+                       const int tag_id,
+                       const int corner_index,
+                       const real_t p[3],
+                       const real_t z[2]) {
+  if (finfo->num_corners >= finfo->capacity) {
+    finfo->capacity = finfo->capacity * 2;
+    const size_t n = finfo->capacity;
+
+    finfo->tag_ids = realloc(finfo->tag_ids, sizeof(int) * n);
+    finfo->corner_indices = realloc(finfo->tag_ids, sizeof(int) * n);
+    finfo->pts = realloc(finfo->pts, sizeof(real_t) * 3 * n);
+    finfo->kps = realloc(finfo->kps, sizeof(real_t) * 2 * n);
+  }
+
+  const size_t i = finfo->num_corners;
+  finfo->tag_ids[i] = tag_id;
+  finfo->corner_indices[i] = corner_index;
+  finfo->pts[i * 3 + 0] = p[0];
+  finfo->pts[i * 3 + 1] = p[1];
+  finfo->pts[i * 3 + 2] = p[2];
+  finfo->kps[i * 2 + 0] = z[0];
+  finfo->kps[i * 2 + 1] = z[1];
+  finfo->num_corners++;
+}
 
 /**
  * Setup fiducial.
@@ -10608,215 +11196,6 @@ void feature_print(const feature_t *f) {
   printf("data: (%.2f, %.2f, %.2f)\n", f->data[0], f->data[1], f->data[2]);
   printf("\n");
 }
-
-// /**
-//  * Malloc features.
-//  */
-// features_t *features_malloc(void) {
-//   features_t *features = malloc(sizeof(features_t) * 1);
-
-//   features->data = calloc(FEATURES_CAPACITY_INITIAL, sizeof(feature_t *));
-//   features->num_features = 0;
-//   features->feature_capacity = FEATURES_CAPACITY_INITIAL;
-
-//   features->pos_data = calloc(FEATURES_CAPACITY_INITIAL, sizeof(feature_t *));
-//   features->num_positions = 0;
-//   features->position_capacity = FEATURES_CAPACITY_INITIAL;
-
-//   return features;
-// }
-
-// /**
-//  * Free features.
-//  */
-// void features_free(features_t *features) {
-//   assert(features != NULL);
-
-//   for (size_t i = 0; i < features->feature_capacity; i++) {
-//     free(features->data[i]);
-//   }
-//   free(features->data);
-
-//   for (size_t i = 0; i < features->position_capacity; i++) {
-//     free(features->pos_data[i]);
-//   }
-//   free(features->pos_data);
-
-//   free(features);
-// }
-
-// /**
-//  * Check whether feature with `feature_id` exists
-//  * @returns 1 for yes, 0 for no
-//  */
-// int features_exists(const features_t *features, const size_t feature_id) {
-//   return features->data[feature_id] != NULL;
-// }
-
-// /**
-//  * Add XYZ feature.
-//  */
-// void features_add_xyzs(features_t *features,
-//                        const size_t *feature_ids,
-//                        const real_t *params,
-//                        const size_t num_features) {
-//   assert(features != NULL);
-//   assert(feature_ids != NULL);
-//   assert(params != NULL);
-
-//   // Expand features dynamic array if needed
-//   if (feature_ids[num_features - 1] >= features->feature_capacity) {
-//     size_t old_size = features->feature_capacity;
-//     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-//     features->data = realloc(features->data, sizeof(feature_t *) * new_size);
-//     features->feature_capacity = new_size;
-//     for (size_t i = old_size; i < new_size; i++) {
-//       features->data[i] = NULL;
-//     }
-//     // The above step is quite important because by default realloc will not
-//     // initialize pointers to NULL, and there will be no way of knowing
-//     // whether a feature exists.
-//   }
-
-//   // Add features
-//   for (size_t i = 0; i < num_features; i++) {
-//     feature_t *f = MALLOC(feature_t, 1);
-//     feature_init(f, feature_ids[i], params + i * 3);
-//     features->data[feature_ids[i]] = f;
-//     features->num_features++;
-//   }
-// }
-
-// /**
-//  * Add inverse-depth feature.
-//  */
-// void features_add_idfs(features_t *features,
-//                        const size_t *feature_ids,
-//                        const camera_t *cam_params,
-//                        const real_t T_WC[4 * 4],
-//                        const real_t *keypoints,
-//                        const size_t num_keypoints) {
-//   assert(features != NULL);
-//   assert(feature_ids != NULL);
-//   assert(cam_params != NULL);
-//   assert(T_WC != NULL);
-//   assert(keypoints != NULL);
-
-//   // Pre-check
-//   if (num_keypoints == 0) {
-//     return;
-//   }
-
-//   // Expand features dynamic array if needed
-//   if (feature_ids[num_keypoints - 1] >= features->feature_capacity) {
-//     size_t old_size = features->feature_capacity;
-//     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-//     features->data = realloc(features->data, sizeof(feature_t *) * new_size);
-//     features->feature_capacity = new_size;
-//     for (size_t i = old_size; i < new_size; i++) {
-//       features->data[i] = NULL;
-//     }
-//     // The above step is quite important because by default realloc will not
-//     // initialize pointers to NULL, and there will be no way of knowing
-//     // whether a feature exists.
-//   }
-
-//   // Expand positions dynamic array if needed
-//   const size_t pos_id = features->num_positions;
-//   if (pos_id >= features->position_capacity) {
-//     size_t old_size = features->position_capacity;
-//     size_t new_size = old_size * FEATURES_CAPACITY_GROWTH_FACTOR;
-//     features->data = realloc(features->pos_data, sizeof(pos_t *) * new_size);
-//     features->position_capacity = new_size;
-//     for (size_t i = old_size; i < new_size; i++) {
-//       features->pos_data[i] = NULL;
-//     }
-//     // The above step is quite important because by default realloc will not
-//     // initialize pointers to NULL, and there will be no way of knowing
-//     // whether a feature exists.
-//   }
-
-//   // Setup
-//   TF_ROT(T_WC, C_WC);
-//   TF_TRANS(T_WC, r_WC);
-
-//   // Add feature
-//   for (size_t i = 0; i < num_keypoints; i++) {
-//     const size_t feature_id = feature_ids[i];
-//     feature_t *f = malloc(sizeof(feature_t) * 1);
-//     idf_setup(f, feature_id, pos_id, cam_params, C_WC, keypoints + i * 2);
-//     features->data[feature_id] = f;
-//     features->num_features++;
-//   }
-
-//   // Add inverse-depth "first-seen" position
-//   pos_t *pos = malloc(sizeof(pos_t) * 1);
-//   pos_setup(pos, r_WC);
-//   features->pos_data[pos_id] = pos;
-//   features->num_positions++;
-// }
-
-// /**
-//  * Returns pointer to feature with `feature_id`.
-//  */
-// void features_get_xyz(const features_t *features,
-//                       const size_t feature_id,
-//                       feature_t **feature) {
-//   *feature = features->data[feature_id];
-// }
-
-// /**
-//  * Returns pointer to feature with `feature_id`.
-//  */
-// void features_get_idf(const features_t *features,
-//                       const size_t feature_id,
-//                       feature_t **feature,
-//                       pos_t **pos) {
-//   *feature = features->data[feature_id];
-//   *pos = features->pos_data[(*feature)->pos_id];
-// }
-
-// /**
-//  * Returns 3D point corresponding to feature.
-//  */
-// int features_point(const features_t *features,
-//                    const size_t feature_id,
-//                    real_t p_W[3]) {
-//   if (features_exists(features, feature_id) != 0) {
-//     return -1;
-//   }
-
-//   const feature_t *f = features->data[feature_id];
-//   if (f->type == FEATURE_XYZ) {
-//     p_W[0] = f->data[0];
-//     p_W[1] = f->data[1];
-//     p_W[2] = f->data[2];
-//   } else if (f->type == FEATURE_INVERSE_DEPTH) {
-//     const pos_t *pos = features->pos_data[f->pos_id];
-//     idf_point(f, pos->data, p_W);
-//   } else {
-//     FATAL("Invalid feature type [%d]!\n", f->type);
-//   }
-
-//   return 0;
-// }
-
-// /**
-//  * Return IDFB feature ids, keypoints and points.
-//  */
-// void idfb_points(idfb_t *idfb,
-//                  size_t **feature_ids,
-//                  real_t **points,
-//                  size_t *num_points) {
-//   *num_points = hmlen(idfb->params);
-//   *feature_ids = malloc(sizeof(size_t) * *num_points);
-//   *points = malloc(sizeof(real_t) * *num_points * 3);
-
-//   for (size_t i = 0; i < hmlen(idfb->params); i++) {
-//     (*feature_ids)[i] = idfb->params[i].key;
-//     idf_point(&idfb->params[i].param, &idfb->pos, &(*points)[i * 3]);
-//   }
-// }
 
 ////////////////
 // TIME-DELAY //
@@ -13190,188 +13569,240 @@ int imu_factor_ceres_eval(void *factor_ptr,
                     J_out);
 }
 
-// //////////////////
-// // LIDAR FACTOR //
-// //////////////////
-//
-// pcd_t *pcd_malloc(const timestamp_t ts_start,
-//                   const timestamp_t ts_end,
-//                   const float *data,
-//                   const float *time_diffs,
-//                   const size_t num_points) {
-//   pcd_t *pcd = malloc(sizeof(pcd_t));
-//
-//   pcd->ts_start = ts_start;
-//   pcd->ts_end = ts_end;
-//
-//   pcd->data = malloc(sizeof(float) * 3 * num_points);
-//   for (size_t i = 0; i < num_points; ++i) {
-//     pcd->data[i * 3 + 0] = data[i * 3 + 0];
-//     pcd->data[i * 3 + 1] = data[i * 3 + 1];
-//     pcd->data[i * 3 + 2] = data[i * 3 + 2];
-//   }
-//
-//   pcd->time_diffs = malloc(sizeof(float) * num_points);
-//   for (size_t i = 0; i < num_points; ++i) {
-//     pcd->time_diffs[i] = time_diffs[i];
-//   }
-//   pcd->num_points = num_points;
-//
-//   return pcd;
-// }
-//
-// void pcd_free(pcd_t *pcd) {
-//   if (pcd == NULL) {
-//     return;
-//   }
-//
-//   free(pcd->data);
-//   free(pcd->time_diffs);
-//   free(pcd);
-// }
-//
-// void pcd_deskew(pcd_t *pcd,
-//                 const real_t T_WL_km1[4 * 4],
-//                 const real_t T_WL_km2[4 * 4]) {
-//   assert(pcd);
-//   assert(T_WL_km1);
-//   assert(T_WL_km2);
-//
-//   // Setup
-//   const real_t ts_start = ts2sec(pcd->ts_start);
-//   const real_t ts_end = ts2sec(pcd->ts_end);
-//   const real_t dt = ts_end - ts_start;
-//   TF_ROT(T_WL_km2, C_WL_km2);
-//   TF_ROT(T_WL_km1, C_WL_km1);
-//   TF_TRANS(T_WL_km2, r_WL_km2);
-//   TF_TRANS(T_WL_km1, r_WL_km1);
-//
-//   // v_WL = (C_WL_km2' * (r_WL_km1 - r_WL_km2)) / dt
-//   VEC_SUB(r_WL_km1, r_WL_km2, dr, 3);
-//   MAT_TRANSPOSE(C_WL_km2, 3, 3, C_WL_t_km2);
-//   DOT(C_WL_t_km2, 3, 3, dr, 3, 1, v_WL);
-//   vec_scale(v_WL, 3, 1.0 / dt);
-//
-//   // w_WL = (Log(C_WL_km2' * C_WL_km1)) / dt
-//   real_t w_WL[3] = {0};
-//   DOT(C_WL_t_km2, 3, 3, C_WL_km1, 3, 3, dC);
-//   lie_Log(dC, w_WL);
-//   vec_scale(w_WL, 3, 1.0 / dt);
-//
-//   // Deskew point cloud
-//   // p = Exp(s_i * w_WL) * p + s_i * v_WL
-//   for (size_t i = 0; i < pcd->num_points; ++i) {
-//     real_t p[3] = {
-//         pcd->data[i * 3 + 0],
-//         pcd->data[i * 3 + 1],
-//         pcd->data[i * 3 + 2],
-//     };
-//
-//     const real_t s_i = pcd->time_diffs[i];
-//     const real_t v_WL_i[3] = {s_i * v_WL[0], s_i * v_WL[1], s_i * v_WL[2]};
-//     const real_t w_WL_i[3] = {s_i * w_WL[0], s_i * w_WL[1], s_i * w_WL[2]};
-//
-//     real_t dC[3 * 3] = {0};
-//     lie_Exp(w_WL_i, dC);
-//     DOT(dC, 3, 3, p, 3, 1, p_new);
-//     vec_add(p_new, v_WL_i, p, 3);
-//   }
-// }
-//
-// /**
-//  * Setup lidar factor
-//  */
-// void lidar_factor_setup(lidar_factor_t *factor,
-//                         pcd_t *pcd,
-//                         pose_t *pose,
-//                         const real_t var[3]) {
-//   assert(factor != NULL);
-//   assert(pcd != NULL);
-//   assert(pose != NULL);
-//   assert(var != NULL);
-//
-//   // Parameters
-//   factor->pcd = pcd;
-//   factor->pose = pose;
-//
-//   // Measurement covariance
-//   zeros(factor->covar, 3, 3);
-//   factor->covar[0] = var[0];
-//   factor->covar[4] = var[1];
-//   factor->covar[8] = var[2];
-//
-//   // Square-root information matrix
-//   zeros(factor->sqrt_info, 3, 3);
-//   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
-//   factor->sqrt_info[4] = sqrt(1.0 / factor->covar[1]);
-//   factor->sqrt_info[8] = sqrt(1.0 / factor->covar[2]);
-//
-//   // Factor parameters, residuals and Jacobians
-//   factor->r_size = pcd->num_points * 3;
-//   factor->num_params = 1;
-//   factor->param_types[0] = POSE_PARAM;
-//   factor->params[0] = factor->pose->data;
-//   factor->jacs[0] = factor->J_pose;
-// }
-//
-// /**
-//  * Evaluate lidar factor
-//  */
-// void lidar_factor_eval(void *factor_ptr) {
-//   lidar_factor_t *factor = (lidar_factor_t *) factor_ptr;
-//   assert(factor != NULL);
-//   assert(factor->pose);
-//   assert(factor->pcd);
-//
-//   // Map params
-//   // TF(factor->params[0], T_WB);
-//   // TF(factor->params[1], T_BL);
-//   // TF_CHAIN(T_WL, 2, T_WB, T_BL);
-//   // TF_INV(T_WL, T_LW);
-//   // TF_ROT(T_LW, C_LW);
-//   // TF_TRANS(T_LW, r_LW);
-//
-//   // Calculate residuals
-//   // points_W = points_L * C_LW + r_LW
-//   // real_t *points_W_hat = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
-//   // dot(factor->pcd->data, factor->pcd->num_points, 3, C_LW, 3, 3, points_W_hat);
-//   // for (size_t i = 0; i < factor->pcd->num_points; ++i) {
-//   //   points_W_hat[i * 3 + 0] += r_LW[0];
-//   //   points_W_hat[i * 3 + 1] += r_LW[1];
-//   //   points_W_hat[i * 3 + 2] += r_LW[2];
-//   // }
-//   // r = points_W - points_W_hat
-//   // factor->r = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
-//   // for (size_t i = 0; i < factor->num_points; ++i) {
-//   //   factor->r[i * 3 + 0] = points_W[i * 3 + 0] - points_W_hat[i * 3 + 0];
-//   //   factor->r[i * 3 + 1] = points_W[i * 3 + 1] - points_W_hat[i * 3 + 1];
-//   //   factor->r[i * 3 + 2] = points_W[i * 3 + 2] - points_W_hat[i * 3 + 2];
-//   // }
-//
-//   // Calculate jacobians
-//   // -- Form: -1 * sqrt_info
-//   // real_t neg_sqrt_info[3 * 3] = {0};
-//   // mat_copy(factor->sqrt_info, 3, 3, neg_sqrt_info);
-//   // mat_scale(neg_sqrt_info, 3, 3, -1.0);
-//   // -- Fill jacobians
-//   // const size_t num_rows = 3 * factor->num_points;
-//   // const size_t num_cols = 6;
-//   // factor->J_pose = malloc(sizeof(real_t) * num_rows * num_cols);
-//   // const int stride = 6;
-//   // for (size_t i = 0; i < factor->num_points; ++i) {
-//   //   const int rs = i * 3 + 0;
-//   //   const int re = i * 3 + 2;
-//   //   const int cs = 0;
-//   //   const int ce = 5;
-//   //   mat_block_set(factor->J_pose,
-//   //                 stride,
-//   //                 rs,
-//   //                 re,
-//   //                 cs,
-//   //                 ce,
-//   //                 J_pose_i);
-//   // }
-// }
+//////////////////
+// LIDAR FACTOR //
+//////////////////
+
+pcd_t *pcd_malloc(const timestamp_t ts_start,
+                  const timestamp_t ts_end,
+                  const float *data,
+                  const float *time_diffs,
+                  const size_t num_points) {
+  pcd_t *pcd = malloc(sizeof(pcd_t));
+
+  pcd->ts_start = ts_start;
+  pcd->ts_end = ts_end;
+
+  pcd->data = malloc(sizeof(float) * 3 * num_points);
+  for (size_t i = 0; i < num_points; ++i) {
+    pcd->data[i * 3 + 0] = data[i * 3 + 0];
+    pcd->data[i * 3 + 1] = data[i * 3 + 1];
+    pcd->data[i * 3 + 2] = data[i * 3 + 2];
+  }
+
+  pcd->time_diffs = malloc(sizeof(float) * num_points);
+  for (size_t i = 0; i < num_points; ++i) {
+    pcd->time_diffs[i] = time_diffs[i];
+  }
+  pcd->num_points = num_points;
+
+  return pcd;
+}
+
+void pcd_free(pcd_t *pcd) {
+  if (pcd == NULL) {
+    return;
+  }
+
+  free(pcd->data);
+  free(pcd->time_diffs);
+  free(pcd);
+}
+
+void pcd_deskew(pcd_t *pcd,
+                const real_t T_WL_km1[4 * 4],
+                const real_t T_WL_km2[4 * 4]) {
+  assert(pcd);
+  assert(T_WL_km1);
+  assert(T_WL_km2);
+
+  // Setup
+  const real_t ts_start = ts2sec(pcd->ts_start);
+  const real_t ts_end = ts2sec(pcd->ts_end);
+  const real_t dt = ts_end - ts_start;
+  TF_ROT(T_WL_km2, C_WL_km2);
+  TF_ROT(T_WL_km1, C_WL_km1);
+  TF_TRANS(T_WL_km2, r_WL_km2);
+  TF_TRANS(T_WL_km1, r_WL_km1);
+
+  // v_WL = (C_WL_km2' * (r_WL_km1 - r_WL_km2)) / dt
+  VEC_SUB(r_WL_km1, r_WL_km2, dr, 3);
+  MAT_TRANSPOSE(C_WL_km2, 3, 3, C_WL_t_km2);
+  DOT(C_WL_t_km2, 3, 3, dr, 3, 1, v_WL);
+  vec_scale(v_WL, 3, 1.0 / dt);
+
+  // w_WL = (Log(C_WL_km2' * C_WL_km1)) / dt
+  real_t w_WL[3] = {0};
+  DOT(C_WL_t_km2, 3, 3, C_WL_km1, 3, 3, dC);
+  lie_Log(dC, w_WL);
+  vec_scale(w_WL, 3, 1.0 / dt);
+
+  // Deskew point cloud
+  // p = Exp(s_i * w_WL) * p + s_i * v_WL
+  for (size_t i = 0; i < pcd->num_points; ++i) {
+    real_t p[3] = {
+        pcd->data[i * 3 + 0],
+        pcd->data[i * 3 + 1],
+        pcd->data[i * 3 + 2],
+    };
+
+    const real_t s_i = pcd->time_diffs[i];
+    const real_t v_WL_i[3] = {s_i * v_WL[0], s_i * v_WL[1], s_i * v_WL[2]};
+    const real_t w_WL_i[3] = {s_i * w_WL[0], s_i * w_WL[1], s_i * w_WL[2]};
+
+    real_t dC[3 * 3] = {0};
+    lie_Exp(w_WL_i, dC);
+    DOT(dC, 3, 3, p, 3, 1, p_new);
+    vec_add(p_new, v_WL_i, p, 3);
+  }
+}
+
+/**
+ * Setup lidar factor
+ */
+void lidar_factor_setup(lidar_factor_t *factor,
+                        pcd_t *pcd,
+                        pose_t *pose,
+                        const real_t var[3]) {
+  assert(factor != NULL);
+  assert(pcd != NULL);
+  assert(pose != NULL);
+  assert(var != NULL);
+
+  // Parameters
+  factor->pcd = pcd;
+  factor->pose = pose;
+
+  // Measurement covariance
+  zeros(factor->covar, 3, 3);
+  factor->covar[0] = var[0];
+  factor->covar[4] = var[1];
+  factor->covar[8] = var[2];
+
+  // Square-root information matrix
+  zeros(factor->sqrt_info, 3, 3);
+  factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
+  factor->sqrt_info[4] = sqrt(1.0 / factor->covar[1]);
+  factor->sqrt_info[8] = sqrt(1.0 / factor->covar[2]);
+
+  // Factor parameters, residuals and Jacobians
+  factor->r_size = pcd->num_points * 3;
+  factor->num_params = 1;
+  factor->param_types[0] = POSE_PARAM;
+  factor->params[0] = factor->pose->data;
+  factor->jacs[0] = factor->J_pose;
+}
+
+static float *pcd_transform(pcd_t *pcd, const real_t *T_WL) {
+  TF_INV(T_WL, T_LW);
+  TF_ROT(T_LW, C_LW);
+  TF_TRANS(T_LW, r_LW);
+
+  float C_LW_f[3 * 3] = {0};
+  float r_LW_f[3 * 3] = {0};
+  for (int i = 0; i < 9; ++i) {
+    C_LW_f[i] = C_LW[i];
+  }
+  for (int i = 0; i < 3; ++i) {
+    r_LW_f[i] = r_LW[i];
+  }
+
+  float *points_W = malloc(sizeof(real_t) * 3 * pcd->num_points);
+  dotf(pcd->data, pcd->num_points, 3, C_LW_f, 3, 3, points_W);
+  for (size_t i = 0; i < pcd->num_points; ++i) {
+    points_W[i * 3 + 0] += r_LW_f[0];
+    points_W[i * 3 + 1] += r_LW_f[1];
+    points_W[i * 3 + 2] += r_LW_f[2];
+  }
+
+  return points_W;
+}
+
+void lidar_factor_jacobian(real_t *C_WL, float *p_W_est, real_t J_pose[3 * 6]) {
+  // J_pos = -1.0 * eye(3)
+  real_t J_pos[3 * 3] = {0};
+  J_pos[0] = -1.0;
+  J_pos[4] = -1.0;
+  J_pos[8] = -1.0;
+
+  // J_rot = C_WL @ hat(p_W_est)
+  // clang-format off
+  real_t xP[3 * 3] = {0};
+  xP[0] = 0.0;         xP[1] = -p_W_est[2]; xP[2] = p_W_est[1];
+  xP[3] = p_W_est[2];  xP[4] = 0.0;         xP[5] = -p_W_est[0];
+  xP[6] = -p_W_est[1]; xP[7] = p_W_est[0];  xP[8] = 0.0;
+  // clang-format on
+  DOT(C_WL, 3, 3, xP, 3, 3, J_rot);
+
+  // J_pose = zeros((3, 6))
+  // J[0:3, 0:3] = J_pos
+  // J[0:3, 3:6] = J_rot
+  mat_block_set(J_pose, 6, 0, 2, 0, 2, J_pos);
+  mat_block_set(J_pose, 6, 0, 2, 3, 5, J_rot);
+}
+
+/**
+ * Evaluate lidar factor
+ */
+void lidar_factor_eval(void *factor_ptr) {
+  lidar_factor_t *factor = (lidar_factor_t *) factor_ptr;
+  assert(factor != NULL);
+  assert(factor->pose);
+  assert(factor->pcd);
+
+  // Map params
+  TF(factor->params[0], T_WB);
+  TF(factor->params[1], T_BL);
+  TF_CHAIN(T_WL, 2, T_WB, T_BL);
+  TF_ROT(T_WL, C_WL);
+  TF_INV(T_WL, T_LW);
+  TF_ROT(T_LW, C_LW);
+
+  // Transform lidar scan points to world frame and obtain closest points
+  float *points_est = pcd_transform(factor->pcd, T_WL);
+  float *points_map = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
+  for (size_t i = 0; i < factor->pcd->num_points; ++i) {
+    float point[3] = {0};
+    float dist = 0.0f;
+    kdtree_nn(factor->kdtree, &points_est[i * 3], point, &dist);
+    points_map[i * 3 + 0] = point[0];
+    points_map[i * 3 + 1] = point[1];
+    points_map[i * 3 + 2] = point[2];
+  }
+
+  // Calculate residuals
+  factor->r = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
+  for (size_t i = 0; i < factor->pcd->num_points; ++i) {
+    factor->r[i * 3 + 0] = points_map[i * 3 + 0] - points_est[i * 3 + 0];
+    factor->r[i * 3 + 1] = points_map[i * 3 + 1] - points_est[i * 3 + 1];
+    factor->r[i * 3 + 2] = points_map[i * 3 + 2] - points_est[i * 3 + 2];
+  }
+
+  // Calculate jacobians
+  // -- Form: -1 * sqrt_info
+  real_t neg_sqrt_info[3 * 3] = {0};
+  mat_copy(factor->sqrt_info, 3, 3, neg_sqrt_info);
+  mat_scale(neg_sqrt_info, 3, 3, -1.0);
+  // -- Fill jacobians
+  const size_t num_rows = 3 * factor->pcd->num_points;
+  const size_t num_cols = 6;
+  if (factor->J_pose) {
+    free(factor->J_pose);
+  }
+  factor->J_pose = malloc(sizeof(real_t) * num_rows * num_cols);
+
+  const int stride = 6;
+  for (size_t i = 0; i < factor->pcd->num_points; ++i) {
+    const int rs = i * 3 + 0;
+    const int re = i * 3 + 2;
+    const int cs = 0;
+    const int ce = 5;
+
+    real_t J_pose[3 * 6] = {0};
+    lidar_factor_jacobian(C_WL, &points_est[i * 3], J_pose);
+    mat_block_set(factor->J_pose, stride, rs, re, cs, ce, J_pose);
+  }
+}
 
 ////////////////////////
 // JOINT-ANGLE FACTOR //
@@ -13545,7 +13976,7 @@ void camchain_add_pose(camchain_t *cc,
                        const int cam_idx,
                        const timestamp_t ts,
                        const real_t T_CiF[4 * 4]) {
-  void *key = int64_malloc(ts);
+  void *key = timestamp_malloc(ts);
   void *val = vector_malloc(T_CiF, 16);
   rbt_insert(cc->cam_poses[cam_idx], key, val);
 }
@@ -14655,30 +15086,30 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
     }
   }
   // -- Track calib camera factor params
-  // {
-  //   list_node_t *node = marg->calib_camera_factors->first;
-  //   while (node != NULL) {
-  //     calib_camera_factor_t *factor = (calib_camera_factor_t *) node->value;
-  //     marg_track_pose(marg, factor->pose);
-  //     marg_track_extrinsic(marg, factor->cam_ext);
-  //     marg_track_camera(marg, factor->cam_params);
-  //     node = node->next;
-  //   }
-  // }
-  // // -- Track calib imucam factor params
-  // {
-  //   list_node_t *node = marg->calib_imucam_factors->first;
-  //   while (node != NULL) {
-  //     calib_imucam_factor_t *factor = (calib_imucam_factor_t *) node->value;
-  //     marg_track_fiducial(marg, factor->fiducial);
-  //     marg_track_pose(marg, factor->imu_pose);
-  //     marg_track_extrinsic(marg, factor->imu_ext);
-  //     marg_track_extrinsic(marg, factor->cam_ext);
-  //     marg_track_camera(marg, factor->cam_params);
-  //     marg_track_time_delay(marg, factor->time_delay);
-  //     node = node->next;
-  //   }
-  // }
+  {
+    list_node_t *node = marg->calib_camera_factors->first;
+    while (node != NULL) {
+      calib_camera_factor_t *factor = (calib_camera_factor_t *) node->value;
+      marg_track_pose(marg, factor->pose);
+      marg_track_extrinsic(marg, factor->cam_ext);
+      marg_track_camera(marg, factor->cam_params);
+      node = node->next;
+    }
+  }
+  // -- Track calib imucam factor params
+  {
+    list_node_t *node = marg->calib_imucam_factors->first;
+    while (node != NULL) {
+      calib_imucam_factor_t *factor = (calib_imucam_factor_t *) node->value;
+      marg_track_fiducial(marg, factor->fiducial);
+      marg_track_pose(marg, factor->imu_pose);
+      marg_track_extrinsic(marg, factor->imu_ext);
+      marg_track_extrinsic(marg, factor->cam_ext);
+      marg_track_camera(marg, factor->cam_params);
+      marg_track_time_delay(marg, factor->time_delay);
+      node = node->next;
+    }
+  }
 
   // Determine parameter block column indicies for Hessian matrix H
   // clang-format off
@@ -14766,8 +15197,8 @@ static void marg_factor_hessian_form(marg_factor_t *marg) {
   MARG_H(marg, ba_factor_t, marg->ba_factors, H, b, ls);
   MARG_H(marg, camera_factor_t, marg->camera_factors, H, b, ls);
   MARG_H(marg, imu_factor_t, marg->imu_factors, H, b, ls);
-  // MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
-  // MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
+  MARG_H(marg, calib_camera_factor_t, marg->calib_camera_factors, H, b, ls);
+  MARG_H(marg, calib_imucam_factor_t, marg->calib_imucam_factors, H, b, ls);
   marg->H = H;
   marg->b = b;
   // mat_save("/tmp/H.csv", marg->H, ls, ls);
@@ -15849,60 +16280,60 @@ void timeline_free(timeline_t *timeline) {
   free(timeline);
 }
 
-// /**
-//  * Load timeline fiducial data.
-//  */
-// timeline_event_t *timeline_load_fiducial(const char *data_dir,
-//                                          const int cam_idx,
-//                                          int *num_events) {
-//   // Load fiducial files
-//   *num_events = 0;
-//   char **files = list_files(data_dir, num_events);
-//
-//   // Exit if no data
-//   if (*num_events == 0) {
-//     for (int view_idx = 0; view_idx < *num_events; view_idx++) {
-//       free(files[view_idx]);
-//     }
-//     free(files);
-//     return NULL;
-//   }
-//
-//   // Load fiducial events
-//   timeline_event_t *events = malloc(sizeof(timeline_event_t) * *num_events);
-//
-//   for (int view_idx = 0; view_idx < *num_events; view_idx++) {
-//     // Load aprilgrid
-//     aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
-//
-//     // Get aprilgrid measurements
-//     const timestamp_t ts = grid->timestamp;
-//     const int num_corners = grid->corners_detected;
-//     int *tag_ids = malloc(sizeof(int) * num_corners);
-//     int *corner_indices = malloc(sizeof(int) * num_corners);
-//     real_t *kps = malloc(sizeof(real_t) * num_corners * 2);
-//     real_t *pts = malloc(sizeof(real_t) * num_corners * 3);
-//     aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
-//
-//     // Create event
-//     events[view_idx].type = FIDUCIAL_EVENT;
-//     events[view_idx].ts = ts;
-//     events[view_idx].data.fiducial.ts = ts;
-//     events[view_idx].data.fiducial.cam_idx = cam_idx;
-//     events[view_idx].data.fiducial.num_corners = num_corners;
-//     events[view_idx].data.fiducial.corner_indices = corner_indices;
-//     events[view_idx].data.fiducial.tag_ids = tag_ids;
-//     events[view_idx].data.fiducial.object_points = pts;
-//     events[view_idx].data.fiducial.keypoints = kps;
-//
-//     // Clean up
-//     free(files[view_idx]);
-//     aprilgrid_free(grid);
-//   }
-//   free(files);
-//
-//   return events;
-// }
+/**
+ * Load timeline fiducial data.
+ */
+timeline_event_t *timeline_load_fiducial(const char *data_dir,
+                                         const int cam_idx,
+                                         int *num_events) {
+  // Load fiducial files
+  *num_events = 0;
+  char **files = list_files(data_dir, num_events);
+
+  // Exit if no data
+  if (*num_events == 0) {
+    for (int view_idx = 0; view_idx < *num_events; view_idx++) {
+      free(files[view_idx]);
+    }
+    free(files);
+    return NULL;
+  }
+
+  // Load fiducial events
+  timeline_event_t *events = malloc(sizeof(timeline_event_t) * *num_events);
+
+  for (int view_idx = 0; view_idx < *num_events; view_idx++) {
+    // Load aprilgrid
+    aprilgrid_t *grid = aprilgrid_load(files[view_idx]);
+
+    // Get aprilgrid measurements
+    const timestamp_t ts = grid->timestamp;
+    const int num_corners = grid->corners_detected;
+    int *tag_ids = malloc(sizeof(int) * num_corners);
+    int *corner_indices = malloc(sizeof(int) * num_corners);
+    real_t *kps = malloc(sizeof(real_t) * num_corners * 2);
+    real_t *pts = malloc(sizeof(real_t) * num_corners * 3);
+    aprilgrid_measurements(grid, tag_ids, corner_indices, kps, pts);
+
+    // Create event
+    events[view_idx].type = FIDUCIAL_EVENT;
+    events[view_idx].ts = ts;
+    events[view_idx].data.fiducial.ts = ts;
+    events[view_idx].data.fiducial.cam_idx = cam_idx;
+    events[view_idx].data.fiducial.num_corners = num_corners;
+    events[view_idx].data.fiducial.corner_indices = corner_indices;
+    events[view_idx].data.fiducial.tag_ids = tag_ids;
+    events[view_idx].data.fiducial.object_points = pts;
+    events[view_idx].data.fiducial.keypoints = kps;
+
+    // Clean up
+    free(files[view_idx]);
+    aprilgrid_free(grid);
+  }
+  free(files);
+
+  return events;
+}
 
 /**
  * Load timeline IMU data.
@@ -15971,24 +16402,24 @@ static void timeline_load_events(timeline_t *timeline, const char *data_dir) {
   int type_idx = 0;
 
   // -- Load fiducial events
-  // for (int cam_idx = 0; cam_idx < timeline->num_cams; cam_idx++) {
-  //   // Form events
-  //   int num_events = 0;
-  //   char dir[1024] = {0};
-  //   sprintf(dir, "%s/cam%d", data_dir, cam_idx);
-  //   events[type_idx] = timeline_load_fiducial(dir, cam_idx, &num_events);
-  //   events_lengths[type_idx] = num_events;
-  //   events_types[type_idx] = FIDUCIAL_EVENT;
-  //
-  //   // Form timestamps
-  //   events_timestamps[type_idx] = calloc(num_events, sizeof(timestamp_t));
-  //   for (int k = 0; k < num_events; k++) {
-  //     events_timestamps[type_idx][k] = events[type_idx][k].ts;
-  //   }
-  //
-  //   // Update
-  //   type_idx++;
-  // }
+  for (int cam_idx = 0; cam_idx < timeline->num_cams; cam_idx++) {
+    // Form events
+    int num_events = 0;
+    char dir[1024] = {0};
+    sprintf(dir, "%s/cam%d", data_dir, cam_idx);
+    events[type_idx] = timeline_load_fiducial(dir, cam_idx, &num_events);
+    events_lengths[type_idx] = num_events;
+    events_types[type_idx] = FIDUCIAL_EVENT;
+
+    // Form timestamps
+    events_timestamps[type_idx] = calloc(num_events, sizeof(timestamp_t));
+    for (int k = 0; k < num_events; k++) {
+      events_timestamps[type_idx][k] = events[type_idx][k].ts;
+    }
+
+    // Update
+    type_idx++;
+  }
 
   // -- Load imu events
   for (int imu_idx = 0; imu_idx < timeline->num_imus; imu_idx++) {
@@ -16100,382 +16531,6 @@ timeline_t *timeline_load_data(const char *data_dir,
   timeline_form_timeline(timeline);
 
   return timeline;
-}
-
-/*******************************************************************************
- * OCTREE
- ******************************************************************************/
-
-/////////////////
-// OCTREE NODE //
-/////////////////
-
-octree_node_t *octree_node_malloc(const float center[3],
-                                  const float size,
-                                  const int depth,
-                                  const int max_depth,
-                                  const int max_points) {
-  octree_node_t *node = malloc(sizeof(octree_node_t));
-
-  node->center[0] = center[0];
-  node->center[1] = center[1];
-  node->center[2] = center[2];
-  node->size = size;
-  node->depth = depth;
-  node->max_depth = max_depth;
-  node->max_points = max_points;
-
-  for (int i = 0; i < 8; ++i) {
-    node->children[i] = NULL;
-  }
-  node->points = malloc(sizeof(float) * 3 * max_points);
-  node->num_points = 0;
-  node->capacity = max_points;
-
-  return node;
-}
-
-void octree_node_free(octree_node_t *node) {
-  if (node == NULL) {
-    return;
-  }
-
-  for (int i = 0; i < 8; ++i) {
-    octree_node_free(node->children[i]);
-  }
-  free(node->points);
-  free(node);
-}
-
-////////////
-// OCTREE //
-////////////
-
-octree_t *octree_malloc(const float octree_center[3],
-                        const float octree_size,
-                        const int octree_max_depth,
-                        const int voxel_max_points,
-                        const float *octree_points,
-                        const size_t num_points) {
-  assert(octree_center);
-  octree_t *octree = malloc(sizeof(octree_t));
-
-  octree->center[0] = octree_center[0];
-  octree->center[1] = octree_center[1];
-  octree->center[2] = octree_center[2];
-  octree->size = octree_size;
-  octree->root = octree_node_malloc(octree->center,
-                                    octree->size,
-                                    0,
-                                    octree_max_depth,
-                                    voxel_max_points);
-  for (size_t i = 0; i < num_points; i++) {
-    octree_add_point(octree->root, &octree_points[i * 3]);
-  }
-
-  return octree;
-}
-
-void octree_free(octree_t *octree) {
-  if (octree == NULL) {
-    return;
-  }
-  octree_node_free(octree->root);
-  free(octree);
-}
-
-void octree_add_point(octree_node_t *node, const float point[3]) {
-  assert(node);
-  assert(point);
-
-  // Max depth reached? Add the point
-  if (node->depth == node->max_depth) {
-    if (node->num_points >= node->max_points) {
-      return;
-    }
-    node->points[node->num_points * 3 + 0] = point[0];
-    node->points[node->num_points * 3 + 1] = point[1];
-    node->points[node->num_points * 3 + 2] = point[2];
-    node->num_points++;
-    if (node->num_points >= node->capacity) {
-      node->capacity = node->capacity * 2;
-      node->points = realloc(node->points, sizeof(float) * 3 * node->capacity);
-    }
-    return;
-  }
-
-  // Calculate node index
-  int index = 0;
-  index |= (point[0] > node->center[0]) ? 1 : 0;
-  index |= (point[1] > node->center[1]) ? 2 : 0;
-  index |= (point[2] > node->center[2]) ? 4 : 0;
-
-  // Create new child node if it doesn't exist already
-  octree_node_t *child = node->children[index];
-  if (child == NULL) {
-    const float offset = node->size / 2;
-    const float center[3] = {node->center[0] + (index & 1 ? offset : -offset),
-                             node->center[1] + (index & 2 ? offset : -offset),
-                             node->center[2] + (index & 4 ? offset : -offset)};
-    const float size = node->size / 2.0;
-    const int depth = node->depth + 1;
-    const int max_depth = node->max_depth;
-    const int max_points = node->max_points;
-    child = octree_node_malloc(center, size, depth, max_depth, max_points);
-    node->children[index] = child;
-  }
-
-  // Recurse down the octree
-  octree_add_point(child, point);
-}
-
-void octree_points(const octree_node_t *node, octree_data_t *data) {
-  assert(node);
-  assert(data && data->points && data->capacity > 0);
-
-  if (node->num_points > 0) {
-    for (size_t i = 0; i < node->num_points; ++i) {
-      data->points[data->num_points * 3 + 0] = node->points[i * 3 + 0];
-      data->points[data->num_points * 3 + 1] = node->points[i * 3 + 1];
-      data->points[data->num_points * 3 + 2] = node->points[i * 3 + 2];
-      data->num_points++;
-      if (data->num_points >= data->capacity) {
-        data->capacity = data->capacity * 2;
-        data->points =
-            realloc(data->points, sizeof(float) * 3 * data->capacity);
-      }
-    }
-  }
-
-  for (size_t i = 0; i < 8; ++i) {
-    if (node->children[i]) {
-      octree_points(node->children[i], data);
-    }
-  }
-}
-
-float *octree_downsample(const float *octree_data,
-                         const size_t n,
-                         const float voxel_size,
-                         const size_t voxel_max_points,
-                         size_t *n_out) {
-  assert(octree_data);
-  assert(n > 0);
-
-  // Find center
-  float xmin, ymin, zmin = INFINITY;
-  float xmax, ymax, zmax = -INFINITY;
-  for (size_t i = 0; i < n; ++i) {
-    const float x = octree_data[i * 3 + 0];
-    const float y = octree_data[i * 3 + 1];
-    const float z = octree_data[i * 3 + 2];
-    xmin = (x < xmin) ? x : xmin;
-    xmax = (x > xmax) ? x : xmax;
-    ymin = (y < ymin) ? y : ymin;
-    ymax = (y > ymax) ? y : ymax;
-    zmin = (z < zmin) ? z : zmin;
-    zmax = (z > zmax) ? z : zmax;
-  }
-  const float octree_center[3] = {
-      (xmax + xmin) / 2.0,
-      (ymax + ymin) / 2.0,
-      (zmax + zmin) / 2.0,
-  };
-
-  // Find octree size
-  float octree_size = 0.0f;
-  octree_size = (fabs(xmin) > octree_size) ? fabs(xmin) : octree_size;
-  octree_size = (fabs(ymin) > octree_size) ? fabs(ymin) : octree_size;
-  octree_size = (fabs(zmin) > octree_size) ? fabs(zmin) : octree_size;
-  octree_size = (xmax > octree_size) ? xmax : octree_size;
-  octree_size = (ymax > octree_size) ? ymax : octree_size;
-  octree_size = (zmax > octree_size) ? zmax : octree_size;
-
-  // Create octree
-  const int octree_max_depth = ceil(log2(octree_size / voxel_size));
-  octree_t *octree = octree_malloc(octree_center,
-                                   octree_size,
-                                   octree_max_depth,
-                                   voxel_max_points,
-                                   octree_data,
-                                   n);
-
-  // Get points
-  octree_data_t data = {0};
-  data.points = malloc(sizeof(float) * 3 * n);
-  data.num_points = 0;
-  data.capacity = n;
-  octree_points(octree->root, &data);
-
-  // Clean up
-  octree_free(octree);
-
-  // Return
-  *n_out = data.num_points;
-  data.points = realloc(data.points, sizeof(float) * 3 * *n_out);
-  return data.points;
-}
-
-/*****************************************************************************
- * KD-TREE
- ****************************************************************************/
-
-//////////////////
-// KD-TREE NODE //
-//////////////////
-
-kdtree_node_t *kdtree_node_malloc(const float p[3], const int k) {
-  assert(p);
-  assert(k >= 0 && k <= 2);
-  kdtree_node_t *node = malloc(sizeof(kdtree_node_t));
-
-  node->p[0] = p[0];
-  node->p[1] = p[1];
-  node->p[2] = p[2];
-  node->k = k;
-  node->left = NULL;
-  node->right = NULL;
-
-  return node;
-}
-
-void kdtree_node_free(kdtree_node_t *node) {
-  if (node == NULL) {
-    return;
-  }
-  kdtree_node_free(node->left);
-  kdtree_node_free(node->right);
-  free(node);
-}
-
-/////////////
-// KD-TREE //
-/////////////
-
-int point_cmp(const void *a, const void *b, void *k) {
-  return (((float *) a)[*(int *) k] < ((float *) b)[*(int *) k]) ? -1 : 1;
-}
-
-kdtree_node_t *kdtree_insert(kdtree_node_t *node,
-                             const float p[3],
-                             const int depth) {
-  const int k = depth % KDTREE_KDIM;
-  if (node == NULL) {
-    return kdtree_node_malloc(p, k);
-  }
-
-  if (p[k] < node->p[k]) {
-    node->left = kdtree_insert(node->left, p, depth + 1);
-  } else {
-    node->right = kdtree_insert(node->right, p, depth + 1);
-  }
-
-  return node;
-}
-
-static kdtree_node_t *
-_kdtree_build(float *points, const int start, const int end, const int depth) {
-  if (start > end) {
-    return NULL;
-  }
-
-  int k = depth % KDTREE_KDIM;
-  const int mid = (start + end + 1) / 2;
-  qsort_r(points + start * 3,
-          end - start + 1,
-          sizeof(float) * 3,
-          point_cmp,
-          &k);
-
-  kdtree_node_t *root = kdtree_node_malloc(points + mid * 3, k);
-  root->left = _kdtree_build(points, start, mid - 1, depth + 1);
-  root->right = _kdtree_build(points, mid + 1, end, depth + 1);
-
-  return root;
-}
-
-kdtree_t *kdtree_malloc(float *points, size_t num_points) {
-  kdtree_t *kdtree = malloc(sizeof(kdtree_t));
-  kdtree->root = _kdtree_build(points, 0, num_points - 1, 0);
-  return kdtree;
-}
-
-void kdtree_free(kdtree_t *kdtree) {
-  kdtree_node_free(kdtree->root);
-  free(kdtree);
-}
-
-static void _kdtree_points(const kdtree_node_t *node, kdtree_data_t *data) {
-  assert(data);
-  if (node == NULL) {
-    return;
-  }
-
-  data->points[data->num_points * 3 + 0] = node->p[0];
-  data->points[data->num_points * 3 + 1] = node->p[1];
-  data->points[data->num_points * 3 + 2] = node->p[2];
-  data->num_points++;
-  if (data->num_points >= data->capacity) {
-    data->capacity = data->capacity * 2;
-    data->points = realloc(data->points, sizeof(float) * 3 * data->capacity);
-  }
-
-  _kdtree_points(node->left, data);
-  _kdtree_points(node->right, data);
-}
-
-void kdtree_points(const kdtree_t *kdtree, kdtree_data_t *data) {
-  assert(kdtree && kdtree->root);
-  assert(data && data->points && data->capacity > 0);
-  _kdtree_points(kdtree->root, data);
-}
-
-void _kdtree_nn(const kdtree_node_t *node,
-                const float target[3],
-                float *best_dist,
-                float *best_point,
-                int depth) {
-  // Pre-check
-  if (node == NULL) {
-    return;
-  }
-
-  // Calculate distance and keep track of best
-  float sq_dist = 0.0f;
-  sq_dist += (node->p[0] - target[0]) * (node->p[0] - target[0]);
-  sq_dist += (node->p[1] - target[1]) * (node->p[1] - target[1]);
-  sq_dist += (node->p[2] - target[2]) * (node->p[2] - target[2]);
-  if (sq_dist <= *best_dist) {
-    best_point[0] = node->p[0];
-    best_point[1] = node->p[1];
-    best_point[2] = node->p[2];
-    *best_dist = sq_dist;
-  }
-
-  // Determine which side to search first
-  const int axis = node->k;
-  const float diff = target[axis] - node->p[axis];
-
-  // Search the closer subtree first
-  const kdtree_node_t *closer = (diff <= 0) ? node->left : node->right;
-  const kdtree_node_t *farther = (diff <= 0) ? node->right : node->left;
-  _kdtree_nn(closer, target, best_dist, best_point, depth + 1);
-
-  // Search the farther subtree
-  if (fabs(diff) < *best_dist) {
-    _kdtree_nn(farther, target, best_dist, best_point, depth + 1);
-  }
-}
-
-void kdtree_nn(const kdtree_t *kdtree,
-               const float target[3],
-               float *best_point,
-               float *best_dist) {
-  *best_dist = INFINITY;
-  best_point[0] = target[0];
-  best_point[1] = target[1];
-  best_point[2] = target[2];
-  _kdtree_nn(kdtree->root, target, best_dist, best_point, 0);
 }
 
 /*******************************************************************************
