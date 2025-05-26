@@ -249,6 +249,7 @@ char *path_join(const char *x, const char *y);
 char **list_files(const char *path, int *num_files);
 void list_files_free(char **data, const int n);
 
+size_t file_lines(const char *fp);
 char *file_read(const char *fp);
 void skip_line(FILE *fp);
 status_t file_exists(const char *fp);
@@ -283,6 +284,7 @@ timestamp_t time_now(void);
 timestamp_t str2ts(const char *ts_str);
 double ts2sec(const timestamp_t ts);
 timestamp_t sec2ts(const double time_s);
+timestamp_t path2ts(const char *file_path);
 
 /*******************************************************************************
  * ARRAY
@@ -1526,10 +1528,6 @@ int homography_pose(const real_t *proj_params,
                     const real_t *obj_pts,
                     const int N,
                     real_t T_CF[4 * 4]);
-
-int p3p_kneip(const real_t features[3][3],
-              const real_t points[3][3],
-              real_t solutions[4][4 * 4]);
 
 int solvepnp(const real_t proj_params[4],
              const real_t *img_pts,
@@ -2932,8 +2930,9 @@ typedef struct sim_features_t {
   int num_features;
 } sim_features_t;
 
+void sim_features_save(sim_features_t *features, const char *csv_path);
 sim_features_t *sim_features_load(const char *csv_path);
-void sim_features_free(sim_features_t *features_data);
+void sim_features_free(sim_features_t *features);
 
 //////////////////
 // SIM IMU DATA //
@@ -2941,7 +2940,7 @@ void sim_features_free(sim_features_t *features_data);
 
 typedef struct sim_imu_data_t {
   size_t num_measurements;
-  real_t *timestamps;
+  timestamp_t *timestamps;
   real_t *poses;
   real_t *velocities;
   real_t *imu_acc;
@@ -2951,6 +2950,7 @@ typedef struct sim_imu_data_t {
 void sim_imu_data_setup(sim_imu_data_t *imu_data);
 sim_imu_data_t *sim_imu_data_malloc(void);
 void sim_imu_data_free(sim_imu_data_t *imu_data);
+void sim_imu_data_save(sim_imu_data_t *imu_data, const char *csv_path);
 sim_imu_data_t *sim_imu_data_load(const char *csv_path);
 sim_imu_data_t *sim_imu_circle_trajectory(const sim_circle_t *conf);
 void sim_imu_measurements(const sim_imu_data_t *data,
@@ -2986,6 +2986,8 @@ void sim_camera_frame_free(sim_camera_frame_t *frame_data);
 void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame_data,
                                    const size_t feature_id,
                                    const real_t kp[2]);
+void sim_camera_frame_save(const sim_camera_frame_t *frame_data,
+                           const char *csv_path);
 sim_camera_frame_t *sim_camera_frame_load(const char *csv_path);
 void sim_camera_frame_print(const sim_camera_frame_t *frame_data);
 

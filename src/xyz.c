@@ -706,6 +706,28 @@ void list_files_free(char **data, const int n) {
 }
 
 /**
+ * Count number of lines in file
+ * @returns Number of lines or `-1` for failure
+ */
+size_t file_lines(const char *fp) {
+  FILE *f = fopen(fp, "r");
+  size_t lines = 0;
+
+  if (f == NULL) {
+    return -1;
+  }
+
+  int ch;
+  while ((ch = getc(f)) != EOF) {
+    if (ch == '\n') {
+      ++lines;
+    }
+  }
+
+  return lines;
+}
+
+/**
  * Read file contents in file path `fp`.
  * @returns
  * - Success: File contents
@@ -902,6 +924,22 @@ double ts2sec(const timestamp_t ts) { return ts * 1e-9; }
  * Convert seconds to timestamp
  */
 timestamp_t sec2ts(const double time_s) { return time_s * 1e9; }
+
+/**
+ * Extract timestamp from file path.
+ */
+timestamp_t path2ts(const char *file_path) {
+  char fname[128] = {0};
+  char fext[128] = {0};
+  path_file_name(file_path, fname);
+  path_file_ext(file_path, fext);
+
+  char ts_str[128] = {0};
+  memcpy(ts_str, fname, strlen(fname) - strlen(fext) - 1);
+
+  char *ptr;
+  return strtol(ts_str, &ptr, 10);
+}
 
 /*******************************************************************************
  * ARRAY
@@ -8651,359 +8689,6 @@ int homography_pose(const real_t *proj_params,
   return 0;
 }
 
-// static int kneip_solve_quadratic(const real_t factors[5],
-//                                  real_t real_roots[4]) {
-//   const real_t A = factors[0];
-//   const real_t B = factors[1];
-//   const real_t C = factors[2];
-//   const real_t D = factors[3];
-//   const real_t E = factors[4];
-
-//   const real_t A_pw2 = A * A;
-//   const real_t B_pw2 = B * B;
-//   const real_t A_pw3 = A_pw2 * A;
-//   const real_t B_pw3 = B_pw2 * B;
-//   const real_t A_pw4 = A_pw3 * A;
-//   const real_t B_pw4 = B_pw3 * B;
-
-//   const real_t alpha = -3 * B_pw2 / (8 * A_pw2) + C / A;
-//   const real_t beta = B_pw3 / (8 * A_pw3) - B * C / (2 * A_pw2) + D / A;
-//   const real_t gamma = -3 * B_pw4 / (256 * A_pw4) + B_pw2 * C / (16 * A_pw3) -
-//                        B * D / (4 * A_pw2) + E / A;
-
-//   const real_t alpha_pw2 = alpha * alpha;
-//   const real_t alpha_pw3 = alpha_pw2 * alpha;
-
-//   const real_complex_t P = (-alpha_pw2 / 12 - gamma);
-//   const real_complex_t Q =
-//       -alpha_pw3 / 108 + alpha * gamma / 3 - pow(beta, 2) / 8;
-//   const real_complex_t R =
-//       -Q / 2.0 + sqrt(pow(Q, 2.0) / 4.0 + pow(P, 3.0) / 27.0);
-
-//   const real_complex_t U = pow(R, (1.0 / 3.0));
-//   real_complex_t y;
-//   if (fabs(creal(U)) < 1e-10) {
-//     y = -5.0 * alpha / 6.0 - pow(Q, (1.0 / 3.0));
-//   } else {
-//     y = -5.0 * alpha / 6.0 - P / (3.0 * U) + U;
-//   }
-
-//   const real_complex_t w = sqrt(alpha + 2.0 * y);
-//   const real_t m = -B / (4.0 * A);
-//   const real_t a = sqrt(-(3.0 * alpha + 2.0 * y + 2.0 * beta / w));
-//   const real_t b = sqrt(-(3.0 * alpha + 2.0 * y - 2.0 * beta / w));
-//   real_roots[0] = creal(m + 0.5 * (w + a));
-//   real_roots[1] = creal(m + 0.5 * (w - a));
-//   real_roots[2] = creal(m + 0.5 * (-w + b));
-//   real_roots[3] = creal(m + 0.5 * (-w - b));
-
-//   return 0;
-// }
-
-// /**
-//  * Kneip's Perspective-3-Point solver.
-//  *
-//  * This function uses 3 2D point correspondants to 3D features to determine
-//  * the camera pose.
-//  *
-//  * Source: Kneip, Laurent, Davide Scaramuzza, and Roland Siegwart. "A novel
-//  * parametrization of the perspective-three-point problem for a direct
-//  * computation of absolute camera position and orientation." CVPR 2011. IEEE,
-//  * 2011.
-//  */
-// int p3p_kneip(const real_t features[3][3],
-//               const real_t points[3][3],
-//               real_t solutions[4][4 * 4]) {
-//   assert(features != NULL);
-//   assert(points != NULL);
-//   assert(solutions != NULL);
-
-//   // Extract points
-//   real_t P1[3] = {points[0][0], points[0][1], points[0][2]};
-//   real_t P2[3] = {points[1][0], points[1][1], points[1][2]};
-//   real_t P3[3] = {points[2][0], points[2][1], points[2][2]};
-
-//   // Verify points are not colinear
-//   real_t temp1[3] = {P2[0] - P1[0], P2[1] - P1[1], P2[2] - P2[2]};
-//   real_t temp2[3] = {P3[0] - P1[0], P3[1] - P1[1], P3[2] - P2[2]};
-//   real_t temp3[3] = {0};
-//   vec3_cross(temp1, temp2, temp3);
-//   if (fabs(vec3_norm(temp3)) > 1e-10) {
-//     return -1;
-//   }
-
-//   // Extract feature vectors
-//   real_t f1[3] = {features[0][0], features[0][1], features[0][2]};
-//   real_t f2[3] = {features[1][0], features[1][1], features[1][2]};
-//   real_t f3[3] = {features[2][0], features[2][1], features[2][2]};
-
-//   // Creation of intermediate camera frame
-//   real_t e1[3] = {f1[0], f1[1], f1[2]};
-//   real_t e3[3] = {0};
-//   vec3_cross(f1, f2, e3);
-//   vec3_normalize(e3);
-//   real_t e2[3] = {0};
-//   vec3_cross(e3, e1, e2);
-
-//   // clang-format off
-//   real_t T[3 * 3] = {
-//     e1[0], e1[1], e1[2],
-//     e2[0], e2[1], e2[2],
-//     e3[0], e3[1], e3[2]
-//   };
-//   // clang-format on
-
-//   // f3 = T * f3;
-//   {
-//     real_t x[3] = {0};
-//     x[0] = T[0] * f3[0] + T[1] * f3[1] + T[2] * f3[2];
-//     x[1] = T[3] * f3[0] + T[4] * f3[1] + T[5] * f3[2];
-//     x[2] = T[6] * f3[0] + T[7] * f3[1] + T[8] * f3[2];
-//     f3[0] = x[0];
-//     f3[1] = x[1];
-//     f3[2] = x[2];
-//   }
-
-//   // Reinforce that f3(2,0) > 0 for having theta in [0;pi]
-//   if (f3[2] > 0) {
-//     // f1 = features.col(1);
-//     f1[0] = features[0][0];
-//     f1[1] = features[0][1];
-//     f1[2] = features[0][2];
-
-//     // f2 = features.col(0);
-//     f2[0] = features[1][0];
-//     f2[1] = features[1][1];
-//     f2[2] = features[1][2];
-
-//     // f3 = features.col(2);
-//     f3[0] = features[2][0];
-//     f3[1] = features[2][1];
-//     f3[2] = features[2][2];
-
-//     // e1 = f1;
-//     e1[0] = f1[0];
-//     e1[1] = f1[1];
-//     e1[2] = f1[2];
-
-//     // e3 = f1.cross(f2);
-//     // e3 = e3 / e3.norm();
-//     vec3_cross(f1, f2, e3);
-//     vec3_normalize(e3);
-
-//     // e2 = e3.cross(e1);
-//     vec3_cross(e3, e1, e2);
-
-//     // T.row(0) = e1.transpose();
-//     T[0] = e1[0];
-//     T[1] = e1[1];
-//     T[2] = e1[2];
-
-//     // T.row(1) = e2.transpose();
-//     T[3] = e2[0];
-//     T[4] = e2[1];
-//     T[5] = e2[2];
-
-//     // T.row(2) = e3.transpose();
-//     T[6] = e3[0];
-//     T[7] = e3[1];
-//     T[8] = e3[2];
-
-//     // f3 = T * f3;
-//     {
-//       real_t x[3] = {0};
-//       x[0] = T[0] * f3[0] + T[1] * f3[1] + T[2] * f3[2];
-//       x[1] = T[3] * f3[0] + T[4] * f3[1] + T[5] * f3[2];
-//       x[2] = T[6] * f3[0] + T[7] * f3[1] + T[8] * f3[2];
-//       f3[0] = x[0];
-//       f3[1] = x[1];
-//       f3[2] = x[2];
-//     }
-
-//     // P1 = points.col(1);
-//     P1[0] = points[0][0];
-//     P1[1] = points[0][1];
-//     P1[2] = points[0][2];
-
-//     // P2 = points.col(0);
-//     P2[0] = points[1][0];
-//     P2[1] = points[1][1];
-//     P2[2] = points[1][2];
-
-//     // P3 = points.col(2);
-//     P3[0] = points[2][0];
-//     P3[1] = points[2][1];
-//     P3[2] = points[2][2];
-//   }
-
-//   // Creation of intermediate world frame
-//   // n1 = P2 - P1;
-//   // n1 = n1 / n1.norm();
-//   real_t n1[3] = {0};
-//   vec3_sub(P2, P1, n1);
-//   vec3_normalize(n1);
-
-//   // n3 = n1.cross(P3 - P1);
-//   // n3 = n3 / n3.norm();
-//   real_t n3[3] = {0};
-//   vec3_sub(P3, P1, n3);
-//   vec3_normalize(n3);
-
-//   // n2 = n3.cross(n1);
-//   real_t n2[3] = {0};
-//   vec3_cross(n3, n1, n2);
-
-//   // N.row(0) = n1.transpose();
-//   // N.row(1) = n2.transpose();
-//   // N.row(2) = n3.transpose();
-//   // clang-format off
-//   real_t N[3 * 3] = {
-//     n1[0], n1[1], n1[2],
-//     n2[0], n2[1], n2[2],
-//     n3[0], n3[1], n3[2]
-//   };
-//   // clang-format on
-
-//   // Extraction of known parameters
-//   // P3 = N * (P3 - P1);
-//   {
-//     real_t d[3] = {0};
-//     vec3_sub(P3, P1, d);
-//     P3[0] = N[0] * d[0] + N[1] * d[1] + N[2] * d[2];
-//     P3[1] = N[3] * d[0] + N[4] * d[1] + N[5] * d[2];
-//     P3[2] = N[6] * d[0] + N[7] * d[1] + N[8] * d[2];
-//   }
-
-//   real_t dP21[3] = {0};
-//   vec3_sub(P2, P1, dP21);
-//   real_t d_12 = vec3_norm(dP21);
-//   real_t f_1 = f3[0] / f3[2];
-//   real_t f_2 = f3[1] / f3[2];
-//   real_t p_1 = P3[0];
-//   real_t p_2 = P3[1];
-
-//   // cos_beta = f1.dot(f2);
-//   // b = 1 / (1 - pow(cos_beta, 2)) - 1;
-//   const real_t cos_beta = f1[0] * f2[0] + f1[1] * f2[1] + f1[1] * f2[1];
-//   real_t b = 1 / (1 - pow(cos_beta, 2)) - 1;
-//   if (cos_beta < 0) {
-//     b = -sqrt(b);
-//   } else {
-//     b = sqrt(b);
-//   }
-
-//   // Definition of temporary variables for avoiding multiple computation
-//   const real_t f_1_pw2 = pow(f_1, 2);
-//   const real_t f_2_pw2 = pow(f_2, 2);
-//   const real_t p_1_pw2 = pow(p_1, 2);
-//   const real_t p_1_pw3 = p_1_pw2 * p_1;
-//   const real_t p_1_pw4 = p_1_pw3 * p_1;
-//   const real_t p_2_pw2 = pow(p_2, 2);
-//   const real_t p_2_pw3 = p_2_pw2 * p_2;
-//   const real_t p_2_pw4 = p_2_pw3 * p_2;
-//   const real_t d_12_pw2 = pow(d_12, 2);
-//   const real_t b_pw2 = pow(b, 2);
-
-//   // Computation of factors of 4th degree polynomial
-//   real_t factors[5] = {0};
-//   factors[0] = -f_2_pw2 * p_2_pw4 - p_2_pw4 * f_1_pw2 - p_2_pw4;
-//   factors[1] = 2 * p_2_pw3 * d_12 * b + 2 * f_2_pw2 * p_2_pw3 * d_12 * b -
-//                2 * f_2 * p_2_pw3 * f_1 * d_12;
-//   factors[2] =
-//       -f_2_pw2 * p_2_pw2 * p_1_pw2 - f_2_pw2 * p_2_pw2 * d_12_pw2 * b_pw2 -
-//       f_2_pw2 * p_2_pw2 * d_12_pw2 + f_2_pw2 * p_2_pw4 + p_2_pw4 * f_1_pw2 +
-//       2 * p_1 * p_2_pw2 * d_12 + 2 * f_1 * f_2 * p_1 * p_2_pw2 * d_12 * b -
-//       p_2_pw2 * p_1_pw2 * f_1_pw2 + 2 * p_1 * p_2_pw2 * f_2_pw2 * d_12 -
-//       p_2_pw2 * d_12_pw2 * b_pw2 - 2 * p_1_pw2 * p_2_pw2;
-//   factors[3] = 2 * p_1_pw2 * p_2 * d_12 * b + 2 * f_2 * p_2_pw3 * f_1 * d_12 -
-//                2 * f_2_pw2 * p_2_pw3 * d_12 * b - 2 * p_1 * p_2 * d_12_pw2 * b;
-//   factors[4] =
-//       -2 * f_2 * p_2_pw2 * f_1 * p_1 * d_12 * b + f_2_pw2 * p_2_pw2 * d_12_pw2 +
-//       2 * p_1_pw3 * d_12 - p_1_pw2 * d_12_pw2 + f_2_pw2 * p_2_pw2 * p_1_pw2 -
-//       p_1_pw4 - 2 * f_2_pw2 * p_2_pw2 * p_1 * d_12 +
-//       p_2_pw2 * f_1_pw2 * p_1_pw2 + f_2_pw2 * p_2_pw2 * d_12_pw2 * b_pw2;
-
-//   // Computation of roots
-//   real_t real_roots[4] = {0};
-//   kneip_solve_quadratic(factors, real_roots);
-
-//   // Backsubstitution of each solution
-//   for (int i = 0; i < 4; ++i) {
-//     const real_t cot_alpha =
-//         (-f_1 * p_1 / f_2 - real_roots[i] * p_2 + d_12 * b) /
-//         (-f_1 * real_roots[i] * p_2 / f_2 + p_1 - d_12);
-//     const real_t cos_theta = real_roots[i];
-//     const real_t sin_theta = sqrt(1 - pow((real_t) real_roots[i], 2));
-//     const real_t sin_alpha = sqrt(1 / (pow(cot_alpha, 2) + 1));
-//     real_t cos_alpha = sqrt(1 - pow(sin_alpha, 2));
-//     if (cot_alpha < 0) {
-//       cos_alpha = -cos_alpha;
-//     }
-
-//     real_t C[3] = {0};
-//     C[0] = d_12 * cos_alpha * (sin_alpha * b + cos_alpha);
-//     C[1] = cos_theta * d_12 * sin_alpha * (sin_alpha * b + cos_alpha);
-//     C[2] = sin_theta * d_12 * sin_alpha * (sin_alpha * b + cos_alpha);
-//     // C = P1 + N.transpose() * C;
-//     C[0] = P1[0] + (N[0] * C[0] + N[3] * C[1] + N[6] * C[2]);
-//     C[1] = P1[1] + (N[1] * C[0] + N[4] * C[1] + N[7] * C[2]);
-//     C[2] = P1[2] + (N[2] * C[0] + N[5] * C[1] + N[8] * C[2]);
-
-//     real_t R[3 * 3] = {0};
-//     R[0] = -cos_alpha;
-//     R[1] = -sin_alpha * cos_theta;
-//     R[2] = -sin_alpha * sin_theta;
-//     R[3] = sin_alpha;
-//     R[4] = -cos_alpha * cos_theta;
-//     R[5] = -cos_alpha * sin_theta;
-//     R[6] = 0;
-//     R[7] = -sin_theta;
-//     R[8] = cos_theta;
-//     // R = N.transpose() * R.transpose() * T;
-//     // clang-format off
-//     {
-//       real_t tmp[3 * 3] = {0};
-//       tmp[0] = T[0]*(N[0]*R[0] + N[3]*R[1] + N[6]*R[2]) + T[3]*(N[0]*R[3] + N[3]*R[4] + N[6]*R[5]) + T[6]*(N[0]*R[6] + N[3]*R[7] + N[6]*R[8]);
-//       tmp[1] = T[1]*(N[0]*R[0] + N[3]*R[1] + N[6]*R[2]) + T[4]*(N[0]*R[3] + N[3]*R[4] + N[6]*R[5]) + T[7]*(N[0]*R[6] + N[3]*R[7] + N[6]*R[8]);
-//       tmp[2] = T[2]*(N[0]*R[0] + N[3]*R[1] + N[6]*R[2]) + T[5]*(N[0]*R[3] + N[3]*R[4] + N[6]*R[5]) + T[8]*(N[0]*R[6] + N[3]*R[7] + N[6]*R[8]);
-
-//       tmp[3] = T[0]*(N[1]*R[0] + N[4]*R[1] + N[7]*R[2]) + T[3]*(N[1]*R[3] + N[4]*R[4] + N[7]*R[5]) + T[6]*(N[1]*R[6] + N[4]*R[7] + N[7]*R[8]);
-//       tmp[4] = T[1]*(N[1]*R[0] + N[4]*R[1] + N[7]*R[2]) + T[4]*(N[1]*R[3] + N[4]*R[4] + N[7]*R[5]) + T[7]*(N[1]*R[6] + N[4]*R[7] + N[7]*R[8]);
-//       tmp[5] = T[2]*(N[1]*R[0] + N[4]*R[1] + N[7]*R[2]) + T[5]*(N[1]*R[3] + N[4]*R[4] + N[7]*R[5]) + T[8]*(N[1]*R[6] + N[4]*R[7] + N[7]*R[8]);
-
-//       tmp[6] = T[0]*(N[2]*R[0] + N[5]*R[1] + N[8]*R[2]) + T[3]*(N[2]*R[3] + N[5]*R[4] + N[8]*R[5]) + T[6]*(N[2]*R[6] + N[5]*R[7] + N[8]*R[8]);
-//       tmp[7] = T[1]*(N[2]*R[0] + N[5]*R[1] + N[8]*R[2]) + T[4]*(N[2]*R[3] + N[5]*R[4] + N[8]*R[5]) + T[7]*(N[2]*R[6] + N[5]*R[7] + N[8]*R[8]);
-//       tmp[8] = T[2]*(N[2]*R[0] + N[5]*R[1] + N[8]*R[2]) + T[5]*(N[2]*R[3] + N[5]*R[4] + N[8]*R[5]) + T[8]*(N[2]*R[6] + N[5]*R[7] + N[8]*R[8]);
-
-//       mat3_copy(tmp, R);
-//     }
-//     // clang-format on
-
-//     // solution.block<3, 3>(0, 0) = R;
-//     // solution.col(3) = C;
-//     // clang-format off
-//     solutions[i][0] = R[0];
-//     solutions[i][1] = R[1];
-//     solutions[i][2]  = R[2];
-//     solutions[i][3] = C[0];
-//     solutions[i][4] = R[3];
-//     solutions[i][5] = R[4];
-//     solutions[i][6]  = R[5];
-//     solutions[i][7] = C[1];
-//     solutions[i][8] = R[3];
-//     solutions[i][9] = R[4];
-//     solutions[i][10] = R[5];
-//     solutions[i][11] = C[2];
-//     solutions[i][12] = 0.0;
-//     solutions[i][13] = 0.0;
-//     solutions[i][14] = 0.0;
-//     solutions[i][15] = 1.0;
-//     // clang-format on
-//   }
-
-//   return 0;
-// }
-
 static real_t *_solvepnp_residuals(const real_t *proj_params,
                                    const real_t *img_pts,
                                    const real_t *obj_pts,
@@ -14832,7 +14517,7 @@ void marg_factor_print_stats(const marg_factor_t *marg) {
   printf("m_features: %ld\n", marg->m_features->length);
   printf("m_joints: %ld\n", marg->m_joints->length);
   printf("m_extrinsics: %ld\n", marg->m_extrinsics->length);
-  // printf("m_fiducials: %ld\n", marg->m_fiducials->length);
+  printf("m_fiducials: %ld\n", marg->m_fiducials->length);
   printf("m_cam_params: %ld\n", marg->m_cam_params->length);
   printf("m_time_delays: %ld\n", marg->m_time_delays->length);
   printf("\n");
@@ -14847,7 +14532,7 @@ void marg_factor_print_stats(const marg_factor_t *marg) {
   printf("r_features: %ld\n", marg->r_features->length);
   printf("r_joints: %ld\n", marg->r_joints->length);
   printf("r_extrinsics: %ld\n", marg->r_extrinsics->length);
-  // printf("r_fiducials: %ld\n", marg->r_fiducials->length);
+  printf("r_fiducials: %ld\n", marg->r_fiducials->length);
   printf("r_cam_params: %ld\n", marg->r_cam_params->length);
   printf("r_time_delays: %ld\n", marg->r_time_delays->length);
   printf("\n");
@@ -15504,10 +15189,11 @@ pose_t *load_poses(const char *fp, int *num_poses) {
 
   // Obtain number of rows and columns in dsv data
   int num_rows = dsv_rows(fp);
-  int num_cols = dsv_cols(fp, ',');
+  int num_cols = dsv_cols(fp, ' ');
   if (num_rows == -1 || num_cols == -1) {
     return NULL;
   }
+  // *num_poses = num_rows;
 
   // Initialize memory for pose data
   *num_poses = num_rows;
@@ -15532,27 +15218,25 @@ pose_t *load_poses(const char *fp, int *num_poses) {
       continue;
     }
 
-    // Iterate through values in line separated by commas
-    char entry[100] = {0};
-    for (size_t i = 0; i < strlen(line); i++) {
-      char c = line[i];
-      if (c == ' ') {
-        continue;
-      }
-
-      if (c == ',' || c == '\n') {
-        if (parse_pose_data(row_idx, col_idx, entry, poses) != 0) {
-          return NULL;
-        }
-        memset(entry, '\0', sizeof(char) * 100);
-        col_idx++;
-
-      } else {
-        entry[strlen(entry)] = c;
-      }
+    // Parse line
+    timestamp_t ts = 0;
+    real_t rx, ry, rz = 0;
+    real_t qx, qy, qz, qw = 0;
+#if PRECISION == 1
+    const char *fmt = "%ld %f %f %f %f %f %f %f";
+#elif PRECISION == 2
+    const char *fmt = "%ld %lf %lf %lf %lf %lf %lf %lf";
+#endif
+    int parsed = sscanf(line, fmt, &ts, &rx, &ry, &rz, &qx, &qy, &qz, &qw);
+    if (parsed != 8) {
+      free(poses);
+      return NULL;
     }
 
-    col_idx = 0;
+    // Set pose
+    poses[row_idx];
+    real_t param[7] = {rx, ry, rz, qx, qy, qz, qw};
+    pose_setup(&poses[row_idx], ts, param);
     row_idx++;
   }
 
@@ -15925,6 +15609,9 @@ void solver_update(solver_t *solver, real_t *dx, int sv_size) {
         break;
     }
   }
+
+  arr_free(keys);
+  arr_free(vals);
 }
 
 /**
@@ -16554,6 +16241,19 @@ void sim_circle_defaults(sim_circle_t *conf) {
 //////////////////
 
 /**
+ * Save simulation feature data.
+ */
+void sim_features_save(sim_features_t *features, const char *csv_path) {
+  FILE *features_file = fopen(csv_path, "w");
+  for (int i = 0; i < features->num_features; ++i) {
+    fprintf(features_file, "%f,", features->features[i][0]);
+    fprintf(features_file, "%f,", features->features[i][1]);
+    fprintf(features_file, "%f\n", features->features[i][2]);
+  }
+  fclose(features_file);
+}
+
+/**
  * Load simulation feature data.
  */
 sim_features_t *sim_features_load(const char *csv_path) {
@@ -16626,9 +16326,103 @@ void sim_imu_data_free(sim_imu_data_t *imu_data) {
 }
 
 /**
+ * Save simulation imu data.
+ */
+void sim_imu_data_save(sim_imu_data_t *imu_data, const char *csv_path) {
+  assert(imu_data);
+  assert(csv_path);
+
+  FILE *csv_file = fopen(csv_path, "w");
+  if (csv_file == NULL) {
+    FATAL("Failed to open [%s]!\n", csv_path);
+  }
+
+  for (int i = 0; i < imu_data->num_measurements; ++i) {
+    fprintf(csv_file, "%ld,", imu_data->timestamps[i]);
+    fprintf(csv_file, "%lf,", imu_data->poses[i * 7 + 0]);
+    fprintf(csv_file, "%lf,", imu_data->poses[i * 7 + 1]);
+    fprintf(csv_file, "%lf,", imu_data->poses[i * 7 + 2]);
+    fprintf(csv_file, "%lf,", imu_data->poses[i * 7 + 3]);
+    fprintf(csv_file, "%lf,", imu_data->poses[i * 7 + 4]);
+    fprintf(csv_file, "%lf,", imu_data->poses[i * 7 + 5]);
+    fprintf(csv_file, "%lf,", imu_data->poses[i * 7 + 6]);
+    fprintf(csv_file, "%lf,", imu_data->velocities[i * 3 + 0]);
+    fprintf(csv_file, "%lf,", imu_data->velocities[i * 3 + 1]);
+    fprintf(csv_file, "%lf,", imu_data->velocities[i * 3 + 2]);
+    fprintf(csv_file, "%lf,", imu_data->imu_acc[i * 3 + 0]);
+    fprintf(csv_file, "%lf,", imu_data->imu_acc[i * 3 + 1]);
+    fprintf(csv_file, "%lf,", imu_data->imu_acc[i * 3 + 2]);
+    fprintf(csv_file, "%lf,", imu_data->imu_gyr[i * 3 + 0]);
+    fprintf(csv_file, "%lf,", imu_data->imu_gyr[i * 3 + 1]);
+    fprintf(csv_file, "%lf\n", imu_data->imu_gyr[i * 3 + 2]);
+  }
+
+  fclose(csv_file);
+}
+
+/**
  * Load simulation imu data.
  */
-sim_imu_data_t *sim_imu_data_load(const char *csv_path) { return NULL; }
+sim_imu_data_t *sim_imu_data_load(const char *csv_path) {
+  assert(csv_path);
+  FILE *csv_file = fopen(csv_path, "r");
+  if (csv_file == NULL) {
+    FATAL("Failed to open [%s]!\n", csv_path);
+  }
+
+  const size_t num_rows = file_lines(csv_path);
+  char fmt[1024] = {0};
+  strcat(fmt, "%" SCNd64 ",");                 // Timestamp
+  strcat(fmt, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,"); // Pose
+  strcat(fmt, "%lf,%lf,%lf,");                 // Velocity
+  strcat(fmt, "%lf,%lf,%lf,");                 // Imu acc
+  strcat(fmt, "%lf,%lf,%lf");                  // Imu gyr
+  sim_imu_data_t *imu_data = malloc(sizeof(sim_imu_data_t));
+  imu_data->num_measurements = num_rows;
+  imu_data->timestamps = malloc(sizeof(timestamp_t) * num_rows);
+  imu_data->poses = malloc(sizeof(real_t) * 7 * num_rows);
+  imu_data->velocities = malloc(sizeof(real_t) * 3 * num_rows);
+  imu_data->imu_acc = malloc(sizeof(real_t) * 3 * num_rows);
+  imu_data->imu_gyr = malloc(sizeof(real_t) * 3 * num_rows);
+  for (size_t i = 0; i < num_rows; ++i) {
+    timestamp_t ts = 0;
+    double pose[7] = {0};
+    double v_WS[3] = {0};
+    double imu_acc[3] = {0};
+    double imu_gyr[3] = {0};
+    int retval = fscanf(csv_file,
+                        fmt,
+                        &ts,
+                        &pose[0],
+                        &pose[1],
+                        &pose[2],
+                        &pose[3],
+                        &pose[4],
+                        &pose[5],
+                        &pose[6],
+                        &v_WS[0],
+                        &v_WS[1],
+                        &v_WS[2],
+                        &imu_acc[0],
+                        &imu_acc[1],
+                        &imu_acc[2],
+                        &imu_gyr[0],
+                        &imu_gyr[1],
+                        &imu_gyr[2]);
+    if (retval != 17) {
+      FATAL("Failed to parse line %ld in [%s]\n", i, csv_path);
+    }
+
+    imu_data->timestamps[i] = ts;
+    vec_copy(pose, 7, &imu_data->poses[i * 7]);
+    vec_copy(v_WS, 3, &imu_data->velocities[i * 3]);
+    vec_copy(imu_acc, 3, &imu_data->imu_acc[i * 3]);
+    vec_copy(imu_gyr, 3, &imu_data->imu_gyr[i * 3]);
+  }
+  fclose(csv_file);
+
+  return imu_data;
+}
 
 /**
  * Simulate IMU circle trajectory.
@@ -16649,7 +16443,8 @@ sim_imu_data_t *sim_imu_circle_trajectory(const sim_circle_t *conf) {
   // Allocate memory for test data
   sim_imu_data_t *imu_data = sim_imu_data_malloc();
   imu_data->num_measurements = time_taken * imu_rate;
-  imu_data->timestamps = calloc(imu_data->num_measurements, sizeof(real_t));
+  imu_data->timestamps =
+      calloc(imu_data->num_measurements, sizeof(timestamp_t));
   imu_data->poses = calloc(imu_data->num_measurements * 7, sizeof(real_t));
   imu_data->velocities = calloc(imu_data->num_measurements * 3, sizeof(real_t));
   imu_data->imu_acc = calloc(imu_data->num_measurements * 3, sizeof(real_t));
@@ -16657,7 +16452,7 @@ sim_imu_data_t *sim_imu_circle_trajectory(const sim_circle_t *conf) {
 
   // Simulate IMU poses
   const real_t dt = 1.0 / imu_rate;
-  timestamp_t ts = 0.0;
+  timestamp_t ts = 0;
   real_t theta = theta_init;
   real_t yaw = yaw_init;
 
@@ -16673,7 +16468,6 @@ sim_imu_data_t *sim_imu_circle_trajectory(const sim_circle_t *conf) {
     euler2quat(ypr, q);
     // -- Pose vector
     const real_t pose[7] = {rx, ry, rz, q[0], q[1], q[2], q[3]};
-    // print_vector("pose", pose, 7);
 
     // Velocity
     const real_t vx = -circle_r * w * sin(theta);
@@ -16816,22 +16610,6 @@ void sim_create_features(const real_t origin[3],
 }
 
 /**
- * Extract timestamp from path.
- */
-static timestamp_t path2ts(const char *path) {
-  char fname[128] = {0};
-  char fext[128] = {0};
-  path_file_name(path, fname);
-  path_file_ext(path, fext);
-
-  char ts_str[128] = {0};
-  memcpy(ts_str, fname, strlen(fname) - strlen(fext) - 1);
-
-  char *ptr;
-  return strtol(ts_str, &ptr, 10);
-}
-
-/**
  * Setup simulated camera frame.
  */
 void sim_camera_frame_setup(sim_camera_frame_t *frame,
@@ -16884,36 +16662,57 @@ void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame,
   frame->keypoints[(N - 1) * 2 + 1] = kp[1];
 }
 
+void sim_camera_frame_save(const sim_camera_frame_t *frame_data,
+                           const char *csv_path) {
+  assert(frame_data);
+  assert(csv_path);
+
+  FILE *csv_file = fopen(csv_path, "w");
+  if (csv_file == NULL) {
+    FATAL("Failed to open [%s]!\n", csv_path);
+  }
+
+  fprintf(csv_file, "timestamp: %ld\n", frame_data->ts);
+  fprintf(csv_file, "camera_index: %d\n", frame_data->cam_idx);
+  fprintf(csv_file, "num_keypoints: %d\n", frame_data->n);
+  for (size_t i = 0; i < frame_data->n; ++i) {
+    fprintf(csv_file, "%ld,", frame_data->feature_ids[i]);
+    fprintf(csv_file, "%lf,", frame_data->keypoints[i * 2 + 0]);
+    fprintf(csv_file, "%lf\n", frame_data->keypoints[i * 2 + 1]);
+  }
+  fclose(csv_file);
+}
+
 /**
  * Load simulated camera frame.
  */
 sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
-  // Check if file exists
-  if (file_exists(csv_path) == 0) {
-    return NULL;
+  assert(csv_path);
+
+  FILE *csv_file = fopen(csv_path, "r");
+  if (csv_file == NULL) {
+    FATAL("Failed to open [%s]!\n", csv_path);
   }
 
-  // Load csv data
-  int num_rows = 0;
-  int num_cols = 0;
-  real_t **data = csv_data(csv_path, &num_rows, &num_cols);
+  sim_camera_frame_t *frame = sim_camera_frame_malloc(0, 0);
+  char key[1024] = {0};
+  fscanf(csv_file, "%s %ld", key, &frame->ts);
+  fscanf(csv_file, "%s %d", key, &frame->cam_idx);
+  fscanf(csv_file, "%s %d", key, &frame->n);
 
-  // Create sim_camera_frame_t
-  sim_camera_frame_t *frame_data = malloc(sizeof(sim_camera_frame_t) * 1);
-  frame_data->ts = path2ts(csv_path);
-  frame_data->feature_ids = malloc(sizeof(size_t) * num_rows);
-  frame_data->keypoints = malloc(sizeof(real_t) * num_rows * 2);
-  frame_data->n = num_rows;
-  for (int i = 0; i < num_rows; i++) {
-    frame_data->feature_ids[i] = (int) data[i][0];
-    frame_data->keypoints[i * 2 + 0] = data[i][1];
-    frame_data->keypoints[i * 2 + 1] = data[i][2];
+  frame->feature_ids = malloc(sizeof(size_t) * frame->n);
+  frame->keypoints = malloc(sizeof(real_t) * 2 * frame->n);
+  for (int i = 0; i < frame->n; ++i) {
+    size_t fid = 0;
+    real_t kx = 0;
+    real_t ky = 0;
+    fscanf(csv_file, "%ld,%lf,%lf", &fid, &kx, &ky);
+    frame->feature_ids[i] = fid;
+    frame->keypoints[i * 2 + 0] = kx;
+    frame->keypoints[i * 2 + 1] = ky;
   }
 
-  // Clean up
-  csv_free(data, num_rows);
-
-  return frame_data;
+  return frame;
 }
 
 /**
@@ -17269,28 +17068,6 @@ void sim_circle_camera_imu_free(sim_circle_camera_imu_t *sim_data) {
 /******************************************************************************
  * EUROC
  ******************************************************************************/
-
-/**
- * Count number of lines in file
- * @returns Number of lines or `-1` for failure
- */
-static size_t file_lines(const char *path) {
-  FILE *fp = fopen(path, "r");
-  size_t lines = 0;
-
-  if (fp == NULL) {
-    return -1;
-  }
-
-  int ch;
-  while ((ch = getc(fp)) != EOF) {
-    if (ch == '\n') {
-      ++lines;
-    }
-  }
-
-  return lines;
-}
 
 /**
  * Print vector

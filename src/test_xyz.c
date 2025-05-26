@@ -2,14 +2,9 @@
 #include "munit.h"
 
 /* TEST PARAMS */
-#define TEST_DATA_PATH "./test_data/"
-#define TEST_SIM_DATA TEST_DATA_PATH "sim_data"
-#define TEST_SIM_GIMBAL TEST_DATA_PATH "sim_gimbal"
-
 #define KITTI_TEST_DATA "/data/kitti_raw/2011_09_26"
 #define KITTI_TEST_SEQ_NAME "2011_09_26_drive_0001_sync"
 #define KITTI_TEST_SEQ KITTI_TEST_DATA "/" KITTI_TEST_SEQ_NAME
-
 
 /******************************************************************************
  * MACROS
@@ -2870,21 +2865,13 @@ int test_mav_waypoints(void) {
  * COMPUTER-VISION
  ******************************************************************************/
 
-int test_image_setup(void) {
-  return 0;
-}
+int test_image_setup(void) { return 0; }
 
-int test_image_load(void) {
-  return 0;
-}
+int test_image_load(void) { return 0; }
 
-int test_image_print_properties(void) {
-  return 0;
-}
+int test_image_print_properties(void) { return 0; }
 
-int test_image_free(void) {
-  return 0;
-}
+int test_image_free(void) { return 0; }
 
 int test_radtan4_distort(void) {
   const real_t params[4] = {0.01, 0.001, 0.001, 0.001};
@@ -5060,11 +5047,11 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   camera_setup(&data->camera,
-                      data->cam_idx,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      cam_data);
+               data->cam_idx,
+               cam_res,
+               proj_model,
+               dist_model,
+               cam_data);
 
   // Project to image plane
   int num_rows = 6;
@@ -5234,11 +5221,11 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   const char *proj_model = "pinhole";
   const char *dist_model = "radtan4";
   camera_setup(&data->camera,
-                      data->cam_idx,
-                      cam_res,
-                      proj_model,
-                      dist_model,
-                      cam_data);
+               data->cam_idx,
+               cam_res,
+               proj_model,
+               dist_model,
+               cam_data);
 
   // Time delay
   time_delay_setup(&data->time_delay, 0.0);
@@ -5502,6 +5489,663 @@ int test_marg_factor(void) {
 
   return 0;
 }
+
+int test_load_poses(void) {
+  // Create test data
+  const char *test_poses_path = "/tmp/test_poses.csv";
+  const int expected_num_poses = 10;
+  FILE *test_data = fopen(test_poses_path, "w");
+  for (int i = 0; i < expected_num_poses; ++i) {
+    fprintf(test_data, "%ld ", (int64_t) (i * 1e9));
+    fprintf(test_data, "%f ", (float) i * 1);
+    fprintf(test_data, "%f ", (float) i * 2);
+    fprintf(test_data, "%f ", (float) i * 3);
+    fprintf(test_data, "%f ", (float) i * 4);
+    fprintf(test_data, "%f ", (float) i * 5);
+    fprintf(test_data, "%f ", (float) i * 6);
+    fprintf(test_data, "%f ", (float) i * 7);
+    fprintf(test_data, "\n");
+  }
+  fclose(test_data);
+
+  // Test load poses
+  int num_poses = 0;
+  pose_t *poses = load_poses(test_poses_path, &num_poses);
+  for (int i = 0; i < num_poses; ++i) {
+    MU_ASSERT(poses[i].ts == (int64_t) (i * 1e9));
+    MU_ASSERT(fltcmp(poses[i].data[0], (float) (i * 1)) == 0);
+    MU_ASSERT(fltcmp(poses[i].data[1], (float) (i * 2)) == 0);
+    MU_ASSERT(fltcmp(poses[i].data[2], (float) (i * 3)) == 0);
+    MU_ASSERT(fltcmp(poses[i].data[3], (float) (i * 4)) == 0);
+    MU_ASSERT(fltcmp(poses[i].data[4], (float) (i * 5)) == 0);
+    MU_ASSERT(fltcmp(poses[i].data[5], (float) (i * 6)) == 0);
+    MU_ASSERT(fltcmp(poses[i].data[6], (float) (i * 7)) == 0);
+  }
+  MU_ASSERT(expected_num_poses == num_poses);
+  free(poses);
+  MU_ASSERT(remove(test_poses_path) == 0);
+
+  return 0;
+}
+
+int test_assoc_pose_data(void) {
+  // const double threshold = 0.01;
+  // const char *matches_fpath = "./gnd_est_matches.csv";
+  // const char *gnd_data_path = "./test_data/euroc/MH01_groundtruth.csv";
+  // const char *est_data_path = "./test_data/euroc/MH01_estimate.csv";
+  //
+  // // Load ground-truth poses
+  // int num_gnd_poses = 0;
+  // pose_t *gnd_poses = load_poses(gnd_data_path, &num_gnd_poses);
+  // printf("num_gnd_poses: %d\n", num_gnd_poses);
+  //
+  // // Load estimate poses
+  // int num_est_poses = 0;
+  // pose_t *est_poses = load_poses(est_data_path, &num_est_poses);
+  // printf("num_est_poses: %d\n", num_est_poses);
+  //
+  // // Associate data
+  // size_t num_matches = 0;
+  // int **matches = assoc_pose_data(gnd_poses,
+  //                                 num_gnd_poses,
+  //                                 est_poses,
+  //                                 num_est_poses,
+  //                                 threshold,
+  //                                 &num_matches);
+  // printf("Time Associated:\n");
+  // printf(" - [%s]\n", gnd_data_path);
+  // printf(" - [%s]\n", est_data_path);
+  // printf("threshold:  %.4f [s]\n", threshold);
+  // printf("num_matches: %ld\n", num_matches);
+  //
+  // // Save matches to file
+  // FILE *matches_csv = fopen(matches_fpath, "w");
+  // fprintf(matches_csv, "#gnd_idx,est_idx\n");
+  // for (size_t i = 0; i < num_matches; i++) {
+  //   uint64_t gnd_ts = gnd_poses[matches[i][0]].ts;
+  //   uint64_t est_ts = est_poses[matches[i][1]].ts;
+  //   double t_diff = fabs(ts2sec(gnd_ts - est_ts));
+  //   if (t_diff > threshold) {
+  //     printf("ERROR! Time difference > threshold!\n");
+  //     printf("ground_truth_index: %d\n", matches[i][0]);
+  //     printf("estimate_index: %d\n", matches[i][1]);
+  //     break;
+  //   }
+  //   fprintf(matches_csv, "%d,%d\n", matches[i][0], matches[i][1]);
+  // }
+  // fclose(matches_csv);
+  //
+  // // Clean up
+  // for (size_t i = 0; i < num_matches; i++) {
+  //   free(matches[i]);
+  // }
+  // free(matches);
+  // free(gnd_poses);
+  // free(est_poses);
+
+  return 0;
+}
+
+int test_solver_setup(void) {
+  solver_t solver;
+  solver_setup(&solver);
+  return 0;
+}
+
+typedef struct cam_view_t {
+  pose_t pose;
+  ba_factor_t factors[1000];
+  int num_factors;
+  camera_t *camera;
+} cam_view_t;
+
+int test_solver_eval(void) {
+  // Load test data
+  // const char *dir_path = TEST_SIM_DATA "/cam0";
+  // sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
+
+  // // Camera parameters
+  // camera_t cam;
+  // const int cam_idx = 0;
+  // const int cam_res[2] = {640, 480};
+  // const char *proj_model = "pinhole";
+  // const char *dist_model = "radtan4";
+  // const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
+  // camera_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
+  //
+  // // Setup features
+  // // -- Load features csv
+  // int num_rows = 0;
+  // int num_cols = 0;
+  // char *features_csv = TEST_SIM_DATA "/features.csv";
+  // real_t **features_data = csv_data(features_csv, &num_rows, &num_cols);
+  // size_t *feature_ids = MALLOC(size_t, num_rows);
+  // real_t *feature_xyzs = MALLOC(real_t, num_rows * 3);
+  // for (int i = 0; i < num_rows; i++) {
+  //   feature_ids[i] = features_data[i][0];
+  //   feature_xyzs[i * 3 + 0] = features_data[i][1];
+  //   feature_xyzs[i * 3 + 1] = features_data[i][2];
+  //   feature_xyzs[i * 3 + 2] = features_data[i][3];
+  //   free(features_data[i]);
+  // }
+  // free(features_data);
+  // // -- Add features to container
+  // features_t *features = features_malloc();
+  // features_add_xyzs(features, feature_ids, feature_xyzs, num_rows);
+  // free(feature_ids);
+  // free(feature_xyzs);
+  //
+  // // Loop over simulated camera frames
+  // const real_t var[2] = {1.0, 1.0};
+  // cam_view_t *cam_views = MALLOC(cam_view_t, cam_data->num_frames);
+  // for (int k = 0; k < cam_data->num_frames; k++) {
+  //   // Camera frame
+  //   const sim_camera_frame_t *frame = cam_data->frames[k];
+  //
+  //   // Pose
+  //   pose_t *pose = &cam_views[k].pose;
+  //   pose_setup(pose, frame->ts, &cam_data->poses[k]);
+  //
+  //   // Add factors
+  //   cam_views[k].num_factors = frame->num_measurements;
+  //   for (int i = 0; i < frame->num_measurements; i++) {
+  //     const int feature_id = frame->feature_ids[i];
+  //     const real_t *z = &frame->keypoints[i];
+  //     feature_t *f = NULL;
+  //     features_get_xyz(features, feature_id, &f);
+  //
+  //     // Factor
+  //     ba_factor_t *factor = &cam_views[k].factors[i];
+  //     ba_factor_setup(factor, pose, f, &cam, z, var);
+  //   }
+  // }
+
+  // solver_t solver;
+  // solver_setup(&solver);
+
+  // Clean up
+  // sim_camera_data_free(cam_data);
+  // free(cam_views);
+  // features_free(features);
+
+  return 0;
+}
+
+typedef struct inertial_odometry_t {
+  // IMU Parameters
+  imu_params_t imu_params;
+
+  // Factors
+  int num_factors;
+  imu_factor_t *factors;
+  marg_factor_t *marg;
+
+  // Variables
+  pose_t *poses;
+  velocity_t *vels;
+  imu_biases_t *biases;
+} inertial_odometry_t;
+
+inertial_odometry_t *inertial_odometry_malloc(void) {
+  inertial_odometry_t *io = malloc(sizeof(inertial_odometry_t));
+
+  io->num_factors = 0;
+  io->factors = NULL;
+  io->marg = NULL;
+
+  io->poses = NULL;
+  io->vels = NULL;
+  io->biases = NULL;
+
+  return io;
+}
+
+void inertial_odometry_free(inertial_odometry_t *odom) {
+  free(odom->factors);
+  free(odom->poses);
+  free(odom->vels);
+  free(odom->biases);
+  free(odom);
+}
+
+void inertial_odometry_save(const inertial_odometry_t *odom,
+                            const char *save_path) {
+  // Load file
+  FILE *fp = fopen(save_path, "w");
+  if (fp == NULL) {
+    FATAL("Failed to open [%s]!\n", save_path);
+  }
+
+  // Write header
+  fprintf(fp, "#ts,");
+  fprintf(fp, "rx,ry,rz,qw,qx,qy,qz,");
+  fprintf(fp, "vx,vy,vz,");
+  fprintf(fp, "ba_x,ba_y,ba_z,");
+  fprintf(fp, "bg_x,bg_y,bg_z\n");
+
+  // Write data
+  for (int k = 0; k < (odom->num_factors + 1); k++) {
+    const real_t *pos = odom->poses[k].data;
+    const real_t *quat = odom->poses[k].data + 3;
+    const real_t *vel = odom->vels[k].data;
+    const real_t *ba = odom->biases[k].data;
+    const real_t *bg = odom->biases[k].data + 3;
+    fprintf(fp, "%ld,", odom->poses[k].ts);
+    fprintf(fp, "%f,%f,%f,", pos[0], pos[1], pos[2]);
+    fprintf(fp, "%f,%f,%f,%f,", quat[0], quat[1], quat[2], quat[3]);
+    fprintf(fp, "%f,%f,%f,", vel[0], vel[1], vel[2]);
+    fprintf(fp, "%f,%f,%f,", ba[0], ba[1], ba[2]);
+    fprintf(fp, "%f,%f,%f", bg[0], bg[1], bg[2]);
+    fprintf(fp, "\n");
+  }
+}
+
+rbt_t *inertial_odometry_param_order(const void *data,
+                                     int *sv_size,
+                                     int *r_size) {
+  // Setup parameter order
+  inertial_odometry_t *odom = (inertial_odometry_t *) data;
+  rbt_t *param_index = param_index_malloc();
+  int col_idx = 0;
+
+  for (int k = 0; k <= odom->num_factors; k++) {
+    param_index_add_pose(param_index, &odom->poses[k], &col_idx);
+    param_index_add_velocity(param_index, &odom->vels[k], &col_idx);
+    param_index_add_imu_biases(param_index, &odom->biases[k], &col_idx);
+  }
+
+  *sv_size = col_idx;
+  *r_size = odom->num_factors * 15;
+  return param_index;
+}
+
+void inertial_odometry_cost(const void *data, real_t *r) {
+  inertial_odometry_t *odom = (inertial_odometry_t *) data;
+  for (int k = 0; k < odom->num_factors; k++) {
+    imu_factor_t *factor = &odom->factors[k];
+    imu_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[k * factor->r_size]);
+  }
+}
+
+void inertial_odometry_linearize_compact(const void *data,
+                                         const int sv_size,
+                                         rbt_t *hash,
+                                         real_t *H,
+                                         real_t *g,
+                                         real_t *r) {
+  // Evaluate factors
+  inertial_odometry_t *odom = (inertial_odometry_t *) data;
+
+  for (int k = 0; k < odom->num_factors; k++) {
+    imu_factor_t *factor = &odom->factors[k];
+    imu_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[k * factor->r_size]);
+
+    solver_fill_hessian(hash,
+                        factor->num_params,
+                        factor->params,
+                        factor->jacs,
+                        factor->r,
+                        factor->r_size,
+                        sv_size,
+                        H,
+                        g);
+  }
+}
+
+int test_inertial_odometry_batch(void) {
+  // Setup test data
+  imu_test_data_t test_data;
+  setup_imu_test_data(&test_data, 1.0, 0.1);
+
+  // Inertial Odometry
+  const int num_partitions = test_data.num_measurements / 20.0;
+  const size_t N = test_data.num_measurements / (real_t) num_partitions;
+  inertial_odometry_t *odom = malloc(sizeof(inertial_odometry_t) * 1);
+  // -- IMU params
+  odom->imu_params.imu_idx = 0;
+  odom->imu_params.rate = 200.0;
+  odom->imu_params.sigma_a = 0.08;
+  odom->imu_params.sigma_g = 0.004;
+  odom->imu_params.sigma_aw = 0.00004;
+  odom->imu_params.sigma_gw = 2.0e-6;
+  odom->imu_params.g = 9.81;
+  // -- Variables
+  odom->num_factors = 0;
+  odom->factors = malloc(sizeof(imu_factor_t) * num_partitions);
+  odom->poses = malloc(sizeof(pose_t) * num_partitions + 1);
+  odom->vels = malloc(sizeof(velocity_t) * num_partitions + 1);
+  odom->biases = malloc(sizeof(imu_biases_t) * num_partitions + 1);
+
+  const timestamp_t ts_i = test_data.timestamps[0];
+  const real_t *v_i = test_data.velocities[0];
+  const real_t ba_i[3] = {0, 0, 0};
+  const real_t bg_i[3] = {0, 0, 0};
+  pose_setup(&odom->poses[0], ts_i, test_data.poses[0]);
+  velocity_setup(&odom->vels[0], ts_i, v_i);
+  imu_biases_setup(&odom->biases[0], ts_i, ba_i, bg_i);
+
+  for (int i = 1; i < num_partitions; i++) {
+    const int ks = i * N;
+    const int ke = MIN((i + 1) * N - 1, test_data.num_measurements - 1);
+
+    // Setup imu buffer
+    imu_buffer_t imu_buf;
+    imu_buffer_setup(&imu_buf);
+    for (size_t k = 0; k < N; k++) {
+      const timestamp_t ts = test_data.timestamps[ks + k];
+      const real_t *acc = test_data.imu_acc[ks + k];
+      const real_t *gyr = test_data.imu_gyr[ks + k];
+      imu_buffer_add(&imu_buf, ts, acc, gyr);
+    }
+
+    // Setup parameters
+    const timestamp_t ts_j = test_data.timestamps[ke];
+    const real_t *v_j = test_data.velocities[ke];
+    const real_t ba_j[3] = {0, 0, 0};
+    const real_t bg_j[3] = {0, 0, 0};
+    pose_setup(&odom->poses[i], ts_j, test_data.poses[ke]);
+    velocity_setup(&odom->vels[i], ts_j, v_j);
+    imu_biases_setup(&odom->biases[i], ts_j, ba_j, bg_j);
+
+    // Setup IMU factor
+    imu_factor_setup(&odom->factors[i - 1],
+                     &odom->imu_params,
+                     &imu_buf,
+                     &odom->poses[i - 1],
+                     &odom->vels[i - 1],
+                     &odom->biases[i - 1],
+                     &odom->poses[i],
+                     &odom->vels[i],
+                     &odom->biases[i]);
+    odom->num_factors++;
+  }
+
+  // Save ground truth
+  inertial_odometry_save(odom, "/tmp/imu_odom-gnd.csv");
+
+  // Perturb ground truth
+  for (int k = 0; k <= odom->num_factors; k++) {
+    odom->poses[k].data[0] += randf(-1.0, 1.0);
+    odom->poses[k].data[1] += randf(-1.0, 1.0);
+    odom->poses[k].data[2] += randf(-1.0, 1.0);
+    quat_perturb(odom->poses[k].data + 3, 0, randf(-1e-1, 1e-1));
+    quat_perturb(odom->poses[k].data + 3, 1, randf(-1e-1, 1e-1));
+    quat_perturb(odom->poses[k].data + 3, 2, randf(-1e-1, 1e-1));
+
+    odom->vels[k].data[0] += randf(-1.0, 1.0);
+    odom->vels[k].data[1] += randf(-1.0, 1.0);
+    odom->vels[k].data[2] += randf(-1.0, 1.0);
+  }
+  inertial_odometry_save(odom, "/tmp/imu_odom-init.csv");
+
+  // Solve
+  solver_t solver;
+  solver_setup(&solver);
+  solver.verbose = 1;
+  solver.param_index_func = &inertial_odometry_param_order;
+  solver.cost_func = &inertial_odometry_cost;
+  solver.linearize_func = &inertial_odometry_linearize_compact;
+  solver_solve(&solver, odom);
+  inertial_odometry_save(odom, "/tmp/imu_odom-est.csv");
+
+  // Clean up
+  inertial_odometry_free(odom);
+  free_imu_test_data(&test_data);
+
+  return 0;
+}
+
+// int test_visual_odometry_batch(void) {
+//   // Simulate features
+//   const real_t origin[3] = {0.0, 0.0, 0.0};
+//   const real_t dim[3] = {5.0, 5.0, 5.0};
+//   const int num_features = 1000;
+//   real_t features[3 * 1000] = {0};
+//   sim_create_features(origin, dim, num_features, features);
+//
+//   // Camera configuration
+//   const int res[2] = {640, 480};
+//   const real_t fov = 90.0;
+//   const real_t fx = pinhole_focal(res[0], fov);
+//   const real_t fy = pinhole_focal(res[0], fov);
+//   const real_t cx = res[0] / 2.0;
+//   const real_t cy = res[1] / 2.0;
+//   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+//   const char *pmodel = "pinhole";
+//   const char *dmodel = "radtan4";
+//   camera_t cam0_params;
+//   camera_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
+//
+//   // IMU-Camera0 extrinsic
+//   const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+//   const real_t cam0_ext_r[3] = {0.05, 0.0, 0.0};
+//   TF_ER(cam0_ext_ypr, cam0_ext_r, T_BC0);
+//   TF_VECTOR(T_BC0, cam0_ext);
+//   TF_INV(T_BC0, T_C0B);
+//
+//   // Simulate data
+//   sim_circle_t conf;
+//   sim_circle_defaults(&conf);
+//   sim_camera_data_t *cam0_data = sim_camera_circle_trajectory(&conf,
+//                                                               T_BC0,
+//                                                               &cam0_params,
+//                                                               features,
+//                                                               num_features);
+//   // Setup factor graph
+//   // feature_hash_t *feature_params = NULL;
+//
+//   // fgraph_t *fg = fgraph_malloc();
+//   // // -- Add features
+//   // for (int feature_id = 0; feature_id < num_features; feature_id++) {
+//   //   fgraph_add_feature(fg, feature_id, features + feature_id * 3, 0);
+//   // }
+//   // // -- Add camera
+//   // const int cam0_id = fgraph_add_camera(fg, 0, res, pmodel, dmodel, cam_vec, 0);
+//   // const int cam0_ext_id = fgraph_add_cam_ext(fg, 0, cam0_ext, 0);
+//
+//   // for (size_t k = 0; k < cam0_data->num_frames; k++) {
+//   //   const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
+//
+//   //   // Add pose
+//   //   const real_t *cam0_pose = &cam0_data->poses[k * 7];
+//   //   TF(cam0_pose, T_WC0);
+//   //   TF_CHAIN(T_WB, 2, T_WC0, T_C0B);
+//   //   TF_VECTOR(T_WB, body_pose);
+//   //   pose_random_perturb(body_pose, 0.1, 0.1);
+//   //   const int pose_id = fgraph_add_pose(fg, k, body_pose, 0);
+//
+//   //   // Add camera factors
+//   //   for (int i = 0; i < cam0_frame->num_measurements; i++) {
+//   //     const int feature_id = cam0_frame->feature_ids[i];
+//   //     const real_t *kp = cam0_frame->keypoints + i * 2;
+//   //     const int param_ids[4] = {pose_id, cam0_ext_id, feature_id, cam0_id};
+//   //     const real_t var[2] = {1.0, 1.0};
+//   //     fgraph_add_camera_factor(fg, param_ids, kp, var);
+//   //   }
+//   // }
+//
+//   // // Solve
+//   // solver_t solver;
+//   // solver_setup(&solver);
+//
+//   // solver.verbose = 1;
+//   // solver.max_iter = 5;
+//   // solver.cost_func = &fgraph_cost;
+//   // solver.param_order_func = &fgraph_param_order;
+//   // solver.linearize_func = &fgraph_linearize_compact;
+//   // solver_solve(&solver, fg);
+//
+//   // Clean up
+//   sim_camera_data_free(cam0_data);
+//
+//   return 0;
+// }
+//
+
+// int test_visual_inertial_odometry_batch(void) {
+//   // Simulate features
+//   const real_t origin[3] = {0.0, 0.0, 0.0};
+//   const real_t dim[3] = {5.0, 5.0, 5.0};
+//   const int num_features = 1000;
+//   real_t features[3 * 1000] = {0};
+//   sim_create_features(origin, dim, num_features, features);
+
+//   // Camera configuration
+//   const int res[2] = {640, 480};
+//   const real_t fov = 90.0;
+//   const real_t fx = pinhole_focal(res[0], fov);
+//   const real_t fy = pinhole_focal(res[0], fov);
+//   const real_t cx = res[0] / 2.0;
+//   const real_t cy = res[1] / 2.0;
+//   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+//   const char *pmodel = "pinhole";
+//   const char *dmodel = "radtan4";
+//   camera_t cam0_params;
+//   camera_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
+
+//   // IMU configuration
+//   imu_params_t imu_params;
+//   imu_params.imu_idx = 0;
+//   imu_params.rate = 200.0;
+//   imu_params.sigma_a = 0.08;
+//   imu_params.sigma_g = 0.004;
+//   imu_params.sigma_aw = 0.00004;
+//   imu_params.sigma_gw = 2.0e-6;
+//   imu_params.g = 9.81;
+
+//   // IMU-Camera0 extrinsic
+//   const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+//   const real_t cam0_ext_r[3] = {0.05, 0.0, 0.0};
+//   TF_ER(cam0_ext_ypr, cam0_ext_r, T_BC0);
+//   TF_VECTOR(T_BC0, cam0_ext);
+//   TF_INV(T_BC0, T_C0B);
+
+//   // Simulate data
+//   sim_circle_t conf;
+//   sim_circle_defaults(&conf);
+//   sim_imu_data_t *imu_data = sim_imu_circle_trajectory(&conf);
+//   sim_camera_data_t *cam0_data = sim_camera_circle_trajectory(&conf,
+//                                                               T_BC0,
+//                                                               &cam0_params,
+//                                                               features,
+//                                                               num_features);
+//   // Setup factor graph
+//   fgraph_t *fg = fgraph_malloc();
+//   // -- Add features
+//   for (int feature_id = 0; feature_id < num_features; feature_id++) {
+//     fgraph_add_feature(fg, feature_id, features + feature_id * 3, 0);
+//   }
+//   // -- Add camera
+//   const int cam0_id = fgraph_add_camera(fg, 0, res, pmodel, dmodel, cam_vec, 0);
+//   const int cam0_ext_id = fgraph_add_cam_ext(fg, 0, cam0_ext, 0);
+
+//   int initialized = 0;
+//   int pose_i_id = -1;
+//   int vel_i_id = -1;
+//   int biases_i_id = -1;
+//   // for (size_t k = 1; k < cam0_data->num_frames; k++) {
+//   for (size_t k = 1; k < 20; k++) {
+//     const int64_t ts_i = cam0_data->timestamps[k - 1];
+//     const int64_t ts_j = cam0_data->timestamps[k];
+//     const sim_camera_frame_t *frame_i = cam0_data->frames[k - 1];
+//     const sim_camera_frame_t *frame_j = cam0_data->frames[k];
+
+//     // Add pose
+//     const real_t *cam_pose_i = &cam0_data->poses[(k - 1) * 7];
+//     const real_t *cam_pose_j = &cam0_data->poses[(k + 0) * 7];
+
+//     // Add camera factors at i
+//     if (initialized == 0) {
+//       // Add pose i
+//       TF(cam_pose_i, T_WC0_i);
+//       TF_CHAIN(T_WB_i, 2, T_WC0_i, T_C0B);
+//       TF_VECTOR(T_WB_i, pose_i);
+//       // pose_random_perturb(pose_i, 0.1, 0.1);
+//       pose_i_id = fgraph_add_pose(fg, ts_i, pose_i, 0);
+
+//       // Add speed and biases at i
+//       const real_t *vel_i = &imu_data->velocities[(k - 1) * 3];
+//       const real_t ba_i[3] = {0.0, 0.0, 0.0};
+//       const real_t bg_i[3] = {0.0, 0.0, 0.0};
+//       vel_i_id = fgraph_add_velocity(fg, ts_i, vel_i, 0);
+//       biases_i_id = fgraph_add_imu_biases(fg, ts_i, ba_i, bg_i, 0);
+
+//       // // Add camera factors at i
+//       // for (int i = 0; i < frame_i->num_measurements; i++) {
+//       //   const int feature_id = frame_i->feature_ids[i];
+//       //   const real_t *z = &frame_i->keypoints[i * 2];
+//       //   const int param_ids[4] = {pose_i_id, cam0_ext_id, feature_id, cam0_id};
+//       //   const real_t var[2] = {1.0, 1.0};
+//       //   fgraph_add_camera_factor(fg, param_ids, z, var);
+//       // }
+
+//       initialized = 1;
+//     }
+
+//     // Add camera factors at j
+//     {
+//       // Add pose j
+//       TF(cam_pose_j, T_WC0_j);
+//       TF_CHAIN(T_WB_j, 2, T_WC0_j, T_C0B);
+//       TF_VECTOR(T_WB_j, pose_j);
+//       // pose_random_perturb(pose_j, 0.1, 0.1);
+//       const int pose_j_id = fgraph_add_pose(fg, ts_j, pose_j, 0);
+
+//       // Add speed and biases at j
+//       const real_t *vel_j = &imu_data->velocities[k * 3];
+//       const real_t ba_j[3] = {0.0, 0.0, 0.0};
+//       const real_t bg_j[3] = {0.0, 0.0, 0.0};
+//       const int vel_j_id = fgraph_add_velocity(fg, ts_j, vel_j, 0);
+//       const int biases_j_id = fgraph_add_imu_biases(fg, ts_j, ba_j, bg_j, 0);
+
+//       // // Add camera factors at j
+//       // for (int i = 0; i < frame_j->num_measurements; i++) {
+//       //   const int feature_id = frame_j->feature_ids[i];
+//       //   const real_t *z = &frame_j->keypoints[i * 2];
+//       //   const int param_ids[4] = {pose_j_id, cam0_ext_id, feature_id, cam0_id};
+//       //   const real_t var[2] = {1.0, 1.0};
+//       //   fgraph_add_camera_factor(fg, param_ids, z, var);
+//       // }
+
+//       // Add imu factor between i and j
+//       int param_ids[6] = {0};
+//       param_ids[0] = pose_i_id;
+//       param_ids[1] = vel_i_id;
+//       param_ids[2] = biases_i_id;
+//       param_ids[3] = pose_j_id;
+//       param_ids[4] = vel_j_id;
+//       param_ids[5] = biases_j_id;
+//       imu_buffer_t imu_buf;
+//       sim_imu_measurements(imu_data, ts_i, ts_j, &imu_buf);
+//       fgraph_add_imu_factor(fg, 0, param_ids, &imu_params, &imu_buf);
+
+//       // Update
+//       pose_i_id = pose_j_id;
+//       vel_i_id = vel_j_id;
+//       biases_i_id = biases_j_id;
+//     }
+//   }
+
+//   // Solve
+//   solver_t solver;
+//   solver_setup(&solver);
+
+//   solver.verbose = 1;
+//   solver.max_iter = 5;
+//   solver.cost_func = &fgraph_cost;
+//   solver.param_order_func = &fgraph_param_order;
+//   solver.linearize_func = &fgraph_linearize_compact;
+//   solver_solve(&solver, fg);
+
+//   // Clean up
+//   sim_imu_data_free(imu_data);
+//   sim_camera_data_free(cam0_data);
+//   fgraph_free(fg);
+
+//   return 0;
+// }
 
 /*******************************************************************************
  * TIMELINE
@@ -5907,42 +6551,116 @@ int test_kdtree_nn(void) {
 
 // SIM FEATURES //////////////////////////////////////////////////////////////
 
-int test_sim_features_load(void) {
-  const char *csv_file = TEST_SIM_DATA "/features.csv";
-  sim_features_t *features_data = sim_features_load(csv_file);
-  MU_ASSERT(features_data->num_features > 0);
-  sim_features_free(features_data);
+int test_sim_features_save_load(void) {
+  // Create features
+  const real_t origin[3] = {0.0, 0.0, 0.0};
+  const real_t dim[3] = {5.0, 5.0, 5.0};
+  const int num_features = 1000;
+  real_t features[3 * 1000] = {0};
+  sim_create_features(origin, dim, num_features, features);
+
+  // Save
+  const char *csv_path = "/tmp/sim_features.csv";
+  sim_features_t *sim_features = malloc(sizeof(sim_features_t));
+  sim_features->num_features = num_features;
+  sim_features->features = malloc(sizeof(real_t *) * num_features);
+  for (size_t i = 0; i< num_features; ++i) {
+    sim_features->features[i] = malloc(sizeof(real_t) * 3);
+    vec_copy(&features[i * 3], 3, sim_features->features[i]);
+  }
+  sim_features_save(sim_features, csv_path);
+  sim_features_free(sim_features);
+
+  // Test and assert
+  sim_features_t *data = sim_features_load(csv_path);
+  MU_ASSERT(data->num_features == num_features);
+  for (int i = 0; i < num_features; ++i) {
+    MU_ASSERT(fltcmp(data->features[i][0], features[i * 3 + 0]) == 0);
+    MU_ASSERT(fltcmp(data->features[i][1], features[i * 3 + 1]) == 0);
+    MU_ASSERT(fltcmp(data->features[i][2], features[i * 3 + 2]) == 0);
+  }
+  sim_features_free(data);
+  remove(csv_path);
+
   return 0;
 }
 
 // SIM IMU DATA //////////////////////////////////////////////////////////////
 
-int test_sim_imu_data_load(void) {
-  // const char *csv_file = TEST_SIM_DATA "/imu0/data.csv";
-  // sim_imu_data_t *imu_data = sim_imu_data_load(csv_file);
-  // sim_imu_data_free(imu_data);
+int test_sim_imu_data_save_load(void) {
+  // Save
+  const char *csv_path = "/tmp/sim_imu.csv";
+  sim_circle_t conf;
+  sim_circle_defaults(&conf);
+  sim_imu_data_t *imu0 = sim_imu_circle_trajectory(&conf);
+  sim_imu_data_save(imu0, csv_path);
+
+  // Load
+  sim_imu_data_t *imu1 = sim_imu_data_load(csv_path);
+  for (int i = 0; i < imu1->num_measurements; ++i) {
+    MU_ASSERT(imu0->timestamps[i] == imu1->timestamps[i]);
+    MU_ASSERT(fltcmp(imu0->poses[i * 7 + 0], imu1->poses[i * 7 + 0]) == 0);
+    MU_ASSERT(fltcmp(imu0->poses[i * 7 + 1], imu1->poses[i * 7 + 1]) == 0);
+    MU_ASSERT(fltcmp(imu0->poses[i * 7 + 2], imu1->poses[i * 7 + 2]) == 0);
+    MU_ASSERT(fltcmp(imu0->poses[i * 7 + 3], imu1->poses[i * 7 + 3]) == 0);
+    MU_ASSERT(fltcmp(imu0->poses[i * 7 + 4], imu1->poses[i * 7 + 4]) == 0);
+    MU_ASSERT(fltcmp(imu0->poses[i * 7 + 5], imu1->poses[i * 7 + 5]) == 0);
+    MU_ASSERT(fltcmp(imu0->poses[i * 7 + 6], imu1->poses[i * 7 + 6]) == 0);
+    MU_ASSERT(fltcmp(imu0->velocities[i * 3 + 0], imu1->velocities[i * 3 + 0]) == 0);
+    MU_ASSERT(fltcmp(imu0->velocities[i * 3 + 1], imu1->velocities[i * 3 + 1]) == 0);
+    MU_ASSERT(fltcmp(imu0->velocities[i * 3 + 2], imu1->velocities[i * 3 + 2]) == 0);
+    MU_ASSERT(fltcmp(imu0->imu_acc[i * 3 + 0], imu1->imu_acc[i * 3 + 0]) == 0);
+    MU_ASSERT(fltcmp(imu0->imu_acc[i * 3 + 1], imu1->imu_acc[i * 3 + 1]) == 0);
+    MU_ASSERT(fltcmp(imu0->imu_acc[i * 3 + 2], imu1->imu_acc[i * 3 + 2]) == 0);
+    MU_ASSERT(fltcmp(imu0->imu_gyr[i * 3 + 0], imu1->imu_gyr[i * 3 + 0]) == 0);
+    MU_ASSERT(fltcmp(imu0->imu_gyr[i * 3 + 1], imu1->imu_gyr[i * 3 + 1]) == 0);
+    MU_ASSERT(fltcmp(imu0->imu_gyr[i * 3 + 2], imu1->imu_gyr[i * 3 + 2]) == 0);
+  }
+
+  sim_imu_data_free(imu0);
+  sim_imu_data_free(imu1);
+  remove(csv_path);
+
   return 0;
 }
 
 // SIM CAMERA DATA ///////////////////////////////////////////////////////////
 
-int test_sim_camera_frame_load(void) {
-  const char *frame_csv = TEST_SIM_DATA "/cam0/data/100000000.csv";
-  sim_camera_frame_t *frame_data = sim_camera_frame_load(frame_csv);
+int test_sim_camera_frame_save_load(void) {
+  // Save
+  const char *csv_path = "/tmp/sim_camera_frame.csv";
+  const timestamp_t ts = 1;
+  const int cam_idx = 2;
+  const size_t feature_ids[2] = {1, 2};
+  const real_t keypoints[2 * 2] = {0.0, 1.0, 2.0, 3.0};
+  sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, cam_idx);
+  sim_camera_frame_add_keypoint(frame, feature_ids[0], &keypoints[0 * 2]);
+  sim_camera_frame_add_keypoint(frame, feature_ids[1], &keypoints[1 * 2]);
+  sim_camera_frame_save(frame, csv_path);
 
-  MU_ASSERT(frame_data != NULL);
-  MU_ASSERT(frame_data->ts == 100000000);
-  MU_ASSERT(frame_data->feature_ids[0] == 1);
+  // Load
+  sim_camera_frame_t *data = sim_camera_frame_load(csv_path);
+  MU_ASSERT(data != NULL);
+  MU_ASSERT(data->ts == ts);
+  MU_ASSERT(data->cam_idx == cam_idx);
+  MU_ASSERT(data->n == 2);
+  MU_ASSERT(data->feature_ids[0] == feature_ids[0]);
+  MU_ASSERT(data->feature_ids[1] == feature_ids[1]);
+  MU_ASSERT(data->keypoints[0 * 2 + 0] == keypoints[0 * 2 + 0]);
+  MU_ASSERT(data->keypoints[0 * 2 + 1] == keypoints[0 * 2 + 1]);
+  MU_ASSERT(data->keypoints[1 * 2 + 0] == keypoints[1 * 2 + 0]);
+  MU_ASSERT(data->keypoints[1 * 2 + 1] == keypoints[1 * 2 + 1]);
 
-  sim_camera_frame_free(frame_data);
+  sim_camera_frame_free(frame);
+  sim_camera_frame_free(data);
 
   return 0;
 }
 
-int test_sim_camera_data_load(void) {
-  const char *dir_path = TEST_SIM_DATA "/cam0";
-  sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
-  sim_camera_data_free(cam_data);
+int test_sim_camera_data_save_load(void) {
+  // const char *dir_path = TEST_SIM_DATA "/cam0";
+  // sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
+  // sim_camera_data_free(cam_data);
   return 0;
 }
 
@@ -6063,7 +6781,6 @@ int test_euroc_calib_load(void) {
 /******************************************************************************
  * KITTI
  ******************************************************************************/
-
 
 int test_kitti_camera_load(void) {
   const char *data_dir = KITTI_TEST_SEQ "/image_00";
@@ -6328,6 +7045,13 @@ void test_suite(void) {
   MU_ADD_TEST(test_calib_camera_factor);
   MU_ADD_TEST(test_calib_imucam_factor);
   MU_ADD_TEST(test_marg_factor);
+  MU_ADD_TEST(test_load_poses);
+  MU_ADD_TEST(test_assoc_pose_data);
+  MU_ADD_TEST(test_solver_setup);
+  // MU_ADD_TEST(test_solver_eval);
+  MU_ADD_TEST(test_inertial_odometry_batch);
+  // MU_ADD_TEST(test_visual_odometry_batch);
+  // MU_ADD_TEST(test_visual_inertial_odometry_batch);
 
   // TIMELINE
   // MU_ADD_TEST(test_timeline);
@@ -6345,10 +7069,10 @@ void test_suite(void) {
   MU_ADD_TEST(test_kdtree_nn);
 
   // SIMULATION
-  MU_ADD_TEST(test_sim_features_load);
-  MU_ADD_TEST(test_sim_imu_data_load);
-  MU_ADD_TEST(test_sim_camera_frame_load);
-  MU_ADD_TEST(test_sim_camera_data_load);
+  MU_ADD_TEST(test_sim_features_save_load);
+  MU_ADD_TEST(test_sim_imu_data_save_load);
+  MU_ADD_TEST(test_sim_camera_frame_save_load);
+  MU_ADD_TEST(test_sim_camera_data_save_load);
   MU_ADD_TEST(test_sim_camera_circle_trajectory);
 
   // EUROC
