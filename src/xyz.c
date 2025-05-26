@@ -727,57 +727,22 @@ size_t file_lines(const char *fp) {
   return lines;
 }
 
+int _unlink_cb(const char *fpath,
+               const struct stat *sb,
+               int typeflag,
+               struct FTW *ftwbuf) {
+  int rv = remove(fpath);
+  if (rv) {
+    perror(fpath);
+  }
+  return rv;
+}
+
 /**
  * Delete directrory. Returns 0 for success or -1 for failure.
  */
 int rmdir(const char *path) {
-  struct dirent *entry;
-  DIR *dir = opendir(path);
-  if (!dir) {
-    perror("opendir failed");
-    return -1;
-  }
-
-  while ((entry = readdir(dir)) != NULL) {
-    // Skip "." and ".."
-    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-      continue;
-
-    char full_path[4096];
-    snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
-
-    struct stat st;
-    if (stat(full_path, &st) == -1) {
-      perror("stat failed");
-      closedir(dir);
-      return -1;
-    }
-
-    if (S_ISDIR(st.st_mode)) {
-      // Recurse into subdirectory
-      if (rmdir(full_path) != 0) {
-        closedir(dir);
-        return -1;
-      }
-    } else {
-      // Delete file
-      if (unlink(full_path) != 0) {
-        perror("unlink failed");
-        closedir(dir);
-        return -1;
-      }
-    }
-  }
-
-  closedir(dir);
-
-  // Delete the now-empty directory
-  if (rmdir(path) != 0) {
-    perror("rmdir failed");
-    return -1;
-  }
-
-  return 0;
+  return nftw(path, _unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
 /**
@@ -16834,7 +16799,6 @@ void sim_camera_data_save(sim_camera_data_t *cam_data, const char *data_dir) {
 
   // Create output directory
   int retval = mkdir(data_dir, 0755);
-  printf("retval: %d\n", retval);
   if (retval != 0 && errno != EEXIST) {
     FATAL("Failed to create directory [%s]", data_dir);
   }
