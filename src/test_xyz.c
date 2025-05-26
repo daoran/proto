@@ -6630,10 +6630,10 @@ int test_sim_camera_frame_save_load(void) {
   // Save
   const char *csv_path = "/tmp/sim_camera_frame.csv";
   const timestamp_t ts = 1;
-  const int cam_idx = 2;
+  const int camera_index = 2;
   const size_t feature_ids[2] = {1, 2};
   const real_t keypoints[2 * 2] = {0.0, 1.0, 2.0, 3.0};
-  sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, cam_idx);
+  sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, camera_index);
   sim_camera_frame_add_keypoint(frame, feature_ids[0], &keypoints[0 * 2]);
   sim_camera_frame_add_keypoint(frame, feature_ids[1], &keypoints[1 * 2]);
   sim_camera_frame_save(frame, csv_path);
@@ -6642,7 +6642,7 @@ int test_sim_camera_frame_save_load(void) {
   sim_camera_frame_t *data = sim_camera_frame_load(csv_path);
   MU_ASSERT(data != NULL);
   MU_ASSERT(data->ts == ts);
-  MU_ASSERT(data->cam_idx == cam_idx);
+  MU_ASSERT(data->camera_index == camera_index);
   MU_ASSERT(data->n == 2);
   MU_ASSERT(data->feature_ids[0] == feature_ids[0]);
   MU_ASSERT(data->feature_ids[1] == feature_ids[1]);
@@ -6658,9 +6658,73 @@ int test_sim_camera_frame_save_load(void) {
 }
 
 int test_sim_camera_data_save_load(void) {
-  // const char *dir_path = TEST_SIM_DATA "/cam0";
-  // sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
-  // sim_camera_data_free(cam_data);
+  const char *data_dir = "/tmp/sim_camera_data";
+
+  // Save
+  // -- Simulate features
+  const real_t origin[3] = {0.0, 0.0, 0.0};
+  const real_t dim[3] = {5.0, 5.0, 5.0};
+  const int num_features = 1000;
+  real_t features[3 * 1000] = {0};
+  sim_create_features(origin, dim, num_features, features);
+
+  // -- Camera
+  const int cam_res[2] = {640, 480};
+  const real_t fov = 90.0;
+  const real_t fx = pinhole_focal(cam_res[0], fov);
+  const real_t fy = pinhole_focal(cam_res[0], fov);
+  const real_t cx = cam_res[0] / 2.0;
+  const real_t cy = cam_res[1] / 2.0;
+  const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  camera_t camera;
+  camera_setup(&camera, 0, cam_res, pmodel, dmodel, cam_vec);
+
+  // -- Camera Extrinsic T_BC0
+  const real_t cam_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const real_t cam_ext_r[3] = {0.05, 0.0, 0.0};
+  TF_ER(cam_ext_ypr, cam_ext_r, T_BC0);
+  TF_VECTOR(T_BC0, cam_ext);
+
+  // -- Simulate camera trajectory
+  sim_circle_t conf;
+  sim_circle_defaults(&conf);
+  sim_camera_data_t *cam_data = sim_camera_circle_trajectory(&conf,
+                                                             T_BC0,
+                                                             &camera,
+                                                             features,
+                                                             num_features);
+
+  // -- Save
+  sim_camera_data_save(cam_data, data_dir);
+  sim_camera_data_free(cam_data);
+
+  // Load
+  sim_camera_data_t *data = sim_camera_data_load(data_dir);
+  for (size_t k = 0; k < data->num_frames; k++) {
+    const sim_camera_frame_t *cam_frame = data->frames[k];
+    const real_t *cam_pose = &data->poses[k * 7];
+
+    for (int i = 0; i < cam_frame->n; i++) {
+      const size_t feature_id = cam_frame->feature_ids[i];
+      const real_t *p_W = &features[feature_id * 3];
+      const real_t *z = &cam_frame->keypoints[i * 2];
+
+      TF(cam_pose, T_WC0);
+      TF_INV(T_WC0, T_C0W);
+      TF_POINT(T_C0W, p_W, p_C0);
+
+      real_t zhat[2] = {0};
+      pinhole_radtan4_project(cam_vec, p_C0, zhat);
+
+      const real_t r[2] = {zhat[0] - z[0], zhat[1] - z[1]};
+      MU_ASSERT(fltcmp(r[0], 0.0) == 0);
+      MU_ASSERT(fltcmp(r[1], 0.0) == 0);
+    }
+  }
+  sim_camera_data_free(data);
+
   return 0;
 }
 

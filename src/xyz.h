@@ -20,6 +20,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
@@ -248,6 +249,7 @@ void path_dir_name(const char *path, char *dir_name);
 char *path_join(const char *x, const char *y);
 char **list_files(const char *path, int *num_files);
 void list_files_free(char **data, const int n);
+int rmdir(const char *path);
 
 size_t file_lines(const char *fp);
 char *file_read(const char *fp);
@@ -2971,7 +2973,7 @@ void sim_create_features(const real_t origin[3],
 /** Sim Camera Frame **/
 typedef struct sim_camera_frame_t {
   timestamp_t ts;
-  int cam_idx;
+  int camera_index;
   size_t *feature_ids;
   real_t *keypoints;
   int n;
@@ -2979,9 +2981,9 @@ typedef struct sim_camera_frame_t {
 
 void sim_camera_frame_setup(sim_camera_frame_t *frame,
                             const timestamp_t ts,
-                            const int cam_idx);
+                            const int camera_index);
 sim_camera_frame_t *sim_camera_frame_malloc(const timestamp_t ts,
-                                            const int cam_idx);
+                                            const int camera_index);
 void sim_camera_frame_free(sim_camera_frame_t *frame_data);
 void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame_data,
                                    const size_t feature_id,
@@ -2993,17 +2995,17 @@ void sim_camera_frame_print(const sim_camera_frame_t *frame_data);
 
 /** Sim Camera Data **/
 typedef struct sim_camera_data_t {
-  int cam_idx;
-  sim_camera_frame_t **frames;
+  int camera_index;
   int num_frames;
-
   timestamp_t *timestamps;
   real_t *poses;
+  sim_camera_frame_t **frames;
 } sim_camera_data_t;
 
 void sim_camera_data_setup(sim_camera_data_t *data);
 sim_camera_data_t *sim_camerea_data_malloc(void);
 void sim_camera_data_free(sim_camera_data_t *cam_data);
+void sim_camera_data_save(sim_camera_data_t *cam_data, const char *dir_path);
 sim_camera_data_t *sim_camera_data_load(const char *dir_path);
 
 sim_camera_data_t *sim_camera_circle_trajectory(const sim_circle_t *conf,

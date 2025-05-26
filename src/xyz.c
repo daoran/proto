@@ -728,6 +728,59 @@ size_t file_lines(const char *fp) {
 }
 
 /**
+ * Delete directrory. Returns 0 for success or -1 for failure.
+ */
+int rmdir(const char *path) {
+  struct dirent *entry;
+  DIR *dir = opendir(path);
+  if (!dir) {
+    perror("opendir failed");
+    return -1;
+  }
+
+  while ((entry = readdir(dir)) != NULL) {
+    // Skip "." and ".."
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+      continue;
+
+    char full_path[4096];
+    snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+    struct stat st;
+    if (stat(full_path, &st) == -1) {
+      perror("stat failed");
+      closedir(dir);
+      return -1;
+    }
+
+    if (S_ISDIR(st.st_mode)) {
+      // Recurse into subdirectory
+      if (rmdir(full_path) != 0) {
+        closedir(dir);
+        return -1;
+      }
+    } else {
+      // Delete file
+      if (unlink(full_path) != 0) {
+        perror("unlink failed");
+        closedir(dir);
+        return -1;
+      }
+    }
+  }
+
+  closedir(dir);
+
+  // Delete the now-empty directory
+  if (rmdir(path) != 0) {
+    perror("rmdir failed");
+    return -1;
+  }
+
+  return 0;
+}
+
+/**
  * Read file contents in file path `fp`.
  * @returns
  * - Success: File contents
@@ -16614,9 +16667,9 @@ void sim_create_features(const real_t origin[3],
  */
 void sim_camera_frame_setup(sim_camera_frame_t *frame,
                             const timestamp_t ts,
-                            const int cam_idx) {
+                            const int camera_index) {
   frame->ts = ts;
-  frame->cam_idx = cam_idx;
+  frame->camera_index = camera_index;
   frame->n = 0;
   frame->feature_ids = NULL;
   frame->keypoints = NULL;
@@ -16626,9 +16679,9 @@ void sim_camera_frame_setup(sim_camera_frame_t *frame,
  * Malloc simulated camera frame.
  */
 sim_camera_frame_t *sim_camera_frame_malloc(const timestamp_t ts,
-                                            const int cam_idx) {
+                                            const int camera_index) {
   sim_camera_frame_t *frame = malloc(sizeof(sim_camera_frame_t) * 1);
-  sim_camera_frame_setup(frame, ts, cam_idx);
+  sim_camera_frame_setup(frame, ts, camera_index);
   return frame;
 }
 
@@ -16662,6 +16715,9 @@ void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame,
   frame->keypoints[(N - 1) * 2 + 1] = kp[1];
 }
 
+/**
+ * Save simulated camera frame.
+ */
 void sim_camera_frame_save(const sim_camera_frame_t *frame_data,
                            const char *csv_path) {
   assert(frame_data);
@@ -16673,12 +16729,12 @@ void sim_camera_frame_save(const sim_camera_frame_t *frame_data,
   }
 
   fprintf(csv_file, "timestamp: %ld\n", frame_data->ts);
-  fprintf(csv_file, "camera_index: %d\n", frame_data->cam_idx);
+  fprintf(csv_file, "camera_index: %d\n", frame_data->camera_index);
   fprintf(csv_file, "num_keypoints: %d\n", frame_data->n);
   for (size_t i = 0; i < frame_data->n; ++i) {
     fprintf(csv_file, "%ld,", frame_data->feature_ids[i]);
-    fprintf(csv_file, "%lf,", frame_data->keypoints[i * 2 + 0]);
-    fprintf(csv_file, "%lf\n", frame_data->keypoints[i * 2 + 1]);
+    fprintf(csv_file, "%.17g,", frame_data->keypoints[i * 2 + 0]);
+    fprintf(csv_file, "%.17g\n", frame_data->keypoints[i * 2 + 1]);
   }
   fclose(csv_file);
 }
@@ -16697,7 +16753,7 @@ sim_camera_frame_t *sim_camera_frame_load(const char *csv_path) {
   sim_camera_frame_t *frame = sim_camera_frame_malloc(0, 0);
   char key[1024] = {0};
   fscanf(csv_file, "%s %ld", key, &frame->ts);
-  fscanf(csv_file, "%s %d", key, &frame->cam_idx);
+  fscanf(csv_file, "%s %d", key, &frame->camera_index);
   fscanf(csv_file, "%s %d", key, &frame->n);
 
   frame->feature_ids = malloc(sizeof(size_t) * frame->n);
@@ -16770,13 +16826,56 @@ void sim_camera_data_free(sim_camera_data_t *cam_data) {
 }
 
 /**
+ * Save simulated camera data.
+ */
+void sim_camera_data_save(sim_camera_data_t *cam_data, const char *data_dir) {
+  assert(cam_data);
+  assert(data_dir);
+
+  // Create output directory
+  int retval = mkdir(data_dir, 0755);
+  printf("retval: %d\n", retval);
+  if (retval != 0 && errno != EEXIST) {
+    FATAL("Failed to create directory [%s]", data_dir);
+  }
+
+  // Output data.csv
+  char *csv_path = path_join(data_dir, "/data.csv");
+  FILE *csv_file = fopen(csv_path, "w");
+  fprintf(csv_file, "camera_index: %d\n", cam_data->camera_index);
+  fprintf(csv_file, "num_frames: %d\n", cam_data->num_frames);
+  for (int i = 0; i < cam_data->num_frames; ++i) {
+    fprintf(csv_file, "%ld,", cam_data->timestamps[i]);
+    fprintf(csv_file, "%.17g,", cam_data->poses[i * 7 + 0]);
+    fprintf(csv_file, "%.17g,", cam_data->poses[i * 7 + 1]);
+    fprintf(csv_file, "%.17g,", cam_data->poses[i * 7 + 2]);
+    fprintf(csv_file, "%.17g,", cam_data->poses[i * 7 + 3]);
+    fprintf(csv_file, "%.17g,", cam_data->poses[i * 7 + 4]);
+    fprintf(csv_file, "%.17g,", cam_data->poses[i * 7 + 5]);
+    fprintf(csv_file, "%.17g\n", cam_data->poses[i * 7 + 6]);
+  }
+  free(csv_path);
+  fclose(csv_file);
+
+  // Output frame data
+  for (int i = 0; i < cam_data->num_frames; ++i) {
+    char ts_str[40] = {0};
+    const timestamp_t ts = cam_data->timestamps[i];
+    snprintf(ts_str, sizeof(ts_str), "/%ld.csv", ts);
+    char *csv_path = path_join(data_dir, ts_str);
+    sim_camera_frame_save(cam_data->frames[i], csv_path);
+    free(csv_path);
+  }
+}
+
+/**
  * Load simulated camera data.
  */
-sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
-  assert(dir_path != NULL);
+sim_camera_data_t *sim_camera_data_load(const char *data_dir) {
+  assert(data_dir != NULL);
 
   // Form csv file path
-  char *csv_path = path_join(dir_path, "/data.csv");
+  char *csv_path = path_join(data_dir, "/data.csv");
   if (file_exists(csv_path) == 0) {
     free(csv_path);
     return NULL;
@@ -16797,61 +16896,59 @@ sim_camera_data_t *sim_camera_data_load(const char *dir_path) {
   }
 
   // Form sim_camera_frame_t
-  sim_camera_data_t *cam_data = malloc(sizeof(sim_camera_data_t) * 1);
-  cam_data->frames = malloc(sizeof(sim_camera_frame_t *) * num_rows);
-  cam_data->num_frames = num_rows;
-  cam_data->timestamps = malloc(sizeof(timestamp_t) * num_rows);
-  cam_data->poses = malloc(sizeof(real_t *) * num_rows * 7);
+  sim_camera_data_t *data = malloc(sizeof(sim_camera_data_t));
+  char key[20] = {0};
+  fscanf(csv_file, "%s %d", key, &data->camera_index);
+  assert(strcmp(key, "camera_index:") == 0);
+  fscanf(csv_file, "%s %d", key, &data->num_frames);
+  assert(strcmp(key, "num_frames:") == 0);
 
-  int line_idx = 0;
-  char line[MAX_LINE_LENGTH] = {0};
-  while (fgets(line, MAX_LINE_LENGTH, csv_file) != NULL) {
-    // Skip line if its a comment
-    if (line[0] == '#') {
-      continue;
+  data->timestamps = malloc(sizeof(timestamp_t) * data->num_frames);
+  data->poses = malloc(sizeof(real_t *) * data->num_frames * 7);
+  data->frames = malloc(sizeof(sim_camera_frame_t *) * data->num_frames);
+  char fmt[1024] = {0};
+  strcat(fmt, "%" SCNd64 ",");                // Timestamp
+  strcat(fmt, "%lf,%lf,%lf,%lf,%lf,%lf,%lf"); // Pose
+  for (size_t i = 0; i < data->num_frames; ++i) {
+    timestamp_t ts = 0;
+    real_t pose[7] = {0};
+    int retval = fscanf(csv_file,
+                        fmt,
+                        &ts,
+                        &pose[0],
+                        &pose[1],
+                        &pose[2],
+                        &pose[3],
+                        &pose[4],
+                        &pose[5],
+                        &pose[6]);
+    if (retval != 8) {
+      FATAL("Failed to parse line %ld in [%s]\n", i, csv_path);
     }
-
-    // Parse line
-    timestamp_t ts;
-    double r[3] = {0};
-    double q[4] = {0};
-    sscanf(line,
-           "%ld,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
-           &ts,
-           &r[0],
-           &r[1],
-           &r[2],
-           &q[0],
-           &q[1],
-           &q[2],
-           &q[3]);
 
     // Add camera frame to sim_camera_frame_t
     char fname[128] = {0};
-    sprintf(fname, "/data/%ld.csv", ts);
-    char *frame_csv = path_join(dir_path, fname);
-    cam_data->frames[line_idx] = sim_camera_frame_load(frame_csv);
+    sprintf(fname, "/%ld.csv", ts);
+    char *frame_csv = path_join(data_dir, fname);
+    data->frames[i] = sim_camera_frame_load(frame_csv);
     free(frame_csv);
 
     // Add pose to sim_camera_frame_t
-    cam_data->timestamps[line_idx] = ts;
-    cam_data->poses[line_idx * 7 + 0] = r[0];
-    cam_data->poses[line_idx * 7 + 1] = r[1];
-    cam_data->poses[line_idx * 7 + 2] = r[2];
-    cam_data->poses[line_idx * 7 + 3] = q[0];
-    cam_data->poses[line_idx * 7 + 4] = q[1];
-    cam_data->poses[line_idx * 7 + 5] = q[2];
-    cam_data->poses[line_idx * 7 + 6] = q[3];
-
-    // Update
-    line_idx++;
+    data->timestamps[i] = ts;
+    data->poses[i * 7 + 0] = pose[0];
+    data->poses[i * 7 + 1] = pose[1];
+    data->poses[i * 7 + 2] = pose[2];
+    data->poses[i * 7 + 3] = pose[3];
+    data->poses[i * 7 + 4] = pose[4];
+    data->poses[i * 7 + 5] = pose[5];
+    data->poses[i * 7 + 6] = pose[6];
   }
 
   // Clean up
   free(csv_path);
   fclose(csv_file);
 
-  return cam_data;
+  return data;
 }
 
 /**
@@ -16875,10 +16972,10 @@ sim_camera_data_t *sim_camera_circle_trajectory(const sim_circle_t *conf,
   const real_t w = -2.0 * M_PI * (1.0 / time_taken);
 
   // Allocate memory for test data
-  const int cam_idx = cam_params->cam_idx;
+  const int camera_index = cam_params->cam_idx;
   const int num_frames = time_taken * cam_rate;
   sim_camera_data_t *data = sim_camerea_data_malloc();
-  data->cam_idx = cam_idx;
+  data->camera_index = camera_index;
   data->frames = calloc(num_frames, sizeof(sim_camera_frame_t *));
   data->num_frames = num_frames;
   data->timestamps = calloc(data->num_frames, sizeof(real_t));
@@ -16910,7 +17007,7 @@ sim_camera_data_t *sim_camera_circle_trajectory(const sim_circle_t *conf,
     TF_INV(T_WC, T_CW);
 
     // Simulate camera frame
-    sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, cam_idx);
+    sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, camera_index);
     for (size_t feature_id = 0; feature_id < num_features; feature_id++) {
       // Check point is infront of camera
       const real_t *p_W = &features[feature_id * 3];
