@@ -6526,7 +6526,7 @@ int test_sim_features_save_load(void) {
   sim_features_t *sim_features = malloc(sizeof(sim_features_t));
   sim_features->num_features = num_features;
   sim_features->features = malloc(sizeof(real_t *) * num_features);
-  for (size_t i = 0; i< num_features; ++i) {
+  for (size_t i = 0; i < num_features; ++i) {
     sim_features->features[i] = malloc(sizeof(real_t) * 3);
     vec_copy(&features[i * 3], 3, sim_features->features[i]);
   }
@@ -6568,9 +6568,12 @@ int test_sim_imu_data_save_load(void) {
     MU_ASSERT(fltcmp(imu0->poses[i * 7 + 4], imu1->poses[i * 7 + 4]) == 0);
     MU_ASSERT(fltcmp(imu0->poses[i * 7 + 5], imu1->poses[i * 7 + 5]) == 0);
     MU_ASSERT(fltcmp(imu0->poses[i * 7 + 6], imu1->poses[i * 7 + 6]) == 0);
-    MU_ASSERT(fltcmp(imu0->velocities[i * 3 + 0], imu1->velocities[i * 3 + 0]) == 0);
-    MU_ASSERT(fltcmp(imu0->velocities[i * 3 + 1], imu1->velocities[i * 3 + 1]) == 0);
-    MU_ASSERT(fltcmp(imu0->velocities[i * 3 + 2], imu1->velocities[i * 3 + 2]) == 0);
+    MU_ASSERT(
+        fltcmp(imu0->velocities[i * 3 + 0], imu1->velocities[i * 3 + 0]) == 0);
+    MU_ASSERT(
+        fltcmp(imu0->velocities[i * 3 + 1], imu1->velocities[i * 3 + 1]) == 0);
+    MU_ASSERT(
+        fltcmp(imu0->velocities[i * 3 + 2], imu1->velocities[i * 3 + 2]) == 0);
     MU_ASSERT(fltcmp(imu0->imu_acc[i * 3 + 0], imu1->imu_acc[i * 3 + 0]) == 0);
     MU_ASSERT(fltcmp(imu0->imu_acc[i * 3 + 1], imu1->imu_acc[i * 3 + 1]) == 0);
     MU_ASSERT(fltcmp(imu0->imu_acc[i * 3 + 2], imu1->imu_acc[i * 3 + 2]) == 0);
@@ -6761,18 +6764,134 @@ int test_sim_camera_circle_trajectory(void) {
  ******************************************************************************/
 
 int test_euroc_imu_load(void) {
-  const char *data_dir = "/data/euroc/imu_april/mav0/imu0";
+  // Create data directory
+  const char *data_dir = "/tmp/imu0";
+  int retval = mkdir(data_dir, 0755);
+  if (retval != 0 && errno != EEXIST) {
+    FATAL("Failed to create directory [%s]", data_dir);
+  }
+
+  // Create imu0/sensor.yaml
+  const char *sensor_config_path = "/tmp/imu0/sensor.yaml";
+  const char sensor_config[1024] = "sensor_type: imu                       \n"
+                                   "comment: VI-Sensor IMU (ADIS16448)     \n"
+                                   "T_BS:                                  \n"
+                                   "  cols: 4                              \n"
+                                   "  rows: 4                              \n"
+                                   "  data: [1.0, 0.0, 0.0, 0.0,           \n"
+                                   "         0.0, 1.0, 0.0, 0.0,           \n"
+                                   "         0.0, 0.0, 1.0, 0.0,           \n"
+                                   "         0.0, 0.0, 0.0, 1.0]           \n"
+                                   "rate_hz: 200                           \n"
+                                   "gyroscope_noise_density: 1             \n"
+                                   "gyroscope_random_walk: 2               \n"
+                                   "accelerometer_noise_density: 3         \n"
+                                   "accelerometer_random_walk: 4           \n";
+  FILE *sensor_yaml = fopen(sensor_config_path, "w");
+  fprintf(sensor_yaml, sensor_config);
+  fclose(sensor_yaml);
+
+  // Create imu0/data.csv
+  const char *data_csv_path = "/tmp/imu0/data.csv";
+  FILE *data_csv = fopen(data_csv_path, "w");
+  fprintf(data_csv, "#header\n");
+  fprintf(data_csv, "1,2,3,4,5,6,7\n");
+  fclose(data_csv);
+
+  // Load
   euroc_imu_t *data = euroc_imu_load(data_dir);
-  // euroc_imu_print(data);
+  real_t T_BS[4 * 4] = {0};
+  eye(T_BS, 4, 4);
+  MU_ASSERT(data->num_timestamps == 1);
+  MU_ASSERT(data->timestamps[0] == 1);
+  MU_ASSERT(fltcmp(data->w_B[0][0], 2.0) == 0);
+  MU_ASSERT(fltcmp(data->w_B[0][1], 3.0) == 0);
+  MU_ASSERT(fltcmp(data->w_B[0][2], 4.0) == 0);
+  MU_ASSERT(fltcmp(data->a_B[0][0], 5.0) == 0);
+  MU_ASSERT(fltcmp(data->a_B[0][1], 6.0) == 0);
+  MU_ASSERT(fltcmp(data->a_B[0][2], 7.0) == 0);
+  MU_ASSERT(mat_equals(data->T_BS, T_BS, 4, 4, 1e-8));
+  MU_ASSERT(strcmp(data->sensor_type, "imu") == 0);
+  MU_ASSERT(strcmp(data->comment, "VI-Sensor IMU (ADIS16448)") == 0);
+  MU_ASSERT(fltcmp(data->rate_hz, 200.0) == 0);
+  MU_ASSERT(fltcmp(data->gyro_noise_density, 1.0) == 0);
+  MU_ASSERT(fltcmp(data->gyro_random_walk, 2.0) == 0);
+  MU_ASSERT(fltcmp(data->accel_noise_density, 3.0) == 0);
+  MU_ASSERT(fltcmp(data->accel_random_walk, 4.0) == 0);
   euroc_imu_free(data);
+
+  // Clean up
+  rmdir(data_dir);
+
   return 0;
 }
 
 int test_euroc_camera_load(void) {
-  const char *data_dir = "/data/euroc/imu_april/mav0/cam0";
-  euroc_camera_t *data = euroc_camera_load(data_dir, 1);
-  // euroc_camera_print(data);
+  // Create data directory
+  const char *data_dir = "/tmp/cam0";
+  int retval = mkdir(data_dir, 0755);
+  if (retval != 0 && errno != EEXIST) {
+    FATAL("Failed to create directory [%s]", data_dir);
+  }
+
+  // Create cam0/sensor.yaml
+  const char *sensor_config_path = "/tmp/cam0/sensor.yaml";
+  const char sensor_config[1024] = "sensor_type: camera                   \n"
+                                   "comment: VI-Sensor cam0 (MT9M034)     \n"
+                                   "T_BS:                                 \n"
+                                   "  cols: 4                             \n"
+                                   "  rows: 4                             \n"
+                                   "  data: [1.0, 0.0, 0.0, 0.0,          \n"
+                                   "         0.0, 1.0, 0.0, 0.0,          \n"
+                                   "         0.0, 0.0, 1.0, 0.0,          \n"
+                                   "         0.0, 0.0, 0.0, 1.0]          \n"
+                                   "rate_hz: 20                           \n"
+                                   "resolution: [752, 480]                \n"
+                                   "camera_model: pinhole                 \n"
+                                   "intrinsics: [1, 2, 3, 4]              \n"
+                                   "distortion_model: radial-tangential   \n"
+                                   "distortion_coefficients: [1, 2, 3, 4] \n";
+  FILE *sensor_yaml = fopen(sensor_config_path, "w");
+  fprintf(sensor_yaml, sensor_config);
+  fclose(sensor_yaml);
+
+  // Create cam0/data.csv
+  const char *data_csv_path = "/tmp/cam0/data.csv";
+  FILE *data_csv = fopen(data_csv_path, "w");
+  fprintf(data_csv, "#timestamp [ns],filename\n");
+  fprintf(data_csv, "1403636579763555584,1403636579763555584.png\n");
+  fclose(data_csv);
+
+  // Create cam0/data/1403636579763555584.png
+  mkdir("/tmp/cam0/data", 0755);
+  FILE *data_png = fopen("/tmp/cam0/data/1403636579763555584.png", "w");
+  fclose(data_png);
+
+  // Load
+  euroc_camera_t *data = euroc_camera_load(data_dir, 0);
+  real_t T_BS[4 * 4] = {0};
+  eye(T_BS, 4, 4);
+  MU_ASSERT(data->num_timestamps == 1);
+  MU_ASSERT(data->timestamps[0] == 1403636579763555584);
+  MU_ASSERT(mat_equals(data->T_BS, T_BS, 4, 4, 1e-8));
+  MU_ASSERT(strcmp(data->sensor_type, "camera") == 0);
+  MU_ASSERT(strcmp(data->comment, "VI-Sensor cam0 (MT9M034)") == 0);
+  MU_ASSERT(fltcmp(data->rate_hz, 20.0) == 0);
+  MU_ASSERT(strcmp(data->camera_model, "pinhole") == 0);
+  MU_ASSERT(fltcmp(data->intrinsics[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(data->intrinsics[1], 2.0) == 0);
+  MU_ASSERT(fltcmp(data->intrinsics[2], 3.0) == 0);
+  MU_ASSERT(fltcmp(data->intrinsics[3], 4.0) == 0);
+  MU_ASSERT(strcmp(data->distortion_model, "radial-tangential") == 0);
+  MU_ASSERT(fltcmp(data->distortion_coefficients[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(data->distortion_coefficients[1], 2.0) == 0);
+  MU_ASSERT(fltcmp(data->distortion_coefficients[2], 3.0) == 0);
+  MU_ASSERT(fltcmp(data->distortion_coefficients[3], 4.0) == 0);
   euroc_camera_free(data);
+
+  // Clean up
+  rmdir(data_dir);
+
   return 0;
 }
 

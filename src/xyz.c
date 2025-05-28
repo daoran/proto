@@ -17677,7 +17677,11 @@ euroc_camera_t *euroc_camera_load(const char *data_dir, int is_calib_data) {
     yaml_get(conf, "camera_model", 's', &data->camera_model);
     yaml_get_vector(conf, "intrinsics", 'd', 4, data->intrinsics);
     yaml_get(conf, "distortion_model", 's', &data->distortion_model);
-    yaml_get_vector(conf, "distortion_coefficients", 'd', 4, data->intrinsics);
+    yaml_get_vector(conf,
+                    "distortion_coefficients",
+                    'd',
+                    4,
+                    data->distortion_coefficients);
   }
 
   return data;
