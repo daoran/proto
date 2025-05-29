@@ -727,6 +727,44 @@ size_t file_lines(const char *fp) {
   return lines;
 }
 
+/**
+ * Create directory, including parent folders.
+ * Returns 0 for success or -1 for failure.
+ */
+int mkdir_p(const char *path, const mode_t mode) {
+    char *tmp = strdup(path);
+    char *p = tmp;
+    int status = 0;
+
+    // Skip leading slashes
+    while (*p == '/') p++;
+
+    for (; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+
+            if (mkdir(tmp, mode) != 0) {
+                if (errno != EEXIST) {
+                    status = -1;
+                    break;
+                }
+            }
+
+            *p = '/';
+        }
+    }
+
+    // Create the final directory
+    if (status == 0 && mkdir(tmp, mode) != 0) {
+        if (errno != EEXIST) {
+            status = -1;
+        }
+    }
+
+    free(tmp);
+    return status;
+}
+
 int _unlink_cb(const char *fpath,
                const struct stat *sb,
                int typeflag,
@@ -739,7 +777,8 @@ int _unlink_cb(const char *fpath,
 }
 
 /**
- * Delete directrory. Returns 0 for success or -1 for failure.
+ * Delete directrory.
+ * Returns 0 for success or -1 for failure.
  */
 int rmdir(const char *path) {
   return nftw(path, _unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
@@ -17835,48 +17874,6 @@ void euroc_ground_truth_free(euroc_ground_truth_t *data) {
 //////////////////////
 // euroc_timeline_t //
 //////////////////////
-
-// static void timestamps_insertion_sort(timestamp_t *timestamps, const size_t n) {
-//   for (size_t i = 1; i < n; i++) {
-//     timestamp_t key = timestamps[i];
-//     size_t j = i - 1;
-//
-//     while (j >= 0 && timestamps[j] > key) {
-//       timestamps[j + 1] = timestamps[j];
-//       j = j - 1;
-//     }
-//     timestamps[j + 1] = key;
-//   }
-// }
-//
-// static void timestamps_unique(timestamp_t *set,
-//                               size_t *set_len,
-//                               const timestamp_t *timestamps,
-//                               const size_t num_timestamps) {
-//   for (size_t i = 0; i < num_timestamps; i++) {
-//     const timestamp_t ts_k = timestamps[i];
-//
-//     // Check duplicate in set
-//     int dup = 0;
-//     for (size_t j = 0; j < *set_len; j++) {
-//       if (set[j] == ts_k) {
-//         dup = 1;
-//         break;
-//       }
-//     }
-//
-//     // Add to set if no duplicate
-//     if (dup == 0) {
-//       set[*set_len] = ts_k;
-//       (*set_len)++;
-//     }
-//   }
-//
-//   // Sort timestamps (just to be sure)
-//   // struct timespec t_start = tic();
-//   timestamps_insertion_sort(set, *set_len);
-//   // printf("sort: %f\n", toc(&t_start));
-// }
 
 /**
  * Create EuRoC timeline

@@ -6763,16 +6763,16 @@ int test_sim_camera_circle_trajectory(void) {
  * EUROC
  ******************************************************************************/
 
-int test_euroc_imu_load(void) {
+void setup_euroc_imu_test_data(const char *data_dir) {
   // Create data directory
-  const char *data_dir = "/tmp/imu0";
-  int retval = mkdir(data_dir, 0755);
+  int retval = mkdir_p(data_dir, 0755);
   if (retval != 0 && errno != EEXIST) {
     FATAL("Failed to create directory [%s]", data_dir);
   }
 
   // Create imu0/sensor.yaml
-  const char *sensor_config_path = "/tmp/imu0/sensor.yaml";
+  char sensor_config_path[100] = {0};
+  sprintf(sensor_config_path, "%s/sensor.yaml", data_dir);
   const char sensor_config[1024] = "sensor_type: imu                       \n"
                                    "comment: VI-Sensor IMU (ADIS16448)     \n"
                                    "T_BS:                                  \n"
@@ -6792,14 +6792,148 @@ int test_euroc_imu_load(void) {
   fclose(sensor_yaml);
 
   // Create imu0/data.csv
-  const char *data_csv_path = "/tmp/imu0/data.csv";
+  char data_csv_path[100] = {0};
+  sprintf(data_csv_path, "%s/data.csv", data_dir);
   FILE *data_csv = fopen(data_csv_path, "w");
   fprintf(data_csv, "#header\n");
   fprintf(data_csv, "1,2,3,4,5,6,7\n");
   fclose(data_csv);
+}
+
+void setup_euroc_camera_test_data(const char *data_dir) {
+  // Create data directory
+  int retval = mkdir_p(data_dir, 0755);
+  if (retval != 0 && errno != EEXIST) {
+    FATAL("Failed to create directory [%s]", data_dir);
+  }
+
+  // Create cam0/sensor.yaml
+  char sensor_config_path[100] = {0};
+  sprintf(sensor_config_path, "%s/sensor.yaml", data_dir);
+  const char sensor_config[1024] = "sensor_type: camera                   \n"
+                                   "comment: VI-Sensor cam0 (MT9M034)     \n"
+                                   "T_BS:                                 \n"
+                                   "  cols: 4                             \n"
+                                   "  rows: 4                             \n"
+                                   "  data: [1.0, 0.0, 0.0, 0.0,          \n"
+                                   "         0.0, 1.0, 0.0, 0.0,          \n"
+                                   "         0.0, 0.0, 1.0, 0.0,          \n"
+                                   "         0.0, 0.0, 0.0, 1.0]          \n"
+                                   "rate_hz: 20                           \n"
+                                   "resolution: [752, 480]                \n"
+                                   "camera_model: pinhole                 \n"
+                                   "intrinsics: [1, 2, 3, 4]              \n"
+                                   "distortion_model: radial-tangential   \n"
+                                   "distortion_coefficients: [1, 2, 3, 4] \n";
+  FILE *sensor_yaml = fopen(sensor_config_path, "w");
+  fprintf(sensor_yaml, sensor_config);
+  fclose(sensor_yaml);
+
+  // Create cam0/data.csv
+  char data_csv_path[100] = {0};
+  sprintf(data_csv_path, "%s/data.csv", data_dir);
+  FILE *data_csv = fopen(data_csv_path, "w");
+  fprintf(data_csv, "#timestamp [ns],filename\n");
+  fprintf(data_csv, "1403636579763555584,1403636579763555584.png\n");
+  fclose(data_csv);
+
+  // Create cam0/data/1403636579763555584.png
+  char image_dir[100] = {0};
+  strcat(image_dir, data_dir);
+  strcat(image_dir, "/data");
+  mkdir_p(image_dir, 0755);
+
+  char image_path[100] = {0};
+  strcat(image_path, image_dir);
+  strcat(image_path, "/1403636579763555584.png");
+  FILE *data_png = fopen(image_path, "w");
+  fclose(data_png);
+}
+
+void setup_euroc_ground_truth_test_data(const char *data_dir) {
+  // Create data directory
+  int retval = mkdir_p(data_dir, 0755);
+  if (retval != 0 && errno != EEXIST) {
+    FATAL("Failed to create directory [%s]", data_dir);
+  }
+
+  // Create ground_truth/sensor.yaml
+  char sensor_config_path[100] = {0};
+  sprintf(sensor_config_path, "%s/sensor.yaml", data_dir);
+  const char sensor_config[1024] = "sensor_type: visual-inertial          \n"
+                                   "comment: Testing                      \n"
+                                   "T_BS:                                 \n"
+                                   "  cols: 4                             \n"
+                                   "  rows: 4                             \n"
+                                   "  data: [1.0, 0.0, 0.0, 0.0,          \n"
+                                   "         0.0, 1.0, 0.0, 0.0,          \n"
+                                   "         0.0, 0.0, 1.0, 0.0,          \n"
+                                   "         0.0, 0.0, 0.0, 1.0]          \n";
+  FILE *sensor_yaml = fopen(sensor_config_path, "w");
+  fprintf(sensor_yaml, sensor_config);
+  fclose(sensor_yaml);
+
+  // Create ground_truth/data.csv
+  char data_csv_path[100] = {0};
+  sprintf(data_csv_path, "%s/data.csv", data_dir);
+  FILE *data_csv = fopen(data_csv_path, "w");
+  fprintf(data_csv, "#header\n");
+  fprintf(data_csv, "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17\n");
+  fclose(data_csv);
+}
+
+void setup_euroc_calib_target_test_config(const char *data_dir) {
+  // Create data directory
+  int retval = mkdir_p(data_dir, 0755);
+  if (retval != 0 && errno != EEXIST) {
+    FATAL("Failed to create directory [%s]", data_dir);
+  }
+
+  char calib_config_path[100] = {0};
+  sprintf(calib_config_path, "%s/april_6x6.yaml", data_dir);
+  FILE *fp = fopen(calib_config_path, "w");
+  fprintf(fp, "target_type: 'aprilgrid'\n");
+  fprintf(fp, "tagCols: 6              \n");
+  fprintf(fp, "tagRows: 6              \n");
+  fprintf(fp, "tagSize: 0.088          \n");
+  fprintf(fp, "tagSpacing: 0.3         \n");
+  fclose(fp);
+}
+
+void setup_euroc_test_data(const char *data_dir) {
+  // Create data directory
+  int retval = mkdir_p(data_dir, 0755);
+  if (retval != 0 && errno != EEXIST) {
+    FATAL("Failed to create directory [%s]", data_dir);
+  }
+
+  // Create euroc test data
+  char imu_data_dir[100] = {0};
+  char cam0_data_dir[100] = {0};
+  char cam1_data_dir[100] = {0};
+  char gnd_data_dir[100] = {0};
+  sprintf(imu_data_dir, "%s/mav0/imu0", data_dir);
+  sprintf(cam0_data_dir, "%s/mav0/cam0", data_dir);
+  sprintf(cam1_data_dir, "%s/mav0/cam1", data_dir);
+  sprintf(gnd_data_dir, "%s/mav0/state_groundtruth_estimate0", data_dir);
+
+  setup_euroc_imu_test_data(imu_data_dir);
+  setup_euroc_camera_test_data(cam0_data_dir);
+  setup_euroc_camera_test_data(cam1_data_dir);
+  setup_euroc_ground_truth_test_data(gnd_data_dir);
+  setup_euroc_calib_target_test_config(gnd_data_dir);
+  setup_euroc_calib_target_test_config(data_dir);
+}
+
+int test_euroc_imu_load(void) {
+  // Setup
+  const char *data_dir = "/tmp/euroc";
+  setup_euroc_test_data(data_dir);
 
   // Load
-  euroc_imu_t *data = euroc_imu_load(data_dir);
+  char imu_data_dir[100] = {0};
+  sprintf(imu_data_dir, "%s/mav0/imu0", data_dir);
+  euroc_imu_t *data = euroc_imu_load(imu_data_dir);
   real_t T_BS[4 * 4] = {0};
   eye(T_BS, 4, 4);
   MU_ASSERT(data->num_timestamps == 1);
@@ -6827,48 +6961,14 @@ int test_euroc_imu_load(void) {
 }
 
 int test_euroc_camera_load(void) {
-  // Create data directory
-  const char *data_dir = "/tmp/cam0";
-  int retval = mkdir(data_dir, 0755);
-  if (retval != 0 && errno != EEXIST) {
-    FATAL("Failed to create directory [%s]", data_dir);
-  }
-
-  // Create cam0/sensor.yaml
-  const char *sensor_config_path = "/tmp/cam0/sensor.yaml";
-  const char sensor_config[1024] = "sensor_type: camera                   \n"
-                                   "comment: VI-Sensor cam0 (MT9M034)     \n"
-                                   "T_BS:                                 \n"
-                                   "  cols: 4                             \n"
-                                   "  rows: 4                             \n"
-                                   "  data: [1.0, 0.0, 0.0, 0.0,          \n"
-                                   "         0.0, 1.0, 0.0, 0.0,          \n"
-                                   "         0.0, 0.0, 1.0, 0.0,          \n"
-                                   "         0.0, 0.0, 0.0, 1.0]          \n"
-                                   "rate_hz: 20                           \n"
-                                   "resolution: [752, 480]                \n"
-                                   "camera_model: pinhole                 \n"
-                                   "intrinsics: [1, 2, 3, 4]              \n"
-                                   "distortion_model: radial-tangential   \n"
-                                   "distortion_coefficients: [1, 2, 3, 4] \n";
-  FILE *sensor_yaml = fopen(sensor_config_path, "w");
-  fprintf(sensor_yaml, sensor_config);
-  fclose(sensor_yaml);
-
-  // Create cam0/data.csv
-  const char *data_csv_path = "/tmp/cam0/data.csv";
-  FILE *data_csv = fopen(data_csv_path, "w");
-  fprintf(data_csv, "#timestamp [ns],filename\n");
-  fprintf(data_csv, "1403636579763555584,1403636579763555584.png\n");
-  fclose(data_csv);
-
-  // Create cam0/data/1403636579763555584.png
-  mkdir("/tmp/cam0/data", 0755);
-  FILE *data_png = fopen("/tmp/cam0/data/1403636579763555584.png", "w");
-  fclose(data_png);
+  // Setup
+  const char *data_dir = "/tmp/euroc";
+  setup_euroc_test_data(data_dir);
 
   // Load
-  euroc_camera_t *data = euroc_camera_load(data_dir, 0);
+  char cam0_data_dir[100] = {0};
+  sprintf(cam0_data_dir, "%s/mav0/cam0", data_dir);
+  euroc_camera_t *data = euroc_camera_load(cam0_data_dir, 0);
   real_t T_BS[4 * 4] = {0};
   eye(T_BS, 4, 4);
   MU_ASSERT(data->num_timestamps == 1);
@@ -6896,32 +6996,91 @@ int test_euroc_camera_load(void) {
 }
 
 int test_euroc_ground_truth_load(void) {
-  const char *data_dir = "/data/euroc/V1_01/mav0/state_groundtruth_estimate0";
-  euroc_ground_truth_t *data = euroc_ground_truth_load(data_dir);
-  // euroc_ground_truth_print(data);
+  // Setup
+  const char *data_dir = "/tmp/euroc";
+  setup_euroc_test_data(data_dir);
+
+  // Load
+  char gnd_data_dir[100] = {0};
+  sprintf(gnd_data_dir, "%s/mav0/state_groundtruth_estimate0", data_dir);
+  euroc_ground_truth_t *data = euroc_ground_truth_load(gnd_data_dir);
+  real_t T_BS[4 * 4] = {0};
+  eye(T_BS, 4, 4);
+  MU_ASSERT(data->num_timestamps == 1);
+  MU_ASSERT(data->timestamps[0] == 1);
+  MU_ASSERT(fltcmp(data->p_RS_R[0][0], 2) == 0);
+  MU_ASSERT(fltcmp(data->p_RS_R[0][1], 3) == 0);
+  MU_ASSERT(fltcmp(data->p_RS_R[0][2], 4) == 0);
+  MU_ASSERT(fltcmp(data->q_RS[0][0], 5) == 0);
+  MU_ASSERT(fltcmp(data->q_RS[0][1], 6) == 0);
+  MU_ASSERT(fltcmp(data->q_RS[0][2], 7) == 0);
+  MU_ASSERT(fltcmp(data->q_RS[0][3], 8) == 0);
+  MU_ASSERT(fltcmp(data->v_RS_R[0][0], 9) == 0);
+  MU_ASSERT(fltcmp(data->v_RS_R[0][1], 10) == 0);
+  MU_ASSERT(fltcmp(data->v_RS_R[0][2], 11) == 0);
+  MU_ASSERT(fltcmp(data->b_w_RS_S[0][0], 12) == 0);
+  MU_ASSERT(fltcmp(data->b_w_RS_S[0][1], 13) == 0);
+  MU_ASSERT(fltcmp(data->b_w_RS_S[0][2], 14) == 0);
+  MU_ASSERT(fltcmp(data->b_a_RS_S[0][0], 15) == 0);
+  MU_ASSERT(fltcmp(data->b_a_RS_S[0][1], 16) == 0);
+  MU_ASSERT(fltcmp(data->b_a_RS_S[0][2], 17) == 0);
   euroc_ground_truth_free(data);
+
+  // Clean up
+  rmdir(data_dir);
+
   return 0;
 }
 
 int test_euroc_data_load(void) {
-  const char *data_dir = "/data/euroc/V1_01";
+  // Setup
+  const char *data_dir = "/tmp/euroc";
+  setup_euroc_test_data(data_dir);
+
+  // Load
   euroc_data_t *data = euroc_data_load(data_dir);
   euroc_data_free(data);
+
+  // Clean up
+  rmdir(data_dir);
+
   return 0;
 }
 
 int test_euroc_calib_target_load(void) {
-  const char *config_path = "/data/euroc/imu_april/april_6x6.yaml";
+  // Setup
+  const char *data_dir = "/tmp/euroc";
+  setup_euroc_test_data(data_dir);
+
+  // Load
+  char config_path[100] = {0};
+  sprintf(config_path, "%s/april_6x6.yaml", data_dir);
   euroc_calib_target_t *data = euroc_calib_target_load(config_path);
-  // euroc_calib_target_print(data);
+  MU_ASSERT(strcmp(data->type, "aprilgrid") == 0);
+  MU_ASSERT(data->tag_rows == 6);
+  MU_ASSERT(data->tag_cols == 6);
+  MU_ASSERT(fltcmp(data->tag_size, 0.088) == 0);
+  MU_ASSERT(fltcmp(data->tag_spacing, 0.3) == 0);
   euroc_calib_target_free(data);
+
+  // Clean up
+  rmdir(data_dir);
+
   return 0;
 }
 
 int test_euroc_calib_load(void) {
-  const char *config_path = "/data/euroc/imu_april";
-  euroc_calib_t *data = euroc_calib_load(config_path);
+  // Setup
+  const char *data_dir = "/tmp/euroc";
+  setup_euroc_test_data(data_dir);
+
+  // Load
+  euroc_calib_t *data = euroc_calib_load(data_dir);
   euroc_calib_free(data);
+
+  // Clean up
+  rmdir(data_dir);
+
   return 0;
 }
 
@@ -7222,14 +7381,12 @@ void test_suite(void) {
   MU_ADD_TEST(test_sim_camera_circle_trajectory);
 
   // EUROC
-#if CI_MODE == 0
   MU_ADD_TEST(test_euroc_imu_load);
   MU_ADD_TEST(test_euroc_camera_load);
   MU_ADD_TEST(test_euroc_ground_truth_load);
   MU_ADD_TEST(test_euroc_data_load);
   MU_ADD_TEST(test_euroc_calib_target_load);
-  // MU_ADD_TEST(test_euroc_calib_load);
-#endif
+  MU_ADD_TEST(test_euroc_calib_load);
 
   // KITTI
 #if CI_MODE == 0

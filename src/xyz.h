@@ -250,6 +250,7 @@ void path_dir_name(const char *path, char *dir_name);
 char *path_join(const char *x, const char *y);
 char **list_files(const char *path, int *num_files);
 void list_files_free(char **data, const int n);
+int mkdir_p(const char *path, const mode_t mode);
 int rmdir(const char *path);
 
 size_t file_lines(const char *fp);
