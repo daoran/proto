@@ -1,11 +1,6 @@
 #include "xyz.h"
 #include "munit.h"
 
-/* TEST PARAMS */
-#define KITTI_TEST_DATA "/data/kitti_raw/2011_09_26"
-#define KITTI_TEST_SEQ_NAME "2011_09_26_drive_0001_sync"
-#define KITTI_TEST_SEQ KITTI_TEST_DATA "/" KITTI_TEST_SEQ_NAME
-
 /******************************************************************************
  * MACROS
  *****************************************************************************/
@@ -7088,38 +7083,288 @@ int test_euroc_calib_load(void) {
  * KITTI
  ******************************************************************************/
 
+#define KITTI_TEST_DIR "/tmp/kitti_test"
+
+int setup_kitti_camera_test_data(const char *camera_dir) {
+  // Create data directory
+  char data_dir[100] = {0};
+  sprintf(data_dir, "%s/data", camera_dir);
+  MU_ASSERT(mkdir_p(data_dir, 0755) == 0);
+
+  // Image file
+  {
+    char image_path[100] = {0};
+    sprintf(image_path, "%s/0000000000.png", data_dir);
+    FILE *fp = fopen(image_path, "w");
+    fclose(fp);
+  }
+
+  // Timestamps file
+  {
+    char timestamps_path[100] = {0};
+    sprintf(timestamps_path, "%s/timestamps.txt", camera_dir);
+    FILE *fp = fopen(timestamps_path, "w");
+    fprintf(fp, "2011-09-26 13:02:25.967790592\n");
+    fclose(fp);
+  }
+
+  return 0;
+}
+
+int setup_kitti_oxts_test_data(const char *oxts_dir) {
+  // Create data directory
+  char data_dir[100] = {0};
+  sprintf(data_dir, "%s/data", oxts_dir);
+  MU_ASSERT(mkdir_p(data_dir, 0755) == 0);
+
+  // Oxts entry
+  {
+    char oxts_path[100] = {0};
+    sprintf(oxts_path, "%s/0000000000.txt", data_dir);
+    FILE *fp = fopen(oxts_path, "w");
+    for (int i = 0; i < 25; ++i) {
+      fprintf(fp, "%f ", (double) i);
+    }
+    fprintf(fp, "25 ");
+    fprintf(fp, "26 ");
+    fprintf(fp, "27 ");
+    fprintf(fp, "28 ");
+    fprintf(fp, "29\n");
+    fclose(fp);
+  }
+
+  // Timestamps
+  {
+    char timestamps_path[100] = {0};
+    sprintf(timestamps_path, "%s/timestamps.txt", oxts_dir);
+    FILE *fp = fopen(timestamps_path, "w");
+    fprintf(fp, "2011-09-26 13:02:25.964389445\n");
+    fclose(fp);
+  }
+
+  return 0;
+}
+
+int setup_kitti_velodyne_test_data(const char *oxts_dir) {
+  // Create data directory
+  char data_dir[100] = {0};
+  sprintf(data_dir, "%s/data", oxts_dir);
+  MU_ASSERT(mkdir_p(data_dir, 0755) == 0);
+
+  // Velodyne entry
+  {
+    char velodyne_path[100] = {0};
+    sprintf(velodyne_path, "%s/0000000000.bin", data_dir);
+    FILE *fp = fopen(velodyne_path, "w");
+    fprintf(fp, "\n");
+    fclose(fp);
+  }
+
+  // Timestamps
+  {
+    char timestamps_path[100] = {0};
+    sprintf(timestamps_path, "%s/timestamps.txt", oxts_dir);
+    FILE *fp = fopen(timestamps_path, "w");
+    fprintf(fp, "2011-09-26 13:02:25.951199337\n");
+    fclose(fp);
+  }
+
+  // Timestamps - start
+  {
+    char timestamps_path[100] = {0};
+    sprintf(timestamps_path, "%s/timestamps_start.txt", oxts_dir);
+    FILE *fp = fopen(timestamps_path, "w");
+    fprintf(fp, "2011-09-26 13:02:25.899635528\n");
+    fclose(fp);
+  }
+
+  // Timestamps - end
+  {
+    char timestamps_path[100] = {0};
+    sprintf(timestamps_path, "%s/timestamps_end.txt", oxts_dir);
+    FILE *fp = fopen(timestamps_path, "w");
+    fprintf(fp, "2011-09-26 13:02:26.002763147\n");
+    fclose(fp);
+  }
+
+  return 0;
+}
+
+int setup_kitti_calib_test_data(const char *data_dir) {
+  // Create calib_cam_to_cam.txt
+  char path[100] = {0};
+  sprintf(path, "%s/calib_cam_to_cam.txt", data_dir);
+
+  FILE *f = fopen(path, "w");
+  fprintf(f, "calib_time: 09-Jan-2012 13:57:47\n");
+  fprintf(f, "corner_dist: 1.0\n");
+  fprintf(f, "S_00: 1.0 2.0\n");
+  fprintf(f, "K_00: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "D_00: 1.0 2.0 3.0 4.0 5.0\n");
+  fprintf(f, "R_00: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "T_00: 1.0 2.0 3.0\n");
+  fprintf(f, "S_rect_00: 1.0 2.0\n");
+  fprintf(f, "R_rect_00: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "P_rect_00: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
+  fprintf(f, "S_01: 1.0 2.0\n");
+  fprintf(f, "K_01: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "D_01: 1.0 2.0 3.0 4.0 5.0\n");
+  fprintf(f, "R_01: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "T_01: 1.0 2.0 3.0\n");
+  fprintf(f, "S_rect_01: 1.0 2.0\n");
+  fprintf(f, "R_rect_01: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "P_rect_01: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
+  fprintf(f, "S_02: 1.0 2.0\n");
+  fprintf(f, "K_02: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "D_02: 1.0 2.0 3.0 4.0 5.0\n");
+  fprintf(f, "R_02: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "T_02: 1.0 2.0 3.0\n");
+  fprintf(f, "S_rect_02: 1.0 2.0\n");
+  fprintf(f, "R_rect_02: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "P_rect_02: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
+  fprintf(f, "S_03: 1.0 2.0\n");
+  fprintf(f, "K_03: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "D_03: 1.0 2.0 3.0 4.0 5.0\n");
+  fprintf(f, "R_03: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "T_03: 1.0 2.0 3.0\n");
+  fprintf(f, "S_rect_03: 1.0 2.0\n");
+  fprintf(f, "R_rect_03: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "P_rect_03: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
+  fclose(f);
+
+  // Create calib_imu_to_velo.txt
+  sprintf(path, "%s/calib_imu_to_velo.txt", data_dir);
+  f = fopen(path, "w");
+  fprintf(f, "calib_time: 25-May-2012 16:47:16\n");
+  fprintf(f, "R: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "T: 1.0 2.0 3.0\n");
+  fclose(f);
+
+  // Create calib_velo_to_cam.txt
+  sprintf(path, "%s/calib_velo_to_cam.txt", data_dir);
+  f = fopen(path, "w");
+  fprintf(f, "calib_time: 15-Mar-2012 11:37:16\n");
+  fprintf(f, "R: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
+  fprintf(f, "T: 1.0 2.0 3.0\n");
+  fprintf(f, "delta_f: 1.0 2.0\n");
+  fprintf(f, "delta_c: 1.0 2.0\n");
+  fclose(f);
+
+  return 0;
+}
+
+int setup_kitti_test_data(const char *data_dir) {
+  char cam0_dir[100] = {0};
+  char cam1_dir[100] = {0};
+  char cam2_dir[100] = {0};
+  char cam3_dir[100] = {0};
+  char oxts_dir[100] = {0};
+  char velodyne_dir[100] = {0};
+
+  sprintf(cam0_dir, "%s/image_00", data_dir);
+  sprintf(cam1_dir, "%s/image_01", data_dir);
+  sprintf(cam2_dir, "%s/image_02", data_dir);
+  sprintf(cam3_dir, "%s/image_03", data_dir);
+  sprintf(oxts_dir, "%s/oxts", data_dir);
+  sprintf(velodyne_dir, "%s/velodyne_points", data_dir);
+
+  MU_ASSERT(mkdir_p(KITTI_TEST_DIR, 0755) == 0);
+  MU_ASSERT(setup_kitti_camera_test_data(cam0_dir) == 0);
+  MU_ASSERT(setup_kitti_camera_test_data(cam1_dir) == 0);
+  MU_ASSERT(setup_kitti_camera_test_data(cam2_dir) == 0);
+  MU_ASSERT(setup_kitti_camera_test_data(cam3_dir) == 0);
+  MU_ASSERT(setup_kitti_oxts_test_data(oxts_dir) == 0);
+  MU_ASSERT(setup_kitti_velodyne_test_data(velodyne_dir) == 0);
+  MU_ASSERT(setup_kitti_calib_test_data(data_dir) == 0);
+
+  return 0;
+}
+
 int test_kitti_camera_load(void) {
-  const char *data_dir = KITTI_TEST_SEQ "/image_00";
+  setup_kitti_test_data(KITTI_TEST_DIR);
+
+  const char *data_dir = KITTI_TEST_DIR "/image_00";
   kitti_camera_t *data = kitti_camera_load(data_dir);
   kitti_camera_free(data);
+
+  rmdir(KITTI_TEST_DIR);
+
   return 0;
 }
 
 int test_kitti_oxts_load(void) {
-  const char *data_dir = KITTI_TEST_SEQ "/oxts";
+  setup_kitti_test_data(KITTI_TEST_DIR);
+
+  const char *data_dir = KITTI_TEST_DIR "/oxts";
   kitti_oxts_t *data = kitti_oxts_load(data_dir);
+  MU_ASSERT(fltcmp(data->lat[0], 0.0) == 0);
+  MU_ASSERT(fltcmp(data->lon[0], 1.0) == 0);
+  MU_ASSERT(fltcmp(data->alt[0], 2.0) == 0);
+  MU_ASSERT(fltcmp(data->roll[0], 3.0) == 0);
+  MU_ASSERT(fltcmp(data->pitch[0], 4.0) == 0);
+  MU_ASSERT(fltcmp(data->yaw[0], 5.0) == 0);
+  MU_ASSERT(fltcmp(data->vn[0], 6.0) == 0);
+  MU_ASSERT(fltcmp(data->ve[0], 7.0) == 0);
+  MU_ASSERT(fltcmp(data->vf[0], 8.0) == 0);
+  MU_ASSERT(fltcmp(data->vl[0], 9.0) == 0);
+  MU_ASSERT(fltcmp(data->vu[0], 10.0) == 0);
+  MU_ASSERT(fltcmp(data->ax[0], 11.0) == 0);
+  MU_ASSERT(fltcmp(data->ay[0], 12.0) == 0);
+  MU_ASSERT(fltcmp(data->az[0], 13.0) == 0);
+  MU_ASSERT(fltcmp(data->af[0], 14.0) == 0);
+  MU_ASSERT(fltcmp(data->al[0], 15.0) == 0);
+  MU_ASSERT(fltcmp(data->au[0], 16.0) == 0);
+  MU_ASSERT(fltcmp(data->wx[0], 17.0) == 0);
+  MU_ASSERT(fltcmp(data->wy[0], 18.0) == 0);
+  MU_ASSERT(fltcmp(data->wz[0], 19.0) == 0);
+  MU_ASSERT(fltcmp(data->wf[0], 20.0) == 0);
+  MU_ASSERT(fltcmp(data->wl[0], 21.0) == 0);
+  MU_ASSERT(fltcmp(data->wu[0], 22.0) == 0);
+  MU_ASSERT(fltcmp(data->pos_accuracy[0], 23.0) == 0);
+  MU_ASSERT(fltcmp(data->vel_accuracy[0], 24.0) == 0);
+  MU_ASSERT(data->navstat[0] == 25);
+  MU_ASSERT(data->numsats[0] == 26);
+  MU_ASSERT(data->posmode[0] == 27);
+  MU_ASSERT(data->velmode[0] == 28);
+  MU_ASSERT(data->orimode[0] == 29);
   kitti_oxts_free(data);
+
+  rmdir(KITTI_TEST_DIR);
+
   return 0;
 }
 
 int test_kitti_velodyne_load(void) {
-  const char *data_dir = KITTI_TEST_SEQ "/velodyne_points";
+  setup_kitti_test_data(KITTI_TEST_DIR);
+
+  const char *data_dir = KITTI_TEST_DIR "/velodyne_points";
   kitti_velodyne_t *data = kitti_velodyne_load(data_dir);
   kitti_velodyne_free(data);
+
+  rmdir(KITTI_TEST_DIR);
+
   return 0;
 }
 
 int test_kitti_calib_load(void) {
-  const char *data_dir = KITTI_TEST_DATA;
-  kitti_calib_t *data = kitti_calib_load(data_dir);
-  // kitti_calib_print(data);
+  setup_kitti_test_data(KITTI_TEST_DIR);
+
+  kitti_calib_t *data = kitti_calib_load(KITTI_TEST_DIR);
   kitti_calib_free(data);
+
+  rmdir(KITTI_TEST_DIR);
+
   return 0;
 }
 
 int test_kitti_raw_load(void) {
-  kitti_raw_t *data = kitti_raw_load(KITTI_TEST_DATA, KITTI_TEST_SEQ_NAME);
+  setup_kitti_test_data(KITTI_TEST_DIR);
+
+  kitti_raw_t *data = kitti_raw_load(KITTI_TEST_DIR, "");
   kitti_raw_free(data);
+
+  rmdir(KITTI_TEST_DIR);
+
   return 0;
 }
 

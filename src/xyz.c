@@ -732,37 +732,38 @@ size_t file_lines(const char *fp) {
  * Returns 0 for success or -1 for failure.
  */
 int mkdir_p(const char *path, const mode_t mode) {
-    char *tmp = strdup(path);
-    char *p = tmp;
-    int status = 0;
+  char *tmp = strdup(path);
+  char *p = tmp;
+  int status = 0;
 
-    // Skip leading slashes
-    while (*p == '/') p++;
+  // Skip leading slashes
+  while (*p == '/')
+    p++;
 
-    for (; *p; p++) {
-        if (*p == '/') {
-            *p = '\0';
+  for (; *p; p++) {
+    if (*p == '/') {
+      *p = '\0';
 
-            if (mkdir(tmp, mode) != 0) {
-                if (errno != EEXIST) {
-                    status = -1;
-                    break;
-                }
-            }
-
-            *p = '/';
-        }
-    }
-
-    // Create the final directory
-    if (status == 0 && mkdir(tmp, mode) != 0) {
+      if (mkdir(tmp, mode) != 0) {
         if (errno != EEXIST) {
-            status = -1;
+          status = -1;
+          break;
         }
-    }
+      }
 
-    free(tmp);
-    return status;
+      *p = '/';
+    }
+  }
+
+  // Create the final directory
+  if (status == 0 && mkdir(tmp, mode) != 0) {
+    if (errno != EEXIST) {
+      status = -1;
+    }
+  }
+
+  free(tmp);
+  return status;
 }
 
 int _unlink_cb(const char *fpath,
@@ -15266,7 +15267,6 @@ pose_t *load_poses(const char *fp, int *num_poses) {
   // Loop through data
   char line[MAX_LINE_LENGTH] = {0};
   int row_idx = 0;
-  int col_idx = 0;
 
   // Loop through data line by line
   while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
@@ -15291,7 +15291,6 @@ pose_t *load_poses(const char *fp, int *num_poses) {
     }
 
     // Set pose
-    poses[row_idx];
     real_t param[7] = {rx, ry, rz, qx, qy, qz, qw};
     pose_setup(&poses[row_idx], ts, param);
     row_idx++;
@@ -18157,28 +18156,6 @@ void euroc_calib_free(euroc_calib_t *data) {
   } while (0);
 #endif
 
-// /**
-//  * Count number of lines in file
-//  * @returns Number of lines or `-1` for failure
-//  */
-// static size_t file_lines(const char *path) {
-//   FILE *fp = fopen(path, "r");
-//   size_t lines = 0;
-//
-//   if (fp == NULL) {
-//     return -1;
-//   }
-//
-//   int ch;
-//   while ((ch = getc(fp)) != EOF) {
-//     if (ch == '\n') {
-//       ++lines;
-//     }
-//   }
-//
-//   return lines;
-// }
-
 /**
  * Parse date time string to timestamp in nanoseconds (Unix time)
  */
@@ -18255,8 +18232,11 @@ parse_value(FILE *fp, const char *key, const char *value_type, void *value) {
   }
 }
 
+/**
+ * Parse double array
+ */
 static void
-parse_float_array(FILE *fp, const char *key, double *array, int size) {
+parse_double_array(FILE *fp, const char *key, double *array, int size) {
   assert(fp != NULL);
   assert(key != NULL);
   assert(array != NULL);
@@ -18293,8 +18273,7 @@ parse_float_array(FILE *fp, const char *key, double *array, int size) {
 kitti_camera_t *kitti_camera_load(const char *data_dir) {
   // Form timestamps path
   char timestamps_path[1024] = {0};
-  strcat(timestamps_path, data_dir);
-  strcat(timestamps_path, "/timestamps.txt");
+  sprintf(timestamps_path, "%s/timestamps.txt", data_dir);
 
   // Open timestamps file
   const size_t num_rows = file_lines(timestamps_path);
@@ -18351,8 +18330,7 @@ void kitti_camera_free(kitti_camera_t *data) {
 kitti_oxts_t *kitti_oxts_load(const char *data_dir) {
   // Get number of measurements
   char timestamps_path[1024] = {0};
-  strcat(timestamps_path, data_dir);
-  strcat(timestamps_path, "/timestamps.txt");
+  sprintf(timestamps_path, "%s/timestamps.txt", data_dir);
   const size_t num_rows = file_lines(timestamps_path);
 
   // Parse setup
@@ -18667,41 +18645,41 @@ kitti_calib_t *kitti_calib_load(const char *data_dir) {
     parse_value(fp, "calib_time", "string", &data->calib_time_cam_to_cam);
     parse_value(fp, "corner_dist", "double", &data->corner_dist);
 
-    parse_float_array(fp, "S_00", data->S_00, 2);
-    parse_float_array(fp, "K_00", data->K_00, 9);
-    parse_float_array(fp, "D_00", data->D_00, 5);
-    parse_float_array(fp, "R_00", data->D_00, 9);
-    parse_float_array(fp, "T_00", data->T_00, 3);
-    parse_float_array(fp, "S_rect_00", data->S_rect_00, 2);
-    parse_float_array(fp, "R_rect_00", data->R_rect_00, 9);
-    parse_float_array(fp, "P_rect_00", data->P_rect_00, 12);
+    parse_double_array(fp, "S_00", data->S_00, 2);
+    parse_double_array(fp, "K_00", data->K_00, 9);
+    parse_double_array(fp, "D_00", data->D_00, 5);
+    parse_double_array(fp, "R_00", data->D_00, 9);
+    parse_double_array(fp, "T_00", data->T_00, 3);
+    parse_double_array(fp, "S_rect_00", data->S_rect_00, 2);
+    parse_double_array(fp, "R_rect_00", data->R_rect_00, 9);
+    parse_double_array(fp, "P_rect_00", data->P_rect_00, 12);
 
-    parse_float_array(fp, "S_01", data->S_01, 2);
-    parse_float_array(fp, "K_01", data->K_01, 9);
-    parse_float_array(fp, "D_01", data->D_01, 5);
-    parse_float_array(fp, "R_01", data->D_01, 9);
-    parse_float_array(fp, "T_01", data->T_01, 3);
-    parse_float_array(fp, "S_rect_01", data->S_rect_01, 2);
-    parse_float_array(fp, "R_rect_01", data->R_rect_01, 9);
-    parse_float_array(fp, "P_rect_01", data->P_rect_01, 12);
+    parse_double_array(fp, "S_01", data->S_01, 2);
+    parse_double_array(fp, "K_01", data->K_01, 9);
+    parse_double_array(fp, "D_01", data->D_01, 5);
+    parse_double_array(fp, "R_01", data->D_01, 9);
+    parse_double_array(fp, "T_01", data->T_01, 3);
+    parse_double_array(fp, "S_rect_01", data->S_rect_01, 2);
+    parse_double_array(fp, "R_rect_01", data->R_rect_01, 9);
+    parse_double_array(fp, "P_rect_01", data->P_rect_01, 12);
 
-    parse_float_array(fp, "S_02", data->S_02, 2);
-    parse_float_array(fp, "K_02", data->K_02, 9);
-    parse_float_array(fp, "D_02", data->D_02, 5);
-    parse_float_array(fp, "R_02", data->D_02, 9);
-    parse_float_array(fp, "T_02", data->T_02, 3);
-    parse_float_array(fp, "S_rect_02", data->S_rect_02, 2);
-    parse_float_array(fp, "R_rect_02", data->R_rect_02, 9);
-    parse_float_array(fp, "P_rect_02", data->P_rect_02, 12);
+    parse_double_array(fp, "S_02", data->S_02, 2);
+    parse_double_array(fp, "K_02", data->K_02, 9);
+    parse_double_array(fp, "D_02", data->D_02, 5);
+    parse_double_array(fp, "R_02", data->D_02, 9);
+    parse_double_array(fp, "T_02", data->T_02, 3);
+    parse_double_array(fp, "S_rect_02", data->S_rect_02, 2);
+    parse_double_array(fp, "R_rect_02", data->R_rect_02, 9);
+    parse_double_array(fp, "P_rect_02", data->P_rect_02, 12);
 
-    parse_float_array(fp, "S_03", data->S_03, 2);
-    parse_float_array(fp, "K_03", data->K_03, 9);
-    parse_float_array(fp, "D_03", data->D_03, 5);
-    parse_float_array(fp, "R_03", data->D_03, 9);
-    parse_float_array(fp, "T_03", data->T_03, 3);
-    parse_float_array(fp, "S_rect_03", data->S_rect_03, 2);
-    parse_float_array(fp, "R_rect_03", data->R_rect_03, 9);
-    parse_float_array(fp, "P_rect_03", data->P_rect_03, 12);
+    parse_double_array(fp, "S_03", data->S_03, 2);
+    parse_double_array(fp, "K_03", data->K_03, 9);
+    parse_double_array(fp, "D_03", data->D_03, 5);
+    parse_double_array(fp, "R_03", data->D_03, 9);
+    parse_double_array(fp, "T_03", data->T_03, 3);
+    parse_double_array(fp, "S_rect_03", data->S_rect_03, 2);
+    parse_double_array(fp, "R_rect_03", data->R_rect_03, 9);
+    parse_double_array(fp, "P_rect_03", data->P_rect_03, 12);
 
     fclose(fp);
   }
@@ -18716,8 +18694,8 @@ kitti_calib_t *kitti_calib_load(const char *data_dir) {
     }
 
     parse_value(fp, "calib_time", "string", &data->calib_time_imu_to_velo);
-    parse_float_array(fp, "R", data->R_velo_imu, 9);
-    parse_float_array(fp, "T", data->T_velo_imu, 3);
+    parse_double_array(fp, "R", data->R_velo_imu, 9);
+    parse_double_array(fp, "T", data->T_velo_imu, 3);
     fclose(fp);
   }
 
@@ -18731,10 +18709,10 @@ kitti_calib_t *kitti_calib_load(const char *data_dir) {
     }
 
     parse_value(fp, "calib_time", "string", &data->calib_time_velo_to_cam);
-    parse_float_array(fp, "R", data->R_cam_velo, 9);
-    parse_float_array(fp, "T", data->T_cam_velo, 3);
-    parse_float_array(fp, "delta_f", data->delta_f, 2);
-    parse_float_array(fp, "delta_c", data->delta_c, 2);
+    parse_double_array(fp, "R", data->R_cam_velo, 9);
+    parse_double_array(fp, "T", data->T_cam_velo, 3);
+    parse_double_array(fp, "delta_f", data->delta_f, 2);
+    parse_double_array(fp, "delta_c", data->delta_c, 2);
     fclose(fp);
   }
 
@@ -18742,20 +18720,6 @@ kitti_calib_t *kitti_calib_load(const char *data_dir) {
 }
 
 void kitti_calib_free(kitti_calib_t *data) { free(data); }
-
-// static void print_double_array(const char *prefix,
-//                                const double *arr,
-//                                const size_t n) {
-//   assert(prefix != NULL);
-//   assert(arr != NULL);
-//   assert(n != 0);
-//
-//   printf("%s: ", prefix);
-//   for (size_t i = 0; i < n; i++) {
-//     printf("%.4f ", arr[i]);
-//   }
-//   printf("\n");
-// }
 
 void kitti_calib_print(const kitti_calib_t *data) {
   printf("calib_time_cam_to_cam: %s\n", data->calib_time_cam_to_cam);
