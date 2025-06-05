@@ -7634,12 +7634,10 @@ void test_suite(void) {
   MU_ADD_TEST(test_euroc_calib_load);
 
   // KITTI
-#if CI_MODE == 0
   MU_ADD_TEST(test_kitti_camera_load);
   MU_ADD_TEST(test_kitti_oxts_load);
   MU_ADD_TEST(test_kitti_velodyne_load);
   MU_ADD_TEST(test_kitti_calib_load);
   MU_ADD_TEST(test_kitti_raw_load);
-#endif
 }
 MU_RUN_TESTS(test_suite)
