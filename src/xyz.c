@@ -15215,67 +15215,79 @@ int marg_factor_eval(void *marg_ptr) {
 // DATA UTILS //
 ////////////////
 
-static int
-parse_pose_data(const int i, const int j, const char *entry, pose_t *poses) {
-  switch (j) {
-    case 0:
-      poses[i].ts = strtol(entry, NULL, 10);
-      break;
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-      poses[i].data[j - 1] = strtod(entry, NULL);
-      break;
-    default:
-      return -1;
+/**
+ * Save poses to `save_path`.
+ */
+int save_poses(const char *save_path,
+               const timestamp_t *timestamps,
+               const real_t *poses,
+               const int num_poses) {
+  assert(save_path != NULL);
+  assert(timestamps != NULL);
+  assert(poses != NULL);
+
+  FILE *fp = fopen(save_path, "w");
+  if (fp == NULL) {
+    return -1;
   }
+
+  fprintf(fp, "num_poses: %d\n", num_poses);
+  fprintf(fp, "ts x y z qw qx qy qz\n");
+  for (int i = 0; i < num_poses; ++i) {
+    fprintf(fp, "%ld ", timestamps[i]);
+#if PRECISION == 1
+    fprintf(fp, "%f ", poses[i * 7 + 0]);
+    fprintf(fp, "%f ", poses[i * 7 + 1]);
+    fprintf(fp, "%f ", poses[i * 7 + 2]);
+    fprintf(fp, "%f ", poses[i * 7 + 3]);
+    fprintf(fp, "%f ", poses[i * 7 + 4]);
+    fprintf(fp, "%f ", poses[i * 7 + 5]);
+    fprintf(fp, "%f\n", poses[i * 7 + 6]);
+#elif PRECISION == 2
+    fprintf(fp, "%lf ", poses[i * 7 + 0]);
+    fprintf(fp, "%lf ", poses[i * 7 + 1]);
+    fprintf(fp, "%lf ", poses[i * 7 + 2]);
+    fprintf(fp, "%lf ", poses[i * 7 + 3]);
+    fprintf(fp, "%lf ", poses[i * 7 + 4]);
+    fprintf(fp, "%lf ", poses[i * 7 + 5]);
+    fprintf(fp, "%lf\n", poses[i * 7 + 6]);
+#else
+#error "Invalid precision!"
+#endif
+  }
+  fclose(fp);
 
   return 0;
 }
 
 /**
- * Load poses from file `fp`. The number of poses in file
+ * Load poses from file `data_path`. The number of poses in file
  * will be outputted to `num_poses`.
  */
-pose_t *load_poses(const char *fp, int *num_poses) {
-  assert(fp != NULL);
+int load_poses(const char *data_path,
+               timestamp_t **timestamps,
+               real_t **poses,
+               int *num_poses) {
+  assert(data_path != NULL);
+  assert(timestamps != NULL);
+  assert(poses != NULL);
   assert(num_poses != NULL);
 
-  // Obtain number of rows and columns in dsv data
-  int num_rows = dsv_rows(fp);
-  int num_cols = dsv_cols(fp, ' ');
-  if (num_rows == -1 || num_cols == -1) {
-    return NULL;
+  // Load file
+  FILE *fp = fopen(data_path, "r");
+  if (fp == NULL) {
+    return -1;
   }
-  // *num_poses = num_rows;
+
+  // Parse number of poses
+  fscanf(fp, "num_poses: %d\n", num_poses);
+  skip_line(fp);
 
   // Initialize memory for pose data
-  *num_poses = num_rows;
-  pose_t *poses = malloc(sizeof(pose_t) * num_rows);
+  *timestamps = malloc(sizeof(timestamp_t) * *num_poses);
+  *poses = malloc(sizeof(real_t) * 7 * *num_poses);
 
-  // Load file
-  FILE *infile = fopen(fp, "r");
-  if (infile == NULL) {
-    free(poses);
-    return NULL;
-  }
-
-  // Loop through data
-  char line[MAX_LINE_LENGTH] = {0};
-  int row_idx = 0;
-
-  // Loop through data line by line
-  while (fgets(line, MAX_LINE_LENGTH, infile) != NULL) {
-    // Ignore if comment line
-    if (line[0] == '#') {
-      continue;
-    }
-
-    // Parse line
+  for (int i = 0; i < *num_poses; ++i) {
     timestamp_t ts = 0;
     real_t rx, ry, rz = 0;
     real_t qx, qy, qz, qw = 0;
@@ -15283,95 +15295,100 @@ pose_t *load_poses(const char *fp, int *num_poses) {
     const char *fmt = "%ld %f %f %f %f %f %f %f";
 #elif PRECISION == 2
     const char *fmt = "%ld %lf %lf %lf %lf %lf %lf %lf";
+#else
+#error "Invalid precision!"
 #endif
-    int parsed = sscanf(line, fmt, &ts, &rx, &ry, &rz, &qx, &qy, &qz, &qw);
-    if (parsed != 8) {
-      free(poses);
-      return NULL;
+    if (fscanf(fp, fmt, &ts, &rx, &ry, &rz, &qw, &qx, &qy, &qz) != 8) {
+      fclose(fp);
+      return -1;
     }
 
-    // Set pose
-    real_t param[7] = {rx, ry, rz, qx, qy, qz, qw};
-    pose_setup(&poses[row_idx], ts, param);
-    row_idx++;
+    (*timestamps)[i] = ts;
+    (*poses)[i * 7 + 0] = rx;
+    (*poses)[i * 7 + 1] = ry;
+    (*poses)[i * 7 + 2] = rz;
+    (*poses)[i * 7 + 3] = qw;
+    (*poses)[i * 7 + 4] = qx;
+    (*poses)[i * 7 + 5] = qy;
+    (*poses)[i * 7 + 6] = qz;
   }
 
   // Clean up
-  fclose(infile);
+  fclose(fp);
 
-  return poses;
+  return 0;
 }
 
-/**
- * Associate pose data
- */
-int **assoc_pose_data(pose_t *gnd_poses,
-                      size_t num_gnd_poses,
-                      pose_t *est_poses,
-                      size_t num_est_poses,
-                      double threshold,
-                      size_t *num_matches) {
-  assert(gnd_poses != NULL);
-  assert(est_poses != NULL);
-  assert(num_gnd_poses != 0);
-  assert(num_est_poses != 0);
-
-  size_t gnd_idx = 0;
-  size_t est_idx = 0;
-  size_t k_end =
-      (num_gnd_poses > num_est_poses) ? num_est_poses : num_gnd_poses;
-
-  size_t match_idx = 0;
-  int **matches = malloc(sizeof(int *) * k_end);
-
-  while ((gnd_idx + 1) < num_gnd_poses && (est_idx + 1) < num_est_poses) {
-    // Calculate time difference between ground truth and
-    // estimate
-    double gnd_k_time = ts2sec(gnd_poses[gnd_idx].ts);
-    double est_k_time = ts2sec(est_poses[est_idx].ts);
-    double t_k_diff = fabs(gnd_k_time - est_k_time);
-
-    // Check to see if next ground truth timestamp forms
-    // a smaller time diff
-    double t_kp1_diff = threshold;
-    if ((gnd_idx + 1) < num_gnd_poses) {
-      double gnd_kp1_time = ts2sec(gnd_poses[gnd_idx + 1].ts);
-      t_kp1_diff = fabs(gnd_kp1_time - est_k_time);
-    }
-
-    // Conditions to call this pair (ground truth and
-    // estimate) a match
-    int threshold_met = t_k_diff < threshold;
-    int smallest_diff = t_k_diff < t_kp1_diff;
-
-    // Mark pairs as a match or increment appropriate
-    // indices
-    if (threshold_met && smallest_diff) {
-      matches[match_idx] = malloc(sizeof(int) * 2);
-      matches[match_idx][0] = gnd_idx;
-      matches[match_idx][1] = est_idx;
-      match_idx++;
-
-      gnd_idx++;
-      est_idx++;
-
-    } else if (gnd_k_time > est_k_time) {
-      est_idx++;
-
-    } else if (gnd_k_time < est_k_time) {
-      gnd_idx++;
-    }
-  }
-
-  // Clean up
-  if (match_idx == 0) {
-    free(matches);
-    matches = NULL;
-  }
-
-  *num_matches = match_idx;
-  return matches;
-}
+// /**
+//  * Associate pose data
+//  */
+// int **assoc_pose_data(pose_t *gnd_poses,
+//                       size_t num_gnd_poses,
+//                       pose_t *est_poses,
+//                       size_t num_est_poses,
+//                       double threshold,
+//                       size_t *num_matches) {
+//   assert(gnd_poses != NULL);
+//   assert(est_poses != NULL);
+//   assert(num_gnd_poses != 0);
+//   assert(num_est_poses != 0);
+//
+//   size_t gnd_idx = 0;
+//   size_t est_idx = 0;
+//   size_t k_end =
+//       (num_gnd_poses > num_est_poses) ? num_est_poses : num_gnd_poses;
+//
+//   size_t match_idx = 0;
+//   int **matches = malloc(sizeof(int *) * k_end);
+//
+//   while ((gnd_idx + 1) < num_gnd_poses && (est_idx + 1) < num_est_poses) {
+//     // Calculate time difference between ground truth and
+//     // estimate
+//     double gnd_k_time = ts2sec(gnd_poses[gnd_idx].ts);
+//     double est_k_time = ts2sec(est_poses[est_idx].ts);
+//     double t_k_diff = fabs(gnd_k_time - est_k_time);
+//
+//     // Check to see if next ground truth timestamp forms
+//     // a smaller time diff
+//     double t_kp1_diff = threshold;
+//     if ((gnd_idx + 1) < num_gnd_poses) {
+//       double gnd_kp1_time = ts2sec(gnd_poses[gnd_idx + 1].ts);
+//       t_kp1_diff = fabs(gnd_kp1_time - est_k_time);
+//     }
+//
+//     // Conditions to call this pair (ground truth and
+//     // estimate) a match
+//     int threshold_met = t_k_diff < threshold;
+//     int smallest_diff = t_k_diff < t_kp1_diff;
+//
+//     // Mark pairs as a match or increment appropriate
+//     // indices
+//     if (threshold_met && smallest_diff) {
+//       matches[match_idx] = malloc(sizeof(int) * 2);
+//       matches[match_idx][0] = gnd_idx;
+//       matches[match_idx][1] = est_idx;
+//       match_idx++;
+//
+//       gnd_idx++;
+//       est_idx++;
+//
+//     } else if (gnd_k_time > est_k_time) {
+//       est_idx++;
+//
+//     } else if (gnd_k_time < est_k_time) {
+//       gnd_idx++;
+//     }
+//   }
+//
+//   // Clean up
+//   if (match_idx == 0) {
+//     free(matches);
+//     matches = NULL;
+//   }
+//
+//   *num_matches = match_idx;
+//   return matches;
+// }
 
 ////////////
 // SOLVER //

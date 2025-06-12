@@ -5447,40 +5447,48 @@ int test_marg_factor(void) {
   return 0;
 }
 
-int test_load_poses(void) {
-  // Create test data
-  const char *test_poses_path = "/tmp/test_poses.csv";
-  const int expected_num_poses = 10;
-  FILE *test_data = fopen(test_poses_path, "w");
-  for (int i = 0; i < expected_num_poses; ++i) {
-    fprintf(test_data, "%ld ", (int64_t) (i * 1e9));
-    fprintf(test_data, "%f ", (float) i * 1);
-    fprintf(test_data, "%f ", (float) i * 2);
-    fprintf(test_data, "%f ", (float) i * 3);
-    fprintf(test_data, "%f ", (float) i * 4);
-    fprintf(test_data, "%f ", (float) i * 5);
-    fprintf(test_data, "%f ", (float) i * 6);
-    fprintf(test_data, "%f ", (float) i * 7);
-    fprintf(test_data, "\n");
-  }
-  fclose(test_data);
+int test_save_and_load_poses(void) {
+  // Save poses
+  const char *save_path = "/tmp/test_poses.csv";
+  const int N = 100;
+  timestamp_t *timestamps_gnd = malloc(sizeof(timestamp_t) * N);
+  real_t *poses_gnd = malloc(sizeof(real_t) * 7 * N);
+  for (int i = 0; i < N; ++i) {
+    timestamps_gnd[i] = i;
 
-  // Test load poses
-  int num_poses = 0;
-  pose_t *poses = load_poses(test_poses_path, &num_poses);
-  for (int i = 0; i < num_poses; ++i) {
-    MU_ASSERT(poses[i].ts == (int64_t) (i * 1e9));
-    MU_ASSERT(fltcmp(poses[i].data[0], (float) (i * 1)) == 0);
-    MU_ASSERT(fltcmp(poses[i].data[1], (float) (i * 2)) == 0);
-    MU_ASSERT(fltcmp(poses[i].data[2], (float) (i * 3)) == 0);
-    MU_ASSERT(fltcmp(poses[i].data[3], (float) (i * 4)) == 0);
-    MU_ASSERT(fltcmp(poses[i].data[4], (float) (i * 5)) == 0);
-    MU_ASSERT(fltcmp(poses[i].data[5], (float) (i * 6)) == 0);
-    MU_ASSERT(fltcmp(poses[i].data[6], (float) (i * 7)) == 0);
+    poses_gnd[i * 7 + 0] = i;
+    poses_gnd[i * 7 + 1] = i;
+    poses_gnd[i * 7 + 2] = i;
+    poses_gnd[i * 7 + 3] = i;
+    poses_gnd[i * 7 + 4] = i;
+    poses_gnd[i * 7 + 5] = i;
+    poses_gnd[i * 7 + 6] = i;
   }
-  MU_ASSERT(expected_num_poses == num_poses);
+  MU_ASSERT(save_poses(save_path, timestamps_gnd, poses_gnd, N) == 0);
+
+  // Load poses
+  int num_poses = 0;
+  timestamp_t *timestamps = NULL;
+  real_t *poses = NULL;
+  MU_ASSERT(load_poses(save_path, &timestamps, &poses, &num_poses) == 0);
+  for (int i = 0; i < num_poses; ++i) {
+    MU_ASSERT(timestamps_gnd[i] == timestamps[i]);
+    MU_ASSERT(fltcmp(poses_gnd[i * 7 + 0], poses[i * 7 + 0]) == 0);
+    MU_ASSERT(fltcmp(poses_gnd[i * 7 + 1], poses[i * 7 + 1]) == 0);
+    MU_ASSERT(fltcmp(poses_gnd[i * 7 + 2], poses[i * 7 + 2]) == 0);
+    MU_ASSERT(fltcmp(poses_gnd[i * 7 + 3], poses[i * 7 + 3]) == 0);
+    MU_ASSERT(fltcmp(poses_gnd[i * 7 + 4], poses[i * 7 + 4]) == 0);
+    MU_ASSERT(fltcmp(poses_gnd[i * 7 + 5], poses[i * 7 + 5]) == 0);
+    MU_ASSERT(fltcmp(poses_gnd[i * 7 + 6], poses[i * 7 + 6]) == 0);
+  }
+  MU_ASSERT(num_poses == N);
+  MU_ASSERT(remove(save_path) == 0);
+
+  // Clean up
+  free(timestamps_gnd);
+  free(poses_gnd);
+  free(timestamps);
   free(poses);
-  MU_ASSERT(remove(test_poses_path) == 0);
 
   return 0;
 }
@@ -7595,8 +7603,8 @@ void test_suite(void) {
   MU_ADD_TEST(test_calib_camera_factor);
   MU_ADD_TEST(test_calib_imucam_factor);
   MU_ADD_TEST(test_marg_factor);
-  MU_ADD_TEST(test_load_poses);
-  MU_ADD_TEST(test_assoc_pose_data);
+  MU_ADD_TEST(test_save_and_load_poses);
+  // MU_ADD_TEST(test_assoc_pose_data);
   MU_ADD_TEST(test_solver_setup);
   // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_inertial_odometry_batch);

@@ -2730,13 +2730,20 @@ int marg_factor_eval(void *marg_ptr);
 // DATA UTILS //
 ////////////////
 
-pose_t *load_poses(const char *fp, int *num_poses);
-int **assoc_pose_data(pose_t *gnd_poses,
-                      size_t num_gnd_poses,
-                      pose_t *est_poses,
-                      size_t num_est_poses,
-                      double threshold,
-                      size_t *num_matches);
+int save_poses(const char *save_path,
+               const timestamp_t *timestamps,
+               const real_t *poses,
+               const int num_poses);
+int load_poses(const char *data_path,
+               timestamp_t **timestamps,
+               real_t **poses,
+               int *num_poses);
+// int **assoc_pose_data(pose_t *gnd_poses,
+//                       size_t num_gnd_poses,
+//                       pose_t *est_poses,
+//                       size_t num_est_poses,
+//                       double threshold,
+//                       size_t *num_matches);
 
 ////////////
 // SOLVER //
