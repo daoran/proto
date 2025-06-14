@@ -12694,240 +12694,240 @@ int imu_factor_ceres_eval(void *factor_ptr,
                     J_out);
 }
 
-//////////////////
-// LIDAR FACTOR //
-//////////////////
-
-pcd_t *pcd_malloc(const timestamp_t ts_start,
-                  const timestamp_t ts_end,
-                  const float *data,
-                  const float *time_diffs,
-                  const size_t num_points) {
-  pcd_t *pcd = malloc(sizeof(pcd_t));
-
-  pcd->ts_start = ts_start;
-  pcd->ts_end = ts_end;
-
-  pcd->data = malloc(sizeof(float) * 3 * num_points);
-  for (size_t i = 0; i < num_points; ++i) {
-    pcd->data[i * 3 + 0] = data[i * 3 + 0];
-    pcd->data[i * 3 + 1] = data[i * 3 + 1];
-    pcd->data[i * 3 + 2] = data[i * 3 + 2];
-  }
-
-  pcd->time_diffs = malloc(sizeof(float) * num_points);
-  for (size_t i = 0; i < num_points; ++i) {
-    pcd->time_diffs[i] = time_diffs[i];
-  }
-  pcd->num_points = num_points;
-
-  return pcd;
-}
-
-void pcd_free(pcd_t *pcd) {
-  if (pcd == NULL) {
-    return;
-  }
-
-  free(pcd->data);
-  free(pcd->time_diffs);
-  free(pcd);
-}
-
-void pcd_deskew(pcd_t *pcd,
-                const real_t T_WL_km1[4 * 4],
-                const real_t T_WL_km2[4 * 4]) {
-  assert(pcd);
-  assert(T_WL_km1);
-  assert(T_WL_km2);
-
-  // Setup
-  const real_t ts_start = ts2sec(pcd->ts_start);
-  const real_t ts_end = ts2sec(pcd->ts_end);
-  const real_t dt = ts_end - ts_start;
-  TF_ROT(T_WL_km2, C_WL_km2);
-  TF_ROT(T_WL_km1, C_WL_km1);
-  TF_TRANS(T_WL_km2, r_WL_km2);
-  TF_TRANS(T_WL_km1, r_WL_km1);
-
-  // v_WL = (C_WL_km2' * (r_WL_km1 - r_WL_km2)) / dt
-  VEC_SUB(r_WL_km1, r_WL_km2, dr, 3);
-  MAT_TRANSPOSE(C_WL_km2, 3, 3, C_WL_t_km2);
-  DOT(C_WL_t_km2, 3, 3, dr, 3, 1, v_WL);
-  vec_scale(v_WL, 3, 1.0 / dt);
-
-  // w_WL = (Log(C_WL_km2' * C_WL_km1)) / dt
-  real_t w_WL[3] = {0};
-  DOT(C_WL_t_km2, 3, 3, C_WL_km1, 3, 3, dC);
-  lie_Log(dC, w_WL);
-  vec_scale(w_WL, 3, 1.0 / dt);
-
-  // Deskew point cloud
-  // p = Exp(s_i * w_WL) * p + s_i * v_WL
-  for (size_t i = 0; i < pcd->num_points; ++i) {
-    real_t p[3] = {
-        pcd->data[i * 3 + 0],
-        pcd->data[i * 3 + 1],
-        pcd->data[i * 3 + 2],
-    };
-
-    const real_t s_i = pcd->time_diffs[i];
-    const real_t v_WL_i[3] = {s_i * v_WL[0], s_i * v_WL[1], s_i * v_WL[2]};
-    const real_t w_WL_i[3] = {s_i * w_WL[0], s_i * w_WL[1], s_i * w_WL[2]};
-
-    real_t dC[3 * 3] = {0};
-    lie_Exp(w_WL_i, dC);
-    DOT(dC, 3, 3, p, 3, 1, p_new);
-    vec_add(p_new, v_WL_i, p, 3);
-  }
-}
-
-/**
- * Setup lidar factor
- */
-void lidar_factor_setup(lidar_factor_t *factor,
-                        pcd_t *pcd,
-                        pose_t *pose,
-                        const real_t var[3]) {
-  assert(factor != NULL);
-  assert(pcd != NULL);
-  assert(pose != NULL);
-  assert(var != NULL);
-
-  // Parameters
-  factor->pcd = pcd;
-  factor->pose = pose;
-
-  // Measurement covariance
-  zeros(factor->covar, 3, 3);
-  factor->covar[0] = var[0];
-  factor->covar[4] = var[1];
-  factor->covar[8] = var[2];
-
-  // Square-root information matrix
-  zeros(factor->sqrt_info, 3, 3);
-  factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
-  factor->sqrt_info[4] = sqrt(1.0 / factor->covar[1]);
-  factor->sqrt_info[8] = sqrt(1.0 / factor->covar[2]);
-
-  // Factor parameters, residuals and Jacobians
-  factor->r_size = pcd->num_points * 3;
-  factor->num_params = 1;
-  factor->param_types[0] = POSE_PARAM;
-  factor->params[0] = factor->pose->data;
-  factor->jacs[0] = factor->J_pose;
-}
-
-static float *pcd_transform(pcd_t *pcd, const real_t *T_WL) {
-  TF_INV(T_WL, T_LW);
-  TF_ROT(T_LW, C_LW);
-  TF_TRANS(T_LW, r_LW);
-
-  float C_LW_f[3 * 3] = {0};
-  float r_LW_f[3 * 3] = {0};
-  for (int i = 0; i < 9; ++i) {
-    C_LW_f[i] = C_LW[i];
-  }
-  for (int i = 0; i < 3; ++i) {
-    r_LW_f[i] = r_LW[i];
-  }
-
-  float *points_W = malloc(sizeof(real_t) * 3 * pcd->num_points);
-  dotf(pcd->data, pcd->num_points, 3, C_LW_f, 3, 3, points_W);
-  for (size_t i = 0; i < pcd->num_points; ++i) {
-    points_W[i * 3 + 0] += r_LW_f[0];
-    points_W[i * 3 + 1] += r_LW_f[1];
-    points_W[i * 3 + 2] += r_LW_f[2];
-  }
-
-  return points_W;
-}
-
-void lidar_factor_jacobian(real_t *C_WL, float *p_W_est, real_t J_pose[3 * 6]) {
-  // J_pos = -1.0 * eye(3)
-  real_t J_pos[3 * 3] = {0};
-  J_pos[0] = -1.0;
-  J_pos[4] = -1.0;
-  J_pos[8] = -1.0;
-
-  // J_rot = C_WL @ hat(p_W_est)
-  // clang-format off
-  real_t xP[3 * 3] = {0};
-  xP[0] = 0.0;         xP[1] = -p_W_est[2]; xP[2] = p_W_est[1];
-  xP[3] = p_W_est[2];  xP[4] = 0.0;         xP[5] = -p_W_est[0];
-  xP[6] = -p_W_est[1]; xP[7] = p_W_est[0];  xP[8] = 0.0;
-  // clang-format on
-  DOT(C_WL, 3, 3, xP, 3, 3, J_rot);
-
-  // J_pose = zeros((3, 6))
-  // J[0:3, 0:3] = J_pos
-  // J[0:3, 3:6] = J_rot
-  mat_block_set(J_pose, 6, 0, 2, 0, 2, J_pos);
-  mat_block_set(J_pose, 6, 0, 2, 3, 5, J_rot);
-}
-
-/**
- * Evaluate lidar factor
- */
-void lidar_factor_eval(void *factor_ptr) {
-  lidar_factor_t *factor = (lidar_factor_t *) factor_ptr;
-  assert(factor != NULL);
-  assert(factor->pose);
-  assert(factor->pcd);
-
-  // Map params
-  TF(factor->params[0], T_WB);
-  TF(factor->params[1], T_BL);
-  TF_CHAIN(T_WL, 2, T_WB, T_BL);
-  TF_ROT(T_WL, C_WL);
-  TF_INV(T_WL, T_LW);
-  TF_ROT(T_LW, C_LW);
-
-  // Transform lidar scan points to world frame and obtain closest points
-  float *points_est = pcd_transform(factor->pcd, T_WL);
-  float *points_map = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
-  for (size_t i = 0; i < factor->pcd->num_points; ++i) {
-    float point[3] = {0};
-    float dist = 0.0f;
-    kdtree_nn(factor->kdtree, &points_est[i * 3], point, &dist);
-    points_map[i * 3 + 0] = point[0];
-    points_map[i * 3 + 1] = point[1];
-    points_map[i * 3 + 2] = point[2];
-  }
-
-  // Calculate residuals
-  factor->r = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
-  for (size_t i = 0; i < factor->pcd->num_points; ++i) {
-    factor->r[i * 3 + 0] = points_map[i * 3 + 0] - points_est[i * 3 + 0];
-    factor->r[i * 3 + 1] = points_map[i * 3 + 1] - points_est[i * 3 + 1];
-    factor->r[i * 3 + 2] = points_map[i * 3 + 2] - points_est[i * 3 + 2];
-  }
-
-  // Calculate jacobians
-  // -- Form: -1 * sqrt_info
-  real_t neg_sqrt_info[3 * 3] = {0};
-  mat_copy(factor->sqrt_info, 3, 3, neg_sqrt_info);
-  mat_scale(neg_sqrt_info, 3, 3, -1.0);
-  // -- Fill jacobians
-  const size_t num_rows = 3 * factor->pcd->num_points;
-  const size_t num_cols = 6;
-  if (factor->J_pose) {
-    free(factor->J_pose);
-  }
-  factor->J_pose = malloc(sizeof(real_t) * num_rows * num_cols);
-
-  const int stride = 6;
-  for (size_t i = 0; i < factor->pcd->num_points; ++i) {
-    const int rs = i * 3 + 0;
-    const int re = i * 3 + 2;
-    const int cs = 0;
-    const int ce = 5;
-
-    real_t J_pose[3 * 6] = {0};
-    lidar_factor_jacobian(C_WL, &points_est[i * 3], J_pose);
-    mat_block_set(factor->J_pose, stride, rs, re, cs, ce, J_pose);
-  }
-}
+// //////////////////
+// // LIDAR FACTOR //
+// //////////////////
+//
+// pcd_t *pcd_malloc(const timestamp_t ts_start,
+//                   const timestamp_t ts_end,
+//                   const float *data,
+//                   const float *time_diffs,
+//                   const size_t num_points) {
+//   pcd_t *pcd = malloc(sizeof(pcd_t));
+//
+//   pcd->ts_start = ts_start;
+//   pcd->ts_end = ts_end;
+//
+//   pcd->data = malloc(sizeof(float) * 3 * num_points);
+//   for (size_t i = 0; i < num_points; ++i) {
+//     pcd->data[i * 3 + 0] = data[i * 3 + 0];
+//     pcd->data[i * 3 + 1] = data[i * 3 + 1];
+//     pcd->data[i * 3 + 2] = data[i * 3 + 2];
+//   }
+//
+//   pcd->time_diffs = malloc(sizeof(float) * num_points);
+//   for (size_t i = 0; i < num_points; ++i) {
+//     pcd->time_diffs[i] = time_diffs[i];
+//   }
+//   pcd->num_points = num_points;
+//
+//   return pcd;
+// }
+//
+// void pcd_free(pcd_t *pcd) {
+//   if (pcd == NULL) {
+//     return;
+//   }
+//
+//   free(pcd->data);
+//   free(pcd->time_diffs);
+//   free(pcd);
+// }
+//
+// void pcd_deskew(pcd_t *pcd,
+//                 const real_t T_WL_km1[4 * 4],
+//                 const real_t T_WL_km2[4 * 4]) {
+//   assert(pcd);
+//   assert(T_WL_km1);
+//   assert(T_WL_km2);
+//
+//   // Setup
+//   const real_t ts_start = ts2sec(pcd->ts_start);
+//   const real_t ts_end = ts2sec(pcd->ts_end);
+//   const real_t dt = ts_end - ts_start;
+//   TF_ROT(T_WL_km2, C_WL_km2);
+//   TF_ROT(T_WL_km1, C_WL_km1);
+//   TF_TRANS(T_WL_km2, r_WL_km2);
+//   TF_TRANS(T_WL_km1, r_WL_km1);
+//
+//   // v_WL = (C_WL_km2' * (r_WL_km1 - r_WL_km2)) / dt
+//   VEC_SUB(r_WL_km1, r_WL_km2, dr, 3);
+//   MAT_TRANSPOSE(C_WL_km2, 3, 3, C_WL_t_km2);
+//   DOT(C_WL_t_km2, 3, 3, dr, 3, 1, v_WL);
+//   vec_scale(v_WL, 3, 1.0 / dt);
+//
+//   // w_WL = (Log(C_WL_km2' * C_WL_km1)) / dt
+//   real_t w_WL[3] = {0};
+//   DOT(C_WL_t_km2, 3, 3, C_WL_km1, 3, 3, dC);
+//   lie_Log(dC, w_WL);
+//   vec_scale(w_WL, 3, 1.0 / dt);
+//
+//   // Deskew point cloud
+//   // p = Exp(s_i * w_WL) * p + s_i * v_WL
+//   for (size_t i = 0; i < pcd->num_points; ++i) {
+//     real_t p[3] = {
+//         pcd->data[i * 3 + 0],
+//         pcd->data[i * 3 + 1],
+//         pcd->data[i * 3 + 2],
+//     };
+//
+//     const real_t s_i = pcd->time_diffs[i];
+//     const real_t v_WL_i[3] = {s_i * v_WL[0], s_i * v_WL[1], s_i * v_WL[2]};
+//     const real_t w_WL_i[3] = {s_i * w_WL[0], s_i * w_WL[1], s_i * w_WL[2]};
+//
+//     real_t dC[3 * 3] = {0};
+//     lie_Exp(w_WL_i, dC);
+//     DOT(dC, 3, 3, p, 3, 1, p_new);
+//     vec_add(p_new, v_WL_i, p, 3);
+//   }
+// }
+//
+// /**
+//  * Setup lidar factor
+//  */
+// void lidar_factor_setup(lidar_factor_t *factor,
+//                         pcd_t *pcd,
+//                         pose_t *pose,
+//                         const real_t var[3]) {
+//   assert(factor != NULL);
+//   assert(pcd != NULL);
+//   assert(pose != NULL);
+//   assert(var != NULL);
+//
+//   // Parameters
+//   factor->pcd = pcd;
+//   factor->pose = pose;
+//
+//   // Measurement covariance
+//   zeros(factor->covar, 3, 3);
+//   factor->covar[0] = var[0];
+//   factor->covar[4] = var[1];
+//   factor->covar[8] = var[2];
+//
+//   // Square-root information matrix
+//   zeros(factor->sqrt_info, 3, 3);
+//   factor->sqrt_info[0] = sqrt(1.0 / factor->covar[0]);
+//   factor->sqrt_info[4] = sqrt(1.0 / factor->covar[1]);
+//   factor->sqrt_info[8] = sqrt(1.0 / factor->covar[2]);
+//
+//   // Factor parameters, residuals and Jacobians
+//   factor->r_size = pcd->num_points * 3;
+//   factor->num_params = 1;
+//   factor->param_types[0] = POSE_PARAM;
+//   factor->params[0] = factor->pose->data;
+//   factor->jacs[0] = factor->J_pose;
+// }
+//
+// static float *pcd_transform(pcd_t *pcd, const real_t *T_WL) {
+//   TF_INV(T_WL, T_LW);
+//   TF_ROT(T_LW, C_LW);
+//   TF_TRANS(T_LW, r_LW);
+//
+//   float C_LW_f[3 * 3] = {0};
+//   float r_LW_f[3 * 3] = {0};
+//   for (int i = 0; i < 9; ++i) {
+//     C_LW_f[i] = C_LW[i];
+//   }
+//   for (int i = 0; i < 3; ++i) {
+//     r_LW_f[i] = r_LW[i];
+//   }
+//
+//   float *points_W = malloc(sizeof(real_t) * 3 * pcd->num_points);
+//   dotf(pcd->data, pcd->num_points, 3, C_LW_f, 3, 3, points_W);
+//   for (size_t i = 0; i < pcd->num_points; ++i) {
+//     points_W[i * 3 + 0] += r_LW_f[0];
+//     points_W[i * 3 + 1] += r_LW_f[1];
+//     points_W[i * 3 + 2] += r_LW_f[2];
+//   }
+//
+//   return points_W;
+// }
+//
+// void lidar_factor_jacobian(real_t *C_WL, float *p_W_est, real_t J_pose[3 * 6]) {
+//   // J_pos = -1.0 * eye(3)
+//   real_t J_pos[3 * 3] = {0};
+//   J_pos[0] = -1.0;
+//   J_pos[4] = -1.0;
+//   J_pos[8] = -1.0;
+//
+//   // J_rot = C_WL @ hat(p_W_est)
+//   // clang-format off
+//   real_t xP[3 * 3] = {0};
+//   xP[0] = 0.0;         xP[1] = -p_W_est[2]; xP[2] = p_W_est[1];
+//   xP[3] = p_W_est[2];  xP[4] = 0.0;         xP[5] = -p_W_est[0];
+//   xP[6] = -p_W_est[1]; xP[7] = p_W_est[0];  xP[8] = 0.0;
+//   // clang-format on
+//   DOT(C_WL, 3, 3, xP, 3, 3, J_rot);
+//
+//   // J_pose = zeros((3, 6))
+//   // J[0:3, 0:3] = J_pos
+//   // J[0:3, 3:6] = J_rot
+//   mat_block_set(J_pose, 6, 0, 2, 0, 2, J_pos);
+//   mat_block_set(J_pose, 6, 0, 2, 3, 5, J_rot);
+// }
+//
+// /**
+//  * Evaluate lidar factor
+//  */
+// void lidar_factor_eval(void *factor_ptr) {
+//   lidar_factor_t *factor = (lidar_factor_t *) factor_ptr;
+//   assert(factor != NULL);
+//   assert(factor->pose);
+//   assert(factor->pcd);
+//
+//   // Map params
+//   TF(factor->params[0], T_WB);
+//   TF(factor->params[1], T_BL);
+//   TF_CHAIN(T_WL, 2, T_WB, T_BL);
+//   TF_ROT(T_WL, C_WL);
+//   TF_INV(T_WL, T_LW);
+//   TF_ROT(T_LW, C_LW);
+//
+//   // Transform lidar scan points to world frame and obtain closest points
+//   float *points_est = pcd_transform(factor->pcd, T_WL);
+//   float *points_map = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
+//   for (size_t i = 0; i < factor->pcd->num_points; ++i) {
+//     float point[3] = {0};
+//     float dist = 0.0f;
+//     kdtree_nn(factor->kdtree, &points_est[i * 3], point, &dist);
+//     points_map[i * 3 + 0] = point[0];
+//     points_map[i * 3 + 1] = point[1];
+//     points_map[i * 3 + 2] = point[2];
+//   }
+//
+//   // Calculate residuals
+//   factor->r = malloc(sizeof(real_t) * 3 * factor->pcd->num_points);
+//   for (size_t i = 0; i < factor->pcd->num_points; ++i) {
+//     factor->r[i * 3 + 0] = points_map[i * 3 + 0] - points_est[i * 3 + 0];
+//     factor->r[i * 3 + 1] = points_map[i * 3 + 1] - points_est[i * 3 + 1];
+//     factor->r[i * 3 + 2] = points_map[i * 3 + 2] - points_est[i * 3 + 2];
+//   }
+//
+//   // Calculate jacobians
+//   // -- Form: -1 * sqrt_info
+//   real_t neg_sqrt_info[3 * 3] = {0};
+//   mat_copy(factor->sqrt_info, 3, 3, neg_sqrt_info);
+//   mat_scale(neg_sqrt_info, 3, 3, -1.0);
+//   // -- Fill jacobians
+//   const size_t num_rows = 3 * factor->pcd->num_points;
+//   const size_t num_cols = 6;
+//   if (factor->J_pose) {
+//     free(factor->J_pose);
+//   }
+//   factor->J_pose = malloc(sizeof(real_t) * num_rows * num_cols);
+//
+//   const int stride = 6;
+//   for (size_t i = 0; i < factor->pcd->num_points; ++i) {
+//     const int rs = i * 3 + 0;
+//     const int re = i * 3 + 2;
+//     const int cs = 0;
+//     const int ce = 5;
+//
+//     real_t J_pose[3 * 6] = {0};
+//     lidar_factor_jacobian(C_WL, &points_est[i * 3], J_pose);
+//     mat_block_set(factor->J_pose, stride, rs, re, cs, ce, J_pose);
+//   }
+// }
 
 ////////////////////////
 // JOINT-ANGLE FACTOR //
