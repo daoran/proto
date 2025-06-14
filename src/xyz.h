@@ -1762,20 +1762,6 @@ void kdtree_nn(const kdtree_t *kdtree,
  * STATE-ESTIMATION
  ******************************************************************************/
 
-//////////////
-// ROTATION //
-//////////////
-
-typedef struct rot_t {
-  int marginalize;
-  int fix;
-  real_t data[4];
-} rot_t;
-
-void rot_setup(rot_t *rot, const real_t *data);
-void rot_fprint(const char *prefix, const rot_t *rot, FILE *f);
-void rot_print(const char *prefix, const rot_t *rot);
-
 //////////
 // POSE //
 //////////

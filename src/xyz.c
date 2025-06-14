@@ -10012,61 +10012,6 @@ void kdtree_nn(const kdtree_t *kdtree,
  * STATE-ESTIMATION
  ******************************************************************************/
 
-//////////////
-// ROTATION //
-//////////////
-
-/**
- * Setup rotation.
- */
-void rot_setup(rot_t *rot, const real_t *data) {
-  assert(rot != NULL);
-  assert(data != NULL);
-  rot->marginalize = 0;
-  rot->fix = 0;
-  rot->data[0] = data[0];
-  rot->data[1] = data[1];
-  rot->data[2] = data[2];
-  rot->data[3] = data[3];
-}
-
-/**
- * Copy rotation.
- */
-void rot_copy(const rot_t *src, rot_t *dst) {
-  assert(src != NULL);
-  assert(dst != NULL);
-
-  dst->marginalize = src->marginalize;
-  dst->fix = src->fix;
-  dst->data[0] = src->data[0];
-  dst->data[1] = src->data[1];
-  dst->data[2] = src->data[2];
-  dst->data[3] = src->data[3];
-}
-
-/**
- * Print rotation.
- */
-void rot_fprint(const char *prefix, const rot_t *rot, FILE *f) {
-  assert(prefix != NULL);
-  assert(rot != NULL);
-
-  const real_t qw = rot->data[0];
-  const real_t qx = rot->data[1];
-  const real_t qy = rot->data[2];
-  const real_t qz = rot->data[3];
-
-  fprintf(f, "%s: [%f, %f, %f, %f]\n", prefix, qw, qx, qy, qz);
-}
-
-/**
- * Print rotation.
- */
-void rot_print(const char *prefix, const rot_t *rot) {
-  rot_fprint(prefix, rot, stdout);
-}
-
 //////////
 // POSE //
 //////////
