@@ -437,14 +437,14 @@ rbt_node_t *rbt_node_delete_min(rbt_node_t *n);
 rbt_node_t *rbt_node_delete_max(rbt_node_t *n);
 rbt_node_t *rbt_node_delete(rbt_node_t *n, void *key, cmp_t cmp_func);
 void *rbt_node_search(rbt_node_t *rbt, const void *key, cmp_t cmp_func);
-bool rbt_node_contains(rbt_node_t *rbt, const void *key, cmp_t cmp_func);
+bool rbt_node_contains(const rbt_node_t *rbt, const void *key, cmp_t cmp_func);
 
 rbt_t *rbt_malloc(cmp_t cmp_func);
 void rbt_free(rbt_t *rbt);
 void rbt_insert(rbt_t *rbt, void *key, void *value);
 void rbt_delete(rbt_t *rbt, void *key);
 void *rbt_search(rbt_t *rbt, const void *key);
-bool rbt_contains(rbt_t *rbt, const void *key);
+bool rbt_contains(const rbt_t *rbt, const void *key);
 rbt_node_t *rbt_min(const rbt_t *rbt);
 rbt_node_t *rbt_max(const rbt_t *rbt);
 size_t rbt_height(const rbt_t *rbt);
