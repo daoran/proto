@@ -1964,17 +1964,6 @@ void param_index_add(rbt_t *param_index,
                      const int fix,
                      real_t *data,
                      int *col_idx);
-void param_index_add_position(rbt_t *param_index, pos_t *p, int *c);
-void param_index_add_rotation(rbt_t *param_index, rot_t *p, int *c);
-void param_index_add_pose(rbt_t *param_index, pose_t *p, int *c);
-void param_index_add_extrinsic(rbt_t *param_index, extrinsic_t *p, int *c);
-void param_index_add_fiducial(rbt_t *param_index, fiducial_t *p, int *c);
-void param_index_add_velocity(rbt_t *param_index, velocity_t *p, int *c);
-void param_index_add_imu_biases(rbt_t *param_index, imu_biases_t *p, int *c);
-void param_index_add_feature(rbt_t *param_index, feature_t *p, int *c);
-void param_index_add_joint(rbt_t *param_index, joint_t *p, int *c);
-void param_index_add_camera(rbt_t *param_index, camera_t *p, int *c);
-void param_index_add_time_delay(rbt_t *param_index, time_delay_t *p, int *c);
 
 ////////////
 // FACTOR //
