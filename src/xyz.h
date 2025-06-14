@@ -2527,6 +2527,12 @@ typedef struct marg_factor_t {
   list_t *m_cam_params;
   list_t *m_time_delays;
 
+  // Marginal pointers
+  rbt_t *marg_params;
+  rbt_t *fix_params;
+  size_t num_marg_params;
+
+
   // Factors
   list_t *ba_factors;
   list_t *camera_factors;
@@ -2538,8 +2544,11 @@ typedef struct marg_factor_t {
   // Hessian, Jacobians and residuals
   rbt_t *param_seen;
   rbt_t *param_index;
-  int m_size;
-  int r_size;
+
+  int m_lsize; // Marginal local parameter length
+  int r_lsize; // Remain local parameter length
+  int m_gsize; // Marginal global parameter length
+  int r_gsize; // Remain global parameter length
 
   real_t *x0;
   real_t *r0;
@@ -2573,7 +2582,9 @@ marg_factor_t *marg_factor_malloc(void);
 void marg_factor_free(marg_factor_t *marg);
 void marg_factor_print_stats(const marg_factor_t *marg);
 void marg_factor_add(marg_factor_t *marg, int factor_type, void *factor_ptr);
-void marg_factor_marginalize(marg_factor_t *marg);
+void marg_factor_marginalize(marg_factor_t *marg,
+                             const rbt_t *marg_params,
+                             const rbt_t *fix_params);
 int marg_factor_eval(void *marg_ptr);
 
 ////////////////
