@@ -10642,7 +10642,11 @@ void param_index_print(const rbt_t *param_index) {
     if (info->idx != -1) {
       char s[100] = {0};
       param_type_string(info->type, s);
-      printf("param[%ld]: %s, idx: %d\n", i, s, info->idx);
+      printf("param[%04ld]: %15s, idx: %6d, addr: %p\n",
+             i,
+             s,
+             info->idx,
+             (void *) info->data);
     }
   }
 
