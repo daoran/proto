@@ -1762,23 +1762,6 @@ void kdtree_nn(const kdtree_t *kdtree,
  * STATE-ESTIMATION
  ******************************************************************************/
 
-//////////
-// POSE //
-//////////
-
-typedef struct pose_t {
-  int marginalize;
-  int fix;
-  timestamp_t ts;
-  real_t data[7];
-} pose_t;
-
-void pose_init(real_t *pose);
-void pose_setup(pose_t *pose, const timestamp_t ts, const real_t *param);
-void pose_copy(const pose_t *src, pose_t *dst);
-void pose_fprint(const char *prefix, const pose_t *pose, FILE *f);
-void pose_print(const char *prefix, const pose_t *pose);
-
 ///////////////
 // EXTRINSIC //
 ///////////////
