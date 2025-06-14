@@ -1917,7 +1917,7 @@ void *rbt_node_search(rbt_node_t *n, const void *key, cmp_t cmp_func) {
   return NULL;
 }
 
-bool rbt_node_contains(rbt_node_t *n, const void *key, cmp_t cmp_func) {
+bool rbt_node_contains(const rbt_node_t *n, const void *key, cmp_t cmp_func) {
   while (n != NULL) {
     const int cmp = cmp_func(key, n->key);
     if (cmp < 0) {
@@ -1959,7 +1959,7 @@ void *rbt_search(rbt_t *rbt, const void *key) {
   return rbt_node_search(rbt->root, key, rbt->cmp);
 }
 
-bool rbt_contains(rbt_t *rbt, const void *key) {
+bool rbt_contains(const rbt_t *rbt, const void *key) {
   assert(rbt);
   return rbt_node_contains(rbt->root, key, rbt->cmp);
 }
