@@ -1928,26 +1928,6 @@ typedef struct point_t {
   real_t z;
 } point_t;
 
-///////////
-// JOINT //
-///////////
-
-typedef struct joint_t {
-  int marginalize;
-  int fix;
-
-  timestamp_t ts;
-  int joint_idx;
-  real_t data[1];
-} joint_t;
-
-void joint_setup(joint_t *joint,
-                 const timestamp_t ts,
-                 const int joint_idx,
-                 const real_t theta);
-void joint_copy(const joint_t *src, joint_t *dst);
-void joint_print(const char *prefix, const joint_t *joint);
-
 ////////////////
 // PARAMETERS //
 ////////////////

@@ -10471,50 +10471,6 @@ void feature_print(const feature_t *f) {
   printf("\n");
 }
 
-///////////
-// JOINT //
-///////////
-
-/**
- * Joint Angle Setup.
- */
-void joint_setup(joint_t *joint,
-                 const timestamp_t ts,
-                 const int joint_idx,
-                 const real_t theta) {
-  assert(joint != NULL);
-  joint->marginalize = 0;
-  joint->fix = 0;
-
-  joint->ts = ts;
-  joint->joint_idx = joint_idx;
-  joint->data[0] = theta;
-}
-
-/**
- * Copy joint.
- */
-void joint_copy(const joint_t *src, joint_t *dst) {
-  assert(src != NULL);
-  assert(dst != NULL);
-
-  dst->marginalize = src->marginalize;
-  dst->fix = src->fix;
-
-  dst->ts = src->ts;
-  dst->joint_idx = src->joint_idx;
-  dst->data[0] = src->data[0];
-}
-
-/**
- * Print Joint Angle.
- */
-void joint_print(const char *prefix, const joint_t *joint) {
-  printf("[%s] ", prefix);
-  printf("ts: %ld ", joint->ts);
-  printf("data: %f\n", joint->data[0]);
-}
-
 ////////////////
 // PARAMETERS //
 ////////////////
