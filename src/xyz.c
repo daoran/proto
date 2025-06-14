@@ -9516,9 +9516,11 @@ aprilgrid_t *aprilgrid_load(const char *data_path) {
   aprilgrid_parse_skip_line(fp);
 
 #if PRECISION == 1
-  const char *scan_format = "%d,%d,%f,%f,%f,%f,%f";
+  const char *fmt = "%d,%d,%f,%f,%f,%f,%f";
+#elif PRECISION == 2
+  const char *fmt = "%d,%d,%lf,%lf,%lf,%lf,%lf";
 #else
-  const char *scan_format = "%d,%d,%lf,%lf,%lf,%lf,%lf";
+#error "Invalid precision!"
 #endif
   for (int i = 0; i < corners_detected; i++) {
     // Parse data line
@@ -9527,7 +9529,7 @@ aprilgrid_t *aprilgrid_load(const char *data_path) {
     real_t kp[2] = {0};
     real_t p[3] = {0};
     const int retval = fscanf(fp,
-                              scan_format,
+                              fmt,
                               &tag_id,
                               &corner_idx,
                               &kp[0],
