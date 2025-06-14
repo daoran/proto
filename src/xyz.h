@@ -1918,20 +1918,6 @@ void feature_setup(feature_t *f, const size_t feature_id);
 void feature_init(feature_t *f, const size_t feature_id, const real_t *data);
 void feature_print(const feature_t *feature);
 
-////////////////
-// TIME-DELAY //
-////////////////
-
-typedef struct time_delay_t {
-  int marginalize;
-  int fix;
-  real_t data[1];
-} time_delay_t;
-
-void time_delay_setup(time_delay_t *time_delay, const real_t param);
-void time_delay_copy(const time_delay_t *src, time_delay_t *dst);
-void time_delay_print(const char *prefix, const time_delay_t *exts);
-
 ///////////
 // POINT //
 ///////////

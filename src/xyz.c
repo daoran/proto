@@ -10471,39 +10471,6 @@ void feature_print(const feature_t *f) {
   printf("\n");
 }
 
-////////////////
-// TIME-DELAY //
-////////////////
-
-/**
- * Setup time-delay.
- */
-void time_delay_setup(time_delay_t *time_delay, const real_t td) {
-  assert(time_delay != NULL);
-  time_delay->marginalize = 0;
-  time_delay->fix = 0;
-  time_delay->data[0] = td;
-}
-
-/**
- * Copy time_delay.
- */
-void time_delay_copy(const time_delay_t *src, time_delay_t *dst) {
-  assert(src != NULL);
-  assert(dst != NULL);
-
-  dst->marginalize = src->marginalize;
-  dst->fix = src->fix;
-  dst->data[0] = src->data[0];
-}
-
-/**
- * Print time-delay.
- */
-void time_delay_print(const char *prefix, const time_delay_t *td) {
-  printf("[%s] time_delay: %f\n", prefix, td->data[0]);
-}
-
 ///////////
 // JOINT //
 ///////////
