@@ -1787,18 +1787,6 @@ void fiducial_info_add(fiducial_info_t *finfo,
                        const real_t p[3],
                        const real_t z[2]);
 
-/** Fiducial **/
-typedef struct fiducial_t {
-  int marginalize;
-  int fix;
-  real_t data[7];
-} fiducial_t;
-
-void fiducial_setup(fiducial_t *fiducial, const real_t *param);
-void fiducial_copy(const fiducial_t *src, fiducial_t *dst);
-void fiducial_fprint(const char *prefix, const fiducial_t *exts, FILE *f);
-void fiducial_print(const char *prefix, const fiducial_t *exts);
-
 ////////////
 // CAMERA //
 ////////////
