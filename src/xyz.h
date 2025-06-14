@@ -1763,21 +1763,6 @@ void kdtree_nn(const kdtree_t *kdtree,
  ******************************************************************************/
 
 //////////////
-// POSITION //
-//////////////
-
-typedef struct pos_t {
-  int marginalize;
-  int fix;
-  real_t data[3];
-} pos_t;
-
-void pos_setup(pos_t *pos, const real_t *data);
-void pos_copy(const pos_t *src, pos_t *dst);
-void pos_fprint(const char *prefix, const pos_t *pos, FILE *f);
-void pos_print(const char *prefix, const pos_t *pos);
-
-//////////////
 // ROTATION //
 //////////////
 

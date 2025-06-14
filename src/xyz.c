@@ -10013,58 +10013,6 @@ void kdtree_nn(const kdtree_t *kdtree,
  ******************************************************************************/
 
 //////////////
-// POSITION //
-//////////////
-
-/**
- * Setup position.
- */
-void pos_setup(pos_t *pos, const real_t *data) {
-  assert(pos != NULL);
-  assert(data != NULL);
-  pos->marginalize = 0;
-  pos->fix = 0;
-  pos->data[0] = data[0];
-  pos->data[1] = data[1];
-  pos->data[2] = data[2];
-}
-
-/**
- * Copy position.
- */
-void pos_copy(const pos_t *src, pos_t *dst) {
-  assert(src != NULL);
-  assert(dst != NULL);
-
-  dst->marginalize = src->marginalize;
-  dst->fix = src->fix;
-  dst->data[0] = src->data[0];
-  dst->data[1] = src->data[1];
-  dst->data[2] = src->data[2];
-}
-
-/**
- * Print position.
- */
-void pos_fprint(const char *prefix, const pos_t *pos, FILE *f) {
-  assert(prefix != NULL);
-  assert(pos != NULL);
-
-  const real_t x = pos->data[0];
-  const real_t y = pos->data[1];
-  const real_t z = pos->data[2];
-
-  fprintf(f, "%s: [%f, %f, %f]\n", prefix, x, y, z);
-}
-
-/**
- * Print position.
- */
-void pos_print(const char *prefix, const pos_t *pos) {
-  pos_fprint(prefix, pos, stdout);
-}
-
-//////////////
 // ROTATION //
 //////////////
 
