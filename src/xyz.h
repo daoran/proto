@@ -1886,26 +1886,6 @@ void imu_buffer_clear(imu_buffer_t *imu_buf);
 void imu_buffer_copy(const imu_buffer_t *from, imu_buffer_t *to);
 void imu_buffer_print(const imu_buffer_t *imu_buf);
 
-////////////////
-// IMU-BIASES //
-////////////////
-
-typedef struct imu_biases_t {
-  int marginalize;
-  int fix;
-
-  timestamp_t ts;
-  real_t data[6];
-} imu_biases_t;
-
-void imu_biases_setup(imu_biases_t *sb,
-                      const timestamp_t ts,
-                      const real_t ba[3],
-                      const real_t bg[3]);
-void imu_biases_copy(const imu_biases_t *src, imu_biases_t *dst);
-void imu_biases_get_accel_bias(const imu_biases_t *biases, real_t ba[3]);
-void imu_biases_get_gyro_bias(const imu_biases_t *biases, real_t bg[3]);
-
 /////////////
 // FEATURE //
 /////////////
