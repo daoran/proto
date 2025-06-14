@@ -4095,81 +4095,6 @@ int test_aprilgrid_detector_detect(void) {
  * STATE-ESTIMATION
  ******************************************************************************/
 
-int test_pose(void) {
-  timestamp_t ts = 1;
-  pose_t pose;
-
-  real_t data[7] = {0.1, 0.2, 0.3, 1.0, 1.1, 2.2, 3.3};
-  pose_setup(&pose, ts, data);
-
-  MU_ASSERT(pose.ts == 1);
-
-  MU_ASSERT(fltcmp(pose.data[0], 0.1) == 0.0);
-  MU_ASSERT(fltcmp(pose.data[1], 0.2) == 0.0);
-  MU_ASSERT(fltcmp(pose.data[2], 0.3) == 0.0);
-  MU_ASSERT(fltcmp(pose.data[3], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(pose.data[4], 1.1) == 0.0);
-  MU_ASSERT(fltcmp(pose.data[5], 2.2) == 0.0);
-  MU_ASSERT(fltcmp(pose.data[6], 3.3) == 0.0);
-
-  return 0;
-}
-
-int test_extrinsics(void) {
-  extrinsic_t extrinsic;
-
-  real_t data[7] = {1.0, 2.0, 3.0, 1.0, 0.1, 0.2, 0.3};
-  extrinsic_setup(&extrinsic, data);
-
-  MU_ASSERT(fltcmp(extrinsic.data[0], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[1], 2.0) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[2], 3.0) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[3], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[4], 0.1) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[5], 0.2) == 0.0);
-  MU_ASSERT(fltcmp(extrinsic.data[6], 0.3) == 0.0);
-
-  return 0;
-}
-
-int test_fiducial(void) {
-  fiducial_t fiducial;
-
-  real_t data[7] = {1.0, 2.0, 3.0, 1.0, 0.1, 0.2, 0.3};
-  fiducial_setup(&fiducial, data);
-
-  MU_ASSERT(fltcmp(fiducial.data[0], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(fiducial.data[1], 2.0) == 0.0);
-  MU_ASSERT(fltcmp(fiducial.data[2], 3.0) == 0.0);
-  MU_ASSERT(fltcmp(fiducial.data[3], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(fiducial.data[4], 0.1) == 0.0);
-  MU_ASSERT(fltcmp(fiducial.data[5], 0.2) == 0.0);
-  MU_ASSERT(fltcmp(fiducial.data[6], 0.3) == 0.0);
-
-  return 0;
-}
-
-int test_imu_biases(void) {
-  timestamp_t ts = 1;
-  imu_biases_t biases;
-
-  real_t ba[3] = {1.0, 2.0, 3.0};
-  real_t bg[3] = {4.0, 5.0, 6.0};
-  imu_biases_setup(&biases, ts, ba, bg);
-
-  MU_ASSERT(biases.ts == 1);
-
-  MU_ASSERT(fltcmp(biases.data[0], 1.0) == 0.0);
-  MU_ASSERT(fltcmp(biases.data[1], 2.0) == 0.0);
-  MU_ASSERT(fltcmp(biases.data[2], 3.0) == 0.0);
-
-  MU_ASSERT(fltcmp(biases.data[3], 4.0) == 0.0);
-  MU_ASSERT(fltcmp(biases.data[4], 5.0) == 0.0);
-  MU_ASSERT(fltcmp(biases.data[5], 6.0) == 0.0);
-
-  return 0;
-}
-
 int test_feature(void) {
   feature_t feature;
 
@@ -4182,22 +4107,6 @@ int test_feature(void) {
   MU_ASSERT(fltcmp(feature.data[1], 0.2) == 0.0);
   MU_ASSERT(fltcmp(feature.data[2], 0.3) == 0.0);
 
-  return 0;
-}
-
-int test_time_delay(void) {
-  time_delay_t td;
-  time_delay_setup(&td, 1.0);
-  MU_ASSERT(fltcmp(td.data[0], 1.0) == 0);
-  return 0;
-}
-
-int test_joint(void) {
-  joint_t joint;
-  joint_setup(&joint, 101, 2, 1.0);
-  MU_ASSERT(joint.ts == 101);
-  MU_ASSERT(joint.joint_idx == 2);
-  MU_ASSERT(fltcmp(joint.data[0], 1.0) == 0);
   return 0;
 }
 
@@ -4323,15 +4232,12 @@ int test_triangulate_batch(void) {
 
 int test_pose_factor(void) {
   /* Pose */
-  timestamp_t ts = 1;
-  pose_t pose;
-  real_t data[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose, ts, data);
+  real_t pose[7] = {0.1, 0.2, 0.3, 1.0, 0.0, 0.0, 0.0};
 
   /* Setup pose factor */
   pose_factor_t factor;
   real_t var[6] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
-  pose_factor_setup(&factor, &pose, var);
+  pose_factor_setup(&factor, pose, var);
 
   /* Check Jacobians */
   const real_t step_size = 1e-8;
@@ -4342,18 +4248,11 @@ int test_pose_factor(void) {
 }
 
 int test_ba_factor(void) {
-  // Timestamp
-  timestamp_t ts = 0;
-
   // Camera pose
-  const real_t pose_data[7] = {0.01, 0.01, 0.0, 0.5, -0.5, 0.5, -0.5};
-  pose_t pose;
-  pose_setup(&pose, ts, pose_data);
+  real_t pose[7] = {0.01, 0.01, 0.0, 0.5, -0.5, 0.5, -0.5};
 
   // Feature
-  const real_t p_W[3] = {1.0, 0.1, 0.2};
-  feature_t feature;
-  feature_init(&feature, 0, p_W);
+  real_t p_W[3] = {1.0, 0.1, 0.2};
 
   // Camera parameters
   const int cam_idx = 0;
@@ -4369,7 +4268,7 @@ int test_ba_factor(void) {
   real_t T_CW[4 * 4] = {0};
   real_t p_C[3] = {0.0};
   real_t z[2] = {0.0};
-  tf(pose_data, T_WC);
+  tf(pose, T_WC);
   tf_inv(T_WC, T_CW);
   tf_point(T_CW, p_W, p_C);
   pinhole_radtan4_project(cam_data, p_C, z);
@@ -4377,7 +4276,7 @@ int test_ba_factor(void) {
   // Bundle adjustment factor
   ba_factor_t factor;
   real_t var[2] = {1.0, 1.0};
-  ba_factor_setup(&factor, &pose, &feature, &cam, z, var);
+  ba_factor_setup(&factor, pose, p_W, &cam, z, var);
 
   // Check Jacobians
   const real_t step_size = 1e-8;
@@ -4390,23 +4289,14 @@ int test_ba_factor(void) {
 }
 
 int test_camera_factor(void) {
-  // Timestamp
-  timestamp_t ts = 0;
-
   // Body pose T_WB
-  pose_t pose;
-  const real_t pose_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
-  pose_setup(&pose, ts, pose_data);
+  real_t pose[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
 
   // Extrinsic T_BC
-  extrinsic_t cam_ext;
-  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, 0.5, -0.5, -0.5};
-  extrinsic_setup(&cam_ext, ext_data);
+  real_t cam_ext[7] = {0.01, 0.02, 0.03, 0.5, 0.5, -0.5, -0.5};
 
   // Feature p_W
-  feature_t feature;
-  const real_t p_W[3] = {1.0, 0.0, 0.0};
-  feature_init(&feature, 0, p_W);
+  real_t p_W[3] = {1.0, 0.0, 0.0};
 
   // Camera parameters
   camera_t cam;
@@ -4419,8 +4309,8 @@ int test_camera_factor(void) {
 
   // Project point from world to image plane
   real_t z[2];
-  TF(pose_data, T_WB);
-  TF(ext_data, T_BCi);
+  TF(pose, T_WB);
+  TF(cam_ext, T_BCi);
   TF_INV(T_WB, T_BW);
   TF_INV(T_BCi, T_CiB);
   DOT(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
@@ -4430,7 +4320,7 @@ int test_camera_factor(void) {
   // Setup camera factor
   camera_factor_t factor;
   real_t var[2] = {1.0, 1.0};
-  camera_factor_setup(&factor, &pose, &cam_ext, &feature, &cam, z, var);
+  camera_factor_setup(&factor, pose, cam_ext, p_W, &cam, z, var);
 
   // Check Jacobians
   const real_t step_size = 1e-8;
@@ -4779,38 +4669,13 @@ int test_imu_factor_form_F_matrix(void) {
   const int idx_j = 1;
   const timestamp_t ts_i = test_data.timestamps[idx_i];
   const timestamp_t ts_j = test_data.timestamps[idx_j];
-  const real_t *v_i = test_data.velocities[idx_i];
   const real_t ba_i[3] = {0.0, 0.0, 0.0};
   const real_t bg_i[3] = {0.0, 0.0, 0.0};
-  const real_t *v_j = test_data.velocities[idx_j];
-  const real_t ba_j[3] = {0.0, 0.0, 0.0};
-  const real_t bg_j[3] = {0.0, 0.0, 0.0};
-  pose_t pose_i;
-  pose_t pose_j;
-  velocity_t vel_i;
-  velocity_t vel_j;
-  imu_biases_t biases_i;
-  imu_biases_t biases_j;
-  pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
-  pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
-  velocity_setup(&vel_i, ts_i, v_i);
-  velocity_setup(&vel_j, ts_j, v_j);
-  imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
-  imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
-
-  // imu_params_t imu_params;
-  // imu_params.imu_idx = 0;
-  // imu_params.rate = 200.0;
-  // imu_params.sigma_a = 0.08;
-  // imu_params.sigma_g = 0.004;
-  // imu_params.sigma_aw = 0.00004;
-  // imu_params.sigma_gw = 2.0e-6;
-  // imu_params.g = 9.81;
 
   // Test form F Matrix
   const int k = idx_j;
-  const real_t *q_i = pose_i.data + 3;
-  const real_t *q_j = pose_j.data + 3;
+  const real_t *q_i = test_data.poses[idx_i] + 3;
+  const real_t *q_j = test_data.poses[idx_j] + 3;
   const real_t dt = ts2sec(ts_j) - ts2sec(ts_i);
   const real_t *a_i = imu_buf.acc[k - 1];
   const real_t *w_i = imu_buf.gyr[k - 1];
@@ -4849,24 +4714,16 @@ int test_imu_factor(void) {
   const int idx_j = buf_size - 1;
   const timestamp_t ts_i = test_data.timestamps[idx_i];
   const timestamp_t ts_j = test_data.timestamps[idx_j];
-  const real_t *v_i = test_data.velocities[idx_i];
-  const real_t ba_i[3] = {0.0, 0.0, 0.0};
-  const real_t bg_i[3] = {0.0, 0.0, 0.0};
-  const real_t *v_j = test_data.velocities[idx_j];
-  const real_t ba_j[3] = {0.0, 0.0, 0.0};
-  const real_t bg_j[3] = {0.0, 0.0, 0.0};
-  pose_t pose_i;
-  pose_t pose_j;
-  velocity_t vel_i;
-  velocity_t vel_j;
-  imu_biases_t biases_i;
-  imu_biases_t biases_j;
-  pose_setup(&pose_i, ts_i, test_data.poses[idx_i]);
-  pose_setup(&pose_j, ts_j, test_data.poses[idx_j]);
-  velocity_setup(&vel_i, ts_i, v_i);
-  velocity_setup(&vel_j, ts_j, v_j);
-  imu_biases_setup(&biases_i, ts_i, ba_i, bg_i);
-  imu_biases_setup(&biases_j, ts_j, ba_j, bg_j);
+  real_t pose_i[7] = {0};
+  real_t pose_j[7] = {0};
+  real_t vel_i[3] = {0};
+  real_t vel_j[3] = {0};
+  real_t biases_i[6] = {0};
+  real_t biases_j[6] = {0};
+  vec_copy(test_data.poses[idx_i], 7, pose_i);
+  vec_copy(test_data.poses[idx_j], 7, pose_j);
+  vec_copy(test_data.velocities[idx_i], 3, vel_i);
+  vec_copy(test_data.velocities[idx_j], 3, vel_j);
 
   imu_params_t imu_params;
   imu_params.imu_idx = 0;
@@ -4877,28 +4734,30 @@ int test_imu_factor(void) {
   imu_params.sigma_gw = 2.0e-6;
   imu_params.g = 9.81;
 
-  pose_j.data[0] += 0.01;
-  pose_j.data[1] += 0.02;
-  pose_j.data[2] += 0.03;
+  pose_j[0] += 0.01;
+  pose_j[1] += 0.02;
+  pose_j[2] += 0.03;
 
   imu_factor_t factor;
   imu_factor_setup(&factor,
                    &imu_params,
                    &imu_buf,
-                   &pose_i,
-                   &vel_i,
-                   &biases_i,
-                   &pose_j,
-                   &vel_j,
-                   &biases_j);
+                   ts_i,
+                   ts_j,
+                   pose_i,
+                   vel_i,
+                   biases_i,
+                   pose_j,
+                   vel_j,
+                   biases_j);
   imu_factor_eval(&factor);
 
-  MU_ASSERT(factor.pose_i == &pose_i);
-  MU_ASSERT(factor.vel_i == &vel_i);
-  MU_ASSERT(factor.biases_i == &biases_i);
-  MU_ASSERT(factor.pose_i == &pose_i);
-  MU_ASSERT(factor.vel_j == &vel_j);
-  MU_ASSERT(factor.biases_j == &biases_j);
+  MU_ASSERT(factor.pose_i == pose_i);
+  MU_ASSERT(factor.vel_i == vel_i);
+  MU_ASSERT(factor.biases_i == biases_i);
+  MU_ASSERT(factor.pose_i == pose_i);
+  MU_ASSERT(factor.vel_j == vel_j);
+  MU_ASSERT(factor.biases_j == biases_j);
 
   // Check Jacobians
   const double tol = 1e-4;
@@ -4919,16 +4778,12 @@ int test_imu_factor(void) {
 
 int test_joint_factor(void) {
   // Joint angle
-  const timestamp_t ts = 0;
-  const int joint_idx = 0;
-  const real_t z = 0.01;
-  joint_t joint;
-  joint_setup(&joint, ts, joint_idx, z);
+  real_t joint[1] = {0.01};
 
   // Joint angle factor
   joint_factor_t factor;
   const real_t var = 0.1;
-  joint_factor_setup(&factor, &joint, z, var);
+  joint_factor_setup(&factor, joint, 0.01, var);
 
   // Evaluate
   joint_factor_eval(&factor);
@@ -4947,10 +4802,10 @@ typedef struct test_calib_camera_data_t {
   real_t T_BF[4 * 4];
   real_t T_BCi[4 * 4];
 
-  pose_t fiducial;     // T_WF
-  pose_t pose;         // T_WB
-  pose_t rel_pose;     // T_BF
-  extrinsic_t cam_ext; // T_BCi
+  real_t fiducial[7]; // T_WF
+  real_t pose[7];     // T_WB
+  real_t rel_pose[7]; // T_BF
+  real_t cam_ext[7];  // T_BCi
   camera_t camera;
 
   int cam_idx;
@@ -4967,7 +4822,7 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   real_t r_WF[3] = {0.01, 0.01, 0.01};
   tf_er(ypr_WF, r_WF, data->T_WF);
   tf_vector(data->T_WF, fiducial_data);
-  pose_setup(&data->fiducial, 0, fiducial_data);
+  vec_copy(fiducial_data, 7, data->fiducial);
 
   // Body pose T_WB
   real_t pose_data[7] = {0};
@@ -4975,14 +4830,14 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   real_t r_WB[3] = {-10.0, 0.001, 0.001};
   tf_er(ypr_WB, r_WB, data->T_WB);
   tf_vector(data->T_BF, pose_data);
-  pose_setup(&data->pose, 0, pose_data);
+  vec_copy(pose_data, 7, data->pose);
 
   // Relative pose T_BF
   real_t rel_pose_data[7] = {0};
   TF_INV(data->T_WB, T_BW);
   tf_chain2(2, T_BW, data->T_WF, data->T_BF);
   tf_vector(data->T_BF, rel_pose_data);
-  pose_setup(&data->rel_pose, 0, rel_pose_data);
+  vec_copy(rel_pose_data, 7, data->rel_pose);
 
   // Camera extrinsics T_BCi
   real_t cam_ext_data[7] = {0};
@@ -4990,7 +4845,7 @@ void test_calib_camera_data_setup(test_calib_camera_data_t *data) {
   real_t r_BCi[3] = {0.001, 0.001, 0.001};
   tf_er(ypr_BCi, r_BCi, data->T_BCi);
   tf_vector(data->T_BCi, cam_ext_data);
-  extrinsic_setup(&data->cam_ext, cam_ext_data);
+  vec_copy(cam_ext_data, 7, data->cam_ext);
 
   // Camera
   data->cam_idx = 0;
@@ -5093,8 +4948,8 @@ int test_calib_camera_factor(void) {
   struct calib_camera_factor_t factor;
   const real_t var[2] = {1.0, 1.0};
   calib_camera_factor_setup(&factor,
-                            &calib_data.rel_pose,
-                            &calib_data.cam_ext,
+                            calib_data.rel_pose,
+                            calib_data.cam_ext,
                             &calib_data.camera,
                             calib_data.cam_idx,
                             calib_data.tag_id,
@@ -5122,12 +4977,12 @@ typedef struct test_calib_imucam_data_t {
   real_t T_SC0[4 * 4];
   real_t T_C0Ci[4 * 4];
 
-  fiducial_t fiducial; // T_WF
-  pose_t imu_pose;     // T_WB
-  extrinsic_t imu_ext; // T_SC0
-  extrinsic_t cam_ext; // T_C0Ci
+  real_t fiducial[7]; // T_WF
+  real_t imu_pose[7]; // T_WB
+  real_t imu_ext[7];  // T_SC0
+  real_t cam_ext[7];  // T_C0Ci
   camera_t camera;
-  time_delay_t time_delay;
+  real_t time_delay[1];
 
   int cam_idx;
   int tag_id;
@@ -5143,7 +4998,7 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   real_t r_WF[3] = {0.01, 0.01, 0.01};
   tf_er(ypr_WF, r_WF, data->T_WF);
   tf_vector(data->T_WF, fiducial_data);
-  fiducial_setup(&data->fiducial, fiducial_data);
+  vec_copy(fiducial_data, 7, data->fiducial);
 
   // IMU pose T_WS
   real_t imu_pose_data[7] = {0};
@@ -5151,12 +5006,12 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   real_t r_WS[3] = {-10.0, 0.001, 0.001};
   tf_er(ypr_WS, r_WS, data->T_WS);
   tf_vector(data->T_WS, imu_pose_data);
-  pose_setup(&data->imu_pose, 0, imu_pose_data);
+  vec_copy(imu_pose_data, 7, data->imu_pose);
 
   // IMU extrinsics T_SC0
   real_t imu_ext_data[7] = {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
   tf(imu_ext_data, data->T_SC0);
-  extrinsic_setup(&data->imu_ext, imu_ext_data);
+  vec_copy(imu_ext_data, 7, data->imu_ext);
 
   // Camera extrinsics T_C0Ci
   real_t cam_ext_data[7] = {0};
@@ -5164,7 +5019,7 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
   real_t r_C0Ci[3] = {0.001, 0.001, 0.001};
   tf_er(ypr_C0Ci, r_C0Ci, data->T_C0Ci);
   tf_vector(data->T_C0Ci, cam_ext_data);
-  extrinsic_setup(&data->cam_ext, cam_ext_data);
+  vec_copy(cam_ext_data, 7, data->cam_ext);
 
   // Camera
   data->cam_idx = 0;
@@ -5185,7 +5040,7 @@ void test_calib_imucam_data_setup(test_calib_imucam_data_t *data) {
                cam_data);
 
   // Time delay
-  time_delay_setup(&data->time_delay, 0.0);
+  data->time_delay[0] = 0.0;
 
   // Project to image plane
   int num_rows = 6;
@@ -5218,12 +5073,12 @@ int test_calib_imucam_factor(void) {
   const real_t var[2] = {1.0, 1.0};
   const real_t v[2] = {0.01, 0.02};
   calib_imucam_factor_setup(&factor,
-                            &calib_data.fiducial,
-                            &calib_data.imu_pose,
-                            &calib_data.imu_ext,
-                            &calib_data.cam_ext,
+                            calib_data.fiducial,
+                            calib_data.imu_pose,
+                            calib_data.imu_ext,
+                            calib_data.cam_ext,
                             &calib_data.camera,
-                            &calib_data.time_delay,
+                            calib_data.time_delay,
                             calib_data.cam_idx,
                             calib_data.tag_id,
                             calib_data.corner_idx,
@@ -5250,14 +5105,10 @@ int test_calib_imucam_factor(void) {
 }
 
 int test_marg_factor(void) {
-  // Timestamp
-  timestamp_t ts = 0;
-
   // Extrinsic T_BC
-  extrinsic_t cam_ext;
-  const real_t ext_data[7] = {0.01, 0.02, 0.03, 0.5, 0.5, -0.5, -0.5};
-  extrinsic_setup(&cam_ext, ext_data);
-  cam_ext.fix = 1;
+  real_t cam_ext[7] = {0.01, 0.02, 0.03, 0.5, 0.5, -0.5, -0.5};
+  TF(cam_ext, T_BCi);
+  TF_INV(T_BCi, T_CiB);
 
   // Camera parameters
   camera_t cam;
@@ -5271,8 +5122,7 @@ int test_marg_factor(void) {
   // Setup features and poses
   int num_poses = 5;
   int num_features = 10;
-  pose_t poses[5] = {0};
-  feature_t features[10] = {0};
+  real_t poses[5 * 7] = {0};
   real_t points[10 * 3] = {0};
   real_t keypoints[10 * 2 * 5] = {0};
   camera_factor_t factors[5 * 10] = {0};
@@ -5282,8 +5132,6 @@ int test_marg_factor(void) {
     const real_t dy = randf(-0.5, 0.5);
     const real_t dz = randf(-0.5, 0.5);
     const real_t p_W[3] = {3.0 + dx, 0.0 + dy, 0.0 + dz};
-    feature_t *feature = &features[i];
-    feature_init(feature, 0, p_W);
     points[i * 3 + 0] = p_W[0];
     points[i * 3 + 1] = p_W[1];
     points[i * 3 + 2] = p_W[2];
@@ -5303,17 +5151,19 @@ int test_marg_factor(void) {
     real_t q[4] = {0};
     euler2quat(ypr, q);
 
-    pose_t *pose = &poses[k];
-    real_t pose_data[7] = {dx, dy, dz, q[0], q[1], q[2], q[3]};
-    pose_setup(pose, ts + k, pose_data);
-    pose->marginalize = (k == 0) ? 1 : 0; // Marginalize 1st pose
+    poses[k * 7 + 0] = dx;
+    poses[k * 7 + 1] = dy;
+    poses[k * 7 + 2] = dz;
+    poses[k * 7 + 3] = q[0];
+    poses[k * 7 + 4] = q[1];
+    poses[k * 7 + 5] = q[2];
+    poses[k * 7 + 6] = q[3];
+    real_t *pose = &poses[k * 7];
 
     for (int i = 0; i < num_features; i++) {
       // Project point from world to image plane
       real_t *p_W = &points[i * 3];
-      TF(pose_data, T_WB);
-      TF(ext_data, T_BCi);
-      TF_INV(T_BCi, T_CiB);
+      TF(pose, T_WB);
       TF_INV(T_WB, T_BW);
       DOT(T_CiB, 4, 4, T_BW, 4, 4, T_CiW);
       TF_POINT(T_CiW, p_W, p_Ci);
@@ -5325,9 +5175,9 @@ int test_marg_factor(void) {
 
       // Setup camera factor
       camera_factor_t *cam_factor = &factors[factor_idx];
-      feature_t *feature = &features[i];
+      real_t *feature = &points[i * 3];
       real_t var[2] = {1.0, 1.0};
-      camera_factor_setup(cam_factor, pose, &cam_ext, feature, &cam, z, var);
+      camera_factor_setup(cam_factor, pose, cam_ext, feature, &cam, z, var);
       camera_factor_eval(cam_factor);
       factor_idx++;
     }
@@ -5335,22 +5185,22 @@ int test_marg_factor(void) {
   UNUSED(keypoints);
 
   // Determine parameter order
+  // -- Fix first pose and camera extrinsic
   rbt_t *param_index = rbt_malloc(default_cmp);
   int col_idx = 0;
   for (int i = 0; i < num_poses; i++) {
-    param_index_add_pose(param_index, &poses[i], &col_idx);
+    const int fix = (i == 0) ? 1 : 0;
+    param_index_add(param_index, POSE_PARAM, fix, &poses[i * 7], &col_idx);
   }
   for (int i = 0; i < num_features; i++) {
-    param_index_add_feature(param_index, &features[i], &col_idx);
+    param_index_add(param_index, FEATURE_PARAM, 0, &points[i * 3], &col_idx);
   }
-  param_index_add_extrinsic(param_index, &cam_ext, &col_idx);
-  param_index_add_camera(param_index, &cam, &col_idx);
+  param_index_add(param_index, EXTRINSIC_PARAM, 1, cam_ext, &col_idx);
+  param_index_add(param_index, CAMERA_PARAM, 0, cam.data, &col_idx);
+  param_index_print(param_index);
   // -- Misc
   const int sv_size = col_idx;
   const int r_size = (factor_idx * 2);
-
-  // param_index_print(param_index);
-  // printf("col_idx: %d\n", col_idx);
 
   // Form Hessian **before** marginalization
   int r_idx = 0;
@@ -5361,7 +5211,6 @@ int test_marg_factor(void) {
     camera_factor_t *factor = &factors[i];
     camera_factor_eval(factor);
     vec_copy(factor->r, factor->r_size, &r[r_idx]);
-
     solver_fill_hessian(param_index,
                         factor->num_params,
                         factor->params,
@@ -5373,76 +5222,36 @@ int test_marg_factor(void) {
                         g);
     r_idx += factor->r_size;
   }
-
-  // Setup marginalization factor
-  marg_factor_t *marg = marg_factor_malloc();
-  for (int i = 0; i < (num_poses * num_features); i++) {
-    marg_factor_add(marg, CAMERA_FACTOR, &factors[i]);
-  }
-  marg_factor_marginalize(marg);
-  marg_factor_eval(marg);
-
-  // Print timings
-  // printf("marg->time_hessian_form:     %.4fs\n", marg->time_hessian_form);
-  // printf("marg->time_schur_complement: %.4fs\n", marg->time_schur_complement);
-  // printf("marg->time_hessian_decomp:   %.4fs\n", marg->time_hessian_decomp);
-  // printf("marg->time_fejs:             %.4fs\n", marg->time_fejs);
-  // printf("------------------------------------\n");
-  // printf("marg->time_total:            %.4fs\n", marg->time_total);
-
-  // // Determine parameter order for the marginalized Hessian
-  // rbt_t *param_index_ = param_index_malloc();
-  // int col_idx_ = 0;
-  // // -- Add body poses
-  // for (int i = 0; i < num_poses; i++) {
-  //   void *data = poses[i].data;
-  //   const int fix = poses[i].marginalize;
-  //   param_order_add(&hash_, fix, data, &col_idx_);
-  // }
-  // // -- Add points
-  // for (int i = 0; i < num_features; i++) {
-  //   void *data = &features[i].data;
-  //   const int fix = 0;
-  //   param_order_add(&hash_, fix, data, &col_idx_);
-  // }
-  // // -- Add camera extrinsic
-  // {
-  //   void *data = cam_ext.data;
-  //   const int fix = 1;
-  //   param_order_add(&hash_, fix, data, &col_idx_);
-  // }
-  // // -- Add camera parameters
-  // {
-  //   void *data = cam.data;
-  //   const int fix = 0;
-  //   param_order_add(&hash_, fix, data, &col_idx_);
-  // }
-  // // -- Misc
-  // const int sv_size_ = col_idx_;
-  //
-  // // Form marg hessian
-  // real_t *H_ = calloc(sv_size_ * sv_size_, sizeof(real_t));
-  // real_t *g_ = calloc(sv_size_ * 1, sizeof(real_t));
-  // solver_fill_hessian(hash_,
-  //                     marg->num_params,
-  //                     marg->params,
-  //                     marg->jacs,
-  //                     marg->r,
-  //                     marg->r_size,
-  //                     sv_size_,
-  //                     H_,
-  //                     g_);
-
-  // Clean up
   free(H);
   free(g);
   free(r);
   param_index_free(param_index);
-  marg_factor_free(marg);
 
-  // param_order_free(hash_);
-  // free(H_);
-  // free(g_);
+  // Setup marginalization factor
+  rbt_t *marg_params = rbt_malloc(default_cmp);
+  rbt_t *fix_params = rbt_malloc(default_cmp);
+
+  rbt_insert(marg_params, &poses[0], NULL);
+  rbt_insert(fix_params, cam_ext, NULL);
+
+  marg_factor_t *marg = marg_factor_malloc();
+  for (int i = 0; i < (num_poses * num_features); i++) {
+    marg_factor_add(marg, CAMERA_FACTOR, &factors[i]);
+  }
+  marg_factor_marginalize(marg, marg_params, fix_params);
+  // marg_factor_eval(marg);
+
+  // Print timings
+  printf("marg->time_hessian_form:     %.4fs\n", marg->time_hessian_form);
+  printf("marg->time_schur_complement: %.4fs\n", marg->time_schur_complement);
+  printf("marg->time_hessian_decomp:   %.4fs\n", marg->time_hessian_decomp);
+  printf("marg->time_fejs:             %.4fs\n", marg->time_fejs);
+  printf("------------------------------------\n");
+  printf("marg->time_total:            %.4fs\n", marg->time_total);
+
+  marg_factor_free(marg);
+  rbt_free(marg_params);
+  rbt_free(fix_params);
 
   return 0;
 }
@@ -5557,12 +5366,12 @@ int test_solver_setup(void) {
   return 0;
 }
 
-typedef struct cam_view_t {
-  pose_t pose;
-  ba_factor_t factors[1000];
-  int num_factors;
-  camera_t *camera;
-} cam_view_t;
+// typedef struct cam_view_t {
+//   pose_t pose;
+//   ba_factor_t factors[1000];
+//   int num_factors;
+//   camera_t *camera;
+// } cam_view_t;
 
 int test_solver_eval(void) {
   // Load test data
@@ -5643,12 +5452,13 @@ typedef struct inertial_odometry_t {
   // Factors
   int num_factors;
   imu_factor_t *factors;
-  marg_factor_t *marg;
+  // marg_factor_t *marg;
 
   // Variables
-  pose_t *poses;
-  velocity_t *vels;
-  imu_biases_t *biases;
+  timestamp_t *timestamps;
+  real_t *poses;
+  real_t *vels;
+  real_t *biases;
 } inertial_odometry_t;
 
 inertial_odometry_t *inertial_odometry_malloc(void) {
@@ -5656,8 +5466,9 @@ inertial_odometry_t *inertial_odometry_malloc(void) {
 
   io->num_factors = 0;
   io->factors = NULL;
-  io->marg = NULL;
+  // io->marg = NULL;
 
+  io->timestamps = NULL;
   io->poses = NULL;
   io->vels = NULL;
   io->biases = NULL;
@@ -5667,6 +5478,7 @@ inertial_odometry_t *inertial_odometry_malloc(void) {
 
 void inertial_odometry_free(inertial_odometry_t *odom) {
   free(odom->factors);
+  free(odom->timestamps);
   free(odom->poses);
   free(odom->vels);
   free(odom->biases);
@@ -5690,12 +5502,12 @@ void inertial_odometry_save(const inertial_odometry_t *odom,
 
   // Write data
   for (int k = 0; k < (odom->num_factors + 1); k++) {
-    const real_t *pos = odom->poses[k].data;
-    const real_t *quat = odom->poses[k].data + 3;
-    const real_t *vel = odom->vels[k].data;
-    const real_t *ba = odom->biases[k].data;
-    const real_t *bg = odom->biases[k].data + 3;
-    fprintf(fp, "%ld,", odom->poses[k].ts);
+    const real_t *pos = odom->poses + k * 7;
+    const real_t *quat = odom->poses + k * 7 + 3;
+    const real_t *vel = odom->vels + k * 3;
+    const real_t *ba = odom->biases + k * 6;
+    const real_t *bg = odom->biases + k * 6 + 3;
+    fprintf(fp, "%ld,", odom->timestamps[k]);
     fprintf(fp, "%f,%f,%f,", pos[0], pos[1], pos[2]);
     fprintf(fp, "%f,%f,%f,%f,", quat[0], quat[1], quat[2], quat[3]);
     fprintf(fp, "%f,%f,%f,", vel[0], vel[1], vel[2]);
@@ -5713,10 +5525,13 @@ rbt_t *inertial_odometry_param_order(const void *data,
   rbt_t *param_index = param_index_malloc();
   int col_idx = 0;
 
-  for (int k = 0; k <= odom->num_factors; k++) {
-    param_index_add_pose(param_index, &odom->poses[k], &col_idx);
-    param_index_add_velocity(param_index, &odom->vels[k], &col_idx);
-    param_index_add_imu_biases(param_index, &odom->biases[k], &col_idx);
+  for (int k = 0; k <= odom->num_factors; ++k) {
+    real_t *pose = &odom->poses[k * 7];
+    real_t *vel = &odom->vels[k * 3];
+    real_t *biases = &odom->biases[k * 6];
+    param_index_add(param_index, POSE_PARAM, 0, pose, &col_idx);
+    param_index_add(param_index, VELOCITY_PARAM, 0, vel, &col_idx);
+    param_index_add(param_index, IMU_BIASES_PARAM, 0, biases, &col_idx);
   }
 
   *sv_size = col_idx;
@@ -5779,17 +5594,15 @@ int test_inertial_odometry_batch(void) {
   // -- Variables
   odom->num_factors = 0;
   odom->factors = malloc(sizeof(imu_factor_t) * num_partitions);
-  odom->poses = malloc(sizeof(pose_t) * num_partitions + 1);
-  odom->vels = malloc(sizeof(velocity_t) * num_partitions + 1);
-  odom->biases = malloc(sizeof(imu_biases_t) * num_partitions + 1);
+  odom->timestamps = malloc(sizeof(timestamp_t) * num_partitions + 1);
+  odom->poses = malloc(sizeof(real_t) * 7 * num_partitions + 1);
+  odom->vels = malloc(sizeof(real_t) * 3 * num_partitions + 1);
+  odom->biases = malloc(sizeof(real_t) * 6 * num_partitions + 1);
 
-  const timestamp_t ts_i = test_data.timestamps[0];
-  const real_t *v_i = test_data.velocities[0];
-  const real_t ba_i[3] = {0, 0, 0};
-  const real_t bg_i[3] = {0, 0, 0};
-  pose_setup(&odom->poses[0], ts_i, test_data.poses[0]);
-  velocity_setup(&odom->vels[0], ts_i, v_i);
-  imu_biases_setup(&odom->biases[0], ts_i, ba_i, bg_i);
+  odom->timestamps[0] = test_data.timestamps[0];
+  vec_copy(test_data.poses[0], 7, &odom->poses[0]);
+  vec_copy(test_data.velocities[0], 3, &odom->vels[0]);
+  zeros(&odom->biases[0], 6, 1);
 
   for (int i = 1; i < num_partitions; i++) {
     const int ks = i * N;
@@ -5806,24 +5619,24 @@ int test_inertial_odometry_batch(void) {
     }
 
     // Setup parameters
+    const timestamp_t ts_i = test_data.timestamps[ks];
     const timestamp_t ts_j = test_data.timestamps[ke];
-    const real_t *v_j = test_data.velocities[ke];
-    const real_t ba_j[3] = {0, 0, 0};
-    const real_t bg_j[3] = {0, 0, 0};
-    pose_setup(&odom->poses[i], ts_j, test_data.poses[ke]);
-    velocity_setup(&odom->vels[i], ts_j, v_j);
-    imu_biases_setup(&odom->biases[i], ts_j, ba_j, bg_j);
+    vec_copy(test_data.poses[ke], 7, &odom->poses[i * 7]);
+    vec_copy(test_data.velocities[ke], 3, &odom->vels[i * 3]);
+    zeros(&odom->biases[i * 6], 6, 1);
 
     // Setup IMU factor
     imu_factor_setup(&odom->factors[i - 1],
                      &odom->imu_params,
                      &imu_buf,
-                     &odom->poses[i - 1],
-                     &odom->vels[i - 1],
-                     &odom->biases[i - 1],
-                     &odom->poses[i],
-                     &odom->vels[i],
-                     &odom->biases[i]);
+                     ts_i,
+                     ts_j,
+                     &odom->poses[(i - 1) * 7],
+                     &odom->vels[(i - 1) * 3],
+                     &odom->biases[(i - 1) * 6],
+                     &odom->poses[i * 7],
+                     &odom->vels[i * 3],
+                     &odom->biases[i * 6]);
     odom->num_factors++;
   }
 
@@ -5832,16 +5645,16 @@ int test_inertial_odometry_batch(void) {
 
   // Perturb ground truth
   for (int k = 0; k <= odom->num_factors; k++) {
-    odom->poses[k].data[0] += randf(-1.0, 1.0);
-    odom->poses[k].data[1] += randf(-1.0, 1.0);
-    odom->poses[k].data[2] += randf(-1.0, 1.0);
-    quat_perturb(odom->poses[k].data + 3, 0, randf(-1e-1, 1e-1));
-    quat_perturb(odom->poses[k].data + 3, 1, randf(-1e-1, 1e-1));
-    quat_perturb(odom->poses[k].data + 3, 2, randf(-1e-1, 1e-1));
+    odom->poses[k * 7 + 0] += randf(-1.0, 1.0);
+    odom->poses[k * 7 + 1] += randf(-1.0, 1.0);
+    odom->poses[k * 7 + 2] += randf(-1.0, 1.0);
+    quat_perturb(&odom->poses[k * 7 + 3], 0, randf(-1e-1, 1e-1));
+    quat_perturb(&odom->poses[k * 7 + 3], 1, randf(-1e-1, 1e-1));
+    quat_perturb(&odom->poses[k * 7 + 3], 2, randf(-1e-1, 1e-1));
 
-    odom->vels[k].data[0] += randf(-1.0, 1.0);
-    odom->vels[k].data[1] += randf(-1.0, 1.0);
-    odom->vels[k].data[2] += randf(-1.0, 1.0);
+    odom->vels[k * 3 + 0] += randf(-1.0, 1.0);
+    odom->vels[k * 3 + 1] += randf(-1.0, 1.0);
+    odom->vels[k * 3 + 2] += randf(-1.0, 1.0);
   }
   inertial_odometry_save(odom, "/tmp/imu_odom-init.csv");
 
@@ -7578,13 +7391,7 @@ void test_suite(void) {
 #endif
 
   // STATE-ESTIMATION
-  MU_ADD_TEST(test_pose);
-  MU_ADD_TEST(test_extrinsics);
-  MU_ADD_TEST(test_fiducial);
-  MU_ADD_TEST(test_imu_biases);
   MU_ADD_TEST(test_feature);
-  MU_ADD_TEST(test_time_delay);
-  MU_ADD_TEST(test_joint);
   MU_ADD_TEST(test_camera);
   MU_ADD_TEST(test_triangulate_batch);
   MU_ADD_TEST(test_pose_factor);
