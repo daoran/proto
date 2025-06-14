@@ -1762,21 +1762,6 @@ void kdtree_nn(const kdtree_t *kdtree,
  * STATE-ESTIMATION
  ******************************************************************************/
 
-///////////////
-// EXTRINSIC //
-///////////////
-
-typedef struct extrinsic_t {
-  int marginalize;
-  int fix;
-  real_t data[7];
-} extrinsic_t;
-
-void extrinsic_setup(extrinsic_t *extrinsic, const real_t *param);
-void extrinsic_copy(const extrinsic_t *src, extrinsic_t *dst);
-void extrinsic_fprint(const char *prefix, const extrinsic_t *exts, FILE *f);
-void extrinsic_print(const char *prefix, const extrinsic_t *exts);
-
 //////////////
 // FIDUCIAL //
 //////////////
