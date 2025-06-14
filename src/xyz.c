@@ -10308,45 +10308,6 @@ void triangulate_batch(const camera_t *cam_i,
   }
 }
 
-//////////////
-// VELOCITY //
-//////////////
-
-/**
- * Setup velocity
- */
-void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]) {
-  assert(vel != NULL);
-  assert(v != NULL);
-
-  // Flags
-  vel->marginalize = 0;
-  vel->fix = 0;
-
-  // Timestamp
-  vel->ts = ts;
-
-  // Accel biases
-  vel->data[0] = v[0];
-  vel->data[1] = v[1];
-  vel->data[2] = v[2];
-}
-
-/**
- * Copy velocity.
- */
-void velocity_copy(const velocity_t *src, velocity_t *dst) {
-  assert(src != NULL);
-  assert(dst != NULL);
-
-  dst->marginalize = src->marginalize;
-  dst->fix = src->fix;
-  dst->ts = src->ts;
-  dst->data[0] = src->data[0];
-  dst->data[1] = src->data[1];
-  dst->data[2] = src->data[2];
-}
-
 ////////////////
 // IMU-BUFFER //
 ////////////////

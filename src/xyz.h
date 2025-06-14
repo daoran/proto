@@ -1846,21 +1846,6 @@ void stereo_triangulate(const camera_t *cam_i,
                         real_t *points,
                         int *status);
 
-//////////////
-// VELOCITY //
-//////////////
-
-typedef struct velocity_t {
-  int marginalize;
-  int fix;
-
-  timestamp_t ts;
-  real_t data[3];
-} velocity_t;
-
-void velocity_setup(velocity_t *vel, const timestamp_t ts, const real_t v[3]);
-void velocity_copy(const velocity_t *src, velocity_t *dst);
-
 ////////////////
 // IMU-PARAMS //
 ////////////////
