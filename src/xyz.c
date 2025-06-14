@@ -10103,9 +10103,6 @@ void camera_setup(camera_t *camera,
   assert(dist_model != NULL);
   assert(data != NULL);
 
-  camera->marginalize = 0;
-  camera->fix = 0;
-
   camera->cam_idx = cam_idx;
   camera->resolution[0] = cam_res[0];
   camera->resolution[1] = cam_res[1];
@@ -10139,9 +10136,6 @@ void camera_setup(camera_t *camera,
  * Copy camera parameters.
  */
 void camera_copy(const camera_t *src, camera_t *dst) {
-  dst->marginalize = src->marginalize;
-  dst->fix = src->fix;
-
   dst->cam_idx = src->cam_idx;
   dst->resolution[0] = src->resolution[0];
   dst->resolution[1] = src->resolution[1];
@@ -10815,7 +10809,7 @@ int check_factor_so3_jacobian(const void *factor,
  * Setup pose factor
  */
 void pose_factor_setup(pose_factor_t *factor,
-                       pose_t *pose,
+                       real_t *pose,
                        const real_t var[6]) {
   assert(factor != NULL);
   assert(pose != NULL);
@@ -10825,13 +10819,13 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->pose_est = pose;
 
   // Measurement
-  factor->pos_meas[0] = pose->data[0];
-  factor->pos_meas[1] = pose->data[1];
-  factor->pos_meas[2] = pose->data[2];
-  factor->quat_meas[0] = pose->data[3];
-  factor->quat_meas[1] = pose->data[4];
-  factor->quat_meas[2] = pose->data[5];
-  factor->quat_meas[3] = pose->data[6];
+  factor->pos_meas[0] = pose[0];
+  factor->pos_meas[1] = pose[1];
+  factor->pos_meas[2] = pose[2];
+  factor->quat_meas[0] = pose[3];
+  factor->quat_meas[1] = pose[4];
+  factor->quat_meas[2] = pose[5];
+  factor->quat_meas[3] = pose[6];
 
   // Measurement covariance matrix
   zeros(factor->covar, 6, 6);
@@ -10855,7 +10849,7 @@ void pose_factor_setup(pose_factor_t *factor,
   factor->r_size = 6;
   factor->num_params = 1;
   factor->param_types[0] = POSE_PARAM;
-  factor->params[0] = factor->pose_est->data;
+  factor->params[0] = factor->pose_est;
   factor->jacs[0] = factor->J_pose;
 }
 
@@ -10951,8 +10945,8 @@ int pose_factor_eval(void *factor_ptr) {
  * Setup bundle adjustment factor
  */
 void ba_factor_setup(ba_factor_t *factor,
-                     pose_t *pose,
-                     feature_t *feature,
+                     real_t *pose,
+                     real_t *feature,
                      camera_t *camera,
                      const real_t z[2],
                      const real_t var[2]) {
@@ -10992,8 +10986,8 @@ void ba_factor_setup(ba_factor_t *factor,
   factor->param_types[1] = FEATURE_PARAM;
   factor->param_types[2] = CAMERA_PARAM;
 
-  factor->params[0] = factor->pose->data;
-  factor->params[1] = factor->feature->data;
+  factor->params[0] = factor->pose;
+  factor->params[1] = factor->feature;
   factor->params[2] = factor->camera->data;
 
   factor->jacs[0] = factor->J_pose;
@@ -11173,9 +11167,9 @@ int ba_factor_eval(void *factor_ptr) {
  * Setup camera factor
  */
 void camera_factor_setup(camera_factor_t *factor,
-                         pose_t *pose,
-                         extrinsic_t *extrinsic,
-                         feature_t *feature,
+                         real_t *pose,
+                         real_t *extrinsic,
+                         real_t *feature,
                          camera_t *camera,
                          const real_t z[2],
                          const real_t var[2]) {
@@ -11218,9 +11212,9 @@ void camera_factor_setup(camera_factor_t *factor,
   factor->param_types[2] = FEATURE_PARAM;
   factor->param_types[3] = CAMERA_PARAM;
 
-  factor->params[0] = factor->pose->data;
-  factor->params[1] = factor->extrinsic->data;
-  factor->params[2] = factor->feature->data;
+  factor->params[0] = factor->pose;
+  factor->params[1] = factor->extrinsic;
+  factor->params[2] = factor->feature;
   factor->params[3] = factor->camera->data;
 
   factor->jacs[0] = factor->J_pose;
@@ -12101,31 +12095,38 @@ void imu_factor_form_G_matrix(const imu_factor_t *factor,
 void imu_factor_setup(imu_factor_t *factor,
                       const imu_params_t *imu_params,
                       const imu_buffer_t *imu_buf,
-                      pose_t *pose_i,
-                      velocity_t *vel_i,
-                      imu_biases_t *biases_i,
-                      pose_t *pose_j,
-                      velocity_t *vel_j,
-                      imu_biases_t *biases_j) {
+                      const timestamp_t ts_i,
+                      const timestamp_t ts_j,
+                      real_t *pose_i,
+                      real_t *vel_i,
+                      real_t *biases_i,
+                      real_t *pose_j,
+                      real_t *vel_j,
+                      real_t *biases_j) {
+  assert(ts_j > ts_i);
+
   // IMU buffer and parameters
   factor->imu_params = imu_params;
   imu_buffer_copy(imu_buf, &factor->imu_buf);
 
   // Parameters
+  factor->ts_i = ts_i;
   factor->pose_i = pose_i;
   factor->vel_i = vel_i;
   factor->biases_i = biases_i;
+
+  factor->ts_j = ts_j;
   factor->pose_j = pose_j;
   factor->vel_j = vel_j;
   factor->biases_j = biases_j;
 
   factor->num_params = 6;
-  factor->params[0] = factor->pose_i->data;
-  factor->params[1] = factor->vel_i->data;
-  factor->params[2] = factor->biases_i->data;
-  factor->params[3] = factor->pose_j->data;
-  factor->params[4] = factor->vel_j->data;
-  factor->params[5] = factor->biases_j->data;
+  factor->params[0] = factor->pose_i;
+  factor->params[1] = factor->vel_i;
+  factor->params[2] = factor->biases_i;
+  factor->params[3] = factor->pose_j;
+  factor->params[4] = factor->vel_j;
+  factor->params[5] = factor->biases_j;
   factor->param_types[0] = POSE_PARAM;
   factor->param_types[1] = VELOCITY_PARAM;
   factor->param_types[2] = IMU_BIASES_PARAM;
@@ -12171,8 +12172,8 @@ void imu_factor_reset(imu_factor_t *factor) {
   zeros(factor->dr, 3, 1);                                 // Rel position
   zeros(factor->dv, 3, 1);                                 // Rel velocity
   quat_setup(factor->dq);                                  // Rel rotation
-  imu_biases_get_accel_bias(factor->biases_i, factor->ba); // Accel bias
-  imu_biases_get_gyro_bias(factor->biases_i, factor->bg);  // Gyro bias
+  vec_copy(factor->biases_i + 0, 3, factor->ba);           // Accel bias
+  vec_copy(factor->biases_i + 3, 3, factor->bg);           // Gyro bias
   zeros(factor->ba_ref, 3, 1);
   zeros(factor->bg_ref, 3, 1);
 
@@ -12220,9 +12221,9 @@ void imu_factor_preintegrate(imu_factor_t *factor) {
     const real_t *a_j = factor->imu_buf.acc[k];
     const real_t *w_j = factor->imu_buf.gyr[k];
 
-    if (ts_i < factor->pose_i->ts) {
+    if (ts_i < factor->ts_i) {
       continue;
-    } else if (ts_j > factor->pose_j->ts) {
+    } else if (ts_j > factor->ts_j) {
       break;
     }
 
@@ -12260,8 +12261,8 @@ void imu_factor_preintegrate(imu_factor_t *factor) {
   }
 
   // Keep track of linearized accel / gyro biases
-  vec3_copy(factor->biases_i->data + 0, factor->ba_ref);
-  vec3_copy(factor->biases_i->data + 3, factor->bg_ref);
+  vec3_copy(factor->biases_i + 0, factor->ba_ref);
+  vec3_copy(factor->biases_i + 3, factor->bg_ref);
 
   // Covariance
   enforce_spd(factor->P, 15, 15);
@@ -12287,8 +12288,8 @@ static void imu_factor_pose_i_jac(imu_factor_t *factor,
   real_t C_j[3 * 3] = {0};
   real_t C_it[3 * 3] = {0};
   real_t C_jt[3 * 3] = {0};
-  pose_get_rot(factor->pose_i->data, C_i);
-  pose_get_rot(factor->pose_j->data, C_j);
+  pose_get_rot(factor->pose_i, C_i);
+  pose_get_rot(factor->pose_j, C_j);
   mat_transpose(C_i, 3, 3, C_it);
   mat_transpose(C_j, 3, 3, C_jt);
 
@@ -12338,7 +12339,7 @@ void imu_factor_velocity_i_jac(imu_factor_t *factor) {
   real_t drij_dvi[3 * 3] = {0};
   real_t dvij_dvi[3 * 3] = {0};
 
-  pose_get_quat(factor->pose_i->data, q_i);
+  pose_get_quat(factor->pose_i, q_i);
   quat2rot(q_i, C_i);
   mat_transpose(C_i, 3, 3, C_it);
 
@@ -12361,8 +12362,8 @@ void imu_factor_biases_i_jac(imu_factor_t *factor,
                              const real_t dv_dbg[3]) {
   real_t q_i[4] = {0};
   real_t q_j[4] = {0};
-  pose_get_quat(factor->pose_i->data, q_i);
-  pose_get_quat(factor->pose_j->data, q_j);
+  pose_get_quat(factor->pose_i, q_i);
+  pose_get_quat(factor->pose_j, q_j);
 
   QUAT2ROT(factor->dq, dC);
   QUAT2ROT(q_i, C_i);
@@ -12426,8 +12427,8 @@ void imu_factor_pose_j_jac(imu_factor_t *factor, const real_t dq[4]) {
   real_t C_j[3 * 3] = {0};
   real_t C_it[3 * 3] = {0};
 
-  pose_get_quat(factor->pose_i->data, q_i);
-  pose_get_quat(factor->pose_j->data, q_j);
+  pose_get_quat(factor->pose_i, q_i);
+  pose_get_quat(factor->pose_j, q_j);
   quat2rot(q_i, C_i);
   quat2rot(q_j, C_j);
   mat_transpose(C_i, 3, 3, C_it);
@@ -12459,7 +12460,7 @@ void imu_factor_velocity_j_jac(imu_factor_t *factor) {
   real_t C_i[3 * 3] = {0};
   real_t C_it[3 * 3] = {0};
 
-  pose_get_quat(factor->pose_i->data, q_i);
+  pose_get_quat(factor->pose_i, q_i);
   quat2rot(q_i, C_i);
   mat_transpose(C_i, 3, 3, C_it);
 
@@ -12506,17 +12507,17 @@ int imu_factor_eval(void *factor_ptr) {
   real_t ba_j[3] = {0};
   real_t bg_j[3] = {0};
 
-  pose_get_trans(factor->pose_i->data, r_i);
-  pose_get_quat(factor->pose_i->data, q_i);
-  vec_copy(factor->vel_i->data, 3, v_i);
-  imu_biases_get_accel_bias(factor->biases_i, ba_i);
-  imu_biases_get_gyro_bias(factor->biases_i, bg_i);
+  pose_get_trans(factor->pose_i, r_i);
+  pose_get_quat(factor->pose_i, q_i);
+  vec_copy(factor->vel_i, 3, v_i);
+  vec_copy(factor->biases_i + 0, 3, ba_i);
+  vec_copy(factor->biases_i + 3, 3, bg_i);
 
-  pose_get_trans(factor->pose_j->data, r_j);
-  pose_get_quat(factor->pose_j->data, q_j);
-  vec_copy(factor->vel_j->data, 3, v_j);
-  imu_biases_get_accel_bias(factor->biases_j, ba_j);
-  imu_biases_get_gyro_bias(factor->biases_j, bg_j);
+  pose_get_trans(factor->pose_j, r_j);
+  pose_get_quat(factor->pose_j, q_j);
+  vec_copy(factor->vel_j, 3, v_j);
+  vec_copy(factor->biases_j + 0, 3, ba_j);
+  vec_copy(factor->biases_j + 3, 3, bg_j);
 
   // Correct the relative position, velocity and rotation
   // -- Extract Jacobians from error-state jacobian
@@ -12936,7 +12937,7 @@ void lidar_factor_eval(void *factor_ptr) {
  * Setup joint-angle factor
  */
 void joint_factor_setup(joint_factor_t *factor,
-                        joint_t *joint,
+                        real_t *joint,
                         const real_t z,
                         const real_t var) {
   assert(factor != NULL);
@@ -12959,7 +12960,7 @@ void joint_factor_setup(joint_factor_t *factor,
   factor->r_size = 1;
   factor->num_params = 1;
   factor->param_types[0] = JOINT_PARAM;
-  factor->params[0] = factor->joint->data;
+  factor->params[0] = factor->joint;
   factor->jacs[0] = factor->J_joint;
 }
 
@@ -12995,7 +12996,7 @@ int joint_factor_eval(void *factor_ptr) {
   joint_factor_t *factor = (joint_factor_t *) factor_ptr;
 
   // Calculate residuals
-  factor->r[0] = factor->sqrt_info[0] * (factor->z[0] - factor->joint->data[0]);
+  factor->r[0] = factor->sqrt_info[0] * (factor->z[0] - factor->joint[0]);
 
   // Calculate Jacobians
   factor->jacs[0][0] = -1 * factor->sqrt_info[0];
@@ -13236,8 +13237,8 @@ int camchain_find(camchain_t *cc,
  * Setup camera calibration factor
  */
 void calib_camera_factor_setup(calib_camera_factor_t *factor,
-                               pose_t *pose,
-                               extrinsic_t *cam_ext,
+                               real_t *pose,
+                               real_t *cam_ext,
                                camera_t *cam_params,
                                const int cam_idx,
                                const int tag_id,
@@ -13286,8 +13287,8 @@ void calib_camera_factor_setup(calib_camera_factor_t *factor,
   factor->param_types[1] = EXTRINSIC_PARAM;
   factor->param_types[2] = CAMERA_PARAM;
 
-  factor->params[0] = factor->pose->data;
-  factor->params[1] = factor->cam_ext->data;
+  factor->params[0] = factor->pose;
+  factor->params[1] = factor->cam_ext;
   factor->params[2] = factor->cam_params->data;
 
   factor->jacs[0] = factor->J_pose;
@@ -13459,12 +13460,12 @@ int calib_camera_factor_ceres_eval(void *factor_ptr,
  * Setup imu-camera time-delay calibration factor
  */
 void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
-                               fiducial_t *fiducial,
-                               pose_t *imu_pose,
-                               extrinsic_t *imu_ext,
-                               extrinsic_t *cam_ext,
-                               camera_t *cam_params,
-                               time_delay_t *time_delay,
+                               real_t *fiducial,
+                               real_t *imu_pose,
+                               real_t *imu_ext,
+                               real_t *cam_ext,
+                               camera_t *camera,
+                               real_t *time_delay,
                                const int cam_idx,
                                const int tag_id,
                                const int corner_idx,
@@ -13477,7 +13478,7 @@ void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
   assert(imu_pose != NULL);
   assert(imu_ext != NULL);
   assert(cam_ext != NULL);
-  assert(cam_params != NULL);
+  assert(camera != NULL);
   assert(time_delay != NULL);
   assert(p_FFi != NULL);
   assert(z != NULL);
@@ -13489,7 +13490,7 @@ void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
   factor->imu_pose = imu_pose;
   factor->imu_ext = imu_ext;
   factor->cam_ext = cam_ext;
-  factor->cam_params = cam_params;
+  factor->camera = camera;
   factor->time_delay = time_delay;
   factor->num_params = 6;
 
@@ -13526,18 +13527,18 @@ void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
   factor->param_types[4] = CAMERA_PARAM;
   factor->param_types[5] = TIME_DELAY_PARAM;
 
-  factor->params[0] = factor->fiducial->data;
-  factor->params[1] = factor->imu_pose->data;
-  factor->params[2] = factor->imu_ext->data;
-  factor->params[3] = factor->cam_ext->data;
-  factor->params[4] = factor->cam_params->data;
-  factor->params[5] = factor->time_delay->data;
+  factor->params[0] = factor->fiducial;
+  factor->params[1] = factor->imu_pose;
+  factor->params[2] = factor->imu_ext;
+  factor->params[3] = factor->cam_ext;
+  factor->params[4] = factor->camera->data;
+  factor->params[5] = factor->time_delay;
 
   factor->jacs[0] = factor->J_fiducial;
   factor->jacs[1] = factor->J_imu_pose;
   factor->jacs[2] = factor->J_imu_ext;
   factor->jacs[3] = factor->J_cam_ext;
-  factor->jacs[4] = factor->J_cam_params;
+  factor->jacs[4] = factor->J_camera;
   factor->jacs[5] = factor->J_time_delay;
 }
 
@@ -13566,7 +13567,7 @@ int calib_imucam_factor_eval(void *factor_ptr) {
   // Project to image plane
   real_t z_hat[2];
   TF_POINT(T_CiF, factor->p_FFi, p_CiFi);
-  camera_project(factor->cam_params, p_CiFi, z_hat);
+  camera_project(factor->camera, p_CiFi, z_hat);
 
   // Calculate residuals
   real_t r[2] = {0, 0};

@@ -1792,9 +1792,6 @@ void fiducial_info_add(fiducial_info_t *finfo,
 ////////////
 
 typedef struct camera_t {
-  int marginalize;
-  int fix;
-
   int cam_idx;
   int resolution[2];
   char proj_model[30];
@@ -2059,7 +2056,7 @@ int check_factor_so3_jacobian(const void *factor,
 typedef struct pose_factor_t {
   real_t pos_meas[3];
   real_t quat_meas[4];
-  pose_t *pose_est;
+  real_t *pose_est;
 
   real_t covar[6 * 6];
   real_t sqrt_info[6 * 6];
@@ -2076,7 +2073,7 @@ typedef struct pose_factor_t {
 } pose_factor_t;
 
 void pose_factor_setup(pose_factor_t *factor,
-                       pose_t *pose,
+                       real_t *pose,
                        const real_t var[6]);
 int pose_factor_eval(void *factor);
 
@@ -2085,8 +2082,8 @@ int pose_factor_eval(void *factor);
 ///////////////
 
 typedef struct ba_factor_t {
-  pose_t *pose;
-  feature_t *feature;
+  real_t *pose;
+  real_t *feature;
   camera_t *camera;
 
   real_t covar[2 * 2];
@@ -2107,8 +2104,8 @@ typedef struct ba_factor_t {
 } ba_factor_t;
 
 void ba_factor_setup(ba_factor_t *factor,
-                     pose_t *pose,
-                     feature_t *feature,
+                     real_t *pose,
+                     real_t *feature,
                      camera_t *camera,
                      const real_t z[2],
                      const real_t var[2]);
@@ -2119,10 +2116,10 @@ int ba_factor_eval(void *factor_ptr);
 ///////////////////
 
 typedef struct camera_factor_t {
-  pose_t *pose;
-  extrinsic_t *extrinsic;
+  real_t *pose;
+  real_t *extrinsic;
   camera_t *camera;
-  feature_t *feature;
+  real_t *feature;
 
   real_t covar[2 * 2];
   real_t sqrt_info[2 * 2];
@@ -2143,9 +2140,9 @@ typedef struct camera_factor_t {
 } camera_factor_t;
 
 void camera_factor_setup(camera_factor_t *factor,
-                         pose_t *pose,
-                         extrinsic_t *extrinsic,
-                         feature_t *feature,
+                         real_t *pose,
+                         real_t *extrinsic,
+                         real_t *feature,
                          camera_t *camera,
                          const real_t z[2],
                          const real_t var[2]);
@@ -2162,12 +2159,16 @@ typedef struct imu_factor_t {
   imu_buffer_t imu_buf;
 
   // Parameters
-  pose_t *pose_i;
-  velocity_t *vel_i;
-  imu_biases_t *biases_i;
-  pose_t *pose_j;
-  velocity_t *vel_j;
-  imu_biases_t *biases_j;
+  timestamp_t ts_i;
+  real_t *pose_i;
+  real_t *vel_i;
+  real_t *biases_i;
+
+  timestamp_t ts_j;
+  real_t *pose_j;
+  real_t *vel_j;
+  real_t *biases_j;
+
   int num_params;
   real_t *params[6];
   int param_types[6];
@@ -2252,12 +2253,14 @@ void imu_factor_form_G_matrix(const imu_factor_t *factor,
 void imu_factor_setup(imu_factor_t *factor,
                       const imu_params_t *imu_params,
                       const imu_buffer_t *imu_buf,
-                      pose_t *pose_i,
-                      velocity_t *v_i,
-                      imu_biases_t *biases_i,
-                      pose_t *pose_j,
-                      velocity_t *v_j,
-                      imu_biases_t *biases_j);
+                      const timestamp_t ts_i,
+                      const timestamp_t ts_j,
+                      real_t *pose_i,
+                      real_t *v_i,
+                      real_t *biases_i,
+                      real_t *pose_j,
+                      real_t *v_j,
+                      real_t *biases_j);
 void imu_factor_reset(imu_factor_t *factor);
 void imu_factor_preintegrate(imu_factor_t *factor);
 int imu_factor_residuals(imu_factor_t *factor, real_t **params, real_t *r_out);
@@ -2267,61 +2270,61 @@ int imu_factor_ceres_eval(void *factor_ptr,
                           real_t *r_out,
                           real_t **J_out);
 
-//////////////////
-// LIDAR FACTOR //
-//////////////////
-
-typedef struct pcd_t {
-  timestamp_t ts_start;
-  timestamp_t ts_end;
-  float *data;
-  float *time_diffs;
-  size_t num_points;
-} pcd_t;
-
-pcd_t *pcd_malloc(const timestamp_t ts_start,
-                  const timestamp_t ts_end,
-                  const float *data,
-                  const float *time_diffs,
-                  const size_t num_points);
-void pcd_free(pcd_t *pcd);
-void pcd_deskew(pcd_t *points,
-                const real_t T_WL_km1[4 * 4],
-                const real_t T_WL_km2[4 * 4]);
-
-typedef struct lidar_factor_t {
-  pcd_t *pcd;
-  kdtree_t *kdtree;
-
-  pose_t *pose;
-  extrinsic_t *extrinsic;
-
-  real_t covar[3 * 3];
-  real_t sqrt_info[3 * 3];
-
-  real_t *r;
-  int r_size;
-
-  int param_types[2];
-  real_t *params[2];
-  int num_params;
-
-  real_t *jacs[1];
-  real_t *J_pose;
-} lidar_factor_t;
-
-void lidar_factor_setup(lidar_factor_t *factor,
-                        pcd_t *pcd,
-                        pose_t *pose_k,
-                        const real_t var[3]);
-void lidar_factor_eval(void *factor);
+// //////////////////
+// // LIDAR FACTOR //
+// //////////////////
+//
+// typedef struct pcd_t {
+//   timestamp_t ts_start;
+//   timestamp_t ts_end;
+//   float *data;
+//   float *time_diffs;
+//   size_t num_points;
+// } pcd_t;
+//
+// pcd_t *pcd_malloc(const timestamp_t ts_start,
+//                   const timestamp_t ts_end,
+//                   const float *data,
+//                   const float *time_diffs,
+//                   const size_t num_points);
+// void pcd_free(pcd_t *pcd);
+// void pcd_deskew(pcd_t *points,
+//                 const real_t T_WL_km1[4 * 4],
+//                 const real_t T_WL_km2[4 * 4]);
+//
+// typedef struct lidar_factor_t {
+//   pcd_t *pcd;
+//   kdtree_t *kdtree;
+//
+//   pose_t *pose;
+//   extrinsic_t *extrinsic;
+//
+//   real_t covar[3 * 3];
+//   real_t sqrt_info[3 * 3];
+//
+//   real_t *r;
+//   int r_size;
+//
+//   int param_types[2];
+//   real_t *params[2];
+//   int num_params;
+//
+//   real_t *jacs[1];
+//   real_t *J_pose;
+// } lidar_factor_t;
+//
+// void lidar_factor_setup(lidar_factor_t *factor,
+//                         pcd_t *pcd,
+//                         pose_t *pose_k,
+//                         const real_t var[3]);
+// void lidar_factor_eval(void *factor);
 
 ////////////////////////
 // JOINT-ANGLE FACTOR //
 ////////////////////////
 
 typedef struct joint_factor_t {
-  joint_t *joint;
+  real_t *joint;
 
   real_t z[1];
   real_t covar[1];
@@ -2338,7 +2341,7 @@ typedef struct joint_factor_t {
 } joint_factor_t;
 
 void joint_factor_setup(joint_factor_t *factor,
-                        joint_t *joint0,
+                        real_t *joint0,
                         const real_t z,
                         const real_t var);
 void joint_factor_copy(const joint_factor_t *src, joint_factor_t *dst);
@@ -2376,8 +2379,8 @@ int camchain_find(camchain_t *cc,
 /////////////////////////
 
 typedef struct calib_camera_factor_t {
-  pose_t *pose;
-  extrinsic_t *cam_ext;
+  real_t *pose;
+  real_t *cam_ext;
   camera_t *cam_params;
 
   timestamp_t ts;
@@ -2403,8 +2406,8 @@ typedef struct calib_camera_factor_t {
 } calib_camera_factor_t;
 
 void calib_camera_factor_setup(calib_camera_factor_t *factor,
-                               pose_t *pose,
-                               extrinsic_t *cam_ext,
+                               real_t *pose,
+                               real_t *cam_ext,
                                camera_t *cam_params,
                                const int cam_idx,
                                const int tag_id,
@@ -2423,12 +2426,12 @@ int calib_camera_factor_ceres_eval(void *factor_ptr,
 /////////////////////////
 
 typedef struct calib_imucam_factor_t {
-  fiducial_t *fiducial;     // fiducial pose: T_WF
-  pose_t *imu_pose;         // IMU pose: T_WS
-  extrinsic_t *imu_ext;     // IMU extrinsic: T_SC0
-  extrinsic_t *cam_ext;     // Camera extrinsic: T_C0Ci
-  camera_t *cam_params;     // Camera parameters
-  time_delay_t *time_delay; // Time delay
+  real_t *fiducial;   // fiducial pose: T_WF
+  real_t *imu_pose;   // IMU pose: T_WS
+  real_t *imu_ext;    // IMU extrinsic: T_SC0
+  real_t *cam_ext;    // Camera extrinsic: T_C0Ci
+  camera_t *camera;   // Camera parameters
+  real_t *time_delay; // Time delay
 
   timestamp_t ts;
   int cam_idx;
@@ -2452,17 +2455,17 @@ typedef struct calib_imucam_factor_t {
   real_t J_imu_pose[2 * 6];
   real_t J_imu_ext[2 * 6];
   real_t J_cam_ext[2 * 6];
-  real_t J_cam_params[2 * 8];
+  real_t J_camera[2 * 8];
   real_t J_time_delay[2 * 1];
 } calib_imucam_factor_t;
 
 void calib_imucam_factor_setup(calib_imucam_factor_t *factor,
-                               fiducial_t *fiducial,
-                               pose_t *pose,
-                               extrinsic_t *imu_ext,
-                               extrinsic_t *cam_ext,
-                               camera_t *cam_params,
-                               time_delay_t *time_delay,
+                               real_t *fiducial,
+                               real_t *imu_pose,
+                               real_t *imu_ext,
+                               real_t *cam_ext,
+                               camera_t *camera,
+                               real_t *time_delay,
                                const int cam_idx,
                                const int tag_id,
                                const int corner_idx,
