@@ -2528,8 +2528,8 @@ typedef struct marg_factor_t {
   list_t *m_time_delays;
 
   // Marginal pointers
-  rbt_t *marg_params;
-  rbt_t *fix_params;
+  const rbt_t *marg_params;
+  const rbt_t *fix_params;
   size_t num_marg_params;
 
 

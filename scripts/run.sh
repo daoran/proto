@@ -167,13 +167,13 @@ run_test() {
   exit
 }
 
-CMD="cd ~/code/xyz && make libxyz -j"
+# CMD="cd ~/code/xyz && make libxyz -j"
 # CMD="cd ~/code/xyz && make ci"
 # CMD="cd ~/code/xyz && make tests -j"
 # CMD="cd ~/code/xyz && make clean && make libxyz -j"
-tmux send-keys -t dev -R "q" C-m C-l
-tmux send-keys -t dev -R "${CMD}" C-m C-m
-exit
+# tmux send-keys -t dev -R "q" C-m C-l
+# tmux send-keys -t dev -R "${CMD}" C-m C-m
+# exit
 
 
 # XYZ
@@ -382,7 +382,14 @@ exit
 # run_test test_xyz test_camchain
 # run_test test_xyz test_calib_camera_factor
 # run_test test_xyz test_calib_imucam_factor
-# run_test test_xyz test_marg_factor
+run_test test_xyz test_marg_factor
+# run_test test_xyz test_save_and_load_poses
+# run_test test_xyz test_assoc_pose_data
+# run_test test_xyz test_solver_setup
+# run_test test_xyz test_solver_eval
+# run_test test_xyz test_inertial_odometry_batch
+# run_test test_xyz test_visual_odometry_batch
+# run_test test_xyz test_visual_inertial_odometry_batch
 ## XYZ-TIMELINE
 # run_test test_xyz test_timeline
 ## XYZ-OCTREE
@@ -396,10 +403,10 @@ exit
 # run_test test_xyz test_kdtree
 # run_test test_xyz test_kdtree_nn
 ## XYZ-SIMULATION
-# run_test test_xyz test_sim_features_load
-# run_test test_xyz test_sim_imu_data_load
-# run_test test_xyz test_sim_camera_frame_load
-# run_test test_xyz test_sim_camera_data_load
+# run_test test_xyz test_sim_features_save_load
+# run_test test_xyz test_sim_imu_data_save_load
+# run_test test_xyz test_sim_camera_frame_save_load
+# run_test test_xyz test_sim_camera_data_save_load
 # run_test test_xyz test_sim_camera_circle_trajectory
 ## XYZ-EUROC
 # run_test test_xyz test_euroc_imu_load

@@ -15208,7 +15208,7 @@ int solver_solve(solver_t *solver, void *data) {
   free(solver->common);
   solver->common = NULL;
 #endif
-  // param_index_free(solver->param_index);
+  param_index_free(solver->param_index);
   free(solver->H_damped);
   free(solver->H);
   free(solver->g);
