@@ -1975,6 +1975,7 @@ rbt_t *rbt_malloc(cmp_t cmp) {
   rbt->cmp = cmp;
   rbt->kcopy = NULL;
   rbt->kfree = NULL;
+  rbt->size = 0;
   return rbt;
 }
 
@@ -1988,14 +1989,23 @@ void rbt_insert(rbt_t *rbt, void *key, void *value) {
   void *k = (rbt->kcopy) ? rbt->kcopy(key) : key;
   rbt->root = rbt_node_insert(rbt->root, k, value, rbt->cmp);
   rbt->root->color = RB_BLACK;
+  rbt->size++;
 }
 
 void rbt_delete(rbt_t *rbt, void *key) {
   assert(rbt);
+  if (rbt->size == 0) {
+    return;
+  }
+
   rbt_node_t *n = rbt_node_delete(rbt->root, key, rbt->cmp, rbt->kfree);
+  rbt->size--;
   if (n) {
     rbt->root = n;
     rbt->root->color = RB_BLACK;
+  }
+  if (rbt->size == 0) {
+    rbt->root = NULL;
   }
 }
 

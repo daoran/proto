@@ -796,6 +796,9 @@ int test_rbt_delete(void) {
   rbt_delete(rbt, &key_3);
   rbt_delete(rbt, &key_4);
 
+  MU_ASSERT(rbt->root == NULL);
+  MU_ASSERT(rbt->size == 0);
+
   // Clean up
   rbt_free(rbt);
 

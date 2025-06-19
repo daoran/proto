@@ -404,6 +404,7 @@ typedef struct rbt_t {
   cmp_t cmp;
   copy_func_t kcopy;
   free_func_t kfree;
+  size_t size;
 } rbt_t;
 
 rbt_node_t *rbt_node_malloc(const int color, void *key, void *value);
