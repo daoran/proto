@@ -43,7 +43,6 @@ int test_mtoc(void) {
 
 int test_time_now(void) {
   timestamp_t t_now = time_now();
-  // printf("t_now: %ld\n", t_now);
   MU_ASSERT(t_now > 0);
   return 0;
 }
@@ -68,7 +67,7 @@ int test_darray_new_and_destroy(void) {
 int test_darray_push_pop(void) {
   darray_t *test_darray = darray_new(sizeof(int), 100);
 
-  /* test push */
+  // test push
   for (int i = 0; i < 1000; i++) {
     int *val = darray_new_element(test_darray);
     *val = i * 333;
@@ -76,7 +75,7 @@ int test_darray_push_pop(void) {
   }
   MU_ASSERT(test_darray->max == 1300);
 
-  /* test pop */
+  // test pop
   for (int i = 999; i >= 0; i--) {
     int *val = darray_pop(test_darray);
     MU_ASSERT(val != NULL);
@@ -91,12 +90,12 @@ int test_darray_push_pop(void) {
 int test_darray_contains(void) {
   darray_t *test_darray = darray_new(sizeof(int), 100);
 
-  /* set element in array */
+  // set element in array
   int *val = darray_new_element(test_darray);
   *val = 99;
   darray_set(test_darray, 0, val);
 
-  /* test contains */
+  // test contains
   int res = darray_contains(test_darray, val, intcmp2);
   MU_ASSERT(res == 1);
 
@@ -107,12 +106,12 @@ int test_darray_contains(void) {
 int test_darray_copy(void) {
   darray_t *test_darray = darray_new(sizeof(int), 100);
 
-  /* set element in array */
+  // set element in array
   int *val = darray_new_element(test_darray);
   *val = 99;
   darray_set(test_darray, 0, val);
 
-  /* test copy */
+  // test copy
   darray_t *array_copy = darray_copy(test_darray);
   int *val_copy = darray_get(array_copy, 0);
   MU_ASSERT(val != val_copy);
@@ -126,7 +125,7 @@ int test_darray_copy(void) {
 int test_darray_new_element(void) {
   darray_t *test_darray = darray_new(sizeof(int), 100);
 
-  /* test new */
+  // New
   int *val1 = darray_new_element(test_darray);
   int *val2 = darray_new_element(test_darray);
 
@@ -143,13 +142,13 @@ int test_darray_new_element(void) {
 int test_darray_set_and_get(void) {
   darray_t *test_darray = darray_new(sizeof(int), 100);
 
-  /* test set element */
+  // Set element
   int *val1 = darray_new_element(test_darray);
   int *val2 = darray_new_element(test_darray);
   darray_set(test_darray, 0, val1);
   darray_set(test_darray, 1, val2);
 
-  /* test get element */
+  // Get element
   MU_ASSERT(darray_get(test_darray, 0) == val1);
   MU_ASSERT(darray_get(test_darray, 1) == val2);
 
@@ -160,17 +159,17 @@ int test_darray_set_and_get(void) {
 int test_darray_update(void) {
   darray_t *test_darray = darray_new(sizeof(int), 100);
 
-  /* set element */
+  // Set element
   int *new_val1 = darray_new_element(test_darray);
   int *new_val2 = darray_new_element(test_darray);
   *new_val1 = 123;
   *new_val2 = 987;
 
-  /* update */
+  // Update
   darray_update(test_darray, 0, new_val1);
   darray_update(test_darray, 1, new_val2);
 
-  /* assert */
+  // Assert
   MU_ASSERT(darray_get(test_darray, 0) == new_val1);
   MU_ASSERT(darray_get(test_darray, 1) == new_val2);
 
@@ -181,7 +180,7 @@ int test_darray_update(void) {
 int test_darray_remove(void) {
   darray_t *test_darray = darray_new(sizeof(int), 100);
 
-  /* set elements */
+  // Set elements
   int *val_1 = darray_new_element(test_darray);
   int *val_2 = darray_new_element(test_darray);
   *val_1 = 123;
@@ -189,14 +188,14 @@ int test_darray_remove(void) {
   darray_set(test_darray, 0, val_1);
   darray_set(test_darray, 1, val_2);
 
-  /* remove element at index = 0 */
+  // Remove element at index = 0
   int *result = darray_remove(test_darray, 0);
   MU_ASSERT(result != NULL);
   MU_ASSERT(*result == *val_1);
   MU_ASSERT(darray_get(test_darray, 0) == NULL);
   free(result);
 
-  /* remove element at index = 1 */
+  // Remove element at index = 1
   result = darray_remove(test_darray, 1);
   MU_ASSERT(result != NULL);
   MU_ASSERT(*result == *val_2);
@@ -210,13 +209,13 @@ int test_darray_remove(void) {
 int test_darray_expand_and_contract(void) {
   darray_t *test_darray = darray_new(sizeof(int), 100);
 
-  /* test expand */
+  // Expand
   size_t old_max = (unsigned int) test_darray->max;
   darray_expand(test_darray);
   MU_ASSERT((unsigned int) test_darray->max ==
             old_max + test_darray->expand_rate);
 
-  /* test contract */
+  // Contract
   darray_contract(test_darray);
   MU_ASSERT((unsigned int) test_darray->max == test_darray->expand_rate + 1);
 
@@ -236,13 +235,13 @@ int test_list_malloc_and_free(void) {
 }
 
 int test_list_push_pop(void) {
-  /* Setup */
+  // Setup
   list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
   char *t3 = string_malloc("test3 data");
 
-  /* Push tests */
+  // Push tests
   list_push(list, t1);
   MU_ASSERT(strcmp(list->last->value, t1) == 0);
 
@@ -253,7 +252,7 @@ int test_list_push_pop(void) {
   MU_ASSERT(strcmp(list->last->value, t3) == 0);
   MU_ASSERT(list->length == 3);
 
-  /* Pop tests */
+  // Pop tests
   char *val = list_pop(list);
   MU_ASSERT(val == t3);
   MU_ASSERT(list->first->value == t1);
@@ -280,16 +279,16 @@ int test_list_push_pop(void) {
 }
 
 int test_list_shift(void) {
-  /* Setup */
+  // Setup
   list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
 
-  /* Push elements */
+  // Push elements
   list_push(list, t1);
   list_push(list, t2);
 
-  /* Shift */
+  // Shift
   char *val = list_shift(list);
   MU_ASSERT(val == t1);
   MU_ASSERT(list->length == 1);
@@ -305,13 +304,13 @@ int test_list_shift(void) {
 }
 
 int test_list_unshift(void) {
-  /* Setup */
+  // Setup
   list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
   char *t3 = string_malloc("test3 data");
 
-  /* Unshift */
+  // Unshift
   list_unshift(list, t1);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
@@ -332,7 +331,7 @@ int test_list_unshift(void) {
 }
 
 int test_list_remove(void) {
-  /* Push elements */
+  // Push elements
   list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
@@ -341,20 +340,20 @@ int test_list_remove(void) {
   list_push(list, t2);
   list_push(list, t3);
 
-  /* Remove 2nd value */
+  // Remove 2nd value
   void *value = list_remove(list, t2, strcmp2);
   free(value);
 
-  /* Assert */
+  // Assert
   MU_ASSERT(list->length == 2);
   MU_ASSERT(strcmp(list->first->next->value, t3) == 0);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
 
-  /* Remove 2nd value */
+  // Remove 2nd value
   value = list_remove(list, t3, strcmp2);
   free(value);
 
-  /* Assert */
+  // Assert
   MU_ASSERT(list->length == 1);
   MU_ASSERT(list->first->next == NULL);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
@@ -364,30 +363,30 @@ int test_list_remove(void) {
 }
 
 int test_list_remove_destroy(void) {
-  /* Setup */
+  // Setup
   list_t *list = list_malloc();
   char *t1 = string_malloc("test1 data");
   char *t2 = string_malloc("test2 data");
   char *t3 = string_malloc("test3 data");
 
-  /* Push elements */
+  // Push elements
   list_push(list, t1);
   list_push(list, t2);
   list_push(list, t3);
 
-  /* Remove 2nd value */
+  // Remove 2nd value
   int result = list_remove_destroy(list, t2, strcmp2, free);
 
-  /* Assert */
+  // Assert
   MU_ASSERT(result == 0);
   MU_ASSERT(list->length == 2);
   MU_ASSERT(strcmp(list->first->next->value, t3) == 0);
   MU_ASSERT(strcmp(list->first->value, t1) == 0);
 
-  /* Remove 2nd value */
+  // Remove 2nd value
   result = list_remove_destroy(list, t3, strcmp2, free);
 
-  /* Assert */
+  // Assert
   MU_ASSERT(result == 0);
   MU_ASSERT(list->length == 1);
   MU_ASSERT(list->first->next == NULL);
@@ -1000,23 +999,15 @@ int test_rbt_sandbox(void) {
   rbt_insert(rbt, &key_2, &val_2);
   rbt_insert(rbt, &key_3, &val_3);
   rbt_insert(rbt, &key_4, &val_4);
-  // printf("---\n");
   rbt_delete(rbt, &key_4);
 
   const size_t n = rbt_size(rbt);
-  printf("n: %ld\n", n);
   arr_t *keys = arr_malloc(n);
   arr_t *vals = arr_malloc(n);
   rbt_keys_values(rbt, keys, vals);
   for (size_t i = 0; i < n; ++i) {
-    printf("== key: %d, %p\n", *(int *) keys->data[i], keys->data[i]);
     free(keys->data[i]);
   }
-  // printf("-> key: 0, %p\n", (void *) &key_0);
-  // printf("-> key: 1, %p\n", (void *) &key_1);
-  // printf("-> key: 2, %p\n", (void *) &key_2);
-  // printf("-> key: 3, %p\n", (void *) &key_3);
-  // printf("-> key: 4, %p\n", (void *) &key_4);
 
   // Clean up
   rbt_free(rbt);
@@ -1361,7 +1352,6 @@ int test_eye(void) {
   real_t A[25] = {0.0};
   eye(A, 5, 5);
 
-  /* print_matrix("I", A, 5, 5); */
   size_t idx = 0;
   size_t rows = 5;
   size_t cols = 5;
@@ -1380,7 +1370,6 @@ int test_ones(void) {
   real_t A[25] = {0.0};
   ones(A, 5, 5);
 
-  /* print_matrix("A", A, 5, 5); */
   size_t idx = 0;
   size_t rows = 5;
   size_t cols = 5;
@@ -1398,7 +1387,6 @@ int test_zeros(void) {
   real_t A[25] = {0.0};
   zeros(A, 5, 5);
 
-  /* print_matrix("A", A, 5, 5); */
   size_t idx = 0;
   size_t rows = 5;
   size_t cols = 5;
@@ -1419,7 +1407,6 @@ int test_mat_set(void) {
   mat_set(A, 3, 1, 1, 1.0);
   mat_set(A, 3, 2, 2, 1.0);
 
-  /* print_matrix("A", A, 3, 3); */
   MU_ASSERT(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
   MU_ASSERT(fltcmp(mat_val(A, 3, 1, 1), 1.0) == 0);
   MU_ASSERT(fltcmp(mat_val(A, 3, 2, 2), 1.0) == 0);
@@ -1430,7 +1417,6 @@ int test_mat_set(void) {
 int test_mat_val(void) {
   real_t A[9] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
 
-  /* print_matrix("A", A, 3, 3); */
   MU_ASSERT(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
   MU_ASSERT(fltcmp(mat_val(A, 3, 0, 1), 2.0) == 0);
   MU_ASSERT(fltcmp(mat_val(A, 3, 0, 2), 3.0) == 0);
@@ -1517,10 +1503,6 @@ int test_mat_block_get(void) {
   mat_block_get(A, 3, 1, 2, 1, 2, B);
   mat_block_get(A, 3, 0, 1, 1, 2, C);
 
-  // print_matrix("A", A, 3, 3);
-  // print_matrix("B", B, 2, 2);
-  // print_matrix("C", C, 2, 2);
-
   MU_ASSERT(fltcmp(mat_val(B, 2, 0, 0), 4.0) == 0);
   MU_ASSERT(fltcmp(mat_val(B, 2, 0, 1), 5.0) == 0);
   MU_ASSERT(fltcmp(mat_val(B, 2, 1, 0), 7.0) == 0);
@@ -1543,12 +1525,7 @@ int test_mat_block_set(void) {
   real_t B[2 * 2] = {0.0, 0.0,
                      0.0, 0.0};
   // clang-format on
-
-  // print_matrix("A", A, 3, 3);
-  // print_matrix("B", B, 2, 2);
   mat_block_set(A, 4, 1, 2, 1, 2, B);
-  // print_matrix("A", A, 4, 4);
-  // print_matrix("B", B, 2, 2);
 
   MU_ASSERT(fltcmp(mat_val(A, 4, 1, 1), 0.0) == 0);
   MU_ASSERT(fltcmp(mat_val(A, 4, 1, 2), 0.0) == 0);
@@ -1563,8 +1540,6 @@ int test_mat_diag_get(void) {
   real_t d[3] = {0.0, 0.0, 0.0};
   mat_diag_get(A, 3, 3, d);
 
-  // print_matrix("A", A, 3, 3);
-  // print_vector("d", d, 3);
   MU_ASSERT(fltcmp(d[0], 1.0) == 0);
   MU_ASSERT(fltcmp(d[1], 5.0) == 0);
   MU_ASSERT(fltcmp(d[2], 9.0) == 0);
@@ -1577,7 +1552,6 @@ int test_mat_diag_set(void) {
   real_t d[4] = {1.0, 2.0, 3.0};
   mat_diag_set(A, 3, 3, d);
 
-  // print_matrix("A", A, 3, 3);
   MU_ASSERT(fltcmp(mat_val(A, 3, 0, 0), 1.0) == 0);
   MU_ASSERT(fltcmp(mat_val(A, 3, 1, 1), 2.0) == 0);
   MU_ASSERT(fltcmp(mat_val(A, 3, 2, 2), 3.0) == 0);
@@ -1594,7 +1568,6 @@ int test_mat_triu(void) {
   real_t U[16] = {0};
   // clang-format on
   mat_triu(A, 4, U);
-  // print_matrix("U", U, 4, 4);
 
   return 0;
 }
@@ -1608,7 +1581,6 @@ int test_mat_tril(void) {
   real_t L[16] = {0};
   // clang-format on
   mat_tril(A, 4, L);
-  // print_matrix("L", L, 4, 4);
 
   return 0;
 }
@@ -1709,9 +1681,6 @@ int test_dot(void) {
 
   /* Multiply matrix A and B */
   dot(A, 3, 3, B, 3, 1, C);
-  // print_matrix("A", A, 3, 3);
-  // print_matrix("B", B, 3, 1);
-  // print_matrix("C", C, 3, 1);
 
   MU_ASSERT(fltcmp(C[0], 14.0) == 0);
   MU_ASSERT(fltcmp(C[1], 32.0) == 0);
@@ -1872,8 +1841,6 @@ int test_pinv(void) {
   // Invert matrix A using SVD
   real_t A_inv[4 * 4] = {0};
   pinv(A, m, n, A_inv);
-  // print_matrix("A", A, m, n);
-  // print_matrix("A_inv", A_inv, m, n);
 
   // Inverse check: A * A_inv = eye
   MU_ASSERT(check_inv(A, A_inv, 4) == 0);
@@ -1912,8 +1879,6 @@ int test_chol(void) {
   // struct timespec t = tic();
   real_t L[9] = {0};
   chol(A, n, L);
-  // printf("time taken: [%fs]\n", toc(&t));
-  // mat_save("/tmp/L.csv", L, 3, 3);
 
   real_t Lt[9] = {0};
   real_t LLt[9] = {0};
@@ -1950,9 +1915,6 @@ int test_chol_solve(void) {
   // struct timespec t = tic();
   chol_solve(A, b, x, n);
   // printf("time taken: [%fs]\n", toc(&t));
-  // print_matrix("A", A, n, n);
-  // print_vector("b", b, n);
-  // print_vector("x", x, n);
 
   MU_ASSERT(fltcmp(x[0], 1.0) == 0);
   MU_ASSERT(fltcmp(x[1], 1.0) == 0);
@@ -2115,12 +2077,6 @@ int test_schur_complement(void) {
   // print_vector("bmm", bmm, m);
   // print_vector("brr", brr, r);
 
-  // real_t *Hmm = malloc(sizeof(real_t) * m * m);
-  // real_t *Hmr = malloc(sizeof(real_t) * m * r);
-  // real_t *Hrm = malloc(sizeof(real_t) * m * r);
-  // real_t *Hrr = malloc(sizeof(real_t) * r * r);
-  // real_t *Hmm_inv = malloc(sizeof(real_t) * m * m);
-
   return 0;
 }
 
@@ -2136,13 +2092,10 @@ int test_suitesparse_chol_solve(void) {
   real_t x[3] = {0.0, 0.0, 0.0};
   // clang-format on
 
-  // struct timespec t = tic();
   cholmod_common common;
   cholmod_start(&common);
   suitesparse_chol_solve(&common, A, n, n, b, n, x);
   cholmod_finish(&common);
-  // printf("time taken: [%fs]\n", toc(&t));
-  // print_vector("x", x, n);
 
   MU_ASSERT(fltcmp(x[0], 1.0) == 0);
   MU_ASSERT(fltcmp(x[1], 1.0) == 0);
@@ -2163,7 +2116,6 @@ int test_tf_rot_set(void) {
 
   real_t T[16] = {0.0};
   tf_rot_set(T, C);
-  /* print_matrix("T", T, 4, 4); */
 
   MU_ASSERT(fltcmp(T[0], 1.0) == 0);
   MU_ASSERT(fltcmp(T[1], 1.0) == 0);
@@ -2193,7 +2145,6 @@ int test_tf_trans_set(void) {
 
   real_t T[16] = {0.0};
   tf_trans_set(T, r);
-  /* print_matrix("T", T, 4, 4); */
 
   MU_ASSERT(fltcmp(T[0], 0.0) == 0);
   MU_ASSERT(fltcmp(T[1], 0.0) == 0);
@@ -2226,7 +2177,7 @@ int test_tf_trans_get(void) {
                   13.0, 14.0, 15.0, 16.0};
   // clang-format on
 
-  /* Get translation vector */
+  // Get translation vector
   real_t r[3];
   tf_trans_get(T, r);
   MU_ASSERT(fltcmp(r[0], 4.0) == 0);
@@ -2237,7 +2188,7 @@ int test_tf_trans_get(void) {
 }
 
 int test_tf_rot_get(void) {
-  /* Transform */
+  // Transform
   // clang-format off
   real_t T[16] = {1.0, 2.0, 3.0, 4.0,
                   5.0, 6.0, 7.0, 8.0,
@@ -2245,7 +2196,7 @@ int test_tf_rot_get(void) {
                   13.0, 14.0, 15.0, 16.0};
   // clang-format on
 
-  /* Get rotation matrix */
+  // Get rotation matrix
   real_t C[9];
   tf_rot_get(T, C);
 
@@ -2265,7 +2216,7 @@ int test_tf_rot_get(void) {
 }
 
 int test_tf_quat_get(void) {
-  /* Transform */
+  // Transform
   // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 0.0,
                   0.0, 1.0, 0.0, 0.0,
@@ -2273,17 +2224,17 @@ int test_tf_quat_get(void) {
                   0.0, 0.0, 0.0, 1.0};
   // clang-format on
 
-  /* Create rotation matrix */
+  // Create rotation matrix
   const real_t ypr_in[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
   real_t C[9] = {0};
   euler321(ypr_in, C);
   tf_rot_set(T, C);
 
-  /* Extract quaternion from transform */
+  // Extract quaternion from transform
   real_t q[4] = {0};
   tf_quat_get(T, q);
 
-  /* Convert quaternion back to euler angles */
+  // Convert quaternion back to euler angles
   real_t ypr_out[3] = {0};
   quat2euler(q, ypr_out);
 
@@ -2295,31 +2246,31 @@ int test_tf_quat_get(void) {
 }
 
 int test_tf_inv(void) {
-  /* Create Transform */
+  // Create Transform
   // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 0.0,
                   0.0, 1.0, 0.0, 0.0,
                   0.0, 0.0, 1.0, 0.0,
                   0.0, 0.0, 0.0, 1.0};
   // clang-format on
-  /* -- Set rotation component */
+  // -- Set rotation component
   const real_t euler[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
   real_t C[9] = {0};
   euler321(euler, C);
   tf_rot_set(T, C);
-  /* -- Set translation component */
+  // -- Set translation component
   real_t r[3] = {1.0, 2.0, 3.0};
   tf_trans_set(T, r);
 
-  /* Invert transform */
+  // Invert transform
   real_t T_inv[16] = {0};
   tf_inv(T, T_inv);
 
-  /* real_t Invert transform */
+  // real_t Invert transform
   real_t T_inv_inv[16] = {0};
   tf_inv(T_inv, T_inv_inv);
 
-  /* Assert */
+  // Assert
   int idx = 0;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -2331,7 +2282,7 @@ int test_tf_inv(void) {
 }
 
 int test_tf_point(void) {
-  /* Transform */
+  // Transform
   // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 1.0,
                   0.0, 1.0, 0.0, 2.0,
@@ -2339,10 +2290,10 @@ int test_tf_point(void) {
                   0.0, 0.0, 0.0, 1.0};
   // clang-format on
 
-  /* Point */
+  // Point
   real_t p[3] = {1.0, 2.0, 3.0};
 
-  /* Transform point */
+  // Transform point
   real_t result[3] = {0};
   tf_point(T, p, result);
 
@@ -2350,7 +2301,7 @@ int test_tf_point(void) {
 }
 
 int test_tf_hpoint(void) {
-  /* Transform */
+  // Transform
   // clang-format off
   real_t T[16] = {1.0, 0.0, 0.0, 1.0,
                   0.0, 1.0, 0.0, 2.0,
@@ -2358,10 +2309,10 @@ int test_tf_hpoint(void) {
                   0.0, 0.0, 0.0, 1.0};
   // clang-format on
 
-  /* Homogeneous point */
+  // Homogeneous point
   real_t hp[4] = {1.0, 2.0, 3.0, 1.0};
 
-  /* Transform homogeneous point */
+  // Transform homogeneous point
   real_t result[4] = {0};
   tf_hpoint(T, hp, result);
 
@@ -2369,7 +2320,7 @@ int test_tf_hpoint(void) {
 }
 
 int test_tf_perturb_rot(void) {
-  /* Transform */
+  // Transform
   // clang-format off
   real_t T[4 * 4] = {1.0, 0.0, 0.0, 1.0,
                      0.0, 1.0, 0.0, 2.0,
@@ -2377,11 +2328,11 @@ int test_tf_perturb_rot(void) {
                      0.0, 0.0, 0.0, 1.0};
   // clang-format on
 
-  /* Perturb rotation */
+  // Perturb rotation
   const real_t step_size = 1e-2;
   tf_perturb_rot(T, step_size, 0);
 
-  /* Assert */
+  // Assert
   MU_ASSERT(fltcmp(T[0], 1.0) == 0);
   MU_ASSERT(fltcmp(T[5], 1.0) != 0);
   MU_ASSERT(fltcmp(T[10], 1.0) != 0);
@@ -2390,7 +2341,7 @@ int test_tf_perturb_rot(void) {
 }
 
 int test_tf_perturb_trans(void) {
-  /* Transform */
+  // Transform
   // clang-format off
   real_t T[4 * 4] = {1.0, 0.0, 0.0, 1.0,
                      0.0, 1.0, 0.0, 2.0,
@@ -2398,11 +2349,11 @@ int test_tf_perturb_trans(void) {
                      0.0, 0.0, 0.0, 1.0};
   // clang-format on
 
-  /* Perturb translation */
+  // Perturb translation
   const real_t step_size = 1e-2;
   tf_perturb_trans(T, step_size, 0);
 
-  /* Assert */
+  // Assert
   MU_ASSERT(fltcmp(T[3], 1.01) == 0);
   MU_ASSERT(fltcmp(T[7], 2.0) == 0);
   MU_ASSERT(fltcmp(T[11], 3.0) == 0);
@@ -2411,7 +2362,7 @@ int test_tf_perturb_trans(void) {
 }
 
 int test_tf_chain(void) {
-  /* First transform */
+  // First transform
   const real_t r0[3] = {0.0, 0.0, 0.1};
   const real_t euler0[3] = {deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
   real_t T0[4 * 4] = {0};
@@ -2422,7 +2373,7 @@ int test_tf_chain(void) {
   tf_trans_set(T0, r0);
   T0[15] = 1.0;
 
-  /* Second transform */
+  // Second transform
   const real_t r1[3] = {0.0, 0.0, 0.1};
   const real_t euler1[3] = {deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
   real_t T1[4 * 4] = {0};
@@ -2433,7 +2384,7 @@ int test_tf_chain(void) {
   tf_trans_set(T1, r1);
   T1[15] = 1.0;
 
-  /* Third transform */
+  // Third transform
   const real_t r2[3] = {0.0, 0.0, 0.1};
   const real_t euler2[3] = {deg2rad(0.0), deg2rad(0.0), deg2rad(0.0)};
   real_t T2[4 * 4] = {0};
@@ -2444,7 +2395,7 @@ int test_tf_chain(void) {
   tf_trans_set(T2, r2);
   T2[15] = 1.0;
 
-  /* Chain transforms */
+  // Chain transforms
   const real_t *tfs[3] = {T0, T1, T2};
   const int N = 3;
   real_t T_out[4 * 4] = {0};
@@ -2454,16 +2405,16 @@ int test_tf_chain(void) {
 }
 
 int test_euler321(void) {
-  /* Euler to rotation matrix */
+  // Euler to rotation matrix
   const real_t euler[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
   real_t C[9] = {0};
   euler321(euler, C);
 
-  /* Rotation matrix to quaternion */
+  // Rotation matrix to quaternion
   real_t q[4] = {0};
   rot2quat(C, q);
 
-  /* Quaternion to Euler angles*/
+  // Quaternion to Euler angles
   real_t euler2[3] = {0};
   quat2euler(q, euler2);
 
@@ -2475,7 +2426,7 @@ int test_euler321(void) {
 }
 
 int test_rot2quat(void) {
-  /* Rotation matrix to quaternion */
+  // Rotation matrix to quaternion
   const real_t C[9] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
   real_t q[4] = {0.0};
   rot2quat(C, q);
@@ -2491,11 +2442,11 @@ int test_rot2quat(void) {
 int test_quat2euler(void) {
   const real_t C[9] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
 
-  /* Rotation matrix to quaternion */
+  // Rotation matrix to quaternion
   real_t q[4] = {0.0};
   rot2quat(C, q);
 
-  /* Quaternion to Euler angles */
+  // Quaternion to Euler angles
   real_t ypr[3] = {0.0};
   quat2euler(q, ypr);
 
@@ -2507,17 +2458,17 @@ int test_quat2euler(void) {
 }
 
 int test_quat2rot(void) {
-  /* Euler to rotation matrix */
+  // Euler to rotation matrix
   const real_t euler[3] = {deg2rad(10.0), deg2rad(20.0), deg2rad(30.0)};
   real_t C[9] = {0};
   euler321(euler, C);
 
-  /* Rotation matrix to quaternion */
+  // Rotation matrix to quaternion
   real_t q[4] = {0.0};
   rot2quat(C, q);
-  /* print_vector("q", q, 4); */
+  // print_vector("q", q, 4);
 
-  /* Quaternion to rotation matrix */
+  // Quaternion to rotation matrix
   real_t rot[9] = {0.0};
   quat2rot(q, rot);
 
@@ -2870,13 +2821,6 @@ int test_mav_waypoints(void) {
   mav_model_telem_free(telem);
   mav_waypoints_free(wps);
 
-  // gui_t gui;
-  // gui.window_title = "Test";
-  // gui.window_width = 640;
-  // gui.window_height = 480;
-  // gui_setup(&gui);
-  // gui_loop(&gui);
-
   return 0;
 }
 
@@ -2931,7 +2875,7 @@ int test_radtan4_point_jacobian(void) {
   real_t J_point[2 * 2] = {0};
   radtan4_point_jacobian(params, p, J_point);
 
-  /* Calculate numerical diff */
+  // Calculate numerical diff
   const real_t step = 1e-4;
   const real_t tol = 1e-4;
   real_t J_numdiff[2 * 2] = {0};
@@ -2951,7 +2895,7 @@ int test_radtan4_point_jacobian(void) {
     }
   }
 
-  /* Check jacobian */
+  // Check jacobian
   // print_vector("p", p, 2);
   // print_matrix("J_point", J_point, 2, 2);
   // print_matrix("J_numdiff", J_numdiff, 2, 2);
@@ -2966,7 +2910,7 @@ int test_radtan4_params_jacobian(void) {
   real_t J_param[2 * 4] = {0};
   radtan4_params_jacobian(params, p, J_param);
 
-  /* Calculate numerical diff */
+  // Calculate numerical diff
   const real_t step = 1e-4;
   const real_t tol = 1e-4;
   real_t J_numdiff[2 * 4] = {0};
@@ -2986,7 +2930,7 @@ int test_radtan4_params_jacobian(void) {
     }
   }
 
-  /* Check jacobian */
+  // Check jacobian
   // print_vector("p", p, 2);
   // print_matrix("J_param", J_param, 2, 4);
   // print_matrix("J_numdiff", J_numdiff, 2, 4);
@@ -3032,7 +2976,7 @@ int test_equi4_point_jacobian(void) {
   real_t J_point[2 * 2] = {0};
   equi4_point_jacobian(params, p, J_point);
 
-  /* Calculate numerical diff */
+  // Calculate numerical diff
   const real_t step = 1e-4;
   const real_t tol = 1e-4;
   real_t J_numdiff[2 * 2] = {0};
@@ -3052,7 +2996,7 @@ int test_equi4_point_jacobian(void) {
     }
   }
 
-  /* Check jacobian */
+  // Check jacobian
   // print_vector("p", p, 2);
   // print_matrix("J_point", J_point, 2, 2);
   // print_matrix("J_numdiff", J_numdiff, 2, 2);
@@ -3067,7 +3011,7 @@ int test_equi4_params_jacobian(void) {
   real_t J_param[2 * 4] = {0};
   equi4_params_jacobian(params, p, J_param);
 
-  /* Calculate numerical diff */
+  // Calculate numerical diff
   const real_t step = 1e-8;
   const real_t tol = 1e-4;
   real_t J_numdiff[2 * 4] = {0};
@@ -3087,7 +3031,7 @@ int test_equi4_params_jacobian(void) {
     }
   }
 
-  /* Check jacobian */
+  // Check jacobian
   // print_vector("p", p, 2);
   // print_matrix("J_param", J_param, 2, 4);
   // print_matrix("J_numdiff", J_numdiff, 2, 4);
@@ -3123,7 +3067,7 @@ int test_pinhole_K(void) {
 }
 
 int test_pinhole_projection_matrix(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3132,25 +3076,25 @@ int test_pinhole_projection_matrix(void) {
   const real_t cy = img_h / 2.0;
   const real_t params[4] = {fx, fy, cx, cy};
 
-  /* Camera pose */
+  // Camera pose
   const real_t ypr_WC0[3] = {-M_PI / 2.0, 0, -M_PI / 2.0};
   const real_t r_WC0[3] = {0.0, 0.0, 0.0};
   real_t T_WC0[4 * 4] = {0};
   tf_euler_set(T_WC0, ypr_WC0);
   tf_trans_set(T_WC0, r_WC0);
 
-  /* Camera projection matrix */
+  // Camera projection matrix
   real_t P[3 * 4] = {0};
   pinhole_projection_matrix(params, T_WC0, P);
 
-  /* Project point using projection matrix */
+  // Project point using projection matrix
   const real_t p_W[3] = {1.0, 0.1, 0.2};
   const real_t hp_W[4] = {p_W[0], p_W[1], p_W[2], 1.0};
   real_t hp[3] = {0};
   dot(P, 3, 4, hp_W, 4, 1, hp);
   real_t z[2] = {hp[0], hp[1]};
 
-  /* Project point by inverting T_WC0 and projecting the point */
+  // Project point by inverting T_WC0 and projecting the point
   real_t p_C[3] = {0};
   real_t T_C0W[4 * 4] = {0};
   real_t z_gnd[2] = {0};
@@ -3158,7 +3102,7 @@ int test_pinhole_projection_matrix(void) {
   tf_point(T_C0W, p_W, p_C);
   pinhole_project(params, p_C, z_gnd);
 
-  /* Assert */
+  // Assert
   MU_ASSERT(fltcmp(z_gnd[0], z[0]) == 0);
   MU_ASSERT(fltcmp(z_gnd[1], z[1]) == 0);
 
@@ -3177,8 +3121,8 @@ int test_pinhole_project(void) {
   real_t z[2] = {0.0, 0.0};
   pinhole_project(params, p_C, z);
 
-  /* print_vector("p_C", p_C, 3); */
-  /* print_vector("z", z, 2); */
+  // print_vector("p_C", p_C, 3);
+  // print_vector("z", z, 2);
   MU_ASSERT(fltcmp(z[0], 320.0) == 0);
   MU_ASSERT(fltcmp(z[1], 240.0) == 0);
 
@@ -3186,7 +3130,7 @@ int test_pinhole_project(void) {
 }
 
 int test_pinhole_point_jacobian(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3195,11 +3139,11 @@ int test_pinhole_point_jacobian(void) {
   const real_t cy = img_h / 2.0;
   const real_t params[4] = {fx, fy, cx, cy};
 
-  /* Calculate analytical jacobian */
+  // Calculate analytical jacobian
   real_t J_point[2 * 2] = {0};
   pinhole_point_jacobian(params, J_point);
 
-  /* Numerical differentiation */
+  // Numerical differentiation
   const real_t p_C[3] = {0.1, 0.2, 1.0};
   real_t z[2] = {0};
   pinhole_project(params, p_C, z);
@@ -3217,14 +3161,14 @@ int test_pinhole_point_jacobian(void) {
     J_numdiff[i + 2] = (z_fd[1] - z[1]) / h;
   }
 
-  /* Assert */
+  // Assert
   MU_ASSERT(check_jacobian("J_point", J_numdiff, J_point, 2, 2, tol, 0) == 0);
 
   return 0;
 }
 
 int test_pinhole_params_jacobian(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3233,13 +3177,13 @@ int test_pinhole_params_jacobian(void) {
   const real_t cy = img_h / 2.0;
   const real_t params[4] = {fx, fy, cx, cy};
 
-  /* Calculate analytical jacobian */
+  // Calculate analytical jacobian
   const real_t p_C[3] = {0.1, 0.2, 1.0};
   const real_t x[2] = {p_C[0] / p_C[2], p_C[1] / p_C[2]};
   real_t J_params[2 * 4] = {0};
   pinhole_params_jacobian(params, x, J_params);
 
-  /* Numerical differentiation */
+  // Numerical differentiation
   real_t z[2] = {0};
   pinhole_project(params, p_C, z);
 
@@ -3257,14 +3201,14 @@ int test_pinhole_params_jacobian(void) {
     J_numdiff[i + 4] = (z_fd[1] - z[1]) / h;
   }
 
-  /* Assert */
+  // Assert
   MU_ASSERT(check_jacobian("J_params", J_numdiff, J_params, 2, 4, tol, 0) == 0);
 
   return 0;
 }
 
 int test_pinhole_radtan4_project(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3281,7 +3225,7 @@ int test_pinhole_radtan4_project(void) {
   real_t x[2] = {0};
   pinhole_radtan4_project(params, p_C, x);
 
-  /* print_vector("x", x, 2); */
+  // print_vector("x", x, 2);
   MU_ASSERT(fltcmp(x[0], 323.204000) == 0);
   MU_ASSERT(fltcmp(x[1], 166.406400) == 0);
 
@@ -3289,7 +3233,7 @@ int test_pinhole_radtan4_project(void) {
 }
 
 int test_pinhole_radtan4_project_jacobian(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3302,12 +3246,12 @@ int test_pinhole_radtan4_project_jacobian(void) {
   const real_t p2 = 0.01;
   const real_t params[8] = {fx, fy, cx, cy, k1, k2, p1, p2};
 
-  /* Calculate analytical jacobian */
+  // Calculate analytical jacobian
   const real_t p_C[3] = {0.1, 0.2, 10.0};
   real_t J[2 * 3] = {0};
   pinhole_radtan4_project_jacobian(params, p_C, J);
 
-  /* Numerical differentiation */
+  // Numerical differentiation
   real_t z[2] = {0};
   pinhole_radtan4_project(params, p_C, z);
 
@@ -3325,16 +3269,16 @@ int test_pinhole_radtan4_project_jacobian(void) {
     J_numdiff[i + 3] = (z_fd[1] - z[1]) / h;
   }
 
-  /* Assert */
-  /* print_matrix("J_numdiff", J_numdiff, 2, 3); */
-  /* print_matrix("J", J, 2, 3); */
+  // Assert
+  // print_matrix("J_numdiff", J_numdiff, 2, 3);
+  // print_matrix("J", J, 2, 3);
   MU_ASSERT(check_jacobian("J", J_numdiff, J, 2, 3, tol, 0) == 0);
 
   return 0;
 }
 
 int test_pinhole_radtan4_params_jacobian(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3347,12 +3291,12 @@ int test_pinhole_radtan4_params_jacobian(void) {
   const real_t p2 = 0.01;
   const real_t params[8] = {fx, fy, cx, cy, k1, k2, p1, p2};
 
-  /* Calculate analytical jacobian */
+  // Calculate analytical jacobian
   const real_t p_C[3] = {0.1, 0.2, 10.0};
   real_t J_params[2 * 8] = {0};
   pinhole_radtan4_params_jacobian(params, p_C, J_params);
 
-  /* Numerical differentiation */
+  // Numerical differentiation
   real_t z[2] = {0};
   pinhole_radtan4_project(params, p_C, z);
 
@@ -3372,16 +3316,16 @@ int test_pinhole_radtan4_params_jacobian(void) {
     J_numdiff[i + 8] = (z_fd[1] - z[1]) / h;
   }
 
-  /* Assert */
-  /* print_matrix("J_numdiff", J_numdiff, 2, 8); */
-  /* print_matrix("J_params", J_params, 2, 8); */
+  // Assert
+  // print_matrix("J_numdiff", J_numdiff, 2, 8);
+  // print_matrix("J_params", J_params, 2, 8);
   MU_ASSERT(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
 
   return 0;
 }
 
 int test_pinhole_equi4_project(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3398,7 +3342,7 @@ int test_pinhole_equi4_project(void) {
   real_t x[2] = {0};
   pinhole_equi4_project(params, p_C, x);
 
-  /* print_vector("x", x, 2); */
+  // print_vector("x", x, 2);
   MU_ASSERT(fltcmp(x[0], 323.199627) == 0);
   MU_ASSERT(fltcmp(x[1], 166.399254) == 0);
 
@@ -3406,7 +3350,7 @@ int test_pinhole_equi4_project(void) {
 }
 
 int test_pinhole_equi4_project_jacobian(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3419,12 +3363,12 @@ int test_pinhole_equi4_project_jacobian(void) {
   const real_t k4 = 0.01;
   const real_t params[8] = {fx, fy, cx, cy, k1, k2, k3, k4};
 
-  /* Calculate analytical jacobian */
+  // Calculate analytical jacobian
   const real_t p_C[3] = {0.1, 0.2, 10.0};
   real_t J[2 * 3] = {0};
   pinhole_equi4_project_jacobian(params, p_C, J);
 
-  /* Numerical differentiation */
+  // Numerical differentiation
   real_t z[2] = {0};
   pinhole_equi4_project(params, p_C, z);
 
@@ -3442,16 +3386,16 @@ int test_pinhole_equi4_project_jacobian(void) {
     J_numdiff[i + 3] = (z_fd[1] - z[1]) / h;
   }
 
-  /* Assert */
-  /* print_matrix("J_numdiff", J_numdiff, 2, 3); */
-  /* print_matrix("J", J, 2, 3); */
+  // Assert
+  // print_matrix("J_numdiff", J_numdiff, 2, 3);
+  // print_matrix("J", J, 2, 3);
   MU_ASSERT(check_jacobian("J", J_numdiff, J, 2, 3, tol, 0) == 0);
 
   return 0;
 }
 
 int test_pinhole_equi4_params_jacobian(void) {
-  /* Camera parameters */
+  // Camera parameters
   const int img_w = 640;
   const int img_h = 320;
   const real_t fx = pinhole_focal(img_w, 90.0);
@@ -3464,12 +3408,12 @@ int test_pinhole_equi4_params_jacobian(void) {
   const real_t k4 = 0.01;
   const real_t params[8] = {fx, fy, cx, cy, k1, k2, k3, k4};
 
-  /* Calculate analytical jacobian */
+  // Calculate analytical jacobian
   const real_t p_C[3] = {0.1, 0.2, 10.0};
   real_t J_params[2 * 8] = {0};
   pinhole_equi4_params_jacobian(params, p_C, J_params);
 
-  /* Numerical differentiation */
+  // Numerical differentiation
   real_t z[2] = {0};
   pinhole_equi4_project(params, p_C, z);
 
@@ -3489,9 +3433,9 @@ int test_pinhole_equi4_params_jacobian(void) {
     J_numdiff[i + 8] = (z_fd[1] - z[1]) / h;
   }
 
-  /* Assert */
-  /* print_matrix("J_numdiff", J_numdiff, 2, 8); */
-  /* print_matrix("J_params", J_params, 2, 8); */
+  // Assert
+  // print_matrix("J_numdiff", J_numdiff, 2, 8);
+  // print_matrix("J_params", J_params, 2, 8);
   MU_ASSERT(check_jacobian("J_params", J_numdiff, J_params, 2, 8, tol, 0) == 0);
 
   return 0;
@@ -5390,85 +5334,6 @@ int test_solver_setup(void) {
   return 0;
 }
 
-// typedef struct cam_view_t {
-//   pose_t pose;
-//   ba_factor_t factors[1000];
-//   int num_factors;
-//   camera_t *camera;
-// } cam_view_t;
-
-int test_solver_eval(void) {
-  // Load test data
-  // const char *dir_path = TEST_SIM_DATA "/cam0";
-  // sim_camera_data_t *cam_data = sim_camera_data_load(dir_path);
-
-  // // Camera parameters
-  // camera_t cam;
-  // const int cam_idx = 0;
-  // const int cam_res[2] = {640, 480};
-  // const char *proj_model = "pinhole";
-  // const char *dist_model = "radtan4";
-  // const real_t params[8] = {640, 480, 320, 240, 0.0, 0.0, 0.0, 0.0};
-  // camera_setup(&cam, cam_idx, cam_res, proj_model, dist_model, params);
-  //
-  // // Setup features
-  // // -- Load features csv
-  // int num_rows = 0;
-  // int num_cols = 0;
-  // char *features_csv = TEST_SIM_DATA "/features.csv";
-  // real_t **features_data = csv_data(features_csv, &num_rows, &num_cols);
-  // size_t *feature_ids = MALLOC(size_t, num_rows);
-  // real_t *feature_xyzs = MALLOC(real_t, num_rows * 3);
-  // for (int i = 0; i < num_rows; i++) {
-  //   feature_ids[i] = features_data[i][0];
-  //   feature_xyzs[i * 3 + 0] = features_data[i][1];
-  //   feature_xyzs[i * 3 + 1] = features_data[i][2];
-  //   feature_xyzs[i * 3 + 2] = features_data[i][3];
-  //   free(features_data[i]);
-  // }
-  // free(features_data);
-  // // -- Add features to container
-  // features_t *features = features_malloc();
-  // features_add_xyzs(features, feature_ids, feature_xyzs, num_rows);
-  // free(feature_ids);
-  // free(feature_xyzs);
-  //
-  // // Loop over simulated camera frames
-  // const real_t var[2] = {1.0, 1.0};
-  // cam_view_t *cam_views = MALLOC(cam_view_t, cam_data->num_frames);
-  // for (int k = 0; k < cam_data->num_frames; k++) {
-  //   // Camera frame
-  //   const sim_camera_frame_t *frame = cam_data->frames[k];
-  //
-  //   // Pose
-  //   pose_t *pose = &cam_views[k].pose;
-  //   pose_setup(pose, frame->ts, &cam_data->poses[k]);
-  //
-  //   // Add factors
-  //   cam_views[k].num_factors = frame->num_measurements;
-  //   for (int i = 0; i < frame->num_measurements; i++) {
-  //     const int feature_id = frame->feature_ids[i];
-  //     const real_t *z = &frame->keypoints[i];
-  //     feature_t *f = NULL;
-  //     features_get_xyz(features, feature_id, &f);
-  //
-  //     // Factor
-  //     ba_factor_t *factor = &cam_views[k].factors[i];
-  //     ba_factor_setup(factor, pose, f, &cam, z, var);
-  //   }
-  // }
-
-  // solver_t solver;
-  // solver_setup(&solver);
-
-  // Clean up
-  // sim_camera_data_free(cam_data);
-  // free(cam_views);
-  // features_free(features);
-
-  return 0;
-}
-
 typedef struct inertial_odometry_t {
   // IMU Parameters
   imu_params_t imu_params;
@@ -5699,255 +5564,220 @@ int test_inertial_odometry_batch(void) {
   return 0;
 }
 
-// int test_visual_odometry_batch(void) {
-//   // Simulate features
-//   const real_t origin[3] = {0.0, 0.0, 0.0};
-//   const real_t dim[3] = {5.0, 5.0, 5.0};
-//   const int num_features = 1000;
-//   real_t features[3 * 1000] = {0};
-//   sim_create_features(origin, dim, num_features, features);
-//
-//   // Camera configuration
-//   const int res[2] = {640, 480};
-//   const real_t fov = 90.0;
-//   const real_t fx = pinhole_focal(res[0], fov);
-//   const real_t fy = pinhole_focal(res[0], fov);
-//   const real_t cx = res[0] / 2.0;
-//   const real_t cy = res[1] / 2.0;
-//   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
-//   const char *pmodel = "pinhole";
-//   const char *dmodel = "radtan4";
-//   camera_t cam0_params;
-//   camera_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
-//
-//   // IMU-Camera0 extrinsic
-//   const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
-//   const real_t cam0_ext_r[3] = {0.05, 0.0, 0.0};
-//   TF_ER(cam0_ext_ypr, cam0_ext_r, T_BC0);
-//   TF_VECTOR(T_BC0, cam0_ext);
-//   TF_INV(T_BC0, T_C0B);
-//
-//   // Simulate data
-//   sim_circle_t conf;
-//   sim_circle_defaults(&conf);
-//   sim_camera_data_t *cam0_data = sim_camera_circle_trajectory(&conf,
-//                                                               T_BC0,
-//                                                               &cam0_params,
-//                                                               features,
-//                                                               num_features);
-//   // Setup factor graph
-//   // feature_hash_t *feature_params = NULL;
-//
-//   // fgraph_t *fg = fgraph_malloc();
-//   // // -- Add features
-//   // for (int feature_id = 0; feature_id < num_features; feature_id++) {
-//   //   fgraph_add_feature(fg, feature_id, features + feature_id * 3, 0);
-//   // }
-//   // // -- Add camera
-//   // const int cam0_id = fgraph_add_camera(fg, 0, res, pmodel, dmodel, cam_vec, 0);
-//   // const int cam0_ext_id = fgraph_add_cam_ext(fg, 0, cam0_ext, 0);
-//
-//   // for (size_t k = 0; k < cam0_data->num_frames; k++) {
-//   //   const sim_camera_frame_t *cam0_frame = cam0_data->frames[k];
-//
-//   //   // Add pose
-//   //   const real_t *cam0_pose = &cam0_data->poses[k * 7];
-//   //   TF(cam0_pose, T_WC0);
-//   //   TF_CHAIN(T_WB, 2, T_WC0, T_C0B);
-//   //   TF_VECTOR(T_WB, body_pose);
-//   //   pose_random_perturb(body_pose, 0.1, 0.1);
-//   //   const int pose_id = fgraph_add_pose(fg, k, body_pose, 0);
-//
-//   //   // Add camera factors
-//   //   for (int i = 0; i < cam0_frame->num_measurements; i++) {
-//   //     const int feature_id = cam0_frame->feature_ids[i];
-//   //     const real_t *kp = cam0_frame->keypoints + i * 2;
-//   //     const int param_ids[4] = {pose_id, cam0_ext_id, feature_id, cam0_id};
-//   //     const real_t var[2] = {1.0, 1.0};
-//   //     fgraph_add_camera_factor(fg, param_ids, kp, var);
-//   //   }
-//   // }
-//
-//   // // Solve
-//   // solver_t solver;
-//   // solver_setup(&solver);
-//
-//   // solver.verbose = 1;
-//   // solver.max_iter = 5;
-//   // solver.cost_func = &fgraph_cost;
-//   // solver.param_order_func = &fgraph_param_order;
-//   // solver.linearize_func = &fgraph_linearize_compact;
-//   // solver_solve(&solver, fg);
-//
-//   // Clean up
-//   sim_camera_data_free(cam0_data);
-//
-//   return 0;
-// }
-//
+typedef struct bundle_adjuster_t {
+  arr_t *factors;
+  arr_t *poses;
+  rbt_t *points;
+  camera_t *camera;
+} bundle_adjuster_t;
 
-// int test_visual_inertial_odometry_batch(void) {
-//   // Simulate features
-//   const real_t origin[3] = {0.0, 0.0, 0.0};
-//   const real_t dim[3] = {5.0, 5.0, 5.0};
-//   const int num_features = 1000;
-//   real_t features[3 * 1000] = {0};
-//   sim_create_features(origin, dim, num_features, features);
+bundle_adjuster_t *bundle_adjuster_malloc(const int num_points) {
+  bundle_adjuster_t *ba = malloc(sizeof(bundle_adjuster_t));
+  ba->factors = arr_malloc(100);
+  ba->poses = arr_malloc(100);
+  ba->points = rbt_malloc(int_cmp);
+  ba->points->kcopy = rbt_copy_int;
+  ba->points->kfree = free;
+  ba->camera = NULL;
+  return ba;
+}
 
-//   // Camera configuration
-//   const int res[2] = {640, 480};
-//   const real_t fov = 90.0;
-//   const real_t fx = pinhole_focal(res[0], fov);
-//   const real_t fy = pinhole_focal(res[0], fov);
-//   const real_t cx = res[0] / 2.0;
-//   const real_t cy = res[1] / 2.0;
-//   const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
-//   const char *pmodel = "pinhole";
-//   const char *dmodel = "radtan4";
-//   camera_t cam0_params;
-//   camera_setup(&cam0_params, 0, res, pmodel, dmodel, cam_vec);
+void bundle_adjuster_free(bundle_adjuster_t *ba) {
+  for (size_t i = 0; i < ba->factors->size; ++i) {
+    free(ba->factors->data[i]);
+  }
+  arr_free(ba->factors);
 
-//   // IMU configuration
-//   imu_params_t imu_params;
-//   imu_params.imu_idx = 0;
-//   imu_params.rate = 200.0;
-//   imu_params.sigma_a = 0.08;
-//   imu_params.sigma_g = 0.004;
-//   imu_params.sigma_aw = 0.00004;
-//   imu_params.sigma_gw = 2.0e-6;
-//   imu_params.g = 9.81;
+  for (size_t i = 0; i < ba->poses->size; ++i) {
+    free(ba->poses->data[i]);
+  }
+  arr_free(ba->poses);
 
-//   // IMU-Camera0 extrinsic
-//   const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
-//   const real_t cam0_ext_r[3] = {0.05, 0.0, 0.0};
-//   TF_ER(cam0_ext_ypr, cam0_ext_r, T_BC0);
-//   TF_VECTOR(T_BC0, cam0_ext);
-//   TF_INV(T_BC0, T_C0B);
+  const size_t n = rbt_size(ba->points);
+  arr_t *keys = arr_malloc(n);
+  arr_t *vals = arr_malloc(n);
+  rbt_keys_values(ba->points, keys, vals);
+  for (int i = 0; i < n; ++i) {
+    free(keys->data[i]);
+    free(vals->data[i]);
+  }
+  arr_free(keys);
+  arr_free(vals);
+  rbt_free(ba->points);
 
-//   // Simulate data
-//   sim_circle_t conf;
-//   sim_circle_defaults(&conf);
-//   sim_imu_data_t *imu_data = sim_imu_circle_trajectory(&conf);
-//   sim_camera_data_t *cam0_data = sim_camera_circle_trajectory(&conf,
-//                                                               T_BC0,
-//                                                               &cam0_params,
-//                                                               features,
-//                                                               num_features);
-//   // Setup factor graph
-//   fgraph_t *fg = fgraph_malloc();
-//   // -- Add features
-//   for (int feature_id = 0; feature_id < num_features; feature_id++) {
-//     fgraph_add_feature(fg, feature_id, features + feature_id * 3, 0);
-//   }
-//   // -- Add camera
-//   const int cam0_id = fgraph_add_camera(fg, 0, res, pmodel, dmodel, cam_vec, 0);
-//   const int cam0_ext_id = fgraph_add_cam_ext(fg, 0, cam0_ext, 0);
+  free(ba->camera);
+  free(ba);
+}
 
-//   int initialized = 0;
-//   int pose_i_id = -1;
-//   int vel_i_id = -1;
-//   int biases_i_id = -1;
-//   // for (size_t k = 1; k < cam0_data->num_frames; k++) {
-//   for (size_t k = 1; k < 20; k++) {
-//     const int64_t ts_i = cam0_data->timestamps[k - 1];
-//     const int64_t ts_j = cam0_data->timestamps[k];
-//     const sim_camera_frame_t *frame_i = cam0_data->frames[k - 1];
-//     const sim_camera_frame_t *frame_j = cam0_data->frames[k];
+void bundle_adjuster_add_camera(bundle_adjuster_t *ba,
+                                const int res[2],
+                                const char *pmodel,
+                                const char *dmodel,
+                                const real_t *params) {
+  assert(ba->camera == NULL);
+  ba->camera = malloc(sizeof(camera_t));
+  camera_setup(ba->camera, 0, res, pmodel, dmodel, params);
+}
 
-//     // Add pose
-//     const real_t *cam_pose_i = &cam0_data->poses[(k - 1) * 7];
-//     const real_t *cam_pose_j = &cam0_data->poses[(k + 0) * 7];
+void bundle_adjuster_add_frame(bundle_adjuster_t *ba,
+                               const sim_camera_frame_t *camera_frame,
+                               const real_t *pose,
+                               const real_t *points) {
+  real_t *frame_pose = malloc(sizeof(real_t) * 7);
+  vec_copy(pose, 7, frame_pose);
+  arr_push_back(ba->poses, frame_pose);
 
-//     // Add camera factors at i
-//     if (initialized == 0) {
-//       // Add pose i
-//       TF(cam_pose_i, T_WC0_i);
-//       TF_CHAIN(T_WB_i, 2, T_WC0_i, T_C0B);
-//       TF_VECTOR(T_WB_i, pose_i);
-//       // pose_random_perturb(pose_i, 0.1, 0.1);
-//       pose_i_id = fgraph_add_pose(fg, ts_i, pose_i, 0);
+  for (int i = 0; i < camera_frame->n; ++i) {
+    int fid = camera_frame->feature_ids[i];
+    real_t *kp = &camera_frame->keypoints[i * 2];
 
-//       // Add speed and biases at i
-//       const real_t *vel_i = &imu_data->velocities[(k - 1) * 3];
-//       const real_t ba_i[3] = {0.0, 0.0, 0.0};
-//       const real_t bg_i[3] = {0.0, 0.0, 0.0};
-//       vel_i_id = fgraph_add_velocity(fg, ts_i, vel_i, 0);
-//       biases_i_id = fgraph_add_imu_biases(fg, ts_i, ba_i, bg_i, 0);
+    real_t *p = NULL;
+    if (rbt_contains(ba->points, &fid)) {
+      p = rbt_search(ba->points, &fid);
+    } else {
+      p = malloc(sizeof(real_t) * 3);
+      vec_copy(&points[fid * 3], 3, p);
+      rbt_insert(ba->points, &fid, p);
+    }
 
-//       // // Add camera factors at i
-//       // for (int i = 0; i < frame_i->num_measurements; i++) {
-//       //   const int feature_id = frame_i->feature_ids[i];
-//       //   const real_t *z = &frame_i->keypoints[i * 2];
-//       //   const int param_ids[4] = {pose_i_id, cam0_ext_id, feature_id, cam0_id};
-//       //   const real_t var[2] = {1.0, 1.0};
-//       //   fgraph_add_camera_factor(fg, param_ids, z, var);
-//       // }
+    const real_t var[2] = {1.0, 1.0};
+    ba_factor_t *factor = malloc(sizeof(ba_factor_t));
+    ba_factor_setup(factor, frame_pose, p, ba->camera, kp, var);
+    arr_push_back(ba->factors, factor);
+  }
+}
 
-//       initialized = 1;
-//     }
+rbt_t *bundle_adjuster_param_order(const void *data,
+                                   int *sv_size,
+                                   int *r_size) {
+  const bundle_adjuster_t *ba = data;
+  rbt_t *param_index = param_index_malloc();
+  int col_idx = 0;
 
-//     // Add camera factors at j
-//     {
-//       // Add pose j
-//       TF(cam_pose_j, T_WC0_j);
-//       TF_CHAIN(T_WB_j, 2, T_WC0_j, T_C0B);
-//       TF_VECTOR(T_WB_j, pose_j);
-//       // pose_random_perturb(pose_j, 0.1, 0.1);
-//       const int pose_j_id = fgraph_add_pose(fg, ts_j, pose_j, 0);
+  // Poses
+  for (size_t i = 0; i < ba->poses->size; ++i) {
+    param_index_add(param_index, POSE_PARAM, 0, ba->poses->data[i], &col_idx);
+  }
 
-//       // Add speed and biases at j
-//       const real_t *vel_j = &imu_data->velocities[k * 3];
-//       const real_t ba_j[3] = {0.0, 0.0, 0.0};
-//       const real_t bg_j[3] = {0.0, 0.0, 0.0};
-//       const int vel_j_id = fgraph_add_velocity(fg, ts_j, vel_j, 0);
-//       const int biases_j_id = fgraph_add_imu_biases(fg, ts_j, ba_j, bg_j, 0);
+  // Features
+  {
+    const size_t n = rbt_size(ba->points);
+    arr_t *keys = arr_malloc(n);
+    arr_t *vals = arr_malloc(n);
+    rbt_keys_values(ba->points, keys, vals);
 
-//       // // Add camera factors at j
-//       // for (int i = 0; i < frame_j->num_measurements; i++) {
-//       //   const int feature_id = frame_j->feature_ids[i];
-//       //   const real_t *z = &frame_j->keypoints[i * 2];
-//       //   const int param_ids[4] = {pose_j_id, cam0_ext_id, feature_id, cam0_id};
-//       //   const real_t var[2] = {1.0, 1.0};
-//       //   fgraph_add_camera_factor(fg, param_ids, z, var);
-//       // }
+    for (int i = 0; i < n; ++i) {
+      real_t *p = vals->data[i];
+      param_index_add(param_index, FEATURE_PARAM, 0, p, &col_idx);
+    }
 
-//       // Add imu factor between i and j
-//       int param_ids[6] = {0};
-//       param_ids[0] = pose_i_id;
-//       param_ids[1] = vel_i_id;
-//       param_ids[2] = biases_i_id;
-//       param_ids[3] = pose_j_id;
-//       param_ids[4] = vel_j_id;
-//       param_ids[5] = biases_j_id;
-//       imu_buffer_t imu_buf;
-//       sim_imu_measurements(imu_data, ts_i, ts_j, &imu_buf);
-//       fgraph_add_imu_factor(fg, 0, param_ids, &imu_params, &imu_buf);
+    arr_free(keys);
+    arr_free(vals);
+  }
 
-//       // Update
-//       pose_i_id = pose_j_id;
-//       vel_i_id = vel_j_id;
-//       biases_i_id = biases_j_id;
-//     }
-//   }
+  // Camera
+  param_index_add(param_index, CAMERA_PARAM, 0, ba->camera->data, &col_idx);
 
-//   // Solve
-//   solver_t solver;
-//   solver_setup(&solver);
+  *sv_size = col_idx;
+  *r_size = ba->factors->size * 2;
+  return param_index;
+}
 
-//   solver.verbose = 1;
-//   solver.max_iter = 5;
-//   solver.cost_func = &fgraph_cost;
-//   solver.param_order_func = &fgraph_param_order;
-//   solver.linearize_func = &fgraph_linearize_compact;
-//   solver_solve(&solver, fg);
+void bundle_adjuster_cost(const void *data, real_t *r) {
+  bundle_adjuster_t *ba = (bundle_adjuster_t *) data;
+  for (int i = 0; i < ba->factors->size; i++) {
+    ba_factor_t *factor = ba->factors->data[i];
+    ba_factor_eval(factor);
+    vec_copy(factor->r, factor->r_size, &r[i * factor->r_size]);
+  }
+}
 
-//   // Clean up
-//   sim_imu_data_free(imu_data);
-//   sim_camera_data_free(cam0_data);
-//   fgraph_free(fg);
+void bundle_adjuster_linearize_compact(const void *data,
+                                       const int sv_size,
+                                       rbt_t *hash,
+                                       real_t *H,
+                                       real_t *g,
+                                       real_t *r) {
+  const bundle_adjuster_t *ba = data;
 
-//   return 0;
-// }
+  for (size_t i = 0; i < ba->factors->size; ++i) {
+    ba_factor_t *factor = ba->factors->data[i];
+    ba_factor_eval(factor);
+
+    vec_copy(factor->r, factor->r_size, &r[i * factor->r_size]);
+    solver_fill_hessian(hash,
+                        factor->num_params,
+                        factor->params,
+                        factor->jacs,
+                        factor->r,
+                        factor->r_size,
+                        sv_size,
+                        H,
+                        g);
+  }
+}
+
+int test_bundle_adjustment(void) {
+  // Simulate features
+  const real_t origin[3] = {0.0, 0.0, 0.0};
+  const real_t dim[3] = {5.0, 5.0, 5.0};
+  const int num_points = 1000;
+  real_t points[3 * 1000] = {0};
+  sim_create_features(origin, dim, num_points, points);
+
+  // Bundle adjuster
+  bundle_adjuster_t *ba = bundle_adjuster_malloc(num_points);
+
+  // Camera configuration
+  const int res[2] = {640, 480};
+  const real_t fov = 90.0;
+  const real_t fx = pinhole_focal(res[0], fov);
+  const real_t fy = pinhole_focal(res[0], fov);
+  const real_t cx = res[0] / 2.0;
+  const real_t cy = res[1] / 2.0;
+  const real_t cam_vec[8] = {fx, fy, cx, cy, 0.0, 0.0, 0.0, 0.0};
+  const char *pmodel = "pinhole";
+  const char *dmodel = "radtan4";
+  bundle_adjuster_add_camera(ba, res, pmodel, dmodel, cam_vec);
+
+  // Camera extrinsic
+  const real_t cam0_ext_ypr[3] = {-M_PI / 2.0, 0.0, -M_PI / 2.0};
+  const real_t cam0_ext_r[3] = {0.0, 0.0, 0.0};
+  TF_ER(cam0_ext_ypr, cam0_ext_r, T_BC0);
+
+  // Simulate data
+  camera_t *camera = ba->camera;
+  sim_circle_t conf;
+  sim_circle_defaults(&conf);
+  sim_camera_data_t *cam_data =
+      sim_camera_circle_trajectory(&conf, T_BC0, camera, points, num_points);
+
+  for (size_t k = 0; k < cam_data->num_frames; ++k) {
+    const sim_camera_frame_t *frame = cam_data->frames[k];
+    real_t *pose = &cam_data->poses[k * 7];
+    pose[0] += randf(-0.1, 0.1);
+    pose[1] += randf(-0.1, 0.1);
+    pose[2] += randf(-0.1, 0.1);
+    bundle_adjuster_add_frame(ba, frame, pose, points);
+  }
+
+  // Solve
+  solver_t solver;
+  solver_setup(&solver);
+
+  solver.verbose = 1;
+  solver.max_iter = 5;
+  solver.cost_func = &bundle_adjuster_cost;
+  solver.param_index_func = &bundle_adjuster_param_order;
+  solver.linearize_func = &bundle_adjuster_linearize_compact;
+  solver_solve(&solver, ba);
+
+  // Clean up
+  bundle_adjuster_free(ba);
+  sim_camera_data_free(cam_data);
+
+  return 0;
+}
 
 /*******************************************************************************
  * TIMELINE
@@ -7437,10 +7267,8 @@ void test_suite(void) {
   MU_ADD_TEST(test_save_and_load_poses);
   // MU_ADD_TEST(test_assoc_pose_data);
   MU_ADD_TEST(test_solver_setup);
-  // MU_ADD_TEST(test_solver_eval);
   MU_ADD_TEST(test_inertial_odometry_batch);
-  // MU_ADD_TEST(test_visual_odometry_batch);
-  // MU_ADD_TEST(test_visual_inertial_odometry_batch);
+  MU_ADD_TEST(test_bundle_adjustment);
 
   // TIMELINE
   // MU_ADD_TEST(test_timeline);

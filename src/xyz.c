@@ -10655,14 +10655,15 @@ rbt_t *param_index_malloc(void) { return rbt_malloc(default_cmp); }
  * Free param index.
  */
 void param_index_free(rbt_t *param_index) {
+  // Free values
   const size_t n = rbt_size(param_index);
   arr_t *keys = arr_malloc(n);
   rbt_keys(param_index, keys);
-
   for (size_t i = 0; i < n; ++i) {
     free(rbt_search(param_index, keys->data[i]));
   }
 
+  // Free param_index and keys book keeping
   rbt_free(param_index);
   arr_free(keys);
 }
@@ -15119,11 +15120,6 @@ real_t **solver_step(solver_t *solver, const real_t lambda_k, void *data) {
                            solver->H,
                            solver->g,
                            solver->r);
-
-    // param_order_print(solver->hash);
-    // gnuplot_matshow(solver->H, solver->sv_size, solver->sv_size);
-    // mat_save("/tmp/H_solver.csv", solver->H, solver->sv_size, solver->sv_size);
-    // exit(0);
   }
 
   // Damp Hessian: H = H + lambda * I
@@ -15183,6 +15179,7 @@ int solver_solve(solver_t *solver, void *data) {
   solver->linearize = 1;
   solver->r_size = r_size;
   solver->sv_size = sv_size;
+  printf("sv_size: %d\n", sv_size);
   solver->H_damped = calloc(sv_size * sv_size, sizeof(real_t));
   solver->H = calloc(sv_size * sv_size, sizeof(real_t));
   solver->g = calloc(sv_size, sizeof(real_t));
@@ -16140,13 +16137,13 @@ void sim_camera_frame_free(sim_camera_frame_t *frame_data) {
  * Add keypoint measurement to camera frame.
  */
 void sim_camera_frame_add_keypoint(sim_camera_frame_t *frame,
-                                   const size_t feature_id,
+                                   const size_t fid,
                                    const real_t kp[2]) {
   const int N = frame->n + 1;
   frame->n = N;
   frame->feature_ids = realloc(frame->feature_ids, sizeof(real_t) * N);
   frame->keypoints = realloc(frame->keypoints, sizeof(real_t) * N * 2);
-  frame->feature_ids[N - 1] = feature_id;
+  frame->feature_ids[N - 1] = fid;
   frame->keypoints[(N - 1) * 2 + 0] = kp[0];
   frame->keypoints[(N - 1) * 2 + 1] = kp[1];
 }
@@ -16443,9 +16440,9 @@ sim_camera_data_t *sim_camera_circle_trajectory(const sim_circle_t *conf,
 
     // Simulate camera frame
     sim_camera_frame_t *frame = sim_camera_frame_malloc(ts, camera_index);
-    for (size_t feature_id = 0; feature_id < num_features; feature_id++) {
+    for (size_t fid = 0; fid < num_features; ++fid) {
       // Check point is infront of camera
-      const real_t *p_W = &features[feature_id * 3];
+      const real_t *p_W = &features[fid * 3];
       TF_POINT(T_CW, p_W, p_C);
       if (p_C[2] < 0) {
         continue;
@@ -16463,13 +16460,13 @@ sim_camera_data_t *sim_camera_circle_trajectory(const sim_circle_t *conf,
       }
 
       // Add keypoint to camera frame
-      sim_camera_frame_add_keypoint(frame, feature_id, z);
+      sim_camera_frame_add_keypoint(frame, fid, z);
     }
     data->frames[k] = frame;
 
     // Update
     data->timestamps[k] = ts;
-    vec_copy(cam_pose, 7, data->poses + k * 7);
+    vec_copy(cam_pose, 7, &data->poses[k * 7]);
 
     theta += w * dt;
     yaw += w * dt;

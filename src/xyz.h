@@ -2539,7 +2539,6 @@ typedef struct marg_factor_t {
   const rbt_t *fix_params;
   size_t num_marg_params;
 
-
   // Factors
   list_t *ba_factors;
   list_t *camera_factors;
