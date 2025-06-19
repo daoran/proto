@@ -1703,7 +1703,7 @@ rbt_node_t *rbt_node_rotate(rbt_node_t *n, const bool dir) {
 rbt_node_t *rbt_node_move_red_left(rbt_node_t *n) {
   assert(n);
   rbt_node_flip_colors(n);
-  if (rbt_node_is_red(n->child[1]->child[0])) {
+  if (n && rbt_node_is_red(n->child[1]->child[0])) {
     n->child[1] = rbt_node_rotate(n->child[1], 1);
     n = rbt_node_rotate(n, 0);
     rbt_node_flip_colors(n);
@@ -1714,7 +1714,7 @@ rbt_node_t *rbt_node_move_red_left(rbt_node_t *n) {
 rbt_node_t *rbt_node_move_red_right(rbt_node_t *n) {
   assert(n);
   rbt_node_flip_colors(n);
-  if (rbt_node_is_red(n->child[0]->child[0])) {
+  if (n && rbt_node_is_red(n->child[0]->child[0])) {
     n = rbt_node_rotate(n, 1);
     rbt_node_flip_colors(n);
   }
@@ -1722,7 +1722,6 @@ rbt_node_t *rbt_node_move_red_right(rbt_node_t *n) {
 }
 
 rbt_node_t *rbt_node_balance(rbt_node_t *n) {
-  assert(n);
   if (rbt_node_is_red(n->child[1]) && !rbt_node_is_red(n->child[0])) {
     n = rbt_node_rotate(n, 0);
   }
@@ -1842,13 +1841,19 @@ rbt_node_t *rbt_node_insert(rbt_node_t *n, void *k, void *v, cmp_t cmp) {
 }
 
 rbt_node_t *rbt_node_delete_min(rbt_node_t *n) {
+  if (n == NULL) {
+    return NULL;
+  }
+
   if (n->child[0] == NULL) {
     return NULL;
   }
+
   if (!rbt_node_is_red(n->child[0]) &&
       !rbt_node_is_red(n->child[0]->child[0])) {
     n = rbt_node_move_red_left(n);
   }
+  n->child[0] = rbt_node_delete_min(n->child[0]);
   return rbt_node_balance(n);
 }
 
@@ -1868,34 +1873,66 @@ rbt_node_t *rbt_node_delete_max(rbt_node_t *n) {
   return rbt_node_balance(n);
 }
 
-rbt_node_t *rbt_node_delete(rbt_node_t *n, void *key, cmp_t cmp_func) {
+rbt_node_t *rbt_node_delete(rbt_node_t *n,
+                            void *key,
+                            cmp_t cmp_func,
+                            free_func_t kfree_func) {
+  if (n == NULL) {
+    return NULL;
+  }
+
   if (cmp_func(key, n->key) < 0) {
-    if (!rbt_node_is_red(n->child[0]) &&
-        !rbt_node_is_red(n->child[0]->child[0])) {
-      n = rbt_node_move_red_left(n);
+    // TRAVERSE LEFT-SUBTREE
+    // Prepare n's left child to be red if it's a 2-node
+    if (n->child[0] != NULL) {
+      if (!rbt_node_is_red(n->child[0]) &&
+          !rbt_node_is_red(n->child[0]->child[0])) {
+        n = rbt_node_move_red_left(n);
+      }
+      n->child[0] = rbt_node_delete(n->child[0], key, cmp_func, kfree_func);
     }
-    n->child[0] = rbt_node_delete(n->child[0], key, cmp_func);
 
   } else {
+    // TRAVERSE RIGHT-SUBTREE
+    // If n->left is red, rotate right to maintain left-leaning property
+    // before potentially moving right. This is crucial for Sedgewick's
+    // delete.
     if (rbt_node_is_red(n->child[0])) {
-      n = rbt_node_rotate(n, 0);
+      n = rbt_node_rotate(n, 1);
     }
+
+    // Case 1: Found the node and it's a leaf (or only has a left child
+    // already handled)
     if (cmp_func(key, n->key) == 0 && (n->child[1] == NULL)) {
+      if (kfree_func) {
+        kfree_func(n->key);
+      }
       free(n);
       return NULL;
     }
-    if (!rbt_node_is_red(n->child[1]) &&
-        !rbt_node_is_red(n->child[1]->child[0])) {
-      n = rbt_node_move_red_right(n);
-    }
-    if (cmp_func(key, n->key) == 0) {
-      rbt_node_t *tmp = rbt_node_min(n->child[1]);
-      n->key = tmp->key;
-      n->value = tmp->value;
-      n->child[1] = rbt_node_delete_min(n->child[1]);
-      free(tmp);
-    } else {
-      n->child[1] = rbt_node_delete(n->child[1], key, cmp_func);
+
+    // Prepare n's right child to be red if it's a 2-node (descending right)
+    if (n->child[1] != NULL) {
+      if (!rbt_node_is_red(n->child[1]) &&
+          !rbt_node_is_red(n->child[1]->child[0])) {
+        n = rbt_node_move_red_right(n);
+      }
+
+      if (cmp_func(key, n->key) == 0) {
+        // Case 2: Found the node and it has a right child
+        rbt_node_t *tmp = rbt_node_min(n->child[1]);
+        if (kfree_func) {
+          free(n->key);
+        }
+        n->key = tmp->key;
+        n->value = tmp->value;
+        n->child[1] = rbt_node_delete_min(n->child[1]);
+        free(tmp);
+
+      } else {
+        // Case 3: Still traversing down the right subtree
+        n->child[1] = rbt_node_delete(n->child[1], key, cmp_func, kfree_func);
+      }
     }
   }
 
@@ -1936,6 +1973,8 @@ rbt_t *rbt_malloc(cmp_t cmp) {
   rbt_t *rbt = malloc(sizeof(rbt_t));
   rbt->root = NULL;
   rbt->cmp = cmp;
+  rbt->kcopy = NULL;
+  rbt->kfree = NULL;
   return rbt;
 }
 
@@ -1946,12 +1985,18 @@ void rbt_free(rbt_t *rbt) {
 
 void rbt_insert(rbt_t *rbt, void *key, void *value) {
   assert(rbt);
-  rbt->root = rbt_node_insert(rbt->root, key, value, rbt->cmp);
+  void *k = (rbt->kcopy) ? rbt->kcopy(key) : key;
+  rbt->root = rbt_node_insert(rbt->root, k, value, rbt->cmp);
+  rbt->root->color = RB_BLACK;
 }
 
 void rbt_delete(rbt_t *rbt, void *key) {
   assert(rbt);
-  rbt->root = rbt_node_delete(rbt->root, key, rbt->cmp);
+  rbt_node_t *n = rbt_node_delete(rbt->root, key, rbt->cmp, rbt->kfree);
+  if (n) {
+    rbt->root = n;
+    rbt->root->color = RB_BLACK;
+  }
 }
 
 void *rbt_search(rbt_t *rbt, const void *key) {

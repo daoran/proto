@@ -381,6 +381,8 @@ int list_remove_destroy(list_t *list,
 #define RB_RED 1
 #define RB_BLACK 0
 
+typedef void *(*copy_func_t)(const void *);
+typedef void (*free_func_t)(void *);
 typedef int (*cmp_t)(const void *, const void *);
 int default_cmp(const void *x, const void *y);
 int int_cmp(const void *x, const void *y);
@@ -400,6 +402,8 @@ struct rbt_node_t {
 typedef struct rbt_t {
   rbt_node_t *root;
   cmp_t cmp;
+  copy_func_t kcopy;
+  free_func_t kfree;
 } rbt_t;
 
 rbt_node_t *rbt_node_malloc(const int color, void *key, void *value);
@@ -435,11 +439,14 @@ bool rbt_node_check(rbt_node_t *root, cmp_t cmp);
 rbt_node_t *rbt_node_insert(rbt_node_t *n, void *key, void *value, cmp_t cmp);
 rbt_node_t *rbt_node_delete_min(rbt_node_t *n);
 rbt_node_t *rbt_node_delete_max(rbt_node_t *n);
-rbt_node_t *rbt_node_delete(rbt_node_t *n, void *key, cmp_t cmp_func);
-void *rbt_node_search(rbt_node_t *rbt, const void *key, cmp_t cmp_func);
-bool rbt_node_contains(const rbt_node_t *rbt, const void *key, cmp_t cmp_func);
+rbt_node_t *rbt_node_delete(rbt_node_t *n,
+                            void *key,
+                            cmp_t cmp,
+                            free_func_t kfree);
+void *rbt_node_search(rbt_node_t *rbt, const void *key, cmp_t cmp);
+bool rbt_node_contains(const rbt_node_t *rbt, const void *key, cmp_t cmp);
 
-rbt_t *rbt_malloc(cmp_t cmp_func);
+rbt_t *rbt_malloc(cmp_t cmp);
 void rbt_free(rbt_t *rbt);
 void rbt_insert(rbt_t *rbt, void *key, void *value);
 void rbt_delete(rbt_t *rbt, void *key);
