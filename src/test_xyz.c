@@ -707,23 +707,23 @@ int test_rbt_node_delete(void) {
   root = rbt_node_insert(root, &key_4, NULL, int_cmp);
 
   // Test deletes
-  root = rbt_node_delete(root, &key_0, int_cmp);
+  root = rbt_node_delete(root, &key_0, int_cmp, NULL);
   MU_ASSERT(rbt_node_size(root) == 4);
   MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
 
-  root = rbt_node_delete(root, &key_1, int_cmp);
+  root = rbt_node_delete(root, &key_1, int_cmp, NULL);
   MU_ASSERT(rbt_node_size(root) == 3);
   MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
 
-  root = rbt_node_delete(root, &key_2, int_cmp);
+  root = rbt_node_delete(root, &key_2, int_cmp, NULL);
   MU_ASSERT(rbt_node_size(root) == 2);
   MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
 
-  root = rbt_node_delete(root, &key_3, int_cmp);
+  root = rbt_node_delete(root, &key_3, int_cmp, NULL);
   MU_ASSERT(rbt_node_size(root) == 1);
   MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
 
-  root = rbt_node_delete(root, &key_4, int_cmp);
+  root = rbt_node_delete(root, &key_4, int_cmp, NULL);
   MU_ASSERT(rbt_node_size(root) == 0);
   MU_ASSERT(rbt_node_check(root, int_cmp) == 1);
 
@@ -779,12 +779,17 @@ int test_rbt_delete(void) {
   int key_2 = 2;
   int key_3 = 3;
   int key_4 = 4;
+  int val_0 = 0;
+  int val_1 = 1;
+  int val_2 = 2;
+  int val_3 = 3;
+  int val_4 = 4;
   rbt_t *rbt = rbt_malloc(int_cmp);
-  rbt_insert(rbt, &key_0, NULL);
-  rbt_insert(rbt, &key_1, NULL);
-  rbt_insert(rbt, &key_2, NULL);
-  rbt_insert(rbt, &key_3, NULL);
-  rbt_insert(rbt, &key_4, NULL);
+  rbt_insert(rbt, &key_0, &val_0);
+  rbt_insert(rbt, &key_1, &val_1);
+  rbt_insert(rbt, &key_2, &val_2);
+  rbt_insert(rbt, &key_3, &val_3);
+  rbt_insert(rbt, &key_4, &val_4);
 
   rbt_delete(rbt, &key_0);
   rbt_delete(rbt, &key_1);
@@ -970,6 +975,10 @@ int test_rbt_select(void) {
   return 0;
 }
 
+static void *rbt_copy_int(const void *data) {
+  return int_malloc(*(int *) data);
+}
+
 int test_rbt_sandbox(void) {
   // Setup
   int key_0 = 0;
@@ -982,17 +991,32 @@ int test_rbt_sandbox(void) {
   int val_2 = 2;
   int val_3 = 3;
   int val_4 = 4;
-  rbt_t *rbt = rbt_malloc(default_cmp);
+  rbt_t *rbt = rbt_malloc(int_cmp);
+  rbt->kcopy = rbt_copy_int;
+  rbt->kfree = free;
+
   rbt_insert(rbt, &key_0, &val_0);
   rbt_insert(rbt, &key_1, &val_1);
   rbt_insert(rbt, &key_2, &val_2);
   rbt_insert(rbt, &key_3, &val_3);
   rbt_insert(rbt, &key_4, &val_4);
+  // printf("---\n");
+  rbt_delete(rbt, &key_4);
 
   const size_t n = rbt_size(rbt);
+  printf("n: %ld\n", n);
   arr_t *keys = arr_malloc(n);
   arr_t *vals = arr_malloc(n);
   rbt_keys_values(rbt, keys, vals);
+  for (size_t i = 0; i < n; ++i) {
+    printf("== key: %d, %p\n", *(int *) keys->data[i], keys->data[i]);
+    free(keys->data[i]);
+  }
+  // printf("-> key: 0, %p\n", (void *) &key_0);
+  // printf("-> key: 1, %p\n", (void *) &key_1);
+  // printf("-> key: 2, %p\n", (void *) &key_2);
+  // printf("-> key: 3, %p\n", (void *) &key_3);
+  // printf("-> key: 4, %p\n", (void *) &key_4);
 
   // Clean up
   rbt_free(rbt);
