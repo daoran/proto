@@ -151,7 +151,7 @@ run_tests: tests ## Run tests
 
 ci: ## Run CI tests
 	@make tests CI_MODE=1 --no-print-directory
-	@cd ./build && $(foreach TEST, $(TESTS), ./$(notdir ${TEST});)
+	@./build/test_xyz
 
 all: libxyz tests
 
