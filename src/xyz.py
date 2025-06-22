@@ -89,6 +89,7 @@ MatNx2 = Annotated[NDArray[DType], Literal["N", "2"]]
 MatNx3 = Annotated[NDArray[DType], Literal["N", "3"]]
 MatNx4 = Annotated[NDArray[DType], Literal["N", "4"]]
 Mat2xN = Annotated[NDArray[DType], Literal["2", "N"]]
+Mat2x3 = Annotated[NDArray[DType], Literal["2", "3"]]
 Mat3xN = Annotated[NDArray[DType], Literal["3", "N"]]
 Mat4xN = Annotated[NDArray[DType], Literal["4", "N"]]
 Image = Annotated[NDArray[DType], Literal["N", "N"]]
@@ -1152,7 +1153,8 @@ def find_circle(x: float, y: float) -> tuple[Vec2, float, float]:
   x_m = np.mean(x)
   y_m = np.mean(y)
   center_init = x_m, y_m
-  center, _ = scipy.optimize.leastsq(circle_loss, center_init, args=(x, y))
+  center, _ = scipy.optimize.leastsq(circle_loss, center_init,
+                                     args=(x, y))  # pyright: ignore
 
   xc, yc = center
   radii = np.sqrt((x - xc)**2 + (y - yc)**2)
@@ -2554,7 +2556,6 @@ def load_poses(csv_path: str) -> list[tuple[float, Mat4]] | None:
 
 ###############################################################################
 # MATPLOTLIB
-# Arrow3D
 # def plot_bbox(ax, center, size)
 # def plot_set_axes_equal(ax)
 # def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs)
@@ -2566,38 +2567,7 @@ def load_poses(csv_path: str) -> list[tuple[float, Mat4]] | None:
 import matplotlib.pyplot as plt
 import matplotlib.patches
 import matplotlib.transforms
-from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d import proj3d
-from mpl_toolkits.mplot3d.proj3d import proj_transform
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import Axes3D
-
-
-class Arrow3D(FancyArrowPatch):
-  def __init__(self, x, y, z, dx, dy, dz, *args, **kwargs):
-    super().__init__((0, 0), (0, 0), *args, **kwargs)
-    self._xyz = (x, y, z)
-    self._dxdydz = (dx, dy, dz)
-
-  def draw(self, renderer):
-    x1, y1, z1 = self._xyz
-    dx, dy, dz = self._dxdydz
-    x2, y2, z2 = (x1 + dx, y1 + dy, z1 + dz)
-
-    xs, ys, zs = proj_transform((x1, x2), (y1, y2), (z1, z2), self.axes.M)
-    self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-    super().draw(renderer)
-
-  def do_3d_projection(self, renderer=None):
-    x1, y1, z1 = self._xyz
-    dx, dy, dz = self._dxdydz
-    x2, y2, z2 = (x1 + dx, y1 + dy, z1 + dz)
-
-    xs, ys, zs = proj_transform((x1, x2), (y1, y2), (z1, z2), self.axes.M)
-    self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-
-    return np.min(zs)
 
 
 def plot_bbox(ax, center, size):
