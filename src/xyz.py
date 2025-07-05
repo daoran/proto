@@ -49,6 +49,7 @@ from enum import Enum
 from dataclasses import dataclass
 from collections import namedtuple
 
+import typing
 from typing import TypeVar
 from typing import Annotated
 from typing import Literal
@@ -5511,7 +5512,7 @@ class CameraEvent:
   """ Camera Event """
   ts: int
   cam_idx: int
-  image: Image
+  image: Image | list[tuple[int, Vec2]]
 
 
 @dataclass
@@ -6902,7 +6903,8 @@ class PoseFactor(Factor):
     assert self.measurement is not None
 
     # Measured pose
-    T_meas = self.measurement
+    assert self.measurement is not None
+    T_meas: Mat4 = typing.cast(Mat4, self.measurement)
     q_meas = tf_quat(T_meas)
     r_meas = tf_trans(T_meas)
 
@@ -7150,11 +7152,11 @@ class VisionFactor(Factor):
 
 class CalibVisionFactor(Factor):
   """ Calibration Vision Factor """
-  def __init__(self, cam_geom, pids, grid_data, covar=eye(2)):
+  def __init__(self, cam_geom, pids, calib_target, covar=eye(2)):
     assert len(pids) == 3
-    assert len(grid_data) == 4
+    assert len(calib_target) == 4
     assert covar.shape == (2, 2)
-    tag_id, corner_idx, r_FFi, z = grid_data
+    tag_id, corner_idx, r_FFi, z = calib_target
     Factor.__init__(self, "CalibVisionFactor", pids, z, covar, 2)
     self.cam_geom = cam_geom
     self.tag_id = tag_id
@@ -8247,18 +8249,18 @@ class TestCalibVisionFactor(unittest.TestCase):
     cam_geom = camera_geometry_setup(cam_idx, res, "pinhole", "radtan4")
 
     # Test factor
-    grid = AprilGrid()
+    target = CalibTarget()
     tag_id = 1
     corner_idx = 2
-    r_FFi = grid.get_object_point(tag_id, corner_idx)
+    r_FFi = target.get_object_point(tag_id, corner_idx)
     T_CiF = inv(T_BCi) @ T_BF
     r_CiFi = tf_point(T_CiF, r_FFi)
     status, z = cam_geom.project(cam_params.param, r_CiFi)
     self.assertTrue(status)
 
     pids = [0, 1, 2]
-    grid_data = (tag_id, corner_idx, r_FFi, z)
-    factor = CalibVisionFactor(cam_geom, pids, grid_data)
+    target_data = (tag_id, corner_idx, r_FFi, z)
+    factor = CalibVisionFactor(cam_geom, pids, target_data)
 
     # Test jacobianstf(rot, trans)
     rel_pose = pose_setup(0, T_BF)
@@ -10658,7 +10660,6 @@ class TestFeatureTracking(unittest.TestCase):
     print(f"est:\n{np.round(T_C0C1_est, 3)}\n")
     print(f"gnd:\n{np.round(T_C0C1, 3)}\n")
 
-  @unittest.skip("")
   def test_euroc_mono(self):
     kps0_km1 = np.array([])
     frame0_km1 = None
@@ -10685,12 +10686,7 @@ class TestFeatureTracking(unittest.TestCase):
         # kps0_km1, kps0_k = filter_outliers(kps0_km1, kps0_k, ransac_inliers)
 
       # Detect new
-      kwargs = {
-          "max_keypoints": 200,
-          "prev_kps": kps0_k,
-          "optflow_mode": True,
-      }
-      kps_new = good_grid(frame0_k, **kwargs)
+      kps_new = good_grid(frame0_k, max_keypoints=200, prev_kps=kps0_k)
 
       if len(kps_new):
         criteria = (
@@ -10742,34 +10738,231 @@ class TestFeatureTracking(unittest.TestCase):
     imshow_wait = 0
     # for ts in self.dataset.cam0_data.timestamps[2000:3000]:
     # for ts in self.dataset.cam0_data.timestamps:
-      # Load images
-      # frame0_path = self.dataset.cam0_data.image_paths[ts]
-      # frame1_path = self.dataset.cam1_data.image_paths[ts]
-      # frame0 = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
-      # frame1 = cv2.imread(frame1_path, cv2.IMREAD_GRAYSCALE)
-      # ft.update(ts, frame0, frame1)
+    # Load images
+    # frame0_path = self.dataset.cam0_data.image_paths[ts]
+    # frame1_path = self.dataset.cam1_data.image_paths[ts]
+    # frame0 = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
+    # frame1 = cv2.imread(frame1_path, cv2.IMREAD_GRAYSCALE)
+    # ft.update(ts, frame0, frame1)
 
-      # Visualize
-      # viz = None
-      # feature_ids, kps0, kps1 = ft.get_keypoints()
-      # viz_i = draw_keypoints(frame0, kps0)
-      # viz_j = draw_keypoints(frame1, kps1)
-      # viz = np.hstack([viz_i, viz_j])
+    # Visualize
+    # viz = None
+    # feature_ids, kps0, kps1 = ft.get_keypoints()
+    # viz_i = draw_keypoints(frame0, kps0)
+    # viz_j = draw_keypoints(frame1, kps1)
+    # viz = np.hstack([viz_i, viz_j])
 
-      # cv2.imshow("Viz", viz)
-      # key_pressed = cv2.waitKey(imshow_wait)
-      # if key_pressed == ord('q'):
-      #   break
-      # elif key_pressed == ord(' '):
-      #   imshow_wait = 1 if imshow_wait == 0 else 0
+    # cv2.imshow("Viz", viz)
+    # key_pressed = cv2.waitKey(imshow_wait)
+    # if key_pressed == ord('q'):
+    #   break
+    # elif key_pressed == ord(' '):
+    #   imshow_wait = 1 if imshow_wait == 0 else 0
 
 
 ###############################################################################
 # CALIBRATION
+# class CalibTarget
 # def calib_generate_poses(calib_target, **kwargs)
 # def calib_generate_random_poses(calib_target, **kwargs)
 # class TestCalibration
 ###############################################################################
+
+
+class CalibTarget:
+  """ CalibTarget """
+  def __init__(self, **kwargs):
+    self.tag_rows = kwargs.get("tag_rows", 6)
+    self.tag_cols = kwargs.get("tag_cols", 6)
+    self.tag_size = kwargs.get("tag_size", 0.088)
+    self.tag_spacing = kwargs.get("tag_spacing", 0.3)
+    self.nb_tags = self.tag_rows * self.tag_cols
+    self.ts = None
+    self.data = {}
+
+  @staticmethod
+  def load(csv_file):
+    """ Load CalibTarget """
+    import pandas
+
+    # Load csv file
+    dtype = {
+        "#ts": int,
+        "tag_rows": int,
+        "tag_cols": int,
+        "tag_size": float,
+        "tag_spacing": float,
+        "tag_id": int,
+        "corner_idx": int,
+        "kp_x": float,
+        "kp_y": float,
+    }
+    csv_data = pandas.read_csv(csv_file, dtype=dtype)
+    if csv_data.shape[0] == 0:
+      return None
+
+    # CalibTarget properties
+    ts = csv_data['#ts'][0]
+    tag_rows = csv_data['tag_rows'][0]
+    tag_cols = csv_data['tag_cols'][0]
+    tag_size = csv_data['tag_size'][0]
+    tag_spacing = csv_data['tag_spacing'][0]
+
+    # CalibTarget measurements
+    tag_indices = csv_data['tag_id']
+    corner_indices = csv_data['corner_idx']
+    kps = np.array([csv_data['kp_x'], csv_data['kp_y']]).T
+
+    # Form CalibTarget
+    grid_conf = {
+        "tag_rows": tag_rows,
+        "tag_cols": tag_cols,
+        "tag_size": tag_size,
+        "tag_spacing": tag_spacing
+    }
+    grid = CalibTarget(**grid_conf)
+    for tag_id, corner_idx, kp in zip(tag_indices, corner_indices, kps):
+      grid.add_keypoint(ts, tag_id, corner_idx, kp)
+
+    return grid
+
+  def get_object_point(self, tag_id, corner_idx):
+    """ Form object point """
+    # Calculate the CalibTarget index using tag id
+    [i, j] = self.get_grid_index(tag_id)
+
+    # Calculate the x and y of the tag origin (bottom left corner of tag)
+    # relative to grid origin (bottom left corner of entire grid)
+    x = j * (self.tag_size + self.tag_size * self.tag_spacing)
+    y = i * (self.tag_size + self.tag_size * self.tag_spacing)
+
+    # Corners from bottom left in counter-clockwise fashion
+    if corner_idx == 0:
+      # Bottom left
+      return np.array([x, y, 0])
+    elif corner_idx == 1:
+      # Bottom right
+      return np.array([x + self.tag_size, y, 0])
+    elif corner_idx == 2:
+      # Top right
+      return np.array([x + self.tag_size, y + self.tag_size, 0])
+    elif corner_idx == 3:
+      # Top left
+      return np.array([x, y + self.tag_size, 0])
+
+    raise RuntimeError(f"Invalid tag_id[{tag_id}] corner_idx[{corner_idx}]!")
+
+  def get_object_points(self):
+    """ Form object points """
+    object_points = []
+    for tag_id in range(self.nb_tags):
+      for corner_idx in range(4):
+        pt = self.get_object_point(tag_id, corner_idx)
+        object_points.append((tag_id, corner_idx, pt))
+    return object_points
+
+  def get_dimensions(self):
+    """ Get CalibTarget dimensions """
+    spacing_x = (self.tag_cols - 1) * self.tag_spacing * self.tag_size
+    spacing_y = (self.tag_rows - 1) * self.tag_spacing * self.tag_size
+    width = self.tag_cols * self.tag_size + spacing_x
+    height = self.tag_rows * self.tag_size + spacing_y
+    return (width, height)
+
+  def get_center(self):
+    """ Calculate center of CalibTarget """
+    x = (self.tag_cols / 2.0) * self.tag_size
+    x += ((self.tag_cols / 2.0) - 1) * self.tag_spacing * self.tag_size
+    x += 0.5 * self.tag_spacing * self.tag_size
+
+    y = (self.tag_rows / 2.0) * self.tag_size
+    y += ((self.tag_rows / 2.0) - 1) * self.tag_spacing * self.tag_size
+    y += 0.5 * self.tag_spacing * self.tag_size
+
+    return np.array([x, y, 0.0])
+
+  def get_grid_index(self, tag_id):
+    """ Calculate grid index from tag id """
+    assert tag_id < (self.nb_tags) and tag_id >= 0
+    i = int(tag_id / self.tag_cols)
+    j = int(tag_id % self.tag_cols)
+    return (i, j)
+
+  def add_keypoint(self, ts, tag_id, corner_idx, kp):
+    """ Add keypoint """
+    self.ts = ts
+    if tag_id not in self.data:
+      self.data[tag_id] = {}
+    self.data[tag_id][corner_idx] = kp
+
+  def remove_keypoint(self, tag_id, corner_idx):
+    """ Remove keypoint """
+    assert tag_id in self.data
+    assert corner_idx in self.data[tag_id]
+    del self.data[tag_id][corner_idx]
+
+  def add_tag_data(self, ts, tag_data):
+    """ Add tag data """
+    for (tag_id, corner_idx, kp_x, kp_y) in tag_data:
+      self.add_keypoint(ts, tag_id, corner_idx, np.array([kp_x, kp_y]))
+
+  def get_measurements(self):
+    """ Get measurements """
+    data = []
+    for tag_id, tag_data in self.data.items():
+      for corner_idx, kp in tag_data.items():
+        obj_point = self.get_object_point(tag_id, corner_idx)
+        data.append((tag_id, corner_idx, obj_point, kp))
+
+    return data
+
+  def solvepnp(self, cam_params):
+    """ Estimate relative transform between camera and CalibTarget """
+    # Check if we actually have data to work with
+    if not self.data:
+      return None
+
+    # Create object points (counter-clockwise, from bottom left)
+    cam_geom = cam_params.data
+    obj_pts = []
+    img_pts = []
+    for (_, _, r_FFi, z) in self.get_measurements():
+      img_pts.append(cam_geom.undistort(cam_params.param, z))
+      obj_pts.append(r_FFi)
+    obj_pts = np.array(obj_pts)
+    img_pts = np.array(img_pts)
+
+    # Solve pnp
+    K = pinhole_K(cam_params.param[0:4])
+    D = np.array([0.0, 0.0, 0.0, 0.0])
+    flags = cv2.SOLVEPNP_ITERATIVE
+    _, rvec, tvec = cv2.solvePnP(obj_pts, img_pts, K, D, False, flags=flags)
+
+    # Form relative tag pose as a 4x4 transform matrix
+    C, _ = cv2.Rodrigues(rvec)
+    r = tvec.flatten()
+    T_CF = tf(C, r)
+
+    return T_CF
+
+  def plot(self, ax, T_WF, **kwargs):
+    """ Plot """
+    pt_colors = kwargs.get("pt_colors", "#0000ff")
+    tf_colors = kwargs.get("tf_colors", ["r-", "g-", "b-"])
+
+    points = []
+    for data in self.get_object_points():
+      _, _, r_FFi = data
+      r_WFi = tf_point(T_WF, r_FFi)
+      points.append(r_WFi)
+    points = np.array(points)
+
+    ax.scatter(points[:, 0],
+               points[:, 1],
+               points[:, 2],
+               color=pt_colors,
+               alpha=0.2)
+    plot_tf(ax, T_WF, size=self.tag_size, colors=tf_colors)
 
 
 def calib_generate_poses(calib_center: Vec3, **kwargs):
@@ -10830,7 +11023,6 @@ def calib_generate_random_poses(calib_center, **kwargs):
 
 class TestCalibration(unittest.TestCase):
   """ Test calibration functions """
-
   def test_calib_generate_poses(self):
     """ Test calib_generate_poses() """
     # Calibration target
@@ -11269,9 +11461,9 @@ class SimData:
         fids = frame.feature_ids
         kps = frame.measurements
 
-        sim_img = []
+        sim_img: list[tuple[int, Vec2]] = []
         for i, fid in enumerate(fids):
-          sim_img.append([fid, kps[i]])
+          sim_img.append((fid, kps[i]))
 
         cam_event = CameraEvent(ts, cam_idx, sim_img)
         timeline.add_event(ts, cam_event)
@@ -12287,7 +12479,7 @@ class TestMav(unittest.TestCase):
     while idx < N and self.keep_plotting:
       if ax_3d and plot_anim and idx % 50 == 0:
         ax_3d.cla()
-        T_WB = mav.get_pose()
+        # T_WB = mav.get_pose()
         # tf_data = plot_tf(ax_3d, T_WB, size=0.5)
         ax_3d.set_xlim([-5.0, 5.0])
         ax_3d.set_ylim([-5.0, 5.0])
@@ -12406,7 +12598,9 @@ class TestMav(unittest.TestCase):
           plt.close(fig)
 
       cid = fig.canvas.mpl_connect(
-          'key_press_event', lambda event: on_key(event, self.keep_plotting))
+          'key_press_event',
+          lambda event: on_key(event, self.keep_plotting),
+      )
 
     # Simulate
     time_data = []
