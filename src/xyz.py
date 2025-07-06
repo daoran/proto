@@ -98,7 +98,6 @@ Image = Annotated[NDArray[DType], Literal["N", "N"]]
 
 ###############################################################################
 # I/O
-# def extract_tar_gz(file_path)
 ###############################################################################
 
 
@@ -111,7 +110,6 @@ def extract_tar_gz(file_path: Path, extract_path: Path) -> bool:
 
 ###############################################################################
 # YAML
-# def load_yaml(yaml_path)
 ###############################################################################
 
 
@@ -136,8 +134,6 @@ def load_yaml(yaml_path: str):
 
 ###############################################################################
 # TIME
-# def sec2ts(time_s)
-# def ts2sec(ts)
 ###############################################################################
 
 
@@ -153,8 +149,6 @@ def ts2sec(ts: np.int64) -> np.float64:
 
 ###############################################################################
 # PROFILING
-# def profile_start()
-# def profile_stop(prof, **kwargs)
 ###############################################################################
 
 
@@ -177,20 +171,6 @@ def profile_stop(prof: cProfile.Profile, **kwargs):
 
 ###############################################################################
 # NETWORK
-# def http_status_code_string(code)
-# def http_parse_request(msg_str)
-# def http_form_request(method, path, headers, protocol="HTTP/1.1")
-# def http_form_response(status_code, headers, protocol="HTTP/1.1")
-# def websocket_hash(ws_key)
-# def websocket_handshake_response(ws_key)
-# def websocket_frame_fin_bit(data_frame)
-# def websocket_frame_rsv_bit(data_frame)
-# def websocket_frame_op_code(data_frame)
-# def websocket_frame_mask_enabled(data_frame)
-# def websocket_apply_mask(data: bytes, mask: bytes)
-# def websocket_encode_frame(payload, **kwargs)
-# def websocket_decode_frame(reader, mask)
-# DebugServer
 ###############################################################################
 
 
@@ -619,11 +599,6 @@ class TestNetwork(unittest.TestCase):
 
 ###############################################################################
 # MATHS
-# def rmse(errors)
-# def clip_value(x, vmin, vmax)
-# def wrap_180(d)
-# def wrap_360(d)
-# def wrap_pi(r)
 ###############################################################################
 
 from numpy import deg2rad
@@ -677,20 +652,6 @@ def wrap_pi(r: float) -> float:
 
 ###############################################################################
 # LINEAR ALGEBRA
-# def pprint_matrix(mat, fmt="g")
-# def normalize(v)
-# def full_rank(A)
-# def hat(vec)
-# def vee(A)
-# def fwdsubs(L, b)
-# def bwdsubs(U, b)
-# def solve_svd(A, b)
-# def schurs_complement(H, g, m, r, precond=False)
-# def is_pd(B)
-# def nearest_pd(A)
-# def matrix_equal(A, B, tol=1e-8, verbose=False)
-# def plot_compare_matrices(title_A, A, title_B, B)
-# def check_jacobian(jac_name, fdiff, jac, threshold, verbose=False)
 ###############################################################################
 
 from numpy import deg2rad
@@ -1070,15 +1031,6 @@ class TestLinearAlgebra(unittest.TestCase):
 
 ###############################################################################
 # GEOMETRY
-# def lerp(x0, x1, t)
-# def lerp2d(p0, p1, t)
-# def lerp3d(p0, p1, t)
-# def circle(r, theta)
-# def sphere(rho, theta, phi)
-# def circle_loss(c, x, y)
-# def find_circle(x, y)
-# def bresenham(p0, p1)
-# def find_intersection(p1, p2, q1, q2)
 ###############################################################################
 
 
@@ -1271,16 +1223,6 @@ def fix_rotation_matrix(R):
 
 ###############################################################################
 # LIE
-# def Exp(phi)
-# def Log(C)
-# def Jr(theta)
-# def Jr_inv(theta)
-# def SO3_boxplus(C, alpha)
-# def SO3_boxminus(C_a, C_b)
-# def twistSE3(twist)
-# def so3_exp(so3mat, tol=1e-6)
-# def so3_Exp(w)
-# def poe(screw_axis, theta, tol=1e-6)
 ###############################################################################
 
 
@@ -1604,22 +1546,6 @@ class TestLie(unittest.TestCase):
 
 ###############################################################################
 # TRANSFORM
-# def homogeneous(p)
-# def dehomogeneous(hp)
-# def rotx(theta)
-# def roty(theta)
-# def rotz(theta)
-# def aa2quat(axis, angle)
-# def aa2rot(aa)
-# def aa_vec(axis, angle)
-# def aa_decomp(aa)
-# def vecs2aa(u, v)
-# def euler321(yaw, pitch, roll)
-# def euler2quat(yaw, pitch, roll)
-# def quat2euler(q)
-# def quat2rot(q)
-# def rot2euler(C)
-# def rot2quat(C)
 ###############################################################################
 
 
@@ -2033,21 +1959,6 @@ class TestTransform(unittest.TestCase):
 
 
 # QUATERNION ##################################################################
-# def quat_norm(q)
-# def quat_normalize(q)
-# def quat_conj(q)
-# def quat_inv(q)
-# def quat_left(q)
-# def quat_right(q)
-# def quat_lmul(p, q)
-# def quat_rmul(p, q)
-# def quat_mul(p, q)
-# def quat_rot(q, x)
-# def quat_omega(w)
-# def quat_delta(dalpha)
-# def quat_integrate(q_k, w, dt)
-# def quat_slerp(q_i, q_j, t)
-
 
 def quat_norm(q: Vec4) -> float:
   """ Returns norm of a quaternion """
@@ -2272,26 +2183,6 @@ class TestQuaternion(unittest.TestCase):
 
 
 # TF ##########################################################################
-#  def tf(rot, trans)
-#  def tf_rot(T)
-#  def tf_quat(T)
-#  def tf_euler(T)
-#  def tf2pose(T)
-#  def pose2tf(pose_vec)
-#  def tf_trans(T)
-#  def tf_inv(T)
-#  def tf_point(T, p)
-#  def tf_hpoint(T, hp)
-#  def tf_decompose(T)
-#  def tf_lerp(pose_i, pose_j, t)
-#  def rot_perturb(C, i, step_size)
-#  def tf_perturb(T, i, step_size)
-#  def tf_update(T, dx)
-#  def tf_diff(T0, T1)
-#  def pose_diff(pose0, pose1)
-#  def load_extrinsics(csv_path)
-#  def load_poses(csv_path)
-
 
 def tf(rot: Mat3 | Vec4, trans: Vec3) -> Mat4:
   """
@@ -2886,46 +2777,6 @@ def plot_xyz(title: str, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
 
 ###############################################################################
 # CV
-# def illumination_invariant_transform(image, alpha=0.9)
-# def lookat(cam_pos, target_pos, **kwargs)
-# def linear_triangulation(P_i, P_j, z_i, z_j)
-# def parallax(a, b)
-# def homography_find(pts_i, pts_j)
-# def homography_pose(object_points, image_points, fx, fy, cx, cy)
-# def dlt_pose(object_points, image_points, fx, fy, cx, cy)
-# def solvepnp(obj_pts, img_pts, fx, fy, cx, cy, **kwargs)
-# def harris_corner(image_gray, **kwargs)
-# def shi_tomasi_corner(image_gray, **kwargs)
-# def focal_length(image_width, fov_deg)
-# def pinhole_K(params)
-# def pinhole_P(params, T_WC)
-# def pinhole_project(proj_params, p_C)
-# def pinhole_back_project(proj_params, z)
-# def pinhole_params_jacobian(x)
-# def pinhole_point_jacobian(proj_params)
-# def radtan4_distort(dist_params, p)
-# def radtan4_point_jacobian(dist_params, p)
-# def radtan4_undistort(dist_params, p0)
-# def radtan4_params_jacobian(dist_params, p)
-# def equi4_distort(dist_params, p)
-# def equi4_undistort(dist_params, p)
-# def equi4_params_jacobian(dist_params, p)
-# def equi4_point_jacobian(dist_params, p)
-# def pinhole_radtan4_project(proj_params, dist_params, p_C)
-# def pinhole_radtan4_backproject(proj_params, dist_params, z)
-# def pinhole_radtan4_undistort(proj_params, dist_params, z)
-# def pinhole_radtan4_project_jacobian(proj_params, dist_params, p_C)
-# def pinhole_radtan4_params_jacobian(proj_params, dist_params, p_C)
-# def pinhole_equi4_project(proj_params, dist_params, p_C)
-# def pinhole_equi4_backproject(proj_params, dist_params, z)
-# def pinhole_equi4_undistort(proj_params, dist_params, z)
-# def pinhole_equi4_project_jacobian(proj_params, dist_params, p_C)
-# def pinhole_equi4_params_jacobian(proj_params, dist_params, p_C)
-# CameraGeometry
-# def pinhole_radtan4_setup(cam_idx, cam_res)
-# def pinhole_equi4_setup(cam_idx, cam_res)
-# def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model)
-# ChessboardDetector
 ###############################################################################
 
 # UTILS #######################################################################
@@ -4836,7 +4687,7 @@ class TestCV(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax: Axes3D = plt.axes(projection='3d')
+      ax = plt.axes(projection='3d')
       plot_tf(ax, T_WCi, size=0.1)
       plot_tf(ax, T_WCj, size=0.1)
       ax.plot(*p_W, 'r.')
@@ -4976,7 +4827,7 @@ class TestCV(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax: Axes3D = plt.axes(projection='3d')
+      ax = plt.axes(projection='3d')
       plot_tf(ax, T_WC, size=0.1, name="camera")
       plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
       plot_tf(ax, T_WF, size=0.1, name="fiducial")
@@ -5044,7 +4895,7 @@ class TestCV(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax: Axes3D = plt.axes(projection='3d')
+      ax = plt.axes(projection='3d')
       plot_tf(ax, T_WC, size=0.1, name="camera")
       plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
       plot_tf(ax, T_WF, size=0.1, name="fiducial")
@@ -5160,7 +5011,7 @@ class TestCV(unittest.TestCase):
       debug = False
       if debug:
         plt.figure()
-        ax: Axes3D = plt.axes(projection='3d')
+        ax = plt.axes(projection='3d')
         plot_tf(ax, T_WC, size=0.1, name="camera")
         plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
         plot_tf(ax, T_WF, size=0.1, name="fiducial")
@@ -5361,7 +5212,7 @@ def icp(
 
   # -- Setup plotting
   plt.figure(figsize=(12, 10))
-  ax: Axes3D = plt.axes(projection='3d')
+  ax = plt.axes(projection='3d')
   ax.scatter(X[:, 0], X[:, 1], X[:, 2], color="r", label="src", alpha=0.2)
   ax.scatter(Y[:, 0], Y[:, 1], Y[:, 2], color="g", label="dest", alpha=0.2)
   plt.legend(loc=0)
@@ -5432,7 +5283,7 @@ class TestPointCloud(unittest.TestCase):
     # Visualize
     if debug:
       plt.figure(figsize=(12, 10))
-      ax: Axes3D = plt.axes(projection='3d')
+      ax = plt.axes(projection='3d')
       ax.scatter(src[:, 0], src[:, 1], src[:, 2], "r", label="src", alpha=0.2)
       ax.scatter(dst[:, 0], dst[:, 1], dst[:, 2], "g", label="dest", alpha=0.2)
       ax.scatter(est[:, 0],
@@ -5492,16 +5343,6 @@ class TestPointCloud(unittest.TestCase):
 
 ################################################################################
 # DATASET
-# CameraEvent
-# ImuEvent
-# Timeline
-# EurocSensor
-# EurocImuData
-# EurocCameraData
-# EurocGroundTruth
-# EurocDataset
-# KittiCameraData
-# KittiRawDataset
 ################################################################################
 
 # TIMELINE #####################################################################
@@ -5960,7 +5801,7 @@ class TestKitti(unittest.TestCase):
     xyzi = dataset.velodyne_data.load_scan(lidar_timestamps[0])
 
     # fig = plt.figure(figsize=(12, 10))
-    # ax: Axes3D = plt.axes(projection='3d')
+    # ax = plt.axes(projection='3d')
     # ax.scatter(xyzi[::100, 0], xyzi[::100, 1], xyzi[::100, 2])
     # ax.set_xlabel("x [m]")
     # ax.set_ylabel("y [m]")
@@ -5993,7 +5834,6 @@ class TestKitti(unittest.TestCase):
 
 ###############################################################################
 # MANIPULATOR
-# def fwdkinspace(M, S_list, theta_list)
 ###############################################################################
 
 
@@ -6041,8 +5881,6 @@ def fwdkinspace(M, S_list, theta_list):
 
 ###############################################################################
 # FILTER
-# def compl_filter(gyro, accel, dt, roll, pitch)
-# KalmanFilter
 ###############################################################################
 
 
@@ -6196,8 +6034,6 @@ class TestKalmanFilter(unittest.TestCase):
 
 ###############################################################################
 # OCTREE
-# OctreeNode
-# Octree
 ###############################################################################
 
 
@@ -6325,18 +6161,20 @@ class TestOctree(unittest.TestCase):
     octree.get_points_and_bboxes(octree.root, octree_points, octree_bboxes)
 
     # Visualize octree
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    debug = False
+    if debug:
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection='3d')
 
-    # -- Plot bounding boxes
-    for center, size in octree_bboxes:
-      plot_bbox(ax, center, [size, size, size])
+      # -- Plot bounding boxes
+      for center, size in octree_bboxes:
+        plot_bbox(ax, center, [size, size, size])
 
-    # -- Plot points
-    for p in octree_points:
-      ax.plot(p[0], p[1], p[2], 'r.')
+      # -- Plot points
+      for p in octree_points:
+        ax.plot(p[0], p[1], p[2], 'r.')
 
-    plt.show()
+      plt.show()
 
   def test_point_plane(self):
     # Define the coefficients of the plane
@@ -6354,19 +6192,21 @@ class TestOctree(unittest.TestCase):
     # Calculate corresponding z values
     z = (d - a * x - b * y) / c
 
-    fig = plt.figure()
-    ax: Axes3D = fig.add_subplot(111, projection='3d')
+    debug = False
+    if debug:
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection='3d')
 
-    # Plot the surface
-    ax.plot_surface(x, y, z, alpha=0.5, rstride=100, cstride=100)
+      # Plot the surface
+      ax.plot_surface(x, y, z, alpha=0.5, rstride=100, cstride=100)
 
-    # Set labels
-    ax.set_xlabel('X axis')
-    ax.set_ylabel('Y axis')
-    ax.set_zlabel('Z axis')
+      # Set labels
+      ax.set_xlabel('X axis')
+      ax.set_ylabel('Y axis')
+      ax.set_zlabel('Z axis')
 
-    # Show the plot
-    plt.show()
+      # Show the plot
+      plt.show()
 
 
 class Plane:
@@ -6460,70 +6300,16 @@ class TestKDTree(unittest.TestCase):
     kdtree = kdtree_build(points)
     best_point, _ = kdtree_nn(kdtree, target_point)
 
-    plt.plot(points[:, 0], points[:, 1], 'b.')
-    plt.plot(target_point[0], target_point[1], 'ko')
-    plt.plot(best_point[0], best_point[1], 'rx')
-    plt.show()
+    debug = False
+    if debug:
+      plt.plot(points[:, 0], points[:, 1], 'b.')
+      plt.plot(target_point[0], target_point[1], 'ko')
+      plt.plot(best_point[0], best_point[1], 'rx')
+      plt.show()
 
 
 ###############################################################################
 # STATE ESTIMATION
-#
-# class StateVariableType
-# class StateVariable
-# class FeatureMeasurements
-# def pose_setup(ts, param, **kwargs)
-# def extrinsics_setup(param, **kwargs)
-# def screw_axis_setup(param, **kwargs)
-# def camera_params_setup(cam_idx, res, proj_model, dist_model, param, **kwargs)
-# def feature_setup(param, **kwargs)
-# def speed_biases_setup(ts, vel, ba, bg, **kwargs)
-# def inverse_depth_setup(param, **kwargs)
-# def time_delay_setup(param, **kwargs)
-# def joint_angle_setup(param, **kwargs)
-# def perturb_state_variable(sv, i, step_size)
-# def perturb_pose(pose, dr, drot)
-# def perturb_pose_random(pose, pos_range, rot_range)
-# def perturb_tf_random(T, pos_range, rot_range)
-# def update_state_variable(sv, dx)
-# def idp_param(cam_params, T_WC, z)
-# def idp_param_jacobian(param)
-# def idp_point(param)
-#
-# class Factor
-# class MeasurementFactor(Factor)
-# class PoseFactor(Factor)
-# class MultiCameraBuffer
-# class BAFactor(Factor)
-# class VisionFactor(Factor)
-# class CameraFactor(Factor)
-# class CalibVisionFactor(Factor)
-# class ImuBuffer
-# class ImuParams
-# class ImuFactorData
-# class ImuFactorData2
-# class ImuFactor(Factor)
-# class ImuFactor2(Factor)
-# class MargFactor(Factor)
-# class Solver
-#
-# def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs)
-# def draw_keypoints(img, kps, inliers=None, **kwargs)
-# def sort_keypoints(kps, des=None)
-# def spread_corners(img, corners, min_dist, **kwargs)
-# def spread_keypoints(img, kps, min_dist, **kwargs)
-# def spread_features(img, kps, des, min_dist, **kwargs)
-#
-# class FeatureGrid
-# def grid_detect(detector, image, **kwargs)
-# def good_grid(image, **kwargs)
-# def optflow_track(img_i, img_j, pts_i, **kwargs)
-# def filter_outliers(pts_i, pts_j, inliers)
-# def check_parallax(cam0_params, cam1_params, cam0_exts, cam1_exts, kps0, kps1,
-# def ransac(pts_i, pts_j, cam_i, cam_j)
-# class FeatureTrack
-# def estimate_pose(param_i, param_j, ext_i, ext_j, kps_i, kps_j, features,
-#                   pose_i, **kwargs)
 ###############################################################################
 
 # STATE VARIABLES #############################################################
@@ -7846,6 +7632,50 @@ class ImuFactor2(Factor):
     return (r, [J0, J1, J2, J3])
 
 
+class LidarFactor(Factor):
+  """ Lidar Factor """
+  def __init__(self, pids, map, lidar_scan):
+    assert len(pids) == 3
+    assert map is not None
+    self.map = map
+    self.lidar_scan = lidar_scan
+    Factor.__init__(self, "LidarFactor", pids, None, None, None)
+
+  def eval(self, params, **kwargs):
+    """ Evaluate """
+    assert self.sqrt_info is not None
+    assert len(params) == 3
+
+    # Map params
+    pose, extrinsic = params
+    T_world_body = pose2tf(pose)
+    T_body_lidar = pose2tf(extrinsic)
+    T_world_lidar = T_world_body @ T_body_lidar
+    C_world_lidar = tf_rot(T_world_lidar)
+    r_world_lidar = tf_trans(T_world_lidar)
+
+    # Find closest points and transform to world frame
+    # pts_world = (C_world_lidar @ pts_lidar) + r_world_lidar[:, np.newaxis]
+
+    # Setup
+    num_points = 0
+    r = []
+    J0 = zeros((3, 6))
+    J1 = zeros((3, 6))
+
+    # for i in range(N):
+      # r.append(p_gnd[:, i] - p_est[:, i])
+      # J0[0:3, 0:3] += -1.0 * eye(3)
+      # J0[0:3, 3:6] += C_world_lidar @ hat(p_est[:, i])
+      # J1[0:3, 0:3] += -1.0 * eye(3)
+      # J1[0:3, 3:6] += C_world_lidar @ hat(p_est[:, i])
+
+    if kwargs.get('only_residuals', False):
+      return r
+
+    return (r, [J0, J1])
+
+
 class MargFactor(Factor):
   """ Marginalization Factor """
   def __init__(self):
@@ -8623,6 +8453,11 @@ class TestIMUFactor(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
 
 
+# class TestLidarFactor(unittest.TestCase):
+#   """ Test Lidar factor """
+#   def test_lidar_factor(self):
+
+
 class TestMargFactor(unittest.TestCase):
   """ Test Marg factor """
   def test_marg_factor(self):
@@ -8793,11 +8628,11 @@ class TestMargFactor(unittest.TestCase):
     # self.assertEqual(len(marg_factor.marg_param_ids), 5)
 
 
-# SOLVER #######################################################################
+# Factor Graph #################################################################
 
 
-class Solver:
-  """ Solver """
+class FactorGraph:
+  """ FactorGraph """
   def __init__(self):
     self._next_param_id = 0
     self._next_factor_id = 0
@@ -9110,7 +8945,7 @@ class Solver:
       self.params[param_id].param = param.param
 
 
-class TestSolver(unittest.TestCase):
+class TestFactorGraph(unittest.TestCase):
   """ Test Factor Graph """
   def setUp(self):
     circle_r = 5.0
@@ -9118,8 +8953,8 @@ class TestSolver(unittest.TestCase):
     pickle_path = '/tmp/sim_data.pickle'
     self.sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
 
-  def test_solver_add_param(self):
-    """ Test Solver.add_param() """
+  def test_add_param(self):
+    """ Test graph.add_param() """
     # Setup camera pose T_WC
     rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
@@ -9128,39 +8963,39 @@ class TestSolver(unittest.TestCase):
     pose1 = pose_setup(1, T_WC)
 
     # Add params
-    solver = Solver()
-    pose0_id = solver.add_param(pose0)
-    pose1_id = solver.add_param(pose1)
+    graph = FactorGraph()
+    pose0_id = graph.add_param(pose0)
+    pose1_id = graph.add_param(pose1)
 
     # Assert
     self.assertEqual(pose0_id, 0)
     self.assertEqual(pose1_id, 1)
     self.assertNotEqual(pose0, pose1)
-    self.assertEqual(solver.params[pose0_id], pose0)
-    self.assertEqual(solver.params[pose1_id], pose1)
+    self.assertEqual(graph.params[pose0_id], pose0)
+    self.assertEqual(graph.params[pose1_id], pose1)
 
-  def test_solver_add_factor(self):
-    """ Test Solver.add_factor() """
+  def test_add_factor(self):
+    """ Test graph.add_factor() """
     # Setup factor graph
-    solver = Solver()
+    graph = FactorGraph()
 
     # Setup camera pose T_WC
     rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
     T_WC = tf(rot, trans)
     pose = pose_setup(0, T_WC)
-    pose_id = solver.add_param(pose)
+    pose_id = graph.add_param(pose)
 
     # Create factor
     param_ids = [pose_id]
     covar = eye(6)
     pose_factor = PoseFactor(param_ids, T_WC, covar)
-    pose_factor_id = solver.add_factor(pose_factor)
+    pose_factor_id = graph.add_factor(pose_factor)
 
     # Assert
-    self.assertEqual(len(solver.params), 1)
-    self.assertEqual(len(solver.factors), 1)
-    self.assertEqual(solver.factors[pose_factor_id], pose_factor)
+    self.assertEqual(len(graph.params), 1)
+    self.assertEqual(len(graph.factors), 1)
+    self.assertEqual(graph.factors[pose_factor_id], pose_factor)
 
   @unittest.skip("")
   def test_solve_vo(self):
@@ -9174,7 +9009,7 @@ class TestSolver(unittest.TestCase):
     poses_gnd = []
     poses_init = []
     poses_est = []
-    solver = Solver()
+    graph = FactorGraph()
 
     # -- Add features
     features = self.sim_data.features
@@ -9183,10 +9018,10 @@ class TestSolver(unittest.TestCase):
       p_W = features[i, :]
       # p_W += np.random.rand(3) * 0.1  # perturb feature
       feature = feature_setup(p_W, fix=True)
-      feature_ids.append(solver.add_param(feature))
+      feature_ids.append(graph.add_param(feature))
 
     # -- Add cam0
-    cam0_id = solver.add_param(cam0_params)
+    cam0_id = graph.add_param(cam0_params)
 
     # -- Build bundle adjustment problem
     nb_poses = 0
@@ -9202,7 +9037,7 @@ class TestSolver(unittest.TestCase):
       T_WC0_init = tf_update(T_WC0_gnd, np.block([*trans_rand, *rvec_rand]))
       # -- Add to graph
       pose = pose_setup(ts, T_WC0_init)
-      pose_id = solver.add_param(pose)
+      pose_id = graph.add_param(pose)
       poses_gnd.append(T_WC0_gnd)
       poses_init.append(T_WC0_init)
       poses_est.append(pose_id)
@@ -9212,13 +9047,13 @@ class TestSolver(unittest.TestCase):
       for i, idx in enumerate(cam_frame.feature_ids):
         z = cam_frame.measurements[i]
         param_ids = [pose_id, feature_ids[idx], cam0_id]
-        solver.add_factor(BAFactor(cam0_geom, param_ids, z))
+        graph.add_factor(BAFactor(cam0_geom, param_ids, z))
 
     # Solve
     # debug = True
     debug = False
     # prof = profile_start()
-    solver.solve(debug)
+    graph.solve(debug)
     # profile_stop(prof)
 
     # Visualize
@@ -9227,7 +9062,7 @@ class TestSolver(unittest.TestCase):
       pos_init = np.array([tf_trans(T) for T in poses_init])
       pos_est = []
       for pose_pid in poses_est:
-        pose = solver.params[pose_pid]
+        pose = graph.params[pose_pid]
         pos_est.append(tf_trans(pose2tf(pose.param)))
       pos_est = np.array(pos_est)
 
@@ -9241,7 +9076,7 @@ class TestSolver(unittest.TestCase):
       plt.show()
 
     # Asserts
-    # errors = solver.get_reproj_errors()
+    # errors = graph.get_reproj_errors()
     # self.assertTrue(rmse(errors) < 0.1)
 
   @unittest.skip("")
@@ -9270,13 +9105,13 @@ class TestSolver(unittest.TestCase):
     poses_gnd = []
     sb_est = []
     sb_gnd = []
-    solver = Solver()
+    graph = FactorGraph()
 
     # -- Pose i
     ts_i = imu0_data.timestamps[start_idx]
     T_WS_i = imu0_data.poses[ts_i]
     pose_i = pose_setup(ts_i, T_WS_i)
-    pose_i_id = solver.add_param(pose_i)
+    pose_i_id = graph.add_param(pose_i)
     poses_init.append(T_WS_i)
     poses_est.append(pose_i_id)
     poses_gnd.append(T_WS_i)
@@ -9286,7 +9121,7 @@ class TestSolver(unittest.TestCase):
     ba_i = np.array([0.0, 0.0, 0.0])
     bg_i = np.array([0.0, 0.0, 0.0])
     sb_i = speed_biases_setup(ts_i, vel_i, ba_i, bg_i)
-    sb_i_id = solver.add_param(sb_i)
+    sb_i_id = graph.add_param(sb_i)
     sb_est.append(sb_i_id)
     sb_gnd = [[*vel_i, *ba_i, *bg_i]]
 
@@ -9300,14 +9135,14 @@ class TestSolver(unittest.TestCase):
       T_WS_j = tf_update(T_WS_j_gnd, np.block([*trans_rand, *rvec_rand]))
       # ---- Add to factor graph
       pose_j = pose_setup(ts_j, T_WS_j)
-      pose_j_id = solver.add_param(pose_j)
+      pose_j_id = graph.add_param(pose_j)
 
       # -- Speed and biases j
       vel_j = imu0_data.vel[ts_j]
       ba_j = np.array([0.0, 0.0, 0.0])
       bg_j = np.array([0.0, 0.0, 0.0])
       sb_j = speed_biases_setup(ts_j, vel_j, ba_j, bg_j)
-      sb_j_id = solver.add_param(sb_j)
+      sb_j_id = graph.add_param(sb_j)
 
       # ---- Keep track of initial and estimate pose
       poses_init.append(T_WS_j)
@@ -9322,7 +9157,7 @@ class TestSolver(unittest.TestCase):
       # factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i) # Euler method
       factor = ImuFactor2(param_ids, imu_params, imu_buf,
                           sb_i)  # Midpoint method
-      solver.add_factor(factor)
+      graph.add_factor(factor)
 
       # -- Update
       pose_i_id = pose_j_id
@@ -9334,8 +9169,8 @@ class TestSolver(unittest.TestCase):
     # debug = True
     debug = False
     # prof = profile_start()
-    solver.solver_max_iter = 10
-    solver.solve(debug)
+    graph.solver_max_iter = 10
+    graph.solve(debug)
     # profile_stop(prof)
 
     if debug:
@@ -9344,12 +9179,12 @@ class TestSolver(unittest.TestCase):
 
       pos_est = []
       for pose_pid in poses_est:
-        pose = solver.params[pose_pid]
+        pose = graph.params[pose_pid]
         pos_est.append(tf_trans(pose2tf(pose.param)))
       pos_est = np.array(pos_est)
 
       sb_gnd = np.array(sb_gnd)
-      sb_est = [solver.params[pid] for pid in sb_est]
+      sb_est = [graph.params[pid] for pid in sb_est]
       sb_ts0 = sb_est[0].ts
       sb_time = np.array([ts2sec(sb.ts - sb_ts0) for sb in sb_est])
       vel_est = np.array([sb.param[0:3] for sb in sb_est])
@@ -9447,9 +9282,9 @@ class TestSolver(unittest.TestCase):
     poses_gnd = []
     poses_init = []
     poses_est = []
-    solver = Solver()
-    solver.solver_lambda = 1e4
-    solver.solver_max_iter = 10
+    graph = FactorGraph()
+    graph.solver_lambda = 1e4
+    graph.solver_max_iter = 10
 
     # -- Add features
     features = self.sim_data.features
@@ -9458,11 +9293,11 @@ class TestSolver(unittest.TestCase):
       p_W = features[i, :]
       # p_W += np.random.rand(3) * 0.1  # perturb feature
       feature = feature_setup(p_W, fix=False)
-      feature_ids.append(solver.add_param(feature))
+      feature_ids.append(graph.add_param(feature))
 
     # -- Add cam
-    cam_id = solver.add_param(cam_params)
-    exts_id = solver.add_param(cam_exts)
+    cam_id = graph.add_param(cam_params)
+    exts_id = graph.add_param(cam_exts)
     T_BC_gnd = pose2tf(cam_exts.param)
     T_CB_gnd = inv(T_BC_gnd)
 
@@ -9494,7 +9329,7 @@ class TestSolver(unittest.TestCase):
           # ---- Add to graph
           pose = pose_setup(ts_k, T_WB_init)
           poses.append(pose)
-          pose_id = solver.add_param(pose)
+          pose_id = graph.add_param(pose)
           poses_gnd.append(T_WB_gnd)
           poses_init.append(T_WB_init)
           poses_est.append(pose_id)
@@ -9503,13 +9338,13 @@ class TestSolver(unittest.TestCase):
           ba_j = np.array([0.0, 0.0, 0.0])
           bg_j = np.array([0.0, 0.0, 0.0])
           sb = speed_biases_setup(ts_k, vel_j, bg_j, ba_j)
-          solver.add_param(sb)
+          graph.add_param(sb)
           sbs.append(sb)
           # -- Add vision factors
           for i, idx in enumerate(cam_data.frames[ts_k].feature_ids):
             z = cam_data.frames[ts_k].measurements[i]
             param_ids = [pose_id, exts_id, feature_ids[idx], cam_id]
-            solver.add_factor(VisionFactor(cam_geom, param_ids, z))
+            graph.add_factor(VisionFactor(cam_geom, param_ids, z))
 
           # Imu factor
           if len(poses) >= 2:
@@ -9522,7 +9357,7 @@ class TestSolver(unittest.TestCase):
 
             if ts_k <= imu_data.ts[-1]:
               imu_buf = imu_data.extract(ts_km1, ts_k)
-              solver.add_factor(
+              graph.add_factor(
                   ImuFactor2(param_ids, imu_params, imu_buf, sbs[-2]))
 
       if len(poses) > 20:
@@ -9532,7 +9367,7 @@ class TestSolver(unittest.TestCase):
     debug = True
     # debug = False
     # prof = profile_start()
-    solver.solve(debug)
+    graph.solve(debug)
     # profile_stop(prof)
 
     # Visualize
@@ -9541,7 +9376,7 @@ class TestSolver(unittest.TestCase):
       pos_init = np.array([tf_trans(T) for T in poses_init])
       pos_est = []
       for pose_pid in poses_est:
-        pose = solver.params[pose_pid]
+        pose = graph.params[pose_pid]
         pos_est.append(tf_trans(pose2tf(pose.param)))
       pos_est = np.array(pos_est)
 
@@ -9555,11 +9390,30 @@ class TestSolver(unittest.TestCase):
       plt.show()
 
     # Asserts
-    # errors = solver.get_reproj_errors()
+    # errors = graph.get_reproj_errors()
     # self.assertTrue(rmse(errors) < 0.1)
 
 
-# FEATURE TRACKING #############################################################
+###############################################################################
+# FEATURE TRACKING
+# def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs)
+# def draw_keypoints(img, kps, inliers=None, **kwargs)
+# def sort_keypoints(kps, des=None)
+# def spread_corners(img, corners, min_dist, **kwargs)
+# def spread_keypoints(img, kps, min_dist, **kwargs)
+# def spread_features(img, kps, des, min_dist, **kwargs)
+#
+# class FeatureGrid
+# def grid_detect(detector, image, **kwargs)
+# def good_grid(image, **kwargs)
+# def optflow_track(img_i, img_j, pts_i, **kwargs)
+# def filter_outliers(pts_i, pts_j, inliers)
+# def check_parallax(cam0_params, cam1_params, cam0_exts, cam1_exts, kps0, kps1,
+# def ransac(pts_i, pts_j, cam_i, cam_j)
+# class FeatureTrack
+# def estimate_pose(param_i, param_j, ext_i, ext_j, kps_i, kps_j, features,
+#                   pose_i, **kwargs)
+###############################################################################
 
 
 def draw_matches(img_i: Image, img_j: Image, kps_i, kps_j, **kwargs):
@@ -9596,17 +9450,21 @@ def draw_matches(img_i: Image, img_j: Image, kps_i, kps_j, **kwargs):
   return viz
 
 
-def draw_keypoints(img, kps, inliers=None, **kwargs):
+def draw_keypoints(
+    img,
+    kps,
+    inliers=None,
+    radius: int = 1,
+    color: tuple[int, int, int] = (0, 255, 0),
+    thickness=cv2.FILLED,
+    linetype=cv2.LINE_AA,
+):
   """
   Draw points `kps` on image `img`. The `inliers` boolean list is optional
   and is expected to be the same size as `kps` denoting whether the point
   should be drawn or not.
   """
   inliers = [1 for _ in range(len(kps))] if inliers is None else inliers
-  radius = kwargs.get('radius', 1)
-  color = kwargs.get('color', (0, 255, 0))
-  thickness = kwargs.get('thickness', cv2.FILLED)
-  linetype = kwargs.get('linetype', cv2.LINE_AA)
 
   viz = img
   if len(img.shape) == 2:
@@ -9931,9 +9789,7 @@ class FeatureGrid:
 
 
 def grid_detect(
-    detector,
-    image,
-    optflow_mode: bool = False,
+    image: Image,
     max_keypoints: int = 2000,
     grid_rows: int = 3,
     grid_cols: int = 4,
@@ -9947,6 +9803,7 @@ def grid_detect(
     prev_kps = []
 
   # Calculate number of grid cells and max corners per cell
+  detector = cv2.FastFeatureDetector_create(threshold=50)
   image_height, image_width = image.shape
   dx = int(ceil(float(image_width) / float(grid_cols)))
   dy = int(ceil(float(image_height) / float(grid_rows)))
@@ -9968,16 +9825,8 @@ def grid_detect(
       # Detect corners in grid cell
       cs, ce, rs, re = (x, x + w, y, y + h)
       roi_image = image[rs:re, cs:ce]
-
-      kps = None
-      des = None
-      if optflow_mode:
-        kps = detector.detect(roi_image)
-        kps = sort_keypoints(kps)
-
-      else:
-        # kps = detector.detect(roi_image, None)
-        kps, des = detector.detectAndCompute(roi_image, kps)
+      kps = detector.detect(roi_image)
+      kps = sort_keypoints(kps)
 
       # Offset keypoints
       cell_vacancy = max_per_cell - feature_grid.count(cell_idx)
@@ -9989,15 +9838,12 @@ def grid_detect(
         kp: cv2.KeyPoint = kps[i]
         kp.pt = (kp.pt[0] + x, kp.pt[1] + y)
         kps_all.append(kp)
-        if des is not None:
-          des_all.append(des[i, :] if optflow_mode is False else None)
 
       # Update cell_idx
       cell_idx += 1
 
   # Space out the keypoints
-  if optflow_mode:
-    kps_all = spread_keypoints(image, kps_all, 20, prev_kps=prev_kps)
+  kps_all = spread_keypoints(image, kps_all, 20, prev_kps=prev_kps)
 
   # Debug
   if debug:
@@ -10040,10 +9886,7 @@ def grid_detect(
     cv2.waitKey(0)
 
   # Return
-  if optflow_mode:
-    return kps_all
-
-  return kps_all, np.array(des_all)
+  return kps_all
 
 
 def good_grid(
@@ -10419,33 +10262,33 @@ def estimate_pose(
   # Setup
   cam_geom_i = param_i.data
   cam_geom_j = param_j.data
-  solver = Solver()
-  solver.solver_max_iter = max_iter
+  graph = FactorGraph()
+  graph.solver_max_iter = max_iter
 
   # Add params
-  param_i_id = solver.add_param(param_i)
-  param_j_id = solver.add_param(param_j)
-  ext_i_id = solver.add_param(ext_i)
-  ext_j_id = solver.add_param(ext_j)
-  pose_i_id = solver.add_param(pose_i)
-  pose_j_id = solver.add_param(pose_setup(1, pose_i.param))
+  param_i_id = graph.add_param(param_i)
+  param_j_id = graph.add_param(param_j)
+  ext_i_id = graph.add_param(ext_i)
+  ext_j_id = graph.add_param(ext_j)
+  pose_i_id = graph.add_param(pose_i)
+  pose_j_id = graph.add_param(pose_setup(1, pose_i.param))
 
   # Add factors
   for z_i, z_j, p_W in zip(kps_i, kps_j, features):
     feature = feature_setup(p_W, fix=True)
-    feature_id = solver.add_param(feature)
+    feature_id = graph.add_param(feature)
 
     param_ids = [pose_i_id, ext_i_id, feature_id, param_i_id]
     factor_i = VisionFactor(cam_geom_i, param_ids, z_i)
-    solver.add_factor(factor_i)
+    graph.add_factor(factor_i)
 
     param_ids = [pose_j_id, ext_j_id, feature_id, param_j_id]
     factor_j = VisionFactor(cam_geom_j, param_ids, z_j)
-    solver.add_factor(factor_j)
+    graph.add_factor(factor_j)
 
   # Solve
-  solver.solve(verbose)
-  # reproj_error = solver.get_reproj_errors()
+  graph.solve(verbose)
+  # reproj_error = graph.get_reproj_errors()
 
   # if verbose:
   #   print(f"reproj_error: {np.linalg.norm(reproj_error):.4f}")
@@ -10455,7 +10298,7 @@ def estimate_pose(
   #   print(f"median: {np.median(reproj_error):.4f}")
   #   print(f"std:    {np.std(reproj_error):.4f}")
 
-  return solver.params[pose_j_id]
+  return graph.params[pose_j_id]
 
 
 class TestFeatureTracking(unittest.TestCase):
@@ -10502,18 +10345,16 @@ class TestFeatureTracking(unittest.TestCase):
 
   def test_spread_keypoints(self):
     """ Test spread_keypoints() """
-    # img = np.zeros((140, 160))
-    # kps = []
-    # kps.append(cv2.KeyPoint(10, 10, 0, 0.0, 0.0, 0))
-    # kps.append(cv2.KeyPoint(150, 130, 0, 0.0, 0.0, 1))
-    # kps = spread_keypoints(img, kps, 5, debug=True)
+    kps = grid_detect(self.img0, debug=False)
+    kps = spread_keypoints(self.img0, kps, 100, debug=False)
 
-    detector = cv2.FastFeatureDetector_create(threshold=50)
-    kwargs = {'optflow_mode': True, 'debug': False}
-    kps = grid_detect(detector, self.img0, **kwargs)
-    kps = spread_keypoints(self.img0, kps, 20, debug=False)
-
-    self.assertTrue(len(kps))
+    for i in range(len(kps)):
+      for j in range(len(kps)):
+        if i == j:
+          continue
+        z_i = np.array(kps[i].pt)
+        z_j = np.array(kps[j].pt)
+        self.assertTrue(np.linalg.norm(z_i - z_j) > 100)
 
   def test_feature_grid_cell_index(self):
     """ Test FeatureGrid.grid_cell_index() """
@@ -10544,15 +10385,7 @@ class TestFeatureTracking(unittest.TestCase):
   def test_grid_detect(self):
     """ Test grid_detect() """
     debug = False
-
-    # detector = cv2.ORB_create(nfeatures=500)
-    # kps, des = grid_detect(detector, self.img0, **kwargs)
-    # self.assertTrue(len(kps) > 0)
-    # self.assertEqual(des.shape[0], len(kps))
-
-    detector = cv2.FastFeatureDetector_create(threshold=50)
-    kwargs = {'optflow_mode': True, 'debug': debug}
-    kps = grid_detect(detector, self.img0, **kwargs)
+    kps = grid_detect(self.img0, debug=debug)
     self.assertTrue(len(kps) > 0)
 
   def test_good_grid(self):
@@ -10567,9 +10400,8 @@ class TestFeatureTracking(unittest.TestCase):
     debug = False
 
     # Detect
-    feature = cv2.ORB_create(nfeatures=100)
-    kps, des = grid_detect(feature, self.img0)
-    self.assertTrue(len(kps) == len(des))
+    kps = grid_detect(self.img0)
+    self.assertTrue(len(kps))
 
     # Track
     pts_i = np.array([kp.pt for kp in kps], dtype=np.float32)
@@ -10598,8 +10430,7 @@ class TestFeatureTracking(unittest.TestCase):
   def test_estimate_pose(self):
     """ Test estimate_pose() """
     # Detect
-    kwargs = {"max_keypoints": 200, "optflow_mode": True}
-    kps0 = good_grid(self.img0, **kwargs)
+    kps0 = good_grid(self.img0, max_keypoints=200)
 
     # Track
     kps0, kps1, inliers = optflow_track(self.img0, self.img1, kps0)
@@ -10660,108 +10491,10 @@ class TestFeatureTracking(unittest.TestCase):
     print(f"est:\n{np.round(T_C0C1_est, 3)}\n")
     print(f"gnd:\n{np.round(T_C0C1, 3)}\n")
 
-  def test_euroc_mono(self):
-    kps0_km1 = np.array([])
-    frame0_km1 = None
-
-    imshow_wait = 0
-    red = (0, 0, 255)
-    yellow = (0, 255, 255)
-
-    # for ts in self.dataset.cam0_data.timestamps[2000:3000]:
-    for ts in self.dataset.cam0_data.timestamps:
-      frame0_path = self.dataset.cam0_data.image_paths[ts]
-      frame0_k = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
-
-      # Track
-      kps0_k = np.array([])
-      if frame0_km1 is not None:
-        kps0_km1, kps0_k, optflow_inliers = optflow_track(
-            frame0_km1,
-            frame0_k,
-            kps0_km1,
-        )
-        kps0_km1, kps0_k = filter_outliers(kps0_km1, kps0_k, optflow_inliers)
-        # ransac_inliers = ransac(kps0_km1, kps0_k, self.cam0_params, self.cam0_params)
-        # kps0_km1, kps0_k = filter_outliers(kps0_km1, kps0_k, ransac_inliers)
-
-      # Detect new
-      kps_new = good_grid(frame0_k, max_keypoints=200, prev_kps=kps0_k)
-
-      if len(kps_new):
-        criteria = (
-            cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
-            100,
-            0.001,
-        )
-        kps_new = cv2.cornerSubPix(
-            frame0_k,
-            kps_new,
-            (5, 5),
-            (-1, -1),
-            criteria,
-        )
-
-      if len(kps0_k) and len(kps_new):
-        kps0_k = np.append(kps0_k, kps_new, axis=0)
-
-      elif len(kps_new):
-        kps0_k = kps_new
-
-      # Visualize
-      if frame0_km1 is not None:
-        viz_km1 = draw_keypoints(frame0_km1, kps0_km1)
-        viz_k = draw_keypoints(frame0_k, kps0_k)
-        viz = np.hstack([viz_km1, viz_k])
-        cv2.imshow("Viz", viz)
-
-        key_pressed = cv2.waitKey(imshow_wait)
-        if key_pressed == ord('q'):
-          break
-        elif key_pressed == ord(' '):
-          imshow_wait = 1 if imshow_wait == 0 else 0
-
-      # Update
-      kps0_km1 = kps0_k
-      frame0_km1 = frame0_k
-
-  @unittest.skip("")
-  def test_euroc(self):
-    # Setup test images
-    self.dataset = TestFeatureTracking.dataset
-    ts = self.dataset.cam0_data.timestamps[0]
-    img0_path = self.dataset.cam0_data.image_paths[ts]
-    img1_path = self.dataset.cam1_data.image_paths[ts]
-    self.img0 = cv2.imread(img0_path, cv2.IMREAD_GRAYSCALE)
-    self.img1 = cv2.imread(img1_path, cv2.IMREAD_GRAYSCALE)
-
-    imshow_wait = 0
-    # for ts in self.dataset.cam0_data.timestamps[2000:3000]:
-    # for ts in self.dataset.cam0_data.timestamps:
-    # Load images
-    # frame0_path = self.dataset.cam0_data.image_paths[ts]
-    # frame1_path = self.dataset.cam1_data.image_paths[ts]
-    # frame0 = cv2.imread(frame0_path, cv2.IMREAD_GRAYSCALE)
-    # frame1 = cv2.imread(frame1_path, cv2.IMREAD_GRAYSCALE)
-    # ft.update(ts, frame0, frame1)
-
-    # Visualize
-    # viz = None
-    # feature_ids, kps0, kps1 = ft.get_keypoints()
-    # viz_i = draw_keypoints(frame0, kps0)
-    # viz_j = draw_keypoints(frame1, kps1)
-    # viz = np.hstack([viz_i, viz_j])
-
-    # cv2.imshow("Viz", viz)
-    # key_pressed = cv2.waitKey(imshow_wait)
-    # if key_pressed == ord('q'):
-    #   break
-    # elif key_pressed == ord(' '):
-    #   imshow_wait = 1 if imshow_wait == 0 else 0
-
 
 ###############################################################################
 # CALIBRATION
+# -----------
 # class CalibTarget
 # def calib_generate_poses(calib_target, **kwargs)
 # def calib_generate_random_poses(calib_target, **kwargs)
@@ -11039,7 +10772,7 @@ class TestCalibration(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax: Axes3D = plt.axes(projection='3d')
+      ax = plt.axes(projection='3d')
 
       # calib_target.plot(ax, T_WF)
       for T_FC in poses:
@@ -11067,7 +10800,7 @@ class TestCalibration(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax: Axes3D = plt.axes(projection='3d')
+      ax = plt.axes(projection='3d')
 
       # calib_target.plot(ax, T_WF)
       for T_FC in poses:
@@ -11578,7 +11311,7 @@ class TestSimulation(unittest.TestCase):
   def test_sim_data(self):
     """ Test SimData() """
     debug_cam = False
-    debug_imu = True
+    debug_imu = False
 
     # Sim data
     circle_r = 1.0
@@ -11700,14 +11433,6 @@ class TestSimulation(unittest.TestCase):
 
 ###############################################################################
 # CONTROL
-# class PID
-# class CarrotController
-# class MavModel
-# class MavAttitudeControl
-# class MavVelocityControl
-# class MavPositionControl
-# class MavTrajectoryControl
-# class TestMav
 ###############################################################################
 
 
