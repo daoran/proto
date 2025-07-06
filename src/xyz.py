@@ -27,6 +27,7 @@ Contains the following library code useful for prototyping robotic algorithms:
 - CONTROL
 
 """
+
 import os
 import sys
 import glob
@@ -50,6 +51,7 @@ from dataclasses import dataclass
 from collections import namedtuple
 
 import typing
+from typing import cast
 from typing import TypeVar
 from typing import Annotated
 from typing import Literal
@@ -70,7 +72,7 @@ from pstats import Stats
 
 SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
-EUROC_DATA_PATH = '/data/euroc/V1_01'
+EUROC_DATA_PATH = "/data/euroc/V1_01"
 
 from numpy.typing import NDArray
 
@@ -92,6 +94,7 @@ MatNx3 = Annotated[NDArray[DType], Literal["N", "3"]]
 MatNx4 = Annotated[NDArray[DType], Literal["N", "4"]]
 Mat2xN = Annotated[NDArray[DType], Literal["2", "N"]]
 Mat2x3 = Annotated[NDArray[DType], Literal["2", "3"]]
+Mat3x4 = Annotated[NDArray[DType], Literal["3", "4"]]
 Mat3xN = Annotated[NDArray[DType], Literal["3", "N"]]
 Mat4xN = Annotated[NDArray[DType], Literal["4", "N"]]
 Image = Annotated[NDArray[DType], Literal["N", "N"]]
@@ -114,7 +117,7 @@ def extract_tar_gz(file_path: Path, extract_path: Path) -> bool:
 
 
 def load_yaml(yaml_path: str):
-  """ Load YAML and return a named tuple """
+  """Load YAML and return a named tuple"""
   assert yaml_path is not None
   assert yaml_path != ""
 
@@ -125,9 +128,9 @@ def load_yaml(yaml_path: str):
 
   # Convert dict to named tuple
   data = json.dumps(yaml_data)  # Python dict to json
-  data = json.loads(data,
-                    object_hook=lambda d: namedtuple('X', d.keys())
-                    (*d.values()))
+  data = json.loads(
+    data, object_hook=lambda d: namedtuple("X", d.keys())(*d.values())
+  )
 
   return data
 
@@ -138,12 +141,12 @@ def load_yaml(yaml_path: str):
 
 
 def sec2ts(time_s: float) -> np.int64:
-  """ Convert time in seconds to timestamp """
+  """Convert time in seconds to timestamp"""
   return np.int64(time_s * 1e9)
 
 
 def ts2sec(ts: np.int64) -> np.float64:
-  """ Convert timestamp to seconds """
+  """Convert timestamp to seconds"""
   return np.float64(ts) * 1e-9
 
 
@@ -153,16 +156,16 @@ def ts2sec(ts: np.int64) -> np.float64:
 
 
 def profile_start() -> cProfile.Profile:
-  """ Start profile """
+  """Start profile"""
   prof = cProfile.Profile()
   prof.enable()
   return prof
 
 
 def profile_stop(prof: cProfile.Profile, **kwargs):
-  """ Stop profile """
-  key = kwargs.get('key', 'cumtime')
-  N = kwargs.get('N', 10)
+  """Stop profile"""
+  key = kwargs.get("key", "cumtime")
+  N = kwargs.get("N", 10)
 
   stats = Stats(prof)
   stats.strip_dirs()
@@ -175,7 +178,7 @@ def profile_stop(prof: cProfile.Profile, **kwargs):
 
 
 def download_file(url: str, dst: Path) -> bool:
-  """ Download file """
+  """Download file"""
   response = requests.get(url, stream=True)
   if response.status_code == 200:
     with open(str(dst), "wb") as file:
@@ -187,55 +190,55 @@ def download_file(url: str, dst: Path) -> bool:
 
 
 def http_status_code_string(code: int) -> str:
-  """ Convert status code to string """
+  """Convert status code to string"""
   status_code_str = {
-      100: "100 Continue",
-      101: "101 Switching Protocols",
-      200: "200 OK",
-      201: "201 Created",
-      202: "202 Accepted",
-      203: "203 Non-Authoritative Information",
-      204: "204 No Content",
-      205: "205 Reset Content",
-      206: "206 Partial Content",
-      300: "300 Multiple Choices",
-      301: "301 Moved Permanently",
-      302: "302 Found",
-      303: "303 See Other",
-      304: "304 Not Modified",
-      305: "305 Use Proxy",
-      307: "307 Temporary Redirect",
-      400: "400 Bad Request",
-      401: "401 Unauthorized",
-      402: "402 Payment Required",
-      403: "403 Forbidden",
-      404: "404 Not Found",
-      405: "405 Method Not Allowed",
-      406: "406 Not Acceptable",
-      407: "407 Proxy Authentication Required",
-      408: "408 Request Time-out",
-      409: "409 Conflict",
-      410: "410 Gone",
-      411: "411 Length Required",
-      412: "412 Precondition Failed",
-      413: "413 Request Entity Too Large",
-      414: "414 Request-URI Too Large",
-      415: "415 Unsupported Media Type",
-      416: "416 Requested range not satisfiable",
-      417: "417 Expectation Failed",
-      500: "500 Internal Server Error",
-      501: "501 Not Implemented",
-      502: "502 Bad Gateway",
-      503: "503 Service Unavailable",
-      504: "504 Gateway Time-out",
-      505: "505 HTTP Version not supported"
+    100: "100 Continue",
+    101: "101 Switching Protocols",
+    200: "200 OK",
+    201: "201 Created",
+    202: "202 Accepted",
+    203: "203 Non-Authoritative Information",
+    204: "204 No Content",
+    205: "205 Reset Content",
+    206: "206 Partial Content",
+    300: "300 Multiple Choices",
+    301: "301 Moved Permanently",
+    302: "302 Found",
+    303: "303 See Other",
+    304: "304 Not Modified",
+    305: "305 Use Proxy",
+    307: "307 Temporary Redirect",
+    400: "400 Bad Request",
+    401: "401 Unauthorized",
+    402: "402 Payment Required",
+    403: "403 Forbidden",
+    404: "404 Not Found",
+    405: "405 Method Not Allowed",
+    406: "406 Not Acceptable",
+    407: "407 Proxy Authentication Required",
+    408: "408 Request Time-out",
+    409: "409 Conflict",
+    410: "410 Gone",
+    411: "411 Length Required",
+    412: "412 Precondition Failed",
+    413: "413 Request Entity Too Large",
+    414: "414 Request-URI Too Large",
+    415: "415 Unsupported Media Type",
+    416: "416 Requested range not satisfiable",
+    417: "417 Expectation Failed",
+    500: "500 Internal Server Error",
+    501: "501 Not Implemented",
+    502: "502 Bad Gateway",
+    503: "503 Service Unavailable",
+    504: "504 Gateway Time-out",
+    505: "505 HTTP Version not supported",
   }
 
   return status_code_str[code]
 
 
 def http_parse_request(msg_str: str) -> tuple[str, str, str, dict]:
-  """ Parse HTTP Request """
+  """Parse HTTP Request"""
   # Parse method, path and HTTP protocol
   msg = msg_str.split("\r\n")
   method, path, protocol = msg[0].split(" ")
@@ -253,12 +256,12 @@ def http_parse_request(msg_str: str) -> tuple[str, str, str, dict]:
 
 
 def http_form_request(
-    method: str,
-    path: str,
-    headers: dict,
-    protocol: str = "HTTP/1.1",
+  method: str,
+  path: str,
+  headers: dict,
+  protocol: str = "HTTP/1.1",
 ) -> str:
-  """ Form HTTP request """
+  """Form HTTP request"""
   msg = f"{method} {path} {protocol}"
   msg += "\r\n"
 
@@ -271,11 +274,11 @@ def http_form_request(
 
 
 def http_form_response(
-    status_code: int,
-    headers: dict,
-    protocol: str = "HTTP/1.1",
+  status_code: int,
+  headers: dict,
+  protocol: str = "HTTP/1.1",
 ) -> str:
-  """ Form HTTP request """
+  """Form HTTP request"""
   msg = f"{protocol} {status_code}"
   msg += "\r\n"
 
@@ -298,38 +301,38 @@ def websocket_hash(ws_key: str) -> str:
   """
   WS_UUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
   key = ws_key + WS_UUID
-  hash_sha1 = hashlib.sha1(key.encode('utf-8')).digest()
-  return base64.b64encode(hash_sha1).decode('ascii')
+  hash_sha1 = hashlib.sha1(key.encode("utf-8")).digest()
+  return base64.b64encode(hash_sha1).decode("ascii")
 
 
 def websocket_handshake_response(ws_key: str) -> str:
-  """ Create websocket handshake response """
+  """Create websocket handshake response"""
   ws_hash = websocket_hash(ws_key)
   headers = {
-      "Upgrade": "websocket",
-      "Connection": "Upgrade",
-      "Sec-WebSocket-Accept": ws_hash
+    "Upgrade": "websocket",
+    "Connection": "Upgrade",
+    "Sec-WebSocket-Accept": ws_hash,
   }
   return http_form_response(101, headers)
 
 
 def websocket_frame_fin_bit(data_frame):
-  """ WebSocket Frame Fin Bit """
+  """WebSocket Frame Fin Bit"""
   return data_frame[0] >> 7
 
 
 def websocket_frame_rsv_bit(data_frame):
-  """ WebSocket Frame Reserve Bit """
+  """WebSocket Frame Reserve Bit"""
   return (data_frame[0] ^ 0x80) >> 4
 
 
 def websocket_frame_op_code(data_frame):
-  """ WebSocket Frame OP code """
+  """WebSocket Frame OP code"""
   return data_frame[0] & 0x0F
 
 
 def websocket_frame_mask_enabled(data_frame):
-  """ WebSocket Frame Mask Enabled """
+  """WebSocket Frame Mask Enabled"""
   return data_frame[1] >> 7
 
 
@@ -344,7 +347,7 @@ def websocket_apply_mask(data: bytes, mask: bytes) -> bytes:
     raise ValueError("mask must contain 4 bytes")
 
   data_int = int.from_bytes(data, sys.byteorder)
-  mask_repeated = mask * (len(data) // 4) + mask[:len(data) % 4]
+  mask_repeated = mask * (len(data) // 4) + mask[: len(data) % 4]
   mask_int = int.from_bytes(mask_repeated, sys.byteorder)
   return (data_int ^ mask_int).to_bytes(len(data), sys.byteorder)
 
@@ -416,15 +419,15 @@ def websocket_encode_frame(payload, **kwargs):
   head2 = 0b10000000 if mask else 0
   # yapf:enable
   if length < 126:
-    frame.write(struct.pack('!BB', head1, head2 | length))
+    frame.write(struct.pack("!BB", head1, head2 | length))
   elif length < 65536:
-    frame.write(struct.pack('!BBH', head1, head2 | 126, length))
+    frame.write(struct.pack("!BBH", head1, head2 | 126, length))
   else:
-    frame.write(struct.pack('!BBQ', head1, head2 | 127, length))
+    frame.write(struct.pack("!BBQ", head1, head2 | 127, length))
 
   # -- Payload
   if mask:
-    mask_bits = struct.pack('!I', random.getrandbits(32))
+    mask_bits = struct.pack("!I", random.getrandbits(32))
     masked_payload = websocket_apply_mask(payload, mask_bits)
     frame.write(mask_bits)
     frame.write(masked_payload)
@@ -455,7 +458,7 @@ def websocket_decode_frame(reader, mask):
   # Read the header.
   data = yield from reader(2)
   # head1, head2 = struct.unpack('!BB', data)
-  _, head2 = struct.unpack('!BB', data)
+  _, head2 = struct.unpack("!BB", data)
 
   # -- While not Pythonic, this is marginally faster than calling bool().
   # fin = True if head1 & 0b10000000 else False
@@ -470,10 +473,10 @@ def websocket_decode_frame(reader, mask):
   length = head2 & 0b01111111
   if length == 126:
     data = yield from reader(2)
-    length, = struct.unpack('!H', data)
+    (length,) = struct.unpack("!H", data)
   elif length == 127:
     data = yield from reader(8)
-    length, = struct.unpack('!Q', data)
+    (length,) = struct.unpack("!Q", data)
 
   # Read payload
   if mask:
@@ -485,9 +488,10 @@ def websocket_decode_frame(reader, mask):
 
 
 class DebugServer:
-  """ Debug Server """
+  """Debug Server"""
+
   def __init__(self, callback, **kwargs):
-    self.host = kwargs.get("host", '127.0.0.1')
+    self.host = kwargs.get("host", "127.0.0.1")
     self.port = kwargs.get("port", 5000)
     self.callback = callback
 
@@ -528,15 +532,16 @@ class DebugServer:
 
 
 def test_websocket_callback():
-  """ Test WebSocket Callback """
+  """Test WebSocket Callback"""
   time.sleep(1)
   return "Hello World"
 
 
 class TestNetwork(unittest.TestCase):
-  """ Test Network """
+  """Test Network"""
+
   def test_http_parse_request(self):
-    """ Test Parsing HTTP Request """
+    """Test Parsing HTTP Request"""
     request_string = """GET / HTTP/1.1\r\n
                         Host: localhost:8080\r\n
                         User-Agent: Mozilla/5.0\r\n
@@ -556,13 +561,13 @@ class TestNetwork(unittest.TestCase):
     self.assertTrue(headers["User-Agent"] == "Mozilla/5.0")
 
   def test_websocket_hash(self):
-    """ Test WebSocket Upgrade Response """
+    """Test WebSocket Upgrade Response"""
     ws_key = "dGhlIHNhbXBsZSBub25jZQ=="
     ws_hash = "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
     self.assertTrue(websocket_hash(ws_key) == ws_hash)
 
   def test_websocket_encode_frame(self):
-    """ Test WebSocket Frame """
+    """Test WebSocket Frame"""
     payload = "Hello World!"
     frame = websocket_encode_frame(payload)
     self.assertTrue(frame is not None)
@@ -592,7 +597,7 @@ class TestNetwork(unittest.TestCase):
 
   @unittest.skip("")
   def test_debug_server(self):
-    """ Test Debug Server """
+    """Test Debug Server"""
     server = DebugServer(test_websocket_callback)
     self.assertTrue(server is not None)
 
@@ -617,12 +622,12 @@ from math import atan2
 
 
 def rmse(errors: VecN) -> float:
-  """ Root Mean Squared Error """
+  """Root Mean Squared Error"""
   return np.sqrt(np.mean(errors**2))
 
 
 def clip_value(x: float, vmin: float, vmax: float) -> float:
-  """ Clip """
+  """Clip"""
   x_tmp = x
   x_tmp = vmax if (x_tmp > vmax) else x_tmp
   x_tmp = vmin if (x_tmp < vmin) else x_tmp
@@ -673,9 +678,9 @@ from numpy.linalg import cholesky as chol
 
 
 def pprint_matrix(mat: MatN, fmt: str = "g") -> None:
-  """ Pretty Print matrix """
+  """Pretty Print matrix"""
   col_maxes = [
-      max([len(("{:" + fmt + "}").format(x)) for x in col]) for col in mat.T
+    max([len(("{:" + fmt + "}").format(x)) for x in col]) for col in mat.T
   ]
   for x in mat:
     for i, y in enumerate(x):
@@ -684,7 +689,7 @@ def pprint_matrix(mat: MatN, fmt: str = "g") -> None:
 
 
 def normalize(v: VecN) -> VecN:
-  """ Normalize vector v """
+  """Normalize vector v"""
   n = np.linalg.norm(v)
   if n == 0:
     return v
@@ -692,12 +697,12 @@ def normalize(v: VecN) -> VecN:
 
 
 def full_rank(A: MatN) -> float:
-  """ Check if matrix A is full rank """
+  """Check if matrix A is full rank"""
   return rank(A) == A.shape[0]
 
 
 def hat(vec: Vec3) -> Mat3:
-  """ Form skew-symmetric matrix from vector `vec` """
+  """Form skew-symmetric matrix from vector `vec`"""
   assert vec.shape == (3,) or vec.shape == (3, 1)
 
   if vec.shape == (3,):
@@ -713,7 +718,7 @@ def hat(vec: Vec3) -> Mat3:
 
 
 def vee(A: Mat3) -> Vec3:
-  """ Form skew symmetric matrix vector """
+  """Form skew symmetric matrix vector"""
   assert A.shape == (3, 3)
   return np.array([A[2, 1], A[0, 2], A[1, 0]])
 
@@ -732,7 +737,7 @@ def fwdsubs(L: MatN, b: VecN):
   x = zeros((n, 1))
   for j in range(n):
     if L[j, j] == 0:
-      raise RuntimeError('Matrix is singular!')
+      raise RuntimeError("Matrix is singular!")
     x[j] = b[j] / L[j, j]
     b[j:n] = b[j:n] - L[j:n, j] * x[j]
 
@@ -751,7 +756,7 @@ def bwdsubs(U: MatN, b: VecN):
   x = zeros((n, 1))
   for j in range(n):
     if U[j, j] == 0:
-      raise RuntimeError('Matrix is singular!')
+      raise RuntimeError("Matrix is singular!")
     x[j] = b[j] / U[j, j]
     b[0:j] = b[0:j] - U[0:j, j] * x[j]
 
@@ -793,13 +798,13 @@ def solve_svd(A: MatN, b: VecN) -> VecN:
 
 
 def schurs_complement(
-    H: MatN,
-    g: VecN,
-    m: float,
-    r: float,
-    precond: bool = False,
+  H: MatN,
+  g: VecN,
+  m: float,
+  r: float,
+  precond: bool = False,
 ) -> tuple[MatN, VecN]:
-  """ Shurs-complement """
+  """Shurs-complement"""
   assert H.shape[0] == (m + r)
 
   # H = [Hmm, Hmr
@@ -880,12 +885,12 @@ def nearest_pd(A: MatN) -> MatN:
 
 
 def matrix_equal(
-    A: MatN,
-    B: MatN,
-    tol: float = 1e-8,
-    verbose: bool = False,
+  A: MatN,
+  B: MatN,
+  tol: float = 1e-8,
+  verbose: bool = False,
 ) -> bool:
-  """ Compare matrices `A` and `B` """
+  """Compare matrices `A` and `B`"""
   diff = A - B
 
   if len(diff.shape) == 1:
@@ -908,7 +913,7 @@ def matrix_equal(
 
 
 def plot_compare_matrices(title_A: str, A: MatN, title_B: str, B: MatN):
-  """ Plot compare matrices """
+  """Plot compare matrices"""
   plt.matshow(A)
   plt.colorbar()
   plt.title(title_A)
@@ -932,13 +937,13 @@ def plot_compare_matrices(title_A: str, A: MatN, title_B: str, B: MatN):
 
 
 def check_jacobian(
-    jac_name: str,
-    fdiff: MatN,
-    jac: MatN,
-    threshold: float,
-    verbose: bool = False,
+  jac_name: str,
+  fdiff: MatN,
+  jac: MatN,
+  threshold: float,
+  verbose: bool = False,
 ) -> bool:
-  """ Check jacobians """
+  """Check jacobians"""
 
   # Check if numerical diff is same as analytical jacobian
   if matrix_equal(fdiff, jac, threshold):
@@ -986,27 +991,28 @@ def check_jacobian(
 
 
 class TestLinearAlgebra(unittest.TestCase):
-  """ Test Linear Algebra """
+  """Test Linear Algebra"""
+
   def test_normalize(self):
-    """ Test normalize() """
+    """Test normalize()"""
     x = np.array([1.0, 2.0, 3.0])
     x_prime = normalize(x)
     self.assertTrue(isclose(norm(x_prime), 1.0))
 
   def test_hat(self):
-    """ Test hat() """
+    """Test hat()"""
     x = np.array([1.0, 2.0, 3.0])
     S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
     self.assertTrue(matrix_equal(S, hat(x)))
 
   def test_vee(self):
-    """ Test vee() """
+    """Test vee()"""
     x = np.array([1.0, 2.0, 3.0])
     S = np.array([[0.0, -3.0, 2.0], [3.0, 0.0, -1.0], [-2.0, 1.0, 0.0]])
     self.assertTrue(matrix_equal(x, vee(S)))
 
   def test_matrix_equal(self):
-    """ Test matrix_equal() """
+    """Test matrix_equal()"""
     A = ones((3, 3))
     B = ones((3, 3))
     self.assertTrue(matrix_equal(A, B))
@@ -1035,12 +1041,12 @@ class TestLinearAlgebra(unittest.TestCase):
 
 
 def lerp(x0: float | VecN, x1: float | VecN, t: float) -> float | VecN:
-  """ Linear interpolation """
+  """Linear interpolation"""
   return (1.0 - t) * x0 + t * x1
 
 
 def lerp2d(p0: Vec2, p1: Vec2, t: float) -> Vec2:
-  """ Linear interpolation 2D """
+  """Linear interpolation 2D"""
   assert len(p0) == 2
   assert len(p1) == 2
   assert 0.0 <= t <= 1.0
@@ -1050,7 +1056,7 @@ def lerp2d(p0: Vec2, p1: Vec2, t: float) -> Vec2:
 
 
 def lerp3d(p0: Vec3, p1: Vec3, t: float) -> Vec3:
-  """ Linear interpolation 3D """
+  """Linear interpolation 3D"""
   assert len(p0) == 3
   assert len(p1) == 3
   assert 0.0 <= t <= 1.0
@@ -1061,7 +1067,7 @@ def lerp3d(p0: Vec3, p1: Vec3, t: float) -> Vec3:
 
 
 def circle(r: float, theta: float) -> Vec2:
-  """ Circle """
+  """Circle"""
   x = r * cos(theta)
   y = r * sin(theta)
   return np.array([x, y])
@@ -1095,7 +1101,7 @@ def circle_loss(c: Vec2, x: float, y: float) -> float:
   """
   xc, yc = c
   # Euclidean dist from center (xc, yc)
-  Ri = np.sqrt((x - xc)**2 + (y - yc)**2)
+  Ri = np.sqrt((x - xc) ** 2 + (y - yc) ** 2)
   return Ri - Ri.mean()
 
 
@@ -1108,15 +1114,15 @@ def find_circle(x: float, y: float) -> tuple[Vec2, float, float]:
   y_m = np.mean(y)
   center_init = x_m, y_m
   center, _ = scipy.optimize.leastsq(
-      circle_loss,  # pyright: ignore
-      center_init,
-      args=(x, y),
+    circle_loss,  # pyright: ignore
+    center_init,
+    args=(x, y),
   )
 
   xc, yc = center
-  radii = np.sqrt((x - xc)**2 + (y - yc)**2)
+  radii = np.sqrt((x - xc) ** 2 + (y - yc) ** 2)
   radius = radii.mean()
-  residual = np.sum((radii - radius)**2)
+  residual = np.sum((radii - radius) ** 2)
 
   return (center, radius, residual)
 
@@ -1166,10 +1172,10 @@ def bresenham(p0: Vec2, p1: Vec2) -> list[Vec2]:
 
 
 def find_intersection(
-    p1: Vec2,
-    p2: Vec2,
-    q1: Vec2,
-    q2: Vec2,
+  p1: Vec2,
+  p2: Vec2,
+  q1: Vec2,
+  q2: Vec2,
 ) -> tuple[bool, Vec2, VecN, np.int32]:
   """
   Find the intersection between two lines formed by points p1, p2 and q1, q2
@@ -1227,7 +1233,7 @@ def fix_rotation_matrix(R):
 
 
 def Exp(phi: Vec3) -> Mat3:
-  """ Exponential Map """
+  """Exponential Map"""
   assert phi.shape == (3,) or phi.shape == (3, 1)
   if norm(phi) < 1e-3:
     C = eye(3) + hat(phi)
@@ -1244,7 +1250,7 @@ def Exp(phi: Vec3) -> Mat3:
 
 
 def Log(C: Mat3) -> Vec3:
-  """ Logarithmic Map """
+  """Logarithmic Map"""
   assert C.shape == (3, 3)
   # phi = acos((trace(C) - 1) / 2);
   # u = vee(C - C') / (2 * sin(phi));
@@ -1304,7 +1310,7 @@ def Jr(theta: Vec3) -> Mat3:
 
 
 def Jr_inv(theta: Vec3) -> Mat3:
-  """ Inverse right jacobian """
+  """Inverse right jacobian"""
   theta_norm = norm(theta)
   theta_norm_sq = theta_norm * theta_norm
   theta_skew = hat(theta)
@@ -1320,7 +1326,7 @@ def Jr_inv(theta: Vec3) -> Mat3:
 
 
 def SO3_boxplus(C: Mat3, alpha: Vec3) -> Mat3:
-  """ Box plus """
+  """Box plus"""
   assert C.shape == (3, 3)
   # C_updated = C [+] alpha
   C_updated = C @ Exp(alpha)
@@ -1328,7 +1334,7 @@ def SO3_boxplus(C: Mat3, alpha: Vec3) -> Mat3:
 
 
 def SO3_boxminus(C_a: Mat3, C_b: Mat3) -> Vec3:
-  """ Box minus """
+  """Box minus"""
   assert C_a.shape == (3, 3)
   assert C_b.shape == (3, 3)
   # alpha = C_a [-] C_b
@@ -1337,7 +1343,7 @@ def SO3_boxminus(C_a: Mat3, C_b: Mat3) -> Vec3:
 
 
 def twistSE3(twist: Vec6) -> Mat4:
-  """ Twist to SE3(3)
+  """Twist to SE3(3)
 
   Let twist:
 
@@ -1361,7 +1367,7 @@ def twistSE3(twist: Vec6) -> Mat4:
 
 
 def so3_exp(so3mat: Mat3, tol=1e-6) -> Mat3:
-  """ Computes the matrix exponential of a matrix in so(3)
+  """Computes the matrix exponential of a matrix in so(3)
 
   Example Input:
     so3mat = np.array([[ 0, -3,  2],
@@ -1390,12 +1396,12 @@ def so3_exp(so3mat: Mat3, tol=1e-6) -> Mat3:
 
 
 def so3_Exp(w: Vec3) -> Mat3:
-  """ Exponential Map R3 to so3 """
+  """Exponential Map R3 to so3"""
   return so3_exp(hat(w))
 
 
 def poe(screw_axis: Vec6, theta: Vec3, tol: float = 1e-6) -> Mat4:
-  """ Matrix exponential of se(3) to SE(3) """
+  """Matrix exponential of se(3) to SE(3)"""
   s = screw_axis * theta
   aa = s[0:3]  # Axis-angle (w * theta)
   # v = s[3:]  # Linear velocity
@@ -1413,20 +1419,22 @@ def poe(screw_axis: Vec6, theta: Vec3, tol: float = 1e-6) -> Mat4:
   w_skew_sq = w_skew @ w_skew
 
   A = so3_exp(se3mat[0:3, 0:3])
-  B = (I3 * theta + (1.0 - c_th) * w_skew +
-       (theta - s_th) * w_skew_sq) @ screw_axis[3:]
+  B = (
+    I3 * theta + (1.0 - c_th) * w_skew + (theta - s_th) * w_skew_sq
+  ) @ screw_axis[3:]
 
   return np.block([[A, B.reshape((3, 1))], [0.0, 0.0, 0.0, 1.0]])
 
 
 class TestLie(unittest.TestCase):
-  """ Test Lie algebra functions """
+  """Test Lie algebra functions"""
+
   def test_Exp_Log(self):
-    """ Test Exp() and Log() """
+    """Test Exp() and Log()"""
     pass
 
   def test_sandbox(self):
-    """ Test sandbox """
+    """Test sandbox"""
     step_size = 1e-8
     threshold = 1e-4
 
@@ -1550,17 +1558,17 @@ class TestLie(unittest.TestCase):
 
 
 def homogeneous(p: Vec3) -> Vec4:
-  """ Turn point `p` into its homogeneous form """
+  """Turn point `p` into its homogeneous form"""
   return np.array([*p, 1.0])
 
 
 def dehomogeneous(hp: Vec4) -> Vec3:
-  """ De-homogenize point `hp` into `p` """
+  """De-homogenize point `hp` into `p`"""
   return hp[0:3]
 
 
 def rotx(theta: float) -> Mat3:
-  """ Form rotation matrix around x axis """
+  """Form rotation matrix around x axis"""
   row0 = [1.0, 0.0, 0.0]
   row1 = [0.0, cos(theta), -sin(theta)]
   row2 = [0.0, sin(theta), cos(theta)]
@@ -1568,7 +1576,7 @@ def rotx(theta: float) -> Mat3:
 
 
 def roty(theta: float) -> Mat3:
-  """ Form rotation matrix around y axis """
+  """Form rotation matrix around y axis"""
   row0 = [cos(theta), 0.0, sin(theta)]
   row1 = [0.0, 1.0, 0.0]
   row2 = [-sin(theta), 0.0, cos(theta)]
@@ -1576,7 +1584,7 @@ def roty(theta: float) -> Mat3:
 
 
 def rotz(theta: float) -> Mat3:
-  """ Form rotation matrix around z axis """
+  """Form rotation matrix around z axis"""
   row0 = [cos(theta), -sin(theta), 0.0]
   row1 = [sin(theta), cos(theta), 0.0]
   row2 = [0.0, 0.0, 1.0]
@@ -1601,7 +1609,7 @@ def aa2quat(axis: Vec3, angle: float) -> Vec4:
 
 
 def aa2rot(aa: Vec3) -> Mat3:
-  """ Axis-angle to rotation matrix """
+  """Axis-angle to rotation matrix"""
   # If small rotation
   theta = sqrt(aa @ aa)  # = norm(aa), but faster
   eps = 1e-8
@@ -1635,29 +1643,29 @@ def aa2rot(aa: Vec3) -> Mat3:
 
 
 def aa_vec(axis: Vec3, angle: float) -> Vec3:
-  """ Form Axis-Angle Vector """
+  """Form Axis-Angle Vector"""
   assert axis.shape[0] == 3
   return axis * angle
 
 
 def aa_decomp(aa: Vec3):
-  """ Decompose an axis-angle into its components """
+  """Decompose an axis-angle into its components"""
   w = aa / np.linalg.norm(aa)
   theta = np.linalg.norm(aa)
   return w, theta
 
 
 def vecs2aa(u: Vec3, v: Vec3) -> Vec3:
-  """ From 2 vectors form an axis-angle vector """
+  """From 2 vectors form an axis-angle vector"""
   angle = math.acos(u.T * v)
   ax = normalize(np.cross(u, v))
   return ax * angle
 
 
 def euler321(
-    yaw: float | np.float32 | np.float64,
-    pitch: float | np.float32 | np.float64,
-    roll: float | np.float32 | np.float64,
+  yaw: float | np.float32 | np.float64,
+  pitch: float | np.float32 | np.float64,
+  roll: float | np.float32 | np.float64,
 ) -> Mat3:
   """
   Convert yaw, pitch, roll in radians to a 3x3 rotation matrix.
@@ -1820,7 +1828,7 @@ def rot2quat(C: Mat3) -> Vec4:
     qx = (m21 - m12) / S
     qy = (m02 - m20) / S
     qz = (m10 - m01) / S
-  elif ((m00 > m11) and (m00 > m22)):
+  elif (m00 > m11) and (m00 > m22):
     S = sqrt(1.0 + m00 - m11 - m22) * 2.0
     # S=4*qx
     qw = (m21 - m12) / S
@@ -1846,7 +1854,7 @@ def rot2quat(C: Mat3) -> Vec4:
 
 
 def rot_diff(C0: Mat3, C1: Mat3, tol: float = 1e-5):
-  """ Difference between two rotation matrices """
+  """Difference between two rotation matrices"""
   dC = C0.T @ C1
   tr = np.trace(dC)
   if tr < 0:
@@ -1864,9 +1872,10 @@ def rot_diff(C0: Mat3, C1: Mat3, tol: float = 1e-5):
 
 
 class TestTransform(unittest.TestCase):
-  """ Test transform functions """
+  """Test transform functions"""
+
   def test_homogeneous(self):
-    """ Test homogeneous() """
+    """Test homogeneous()"""
     p = np.array([1.0, 2.0, 3.0])
     hp = homogeneous(p)
     self.assertTrue(hp[0] == 1.0)
@@ -1875,7 +1884,7 @@ class TestTransform(unittest.TestCase):
     self.assertTrue(len(hp) == 4)
 
   def test_dehomogeneous(self):
-    """ Test dehomogeneous() """
+    """Test dehomogeneous()"""
     p = np.array([1.0, 2.0, 3.0])
     hp = np.array([1.0, 2.0, 3.0, 1.0])
     p = dehomogeneous(hp)
@@ -1885,45 +1894,45 @@ class TestTransform(unittest.TestCase):
     self.assertTrue(len(p) == 3)
 
   def test_rotx(self):
-    """ Test rotx() """
+    """Test rotx()"""
     x = np.array([0.0, 1.0, 0.0])
     C = rotx(deg2rad(90.0))
     x_prime = C @ x
     self.assertTrue(np.allclose(x_prime, [0.0, 0.0, 1.0]))
 
   def test_roty(self):
-    """ Test roty() """
+    """Test roty()"""
     x = np.array([1.0, 0.0, 0.0])
     C = roty(deg2rad(90.0))
     x_prime = C @ x
     self.assertTrue(np.allclose(x_prime, [0.0, 0.0, -1.0]))
 
   def test_rotz(self):
-    """ Test rotz() """
+    """Test rotz()"""
     x = np.array([1.0, 0.0, 0.0])
     C = rotz(deg2rad(90.0))
     x_prime = C @ x
     self.assertTrue(np.allclose(x_prime, [0.0, 1.0, 0.0]))
 
   def test_aa2quat(self):
-    """ Test aa2quat() """
+    """Test aa2quat()"""
     pass
 
   def test_aa2rot(self):
-    """ Test rvec2quat() """
+    """Test rvec2quat()"""
     pass
 
   def test_vecs2aa(self):
-    """ Test vecs2aa() """
+    """Test vecs2aa()"""
     pass
 
   def test_euler321(self):
-    """ Test euler321() """
+    """Test euler321()"""
     C = euler321(0.0, 0.0, 0.0)
     self.assertTrue(np.array_equal(C, eye(3)))
 
   def test_euler2quat_and_quat2euler(self):
-    """ Test euler2quat() and quat2euler() """
+    """Test euler2quat() and quat2euler()"""
     y_in = deg2rad(3.0)
     p_in = deg2rad(2.0)
     r_in = deg2rad(1.0)
@@ -1937,21 +1946,21 @@ class TestTransform(unittest.TestCase):
     self.assertTrue(abs(r_in - ypr_out[2]) < 1e-5)
 
   def test_quat2rot(self):
-    """ Test quat2rot() """
+    """Test quat2rot()"""
     ypr = np.array([0.1, 0.2, 0.3])
     C_i = euler321(*ypr)
     C_j = quat2rot(euler2quat(*ypr))
     self.assertTrue(np.allclose(C_i, C_j))
 
   def test_rot2euler(self):
-    """ Test rot2euler() """
+    """Test rot2euler()"""
     ypr = np.array([0.1, 0.2, 0.3])
     C = euler321(*ypr)
     euler = rot2euler(C)
     self.assertTrue(np.allclose(ypr, euler))
 
   def test_rot2quat(self):
-    """ Test rot2quat() """
+    """Test rot2quat()"""
     ypr = np.array([0.1, 0.2, 0.3])
     C = euler321(*ypr)
     q = rot2quat(C)
@@ -1960,33 +1969,34 @@ class TestTransform(unittest.TestCase):
 
 # QUATERNION ##################################################################
 
+
 def quat_norm(q: Vec4) -> float:
-  """ Returns norm of a quaternion """
+  """Returns norm of a quaternion"""
   qw, qx, qy, qz = q
   return sqrt(qw**2 + qx**2 + qy**2 + qz**2)
 
 
 def quat_normalize(q: Vec4) -> Vec4:
-  """ Normalize quaternion """
+  """Normalize quaternion"""
   n = quat_norm(q)
   qw, qx, qy, qz = q
   return np.array([qw / n, qx / n, qy / n, qz / n])
 
 
 def quat_conj(q: Vec4) -> Mat4:
-  """ Return conjugate quaternion """
+  """Return conjugate quaternion"""
   qw, qx, qy, qz = q
   q_conj = np.array([qw, -qx, -qy, -qz])
   return q_conj
 
 
 def quat_inv(q: Vec4) -> Mat4:
-  """ Invert quaternion """
+  """Invert quaternion"""
   return quat_conj(q)
 
 
 def quat_left(q: Vec4) -> Mat4:
-  """ Quaternion left product matrix """
+  """Quaternion left product matrix"""
   qw, qx, qy, qz = q
   row0 = [qw, -qx, -qy, -qz]
   row1 = [qx, qw, -qz, qy]
@@ -1996,7 +2006,7 @@ def quat_left(q: Vec4) -> Mat4:
 
 
 def quat_right(q: Vec4) -> Mat4:
-  """ Quaternion right product matrix """
+  """Quaternion right product matrix"""
   qw, qx, qy, qz = q
   row0 = [qw, -qx, -qy, -qz]
   row1 = [qx, qw, qz, -qy]
@@ -2006,7 +2016,7 @@ def quat_right(q: Vec4) -> Mat4:
 
 
 def quat_lmul(p: Vec4, q: Vec4) -> Vec4:
-  """ Quaternion left multiply """
+  """Quaternion left multiply"""
   assert len(p) == 4
   assert len(q) == 4
   lprod = quat_left(p)
@@ -2014,7 +2024,7 @@ def quat_lmul(p: Vec4, q: Vec4) -> Vec4:
 
 
 def quat_rmul(p: Vec4, q: Vec4) -> Vec4:
-  """ Quaternion right multiply """
+  """Quaternion right multiply"""
   assert len(p) == 4
   assert len(q) == 4
   rprod = quat_right(q)
@@ -2022,12 +2032,12 @@ def quat_rmul(p: Vec4, q: Vec4) -> Vec4:
 
 
 def quat_mul(p: Vec4, q: Vec4) -> Vec4:
-  """ Quaternion multiply p * q """
+  """Quaternion multiply p * q"""
   return quat_lmul(p, q)
 
 
 def quat_rot(q: Vec4, x: Vec3) -> Vec4:
-  """ Rotate vector x of size 3 by Quaternion q """
+  """Rotate vector x of size 3 by Quaternion q"""
   # y = q * p * q_conj
   q_conj = np.array([q[0], -q[1], -q[2], -q[3]])
   p = np.array([0.0, x[0], x[1], x[2]])
@@ -2036,7 +2046,7 @@ def quat_rot(q: Vec4, x: Vec3) -> Vec4:
 
 
 def quat_omega(w: Vec3) -> Mat4:
-  """ Quaternion omega matrix """
+  """Quaternion omega matrix"""
   Omega = np.zeros((4, 4))
   Omega[0, 1:4] = -w.T
   Omega[1:4, 0] = w
@@ -2045,7 +2055,7 @@ def quat_omega(w: Vec3) -> Mat4:
 
 
 def quat_delta(dalpha: Vec3) -> Vec4:
-  """ Form quaternion from small angle rotation vector dalpha """
+  """Form quaternion from small angle rotation vector dalpha"""
   half_norm = 0.5 * norm(dalpha)
   scalar = cos(half_norm)
   vector = sinc(half_norm) * 0.5 * dalpha
@@ -2079,7 +2089,7 @@ def quat_integrate(q_k: Vec4, w: Vec3, dt: float) -> Vec4:
 
 
 def quat_slerp(q_i: Vec4, q_j: Vec4, t: float):
-  """ Quaternion Slerp `q_i` and `q_j` with parameter `t` """
+  """Quaternion Slerp `q_i` and `q_j` with parameter `t`"""
   assert len(q_i) == 4
   assert len(q_j) == 4
   assert 0.0 <= t <= 1.0
@@ -2118,45 +2128,46 @@ def quat_slerp(q_i: Vec4, q_j: Vec4, t: float):
 
 
 class TestQuaternion(unittest.TestCase):
-  """ Test Quaternion functions """
+  """Test Quaternion functions"""
+
   def test_quat_norm(self):
-    """ Test quat_norm() """
+    """Test quat_norm()"""
     q = np.array([1.0, 0.0, 0.0, 0.0])
     self.assertTrue(isclose(quat_norm(q), 1.0))
 
   def test_quat_normalize(self):
-    """ Test quat_normalize() """
+    """Test quat_normalize()"""
     q = np.array([1.0, 0.1, 0.2, 0.3])
     q = quat_normalize(q)
     self.assertTrue(isclose(quat_norm(q), 1.0))
 
   def test_quat_conj(self):
-    """ Test quat_conj() """
+    """Test quat_conj()"""
     ypr = np.array([0.1, 0.0, 0.0])
     q = rot2quat(euler321(*ypr))
     q_conj = quat_conj(q)
     self.assertTrue(np.allclose(quat2euler(q_conj), -1.0 * ypr))
 
   def test_quat_inv(self):
-    """ Test quat_inv() """
+    """Test quat_inv()"""
     ypr = np.array([0.1, 0.0, 0.0])
     q = rot2quat(euler321(*ypr))
     q_inv = quat_inv(q)
     self.assertTrue(np.allclose(quat2euler(q_inv), -1.0 * ypr))
 
   def test_quat_mul(self):
-    """ Test quat_mul() """
+    """Test quat_mul()"""
     p = euler2quat(deg2rad(3.0), deg2rad(2.0), deg2rad(1.0))
     q = euler2quat(deg2rad(1.0), deg2rad(2.0), deg2rad(3.0))
     r = quat_mul(p, q)
     self.assertTrue(r is not None)
 
   def test_quat_omega(self):
-    """ Test quat_omega() """
+    """Test quat_omega()"""
     pass
 
   def test_quat_slerp(self):
-    """ Test quat_slerp() """
+    """Test quat_slerp()"""
     q_i = rot2quat(euler321(0.1, 0.0, 0.0))
     q_j = rot2quat(euler321(0.2, 0.0, 0.0))
     q_k = quat_slerp(q_i, q_j, 0.5)
@@ -2173,7 +2184,7 @@ class TestQuaternion(unittest.TestCase):
     self.assertTrue(np.allclose(quat2euler(q_k), [0.0, 0.0, 0.15]))
 
   def test_tf(self):
-    """ Test tf() """
+    """Test tf()"""
     r = np.array([1.0, 2.0, 3.0])
     q = np.array([0.0, 0.0, 0.0, 1.0])
     T = tf(q, r)
@@ -2183,6 +2194,7 @@ class TestQuaternion(unittest.TestCase):
 
 
 # TF ##########################################################################
+
 
 def tf(rot: Mat3 | Vec4, trans: Vec3) -> Mat4:
   """
@@ -2205,51 +2217,51 @@ def tf(rot: Mat3 | Vec4, trans: Vec3) -> Mat4:
 
 
 def tf_rot(T: Mat4) -> Mat3:
-  """ Return rotation matrix from 4x4 homogeneous transform """
+  """Return rotation matrix from 4x4 homogeneous transform"""
   assert T.shape == (4, 4)
   return T[0:3, 0:3]
 
 
 def tf_quat(T: Mat4) -> Vec4:
-  """ Return quaternion from 4x4 homogeneous transform """
+  """Return quaternion from 4x4 homogeneous transform"""
   assert T.shape == (4, 4)
   return rot2quat(tf_rot(T))
 
 
 def tf_euler(T: Mat4) -> Vec3:
-  """ Return Euler angles from 4x4 homogeneous transform """
+  """Return Euler angles from 4x4 homogeneous transform"""
   assert T.shape == (4, 4)
   return rot2euler(tf_rot(T))
 
 
 def tf2pose(T: Mat4) -> Vec7:
-  """ Form pose vector """
+  """Form pose vector"""
   rx, ry, rz = tf_trans(T)
   qw, qx, qy, qz = tf_quat(T)
   return np.array([rx, ry, rz, qx, qy, qz, qw])
 
 
 def pose2tf(pose_vec: Vec7) -> Mat4:
-  """ Convert pose vector to transformation matrix """
+  """Convert pose vector to transformation matrix"""
   rx, ry, rz = pose_vec[0:3]
   qx, qy, qz, qw = pose_vec[3:7]
   return tf(np.array([qw, qx, qy, qz]), np.array([rx, ry, rz]))
 
 
 def tf_trans(T: Mat4) -> Vec3:
-  """ Return translation vector from 4x4 homogeneous transform """
+  """Return translation vector from 4x4 homogeneous transform"""
   assert T.shape == (4, 4)
   return T[0:3, 3]
 
 
 def tf_inv(T: Mat4) -> Mat4:
-  """ Invert 4x4 homogeneous transform """
+  """Invert 4x4 homogeneous transform"""
   assert T.shape == (4, 4)
   return np.linalg.inv(T)
 
 
 def tf_point(T: Mat4, p: Vec3) -> Vec3:
-  """ Transform 3d point """
+  """Transform 3d point"""
   assert T.shape == (4, 4)
   assert p.shape == (3,) or p.shape == (3, 1)
   hpoint = np.array([p[0], p[1], p[2], 1.0])
@@ -2257,14 +2269,14 @@ def tf_point(T: Mat4, p: Vec3) -> Vec3:
 
 
 def tf_hpoint(T: Mat4, hp: Vec4) -> Vec3:
-  """ Transform 3d point """
+  """Transform 3d point"""
   assert T.shape == (4, 4)
   assert hp.shape == (4,) or hp.shape == (4, 1)
   return (T @ hp)[0:3]
 
 
 def tf_decompose(T: Mat4):
-  """ Decompose into rotation matrix and translation vector"""
+  """Decompose into rotation matrix and translation vector"""
   assert T.shape == (4, 4)
   C = tf_rot(T)
   r = tf_trans(T)
@@ -2272,7 +2284,7 @@ def tf_decompose(T: Mat4):
 
 
 def tf_lerp(pose_i: Mat4, pose_j: Mat4, t: float):
-  """ Interpolate pose `pose_i` and `pose_j` with parameter `t` """
+  """Interpolate pose `pose_i` and `pose_j` with parameter `t`"""
   assert pose_i.shape == (4, 4)
   assert pose_j.shape == (4, 4)
   assert 0.0 <= t <= 1.0
@@ -2293,7 +2305,7 @@ def tf_lerp(pose_i: Mat4, pose_j: Mat4, t: float):
 
 
 def rot_perturb(C: Mat3, i: int, step_size: float) -> Mat3:
-  """ Perturb rotation matrix """
+  """Perturb rotation matrix"""
   # Perturb rotation
   rvec = np.array([0.0, 0.0, 0.0])
   rvec[i - 3] = step_size
@@ -2308,7 +2320,7 @@ def rot_perturb(C: Mat3, i: int, step_size: float) -> Mat3:
 
 
 def tf_perturb(T: Mat4, i: int, step_size: float) -> Mat4:
-  """ Perturb transformation matrix """
+  """Perturb transformation matrix"""
   assert T.shape == (4, 4)
   assert i >= 0 and i <= 5
 
@@ -2337,7 +2349,7 @@ def tf_perturb(T: Mat4, i: int, step_size: float) -> Mat4:
 
 
 def tf_update(T: Mat4, dx: Vec3) -> Mat4:
-  """ Update transformation matrix """
+  """Update transformation matrix"""
   assert T.shape == (4, 4)
 
   q = tf_quat(T)
@@ -2351,7 +2363,7 @@ def tf_update(T: Mat4, dx: Vec3) -> Mat4:
 
 
 def tf_diff(T0: Mat4, T1: Mat4) -> tuple[Vec3, float]:
-  """ Return difference between two 4x4 homogeneous transforms """
+  """Return difference between two 4x4 homogeneous transforms"""
   r0 = tf_trans(T0)
   r1 = tf_trans(T1)
   C0 = tf_rot(T0)
@@ -2379,7 +2391,7 @@ def tf_diff(T0: Mat4, T1: Mat4) -> tuple[Vec3, float]:
 
 
 def pose_diff(pose0: Mat4, pose1: Mat4) -> tuple[Vec3, float]:
-  """ Return difference between two poses """
+  """Return difference between two poses"""
   # dr = r0 - r1
   dr = np.zeros((3,))
   dr[0] = pose0[0] - pose1[0]
@@ -2403,8 +2415,9 @@ def pose_diff(pose0: Mat4, pose1: Mat4) -> tuple[Vec3, float]:
 
 
 def load_extrinsics(csv_path: str) -> Mat4 | None:
-  """ Load Extrinsics """
+  """Load Extrinsics"""
   import pandas
+
   csv_data = pandas.read_csv(csv_path)
   if csv_data is None:
     return None
@@ -2424,8 +2437,9 @@ def load_extrinsics(csv_path: str) -> Mat4 | None:
 
 
 def load_poses(csv_path: str) -> list[tuple[float, Mat4]] | None:
-  """ Load poses """
+  """Load poses"""
   import pandas
+
   csv_data = pandas.read_csv(csv_path)
   if csv_data is None:
     return None
@@ -2452,18 +2466,12 @@ def load_poses(csv_path: str) -> list[tuple[float, Mat4]] | None:
 
 ###############################################################################
 # MATPLOTLIB
-# def plot_bbox(ax, center, size)
-# def plot_set_axes_equal(ax)
-# def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs)
-# def plot_tf(ax, T, **kwargs)
-# def plot_mav(ax, T, **kwargs)
-# def plot_xyz(title, data, key_time, key_x, key_y, key_z, ylabel, **kwargs)
 ###############################################################################
 
 import matplotlib.pyplot as plt
 import matplotlib.patches
 import matplotlib.transforms
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 
 def plot_bbox(ax, center, size):
@@ -2486,28 +2494,36 @@ def plot_bbox(ax, center, size):
   x2, y2, z2 = x + lx / 2, y + ly / 2, z + lz / 2
 
   # Create box vertices
-  vertices = [(x1, y1, z1), (x2, y1, z1), (x2, y2, z1), (x1, y2, z1),
-              (x1, y1, z2), (x2, y1, z2), (x2, y2, z2), (x1, y2, z2)]
+  vertices = [
+    (x1, y1, z1),
+    (x2, y1, z1),
+    (x2, y2, z1),
+    (x1, y2, z1),
+    (x1, y1, z2),
+    (x2, y1, z2),
+    (x2, y2, z2),
+    (x1, y2, z2),
+  ]
 
   # Create edges
   edges = [
-      [0, 1],
-      [1, 2],
-      [2, 3],
-      [3, 0],  # bottom face
-      [4, 5],
-      [5, 6],
-      [6, 7],
-      [7, 4],  # top face
-      [0, 4],
-      [1, 5],
-      [2, 6],
-      [3, 7]  # side edges
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [3, 0],  # bottom face
+    [4, 5],
+    [5, 6],
+    [6, 7],
+    [7, 4],  # top face
+    [0, 4],
+    [1, 5],
+    [2, 6],
+    [3, 7],  # side edges
   ]
 
   # Plot edges
   for edge in edges:
-    ax.plot3D(*zip(*[vertices[edge[0]], vertices[edge[1]]]), color='b')
+    ax.plot3D(*zip(*[vertices[edge[0]], vertices[edge[1]]]), color="b")
 
 
 def plot_set_axes_equal(ax):
@@ -2539,7 +2555,7 @@ def plot_set_axes_equal(ax):
   ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
 
-def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
+def confidence_ellipse(x, y, ax, n_std=3.0, facecolor="none", **kwargs):
   """
   Create a plot of the covariance confidence ellipse of *x* and *y*.
 
@@ -2570,11 +2586,13 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
   # two-dimensionl dataset.
   ell_radius_x = np.sqrt(1 + pearson)
   ell_radius_y = np.sqrt(1 - pearson)
-  ellipse = matplotlib.patches.Ellipse((0, 0),
-                                       width=ell_radius_x * 2,
-                                       height=ell_radius_y * 2,
-                                       facecolor=facecolor,
-                                       **kwargs)
+  ellipse = matplotlib.patches.Ellipse(
+    (0, 0),
+    width=ell_radius_x * 2,
+    height=ell_radius_y * 2,
+    facecolor=facecolor,
+    **kwargs,
+  )
 
   # Calculating the stdandard deviation of x from
   # the squareroot of the variance and multiplying
@@ -2586,10 +2604,12 @@ def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
   scale_y = np.sqrt(cov[1, 1]) * n_std
   mean_y = np.mean(y)
 
-  transf = matplotlib.transforms.Affine2D() \
-      .rotate_deg(45) \
-      .scale(scale_x, scale_y) \
-      .translate(mean_x, mean_y)
+  transf = (
+    matplotlib.transforms.Affine2D()
+    .rotate_deg(45)
+    .scale(scale_x, scale_y)
+    .translate(mean_x, mean_y)
+  )
 
   ellipse.set_transform(transf + ax.transData)
   return ax.add_patch(ellipse)
@@ -2617,14 +2637,14 @@ def plot_tf(ax, T, **kwargs):
   """
   assert T.shape == (4, 4)
 
-  size = kwargs.get('size', 0.1)
-  linewidth = kwargs.get('linewidth', 2)
-  name = kwargs.get('name', None)
-  nameoffset = kwargs.get('nameoffset', [0, 0, -0.01])
-  fontsize = kwargs.get('fontsize', 10)
-  fontweight = kwargs.get('fontweight', 'bold')
-  fontcolor = kwargs.get('fontcolor', 'k')
-  colors = kwargs.get('colors', ['r-', 'g-', 'b-'])
+  size = kwargs.get("size", 0.1)
+  linewidth = kwargs.get("linewidth", 2)
+  name = kwargs.get("name", None)
+  nameoffset = kwargs.get("nameoffset", [0, 0, -0.01])
+  fontsize = kwargs.get("fontsize", 10)
+  fontweight = kwargs.get("fontweight", "bold")
+  fontcolor = kwargs.get("fontcolor", "k")
+  colors = kwargs.get("colors", ["r-", "g-", "b-"])
 
   origin = tf_trans(T)
   lx = tf_point(T, np.array([size, 0.0, 0.0]))
@@ -2654,13 +2674,9 @@ def plot_tf(ax, T, **kwargs):
     x = origin[0] + nameoffset[0]
     y = origin[1] + nameoffset[1]
     z = origin[2] + nameoffset[2]
-    text = ax.text(x,
-                   y,
-                   z,
-                   name,
-                   fontsize=fontsize,
-                   fontweight=fontweight,
-                   color=fontcolor)
+    text = ax.text(
+      x, y, z, name, fontsize=fontsize, fontweight=fontweight, color=fontcolor
+    )
     return (xaxis, yaxis, zaxis, text)
 
   return (xaxis, yaxis, zaxis)
@@ -2687,13 +2703,13 @@ def plot_mav(ax, T, **kwargs):
 
   """
   assert T.shape == (4, 4)
-  arm_length = kwargs.get('arm_length', 1.0)
-  linewidth = kwargs.get('linewidth', 3)
+  arm_length = kwargs.get("arm_length", 1.0)
+  linewidth = kwargs.get("linewidth", 3)
   # name = kwargs.get('name', None)
   # name_offset = kwargs.get('name_offset', [0, 0, -0.01])
   # fontsize = kwargs.get('fontsize', 10)
   # fontweight = kwargs.get('fontweight', 'bold')
-  color = kwargs.get('color', 'k-')
+  color = kwargs.get("color", "k-")
   kwargs["size"] = arm_length / 2.0
 
   # Plot body frame
@@ -2745,7 +2761,7 @@ def plot_xyz(title: str, data, key_time, key_x, key_y, key_z, ylabel, **kwargs):
     ylabel (str): Y-axis label
 
   """
-  axis = ['x', 'y', 'z']
+  axis = ["x", "y", "z"]
   colors = ["r", "g", "b"]
   keys = [key_x, key_y, key_z]
   line_styles = kwargs.get("line_styles", ["--", "-", "x"])
@@ -2870,7 +2886,7 @@ def find_modes_mean_shift(hist: VecN, sigma: float) -> tuple[MatNx2, VecN]:
 
 
 def illumination_invariant_transform(image, alpha=0.9):
-  """ Illumination Invariant Transform
+  """Illumination Invariant Transform
 
   Source:
 
@@ -2908,15 +2924,18 @@ def illumination_invariant_transform(image, alpha=0.9):
 # GEOMETRY ####################################################################
 
 
-def lookat(cam_pos, target_pos, **kwargs):
-  """ Form look at matrix """
-  up_axis = kwargs.get('up_axis', np.array([0.0, -1.0, 0.0]))
+def lookat(
+  cam_pos: Vec3,
+  target_pos: Vec3,
+  up_axis: Vec3 = np.array([0.0, -1.0, 0.0]),
+) -> Mat4:
+  """Form look at matrix"""
   assert len(cam_pos) == 3
   assert len(target_pos) == 3
   assert len(up_axis) == 3
 
   # Note: If we were using OpenGL the cam_dir would be the opposite direction,
-  # since in OpenGL the camera forward is -z. In robotics however our camera is
+  # since in OpenGL the camera forward is -z. In robotics, however, our camera is
   # +z forward.
   cam_z = normalize(target_pos - cam_pos)
   cam_x = normalize(cross(up_axis, cam_z))
@@ -2932,7 +2951,7 @@ def lookat(cam_pos, target_pos, **kwargs):
   return T_WC
 
 
-def linear_triangulation(P_i, P_j, z_i, z_j):
+def linear_triangulation(P_i, P_j, z_i, z_j) -> Vec3:
   """
   Linear triangulation
 
@@ -2980,7 +2999,7 @@ def linear_triangulation(P_i, P_j, z_i, z_j):
   return p
 
 
-def parallax(a, b):
+def parallax(a: Vec3, b: Vec3) -> float:
   """
   Calculate the parallax between two vectors `a` and `b`.
 
@@ -2999,10 +3018,10 @@ def parallax(a, b):
 
   """
   angle = np.arccos((a @ b) / (norm(a) * norm(b)))
-  return np.rad2deg(angle)
+  return float(np.rad2deg(angle))
 
 
-def homography_find(pts_i, pts_j):
+def homography_find(pts_i: MatNx2, pts_j: MatNx2) -> Mat3:
   """
   A Homography is a transformation (a 3x3 matrix) that maps the normalized
   image points from one image to the corresponding normalized image points in
@@ -3035,7 +3054,14 @@ def homography_find(pts_i, pts_j):
   return h.reshape((3, 3))
 
 
-def homography_pose(object_points, image_points, fx, fy, cx, cy):
+def homography_pose(
+  object_points: MatNx3,
+  image_points: MatNx2,
+  fx: float,
+  fy: float,
+  cx: float,
+  cy: float,
+) -> Mat4:
   """
   Compute relative pose between camera and planar object T_CF.
 
@@ -3135,8 +3161,15 @@ def homography_pose(object_points, image_points, fx, fy, cx, cy):
   return tf(C, r)
 
 
-def dlt_pose(object_points, image_points, fx, fy, cx, cy):
-  """ DLT Pose
+def dlt_pose(
+  obj_pts: MatNx3,
+  img_pts: MatNx2,
+  fx: float,
+  fy: float,
+  cx: float,
+  cy: float,
+) -> Mat4:
+  """DLT Pose
 
   **IMPORTANT NOTE**: This function will not work if the object points are on a
   plane.
@@ -3153,10 +3186,10 @@ def dlt_pose(object_points, image_points, fx, fy, cx, cy):
 
   Args:
 
-    object_points: (ndarray)
+    obj_pts: (ndarray)
       3D object points
 
-    image_points: (ndarray)
+    img_pts: (ndarray)
       2D image points in pixels
 
     fx: (float)
@@ -3176,13 +3209,13 @@ def dlt_pose(object_points, image_points, fx, fy, cx, cy):
     4x4 Homogeneous transform T_camera_object
 
   """
-  assert len(object_points) == len(image_points)
-  N = len(object_points)
+  assert len(obj_pts) == len(img_pts)
+  N = len(obj_pts)
   A = np.zeros((2 * N, 12))
 
   for i in range(N):
-    pt = object_points[i, :]
-    kp = image_points[i, :]
+    pt = obj_pts[i, :]
+    kp = img_pts[i, :]
     x = np.array([(kp[0] - cx) / fx, (kp[1] - cy) / fy])  # normalize keypoint
 
     A[2 * i, 0] = pt[0]
@@ -3220,7 +3253,7 @@ def dlt_pose(object_points, image_points, fx, fy, cx, cy):
 
 
 def _solvepnp_cost(object_points, image_points, fx, fy, cx, cy, pose):
-  """ Calculate cost """
+  """Calculate cost"""
   N = len(object_points)
   T_FC_est = pose2tf(pose)
   T_CF_est = inv(T_FC_est)
@@ -3246,7 +3279,7 @@ def _solvepnp_cost(object_points, image_points, fx, fy, cx, cy, pose):
 
 
 def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
-  """ Linearize Nonlinear-Least Squares Problem """
+  """Linearize Nonlinear-Least Squares Problem"""
   # Form Gauss-Newton system
   N = len(object_points)
   T_FC_est = pose2tf(pose)
@@ -3268,8 +3301,8 @@ def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
     C_FC, r_FC = tf_decompose(T_FC_est)
     # -- Jacobian w.r.t 3D point p_C
     Jp = zeros((2, 3))
-    Jp[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2]**2]
-    Jp[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2]**2]
+    Jp[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2] ** 2]
+    Jp[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2] ** 2]
     # -- Jacobian w.r.t 2D point x
     Jk = zeros((2, 2))
     Jk[0, 0] = fx
@@ -3285,13 +3318,13 @@ def _solvepnp_linearize(object_points, image_points, fx, fy, cx, cy, pose):
     H += J.T @ J
 
     # Form R.H.S. Gauss Newton g
-    g += (-J.T @ r)
+    g += -J.T @ r
 
   return (H, g)
 
 
 def _solvepnp_solve(lambda_k, H, g):
-  """ Solve for dx """
+  """Solve for dx"""
   H_damped = H + lambda_k * eye(H.shape[0])
   c, low = scipy.linalg.cho_factor(H_damped)
   dx = scipy.linalg.cho_solve((c, low), g)
@@ -3300,7 +3333,7 @@ def _solvepnp_solve(lambda_k, H, g):
 
 
 def _solvepnp_update(pose, dx):
-  """ Update pose estimate """
+  """Update pose estimate"""
   T_FC_est = pose2tf(pose)
   T_FC_est = tf_update(T_FC_est, dx)
   pose = tf2pose(T_FC_est)
@@ -3408,7 +3441,7 @@ def solvepnp(obj_pts, img_pts, fx, fy, cx, cy, **kwargs):
 
 
 def convolve2d(image: Image, kernel: MatN) -> Image:
-  """ Convolve 2D image with kernel """
+  """Convolve 2D image with kernel"""
   # f is an image and is indexed by (v, w)
   # kernel is a filter kernel and is indexed by (s, t),
   #   it needs odd dimensions
@@ -3455,7 +3488,7 @@ def convolve2d(image: Image, kernel: MatN) -> Image:
 
 
 def harris_corner(image_gray: Image, **kwargs) -> list[tuple[float, float]]:
-  """ Harris Corner Detector
+  """Harris Corner Detector
 
   For educational purposes only, this implementation is slower than OpenCV's.
 
@@ -3530,7 +3563,7 @@ def harris_corner(image_gray: Image, **kwargs) -> list[tuple[float, float]]:
 
 
 def shi_tomasi_corner(image_gray: Image, **kwargs) -> list[tuple[int, int]]:
-  """ Shi-Tomasi Corner Detector
+  """Shi-Tomasi Corner Detector
 
   For educational purposes only, this implementation is slower than OpenCV's.
 
@@ -3568,8 +3601,8 @@ def shi_tomasi_corner(image_gray: Image, **kwargs) -> list[tuple[int, int]]:
         continue
 
       # Calculate sum of squares
-      Sxx = Ixx[i - offset:i + offset + 1, j - offset:j + offset + 1].sum()
-      Syy = Iyy[i - offset:i + offset + 1, j - offset:j + offset + 1].sum()
+      Sxx = Ixx[i - offset : i + offset + 1, j - offset : j + offset + 1].sum()
+      Syy = Iyy[i - offset : i + offset + 1, j - offset : j + offset + 1].sum()
       r = min(Sxx, Syy)
 
       # Threshold for corner
@@ -3617,13 +3650,13 @@ def focal_length(image_width: int, fov_deg: float) -> float:
 
 
 def pinhole_K(params: Vec4) -> Mat3:
-  """ Form camera matrix K """
+  """Form camera matrix K"""
   fx, fy, cx, cy = params
   return np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
 
 
 def pinhole_P(params: Vec4, T_WC: Mat4) -> Mat34:
-  """ Form 3x4 projection matrix P """
+  """Form 3x4 projection matrix P"""
   K = pinhole_K(params)
   T_CW = inv(T_WC)
   C = tf_rot(T_CW)
@@ -3637,7 +3670,7 @@ def pinhole_P(params: Vec4, T_WC: Mat4) -> Mat34:
 
 
 def pinhole_project(proj_params: Vec4, p_C: Vec3) -> Vec2:
-  """ Project 3D point onto image plane using pinhole camera model """
+  """Project 3D point onto image plane using pinhole camera model"""
   assert len(proj_params) == 4
   assert len(p_C) == 3
 
@@ -3652,20 +3685,20 @@ def pinhole_project(proj_params: Vec4, p_C: Vec3) -> Vec2:
 
 
 def pinhole_back_project(proj_params: Vec4, z: Vec2) -> Vec2:
-  """ Back project image point to bearing """
+  """Back project image point to bearing"""
   fx, fy, cx, cy = proj_params
   x = (z[0] - cx) / fx
   y = (z[1] - cy) / fy
   return np.array([x, y])
 
 
-def pinhole_params_jacobian(x: Vec2) -> MatN:
-  """ Form pinhole parameter jacobian """
+def pinhole_params_jacobian(x: Vec2) -> Mat2xN:
+  """Form pinhole parameter jacobian"""
   return np.array([[x[0], 0.0, 1.0, 0.0], [0.0, x[1], 0.0, 1.0]])
 
 
 def pinhole_point_jacobian(proj_params: Vec4) -> Mat2:
-  """ Form pinhole point jacobian """
+  """Form pinhole point jacobian"""
   fx, fy, _, _ = proj_params
   return np.array([[fx, 0.0], [0.0, fy]])
 
@@ -3674,7 +3707,7 @@ def pinhole_point_jacobian(proj_params: Vec4) -> Mat2:
 
 
 def radtan4_distort(dist_params: Vec4, p: Vec2) -> Vec2:
-  """ Distort point with Radial-Tangential distortion """
+  """Distort point with Radial-Tangential distortion"""
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -3701,7 +3734,7 @@ def radtan4_distort(dist_params: Vec4, p: Vec2) -> Vec2:
 
 
 def radtan4_point_jacobian(dist_params: Vec4, p: Vec2) -> Mat2:
-  """ Radial-tangential point jacobian """
+  """Radial-tangential point jacobian"""
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -3735,7 +3768,7 @@ def radtan4_point_jacobian(dist_params: Vec4, p: Vec2) -> Mat2:
 
 
 def radtan4_undistort(dist_params: Vec4, p0: Vec2) -> Vec2:
-  """ Un-distort point with Radial-Tangential distortion """
+  """Un-distort point with Radial-Tangential distortion"""
   assert len(dist_params) == 4
   assert len(p0) == 2
 
@@ -3747,7 +3780,7 @@ def radtan4_undistort(dist_params: Vec4, p0: Vec2) -> Vec2:
     # Error
     p_distorted = radtan4_distort(dist_params, p)
     J = radtan4_point_jacobian(dist_params, p)
-    err = (p0 - p_distorted)
+    err = p0 - p_distorted
 
     # Update
     # dp = inv(J' * J) * J' * err
@@ -3762,7 +3795,7 @@ def radtan4_undistort(dist_params: Vec4, p0: Vec2) -> Vec2:
 
 
 def radtan4_params_jacobian(dist_params: Vec4, p: Vec2) -> Mat2xN:
-  """ Radial-Tangential distortion parameter jacobian """
+  """Radial-Tangential distortion parameter jacobian"""
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -3794,7 +3827,7 @@ def radtan4_params_jacobian(dist_params: Vec4, p: Vec2) -> Mat2xN:
 
 
 def equi4_distort(dist_params: Vec4, p: Vec2) -> Vec2:
-  """ Distort point with Equi-distant distortion """
+  """Distort point with Equi-distant distortion"""
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -3817,7 +3850,7 @@ def equi4_distort(dist_params: Vec4, p: Vec2) -> Vec2:
 
 
 def equi4_undistort(dist_params: Vec4, p: Vec2) -> Vec2:
-  """ Undistort point using Equi-distant distortion """
+  """Undistort point using Equi-distant distortion"""
   thd = sqrt(p[0] * p[0] + p[1] * p[1])
 
   # Distortion parameters
@@ -3836,7 +3869,7 @@ def equi4_undistort(dist_params: Vec4, p: Vec2) -> Vec2:
 
 
 def equi4_params_jacobian(dist_params: Vec4, p: Vec2) -> Mat2xN:
-  """ Equi-distant distortion params jacobian """
+  """Equi-distant distortion params jacobian"""
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -3860,7 +3893,7 @@ def equi4_params_jacobian(dist_params: Vec4, p: Vec2) -> Mat2xN:
 
 
 def equi4_point_jacobian(dist_params: Vec4, p: Vec2) -> Mat2:
-  """ Equi-distant distortion point jacobian """
+  """Equi-distant distortion point jacobian"""
   assert len(dist_params) == 4
   assert len(p) == 2
 
@@ -3901,11 +3934,11 @@ def equi4_point_jacobian(dist_params: Vec4, p: Vec2) -> Mat2:
 
 
 def pinhole_radtan4_project(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    p_C: Vec3,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  p_C: Vec3,
 ) -> Vec2:
-  """ Pinhole + Radial-Tangential project """
+  """Pinhole + Radial-Tangential project"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -3923,11 +3956,11 @@ def pinhole_radtan4_project(
 
 
 def pinhole_radtan4_backproject(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    z: Vec2,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  z: Vec2,
 ) -> Vec3:
-  """ Pinhole + Radial-Tangential back-project """
+  """Pinhole + Radial-Tangential back-project"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(z) == 2
@@ -3945,11 +3978,11 @@ def pinhole_radtan4_backproject(
 
 
 def pinhole_radtan4_undistort(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    z: Vec2,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  z: Vec2,
 ) -> Vec2:
-  """ Pinhole + Radial-Tangential undistort """
+  """Pinhole + Radial-Tangential undistort"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(z) == 2
@@ -3964,11 +3997,11 @@ def pinhole_radtan4_undistort(
 
 
 def pinhole_radtan4_project_jacobian(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    p_C: Vec3,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  p_C: Vec3,
 ) -> Mat2x3:
-  """ Pinhole + Radial-Tangential project jacobian """
+  """Pinhole + Radial-Tangential project jacobian"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -3978,8 +4011,8 @@ def pinhole_radtan4_project_jacobian(
 
   # Jacobian
   J_proj = zeros((2, 3))
-  J_proj[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2]**2]
-  J_proj[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2]**2]
+  J_proj[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2] ** 2]
+  J_proj[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2] ** 2]
   J_dist_point = radtan4_point_jacobian(dist_params, x)
   J_proj_point = pinhole_point_jacobian(proj_params)
 
@@ -3987,11 +4020,11 @@ def pinhole_radtan4_project_jacobian(
 
 
 def pinhole_radtan4_params_jacobian(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    p_C: Vec3,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  p_C: Vec3,
 ) -> Mat2xN:
-  """ Pinhole + Radial-Tangential params jacobian """
+  """Pinhole + Radial-Tangential params jacobian"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -4012,11 +4045,11 @@ def pinhole_radtan4_params_jacobian(
 
 
 def pinhole_equi4_project(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    p_C: Vec3,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  p_C: Vec3,
 ) -> Vec2:
-  """ Pinhole + Equi-distant project """
+  """Pinhole + Equi-distant project"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -4034,11 +4067,11 @@ def pinhole_equi4_project(
 
 
 def pinhole_equi4_backproject(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    z: Vec2,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  z: Vec2,
 ) -> Vec3:
-  """ Pinhole + Equi-distant back-project """
+  """Pinhole + Equi-distant back-project"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(z) == 2
@@ -4056,11 +4089,11 @@ def pinhole_equi4_backproject(
 
 
 def pinhole_equi4_undistort(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    z: Vec2,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  z: Vec2,
 ) -> Vec2:
-  """ Pinhole + Equi-distant undistort """
+  """Pinhole + Equi-distant undistort"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(z) == 2
@@ -4075,11 +4108,11 @@ def pinhole_equi4_undistort(
 
 
 def pinhole_equi4_project_jacobian(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    p_C: Vec3,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  p_C: Vec3,
 ) -> Mat2x3:
-  """ Pinhole + Equi-distant project jacobian """
+  """Pinhole + Equi-distant project jacobian"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -4089,19 +4122,19 @@ def pinhole_equi4_project_jacobian(
 
   # Jacobian
   J_proj = zeros((2, 3))
-  J_proj[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2]**2]
-  J_proj[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2]**2]
+  J_proj[0, :] = [1 / p_C[2], 0, -p_C[0] / p_C[2] ** 2]
+  J_proj[1, :] = [0, 1 / p_C[2], -p_C[1] / p_C[2] ** 2]
   J_dist_point = equi4_point_jacobian(dist_params, x)
   J_proj_point = pinhole_point_jacobian(proj_params)
   return J_proj_point @ J_dist_point @ J_proj
 
 
 def pinhole_equi4_params_jacobian(
-    proj_params: Vec4,
-    dist_params: Vec4,
-    p_C: Vec3,
+  proj_params: Vec4,
+  dist_params: Vec4,
+  p_C: Vec3,
 ) -> Mat2xN:
-  """ Pinhole + Equi-distant params jacobian """
+  """Pinhole + Equi-distant params jacobian"""
   assert len(proj_params) == 4
   assert len(dist_params) == 4
   assert len(p_C) == 3
@@ -4123,7 +4156,8 @@ def pinhole_equi4_params_jacobian(
 
 @dataclass
 class CameraGeometry:
-  """ Camera Geometry """
+  """Camera Geometry"""
+
   cam_idx: int
   resolution: tuple
   proj_model: str
@@ -4138,30 +4172,30 @@ class CameraGeometry:
   J_params_fn: Callable[[Vec4, Vec4, Vec3], Mat2xN]
 
   def get_proj_params_size(self):
-    """ Return projection parameter size """
+    """Return projection parameter size"""
     return self.proj_params_size
 
   def get_dist_params_size(self):
-    """ Return distortion parameter size """
+    """Return distortion parameter size"""
     return self.dist_params_size
 
   def get_params_size(self):
-    """ Return parameter size """
+    """Return parameter size"""
     return self.get_proj_params_size() + self.get_dist_params_size()
 
   def proj_params(self, params):
-    """ Extract projection parameters """
-    return params[:self.proj_params_size]
+    """Extract projection parameters"""
+    return params[: self.proj_params_size]
 
   def dist_params(self, params):
-    """ Extract distortion parameters """
-    return params[-self.dist_params_size:]
+    """Extract distortion parameters"""
+    return params[-self.dist_params_size :]
 
   def project(self, params, p_C):
-    """ Project point `p_C` with camera parameters `params` """
+    """Project point `p_C` with camera parameters `params`"""
     # Project
-    proj_params = params[:self.proj_params_size]
-    dist_params = params[-self.dist_params_size:]
+    proj_params = params[: self.proj_params_size]
+    dist_params = params[-self.dist_params_size :]
     z = self.project_fn(proj_params, dist_params, p_C)
 
     # Make sure point is infront of camera
@@ -4177,31 +4211,31 @@ class CameraGeometry:
     return False, z
 
   def backproject(self, params, z):
-    """ Back-project image point `z` with camera parameters `params` """
-    proj_params = params[:self.proj_params_size]
-    dist_params = params[-self.dist_params_size:]
+    """Back-project image point `z` with camera parameters `params`"""
+    proj_params = params[: self.proj_params_size]
+    dist_params = params[-self.dist_params_size :]
     return self.backproject_fn(proj_params, dist_params, z)
 
   def undistort(self, params, z):
-    """ Undistort image point `z` with camera parameters `params` """
-    proj_params = params[:self.proj_params_size]
-    dist_params = params[-self.dist_params_size:]
+    """Undistort image point `z` with camera parameters `params`"""
+    proj_params = params[: self.proj_params_size]
+    dist_params = params[-self.dist_params_size :]
     return self.undistort_fn(proj_params, dist_params, z)
 
   def J_proj(self, params, p_C):
-    """ Form Jacobian w.r.t. p_C """
-    proj_params = params[:self.proj_params_size]
-    dist_params = params[-self.dist_params_size:]
+    """Form Jacobian w.r.t. p_C"""
+    proj_params = params[: self.proj_params_size]
+    dist_params = params[-self.dist_params_size :]
     return self.J_proj_fn(proj_params, dist_params, p_C)
 
   def J_params(self, params, p_C):
-    """ Form Jacobian w.r.t. camera parameters """
-    proj_params = params[:self.proj_params_size]
-    dist_params = params[-self.dist_params_size:]
+    """Form Jacobian w.r.t. camera parameters"""
+    proj_params = params[: self.proj_params_size]
+    dist_params = params[-self.dist_params_size :]
     return self.J_params_fn(proj_params, dist_params, p_C)
 
   def keypoint2idp(self, params, kp, depth=0.5):
-    """ Keypoint to Inverse Depth Parameterization """
+    """Keypoint to Inverse Depth Parameterization"""
     fx, fy, cx, cy = self.proj_params(params)
 
     u = (kp[0] - cx) / fx
@@ -4215,48 +4249,48 @@ class CameraGeometry:
 
   @staticmethod
   def idp2vector(idp):
-    """ Inverse Depth Parameterization to Vector """
+    """Inverse Depth Parameterization to Vector"""
     theta, phi, depth = idp
     p = np.array([cos(phi) * sin(theta), -sin(phi), cos(phi) * cos(theta)])
     return depth * p
 
 
 def pinhole_radtan4_setup(cam_idx, cam_res):
-  """ Setup Pinhole + Radtan4 camera geometry """
+  """Setup Pinhole + Radtan4 camera geometry"""
   return CameraGeometry(
-      cam_idx,
-      cam_res,
-      "pinhole",
-      "radtan4",
-      4,
-      4,
-      pinhole_radtan4_project,
-      pinhole_radtan4_backproject,
-      pinhole_radtan4_undistort,
-      pinhole_radtan4_project_jacobian,
-      pinhole_radtan4_params_jacobian,
+    cam_idx,
+    cam_res,
+    "pinhole",
+    "radtan4",
+    4,
+    4,
+    pinhole_radtan4_project,
+    pinhole_radtan4_backproject,
+    pinhole_radtan4_undistort,
+    pinhole_radtan4_project_jacobian,
+    pinhole_radtan4_params_jacobian,
   )
 
 
 def pinhole_equi4_setup(cam_idx, cam_res):
-  """ Setup Pinhole + Equi camera geometry """
+  """Setup Pinhole + Equi camera geometry"""
   return CameraGeometry(
-      cam_idx,
-      cam_res,
-      "pinhole",
-      "equi4",
-      4,
-      4,
-      pinhole_equi4_project,
-      pinhole_equi4_backproject,
-      pinhole_equi4_undistort,
-      pinhole_equi4_project_jacobian,
-      pinhole_equi4_params_jacobian,
+    cam_idx,
+    cam_res,
+    "pinhole",
+    "equi4",
+    4,
+    4,
+    pinhole_equi4_project,
+    pinhole_equi4_backproject,
+    pinhole_equi4_undistort,
+    pinhole_equi4_project_jacobian,
+    pinhole_equi4_params_jacobian,
   )
 
 
 def camera_geometry_setup(cam_idx, cam_res, proj_model, dist_model):
-  """ Setup camera geometry """
+  """Setup camera geometry"""
   if proj_model == "pinhole" and dist_model == "radtan4":
     return pinhole_radtan4_setup(cam_idx, cam_res)
   elif proj_model == "pinhole" and dist_model == "equi4":
@@ -4323,11 +4357,9 @@ class ChessboardDetector:
 
     return template
 
-  def non_maxima_suppression(self,
-                             image: Image,
-                             n: int = 3,
-                             tau: float = 0.1,
-                             margin: int = 2):
+  def non_maxima_suppression(
+    self, image: Image, n: int = 3, tau: float = 0.1, margin: int = 2
+  ):
     """
     Non Maximum Suppression
 
@@ -4367,8 +4399,9 @@ class ChessboardDetector:
         for i2 in range(maxi - n, min(maxi + n, width - margin)):
           for j2 in range(maxj - n, min(maxj + n, height - margin)):
             currval = image[j2, i2]
-            if currval > maxval and (i2 < i or i2 > i + n or j2 < j or
-                                     j2 > j + n):
+            if currval > maxval and (
+              i2 < i or i2 > i + n or j2 < j or j2 > j + n
+            ):
               failed = 1
               break
           if failed:
@@ -4380,8 +4413,9 @@ class ChessboardDetector:
 
     return maxima
 
-  def edge_orientations(self, img_angle: Image,
-                        img_weight: Image) -> tuple[Vec2, Vec2]:
+  def edge_orientations(
+    self, img_angle: Image, img_weight: Image
+  ) -> tuple[Vec2, Vec2]:
     """
     Calculate Edge Orientations
 
@@ -4413,8 +4447,9 @@ class ChessboardDetector:
     # Create histogram
     angle_hist = np.zeros(bin_num)
     for i in range(len(vec_angle)):
-      bin_idx = min(max(int(np.floor(vec_angle[i] / (np.pi / bin_num))), 0),
-                    bin_num - 1)
+      bin_idx = min(
+        max(int(np.floor(vec_angle[i] / (np.pi / bin_num))), 0), bin_num - 1
+      )
       angle_hist[bin_idx] += vec_weight[i]
 
     # Find modes of smoothed histogram
@@ -4426,15 +4461,17 @@ class ChessboardDetector:
 
     # Compute orientation at modes
     modes = np.hstack(
-        (modes, ((modes[:, 0] - 1) * np.pi / bin_num).reshape(-1, 1)))
+      (modes, ((modes[:, 0] - 1) * np.pi / bin_num).reshape(-1, 1))
+    )
 
     # Extract 2 strongest modes and sort by angle
     modes = modes[:2]
     modes = modes[np.argsort(modes[:, 2])]
 
     # Compute angle between modes
-    delta_angle = min(modes[1, 2] - modes[0, 2],
-                      modes[0, 2] + np.pi - modes[1, 2])
+    delta_angle = min(
+      modes[1, 2] - modes[0, 2], modes[0, 2] + np.pi - modes[1, 2]
+    )
 
     # If angle too small => return invalid corner
     if delta_angle <= 0.3:
@@ -4446,12 +4483,14 @@ class ChessboardDetector:
 
     return v1, v2
 
-  def refine_corners(self,
-                     img_shape: tuple[int, ...],
-                     img_angle: MatN,
-                     img_weight: MatN,
-                     corners,
-                     r=10):
+  def refine_corners(
+    self,
+    img_shape: tuple[int, ...],
+    img_angle: MatN,
+    img_weight: MatN,
+    corners,
+    r=10,
+  ):
     """
     Refine detected corners
 
@@ -4545,18 +4584,20 @@ class ChessboardDetector:
           continue
 
         img_corners = [
-            scipy.signal.convolve2d(image, template[0], mode="same"),
-            scipy.signal.convolve2d(image, template[1], mode="same"),
-            scipy.signal.convolve2d(image, template[2], mode="same"),
-            scipy.signal.convolve2d(image, template[3], mode="same"),
+          scipy.signal.convolve2d(image, template[0], mode="same"),
+          scipy.signal.convolve2d(image, template[1], mode="same"),
+          scipy.signal.convolve2d(image, template[2], mode="same"),
+          scipy.signal.convolve2d(image, template[3], mode="same"),
         ]
         img_corners_mu = np.mean(img_corners, axis=0)
-        arr = np.array([
+        arr = np.array(
+          [
             img_corners[0] - img_corners_mu,
             img_corners[1] - img_corners_mu,
             img_corners_mu - img_corners[2],
             img_corners_mu - img_corners[3],
-        ])
+          ]
+        )
         img_corners_1 = np.min(arr, axis=0)  # Case 1: a = white, b = black
         img_corners_2 = np.min(-arr, axis=0)  # Case 2: b = white, a = black
 
@@ -4605,7 +4646,8 @@ class ChessboardDetector:
 
 
 class TestCV(unittest.TestCase):
-  """ Test computer vision functions """
+  """Test computer vision functions"""
+
   def setUp(self):
     # Camera
     img_w = 640
@@ -4629,7 +4671,7 @@ class TestCV(unittest.TestCase):
     self.x = np.array([self.p_C[0] / self.p_C[2], self.p_C[1] / self.p_C[2]])
 
   def test_linear_triangulation(self):
-    """ Test linear_triangulation() """
+    """Test linear_triangulation()"""
     # Camera i - Camera j extrinsics
     C_CiCj = eye(3)
     r_CiCj = np.array([0.05, 0.0, 0.0])
@@ -4664,7 +4706,7 @@ class TestCV(unittest.TestCase):
       self.assertTrue(np.allclose(p_Ci_est, p_Ci_gnd))
 
   def test_parallax(self):
-    """ Test parallax """
+    """Test parallax"""
     # Camera 0 pose in world frame
     C_WCi = euler321(-pi / 2, 0.0, -pi / 2)
     r_WCi = np.array([0.0, 0.1, 0.0])
@@ -4687,18 +4729,18 @@ class TestCV(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax = plt.axes(projection="3d")
       plot_tf(ax, T_WCi, size=0.1)
       plot_tf(ax, T_WCj, size=0.1)
-      ax.plot(*p_W, 'r.')
+      ax.plot(*p_W, "r.")
       plot_set_axes_equal(ax)
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
+      ax.set_zlabel("z [m]")  # pyright: ignore
       plt.show()
 
   def test_homography_find(self):
-    """ Test homography_find() """
+    """Test homography_find()"""
     # Camera
     img_w = 640
     img_h = 480
@@ -4768,7 +4810,7 @@ class TestCV(unittest.TestCase):
     # plt.show()
 
   def test_homography_pose(self):
-    """ Test homography_pose() """
+    """Test homography_pose()"""
     # Camera
     img_w = 640
     img_h = 480
@@ -4827,19 +4869,19 @@ class TestCV(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax = plt.axes(projection="3d")
       plot_tf(ax, T_WC, size=0.1, name="camera")
       plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
       plot_tf(ax, T_WF, size=0.1, name="fiducial")
       ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
+      ax.set_zlabel("z [m]")  # pyright: ignore
       plot_set_axes_equal(ax)
       plt.show()
 
   def test_dlt_pose(self):
-    """ Test dlt_pose() """
+    """Test dlt_pose()"""
     # Camera
     img_w = 640
     img_h = 480
@@ -4895,19 +4937,19 @@ class TestCV(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax = plt.axes(projection="3d")
       plot_tf(ax, T_WC, size=0.1, name="camera")
       plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
       plot_tf(ax, T_WF, size=0.1, name="fiducial")
       ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
-      ax.set_zlabel("z [m]")
+      ax.set_zlabel("z [m]")  # pyright: ignore
       plot_set_axes_equal(ax)
       plt.show()
 
   def test_solvepnp(self):
-    """ Test solvepnp() """
+    """Test solvepnp()"""
     # Camera
     img_w = 640
     img_h = 480
@@ -4963,14 +5005,16 @@ class TestCV(unittest.TestCase):
 
       # Test solvepnp
       t_start = datetime.now()
-      T_CF = solvepnp(object_points,
-                      image_points,
-                      fx,
-                      fy,
-                      cx,
-                      cy,
-                      T_CF_init=T_CF,
-                      verbose=False)
+      T_CF = solvepnp(
+        object_points,
+        image_points,
+        fx,
+        fy,
+        cx,
+        cy,
+        T_CF_init=T_CF,
+        verbose=False,
+      )
       t_end = datetime.now()
       solvepnp_time = (t_end - t_start).total_seconds()
       T_WC_est = T_WF @ inv(T_CF)
@@ -4987,12 +5031,12 @@ class TestCV(unittest.TestCase):
       flags = cv2.SOLVEPNP_ITERATIVE
       t_start = datetime.now()
       _, rvec, tvec = cv2.solvePnP(
-          object_points,
-          image_points,
-          K,
-          D,
-          False,
-          flags=flags,
+        object_points,
+        image_points,
+        K,
+        D,
+        False,
+        flags=flags,
       )
       C, _ = cv2.Rodrigues(rvec)
       r = tvec.flatten()
@@ -5011,19 +5055,19 @@ class TestCV(unittest.TestCase):
       debug = False
       if debug:
         plt.figure()
-        ax = plt.axes(projection='3d')
+        ax = plt.axes(projection="3d")
         plot_tf(ax, T_WC, size=0.1, name="camera")
         plot_tf(ax, T_WC_est, size=0.1, name="camera estimate")
         plot_tf(ax, T_WF, size=0.1, name="fiducial")
         ax.scatter(world_points[:, 0], world_points[:, 1], world_points[:, 2])
         ax.set_xlabel("x [m]")
         ax.set_ylabel("y [m]")
-        ax.set_zlabel("z [m]")
+        ax.set_zlabel("z [m]")  # pyright: ignore
         plot_set_axes_equal(ax)
         plt.show()
 
   def test_illumination_invariant_transform(self):
-    """ Test illumination_invariant_transform() """
+    """Test illumination_invariant_transform()"""
     img_path = os.path.join(SCRIPT_DIR, "./test_data/images/flower.jpg")
     img = cv2.imread(img_path)
     img = illumination_invariant_transform(img)
@@ -5036,7 +5080,7 @@ class TestCV(unittest.TestCase):
     self.assertTrue(True)
 
   def test_harris_corner(self):
-    """ Test harris_corner() """
+    """Test harris_corner()"""
     img_file = "./test_data/images/checker_board-5x5.png"
     img_path = os.path.join(SCRIPT_DIR, img_file)
     img = cv2.imread(img_path)
@@ -5055,7 +5099,7 @@ class TestCV(unittest.TestCase):
     self.assertTrue(len(corners))
 
   def test_shi_tomasi_corner(self):
-    """ Test shi_tomasi_corner() """
+    """Test shi_tomasi_corner()"""
     img_file = "./test_data/images/checker_board-5x5.png"
     img_path = os.path.join(SCRIPT_DIR, img_file)
     img = cv2.imread(img_path)
@@ -5075,7 +5119,7 @@ class TestCV(unittest.TestCase):
     self.assertTrue(len(corners))
 
   def test_pinhole_K(self):
-    """ Test pinhole_K() """
+    """Test pinhole_K()"""
     fx = 1.0
     fy = 2.0
     cx = 3.0
@@ -5087,13 +5131,13 @@ class TestCV(unittest.TestCase):
     self.assertTrue(np.array_equal(K, expected))
 
   def test_pinhole_project(self):
-    """ Test pinhole_project() """
+    """Test pinhole_project()"""
     z = pinhole_project(self.proj_params, self.p_C)
     self.assertTrue(isclose(z[0], 320.0))
     self.assertTrue(isclose(z[1], 240.0))
 
   def test_pinhole_params_jacobian(self):
-    """ Test pinhole_params_jacobian() """
+    """Test pinhole_params_jacobian()"""
     # Pinhole params jacobian
     fx, fy, cx, cy = self.proj_params
     z = np.array([fx * self.x[0] + cx, fy * self.x[1] + cy])
@@ -5115,7 +5159,7 @@ class TestCV(unittest.TestCase):
     self.assertTrue(matrix_equal(finite_diff, J, tol, True))
 
   def test_pinhole_point_jacobian(self):
-    """ Test pinhole_point_jacobian() """
+    """Test pinhole_point_jacobian()"""
     # Pinhole params jacobian
     fx, fy, cx, cy = self.proj_params
     z = np.array([fx * self.x[0] + cx, fy * self.x[1] + cy])
@@ -5197,12 +5241,12 @@ def umeyama(X: MatNx3, Y: MatNx3) -> tuple[float, Mat3, Vec3]:
 
 
 def icp(
-    X: MatNx3,
-    Y: MatNx3,
-    **kwargs,
+  X: MatNx3,
+  Y: MatNx3,
+  **kwargs,
 ) -> tuple[MatNx3, Mat3 | None, Vec3 | None]:
   # Parameters
-  prev_error = float('inf')
+  prev_error = float("inf")
   max_iter = kwargs.get("max_iter", 2)
   tol = kwargs.get("tol", 1e-8)
 
@@ -5212,7 +5256,7 @@ def icp(
 
   # -- Setup plotting
   plt.figure(figsize=(12, 10))
-  ax = plt.axes(projection='3d')
+  ax = plt.axes(projection="3d")
   ax.scatter(X[:, 0], X[:, 1], X[:, 2], color="r", label="src", alpha=0.2)
   ax.scatter(Y[:, 0], Y[:, 1], Y[:, 2], color="g", label="dest", alpha=0.2)
   plt.legend(loc=0)
@@ -5242,12 +5286,9 @@ def icp(
     # Plot
     if est_ax:
       est_ax.remove()
-    est_ax = ax.scatter(X[:, 0],
-                        X[:, 1],
-                        X[:, 2],
-                        color="k",
-                        label="est",
-                        alpha=0.2)
+    est_ax = ax.scatter(
+      X[:, 0], X[:, 1], X[:, 2], color="k", label="est", alpha=0.2
+    )
     plot_set_axes_equal(ax)
     plt.draw()
     plt.pause(0.5)
@@ -5264,7 +5305,8 @@ def icp(
 
 
 class TestPointCloud(unittest.TestCase):
-  """ Test point cloud functions """
+  """Test point cloud functions"""
+
   def test_umeyama(self):
     debug = False
     R_gnd = euler321(*np.random.rand(3))
@@ -5283,15 +5325,12 @@ class TestPointCloud(unittest.TestCase):
     # Visualize
     if debug:
       plt.figure(figsize=(12, 10))
-      ax = plt.axes(projection='3d')
+      ax = plt.axes(projection="3d")
       ax.scatter(src[:, 0], src[:, 1], src[:, 2], "r", label="src", alpha=0.2)
       ax.scatter(dst[:, 0], dst[:, 1], dst[:, 2], "g", label="dest", alpha=0.2)
-      ax.scatter(est[:, 0],
-                 est[:, 1],
-                 est[:, 2],
-                 "k",
-                 label="aligned",
-                 alpha=0.2)
+      ax.scatter(
+        est[:, 0], est[:, 1], est[:, 2], "k", label="aligned", alpha=0.2
+      )
       ax.legend(loc=0)
       plot_set_axes_equal(ax)
       plt.show()
@@ -5326,10 +5365,10 @@ class TestPointCloud(unittest.TestCase):
       J = np.vstack(jacobians)
       r = np.hstack(residuals)
 
-      cost = (0.5 * (r.T @ r))
+      cost = 0.5 * (r.T @ r)
       H = J.T @ J
       H += 1e-4 * eye(6)
-      b = (-1.0 * J.T @ r)
+      b = -1.0 * J.T @ r
       dx = solve_svd(H, b)
 
       print(f"{cost=:.2e}")
@@ -5350,7 +5389,8 @@ class TestPointCloud(unittest.TestCase):
 
 @dataclass
 class CameraEvent:
-  """ Camera Event """
+  """Camera Event"""
+
   ts: int
   cam_idx: int
   image: Image | list[tuple[int, Vec2]]
@@ -5358,7 +5398,8 @@ class CameraEvent:
 
 @dataclass
 class ImuEvent:
-  """ IMU Event """
+  """IMU Event"""
+
   ts: int
   imu_idx: int
   acc: Vec3
@@ -5367,34 +5408,35 @@ class ImuEvent:
 
 @dataclass
 class Timeline:
-  """ Timeline """
+  """Timeline"""
+
   def __init__(self):
     self.data = {}
 
   def num_timestamps(self):
-    """ Return number of timestamps """
+    """Return number of timestamps"""
     return len(self.data)
 
   def num_events(self):
-    """ Return number of events """
+    """Return number of events"""
     nb_events = 0
     for _, events in self.data:
       nb_events += len(events)
     return nb_events
 
   def get_timestamps(self):
-    """ Get timestamps """
+    """Get timestamps"""
     return sorted(list(self.data.keys()))
 
   def add_event(self, ts, event):
-    """ Add event """
+    """Add event"""
     if ts not in self.data:
       self.data[ts] = [event]
     else:
       self.data[ts].append(event)
 
   def get_events(self, ts):
-    """ Get events """
+    """Get events"""
     return self.data[ts]
 
 
@@ -5402,7 +5444,8 @@ class Timeline:
 
 
 class EurocSensor:
-  """ Euroc Sensor """
+  """Euroc Sensor"""
+
   def __init__(self, yaml_path):
     # Load yaml file
     config = load_yaml(yaml_path)
@@ -5432,30 +5475,32 @@ class EurocSensor:
 
 
 class EurocImuData:
-  """ Euroc Imu data """
+  """Euroc Imu data"""
+
   def __init__(self, data_dir):
     import pandas
-    self.imu_dir = Path(data_dir, 'mav0', 'imu0')
-    self.config = EurocSensor(Path(self.imu_dir, 'sensor.yaml'))
+
+    self.imu_dir = Path(data_dir, "mav0", "imu0")
+    self.config = EurocSensor(Path(self.imu_dir, "sensor.yaml"))
     self.timestamps = []
     self.acc = {}
     self.gyr = {}
 
     # Load data
-    imu_path = Path(self.imu_dir, 'data.csv')
+    imu_path = Path(self.imu_dir, "data.csv")
     df = pandas.read_csv(imu_path)
     df = df.rename(columns=lambda x: x.strip())
 
     # -- Timestamp
-    timestamps = df['#timestamp [ns]'].to_numpy()
+    timestamps = df["#timestamp [ns]"].to_numpy()
     # -- Accelerometer measurement
-    acc_x = df['a_RS_S_x [m s^-2]'].to_numpy()
-    acc_y = df['a_RS_S_y [m s^-2]'].to_numpy()
-    acc_z = df['a_RS_S_z [m s^-2]'].to_numpy()
+    acc_x = df["a_RS_S_x [m s^-2]"].to_numpy()
+    acc_y = df["a_RS_S_y [m s^-2]"].to_numpy()
+    acc_z = df["a_RS_S_z [m s^-2]"].to_numpy()
     # -- Gyroscope measurement
-    gyr_x = df['w_RS_S_x [rad s^-1]'].to_numpy()
-    gyr_y = df['w_RS_S_y [rad s^-1]'].to_numpy()
-    gyr_z = df['w_RS_S_z [rad s^-1]'].to_numpy()
+    gyr_x = df["w_RS_S_x [rad s^-1]"].to_numpy()
+    gyr_y = df["w_RS_S_y [rad s^-1]"].to_numpy()
+    gyr_z = df["w_RS_S_z [rad s^-1]"].to_numpy()
     # -- Load
     for i, ts in enumerate(timestamps):
       self.timestamps.append(ts)
@@ -5464,31 +5509,34 @@ class EurocImuData:
 
 
 class EurocCameraData:
-  """ Euroc Camera data """
+  """Euroc Camera data"""
+
   def __init__(self, data_dir, cam_idx):
     self.cam_idx = cam_idx
-    self.cam_dir = Path(data_dir, 'mav0', 'cam' + str(cam_idx))
-    self.config = EurocSensor(Path(self.cam_dir, 'sensor.yaml'))
+    self.cam_dir = Path(data_dir, "mav0", "cam" + str(cam_idx))
+    self.config = EurocSensor(Path(self.cam_dir, "sensor.yaml"))
     self.timestamps = []
     self.image_paths = {}
 
     # Load image paths
-    cam_data_dir = str(Path(self.cam_dir, 'data', '*.png'))
+    cam_data_dir = str(Path(self.cam_dir, "data", "*.png"))
     for img_file in sorted(glob.glob(cam_data_dir)):
-      ts_str, _ = os.path.basename(img_file).split('.')
+      ts_str, _ = os.path.basename(img_file).split(".")
       ts = int(ts_str)
       self.timestamps.append(ts)
       self.image_paths[ts] = img_file
 
   def get_image_path_list(self):
-    """ Return list of image paths """
+    """Return list of image paths"""
     return [img_path for _, img_path in self.image_paths]
 
 
 class EurocGroundTruth:
-  """ Euroc ground truth """
+  """Euroc ground truth"""
+
   def __init__(self, data_dir):
     import pandas
+
     self.timestamps = []
     self.T_WB = {}
     self.v_WB = {}
@@ -5496,24 +5544,24 @@ class EurocGroundTruth:
     self.a_WB = {}
 
     # Load data
-    dir_name = 'state_groundtruth_estimate0'
-    data_csv = Path(data_dir, 'mav0', dir_name, 'data.csv')
+    dir_name = "state_groundtruth_estimate0"
+    data_csv = Path(data_dir, "mav0", dir_name, "data.csv")
     df = pandas.read_csv(data_csv)
     df = df.rename(columns=lambda x: x.strip())
     # -- Timestamp
-    timestamps = df['#timestamp'].to_numpy()
+    timestamps = df["#timestamp"].to_numpy()
     # -- Body pose in world frame
-    rx_list = df['p_RS_R_x [m]'].to_numpy()
-    ry_list = df['p_RS_R_y [m]'].to_numpy()
-    rz_list = df['p_RS_R_z [m]'].to_numpy()
-    qw_list = df['q_RS_w []'].to_numpy()
-    qx_list = df['q_RS_x []'].to_numpy()
-    qy_list = df['q_RS_y []'].to_numpy()
-    qz_list = df['q_RS_z []'].to_numpy()
+    rx_list = df["p_RS_R_x [m]"].to_numpy()
+    ry_list = df["p_RS_R_y [m]"].to_numpy()
+    rz_list = df["p_RS_R_z [m]"].to_numpy()
+    qw_list = df["q_RS_w []"].to_numpy()
+    qx_list = df["q_RS_x []"].to_numpy()
+    qy_list = df["q_RS_y []"].to_numpy()
+    qz_list = df["q_RS_z []"].to_numpy()
     # -- Body velocity in world frame
-    vx_list = df['v_RS_R_x [m s^-1]'].to_numpy()
-    vy_list = df['v_RS_R_y [m s^-1]'].to_numpy()
-    vz_list = df['v_RS_R_z [m s^-1]'].to_numpy()
+    vx_list = df["v_RS_R_x [m s^-1]"].to_numpy()
+    vy_list = df["v_RS_R_y [m s^-1]"].to_numpy()
+    vz_list = df["v_RS_R_z [m s^-1]"].to_numpy()
     # -- Add to class
     for i, ts in enumerate(timestamps):
       r_WB = np.array([rx_list[i], ry_list[i], rz_list[i]])
@@ -5526,7 +5574,8 @@ class EurocGroundTruth:
 
 
 class EurocDataset:
-  """ Euroc Dataset """
+  """Euroc Dataset"""
+
   def __init__(self, data_path):
     # Data path
     self.data_path = data_path
@@ -5561,7 +5610,7 @@ class EurocDataset:
     return timeline
 
   def get_camera_image(self, cam_idx, ts):
-    """ Get camera image """
+    """Get camera image"""
     img_path = None
     if cam_idx == 0:
       img_path = self.cam0_data.image_paths[ts]
@@ -5572,7 +5621,7 @@ class EurocDataset:
     return cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 
   def get_ground_truth_pose(self, ts):
-    """ Get ground truth pose T_WB at timestamp `ts` """
+    """Get ground truth pose T_WB at timestamp `ts`"""
     # Pre-check
     if ts <= self.ground_truth.timestamps[0]:
       return None
@@ -5595,9 +5644,10 @@ class EurocDataset:
 
 
 class TestEuroc(unittest.TestCase):
-  """ Test Euroc dataset loader """
+  """Test Euroc dataset loader"""
+
   def test_load(self):
-    """ Test load """
+    """Test load"""
     dataset = EurocDataset(EUROC_DATA_PATH)
     self.assertTrue(dataset is not None)
 
@@ -5606,7 +5656,8 @@ class TestEuroc(unittest.TestCase):
 
 
 class KittiCameraData:
-  """ Kitti Camera Data"""
+  """Kitti Camera Data"""
+
   def __init__(self, cam_idx, seq_dir: Path):
     self.cam_idx = cam_idx
     self.seq_dir = seq_dir
@@ -5616,7 +5667,8 @@ class KittiCameraData:
 
 
 class KittiVelodyneData:
-  """ Kitti Velodyne Data"""
+  """Kitti Velodyne Data"""
+
   def __init__(self, seq_dir: Path):
     self.seq_dir = seq_dir
     self.velodyne_path = Path(self.seq_dir, "velodyne_points")
@@ -5632,23 +5684,23 @@ class KittiVelodyneData:
     self.bin_paths = sorted(self.bins_dir.glob("*.bin"))
 
   def _load_timestamps(self, data_file: Path) -> list[np.int64]:
-    """ Load timestamps from file """
+    """Load timestamps from file"""
     f = open(data_file, "r")
 
     timestamps = []
     for line in f:
       line = line.strip()
-      dt = line.split('.')[0]
+      dt = line.split(".")[0]
       dt_obj = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
       seconds = dt_obj.timestamp()
-      nanoseconds = int(line.split('.')[1])
+      nanoseconds = int(line.split(".")[1])
       timestamps.append(int(seconds * 1e9) + nanoseconds)
 
     f.close()
     return timestamps
 
   def load_scan(self, ts: np.int64) -> MatNx4:
-    """ Load scan based on timestamp """
+    """Load scan based on timestamp"""
     index = self.timestamps.index(ts)
     bin_path = self.bin_paths[index]
     pcd = np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4)
@@ -5656,7 +5708,8 @@ class KittiVelodyneData:
 
 
 class KittiRawDataset:
-  """ KittiRawDataset """
+  """KittiRawDataset"""
+
   def __init__(self, data_dir: Path, date: str, seq: str, is_sync: bool):
     # Paths
     self.data_dir = data_dir
@@ -5687,9 +5740,9 @@ class KittiRawDataset:
   @classmethod
   def _read_calib_file(cls, fp):
     data = {}
-    with open(fp, 'r') as f:
+    with open(fp, "r") as f:
       for line in f.readlines():
-        key, value = line.split(':', 1)
+        key, value = line.split(":", 1)
         # The only non-float values in these files are dates, which
         # we don't care about anyway
         try:
@@ -5699,7 +5752,7 @@ class KittiRawDataset:
       return data
 
   def num_camera_images(self, cam_idx=0):
-    """ Return number of camera images """
+    """Return number of camera images"""
     assert cam_idx >= 0
     assert cam_idx <= 3
     if cam_idx == 0:
@@ -5714,30 +5767,30 @@ class KittiRawDataset:
     raise RuntimeError(f"Invalid cam_idx: {cam_idx}")
 
   def get_velodyne_extrinsics(self):
-    """ Get velodyne extrinsics """
+    """Get velodyne extrinsics"""
     # Form imu-velo extrinsics T_BV
-    C_VB = self.calib_imu_to_velo['R'].reshape((3, 3))
-    r_VB = self.calib_imu_to_velo['T']
+    C_VB = self.calib_imu_to_velo["R"].reshape((3, 3))
+    r_VB = self.calib_imu_to_velo["T"]
     T_VB = tf(C_VB, r_VB)
     T_BV = inv(T_VB)
     return T_BV
 
   def get_camera_extrinsics(self, cam_idx):
-    """ Get camera extrinsics T_BCi """
+    """Get camera extrinsics T_BCi"""
     # Form imu-velo extrinsics T_VB
-    C_VB = self.calib_imu_to_velo['R'].reshape((3, 3))
-    r_VB = self.calib_imu_to_velo['T']
+    C_VB = self.calib_imu_to_velo["R"].reshape((3, 3))
+    r_VB = self.calib_imu_to_velo["T"]
     T_VB = tf(C_VB, r_VB)
 
     # Form velo-cam extrinsics T_C0V
-    C_C0V = self.calib_velo_to_cam['R'].reshape((3, 3))
-    r_C0V = self.calib_velo_to_cam['T']
+    C_C0V = self.calib_velo_to_cam["R"].reshape((3, 3))
+    r_C0V = self.calib_velo_to_cam["T"]
     T_C0V = tf(C_C0V, r_C0V)
 
     # Form cam-cam extrinsics T_CiC0
     cam_str = str(cam_idx)
-    C_CiC0 = self.calib_cam_to_cam['R_' + cam_str.zfill(2)].reshape((3, 3))
-    r_CiC0 = self.calib_cam_to_cam['T_' + cam_str.zfill(2)]
+    C_CiC0 = self.calib_cam_to_cam["R_" + cam_str.zfill(2)].reshape((3, 3))
+    r_CiC0 = self.calib_cam_to_cam["T_" + cam_str.zfill(2)]
     T_CiC0 = tf(C_CiC0, r_CiC0)
 
     # Form camera extrinsics T_BC0
@@ -5747,10 +5800,10 @@ class KittiRawDataset:
     return T_BCi
 
   def get_camera_image(self, cam_idx, **kwargs):
-    """ Get camera image """
+    """Get camera image"""
     assert cam_idx >= 0 and cam_idx <= 3
-    imread_flag = kwargs.get('imread_flag', cv2.IMREAD_GRAYSCALE)
-    img_idx = kwargs['index']
+    imread_flag = kwargs.get("imread_flag", cv2.IMREAD_GRAYSCALE)
+    img_idx = kwargs["index"]
 
     if cam_idx == 0:
       return cv2.imread(self.cam0_data.img_paths[img_idx], imread_flag)
@@ -5764,7 +5817,7 @@ class KittiRawDataset:
     raise RuntimeError(f"Invalid cam_idx: {cam_idx}")
 
   def plot_frames(self):
-    """ Plot Frames """
+    """Plot Frames"""
     T_BV = self.get_velodyne_extrinsics()
     T_BC0 = self.get_camera_extrinsics(0)
     T_BC1 = self.get_camera_extrinsics(1)
@@ -5772,7 +5825,7 @@ class KittiRawDataset:
     T_BC3 = self.get_camera_extrinsics(3)
 
     plt.figure()
-    ax: Axes3D = plt.axes(projection='3d')
+    ax = plt.axes(projection="3d")
     plot_tf(ax, eye(4), size=0.1, name="imu")
     plot_tf(ax, T_BV, size=0.1, name="velo")
     plot_tf(ax, T_BC0, size=0.1, name="cam0")
@@ -5781,17 +5834,17 @@ class KittiRawDataset:
     plot_tf(ax, T_BC3, size=0.1, name="cam3")
     ax.set_xlabel("x [m]")
     ax.set_ylabel("y [m]")
-    ax.set_zlabel("z [m]")
+    ax.set_zlabel("z [m]")  # pyright: ignore
     plot_set_axes_equal(ax)
     plt.show()
 
 
 class TestKitti(unittest.TestCase):
-  """ Test KITTI dataset loader """
+  """Test KITTI dataset loader"""
 
   # @unittest.skip("")
   def test_load(self):
-    """ Test load """
+    """Test load"""
     data_dir = Path("/data/kitti_raw")
     date = "2011_09_26"
     seq = "93"
@@ -5908,7 +5961,8 @@ def compl_filter(gyro, accel, dt, roll, pitch):
 
 
 class KalmanFilter:
-  """ Kalman Filter """
+  """Kalman Filter"""
+
   def __init__(self, **kwargs):
     self.x = kwargs["x0"]
     self.F = kwargs["F"]
@@ -5919,13 +5973,13 @@ class KalmanFilter:
     self.P = kwargs.get("P", np.eye(self.F.shape[1]))
 
   def predict(self, u=np.array([0.0])):
-    """ Predict """
+    """Predict"""
     self.x = self.F @ self.x + self.B @ u
     self.P = self.F @ self.P @ self.F.T + self.Q
     return self.x
 
   def update(self, z):
-    """ Measurement Update """
+    """Measurement Update"""
     I = np.eye(self.F.shape[1])
     y = z - self.H @ self.x
     S = self.R + self.H @ self.P @ self.H.T
@@ -5936,7 +5990,8 @@ class KalmanFilter:
 
 
 class TestKalmanFilter(unittest.TestCase):
-  """ Test Kalman Filter """
+  """Test Kalman Filter"""
+
   def test_constant_acceleration_example(self):
     # Simulation parameters
     dt = 0.01
@@ -6043,9 +6098,9 @@ class Ray:
     self.dir = dir
     self.invdir = 1.0 / dir
     self.sign = [
-        (self.invdir[0] < 0),
-        (self.invdir[1] < 0),
-        (self.invdir[2] < 0),
+      (self.invdir[0] < 0),
+      (self.invdir[1] < 0),
+      (self.invdir[2] < 0),
     ]
 
 
@@ -6070,22 +6125,22 @@ class OctreeNode:
     index = 0
     for i in range(3):
       if point[i] < self.center[i]:
-        index |= (1 << i)
+        index |= 1 << i
 
     half_size = self.size / 2.0
     quarter_size = self.size / 4.0
-    offset_x = (-1)**((index >> 0) & 1) * quarter_size
-    offset_y = (-1)**((index >> 1) & 1) * quarter_size
-    offset_z = (-1)**((index >> 2) & 1) * quarter_size
+    offset_x = (-1) ** ((index >> 0) & 1) * quarter_size
+    offset_y = (-1) ** ((index >> 1) & 1) * quarter_size
+    offset_z = (-1) ** ((index >> 2) & 1) * quarter_size
 
     child = self.children[index]
     if child is None:
       new_center = self.center + np.array([offset_x, offset_y, offset_z])
       child = OctreeNode(
-          center=new_center,
-          size=half_size,
-          depth=self.depth + 1,
-          max_depth=self.max_depth,
+        center=new_center,
+        size=half_size,
+        depth=self.depth + 1,
+        max_depth=self.max_depth,
       )
       self.children[index] = child  # pyright: ignore
     self.children[index].insert(point)  # pyright: ignore
@@ -6149,7 +6204,8 @@ class Octree:
 
 
 class TestOctree(unittest.TestCase):
-  """ Test Octree """
+  """Test Octree"""
+
   def test_octree(self):
     points = [np.random.rand(3) for _ in range(100)]
     center = [0.0, 0.0, 0.0]
@@ -6164,7 +6220,7 @@ class TestOctree(unittest.TestCase):
     debug = False
     if debug:
       fig = plt.figure()
-      ax = fig.add_subplot(111, projection='3d')
+      ax = fig.add_subplot(111, projection="3d")
 
       # -- Plot bounding boxes
       for center, size in octree_bboxes:
@@ -6172,7 +6228,7 @@ class TestOctree(unittest.TestCase):
 
       # -- Plot points
       for p in octree_points:
-        ax.plot(p[0], p[1], p[2], 'r.')
+        ax.plot(p[0], p[1], p[2], "r.")
 
       plt.show()
 
@@ -6195,15 +6251,15 @@ class TestOctree(unittest.TestCase):
     debug = False
     if debug:
       fig = plt.figure()
-      ax = fig.add_subplot(111, projection='3d')
+      ax = fig.add_subplot(111, projection="3d")
 
       # Plot the surface
       ax.plot_surface(x, y, z, alpha=0.5, rstride=100, cstride=100)
 
       # Set labels
-      ax.set_xlabel('X axis')
-      ax.set_ylabel('Y axis')
-      ax.set_zlabel('Z axis')
+      ax.set_xlabel("X axis")
+      ax.set_ylabel("Y axis")
+      ax.set_zlabel("Z axis")
 
       # Show the plot
       plt.show()
@@ -6246,12 +6302,12 @@ def kdtree_build(points, depth=0):
 
   node = KDNode(median_point, axis)
   node.left = kdtree_build(sorted_points[:median_index], depth + 1)
-  node.right = kdtree_build(sorted_points[median_index + 1:], depth + 1)
+  node.right = kdtree_build(sorted_points[median_index + 1 :], depth + 1)
   return node
 
 
 def kdtree_nn(root, target):
-  best = [None, float('inf')]  # [best_point, best_dist]
+  best = [None, float("inf")]  # [best_point, best_dist]
 
   def search(node, depth):
     if node is None:
@@ -6285,16 +6341,19 @@ def kdtree_nn(root, target):
 
 
 class TestKDTree(unittest.TestCase):
-  """ Test KDTree """
+  """Test KDTree"""
+
   def test_kdtree(self):
-    points = np.array([
+    points = np.array(
+      [
         [1.0, 2.0],
         [3.0, 5.0],
         [4.0, 2.0],
         [7.0, 8.0],
         [8.0, 1.0],
         [9.0, 6.0],
-    ])
+      ]
+    )
 
     target_point = [5.0, 3.0]
     kdtree = kdtree_build(points)
@@ -6302,9 +6361,9 @@ class TestKDTree(unittest.TestCase):
 
     debug = False
     if debug:
-      plt.plot(points[:, 0], points[:, 1], 'b.')
-      plt.plot(target_point[0], target_point[1], 'ko')
-      plt.plot(best_point[0], best_point[1], 'rx')
+      plt.plot(points[:, 0], points[:, 1], "b.")
+      plt.plot(target_point[0], target_point[1], "ko")
+      plt.plot(best_point[0], best_point[1], "rx")
       plt.show()
 
 
@@ -6316,7 +6375,8 @@ class TestKDTree(unittest.TestCase):
 
 
 class StateVariableType(Enum):
-  """ State Variable Type """
+  """State Variable Type"""
+
   POSE = 1
   EXTRINSICS = 2
   FEATURE = 3
@@ -6326,7 +6386,8 @@ class StateVariableType(Enum):
 
 @dataclass
 class StateVariable:
-  """ State variable """
+  """State variable"""
+
   ts: int
   var_type: str
   param: VecN
@@ -6338,45 +6399,46 @@ class StateVariable:
   marginalize: bool = False
 
   def set_param_id(self, pid):
-    """ Set parameter id """
+    """Set parameter id"""
     self.param_id = pid
 
   def __hash__(self):
-    """ Hash function """
+    """Hash function"""
     return hash(repr(self))
 
 
 class FeatureMeasurements:
-  """ Feature measurements """
+  """Feature measurements"""
+
   def __init__(self):
     self._init = False
     self._data = {}
 
   def initialized(self):
-    """ Check if feature is initialized """
+    """Check if feature is initialized"""
     return self._init
 
   def has_overlap(self, ts):
-    """ Check if feature has overlap at timestamp `ts` """
+    """Check if feature has overlap at timestamp `ts`"""
     return len(self._data[ts]) > 1
 
   def set_initialized(self):
-    """ Set feature as initialized """
+    """Set feature as initialized"""
     self._init = True
 
   def update(self, ts, cam_idx, z):
-    """ Add feature measurement """
+    """Add feature measurement"""
     assert len(z) == 2
     if ts not in self._data:
       self._data[ts] = {}
     self._data[ts][cam_idx] = z
 
   def get(self, ts, cam_idx):
-    """ Get feature measurement """
+    """Get feature measurement"""
     return self._data[ts][cam_idx]
 
   def get_overlaps(self, ts):
-    """ Get feature overlaps """
+    """Get feature overlaps"""
     overlaps = []
     for cam_idx, z in self._data[ts].items():
       overlaps.append((cam_idx, z))
@@ -6384,66 +6446,66 @@ class FeatureMeasurements:
 
 
 def pose_setup(ts, param, **kwargs):
-  """ Form pose state-variable """
-  fix = kwargs.get('fix', False)
+  """Form pose state-variable"""
+  fix = kwargs.get("fix", False)
   param = tf2pose(param) if param.shape == (4, 4) else param
   return StateVariable(ts, "pose", param, None, 6, fix)
 
 
 def extrinsics_setup(param, **kwargs):
-  """ Form extrinsics state-variable """
-  fix = kwargs.get('fix', False)
+  """Form extrinsics state-variable"""
+  fix = kwargs.get("fix", False)
   param = tf2pose(param) if param.shape == (4, 4) else param
   return StateVariable(-1, "extrinsics", param, None, 6, fix)
 
 
 def screw_axis_setup(param, **kwargs):
-  """ Form screw axis state-variable """
-  fix = kwargs.get('fix', False)
+  """Form screw axis state-variable"""
+  fix = kwargs.get("fix", False)
   return StateVariable(-1, "screw_axis", param, None, 6, fix)
 
 
 def camera_params_setup(cam_idx, res, proj_model, dist_model, param, **kwargs):
-  """ Form camera parameters state-variable """
-  fix = kwargs.get('fix', False)
+  """Form camera parameters state-variable"""
+  fix = kwargs.get("fix", False)
   data = camera_geometry_setup(cam_idx, res, proj_model, dist_model)
   return StateVariable(-1, "camera", param, None, len(param), fix, data)
 
 
 def feature_setup(param, **kwargs):
-  """ Form feature state-variable """
-  fix = kwargs.get('fix', False)
+  """Form feature state-variable"""
+  fix = kwargs.get("fix", False)
   data = FeatureMeasurements()
   return StateVariable(-1, "feature", param, None, len(param), fix, data)
 
 
 def speed_biases_setup(ts, vel, ba, bg, **kwargs):
-  """ Form speed and biases state-variable """
-  fix = kwargs.get('fix', False)
+  """Form speed and biases state-variable"""
+  fix = kwargs.get("fix", False)
   param = np.block([vel, ba, bg])
   return StateVariable(ts, "speed_and_biases", param, None, len(param), fix)
 
 
 def inverse_depth_setup(param, **kwargs):
-  """ Form inverse depth state-variable """
-  fix = kwargs.get('fix', False)
+  """Form inverse depth state-variable"""
+  fix = kwargs.get("fix", False)
   return StateVariable(-1, "inverse_depth", np.array([param]), None, 1, fix)
 
 
 def time_delay_setup(param, **kwargs):
-  """ Form time delay state-variable """
-  fix = kwargs.get('fix', False)
+  """Form time delay state-variable"""
+  fix = kwargs.get("fix", False)
   return StateVariable(-1, "time_delay", np.array([param]), None, 1, fix)
 
 
 def joint_angle_setup(param, **kwargs):
-  """ Form time delay state-variable """
-  fix = kwargs.get('fix', False)
+  """Form time delay state-variable"""
+  fix = kwargs.get("fix", False)
   return StateVariable(-1, "joint_angle", np.array([param]), None, 1, fix)
 
 
 def perturb_state_variable(sv, i, step_size):
-  """ Perturb state variable """
+  """Perturb state variable"""
   if sv.var_type == "pose" or sv.var_type == "extrinsics":
     T = pose2tf(sv.param)
     T_dash = tf_perturb(T, i, step_size)
@@ -6455,7 +6517,7 @@ def perturb_state_variable(sv, i, step_size):
 
 
 def perturb_pose(pose, dr, drot):
-  """ Perturb pose """
+  """Perturb pose"""
   T = pose2tf(pose)
 
   T = tf_perturb(T, 0, dr[0])
@@ -6470,21 +6532,21 @@ def perturb_pose(pose, dr, drot):
 
 
 def perturb_pose_random(pose, pos_range, rot_range):
-  """ Perturb pose randomly """
+  """Perturb pose randomly"""
   dr = np.random.uniform(pos_range[0], pos_range[1], size=(3,))
   drot = np.random.uniform(rot_range[0], rot_range[1], size=(3,))
   return perturb_pose(pose, dr, drot)
 
 
 def perturb_tf_random(T, pos_range, rot_range):
-  """ Perturb TF randomly """
+  """Perturb TF randomly"""
   pose = tf2pose(T)
   pose = perturb_pose_random(pose, pos_range, rot_range)
   return pose2tf(pose)
 
 
 def update_state_variable(sv, dx):
-  """ Update state variable """
+  """Update state variable"""
   if sv.var_type == "pose" or sv.var_type == "extrinsics":
     T = pose2tf(sv.param)
     T_prime = tf_update(T, dx)
@@ -6494,7 +6556,7 @@ def update_state_variable(sv, dx):
 
 
 def idp_param(cam_params, T_WC, z):
-  """ Create inverse depth parameter """
+  """Create inverse depth parameter"""
   # Back project image pixel measurmeent to 3D ray
   cam_geom = cam_params.data
   x = cam_geom.backproject(cam_params.params, z)
@@ -6516,7 +6578,7 @@ def idp_param(cam_params, T_WC, z):
 
 
 def idp_param_jacobian(param):
-  """ Inverse depth parameter jacobian """
+  """Inverse depth parameter jacobian"""
   _, _, _, theta, phi, rho = param
   p_W = np.array([cos(phi) * sin(theta), -sin(phi), cos(phi) * cos(theta)])
   d = 1.0 / rho
@@ -6537,7 +6599,7 @@ def idp_param_jacobian(param):
 
 
 def idp_point(param):
-  """ Inverse depth parmaeter to point """
+  """Inverse depth parmaeter to point"""
   # Extract parameter values
   x, y, z, theta, phi, rho = param
 
@@ -6557,7 +6619,8 @@ def idp_point(param):
 
 
 class Factor:
-  """ Factor """
+  """Factor"""
+
   def __init__(self, ftype, pids, z, covar, r_size):
     self.factor_id = None
     self.factor_type = ftype
@@ -6580,25 +6643,25 @@ class Factor:
       self.sqrt_info = np.sqrt(1.0 / covar)
 
   def set_factor_id(self, fid):
-    """ Set factor id """
+    """Set factor id"""
     self.factor_id = fid
 
   def eval(self, params, **kwargs):
-    """ Evalulate Factor """
+    """Evalulate Factor"""
     assert params
     assert kwargs
     raise NotImplementedError()
 
   def calculate_jacobian(self, fvars, var_idx):
-    """ Calculate Jacobian """
+    """Calculate Jacobian"""
     params = [sv.param for sv in fvars]
     _, jacs = self.eval(params)
     return jacs[var_idx]
 
   def get_numerical_jacobian(self, fvars, var_idx, **kwargs):
-    """ Get numerical jacobian """
+    """Get numerical jacobian"""
     # Step size and threshold
-    h = kwargs.get('step_size', 1e-8)
+    h = kwargs.get("step_size", 1e-8)
 
     # Calculate baseline
     params = [sv.param for sv in fvars]
@@ -6623,9 +6686,9 @@ class Factor:
     return J_fdiff
 
   def check_jacobian(self, fvars, var_idx, jac_name, **kwargs):
-    """ Check factor Jacobian """
-    threshold = kwargs.get('threshold', 1e-4)
-    verbose = kwargs.get('verbose', False)
+    """Check factor Jacobian"""
+    threshold = kwargs.get("threshold", 1e-4)
+    verbose = kwargs.get("verbose", False)
 
     J_fdiff = self.get_numerical_jacobian(fvars, var_idx, **kwargs)
     params = [sv.param for sv in fvars]
@@ -6635,19 +6698,20 @@ class Factor:
     return check_jacobian(jac_name, J_fdiff, J, threshold, verbose)
 
   def __hash__(self):
-    """ Hash function """
+    """Hash function"""
     return hash(repr(self))
 
 
 class MeasurementFactor(Factor):
-  """ Measurement Factor """
+  """Measurement Factor"""
+
   def __init__(self, pids, z, covar):
     assert len(pids) == 1
     r_size = 1 if type(z) in [np.float64, float] else len(z)
     Factor.__init__(self, "MeasurementFactor", pids, z, covar, r_size)
 
   def eval(self, params, **kwargs):
-    """ Evaluate """
+    """Evaluate"""
     assert self.sqrt_info
 
     # Form residuals
@@ -6659,7 +6723,7 @@ class MeasurementFactor(Factor):
     else:
       r = self.sqrt_info * (z - z_hat)
 
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     # Form Jacobians
@@ -6674,7 +6738,8 @@ class MeasurementFactor(Factor):
 
 
 class PoseFactor(Factor):
-  """ Pose Factor """
+  """Pose Factor"""
+
   def __init__(self, pids, z, covar):
     assert len(pids) == 1
     assert z.shape == (4, 4)
@@ -6682,7 +6747,7 @@ class PoseFactor(Factor):
     Factor.__init__(self, "PoseFactor", pids, z, covar, 6)
 
   def eval(self, params, **kwargs):
-    """ Evaluate """
+    """Evaluate"""
     assert len(params) == 1
     assert len(params[0]) == 7
     assert self.sqrt_info is not None
@@ -6704,7 +6769,7 @@ class PoseFactor(Factor):
     dq = quat_mul(quat_inv(q_meas), q_est)
     dtheta = 2 * dq[1:4]
     r = self.sqrt_info @ np.block([dr, dtheta])
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     # Form jacobians
@@ -6717,19 +6782,20 @@ class PoseFactor(Factor):
 
 
 class MultiCameraBuffer:
-  """ Multi-camera buffer """
+  """Multi-camera buffer"""
+
   def __init__(self, nb_cams=0):
     self.nb_cams = nb_cams
     self._ts = []
     self._data = {}
 
   def reset(self):
-    """ Reset buffer """
+    """Reset buffer"""
     self._ts = []
     self._data = {}
 
   def add(self, ts, cam_idx, data):
-    """ Add camera event """
+    """Add camera event"""
     if self.nb_cams == 0:
       raise RuntimeError("MulitCameraBuffer not initialized yet!")
 
@@ -6737,23 +6803,23 @@ class MultiCameraBuffer:
     self._data[cam_idx] = data
 
   def ready(self):
-    """ Check whether buffer has all the camera frames ready """
+    """Check whether buffer has all the camera frames ready"""
     if self.nb_cams == 0:
       raise RuntimeError("MulitCameraBuffer not initialized yet!")
 
-    check_ts_same = (len(set(self._ts)) == 1)
-    check_ts_len = (len(self._ts) == self.nb_cams)
-    check_data = (len(self._data) == self.nb_cams)
-    check_cam_indices = (len(set(self._data.keys())) == self.nb_cams)
+    check_ts_same = len(set(self._ts)) == 1
+    check_ts_len = len(self._ts) == self.nb_cams
+    check_data = len(self._data) == self.nb_cams
+    check_cam_indices = len(set(self._data.keys())) == self.nb_cams
 
     return check_ts_same and check_ts_len and check_data and check_cam_indices
 
   def get_camera_indices(self):
-    """ Get camera indices """
+    """Get camera indices"""
     return self._data.keys()
 
   def get_data(self):
-    """ Get camera data """
+    """Get camera data"""
     if self.nb_cams is None:
       raise RuntimeError("MulitCameraBuffer not initialized yet!")
 
@@ -6761,7 +6827,8 @@ class MultiCameraBuffer:
 
 
 class BAFactor(Factor):
-  """ BA Factor """
+  """BA Factor"""
+
   def __init__(self, cam_geom, pids, z, covar=eye(2)):
     assert len(pids) == 3
     assert len(z) == 2
@@ -6770,7 +6837,7 @@ class BAFactor(Factor):
     self.cam_geom = cam_geom
 
   def get_residual(self, cam_pose, feature, cam_params):
-    """ Get residual """
+    """Get residual"""
     T_WC = pose2tf(cam_pose)
     p_W = feature
     p_C = tf_point(inv(T_WC), p_W)
@@ -6782,13 +6849,13 @@ class BAFactor(Factor):
     return status, r
 
   def get_reproj_error(self, cam_pose, feature, cam_params):
-    """ Get reprojection error """
+    """Get reprojection error"""
     status, r = self.get_residual(cam_pose, feature, cam_params)
     reproj_error = norm(r)
     return status, reproj_error
 
   def eval(self, params, **kwargs):
-    """ Evaluate """
+    """Evaluate"""
     assert self.sqrt_info is not None
     assert len(params) == 3
     assert len(params[0]) == 7  # Camera pose T_WC
@@ -6816,7 +6883,7 @@ class BAFactor(Factor):
     sqrt_info = self.sqrt_info
     z = self.measurement
     r = sqrt_info @ (z - z_hat)
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     # Calculate Jacobians
@@ -6845,7 +6912,8 @@ class BAFactor(Factor):
 
 
 class VisionFactor(Factor):
-  """ Vision Factor """
+  """Vision Factor"""
+
   def __init__(self, cam_geom, pids, z, covar=eye(2)):
     assert len(pids) == 4
     assert len(z) == 2
@@ -6854,7 +6922,7 @@ class VisionFactor(Factor):
     self.cam_geom = cam_geom
 
   def get_residual(self, pose, cam_exts, feature, cam_params):
-    """ Get residual """
+    """Get residual"""
     T_WB = pose2tf(pose)
     T_BCi = pose2tf(cam_exts)
     p_W = feature
@@ -6867,13 +6935,13 @@ class VisionFactor(Factor):
     return status, r
 
   def get_reproj_error(self, pose, cam_exts, feature, cam_params):
-    """ Get reprojection error """
+    """Get reprojection error"""
     status, r = self.get_residual(pose, cam_exts, feature, cam_params)
     reproj_error = norm(r)
     return status, reproj_error
 
   def eval(self, params, **kwargs):
-    """ Evaluate """
+    """Evaluate"""
     assert self.sqrt_info is not None
     assert len(params) == 4
     assert len(params[0]) == 7
@@ -6900,7 +6968,7 @@ class VisionFactor(Factor):
     sqrt_info = self.sqrt_info
     z = self.measurement
     r = sqrt_info @ (z - z_hat)
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     # Calculate Jacobians
@@ -6937,7 +7005,8 @@ class VisionFactor(Factor):
 
 
 class CalibVisionFactor(Factor):
-  """ Calibration Vision Factor """
+  """Calibration Vision Factor"""
+
   def __init__(self, cam_geom, pids, calib_target, covar=eye(2)):
     assert len(pids) == 3
     assert len(calib_target) == 4
@@ -6950,7 +7019,7 @@ class CalibVisionFactor(Factor):
     self.r_FFi = r_FFi
 
   def get_residual(self, pose, cam_exts, cam_params):
-    """ Get residual """
+    """Get residual"""
     T_BF = pose2tf(pose)
     T_BCi = pose2tf(cam_exts)
     T_CiB = inv(T_BCi)
@@ -6960,12 +7029,12 @@ class CalibVisionFactor(Factor):
     return status, r
 
   def get_reproj_error(self, pose, cam_exts, cam_params):
-    """ Get reprojection error """
+    """Get reprojection error"""
     status, r = self.get_residual(pose, cam_exts, cam_params)
     return status, norm(r)
 
   def eval(self, params, **kwargs):
-    """ Evaluate """
+    """Evaluate"""
     assert len(params) == 3
     assert len(params[0]) == 7
     assert len(params[1]) == 7
@@ -6992,7 +7061,7 @@ class CalibVisionFactor(Factor):
     sqrt_info = self.sqrt_info
     z = self.measurement
     r = sqrt_info @ (z - z_hat)
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     # Calculate Jacobians
@@ -7023,30 +7092,31 @@ class CalibVisionFactor(Factor):
 
 
 class ImuBuffer:
-  """ IMU buffer """
+  """IMU buffer"""
+
   def __init__(self, ts=None, acc=None, gyr=None):
     self.ts = ts if ts is not None else []
     self.acc = acc if acc is not None else []
     self.gyr = gyr if gyr is not None else []
 
   def add(self, ts, acc, gyr):
-    """ Add imu measurement """
+    """Add imu measurement"""
     self.ts.append(ts)
     self.acc.append(acc)
     self.gyr.append(gyr)
 
   def add_event(self, imu_event):
-    """ Add imu event """
+    """Add imu event"""
     self.ts.append(imu_event.ts)
     self.acc.append(imu_event.acc)
     self.gyr.append(imu_event.gyr)
 
   def length(self):
-    """ Return length of imu buffer """
+    """Return length of imu buffer"""
     return len(self.ts)
 
   def extract(self, ts_start, ts_end):
-    """ Form ImuBuffer """
+    """Form ImuBuffer"""
     assert ts_start >= self.ts[0]
     assert ts_end <= self.ts[-1]
     imu_ts = []
@@ -7115,7 +7185,7 @@ class ImuBuffer:
     return ImuBuffer(imu_ts, imu_acc, imu_gyr)
 
   def print(self, extra_newline=False):
-    """ Print """
+    """Print"""
     for ts, acc, gyr in zip(self.ts, self.acc, self.gyr):
       print(f"ts: [{ts}], acc: {acc}, gyr: {gyr}")
 
@@ -7125,7 +7195,8 @@ class ImuBuffer:
 
 @dataclass
 class ImuParams:
-  """ IMU parameters """
+  """IMU parameters"""
+
   noise_acc: float
   noise_gyr: float
   noise_ba: float
@@ -7135,7 +7206,8 @@ class ImuParams:
 
 @dataclass
 class ImuFactorData:
-  """ IMU Factor data """
+  """IMU Factor data"""
+
   state_F: VecN
   state_P: VecN
   dr: VecN
@@ -7149,7 +7221,8 @@ class ImuFactorData:
 
 @dataclass
 class ImuFactorData2:
-  """ IMU Factor2 data """
+  """IMU Factor2 data"""
+
   state_F: VecN
   state_P: VecN
   dr: VecN
@@ -7162,7 +7235,8 @@ class ImuFactorData2:
 
 
 class ImuFactor(Factor):
-  """ Imu Factor """
+  """Imu Factor"""
+
   def __init__(self, pids, imu_params, imu_buf, sb_i):
     assert len(pids) == 4
     self.imu_params = imu_params
@@ -7183,7 +7257,7 @@ class ImuFactor(Factor):
 
   @staticmethod
   def propagate(imu_buf, imu_params, sb_i):
-    """ Propagate imu measurements """
+    """Propagate imu measurements"""
     # Setup
     Dt = 0.0
     g = imu_params.g
@@ -7255,7 +7329,7 @@ class ImuFactor(Factor):
     return ImuFactorData(state_F, state_P, dr, dv, dC, ba, bg, g, Dt)
 
   def eval(self, params, **kwargs):
-    """ Evaluate IMU factor """
+    """Evaluate IMU factor"""
     assert len(params) == 4
     assert len(params[0]) == 7
     assert len(params[1]) == 9
@@ -7304,8 +7378,8 @@ class ImuFactor(Factor):
     Dt = self.Dt
     Dt_sq = Dt * Dt
 
-    dr_meas = (C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)))
-    dv_meas = (C_i.T @ ((v_j - v_i) + (g * Dt)))
+    dr_meas = C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))
+    dv_meas = C_i.T @ ((v_j - v_i) + (g * Dt))
 
     err_pos = dr_meas - dr
     err_vel = dv_meas - dv
@@ -7314,7 +7388,7 @@ class ImuFactor(Factor):
     err_bg = np.array([0.0, 0.0, 0.0])
     r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
 
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     # Form jacobians
@@ -7359,7 +7433,8 @@ class ImuFactor(Factor):
 
 
 class ImuFactor2(Factor):
-  """ Imu Factor2 """
+  """Imu Factor2"""
+
   def __init__(self, pids, imu_params, imu_buf, sb_i):
     assert len(pids) == 4
     self.imu_params = imu_params
@@ -7380,7 +7455,7 @@ class ImuFactor2(Factor):
 
   @staticmethod
   def propagate(imu_buf, imu_params, sb_i):
-    """ Propagate imu measurements """
+    """Propagate imu measurements"""
     # Setup
     Dt = 0.0
     g = imu_params.g
@@ -7524,7 +7599,7 @@ class ImuFactor2(Factor):
     return ImuFactorData2(state_F, state_P, dr, dv, dq, ba, bg, g, Dt)
 
   def eval(self, params, **kwargs):
-    """ Evaluate IMU factor """
+    """Evaluate IMU factor"""
     assert len(params) == 4
     assert len(params[0]) == 7
     assert len(params[1]) == 9
@@ -7574,8 +7649,8 @@ class ImuFactor2(Factor):
     Dt = self.Dt
     Dt_sq = Dt * Dt
 
-    dr_meas = (C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq)))
-    dv_meas = (C_i.T @ ((v_j - v_i) + (g * Dt)))
+    dr_meas = C_i.T @ ((r_j - r_i) - (v_i * Dt) + (0.5 * g * Dt_sq))
+    dv_meas = C_i.T @ ((v_j - v_i) + (g * Dt))
 
     err_pos = dr_meas - dr
     err_vel = dv_meas - dv
@@ -7584,7 +7659,7 @@ class ImuFactor2(Factor):
     err_bg = bg_j - bg_i
     r = sqrt_info @ np.block([err_pos, err_vel, err_rot, err_ba, err_bg])
 
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     # Form jacobians
@@ -7633,7 +7708,8 @@ class ImuFactor2(Factor):
 
 
 class LidarFactor(Factor):
-  """ Lidar Factor """
+  """Lidar Factor"""
+
   def __init__(self, pids, map, lidar_scan):
     assert len(pids) == 3
     assert map is not None
@@ -7642,7 +7718,7 @@ class LidarFactor(Factor):
     Factor.__init__(self, "LidarFactor", pids, None, None, None)
 
   def eval(self, params, **kwargs):
-    """ Evaluate """
+    """Evaluate"""
     assert self.sqrt_info is not None
     assert len(params) == 3
 
@@ -7664,20 +7740,21 @@ class LidarFactor(Factor):
     J1 = zeros((3, 6))
 
     # for i in range(N):
-      # r.append(p_gnd[:, i] - p_est[:, i])
-      # J0[0:3, 0:3] += -1.0 * eye(3)
-      # J0[0:3, 3:6] += C_world_lidar @ hat(p_est[:, i])
-      # J1[0:3, 0:3] += -1.0 * eye(3)
-      # J1[0:3, 3:6] += C_world_lidar @ hat(p_est[:, i])
+    # r.append(p_gnd[:, i] - p_est[:, i])
+    # J0[0:3, 0:3] += -1.0 * eye(3)
+    # J0[0:3, 3:6] += C_world_lidar @ hat(p_est[:, i])
+    # J1[0:3, 0:3] += -1.0 * eye(3)
+    # J1[0:3, 3:6] += C_world_lidar @ hat(p_est[:, i])
 
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     return (r, [J0, J1])
 
 
 class MargFactor(Factor):
-  """ Marginalization Factor """
+  """Marginalization Factor"""
+
   def __init__(self):
     Factor.__init__(self, "MargFactor", [], None, None, None)
 
@@ -7691,7 +7768,7 @@ class MargFactor(Factor):
     self.x0 = {}  # Linearized estimates
 
   def add_factor(self, factor, marg_param_idxs):
-    """ Add factors to be marginalized """
+    """Add factors to be marginalized"""
     # Track factor
     self.factors.append(factor)
 
@@ -7703,7 +7780,7 @@ class MargFactor(Factor):
         self.marg_param_ids.add(param_id)
 
   def _linearize(self, param_blocks):
-    """ Linearize Nonlinear System """
+    """Linearize Nonlinear System"""
     #  Determine parameter block column indicies for Hessian matrix H
     H_idx = 0
     marg_size = 0
@@ -7769,13 +7846,13 @@ class MargFactor(Factor):
         # Form R.H.S. Gauss Newton g
         rs = idx_i
         re = idx_i + size_i
-        g[rs:re] += (-J_i.T @ r)
+        g[rs:re] += -J_i.T @ r
 
     return (H, g, marg_size, remain_size)
 
   @staticmethod
   def _shur_complement(H, b, m, eps=1e-8):
-    """ Schur complement """
+    """Schur complement"""
     # H = [H_mm, H_mr,
     #      H_rm, H_rr]
     H_mm = H[:m, :m]
@@ -7818,7 +7895,7 @@ class MargFactor(Factor):
 
   @staticmethod
   def _decomp_hessian(H, eps=1e-12):
-    """ Decompose Hessian into J.T * J """
+    """Decompose Hessian into J.T * J"""
     # Decompose Hessian via Eigen-Decomposition
     w, V = np.linalg.eigh(H)
 
@@ -7843,7 +7920,7 @@ class MargFactor(Factor):
     return J, J_inv
 
   def _calc_delta_chi(self, params):
-    """ Calculate Delta Chi """
+    """Calculate Delta Chi"""
     dchi = np.array([])
 
     for param in params:
@@ -7871,7 +7948,7 @@ class MargFactor(Factor):
     return dchi
 
   def marginalize(self, param_blocks):
-    """ Marginalize """
+    """Marginalize"""
     # Marginalize
     H, g, marg_size, _ = self._linearize(param_blocks)
     H_marg, b_marg = self._shur_complement(H, g, marg_size)
@@ -7889,14 +7966,14 @@ class MargFactor(Factor):
       self.x0[param_id] = param_block.param
 
   def eval(self, params, **kwargs):
-    """ Evaluate Marginalization Factor """
+    """Evaluate Marginalization Factor"""
     assert self.r0
     assert self.J0
 
     # Calculate residuals
     dchi = self._calc_delta_chi(params)
     r = self.r0 + self.J0 @ dchi
-    if kwargs.get('only_residuals', False):
+    if kwargs.get("only_residuals", False):
       return r
 
     # Get First-Estimate Jacobians
@@ -7905,16 +7982,17 @@ class MargFactor(Factor):
     for param in params:
       J_idx = self.param_idxs[param.param_id]
       J_size = param.min_dims
-      J_param = self.J0[J_idx:J_idx + r_size, J_idx:J_idx + J_size]
+      J_param = self.J0[J_idx : J_idx + r_size, J_idx : J_idx + J_size]
       jacs.append(J_param)
 
     return (r, jacs)
 
 
 class TestPoseFactor(unittest.TestCase):
-  """ Test Pose factor """
+  """Test Pose factor"""
+
   def test_pose_factor(self):
-    """ Test pose factor """
+    """Test pose factor"""
     # Setup camera pose T_WC
     rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
@@ -7936,9 +8014,10 @@ class TestPoseFactor(unittest.TestCase):
 
 
 class TestBAFactor(unittest.TestCase):
-  """ Test BA factor """
+  """Test BA factor"""
+
   def test_ba_factor(self):
-    """ Test ba factor """
+    """Test ba factor"""
     # Setup camera pose T_WC
     rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
@@ -7988,9 +8067,10 @@ class TestBAFactor(unittest.TestCase):
 
 
 class TestVisionFactor(unittest.TestCase):
-  """ Test Vision factor """
+  """Test Vision factor"""
+
   def test_vision_factor(self):
-    """ Test vision factor """
+    """Test vision factor"""
     # Setup camera pose T_WB
     rot = euler2quat(0.01, 0.01, 0.03)
     trans = np.array([0.001, 0.002, 0.003])
@@ -8043,9 +8123,10 @@ class TestVisionFactor(unittest.TestCase):
 
 
 class TestCalibVisionFactor(unittest.TestCase):
-  """ Test CalibVision factor """
+  """Test CalibVision factor"""
+
   def test_calib_vision_factor(self):
-    """ Test CalibVisionFactor """
+    """Test CalibVisionFactor"""
     # Calibration target pose T_WF
     C_WF = euler321(-pi / 2.0, 0.0, deg2rad(80.0))
     r_WF = np.array([0.001, 0.001, 0.001])
@@ -8102,9 +8183,10 @@ class TestCalibVisionFactor(unittest.TestCase):
 
 
 class TestIMUFactor(unittest.TestCase):
-  """ Test IMU factor """
+  """Test IMU factor"""
+
   def test_imu_buffer(self):
-    """ Test IMU Buffer """
+    """Test IMU Buffer"""
     # Extract measurements from ts: 4 - 7
     imu_buf = ImuBuffer()
     for k in range(10):
@@ -8130,7 +8212,7 @@ class TestIMUFactor(unittest.TestCase):
     self.assertTrue(imu_buf2.ts[-1] == 7)
 
   def test_imu_buffer_with_interpolation(self):
-    """ Test IMU Buffer with interpolation """
+    """Test IMU Buffer with interpolation"""
     # Interpolation test
     imu_buf = ImuBuffer()
     for k in range(10):
@@ -8156,7 +8238,7 @@ class TestIMUFactor(unittest.TestCase):
     self.assertTrue(imu_buf2.ts[-1] == 8.9)
 
   def test_imu_factor_propagate(self):
-    """ Test IMU factor propagate """
+    """Test IMU factor propagate"""
     # Sim imu data
     circle_r = 1.0
     circle_v = 0.1
@@ -8208,7 +8290,7 @@ class TestIMUFactor(unittest.TestCase):
     self.assertTrue(rpy_diff < 1.0)
 
   def test_imu_factor(self):
-    """ Test IMU factor """
+    """Test IMU factor"""
     # Simulate imu data
     circle_r = 1.0
     circle_v = 0.1
@@ -8289,7 +8371,7 @@ class TestIMUFactor(unittest.TestCase):
     self.assertTrue(factor.check_jacobian(fvars, 3, "J_sb_j"))
 
   def test_imu_propagation_jacobians(self):
-    """ Test IMU Propagation Jacobians """
+    """Test IMU Propagation Jacobians"""
     # -- Setup
     dt = 0.001
     I3 = np.eye(3)
@@ -8342,7 +8424,7 @@ class TestIMUFactor(unittest.TestCase):
     F[12:15, 12:15] = I3
 
   def test_imu_factor2_propagate(self):
-    """ Test IMU factor propagate """
+    """Test IMU factor propagate"""
     # Sim imu data
     circle_r = 1.0
     circle_v = 0.1
@@ -8398,7 +8480,7 @@ class TestIMUFactor(unittest.TestCase):
     self.assertTrue(rpy_diff < 1.0)
 
   def test_imu_factor2(self):
-    """ Test IMU factor 2 """
+    """Test IMU factor 2"""
     # Simulate imu data
     circle_r = 5.0
     circle_v = 1.0
@@ -8459,9 +8541,10 @@ class TestIMUFactor(unittest.TestCase):
 
 
 class TestMargFactor(unittest.TestCase):
-  """ Test Marg factor """
+  """Test Marg factor"""
+
   def test_marg_factor(self):
-    """ Test MargFactor """
+    """Test MargFactor"""
     # Setup cam0 parameters and geometry
     cam_idx = 0
     img_w = 640
@@ -8632,7 +8715,8 @@ class TestMargFactor(unittest.TestCase):
 
 
 class FactorGraph:
-  """ FactorGraph """
+  """FactorGraph"""
+
   def __init__(self):
     self._next_param_id = 0
     self._next_factor_id = 0
@@ -8642,7 +8726,7 @@ class FactorGraph:
     self.solver_lambda = 1e4
 
   def add_param(self, param):
-    """ Add param """
+    """Add param"""
     param_id = self._next_param_id
     self.params[param_id] = param
     self.params[param_id].set_param_id(param_id)
@@ -8650,7 +8734,7 @@ class FactorGraph:
     return param_id
 
   def add_factor(self, factor):
-    """ Add factor """
+    """Add factor"""
     # Double check if params exists
     for param_id in factor.param_ids:
       if param_id not in self.params:
@@ -8664,18 +8748,18 @@ class FactorGraph:
     return factor_id
 
   def remove_param(self, param):
-    """ Remove param """
+    """Remove param"""
     assert param.param_id in self.params
     del self.params[param.param_id]
 
   def remove_factor(self, factor):
-    """ Remove factor """
+    """Remove factor"""
     assert factor.factor_id in self.factors
     del self.factors[factor.factor_id]
 
   @staticmethod
   def _print_to_console(iter_k, lambda_k, cost_kp1, cost_k):
-    """ Print to console """
+    """Print to console"""
 
     print(f"iter[{iter_k}]:", end=" ")
     print(f"lambda: {lambda_k:.2e}", end=", ")
@@ -8689,15 +8773,15 @@ class FactorGraph:
     sys.stdout.flush()
 
   def _form_param_indices(self):
-    """ Form parameter indices """
+    """Form parameter indices"""
     # Parameter ids
     param_ids = {
-        'pose': set(),
-        'speed_and_biases': set(),
-        'feature': set(),
-        'camera': set(),
-        'extrinsics': set(),
-        'joint_angle': set(),
+      "pose": set(),
+      "speed_and_biases": set(),
+      "feature": set(),
+      "camera": set(),
+      "extrinsics": set(),
+      "joint_angle": set(),
     }
 
     # Track parameters
@@ -8730,7 +8814,7 @@ class FactorGraph:
     return (param_idxs, param_size)
 
   def _linearize(self, params):
-    """ Linearize non-linear problem """
+    """Linearize non-linear problem"""
     # Setup
     (param_idxs, param_size) = self._form_param_indices()
     H = zeros((param_size, param_size))
@@ -8773,12 +8857,12 @@ class FactorGraph:
         # Form R.H.S. Gauss Newton g
         rs = idx_i
         re = idx_i + size_i
-        g[rs:re] += (-J_i.T @ r)
+        g[rs:re] += -J_i.T @ r
 
     return (H, g, param_idxs)
 
   def _linearize2(self, params):
-    """ Linearize non-linear problem
+    """Linearize non-linear problem
 
     This function forms the Jacboian J instead of the Hessian H.
 
@@ -8814,7 +8898,7 @@ class FactorGraph:
         # Form R.H.S. Gauss Newton g
         rs = idx_i
         re = idx_i + size_i
-        g[rs:re] += (-J_i.T @ r)
+        g[rs:re] += -J_i.T @ r
 
       # Update row index
       J_idx = J_rs + len(r)
@@ -8823,7 +8907,7 @@ class FactorGraph:
     return (J, g, param_idxs)
 
   def _calculate_residuals(self, params):
-    """ Calculate Residuals """
+    """Calculate Residuals"""
     residuals = np.array([])
 
     for _, factor in self.factors.items():
@@ -8834,13 +8918,13 @@ class FactorGraph:
     return residuals
 
   def _calculate_cost(self, params):
-    """ Calculate Cost """
+    """Calculate Cost"""
     r = self._calculate_residuals(params)
     return 0.5 * (r.T @ r)
 
   @staticmethod
   def _update(params_k, param_idxs, dx):
-    """ Update """
+    """Update"""
     params_kp1 = copy.deepcopy(params_k)
 
     for param_id, param in params_kp1.items():
@@ -8858,7 +8942,7 @@ class FactorGraph:
 
   @staticmethod
   def _solve_for_dx(lambda_k, H, g):
-    """ Solve for dx """
+    """Solve for dx"""
     # Damp Hessian
     H_damped = H + lambda_k * eye(H.shape[0])
     # H_damped = H + lambda_k * np.diag(H.diagonal())
@@ -8889,7 +8973,7 @@ class FactorGraph:
     return dx
 
   def solve(self, verbose=False):
-    """ Solve """
+    """Solve"""
     lambda_k = self.solver_lambda
     params_k = copy.deepcopy(self.params)
     cost_k = self._calculate_cost(params_k)
@@ -8946,15 +9030,16 @@ class FactorGraph:
 
 
 class TestFactorGraph(unittest.TestCase):
-  """ Test Factor Graph """
+  """Test Factor Graph"""
+
   def setUp(self):
     circle_r = 5.0
     circle_v = 1.0
-    pickle_path = '/tmp/sim_data.pickle'
+    pickle_path = "/tmp/sim_data.pickle"
     self.sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
 
   def test_add_param(self):
-    """ Test graph.add_param() """
+    """Test graph.add_param()"""
     # Setup camera pose T_WC
     rot = euler2quat(-pi / 2.0, 0.0, -pi / 2.0)
     trans = np.array([0.1, 0.2, 0.3])
@@ -8975,7 +9060,7 @@ class TestFactorGraph(unittest.TestCase):
     self.assertEqual(graph.params[pose1_id], pose1)
 
   def test_add_factor(self):
-    """ Test graph.add_factor() """
+    """Test graph.add_factor()"""
     # Setup factor graph
     graph = FactorGraph()
 
@@ -8999,7 +9084,7 @@ class TestFactorGraph(unittest.TestCase):
 
   @unittest.skip("")
   def test_solve_vo(self):
-    """ Test solving a visual odometry problem """
+    """Test solving a visual odometry problem"""
     # Sim data
     cam0_data = self.sim_data.get_camera_data(0)
     cam0_params = self.sim_data.get_camera_params(0)
@@ -9067,9 +9152,9 @@ class TestFactorGraph(unittest.TestCase):
       pos_est = np.array(pos_est)
 
       plt.figure()
-      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'g-', label="Ground Truth")
-      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-', label="Initial")
-      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-', label="Estimated")
+      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], "g-", label="Ground Truth")
+      plt.plot(pos_init[:, 0], pos_init[:, 1], "r-", label="Initial")
+      plt.plot(pos_est[:, 0], pos_est[:, 1], "b-", label="Estimated")
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")
       plt.legend(loc=0)
@@ -9081,7 +9166,7 @@ class TestFactorGraph(unittest.TestCase):
 
   @unittest.skip("")
   def test_solve_io(self):
-    """ Test solving a pure inertial odometry problem """
+    """Test solving a pure inertial odometry problem"""
     # Imu params
     noise_acc = 0.08  # accelerometer measurement noise stddev.
     noise_gyr = 0.004  # gyroscope measurement noise stddev.
@@ -9091,8 +9176,8 @@ class TestFactorGraph(unittest.TestCase):
 
     # Setup factor graph
     imu0_data = self.sim_data.imu0_data
-    assert (imu0_data)
-    assert (imu0_data.timestamps)
+    assert imu0_data
+    assert imu0_data.timestamps
     window_size = 20
     start_idx = 0
     # end_idx = 200
@@ -9155,8 +9240,9 @@ class TestFactorGraph(unittest.TestCase):
       param_ids = [pose_i_id, sb_i_id, pose_j_id, sb_j_id]
       imu_buf = imu0_data.form_imu_buffer(ts_idx - window_size, ts_idx)
       # factor = ImuFactor(param_ids, imu_params, imu_buf, sb_i) # Euler method
-      factor = ImuFactor2(param_ids, imu_params, imu_buf,
-                          sb_i)  # Midpoint method
+      factor = ImuFactor2(
+        param_ids, imu_params, imu_buf, sb_i
+      )  # Midpoint method
       graph.add_factor(factor)
 
       # -- Update
@@ -9196,9 +9282,9 @@ class TestFactorGraph(unittest.TestCase):
 
       # Plot X-Y position
       plt.figure()
-      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-', alpha=0.2, label="Initial")
-      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'k--', label="Ground-Truth")
-      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-', label="Estimate")
+      plt.plot(pos_init[:, 0], pos_init[:, 1], "r-", alpha=0.2, label="Initial")
+      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], "k--", label="Ground-Truth")
+      plt.plot(pos_est[:, 0], pos_est[:, 1], "b-", label="Estimate")
       plt.legend(loc=0)
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")
@@ -9206,54 +9292,54 @@ class TestFactorGraph(unittest.TestCase):
       # Plot velocity
       plt.figure()
       plt.subplot(311)
-      plt.plot(sb_time, vel_gnd[:, 0], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, vel_est[:, 0], 'r-', label="Estimate")
+      plt.plot(sb_time, vel_gnd[:, 0], "k-", label="Ground-Truth")
+      plt.plot(sb_time, vel_est[:, 0], "r-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
       plt.subplot(312)
-      plt.plot(sb_time, vel_gnd[:, 1], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, vel_est[:, 1], 'g-', label="Estimate")
+      plt.plot(sb_time, vel_gnd[:, 1], "k-", label="Ground-Truth")
+      plt.plot(sb_time, vel_est[:, 1], "g-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
       plt.subplot(313)
-      plt.plot(sb_time, vel_gnd[:, 2], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, vel_est[:, 2], 'b-', label="Estimate")
+      plt.plot(sb_time, vel_gnd[:, 2], "k-", label="Ground-Truth")
+      plt.plot(sb_time, vel_est[:, 2], "b-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
 
       # Plot accelerometer bias
       plt.figure()
       plt.subplot(311)
-      plt.plot(sb_time, ba_gnd[:, 0], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, ba_est[:, 0], 'r-', label="Estimate")
+      plt.plot(sb_time, ba_gnd[:, 0], "k-", label="Ground-Truth")
+      plt.plot(sb_time, ba_est[:, 0], "r-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Accelerometer Bias [m s^-2]")
       plt.subplot(312)
-      plt.plot(sb_time, ba_gnd[:, 1], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, ba_est[:, 1], 'g-', label="Estimate")
+      plt.plot(sb_time, ba_gnd[:, 1], "k-", label="Ground-Truth")
+      plt.plot(sb_time, ba_est[:, 1], "g-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Accelerometer Bias [m s^-2]")
       plt.subplot(313)
-      plt.plot(sb_time, ba_gnd[:, 2], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, ba_est[:, 2], 'b-', label="Estimate")
+      plt.plot(sb_time, ba_gnd[:, 2], "k-", label="Ground-Truth")
+      plt.plot(sb_time, ba_est[:, 2], "b-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Accelerometer Bias [m s^-2]")
 
       # Plot gyroscope bias
       plt.figure()
       plt.subplot(311)
-      plt.plot(sb_time, bg_gnd[:, 0], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, bg_est[:, 0], 'r-', label="Estimate")
+      plt.plot(sb_time, bg_gnd[:, 0], "k-", label="Ground-Truth")
+      plt.plot(sb_time, bg_est[:, 0], "r-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Gyroscope Bias [rad s^-1]")
       plt.subplot(312)
-      plt.plot(sb_time, bg_gnd[:, 1], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, bg_est[:, 1], 'g-', label="Estimate")
+      plt.plot(sb_time, bg_gnd[:, 1], "k-", label="Ground-Truth")
+      plt.plot(sb_time, bg_est[:, 1], "g-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Gyroscope Bias [rad s^-1]")
       plt.subplot(313)
-      plt.plot(sb_time, bg_gnd[:, 2], 'k-', label="Ground-Truth")
-      plt.plot(sb_time, bg_est[:, 2], 'b-', label="Estimate")
+      plt.plot(sb_time, bg_gnd[:, 2], "k-", label="Ground-Truth")
+      plt.plot(sb_time, bg_est[:, 2], "b-", label="Estimate")
       plt.xlabel("Time [s]")
       plt.ylabel("Gyroscope Bias [rad s^-1]")
 
@@ -9261,7 +9347,7 @@ class TestFactorGraph(unittest.TestCase):
 
   @unittest.skip("")
   def test_solve_vio(self):
-    """ Test solving a visual inertial odometry problem """
+    """Test solving a visual inertial odometry problem"""
     # Imu params
     noise_acc = 0.08  # accelerometer measurement noise stddev.
     noise_gyr = 0.004  # gyroscope measurement noise stddev.
@@ -9358,7 +9444,8 @@ class TestFactorGraph(unittest.TestCase):
             if ts_k <= imu_data.ts[-1]:
               imu_buf = imu_data.extract(ts_km1, ts_k)
               graph.add_factor(
-                  ImuFactor2(param_ids, imu_params, imu_buf, sbs[-2]))
+                ImuFactor2(param_ids, imu_params, imu_buf, sbs[-2])
+              )
 
       if len(poses) > 20:
         break
@@ -9381,9 +9468,9 @@ class TestFactorGraph(unittest.TestCase):
       pos_est = np.array(pos_est)
 
       plt.figure()
-      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], 'g-', label="Ground Truth")
-      plt.plot(pos_init[:, 0], pos_init[:, 1], 'r-', label="Initial")
-      plt.plot(pos_est[:, 0], pos_est[:, 1], 'b-', label="Estimated")
+      plt.plot(pos_gnd[:, 0], pos_gnd[:, 1], "g-", label="Ground Truth")
+      plt.plot(pos_init[:, 0], pos_init[:, 1], "r-", label="Initial")
+      plt.plot(pos_est[:, 0], pos_est[:, 1], "b-", label="Estimated")
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")
       plt.legend(loc=0)
@@ -9396,27 +9483,10 @@ class TestFactorGraph(unittest.TestCase):
 
 ###############################################################################
 # FEATURE TRACKING
-# def draw_matches(img_i, img_j, kps_i, kps_j, **kwargs)
-# def draw_keypoints(img, kps, inliers=None, **kwargs)
-# def sort_keypoints(kps, des=None)
-# def spread_corners(img, corners, min_dist, **kwargs)
-# def spread_keypoints(img, kps, min_dist, **kwargs)
-# def spread_features(img, kps, des, min_dist, **kwargs)
-#
-# class FeatureGrid
-# def grid_detect(detector, image, **kwargs)
-# def good_grid(image, **kwargs)
-# def optflow_track(img_i, img_j, pts_i, **kwargs)
-# def filter_outliers(pts_i, pts_j, inliers)
-# def check_parallax(cam0_params, cam1_params, cam0_exts, cam1_exts, kps0, kps1,
-# def ransac(pts_i, pts_j, cam_i, cam_j)
-# class FeatureTrack
-# def estimate_pose(param_i, param_j, ext_i, ext_j, kps_i, kps_j, features,
-#                   pose_i, **kwargs)
 ###############################################################################
 
 
-def draw_matches(img_i: Image, img_j: Image, kps_i, kps_j, **kwargs):
+def draw_matches(img_i: Image, img_j: Image, kps_i, kps_j) -> Image:
   """
   Draw keypoint matches between images `img_i` and `img_j` with keypoints
   `kps_i` and `kps_j`
@@ -9430,13 +9500,13 @@ def draw_matches(img_i: Image, img_j: Image, kps_i, kps_j, **kwargs):
 
   color = (0, 255, 0)
   radius = 1
-  thickness = kwargs.get('thickness', cv2.FILLED)
-  linetype = kwargs.get('linetype', cv2.LINE_AA)
+  thickness = cv2.FILLED
+  linetype = cv2.LINE_AA
 
   for n in range(nb_kps):
     pt_i = None
     pt_j = None
-    if hasattr(kps_i[n], 'pt'):
+    if hasattr(kps_i[n], "pt"):
       pt_i = (int(kps_i[n].pt[0]), int(kps_i[n].pt[1]))
       pt_j = (int(kps_j[n].pt[0] + img_i.shape[1]), int(kps_j[n].pt[1]))
     else:
@@ -9451,19 +9521,19 @@ def draw_matches(img_i: Image, img_j: Image, kps_i, kps_j, **kwargs):
 
 
 def draw_keypoints(
-    img,
-    kps,
-    inliers=None,
-    radius: int = 1,
-    color: tuple[int, int, int] = (0, 255, 0),
-    thickness=cv2.FILLED,
-    linetype=cv2.LINE_AA,
+  img,
+  kps,
+  inliers=None,
+  radius: int = 1,
+  color: tuple[int, int, int] = (0, 255, 0),
 ):
   """
   Draw points `kps` on image `img`. The `inliers` boolean list is optional
   and is expected to be the same size as `kps` denoting whether the point
   should be drawn or not.
   """
+  thickness = cv2.FILLED
+  linetype = cv2.LINE_AA
   inliers = [1 for _ in range(len(kps))] if inliers is None else inliers
 
   viz = img
@@ -9473,7 +9543,7 @@ def draw_keypoints(
   for n, kp in enumerate(kps):
     if inliers[n]:
       p = None
-      if hasattr(kp, 'pt'):
+      if hasattr(kp, "pt"):
         p = (int(kp.pt[0]), int(kp.pt[1]))
       else:
         p = (int(kp[0]), int(kp[1]))
@@ -9484,7 +9554,7 @@ def draw_keypoints(
 
 
 def sort_keypoints(kps, des=None):
-  """ Sort a list of cv2.KeyPoint based on their response """
+  """Sort a list of cv2.KeyPoint based on their response"""
   responses = [kp.response for kp in kps]
   indices = range(len(responses))
   indices = sorted(indices, key=lambda i: responses[i], reverse=True)
@@ -9510,8 +9580,8 @@ def spread_corners(img, corners, min_dist, **kwargs):
     return corners
 
   # Setup
-  debug = kwargs.get('debug', False)
-  prev_corners = kwargs.get('prev_corners', [])
+  debug = kwargs.get("debug", False)
+  prev_corners = kwargs.get("prev_corners", [])
   min_dist = int(min_dist)
   img_h, img_w = img.shape
   A = np.zeros(img.shape)  # Allowable areas are marked 0 else not allowed
@@ -9557,24 +9627,24 @@ def spread_corners(img, corners, min_dist, **kwargs):
 
     ax = plt.subplot(121)
     ax.imshow(A)
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
+    ax.set_xlabel("pixel")
+    ax.set_ylabel("pixel")
     ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
+    ax.xaxis.set_label_position("top")
 
     ax = plt.subplot(122)
     ax.imshow(img)
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
+    ax.set_xlabel("pixel")
+    ax.set_ylabel("pixel")
     ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
+    ax.xaxis.set_label_position("top")
 
     plt.show()
 
   return corners_results
 
 
-def spread_keypoints(img, kps, min_dist, **kwargs):
+def spread_keypoints(img, kps, min_dist: int, prev_kps=[], debug: bool = False):
   """
   Given a set of keypoints `kps` make sure they are atleast `min_dist` pixels
   away from each other, if they are not remove them.
@@ -9584,9 +9654,6 @@ def spread_keypoints(img, kps, min_dist, **kwargs):
     return kps
 
   # Setup
-  debug = kwargs.get('debug', False)
-  # des = kwargs.get('des', [])
-  prev_kps = kwargs.get('prev_kps', [])
   min_dist = int(min_dist)
   img_h, img_w = img.shape
   A = np.zeros(img.shape)  # Allowable areas are marked 0 else not allowed
@@ -9636,17 +9703,17 @@ def spread_keypoints(img, kps, min_dist, **kwargs):
 
     ax = plt.subplot(121)
     ax.imshow(A)
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
+    ax.set_xlabel("pixel")
+    ax.set_ylabel("pixel")
     ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
+    ax.xaxis.set_label_position("top")
 
     ax = plt.subplot(122)
     ax.imshow(img)
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
+    ax.set_xlabel("pixel")
+    ax.set_ylabel("pixel")
     ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
+    ax.xaxis.set_label_position("top")
 
     plt.show()
 
@@ -9663,8 +9730,8 @@ def spread_features(img, kps, des, min_dist, **kwargs):
     return kps
 
   # Setup
-  debug = kwargs.get('debug', False)
-  prev_kps = kwargs.get('prev_kps', [])
+  debug = kwargs.get("debug", False)
+  prev_kps = kwargs.get("prev_kps", [])
   min_dist = int(min_dist)
   img_h, img_w = img.shape
   A = np.zeros(img.shape)  # Allowable areas are marked 0 else not allowed
@@ -9713,17 +9780,17 @@ def spread_features(img, kps, des, min_dist, **kwargs):
 
     ax = plt.subplot(121)
     ax.imshow(A)
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
+    ax.set_xlabel("pixel")
+    ax.set_ylabel("pixel")
     ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
+    ax.xaxis.set_label_position("top")
 
     ax = plt.subplot(122)
     ax.imshow(img)
-    ax.set_xlabel('pixel')
-    ax.set_ylabel('pixel')
+    ax.set_xlabel("pixel")
+    ax.set_ylabel("pixel")
     ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
+    ax.xaxis.set_label_position("top")
 
     plt.show()
 
@@ -9754,6 +9821,7 @@ class FeatureGrid:
     cell_id = int(grid_x + (grid_y * grid_cols))
 
   """
+
   def __init__(self, grid_rows, grid_cols, image_shape, keypoints):
     assert len(image_shape) == 2
     self.grid_rows = grid_rows
@@ -9763,19 +9831,19 @@ class FeatureGrid:
 
     self.cell = [0 for _ in range(self.grid_rows * self.grid_cols)]
     for kp in keypoints:
-      if hasattr(kp, 'pt'):
+      if hasattr(kp, "pt"):
         # cv2.KeyPoint
-        assert (kp.pt[0] >= 0 and kp.pt[0] <= image_shape[1])
-        assert (kp.pt[1] >= 0 and kp.pt[1] <= image_shape[0])
+        assert kp.pt[0] >= 0 and kp.pt[0] <= image_shape[1]
+        assert kp.pt[1] >= 0 and kp.pt[1] <= image_shape[0]
         self.cell[self.cell_index(kp.pt)] += 1
       else:
         # Tuple
-        assert (kp[0] >= 0 and kp[0] <= image_shape[1])
-        assert (kp[1] >= 0 and kp[1] <= image_shape[0])
+        assert kp[0] >= 0 and kp[0] <= image_shape[1]
+        assert kp[1] >= 0 and kp[1] <= image_shape[0]
         self.cell[self.cell_index(kp)] += 1
 
   def cell_index(self, pt):
-    """ Return cell index based on point `pt` """
+    """Return cell index based on point `pt`"""
     pixel_x, pixel_y = pt
     img_h, img_w = self.image_shape
     grid_x = ceil((max(1, pixel_x) / img_w) * self.grid_cols) - 1.0
@@ -9784,17 +9852,17 @@ class FeatureGrid:
     return cell_id
 
   def count(self, cell_idx):
-    """ Return cell count """
+    """Return cell count"""
     return self.cell[cell_idx]
 
 
 def grid_detect(
-    image: Image,
-    max_keypoints: int = 2000,
-    grid_rows: int = 3,
-    grid_cols: int = 4,
-    prev_kps=[],
-    debug: bool = False,
+  image: Image,
+  max_keypoints: int = 2000,
+  grid_rows: int = 3,
+  grid_cols: int = 4,
+  prev_kps=[],
+  debug: bool = False,
 ):
   """
   Detect features uniformly using a grid system.
@@ -9812,7 +9880,6 @@ def grid_detect(
 
   # Detect corners in each grid cell
   feature_grid = FeatureGrid(grid_rows, grid_cols, image.shape, prev_kps)
-  des_all = []
   kps_all = []
 
   cell_idx = 0
@@ -9890,15 +9957,15 @@ def grid_detect(
 
 
 def good_grid(
-    image: Image,
-    max_keypoints: int = 2000,
-    quality_level: float = 0.001,
-    use_harris: bool = True,
-    min_dist: int = 20,
-    grid_rows: int = 2,
-    grid_cols: int = 3,
-    prev_kps=[],
-    debug=False,
+  image: Image,
+  max_keypoints: int = 2000,
+  quality_level: float = 0.001,
+  use_harris: bool = True,
+  min_dist: int = 20,
+  grid_rows: int = 2,
+  grid_cols: int = 3,
+  prev_kps=[],
+  debug: bool = False,
 ):
   """
   Detect features uniformly using a grid system.
@@ -9932,12 +9999,14 @@ def good_grid(
       # Detect corners in grid cell
       cs, ce, rs, re = (x, x + w, y, y + h)
       roi_image = image[rs:re, cs:ce]
-      corners = cv2.goodFeaturesToTrack(roi_image,
-                                        cell_vacancy,
-                                        quality_level,
-                                        min_dist,
-                                        blockSize=3,
-                                        useHarrisDetector=use_harris)
+      corners = cv2.goodFeaturesToTrack(
+        roi_image,
+        cell_vacancy,
+        quality_level,
+        min_dist,
+        blockSize=3,
+        useHarrisDetector=use_harris,
+      )
       if corners is None:
         cell_idx += 1
         continue
@@ -10007,14 +10076,14 @@ def good_grid(
 
 
 def optflow_track(
-    img_i: Image,
-    img_j: Image,
-    pts_i: VecN,
-    pts_j: VecN | None = None,
-    patch_size: int = 30,
-    max_iter: int = 100,
-    epsilon: float = 0.001,
-    debug: bool = False,
+  img_i: Image,
+  img_j: Image,
+  pts_i: VecN,
+  pts_j: VecN | None = None,
+  patch_size: int = 30,
+  max_iter: int = 100,
+  epsilon: float = 0.001,
+  debug: bool = False,
 ):
   """
   Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
@@ -10027,10 +10096,10 @@ def optflow_track(
 
   # Optical flow settings
   config = {}
-  config['winSize'] = (patch_size, patch_size)
-  config['maxLevel'] = 3
-  config['criteria'] = crit
-  config['flags'] = cv2.OPTFLOW_USE_INITIAL_FLOW
+  config["winSize"] = (patch_size, patch_size)
+  config["maxLevel"] = 3
+  config["criteria"] = crit
+  config["flags"] = cv2.OPTFLOW_USE_INITIAL_FLOW
 
   # Track using optical flow
   track_results = cv2.calcOpticalFlowPyrLK(img_i, img_j, pts_i, pts_j, **config)
@@ -10062,14 +10131,14 @@ def optflow_track(
     viz_i = draw_keypoints(img_i, pts_i, inliers)
     viz_j = draw_keypoints(img_j, pts_j, inliers)
     viz = cv2.hconcat([viz_i, viz_j])
-    cv2.imshow('viz', viz)
+    cv2.imshow("viz", viz)
     cv2.waitKey(0)
 
   return (pts_i, pts_j, inliers)
 
 
 def filter_outliers(pts_i, pts_j, inliers):
-  """ Filter outliers """
+  """Filter outliers"""
   pts_out_i = []
   pts_out_j = []
 
@@ -10084,15 +10153,15 @@ def filter_outliers(pts_i, pts_j, inliers):
 
 
 def check_parallax(
-    cam0_params,
-    cam1_params,
-    cam0_exts,
-    cam1_exts,
-    kps0,
-    kps1,
-    parallax_threshold,
+  cam0_params,
+  cam1_params,
+  cam0_exts,
+  cam1_exts,
+  kps0,
+  kps1,
+  parallax_threshold,
 ):
-  """ Check Parallax """
+  """Check Parallax"""
   cam0_geom = cam0_params.data
   cam1_geom = cam1_params.data
   cam0_intrinsic = cam0_params.param
@@ -10126,7 +10195,7 @@ def check_parallax(
 
 
 def ransac(pts_i, pts_j, cam_i, cam_j):
-  """ RANSAC """
+  """RANSAC"""
   # Setup
   cam_geom_i = cam_i.data
   cam_geom_j = cam_j.data
@@ -10145,116 +10214,18 @@ def ransac(pts_i, pts_j, cam_i, cam_j):
   return inliers.flatten()
 
 
-class FeatureTrack:
-  """
-  Feature Track
-  """
-  def __init__(self, feature_id, cam_params, cam_exts, **kwargs):
-    self.feature_id = feature_id
-    self.cam_params = cam_params
-    self.cam_exts = cam_exts
-    self.max_length = kwargs.get("max_length", 30)
-    self.min_length = kwargs.get("min_length", 5)
-
-    self.timestamps = []
-    self.data = {}
-
-    self.init = False
-    self.init_ts = None
-    self.param = None
-
-  def get_timestamps(self):
-    """ Get timestamps """
-    return self.timestamps
-
-  def get_lifetime(self):
-    """ Get lifetime """
-    return len(self.timestamps)
-
-  def get_keypoints(self, ts=None):
-    """ Get Keypoints """
-    ts = self.timestamps[-1] if ts is None else ts
-    return self.data[ts]
-
-  def add(self, ts, cam_idx, kp, des=None):
-    """ Add observation """
-    if ts not in self.data:
-      self.data[ts] = {}
-
-    if cam_idx not in self.data[ts]:
-      self.data[ts][cam_idx] = {"kp": None, "desc": None}
-
-    self.data[ts][cam_idx]["kp"] = kp
-    self.data[ts][cam_idx]["des"] = des
-    self.timestamps.append(ts)
-
-  def _triangulate(self, ts, T_WB, measurements):
-    # Triangulate
-    cam0 = self.cam_params[0]
-    cam1 = self.cam_params[1]
-    cam0_ext = self.cam_exts[0]
-    cam1_ext = self.cam_exts[1]
-
-    # -- Form projection matrices P0 and P1
-    T_BC0 = pose2tf(cam0_ext.param)
-    T_BC1 = pose2tf(cam1_ext.param)
-    T_C0C1 = inv(T_BC0) @ T_BC1
-    cam0_geom = cam0.data
-    cam1_geom = cam1.data
-    P0 = pinhole_P(cam0_geom.proj_params(cam0.param), eye(4))
-    P1 = pinhole_P(cam1_geom.proj_params(cam1.param), T_C0C1)
-
-    # -- Undistort image points z0 and z1
-    z0 = measurements[0]["kp"]
-    z1 = measurements[1]["kp"]
-    z0 = cam0_geom.undistort(cam0.param, z0)
-    z1 = cam1_geom.undistort(cam1.param, z1)
-
-    # -- Triangulate
-    p_C0 = linear_triangulation(P0, P1, z0, z1)
-    p_W = tf_point(T_WB @ T_BC0, p_C0)
-
-    # Update
-    self.init = True
-    self.init_ts = ts
-    self.param = np.array([p_W[0], p_W[1], p_W[2]])
-
-  def initialize(self, ts, T_WB):
-    """ Initialize """
-    # Initialized?
-    if self.init:
-      return True
-
-    # Do we have data?
-    if ts not in self.data:
-      return False
-
-    # Is the feature tracked long enough?
-    if self.get_lifetime() < self.min_length:
-      return False
-
-    # Two or more measurements?
-    measurements = self.data[ts]
-    if len(measurements) < 2:
-      return False
-
-    # Triangulate
-    self._triangulate(ts, T_WB, measurements)
-    return True
-
-
 def estimate_pose(
-    param_i,
-    param_j,
-    ext_i,
-    ext_j,
-    kps_i,
-    kps_j,
-    features,
-    pose_i,
-    **kwargs,
+  param_i,
+  param_j,
+  ext_i,
+  ext_j,
+  kps_i,
+  kps_j,
+  features,
+  pose_i,
+  **kwargs,
 ):
-  """ Estimate pose """
+  """Estimate pose"""
   # Settings
   verbose = kwargs.get("verbose", True)
   max_iter = kwargs.get("max_iter", 5)
@@ -10301,8 +10272,108 @@ def estimate_pose(
   return graph.params[pose_j_id]
 
 
+class FeatureTrack:
+  """
+  Feature Track
+  """
+
+  def __init__(self, feature_id, cam_params, cam_exts, **kwargs):
+    self.feature_id = feature_id
+    self.cam_params = cam_params
+    self.cam_exts = cam_exts
+    self.max_length = kwargs.get("max_length", 30)
+    self.min_length = kwargs.get("min_length", 5)
+
+    self.timestamps = []
+    self.data = {}
+
+    self.init = False
+    self.init_ts = None
+    self.param = None
+
+  def get_timestamps(self):
+    """Get timestamps"""
+    return self.timestamps
+
+  def get_lifetime(self):
+    """Get lifetime"""
+    return len(self.timestamps)
+
+  def get_keypoints(self, ts=None):
+    """Get Keypoints"""
+    ts = self.timestamps[-1] if ts is None else ts
+    return self.data[ts]
+
+  def add(self, ts, cam_idx, kp, des=None):
+    """Add observation"""
+    if ts not in self.data:
+      self.data[ts] = {}
+
+    if cam_idx not in self.data[ts]:
+      self.data[ts][cam_idx] = {"kp": None, "desc": None}
+
+    self.data[ts][cam_idx]["kp"] = kp
+    self.data[ts][cam_idx]["des"] = des
+    self.timestamps.append(ts)
+
+  def _triangulate(self, ts, T_WB, measurements):
+    # Triangulate
+    cam0 = self.cam_params[0]
+    cam1 = self.cam_params[1]
+    cam0_ext = self.cam_exts[0]
+    cam1_ext = self.cam_exts[1]
+
+    # -- Form projection matrices P0 and P1
+    T_BC0 = pose2tf(cam0_ext.param)
+    T_BC1 = pose2tf(cam1_ext.param)
+    T_C0C1 = inv(T_BC0) @ T_BC1
+    cam0_geom = cam0.data
+    cam1_geom = cam1.data
+    P0 = pinhole_P(cam0_geom.proj_params(cam0.param), eye(4))
+    P1 = pinhole_P(cam1_geom.proj_params(cam1.param), T_C0C1)
+
+    # -- Undistort image points z0 and z1
+    z0 = measurements[0]["kp"]
+    z1 = measurements[1]["kp"]
+    z0 = cam0_geom.undistort(cam0.param, z0)
+    z1 = cam1_geom.undistort(cam1.param, z1)
+
+    # -- Triangulate
+    p_C0 = linear_triangulation(P0, P1, z0, z1)
+    p_W = tf_point(T_WB @ T_BC0, p_C0)
+
+    # Update
+    self.init = True
+    self.init_ts = ts
+    self.param = np.array([p_W[0], p_W[1], p_W[2]])
+
+  def initialize(self, ts, T_WB):
+    """Initialize"""
+    # Initialized?
+    if self.init:
+      return True
+
+    # Do we have data?
+    if ts not in self.data:
+      return False
+
+    # Is the feature tracked long enough?
+    if self.get_lifetime() < self.min_length:
+      return False
+
+    # Two or more measurements?
+    measurements = self.data[ts]
+    if len(measurements) < 2:
+      return False
+
+    # Triangulate
+    self._triangulate(ts, T_WB, measurements)
+    return True
+
+
 class TestFeatureTracking(unittest.TestCase):
-  """ Test feature tracking functions """
+  """Test feature tracking functions"""
+
   @classmethod
   def setUpClass(cls):
     super(TestFeatureTracking, cls).setUpClass()
@@ -10344,7 +10415,7 @@ class TestFeatureTracking(unittest.TestCase):
     self.cam1_ext = extrinsics_setup(T_BC1)
 
   def test_spread_keypoints(self):
-    """ Test spread_keypoints() """
+    """Test spread_keypoints()"""
     kps = grid_detect(self.img0, debug=False)
     kps = spread_keypoints(self.img0, kps, 100, debug=False)
 
@@ -10357,7 +10428,7 @@ class TestFeatureTracking(unittest.TestCase):
         self.assertTrue(np.linalg.norm(z_i - z_j) > 100)
 
   def test_feature_grid_cell_index(self):
-    """ Test FeatureGrid.grid_cell_index() """
+    """Test FeatureGrid.grid_cell_index()"""
     grid_rows = 4
     grid_cols = 4
     image_shape = (280, 320)
@@ -10370,7 +10441,7 @@ class TestFeatureTracking(unittest.TestCase):
     self.assertEqual(grid.cell[15], 1)
 
   def test_feature_grid_count(self):
-    """ Test FeatureGrid.count() """
+    """Test FeatureGrid.count()"""
     grid_rows = 4
     grid_cols = 4
     image_shape = (280, 320)
@@ -10383,20 +10454,20 @@ class TestFeatureTracking(unittest.TestCase):
     self.assertEqual(grid.count(15), 1)
 
   def test_grid_detect(self):
-    """ Test grid_detect() """
+    """Test grid_detect()"""
     debug = False
     kps = grid_detect(self.img0, debug=debug)
     self.assertTrue(len(kps) > 0)
 
   def test_good_grid(self):
-    """ Test grid_detect() """
+    """Test grid_detect()"""
     debug = False
-    kwargs = {'debug': debug}
+    kwargs = {"debug": debug}
     kps = good_grid(self.img0, **kwargs)
     self.assertTrue(len(kps) > 0)
 
   def test_optflow_track(self):
-    """ Test optflow_track() """
+    """Test optflow_track()"""
     debug = False
 
     # Detect
@@ -10412,7 +10483,7 @@ class TestFeatureTracking(unittest.TestCase):
     self.assertTrue(len(pts_i) == len(inliers))
 
   def test_feature_track(self):
-    """ Test FeatureTrack """
+    """Test FeatureTrack"""
     feature_id = 123
     intrinsics = {0: self.cam0_params, 1: self.cam1_params}
     extrinsics = {0: self.cam0_ext, 1: self.cam1_ext}
@@ -10428,7 +10499,7 @@ class TestFeatureTracking(unittest.TestCase):
     track.add(2, 1, [0, 0])
 
   def test_estimate_pose(self):
-    """ Test estimate_pose() """
+    """Test estimate_pose()"""
     # Detect
     kps0 = good_grid(self.img0, max_keypoints=200)
 
@@ -10475,14 +10546,14 @@ class TestFeatureTracking(unittest.TestCase):
     time_start = time.time()
     pose_i = pose_setup(0, T_WB, fix=True)
     pose_j = estimate_pose(
-        self.cam0_params,
-        self.cam1_params,
-        extrinsics_setup(eye(4), fix=True),
-        extrinsics_setup(eye(4), fix=True),
-        kps0,
-        kps1,
-        features,
-        pose_i,
+      self.cam0_params,
+      self.cam1_params,
+      extrinsics_setup(eye(4), fix=True),
+      extrinsics_setup(eye(4), fix=True),
+      kps0,
+      kps1,
+      features,
+      pose_i,
     )
     elapsed = time.time() - time_start
     T_C0C1_est = pose2tf(pose_j.param)
@@ -10503,7 +10574,8 @@ class TestFeatureTracking(unittest.TestCase):
 
 
 class CalibTarget:
-  """ CalibTarget """
+  """CalibTarget"""
+
   def __init__(self, **kwargs):
     self.tag_rows = kwargs.get("tag_rows", 6)
     self.tag_cols = kwargs.get("tag_cols", 6)
@@ -10515,43 +10587,43 @@ class CalibTarget:
 
   @staticmethod
   def load(csv_file):
-    """ Load CalibTarget """
+    """Load CalibTarget"""
     import pandas
 
     # Load csv file
     dtype = {
-        "#ts": int,
-        "tag_rows": int,
-        "tag_cols": int,
-        "tag_size": float,
-        "tag_spacing": float,
-        "tag_id": int,
-        "corner_idx": int,
-        "kp_x": float,
-        "kp_y": float,
+      "#ts": int,
+      "tag_rows": int,
+      "tag_cols": int,
+      "tag_size": float,
+      "tag_spacing": float,
+      "tag_id": int,
+      "corner_idx": int,
+      "kp_x": float,
+      "kp_y": float,
     }
     csv_data = pandas.read_csv(csv_file, dtype=dtype)
     if csv_data.shape[0] == 0:
       return None
 
     # CalibTarget properties
-    ts = csv_data['#ts'][0]
-    tag_rows = csv_data['tag_rows'][0]
-    tag_cols = csv_data['tag_cols'][0]
-    tag_size = csv_data['tag_size'][0]
-    tag_spacing = csv_data['tag_spacing'][0]
+    ts = csv_data["#ts"][0]
+    tag_rows = csv_data["tag_rows"][0]
+    tag_cols = csv_data["tag_cols"][0]
+    tag_size = csv_data["tag_size"][0]
+    tag_spacing = csv_data["tag_spacing"][0]
 
     # CalibTarget measurements
-    tag_indices = csv_data['tag_id']
-    corner_indices = csv_data['corner_idx']
-    kps = np.array([csv_data['kp_x'], csv_data['kp_y']]).T
+    tag_indices = csv_data["tag_id"]
+    corner_indices = csv_data["corner_idx"]
+    kps = np.array([csv_data["kp_x"], csv_data["kp_y"]]).T
 
     # Form CalibTarget
     grid_conf = {
-        "tag_rows": tag_rows,
-        "tag_cols": tag_cols,
-        "tag_size": tag_size,
-        "tag_spacing": tag_spacing
+      "tag_rows": tag_rows,
+      "tag_cols": tag_cols,
+      "tag_size": tag_size,
+      "tag_spacing": tag_spacing,
     }
     grid = CalibTarget(**grid_conf)
     for tag_id, corner_idx, kp in zip(tag_indices, corner_indices, kps):
@@ -10560,7 +10632,7 @@ class CalibTarget:
     return grid
 
   def get_object_point(self, tag_id, corner_idx):
-    """ Form object point """
+    """Form object point"""
     # Calculate the CalibTarget index using tag id
     [i, j] = self.get_grid_index(tag_id)
 
@@ -10586,7 +10658,7 @@ class CalibTarget:
     raise RuntimeError(f"Invalid tag_id[{tag_id}] corner_idx[{corner_idx}]!")
 
   def get_object_points(self):
-    """ Form object points """
+    """Form object points"""
     object_points = []
     for tag_id in range(self.nb_tags):
       for corner_idx in range(4):
@@ -10595,7 +10667,7 @@ class CalibTarget:
     return object_points
 
   def get_dimensions(self):
-    """ Get CalibTarget dimensions """
+    """Get CalibTarget dimensions"""
     spacing_x = (self.tag_cols - 1) * self.tag_spacing * self.tag_size
     spacing_y = (self.tag_rows - 1) * self.tag_spacing * self.tag_size
     width = self.tag_cols * self.tag_size + spacing_x
@@ -10603,7 +10675,7 @@ class CalibTarget:
     return (width, height)
 
   def get_center(self):
-    """ Calculate center of CalibTarget """
+    """Calculate center of CalibTarget"""
     x = (self.tag_cols / 2.0) * self.tag_size
     x += ((self.tag_cols / 2.0) - 1) * self.tag_spacing * self.tag_size
     x += 0.5 * self.tag_spacing * self.tag_size
@@ -10615,32 +10687,32 @@ class CalibTarget:
     return np.array([x, y, 0.0])
 
   def get_grid_index(self, tag_id):
-    """ Calculate grid index from tag id """
+    """Calculate grid index from tag id"""
     assert tag_id < (self.nb_tags) and tag_id >= 0
     i = int(tag_id / self.tag_cols)
     j = int(tag_id % self.tag_cols)
     return (i, j)
 
   def add_keypoint(self, ts, tag_id, corner_idx, kp):
-    """ Add keypoint """
+    """Add keypoint"""
     self.ts = ts
     if tag_id not in self.data:
       self.data[tag_id] = {}
     self.data[tag_id][corner_idx] = kp
 
   def remove_keypoint(self, tag_id, corner_idx):
-    """ Remove keypoint """
+    """Remove keypoint"""
     assert tag_id in self.data
     assert corner_idx in self.data[tag_id]
     del self.data[tag_id][corner_idx]
 
   def add_tag_data(self, ts, tag_data):
-    """ Add tag data """
-    for (tag_id, corner_idx, kp_x, kp_y) in tag_data:
+    """Add tag data"""
+    for tag_id, corner_idx, kp_x, kp_y in tag_data:
       self.add_keypoint(ts, tag_id, corner_idx, np.array([kp_x, kp_y]))
 
   def get_measurements(self):
-    """ Get measurements """
+    """Get measurements"""
     data = []
     for tag_id, tag_data in self.data.items():
       for corner_idx, kp in tag_data.items():
@@ -10650,7 +10722,7 @@ class CalibTarget:
     return data
 
   def solvepnp(self, cam_params):
-    """ Estimate relative transform between camera and CalibTarget """
+    """Estimate relative transform between camera and CalibTarget"""
     # Check if we actually have data to work with
     if not self.data:
       return None
@@ -10659,7 +10731,7 @@ class CalibTarget:
     cam_geom = cam_params.data
     obj_pts = []
     img_pts = []
-    for (_, _, r_FFi, z) in self.get_measurements():
+    for _, _, r_FFi, z in self.get_measurements():
       img_pts.append(cam_geom.undistort(cam_params.param, z))
       obj_pts.append(r_FFi)
     obj_pts = np.array(obj_pts)
@@ -10679,7 +10751,7 @@ class CalibTarget:
     return T_CF
 
   def plot(self, ax, T_WF, **kwargs):
-    """ Plot """
+    """Plot"""
     pt_colors = kwargs.get("pt_colors", "#0000ff")
     tf_colors = kwargs.get("tf_colors", ["r-", "g-", "b-"])
 
@@ -10690,20 +10762,18 @@ class CalibTarget:
       points.append(r_WFi)
     points = np.array(points)
 
-    ax.scatter(points[:, 0],
-               points[:, 1],
-               points[:, 2],
-               color=pt_colors,
-               alpha=0.2)
+    ax.scatter(
+      points[:, 0], points[:, 1], points[:, 2], color=pt_colors, alpha=0.2
+    )
     plot_tf(ax, T_WF, size=self.tag_size, colors=tf_colors)
 
 
 def calib_generate_poses(calib_center: Vec3, **kwargs):
-  """ Generate calibration poses infront of the calibration target """
+  """Generate calibration poses infront of the calibration target"""
   # Pose settings
-  x_range = kwargs.get('x_range', np.linspace(-0.3, 0.3, 5))
-  y_range = kwargs.get('y_range', np.linspace(-0.3, 0.3, 5))
-  z_range = kwargs.get('z_range', np.linspace(0.3, 0.5, 5))
+  x_range = kwargs.get("x_range", np.linspace(-0.3, 0.3, 5))
+  y_range = kwargs.get("y_range", np.linspace(-0.3, 0.3, 5))
+  z_range = kwargs.get("z_range", np.linspace(0.3, 0.5, 5))
 
   # Generate camera positions infront of the calib target r_FC
   cam_pos = []
@@ -10721,13 +10791,13 @@ def calib_generate_poses(calib_center: Vec3, **kwargs):
 
 
 def calib_generate_random_poses(calib_center, **kwargs):
-  """ Generate random calibration poses infront of the calibration target """
+  """Generate random calibration poses infront of the calibration target"""
   # Settings
-  nb_poses = kwargs.get('nb_poses', 30)
-  att_range = kwargs.get('att_range', [deg2rad(-10.0), deg2rad(10.0)])
-  x_range = kwargs.get('x_range', [-0.5, 0.5])
-  y_range = kwargs.get('y_range', [-0.5, 0.5])
-  z_range = kwargs.get('z_range', [0.5, 0.7])
+  nb_poses = kwargs.get("nb_poses", 30)
+  att_range = kwargs.get("att_range", [deg2rad(-10.0), deg2rad(10.0)])
+  x_range = kwargs.get("x_range", [-0.5, 0.5])
+  y_range = kwargs.get("y_range", [-0.5, 0.5])
+  z_range = kwargs.get("z_range", [0.5, 0.7])
 
   # For each position create a camera pose that "looks at" the calibration
   # center in the target frame, T_FC.
@@ -10755,9 +10825,10 @@ def calib_generate_random_poses(calib_center, **kwargs):
 
 
 class TestCalibration(unittest.TestCase):
-  """ Test calibration functions """
+  """Test calibration functions"""
+
   def test_calib_generate_poses(self):
-    """ Test calib_generate_poses() """
+    """Test calib_generate_poses()"""
     # Calibration target
     calib_center = np.array([0.0, 0.0, 0.0])
     poses = calib_generate_poses(calib_center)
@@ -10772,7 +10843,7 @@ class TestCalibration(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax = plt.axes(projection="3d")
 
       # calib_target.plot(ax, T_WF)
       for T_FC in poses:
@@ -10785,7 +10856,7 @@ class TestCalibration(unittest.TestCase):
       plt.show()
 
   def test_calib_generate_random_poses(self):
-    """ Test calib_generate_random_poses() """
+    """Test calib_generate_random_poses()"""
     # Calibration target
     calib_center = np.array([0.0, 0.0, 0.0])
     poses = calib_generate_random_poses(calib_center)
@@ -10800,7 +10871,7 @@ class TestCalibration(unittest.TestCase):
     debug = False
     if debug:
       plt.figure()
-      ax = plt.axes(projection='3d')
+      ax = plt.axes(projection="3d")
 
       # calib_target.plot(ax, T_WF)
       for T_FC in poses:
@@ -10827,7 +10898,7 @@ class TestCalibration(unittest.TestCase):
 
 
 def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
-  """ Create 3D features randomly """
+  """Create 3D features randomly"""
   features = zeros((nb_features, 3))
   for i in range(nb_features):
     features[i, 0] = random.uniform(*x_bounds)
@@ -10837,7 +10908,7 @@ def create_3d_features(x_bounds, y_bounds, z_bounds, nb_features):
 
 
 def create_3d_features_perimeter(origin, dim, nb_features):
-  """ Create 3D features in a square """
+  """Create 3D features in a square"""
   assert len(origin) == 3
   assert len(dim) == 3
   assert nb_features > 0
@@ -10877,7 +10948,8 @@ def create_3d_features_perimeter(origin, dim, nb_features):
 
 
 class SimCameraFrame:
-  """ Sim camera frame """
+  """Sim camera frame"""
+
   def __init__(self, ts, cam_idx, camera, T_WCi, features):
     assert T_WCi.shape == (4, 4)
     assert features.shape[0] > 0
@@ -10905,11 +10977,11 @@ class SimCameraFrame:
         self.feature_ids.append(i)
 
   def num_measurements(self):
-    """ Return number of measurements """
+    """Return number of measurements"""
     return len(self.measurements)
 
   def draw_measurements(self):
-    """ Returns camera measurements in an image """
+    """Returns camera measurements in an image"""
     # kps = [kp for kp in self.measurements]
     kps = self.measurements
     img_w, img_h = self.cam_geom.resolution
@@ -10918,7 +10990,8 @@ class SimCameraFrame:
 
 
 class SimCameraData:
-  """ Sim camera data """
+  """Sim camera data"""
+
   def __init__(self, cam_idx, camera, features):
     self.cam_idx = cam_idx
     self.camera = camera
@@ -10929,7 +11002,8 @@ class SimCameraData:
 
 
 class SimImuData:
-  """ Sim imu data """
+  """Sim imu data"""
+
   def __init__(self, imu_idx):
     self.imu_idx = imu_idx
     self.timestamps = []
@@ -10939,7 +11013,7 @@ class SimImuData:
     self.gyr = {}
 
   def form_imu_buffer(self, start_idx, end_idx):
-    """ Form ImuBuffer """
+    """Form ImuBuffer"""
     imu_ts = self.timestamps[start_idx:end_idx]
     imu_acc = []
     imu_gyr = []
@@ -10951,7 +11025,8 @@ class SimImuData:
 
 
 class SimData:
-  """ Sim data """
+  """Sim data"""
+
   def __init__(self, circle_r, circle_v, **kwargs):
     # Settings
     self.circle_r = circle_r
@@ -11003,33 +11078,33 @@ class SimData:
     self.timeline = self._form_timeline()
 
   def get_camera_data(self, cam_idx):
-    """ Get camera data """
+    """Get camera data"""
     return self.mcam_data[cam_idx]
 
   def get_camera_params(self, cam_idx):
-    """ Get camera parameters """
+    """Get camera parameters"""
     return self.mcam_data[cam_idx].camera
 
   def get_camera_geometry(self, cam_idx):
-    """ Get camera geometry """
+    """Get camera geometry"""
     return self.mcam_data[cam_idx].camera.data
 
   def get_camera_extrinsics(self, cam_idx):
-    """ Get camera extrinsics """
+    """Get camera extrinsics"""
     return self.cam_exts[cam_idx]
 
   def plot_scene(self):
-    """ Plot 3D Scene """
+    """Plot 3D Scene"""
     # Setup
     plt.figure()
-    ax = plt.axes(projection='3d')
+    ax = plt.axes(projection="3d")
 
     # Plot features
     features = self.features
     ax.scatter3D(  # pyright: ignore
-        features[:, 0],
-        features[:, 1],
-        features[:, 2],
+      features[:, 0],
+      features[:, 1],
+      features[:, 2],
     )
 
     # Plot camera frames
@@ -11050,15 +11125,15 @@ class SimData:
 
   @staticmethod
   def create_or_load(circle_r, circle_v, pickle_path):
-    """ Create or load SimData """
+    """Create or load SimData"""
     sim_data = None
 
     if os.path.exists(pickle_path):
-      with open(pickle_path, 'rb') as f:
+      with open(pickle_path, "rb") as f:
         sim_data = pickle.load(f)
     else:
       sim_data = SimData(circle_r, circle_v)
-      with open(pickle_path, 'wb') as f:
+      with open(pickle_path, "wb") as f:
         pickle.dump(sim_data, f)
         f.flush()
 
@@ -11066,7 +11141,7 @@ class SimData:
 
   @staticmethod
   def _setup_camera(cam_idx):
-    """ Setup camera """
+    """Setup camera"""
     res = [640, 480]
     fov = 120.0
     fx = focal_length(res[0], fov)
@@ -11083,13 +11158,13 @@ class SimData:
     return camera_params_setup(cam_idx, res, proj_model, dist_model, params)
 
   def _setup_features(self):
-    """ Setup features """
+    """Setup features"""
     origin = [0, 0, 0]
     dim = [self.circle_r * 2.0, self.circle_r * 2.0, self.circle_r * 1.5]
     return create_3d_features_perimeter(origin, dim, self.nb_features)
 
   def _sim_imu(self, imu_idx):
-    """ Simulate IMU """
+    """Simulate IMU"""
     sim_data = SimImuData(imu_idx)
 
     ts = 0
@@ -11142,7 +11217,7 @@ class SimData:
     return sim_data
 
   def _sim_cam(self, cam_idx, cam_params, T_BCi):
-    """ Simulate camera """
+    """Simulate camera"""
     sim_data = SimCameraData(cam_idx, cam_params, self.features)
 
     ts = 0
@@ -11174,7 +11249,7 @@ class SimData:
     return sim_data
 
   def _form_timeline(self):
-    """ Form timeline """
+    """Form timeline"""
     # Form timeline
     timeline = Timeline()
 
@@ -11205,7 +11280,7 @@ class SimData:
 
 
 def dh_matrix(theta, d, a, alpha):
-  """ Denavit-Hartenburg Matrix """
+  """Denavit-Hartenburg Matrix"""
   ctheta = np.cos(theta)
   stheta = np.sin(theta)
   calpha = np.cos(alpha)
@@ -11219,9 +11294,10 @@ def dh_matrix(theta, d, a, alpha):
 
 
 class TestSimulation(unittest.TestCase):
-  """ Test simulation functions """
+  """Test simulation functions"""
+
   def test_create_3d_features(self):
-    """ Test create 3D features """
+    """Test create 3D features"""
     debug = False
     x_bounds = np.array([-10.0, 10.0])
     y_bounds = np.array([-10.0, 10.0])
@@ -11232,7 +11308,7 @@ class TestSimulation(unittest.TestCase):
 
     if debug:
       fig = plt.figure()
-      ax = fig.gca(projection='3d')  # pyright: ignore
+      ax = fig.gca(projection="3d")  # pyright: ignore
       ax.scatter(features[:, 0], features[:, 1], features[:, 2])
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
@@ -11240,7 +11316,7 @@ class TestSimulation(unittest.TestCase):
       plt.show()
 
   def test_create_3d_features_perimeter(self):
-    """ Test create_3d_features_perimeter() """
+    """Test create_3d_features_perimeter()"""
     debug = False
     origin = np.array([0.0, 0.0, 0.0])
     dim = np.array([10.0, 10.0, 5.0])
@@ -11250,7 +11326,7 @@ class TestSimulation(unittest.TestCase):
 
     if debug:
       fig = plt.figure()
-      ax = fig.gca(projection='3d')  # pyright: ignore
+      ax = fig.gca(projection="3d")  # pyright: ignore
       ax.scatter(features[:, 0], features[:, 1], features[:, 2])
       ax.set_xlabel("x [m]")
       ax.set_ylabel("y [m]")
@@ -11258,7 +11334,7 @@ class TestSimulation(unittest.TestCase):
       plt.show()
 
   def test_sim_camera_frame(self):
-    """ Test SimCameraFrame() """
+    """Test SimCameraFrame()"""
     # Camera properties
     cam_idx = 0
     img_w = 640
@@ -11305,18 +11381,18 @@ class TestSimulation(unittest.TestCase):
       kps = cam_frame.measurements
       img0 = np.zeros((img_h, img_w), dtype=np.uint8)
       viz = draw_keypoints(img0, kps)
-      cv2.imshow('viz', viz)
+      cv2.imshow("viz", viz)
       cv2.waitKey(0)
 
   def test_sim_data(self):
-    """ Test SimData() """
+    """Test SimData()"""
     debug_cam = False
     debug_imu = False
 
     # Sim data
     circle_r = 1.0
     circle_v = 0.1
-    pickle_path = '/tmp/sim_data.pickle'
+    pickle_path = "/tmp/sim_data.pickle"
     sim_data = SimData.create_or_load(circle_r, circle_v, pickle_path)
     cam0_data = sim_data.mcam_data[0]
     cam1_data = sim_data.mcam_data[1]
@@ -11334,7 +11410,7 @@ class TestSimulation(unittest.TestCase):
       pos = np.array([tf_trans(v) for _, v in cam0_data.poses.items()])
 
       plt.figure()
-      plt.plot(pos[:, 0], pos[:, 1], 'r-')
+      plt.plot(pos[:, 0], pos[:, 1], "r-")
       plt.xlabel("Displacement [m]")
       plt.ylabel("Displacement [m]")
       plt.title("Camera Position")
@@ -11352,31 +11428,31 @@ class TestSimulation(unittest.TestCase):
 
       plt.figure()
       plt.subplot(411)
-      plt.plot(pos[:, 0], pos[:, 1], 'r-')
+      plt.plot(pos[:, 0], pos[:, 1], "r-")
       plt.xlabel("Time [s]")
       plt.ylabel("Displacement [m]")
       plt.title("IMU Position")
 
       plt.subplot(412)
-      plt.plot(imu0_data.timestamps, vel[:, 0], 'r-')
-      plt.plot(imu0_data.timestamps, vel[:, 1], 'g-')
-      plt.plot(imu0_data.timestamps, vel[:, 2], 'b-')
+      plt.plot(imu0_data.timestamps, vel[:, 0], "r-")
+      plt.plot(imu0_data.timestamps, vel[:, 1], "g-")
+      plt.plot(imu0_data.timestamps, vel[:, 2], "b-")
       plt.xlabel("Time [s]")
       plt.ylabel("Velocity [ms^-1]")
       plt.title("IMU Velocity")
 
       plt.subplot(413)
-      plt.plot(imu0_data.timestamps, acc[:, 0], 'r-')
-      plt.plot(imu0_data.timestamps, acc[:, 1], 'g-')
-      plt.plot(imu0_data.timestamps, acc[:, 2], 'b-')
+      plt.plot(imu0_data.timestamps, acc[:, 0], "r-")
+      plt.plot(imu0_data.timestamps, acc[:, 1], "g-")
+      plt.plot(imu0_data.timestamps, acc[:, 2], "b-")
       plt.xlabel("Time [s]")
       plt.ylabel("Acceleration [ms^-2]")
       plt.title("Accelerometer Measurements")
 
       plt.subplot(414)
-      plt.plot(imu0_data.timestamps, gyr[:, 0], 'r-')
-      plt.plot(imu0_data.timestamps, gyr[:, 1], 'g-')
-      plt.plot(imu0_data.timestamps, gyr[:, 2], 'b-')
+      plt.plot(imu0_data.timestamps, gyr[:, 0], "r-")
+      plt.plot(imu0_data.timestamps, gyr[:, 1], "g-")
+      plt.plot(imu0_data.timestamps, gyr[:, 2], "b-")
       plt.xlabel("Time [s]")
       plt.ylabel("Angular Velocity [rad s^-1]")
       plt.title("Gyroscope Measurements")
@@ -11385,7 +11461,7 @@ class TestSimulation(unittest.TestCase):
       plt.show()
 
   def test_sim_arm(self):
-    """ Plot Sim Arm """
+    """Plot Sim Arm"""
     # Source: https://www.ohio.edu/mechanical-faculty/williams/html/PDF/BaxterKinematics.pdf
 
     # Base link in world frame
@@ -11415,7 +11491,7 @@ class TestSimulation(unittest.TestCase):
       dpi = 96.0
       fig_dim = [800.0 / dpi, 800.0 / dpi]
       plt.figure(figsize=fig_dim, dpi=dpi)
-      ax = plt.gca(projection='3d')  # pyright: ignore
+      ax = plt.gca(projection="3d")  # pyright: ignore
 
       plot_tf(ax, T_WB, size=0.05, name="base")
       plot_tf(ax, T_WB @ T_BL0, size=0.05, name="L0")
@@ -11437,7 +11513,8 @@ class TestSimulation(unittest.TestCase):
 
 
 class PID:
-  """ PID controller """
+  """PID controller"""
+
   def __init__(self, k_p, k_i, k_d):
     self.k_p = k_p
     self.k_i = k_i
@@ -11450,7 +11527,7 @@ class PID:
     self.error_sum = 0.0
 
   def update(self, setpoint, actual, dt):
-    """ Update """
+    """Update"""
     # Calculate errors
     error = setpoint - actual
     self.error_sum += error * dt
@@ -11467,7 +11544,7 @@ class PID:
     return output
 
   def reset(self):
-    """ Reset """
+    """Reset"""
     self.error_prev = 0
     self.error_sum = 0
     self.error_p = 0
@@ -11476,7 +11553,8 @@ class PID:
 
 
 class CarrotController:
-  """ Carrot Controller """
+  """Carrot Controller"""
+
   def __init__(self):
     self.waypoints = []
     self.wp_start = None
@@ -11485,7 +11563,7 @@ class CarrotController:
     self.look_ahead_dist = 0.0
 
   def _calculate_closest_point(self, pos):
-    """ Calculate closest point """
+    """Calculate closest point"""
     assert self.wp_start
     assert self.wp_end
     v1 = pos - self.wp_start
@@ -11496,7 +11574,7 @@ class CarrotController:
     return (t, pt)
 
   def _calculate_carrot_point(self, pos):
-    """ Calculate carrot point """
+    """Calculate carrot point"""
     assert len(pos) == 3
     assert self.wp_start
     assert self.wp_end
@@ -11521,7 +11599,7 @@ class CarrotController:
     return (t, carrot_pt)
 
   def update(self, pos):
-    """ Update """
+    """Update"""
     assert len(pos) == 3
     assert self.wp_start
     assert self.wp_end
@@ -11568,54 +11646,54 @@ class MavModel:
     self.g = 9.81  # Gravitational constant
 
   def set_attitude(self, rpy):
-    """ Set attitude """
+    """Set attitude"""
     self.x[0] = rpy[0]
     self.x[1] = rpy[1]
     self.x[2] = rpy[2]
 
   def set_angular_velocity(self, vel):
-    """ Set angular velocity """
+    """Set angular velocity"""
     self.x[3] = vel[0]
     self.x[4] = vel[1]
     self.x[5] = vel[2]
 
   def set_position(self, pos):
-    """ Set position """
+    """Set position"""
     self.x[6] = pos[0]
     self.x[7] = pos[1]
     self.x[8] = pos[2]
 
   def set_velocity(self, vel):
-    """ Set velocity """
+    """Set velocity"""
     self.x[9] = vel[0]
     self.x[10] = vel[1]
     self.x[11] = vel[2]
 
   def get_attitude(self):
-    """ Get attitude """
+    """Get attitude"""
     return np.array([self.x[0], self.x[1], self.x[2]])
 
   def get_angular_velocity(self):
-    """ Get angular velocity """
+    """Get angular velocity"""
     return np.array([self.x[3], self.x[4], self.x[5]])
 
   def get_position(self):
-    """ Get position """
+    """Get position"""
     return np.array([self.x[6], self.x[7], self.x[8]])
 
   def get_velocity(self):
-    """ Get velocity """
+    """Get velocity"""
     return np.array([self.x[9], self.x[10], self.x[11]])
 
   def get_pose(self):
-    """ Get Pose """
+    """Get Pose"""
     C_WB = euler321(self.x[2], self.x[1], self.x[0])
     r_WB = np.array([self.x[6], self.x[7], self.x[8]])
     T_WB = tf(C_WB, r_WB)
     return T_WB
 
   def update(self, u, dt):
-    """ Update mav model """
+    """Update mav model"""
     # -- Attitude
     ph = self.x[0]
     th = self.x[1]
@@ -11698,7 +11776,7 @@ class MavAttitudeControl:
     self.u = np.array([0.0, 0.0, 0.0, 0.0])
 
   def update(self, sp, pv, dt):
-    """ Update """
+    """Update"""
     # Check rate
     self.dt += dt
     if self.dt < 0.001:
@@ -11723,7 +11801,7 @@ class MavAttitudeControl:
     return self.u
 
   def reset(self):
-    """ Reset """
+    """Reset"""
     self.dt = 0.0
     self.pid_roll.reset()
     self.pid_pitch.reset()
@@ -11746,7 +11824,7 @@ class MavVelocityControl:
     self.u = np.array([0.0, 0.0, 0.0, 0.0])
 
   def update(self, sp, pv, dt):
-    """ Update """
+    """Update"""
     # Check rate
     self.dt += dt
     if self.dt < self.period:
@@ -11774,7 +11852,7 @@ class MavVelocityControl:
     return self.u
 
   def reset(self):
-    """ Reset """
+    """Reset"""
     self.dt = 0.0
     self.pid_vx.reset()
     self.pid_vy.reset()
@@ -11817,7 +11895,7 @@ class MavPositionControl:
       raise NotImplementedError()
 
   def update(self, sp, pv, dt):
-    """ Update """
+    """Update"""
     # Check rate
     self.dt += dt
     if self.dt < self.period:
@@ -11863,7 +11941,7 @@ class MavPositionControl:
     return self.u
 
   def reset(self):
-    """ Reset """
+    """Reset"""
     assert self.dt is not None
 
     self.dt = 0.0
@@ -11892,6 +11970,7 @@ class MavTrajectoryControl:
 
   def symdiff_velocity(self):
     import sympy
+
     f, t = sympy.symbols("f t")
     a, A, delta = sympy.symbols("a A delta")
     b, B = sympy.symbols("b B")
@@ -11912,7 +11991,7 @@ class MavTrajectoryControl:
     print(vy)
 
   def get_traj(self):
-    """ Return trajectory """
+    """Return trajectory"""
     pos_data = np.zeros((3, 1000))
     time = np.linspace(0.0, self.T, 1000)
     for i, t in enumerate(time):
@@ -11920,9 +11999,9 @@ class MavTrajectoryControl:
     return pos_data.T
 
   def get_position(self, t):
-    """ Get position """
+    """Get position"""
     w = 2.0 * np.pi * self.f
-    theta = np.sin(0.25 * w * t)**2
+    theta = np.sin(0.25 * w * t) ** 2
 
     ka = 2.0 * np.pi * self.a
     kb = 2.0 * np.pi * self.b
@@ -11934,7 +12013,7 @@ class MavTrajectoryControl:
     return np.array([x, y, z])
 
   def get_yaw(self, t):
-    """ Get yaw """
+    """Get yaw"""
     p0 = self.get_position(t)
     p1 = self.get_position(t + 0.1)
     dx, dy, _ = p1 - p0
@@ -11958,8 +12037,8 @@ class MavTrajectoryControl:
     ky = 2.0 * np.pi**2 * self.B * self.b * self.f
     ksincos = np.sin(kpift) * np.cos(kpift)
 
-    vx = kx * ksincos * np.cos(ka * np.sin(kpift)**2 + self.delta)
-    vy = ky * ksincos * np.cos(kb * np.sin(kpift)**2)
+    vx = kx * ksincos * np.cos(ka * np.sin(kpift) ** 2 + self.delta)
+    vy = ky * ksincos * np.cos(kb * np.sin(kpift) ** 2)
     vz = 0.0
 
     return np.array([vx, vy, vz])
@@ -12004,7 +12083,7 @@ class MavTrajectoryControl:
     return att_sp
 
   def plot(self):
-    """ Plot """
+    """Plot"""
     pos_data = np.zeros((3, 1000))
     vel_data = np.zeros((3, 1000))
     time = np.linspace(0.0, self.T, 1000)
@@ -12038,9 +12117,10 @@ class MavTrajectoryControl:
 
 
 class TestMav(unittest.TestCase):
-  """ Test Mav """
+  """Test Mav"""
+
   def test_symdiff_velocity(self):
-    """ Test symbolic differentiate velocity """
+    """Test symbolic differentiate velocity"""
     traj_ctrl = MavTrajectoryControl(z=2.0, T=10.0)
     traj_ctrl.symdiff_velocity()
 
@@ -12182,16 +12262,17 @@ class TestMav(unittest.TestCase):
     cid = None
     if debug:
       fig = plt.figure()
-      ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
+      ax_3d = fig.add_subplot(1, 2, 1, projection="3d")
       ax_xy = fig.add_subplot(1, 2, 2)
 
       def on_key(event, fig):
-        if event.key == 'escape' or event.key == 'q':
+        if event.key == "escape" or event.key == "q":
           self.keep_plotting = False
           plt.close(fig)
 
       cid = fig.canvas.mpl_connect(
-          'key_press_event', lambda event: on_key(event, self.keep_plotting))
+        "key_press_event", lambda event: on_key(event, self.keep_plotting)
+      )
 
     # Simulate
     time_data = []
@@ -12297,13 +12378,15 @@ class TestMav(unittest.TestCase):
     yaw0 = traj_ctrl.get_yaw(0.0)
     r0 = traj_ctrl.get_position(0.0)
     v0 = traj_ctrl.get_velocity(0.0)
-    mav = MavModel(rx=r0[0] + 0.5,
-                   ry=r0[1] - 0.5,
-                   rz=z_sp,
-                   vx=v0[0],
-                   vy=v0[1],
-                   vz=v0[2],
-                   yaw=yaw0)
+    mav = MavModel(
+      rx=r0[0] + 0.5,
+      ry=r0[1] - 0.5,
+      rz=z_sp,
+      vx=v0[0],
+      vy=v0[1],
+      vz=v0[2],
+      yaw=yaw0,
+    )
 
     # Setup plot
     plot_anim = False
@@ -12314,17 +12397,17 @@ class TestMav(unittest.TestCase):
     ax_xy = None
     if debug:
       fig = plt.figure()
-      ax_3d = fig.add_subplot(1, 2, 1, projection='3d')
+      ax_3d = fig.add_subplot(1, 2, 1, projection="3d")
       ax_xy = fig.add_subplot(1, 2, 2)
 
       def on_key(event, fig):
-        if event.key == 'escape' or event.key == 'q':
+        if event.key == "escape" or event.key == "q":
           self.keep_plotting = False
           plt.close(fig)
 
       cid = fig.canvas.mpl_connect(
-          'key_press_event',
-          lambda event: on_key(event, self.keep_plotting),
+        "key_press_event",
+        lambda event: on_key(event, self.keep_plotting),
       )
 
     # Simulate
@@ -12427,13 +12510,15 @@ class TestMav(unittest.TestCase):
 
 
 class TestPoE(unittest.TestCase):
-  """ Test PoE """
+  """Test PoE"""
+
   def test_scene(self):
     l1 = 0.1
     l2 = 0.2
     M = np.array([[0, 0, 1, l1], [0, 1, 0, 0], [-1, 0, 0, -l2], [0, 0, 0, 1]])
-    s_list = np.array([[0, 0, 1, 0, 0, 0], [0, -1, 0, 0, 0, -l1],
-                       [1, 0, 0, 0, -l2, 0]])
+    s_list = np.array(
+      [[0, 0, 1, 0, 0, 0], [0, -1, 0, 0, 0, -l1], [1, 0, 0, 0, -l2, 0]]
+    )
     theta_list = np.deg2rad(np.array([0.0, 0.0, 45.0]))
 
     C_WB = np.eye(3)
@@ -12443,7 +12528,7 @@ class TestPoE(unittest.TestCase):
 
     debug = False
     if debug:
-      ax = plt.axes(projection='3d')
+      ax = plt.axes(projection="3d")
       plot_tf(ax, T_WB, name="Base", size=0.1)
       plot_tf(ax, T_WB @ T_BE, name="End", size=0.1)
       plot_set_axes_equal(ax)
@@ -12451,8 +12536,9 @@ class TestPoE(unittest.TestCase):
 
   def test_fwdkinspace(self):
     M = np.array([[-1, 0, 0, 0], [0, 1, 0, 6], [0, 0, -1, 2], [0, 0, 0, 1]])
-    S_list = np.array([[0, 0, 1, 4, 0, 0], [0, 0, 0, 0, 1, 0],
-                       [0, 0, -1, -6, 0, -0.1]])
+    S_list = np.array(
+      [[0, 0, 1, 4, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, -1, -6, 0, -0.1]]
+    )
     theta_list = np.array([np.pi / 2.0, 3, np.pi])
 
     # i = 2
@@ -12461,5 +12547,5 @@ class TestPoE(unittest.TestCase):
     print(T)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   unittest.main(failfast=True)
