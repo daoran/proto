@@ -45,6 +45,7 @@ third_party/src/yaml-cpp
 .venv
 .ropeproject
 *.pyc
+src/xyz.egg-info/
 
 # Misc
 tags
