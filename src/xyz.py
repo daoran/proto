@@ -1214,6 +1214,28 @@ def find_intersection(
   return status, p1 + t * d1, residuals, rank
 
 
+def find_planes_intersect(
+  p1: Vec4,
+  p2: Vec4,
+  p3: Vec4,
+):
+  """Given 3 planes, find their intersect if it exists"""
+  A = np.zeros((3, 3))
+  A[0, 0:3] = p1[0:3]
+  A[1, 0:3] = p2[0:3]
+  A[2, 0:3] = p3[0:3]
+
+  b = np.zeros((3, 1))
+  b[0] = p1[3]
+  b[1] = p2[3]
+  b[2] = p3[3]
+
+  try:
+    return np.linalg.solve(A, b)
+  except np.linalg.LinAlgError:
+    return None
+
+
 def fix_rotation_matrix(R):
   """Ensure R is a valid rotation matrix by enforcing det(R) = 1."""
   U, _, Vt = np.linalg.svd(R)
@@ -6092,6 +6114,138 @@ class TestKalmanFilter(unittest.TestCase):
 ###############################################################################
 
 
+class Plane:
+  """Plane"""
+
+  def __init__(
+    self,
+    normal: Vec3,
+    point: Vec3 | None = None,
+    dist: float | None = None,
+  ):
+    self.normal: Vec3 = normal / np.linalg.norm(normal)
+    if point is not None:
+      self.dist: float = float(point @ self.normal)
+    elif dist is not None:
+      self.dist: float = dist
+
+  def vector(self) -> Vec4:
+    return np.array([self.normal[0], self.normal[1], self.normal[2], self.dist])
+
+  def transform(self, T: Mat4):
+    x, y, z, d = np.transpose(np.linalg.inv(T)) @ self.vector()
+    self.normal = np.array([x, y, z])
+
+    length = np.linalg.norm(self.normal)
+    self.normal = self.normal / length
+    self.dist = d / length
+    print(f"{self.normal=}")
+    print(f"{self.dist=}")
+
+
+class Frustum:
+  """Frustum"""
+
+  def __init__(
+    self,
+    hfov: float,
+    aspect: float,
+    znear: float,
+    zfar: float,
+    frustum_pose: Mat4 | None = None,
+  ):
+    hwidth = tan(np.deg2rad(hfov) / 2.0)
+    hheight = hwidth * (1.0 / aspect)
+    self.znear = znear
+    self.zfar = zfar
+
+    self.near = Plane(normal=np.array([0, 0, 1]), dist=znear)
+    self.far = Plane(normal=np.array([0, 0, 1]), dist=-zfar)
+    self.left = Plane(normal=np.array([1, 0, hwidth]), dist=1)
+    self.right = Plane(normal=np.array([-1, 0, hwidth]), dist=1)
+    self.top = Plane(normal=np.array([0, 1, hheight]), dist=1)
+    self.bottom = Plane(normal=np.array([0, -1, hheight]), dist=1)
+
+    if frustum_pose is not None:
+      self.near.transform(frustum_pose)
+      self.far.transform(frustum_pose)
+      self.left.transform(frustum_pose)
+      self.right.transform(frustum_pose)
+      self.top.transform(frustum_pose)
+      self.bottom.transform(frustum_pose)
+
+  def plot(self, ax):
+    # Form tuples of planes
+    near = self.near.vector()
+    far = self.far.vector()
+    left = self.left.vector()
+    right = self.right.vector()
+    top = self.top.vector()
+    bottom = self.bottom.vector()
+
+    # Find the 8 corners of the frustum volume
+    near_top_left = find_planes_intersect(near, top, left)
+    near_bottom_left = find_planes_intersect(near, bottom, left)
+    near_bottom_right = find_planes_intersect(near, bottom, right)
+    near_top_right = find_planes_intersect(near, top, right)
+    far_top_left = find_planes_intersect(far, top, left)
+    far_bottom_left = find_planes_intersect(far, bottom, left)
+    far_bottom_right = find_planes_intersect(far, bottom, right)
+    far_top_right = find_planes_intersect(far, top, right)
+
+    # Plot near plane
+    near_planes = [
+      near_top_left,
+      near_bottom_left,
+      near_bottom_right,
+      near_top_right,
+    ]
+    for i in range(len(near_planes)):
+      p1 = near_planes[i - 1]
+      p2 = near_planes[i]
+      assert p1 is not None and p2 is not None
+      ax.plot(
+        [p1[0], p2[0]],
+        [p1[1], p2[1]],
+        [p1[2], p2[2]],
+        "k-",
+      )
+
+    # Plot far plane
+    far_planes = [
+      far_top_left,
+      far_bottom_left,
+      far_bottom_right,
+      far_top_right,
+    ]
+    for i in range(len(far_planes)):
+      p1 = far_planes[i - 1]
+      p2 = far_planes[i]
+      assert p1 is not None and p2 is not None
+      ax.plot(
+        [p1[0], p2[0]],
+        [p1[1], p2[1]],
+        [p1[2], p2[2]],
+        "k-",
+      )
+
+    # Plot corner lines
+    corner_planes = [
+      (near_top_left, far_top_left),
+      (near_bottom_left, far_bottom_left),
+      (near_bottom_right, far_bottom_right),
+      (near_top_right, far_top_right),
+    ]
+    for p1, p2 in corner_planes:
+      assert p1 is not None and p2 is not None
+      ax.plot(
+        [p1[0], p2[0]],
+        [p1[1], p2[1]],
+        [p1[2], p2[2]],
+        "k-",
+      )
+
+
 class Ray:
   def __init__(self, origin: Vec3, dir: Vec3):
     self.origin = origin
@@ -6105,6 +6259,8 @@ class Ray:
 
 
 class OctreeNode:
+  """Octree Node"""
+
   def __init__(self, center: Vec3, size: float, depth: int, max_depth: int):
     self.center = center
     self.size = size
@@ -6182,6 +6338,8 @@ class OctreeNode:
 
 
 class Octree:
+  """Octree"""
+
   def __init__(self, points, max_depth=3):
     self.center = np.array([0.0, 0.0, 0.0])
     self.size = 2.0
@@ -6203,36 +6361,10 @@ class Octree:
         self.get_points_and_bboxes(child, points_list, bboxes_list)
 
 
-class TestOctree(unittest.TestCase):
-  """Test Octree"""
+class TestPlane(unittest.TestCase):
+  """Test Plane"""
 
-  def test_octree(self):
-    points = [np.random.rand(3) for _ in range(100)]
-    center = [0.0, 0.0, 0.0]
-    size = 100.0
-    octree = Octree(points)
-
-    octree_points = []
-    octree_bboxes = []
-    octree.get_points_and_bboxes(octree.root, octree_points, octree_bboxes)
-
-    # Visualize octree
-    debug = False
-    if debug:
-      fig = plt.figure()
-      ax = fig.add_subplot(111, projection="3d")
-
-      # -- Plot bounding boxes
-      for center, size in octree_bboxes:
-        plot_bbox(ax, center, [size, size, size])
-
-      # -- Plot points
-      for p in octree_points:
-        ax.plot(p[0], p[1], p[2], "r.")
-
-      plt.show()
-
-  def test_point_plane(self):
+  def test_plane(self):
     # Define the coefficients of the plane
     # ax + by + cz = d
     point = np.array([0, 0, 0])  # Example point (x0, y0, z0)
@@ -6265,16 +6397,62 @@ class TestOctree(unittest.TestCase):
       plt.show()
 
 
-class Plane:
-  def __init__(self, point, normal):
-    self.point = point
-    self.normal = normal
+class TestFrustum(unittest.TestCase):
+  """Test Frustum"""
 
-  def plot(self, ax, xrange, yrange):
-    d = -self.point @ self.normal
-    xx, yy = np.meshgrid(xrange + self.point[0], yrange + self.point[1])
-    z = (-self.normal[0] * xx - self.normal[1] * yy - d) * 1.0 / self.normal[2]
-    ax.plot_surface(xx, yy, z)
+  def test_frustum(self):
+    # C_WC = euler321(-pi / 2.0, 0.0, -pi / 2.0)
+    C_WC = euler321(0.0, 0.0, 0.0)
+    r_WC = np.array([0.0, 0.0, 0.0])
+    T_WC = tf(C_WC, r_WC)
+
+    hfov = 60.0
+    aspect = 1.0
+    frustum = Frustum(
+      hfov=hfov,
+      aspect=aspect,
+      znear=0.1,
+      zfar=1.0,
+      frustum_pose=T_WC,
+    )
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+    frustum.plot(ax)
+    ax.set_xlabel("X axis")
+    ax.set_ylabel("Y axis")
+    ax.set_zlabel("Z axis")
+    plt.show()
+
+
+class TestOctree(unittest.TestCase):
+  """Test Octree"""
+
+  def test_octree(self):
+    points = [np.random.rand(3) for _ in range(100)]
+    center = [0.0, 0.0, 0.0]
+    size = 100.0
+    octree = Octree(points)
+
+    octree_points = []
+    octree_bboxes = []
+    octree.get_points_and_bboxes(octree.root, octree_points, octree_bboxes)
+
+    # Visualize octree
+    debug = False
+    if debug:
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection="3d")
+
+      # -- Plot bounding boxes
+      for center, size in octree_bboxes:
+        plot_bbox(ax, center, [size, size, size])
+
+      # -- Plot points
+      for p in octree_points:
+        ax.plot(p[0], p[1], p[2], "r.")
+
+      plt.show()
 
 
 ###############################################################################
