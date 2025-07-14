@@ -6141,16 +6141,31 @@ class Plane:
     self.normal = self.normal / length
     self.dist = d / length
 
+  def distance(self, p: Vec3):
+    a, b, c = self.normal
+    d = self.dist
+    x, y, z = p
+    return a * x + b * y + c * z - d
+
   def plot(
     self,
     ax,
-    xrange=np.linspace(-5.0, 5.0, 10),
-    yrange=np.linspace(-5.0, 5.0, 10),
+    color="r",
+    xrange=np.linspace(-1.0, 1.0, 10),
+    yrange=np.linspace(-1.0, 1.0, 10),
   ):
     xx, yy = np.meshgrid(xrange, yrange)
     a, b, c, d = self.vector()
     zz = (d - a * xx - b * yy) / c
-    ax.plot_surface(xx, yy, zz, alpha=0.5, rstride=100, cstride=100)
+    ax.plot_surface(
+      xx,
+      yy,
+      zz,
+      alpha=0.5,
+      rstride=100,
+      cstride=100,
+      color=color,
+    )
 
 
 class Frustum:
@@ -6171,10 +6186,10 @@ class Frustum:
     self.zfar = zfar
 
     # OpenGL Frustum
-    self.near = Plane(normal=np.array([0, 0, 1]), dist=-znear)
-    self.far = Plane(normal=np.array([0, 0, 1]), dist=-zfar)
-    self.left = Plane(normal=np.array([-1, 0, hwidth]), dist=1.0)
-    self.right = Plane(normal=np.array([1, 0, hwidth]), dist=1.0)
+    self.near = Plane(normal=np.array([0, 0, 1]), dist=znear)
+    self.far = Plane(normal=np.array([0, 0, -1]), dist=-zfar)
+    self.left = Plane(normal=np.array([-1, 0, hwidth]), dist=0.0)
+    self.right = Plane(normal=np.array([1, 0, hwidth]), dist=0.0)
     self.top = Plane(normal=np.array([0, 1, hheight]), dist=1.0)
     self.bottom = Plane(normal=np.array([0, -1, hheight]), dist=1.0)
 
@@ -6194,7 +6209,7 @@ class Frustum:
       self.top.transform(frustum_pose)
       self.bottom.transform(frustum_pose)
 
-  def plot(self, ax):
+  def plot(self, ax, points=None):
     # Form tuples of planes
     near = self.near.vector()
     far = self.far.vector()
@@ -6204,12 +6219,42 @@ class Frustum:
     bottom = self.bottom.vector()
 
     # Plot planes
-    # self.near.plot(ax)
-    # self.far.plot(ax)
-    # self.left.plot(ax)
-    # self.right.plot(ax)
+    # self.near.plot(ax, color="r")
+    # self.far.plot(ax, color="g")
+    self.left.plot(ax, color="r")
+    self.right.plot(ax, color="g")
     # self.top.plot(ax)
     # self.bottom.plot(ax)
+
+    if points is not None:
+      points_inside = []
+      points_outside = []
+      for p in points:
+        if (
+          self.near.distance(p) >= 0
+          and self.far.distance(p) >= 0
+          and self.left.distance(p) >= 0
+        ):
+          points_inside.append(p)
+        else:
+          points_outside.append(p)
+      points_inside = np.array(points_inside)
+      points_outside = np.array(points_outside)
+
+      if points_inside.shape[0]:
+        ax.scatter(
+          points_inside[:, 0],
+          points_inside[:, 1],
+          points_inside[:, 2],
+          c="g",
+        )
+      if points_outside.shape[0]:
+        ax.scatter(
+          points_outside[:, 0],
+          points_outside[:, 1],
+          points_outside[:, 2],
+          c="r",
+        )
 
     # Find the 8 corners of the frustum volume
     near_top_left = find_planes_intersect(near, top, left)
@@ -6439,18 +6484,17 @@ class TestFrustum(unittest.TestCase):
       hfov=hfov,
       aspect=aspect,
       znear=0.1,
-      zfar=10.0,
+      zfar=5.0,
       frustum_pose=T_WC,
     )
+    points = np.random.uniform(-5.0, 5.0, (100, 3))
 
-
-    plane = Plane(normal=np.array([1, 0, 1]), dist=5.0)
-
-    fig = plt.figure()
+    figsize = (10, 10)
+    fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection="3d")
-    plane.plot(ax)
-    # plot_tf(ax, T_WC, size=1.0)
-    # frustum.plot(ax)
+    plot_tf(ax, T_WC, size=1.0)
+    frustum.plot(ax, points=points)
+
     plot_set_axes_equal(ax)
     ax.set_xlabel("X axis")
     ax.set_ylabel("Y axis")

@@ -23,7 +23,8 @@ run_memcheck() {
 
 # python3 scripts/plot_frames.py
 
-# python3 src/xyz.py
+# python3 src/xyz.py -b
+# python3 src/xyz.py TestNetwork
 # python3 src/xyz.py TestNetwork.test_http_parse_request
 # python3 src/xyz.py TestNetwork.test_websocket_hash
 # python3 src/xyz.py TestNetwork.test_websocket_encode_frame
@@ -38,13 +39,6 @@ run_memcheck() {
 # python3 src/xyz.py TestTransform.test_quat_inv
 # python3 src/xyz.py TestTransform.test_quat_conj
 # python3 src/xyz.py TestTransform.test_quat_slerp
-# python3 src/xyz.py TestMav
-# python3 src/xyz.py TestMav.test_symdiff_velocity
-# python3 src/xyz.py TestMav.test_plot
-# python3 src/xyz.py TestMav.test_mav_attitude_control
-# python3 src/xyz.py TestMav.test_mav_velocity_control
-# python3 src/xyz.py TestMav.test_mav_position_control
-# python3 src/xyz.py TestMav.test_mav_trajectory_control
 # python3 src/xyz.py TestCV
 # python3 src/xyz.py TestCV.test_linear_triangulation
 # python3 src/xyz.py TestCV.test_parallax
@@ -55,6 +49,7 @@ run_memcheck() {
 # python3 src/xyz.py TestCV.test_harris_corner
 # python3 src/xyz.py TestCV.test_shi_tomasi_corner
 # python3 src/xyz.py TestPointCloud
+# python3 src/xyz.py TestPointCloud.test_icp
 # python3 src/xyz.py TestOctree
 # python3 src/xyz.py TestOctree.test_octree
 # python3 src/xyz.py TestOctree.test_point_plane
@@ -78,28 +73,25 @@ run_memcheck() {
 # python3 src/xyz.py TestIMUFactor.test_imu_factor2
 # python3 src/xyz.py TestMargFactor
 # python3 src/xyz.py TestFactorGraph
-# python3 src/xyz.py TestFactorGraph.test_factor_graph_add_param
-# python3 src/xyz.py TestFactorGraph.test_factor_graph_add_factor
-# python3 src/xyz.py TestFactorGraph.test_factor_graph_solve_vo
-# python3 src/xyz.py TestFactorGraph.test_factor_graph_solve_io
-# python3 src/xyz.py TestFactorGraph.test_factor_graph_solve_vio
+# python3 src/xyz.py TestFactorGraph.test_add_param
+# python3 src/xyz.py TestFactorGraph.test_add_factor
+# python3 src/xyz.py TestFactorGraph.test_solve_vo
+# python3 src/xyz.py TestFactorGraph.test_solve_io
+# python3 src/xyz.py TestFactorGraph.test_solve_vio
 # python3 src/xyz.py TestFeatureTracking
-# python3 src/xyz.py TestFeatureTracking.test_feature_grid_cell_index
-# python3 src/xyz.py TestFeatureTracking.test_feature_grid_count
 # python3 src/xyz.py TestFeatureTracking.test_spread_keypoints
+# python3 src/xyz.py TestFeatureTracking.test_feature_grid_cell_index
 # python3 src/xyz.py TestFeatureTracking.test_grid_detect
 # python3 src/xyz.py TestFeatureTracking.test_good_grid
 # python3 src/xyz.py TestFeatureTracking.test_optflow_track
 # python3 src/xyz.py TestFeatureTracking.test_feature_track
 # python3 src/xyz.py TestFeatureTracking.test_estimate_pose
-# python3 src/xyz.py TestFeatureTracking.test_euroc_mono
-# python3 src/xyz.py TestFeatureTracking.test_euroc
 # python3 src/xyz.py TestCalibration
-# python3 src/xyz.py TestCalibration.test_aprilgrid
-# python3 src/xyz.py TestCalibration.test_calibrator
 # python3 src/xyz.py TestEuroc
 # python3 src/xyz.py TestKitti
 # python3 src/xyz.py TestKalmanFilter
+# python3 src/xyz.py TestPlane
+python3 src/xyz.py TestFrustum
 # python3 src/xyz.py TestOctree
 # python3 src/xyz.py TestOctree.test_octree
 # python3 src/xyz.py TestSimulation
@@ -113,6 +105,13 @@ run_memcheck() {
 # python3 src/xyz.py TestViz.test_server
 # python3 src/xyz.py TestSandbox.test_gimbal
 # python3 src/xyz.py TestPoE.test_scene
+# python3 src/xyz.py TestMav
+# python3 src/xyz.py TestMav.test_symdiff_velocity
+# python3 src/xyz.py TestMav.test_plot
+# python3 src/xyz.py TestMav.test_mav_attitude_control
+# python3 src/xyz.py TestMav.test_mav_velocity_control
+# python3 src/xyz.py TestMav.test_mav_position_control
+# python3 src/xyz.py TestMav.test_mav_trajectory_control
 
 # tmux send-keys -t dev -R C-l C-m
 # tmux send-keys -t dev -R "python3 xyz.py TestOctree" C-m C-m
@@ -382,14 +381,13 @@ run_test() {
 # run_test test_xyz test_camchain
 # run_test test_xyz test_calib_camera_factor
 # run_test test_xyz test_calib_imucam_factor
-run_test test_xyz test_marg_factor
+# run_test test_xyz test_marg_factor
 # run_test test_xyz test_save_and_load_poses
 # run_test test_xyz test_assoc_pose_data
 # run_test test_xyz test_solver_setup
 # run_test test_xyz test_solver_eval
 # run_test test_xyz test_inertial_odometry_batch
-# run_test test_xyz test_visual_odometry_batch
-# run_test test_xyz test_visual_inertial_odometry_batch
+# run_test test_xyz test_bundle_adjustment
 ## XYZ-TIMELINE
 # run_test test_xyz test_timeline
 ## XYZ-OCTREE
