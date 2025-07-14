@@ -6123,7 +6123,8 @@ class Plane:
     point: Vec3 | None = None,
     dist: float | None = None,
   ):
-    self.normal: Vec3 = normal / np.linalg.norm(normal)
+    # self.normal: Vec3 = normal / np.linalg.norm(normal)
+    self.normal = normal
     if point is not None:
       self.dist: float = float(point @ self.normal)
     elif dist is not None:
@@ -6139,8 +6140,17 @@ class Plane:
     length = np.linalg.norm(self.normal)
     self.normal = self.normal / length
     self.dist = d / length
-    print(f"{self.normal=}")
-    print(f"{self.dist=}")
+
+  def plot(
+    self,
+    ax,
+    xrange=np.linspace(-5.0, 5.0, 10),
+    yrange=np.linspace(-5.0, 5.0, 10),
+  ):
+    xx, yy = np.meshgrid(xrange, yrange)
+    a, b, c, d = self.vector()
+    zz = (d - a * xx - b * yy) / c
+    ax.plot_surface(xx, yy, zz, alpha=0.5, rstride=100, cstride=100)
 
 
 class Frustum:
@@ -6154,17 +6164,27 @@ class Frustum:
     zfar: float,
     frustum_pose: Mat4 | None = None,
   ):
+    # Setup
     hwidth = tan(np.deg2rad(hfov) / 2.0)
     hheight = hwidth * (1.0 / aspect)
     self.znear = znear
     self.zfar = zfar
 
-    self.near = Plane(normal=np.array([0, 0, 1]), dist=znear)
+    # OpenGL Frustum
+    self.near = Plane(normal=np.array([0, 0, 1]), dist=-znear)
     self.far = Plane(normal=np.array([0, 0, 1]), dist=-zfar)
-    self.left = Plane(normal=np.array([1, 0, hwidth]), dist=1)
-    self.right = Plane(normal=np.array([-1, 0, hwidth]), dist=1)
-    self.top = Plane(normal=np.array([0, 1, hheight]), dist=1)
-    self.bottom = Plane(normal=np.array([0, -1, hheight]), dist=1)
+    self.left = Plane(normal=np.array([-1, 0, hwidth]), dist=1.0)
+    self.right = Plane(normal=np.array([1, 0, hwidth]), dist=1.0)
+    self.top = Plane(normal=np.array([0, 1, hheight]), dist=1.0)
+    self.bottom = Plane(normal=np.array([0, -1, hheight]), dist=1.0)
+
+    # CV Frustum
+    # self.near = Plane(normal=np.array([0, 0, 1]), dist=znear)
+    # self.far = Plane(normal=np.array([0, 0, 1]), dist=zfar)
+    # self.left = Plane(normal=np.array([1, 0, hwidth]), dist=-1.0)
+    # self.right = Plane(normal=np.array([-1, 0, hwidth]), dist=-1.0)
+    # self.top = Plane(normal=np.array([0, 1, hheight]), dist=-1.0)
+    # self.bottom = Plane(normal=np.array([0, -1, hheight]), dist=-1.0)
 
     if frustum_pose is not None:
       self.near.transform(frustum_pose)
@@ -6182,6 +6202,14 @@ class Frustum:
     right = self.right.vector()
     top = self.top.vector()
     bottom = self.bottom.vector()
+
+    # Plot planes
+    # self.near.plot(ax)
+    # self.far.plot(ax)
+    # self.left.plot(ax)
+    # self.right.plot(ax)
+    # self.top.plot(ax)
+    # self.bottom.plot(ax)
 
     # Find the 8 corners of the frustum volume
     near_top_left = find_planes_intersect(near, top, left)
@@ -6367,9 +6395,8 @@ class TestPlane(unittest.TestCase):
   def test_plane(self):
     # Define the coefficients of the plane
     # ax + by + cz = d
-    point = np.array([0, 0, 0])  # Example point (x0, y0, z0)
+    d = 1.0
     normal = np.array([0, 0, 1])  # Example normal vector (a, b, c)
-    d = -point @ normal
     a, b, c = normal
 
     # Create a grid of x, y values
@@ -6380,7 +6407,7 @@ class TestPlane(unittest.TestCase):
     # Calculate corresponding z values
     z = (d - a * x - b * y) / c
 
-    debug = False
+    debug = True
     if debug:
       fig = plt.figure()
       ax = fig.add_subplot(111, projection="3d")
@@ -6412,13 +6439,19 @@ class TestFrustum(unittest.TestCase):
       hfov=hfov,
       aspect=aspect,
       znear=0.1,
-      zfar=1.0,
+      zfar=10.0,
       frustum_pose=T_WC,
     )
 
+
+    plane = Plane(normal=np.array([1, 0, 1]), dist=5.0)
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
-    frustum.plot(ax)
+    plane.plot(ax)
+    # plot_tf(ax, T_WC, size=1.0)
+    # frustum.plot(ax)
+    plot_set_axes_equal(ax)
     ax.set_xlabel("X axis")
     ax.set_ylabel("Y axis")
     ax.set_zlabel("Z axis")
