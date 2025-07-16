@@ -6123,12 +6123,14 @@ class Plane:
     point: Vec3 | None = None,
     dist: float | None = None,
   ):
-    # self.normal: Vec3 = normal / np.linalg.norm(normal)
     self.normal = normal
     if point is not None:
       self.dist: float = float(point @ self.normal)
+      self.point = point
     elif dist is not None:
       self.dist: float = dist
+      n = self.normal / np.linalg.norm(self.normal)
+      self.point = -self.dist * n
 
   def vector(self) -> Vec4:
     return np.array([self.normal[0], self.normal[1], self.normal[2], self.dist])
@@ -6146,6 +6148,22 @@ class Plane:
     d = self.dist
     x, y, z = p
     return a * x + b * y + c * z - d
+
+  def get_transform(self):
+    world_up = np.array([0, 1, 0])
+    z_axis = self.normal / np.linalg.norm(self.normal)
+    x_axis = np.cross(z_axis, world_up)
+    x_axis = x_axis / np.linalg.norm(x_axis)
+    y_axis = np.cross(z_axis, x_axis)
+    p = self.point
+
+    T = np.eye(4, 4)
+    T[0:3, 0] = x_axis
+    T[0:3, 1] = y_axis
+    T[0:3, 2] = z_axis
+    T[0:3, 3] = p
+
+    return T
 
   def plot(
     self,
@@ -6179,27 +6197,52 @@ class Frustum:
     zfar: float,
     frustum_pose: Mat4 | None = None,
   ):
-    # Setup
-    hwidth = tan(np.deg2rad(hfov) / 2.0)
-    hheight = hwidth * (1.0 / aspect)
+    self.hfov = hfov
+    self.aspect = aspect
     self.znear = znear
     self.zfar = zfar
 
-    # OpenGL Frustum
-    self.near = Plane(normal=np.array([0, 0, 1]), dist=znear)
-    self.far = Plane(normal=np.array([0, 0, -1]), dist=-zfar)
-    self.left = Plane(normal=np.array([-1, 0, hwidth]), dist=0.0)
-    self.right = Plane(normal=np.array([1, 0, hwidth]), dist=0.0)
-    self.top = Plane(normal=np.array([0, 1, hheight]), dist=1.0)
-    self.bottom = Plane(normal=np.array([0, -1, hheight]), dist=1.0)
+    wnear = 2.0 * tan(np.deg2rad(hfov) / 2.0) * znear
+    hnear = wnear * (1.0 / aspect)
+    wfar = 2.0 * tan(np.deg2rad(hfov) / 2.0) * zfar
+    hfar = wfar * (1.0 / aspect)
 
-    # CV Frustum
-    # self.near = Plane(normal=np.array([0, 0, 1]), dist=znear)
-    # self.far = Plane(normal=np.array([0, 0, 1]), dist=zfar)
-    # self.left = Plane(normal=np.array([1, 0, hwidth]), dist=-1.0)
-    # self.right = Plane(normal=np.array([-1, 0, hwidth]), dist=-1.0)
-    # self.top = Plane(normal=np.array([0, 1, hheight]), dist=-1.0)
-    # self.bottom = Plane(normal=np.array([0, -1, hheight]), dist=-1.0)
+    front = np.array([0, 0, -1])
+    right = np.array([1, 0, 0])
+    up = np.array([0, 1, 0])
+    cam_pos = np.array([0, 0, 0])
+
+    nc = cam_pos + front * znear
+    self.ntl = nc + (up * hnear / 2.0) - (right * wnear / 2.0)
+    self.ntr = nc + (up * hnear / 2.0) + (right * wnear / 2.0)
+    self.nbl = nc - (up * hnear / 2.0) - (right * wnear / 2.0)
+    self.nbr = nc - (up * hnear / 2.0) + (right * wnear / 2.0)
+
+    fc = cam_pos + front * zfar
+    self.ftl = fc + (up * hfar / 2.0) - (right * wfar / 2.0)
+    self.ftr = fc + (up * hfar / 2.0) + (right * wfar / 2.0)
+    self.fbl = fc - (up * hfar / 2.0) - (right * wfar / 2.0)
+    self.fbr = fc - (up * hfar / 2.0) + (right * wfar / 2.0)
+
+    # Points on the near plane
+    p_left = (nc - right * wnear / 2.0) - cam_pos
+    p_right = (nc + right * wnear / 2.0) - cam_pos
+    p_top = (nc + up * hnear / 2.0) - cam_pos
+    p_bottom = (nc - up * hnear / 2.0) - cam_pos
+
+    # Form left, right, top and bottom normals using the cross product
+    normal_left = np.cross(normalize(p_left), up)
+    normal_right = np.cross(up, normalize(p_right))
+    normal_top = np.cross(-right, normalize(p_top))
+    normal_bottom = np.cross(right, normalize(p_bottom))
+
+    # OpenGL Frustum
+    self.near = Plane(normal=front, point=nc)
+    self.far = Plane(normal=-front, point=fc)
+    self.left = Plane(normal=normal_left, point=p_left)
+    self.right = Plane(normal=normal_right, point=p_right)
+    self.top = Plane(normal=normal_top, point=p_top)
+    self.bottom = Plane(normal=normal_bottom, point=p_bottom)
 
     if frustum_pose is not None:
       self.near.transform(frustum_pose)
@@ -6210,91 +6253,88 @@ class Frustum:
       self.bottom.transform(frustum_pose)
 
   def plot(self, ax, points=None):
-    # Form tuples of planes
-    near = self.near.vector()
-    far = self.far.vector()
-    left = self.left.vector()
-    right = self.right.vector()
-    top = self.top.vector()
-    bottom = self.bottom.vector()
-
     # Plot planes
     # self.near.plot(ax, color="r")
     # self.far.plot(ax, color="g")
-    self.left.plot(ax, color="r")
-    self.right.plot(ax, color="g")
-    # self.top.plot(ax)
-    # self.bottom.plot(ax)
+    # self.left.plot(ax, color="r")
+    # self.right.plot(ax, color="g")
+    # self.top.plot(ax, color="r")
+    # self.bottom.plot(ax, color="g")
 
+    T_near = self.near.get_transform()
+    T_far = self.far.get_transform()
+    T_left = self.left.get_transform()
+    T_right = self.right.get_transform()
+    T_top = self.top.get_transform()
+    T_bottom = self.bottom.get_transform()
+
+    plot_tf(ax, T_near)
+    plot_tf(ax, T_far)
+    plot_tf(ax, T_left)
+    plot_tf(ax, T_right)
+    plot_tf(ax, T_top)
+    plot_tf(ax, T_bottom)
+
+    # Plot points
     if points is not None:
-      points_inside = []
-      points_outside = []
+      inside = []
+      outside = []
       for p in points:
         if (
           self.near.distance(p) >= 0
           and self.far.distance(p) >= 0
           and self.left.distance(p) >= 0
+          and self.right.distance(p) >= 0
+          and self.top.distance(p) >= 0
+          and self.bottom.distance(p) >= 0
         ):
-          points_inside.append(p)
+          inside.append(p)
         else:
-          points_outside.append(p)
-      points_inside = np.array(points_inside)
-      points_outside = np.array(points_outside)
+          outside.append(p)
+      inside = np.array(inside)
+      outside = np.array(outside)
 
-      if points_inside.shape[0]:
+      if inside.shape[0]:
         ax.scatter(
-          points_inside[:, 0],
-          points_inside[:, 1],
-          points_inside[:, 2],
+          inside[:, 0],
+          inside[:, 1],
+          inside[:, 2],
           c="g",
+          alpha=0.2,
+          label="inside",
         )
-      if points_outside.shape[0]:
+      if outside.shape[0]:
         ax.scatter(
-          points_outside[:, 0],
-          points_outside[:, 1],
-          points_outside[:, 2],
+          outside[:, 0],
+          outside[:, 1],
+          outside[:, 2],
           c="r",
+          alpha=0.2,
+          label="outside",
         )
-
-    # Find the 8 corners of the frustum volume
-    near_top_left = find_planes_intersect(near, top, left)
-    near_bottom_left = find_planes_intersect(near, bottom, left)
-    near_bottom_right = find_planes_intersect(near, bottom, right)
-    near_top_right = find_planes_intersect(near, top, right)
-    far_top_left = find_planes_intersect(far, top, left)
-    far_bottom_left = find_planes_intersect(far, bottom, left)
-    far_bottom_right = find_planes_intersect(far, bottom, right)
-    far_top_right = find_planes_intersect(far, top, right)
 
     # Plot near plane
-    near_planes = [
-      near_top_left,
-      near_bottom_left,
-      near_bottom_right,
-      near_top_right,
-    ]
-    for i in range(len(near_planes)):
-      p1 = near_planes[i - 1]
-      p2 = near_planes[i]
-      assert p1 is not None and p2 is not None
-      ax.plot(
-        [p1[0], p2[0]],
-        [p1[1], p2[1]],
-        [p1[2], p2[2]],
-        "k-",
-      )
+    near_points = [self.ntl, self.nbl, self.nbr, self.ntr]
+    for i in range(4):
+      p1 = near_points[i - 1]
+      p2 = near_points[i]
+      ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], "k-")
 
     # Plot far plane
-    far_planes = [
-      far_top_left,
-      far_bottom_left,
-      far_bottom_right,
-      far_top_right,
+    far_points = [self.ftl, self.fbl, self.fbr, self.ftr]
+    for i in range(4):
+      p1 = far_points[i - 1]
+      p2 = far_points[i]
+      ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], "k-")
+
+    # Plot corner lines
+    corner_pairs = [
+      (self.ntl, self.ftl),
+      (self.ntr, self.ftr),
+      (self.nbl, self.fbl),
+      (self.nbr, self.fbr),
     ]
-    for i in range(len(far_planes)):
-      p1 = far_planes[i - 1]
-      p2 = far_planes[i]
-      assert p1 is not None and p2 is not None
+    for p1, p2 in corner_pairs:
       ax.plot(
         [p1[0], p2[0]],
         [p1[1], p2[1]],
@@ -6302,21 +6342,7 @@ class Frustum:
         "k-",
       )
 
-    # Plot corner lines
-    corner_planes = [
-      (near_top_left, far_top_left),
-      (near_bottom_left, far_bottom_left),
-      (near_bottom_right, far_bottom_right),
-      (near_top_right, far_top_right),
-    ]
-    for p1, p2 in corner_planes:
-      assert p1 is not None and p2 is not None
-      ax.plot(
-        [p1[0], p2[0]],
-        [p1[1], p2[1]],
-        [p1[2], p2[2]],
-        "k-",
-      )
+    ax.legend(loc=0)
 
 
 class Ray:
@@ -6487,7 +6513,7 @@ class TestFrustum(unittest.TestCase):
       zfar=5.0,
       frustum_pose=T_WC,
     )
-    points = np.random.uniform(-5.0, 5.0, (100, 3))
+    points = np.random.uniform(-6.0, 6.0, (500, 3))
 
     figsize = (10, 10)
     fig = plt.figure(figsize=figsize)
@@ -7456,7 +7482,7 @@ class ImuParams:
   noise_gyr: float
   noise_ba: float
   noise_bg: float
-  g: VecN = np.array([0.0, 0.0, 9.81])
+  g: VecN
 
 
 @dataclass
