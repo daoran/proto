@@ -6114,6 +6114,50 @@ class TestKalmanFilter(unittest.TestCase):
 ###############################################################################
 
 
+def float_to_uint10(x: float, min_val: float = 0.0, max_val: float = 1.0):
+  """Convert float in [min_val, max_val] to 10-bit integer (0..1023)."""
+  x_clipped = np.clip((x - min_val) / (max_val - min_val), 0.0, 1.0)
+  return int(x_clipped * 1023.0)
+
+
+def part1by2(n: int):
+  """Interleave 10-bit integer with two zeros between each bit."""
+  n &= 0x3FF
+  n = (n | (n << 16)) & 0x30000FF
+  n = (n | (n << 8)) & 0x300F00F
+  n = (n | (n << 4)) & 0x30C30C3
+  n = (n | (n << 2)) & 0x9249249
+  return n
+
+
+def morton_xyz_f32(
+  x: float,
+  y: float,
+  z: float,
+  min_val: float = 0.0,
+  max_val: float = 1.0,
+):
+  """ Create 3D Morton code
+
+  The following uses 10 bits per axis, so the final Morton code fits in a
+  30-bit integer.
+
+  Notes:
+
+  B = 30      # Number of bits for Morton code in 3D
+  v = 0.01    # Voxel size in meters
+  b = B // 3  # Bits per axis = 10
+  N = 2 ** b  # Number of voxels per axis
+  S = v * N   # 0.01 * 1024 = 10.24 meters
+
+  """
+  xi = float_to_uint10(x, min_val, max_val)
+  yi = float_to_uint10(y, min_val, max_val)
+  zi = float_to_uint10(z, min_val, max_val)
+  return (part1by2(zi) << 2) | (part1by2(yi) << 1) | part1by2(xi)
+
+
+
 class Plane:
   """Plane"""
 
@@ -6143,13 +6187,13 @@ class Plane:
     self.normal = self.normal / length
     self.dist = d / length
 
-  def distance(self, p: Vec3):
+  def distance(self, p: Vec3) -> float:
     a, b, c = self.normal
     d = self.dist
     x, y, z = p
     return a * x + b * y + c * z - d
 
-  def get_transform(self):
+  def get_transform(self) -> Mat4:
     world_up = np.array([0, 1, 0])
     z_axis = self.normal / np.linalg.norm(self.normal)
     x_axis = np.cross(z_axis, world_up)
@@ -6252,28 +6296,37 @@ class Frustum:
       self.top.transform(frustum_pose)
       self.bottom.transform(frustum_pose)
 
-  def plot(self, ax, points=None):
+  def plot(
+    self,
+    ax,
+    points=None,
+    plot_planes: bool = False,
+    plot_plane_frames: bool = False,
+  ):
     # Plot planes
-    # self.near.plot(ax, color="r")
-    # self.far.plot(ax, color="g")
-    # self.left.plot(ax, color="r")
-    # self.right.plot(ax, color="g")
-    # self.top.plot(ax, color="r")
-    # self.bottom.plot(ax, color="g")
+    if plot_planes:
+      self.near.plot(ax, color="r")
+      self.far.plot(ax, color="g")
+      self.left.plot(ax, color="r")
+      self.right.plot(ax, color="g")
+      self.top.plot(ax, color="r")
+      self.bottom.plot(ax, color="g")
 
-    T_near = self.near.get_transform()
-    T_far = self.far.get_transform()
-    T_left = self.left.get_transform()
-    T_right = self.right.get_transform()
-    T_top = self.top.get_transform()
-    T_bottom = self.bottom.get_transform()
+    # Plot plane frames
+    if plot_plane_frames:
+      T_near = self.near.get_transform()
+      T_far = self.far.get_transform()
+      T_left = self.left.get_transform()
+      T_right = self.right.get_transform()
+      T_top = self.top.get_transform()
+      T_bottom = self.bottom.get_transform()
 
-    plot_tf(ax, T_near)
-    plot_tf(ax, T_far)
-    plot_tf(ax, T_left)
-    plot_tf(ax, T_right)
-    plot_tf(ax, T_top)
-    plot_tf(ax, T_bottom)
+      plot_tf(ax, T_near)
+      plot_tf(ax, T_far)
+      plot_tf(ax, T_left)
+      plot_tf(ax, T_right)
+      plot_tf(ax, T_top)
+      plot_tf(ax, T_bottom)
 
     # Plot points
     if points is not None:
@@ -6341,7 +6394,6 @@ class Frustum:
         [p1[2], p2[2]],
         "k-",
       )
-
     ax.legend(loc=0)
 
 
@@ -6515,17 +6567,20 @@ class TestFrustum(unittest.TestCase):
     )
     points = np.random.uniform(-6.0, 6.0, (500, 3))
 
-    figsize = (10, 10)
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_subplot(111, projection="3d")
-    plot_tf(ax, T_WC, size=1.0)
-    frustum.plot(ax, points=points)
+    # Visualize
+    debug = False
+    if debug:
+      figsize = (10, 10)
+      fig = plt.figure(figsize=figsize)
+      ax = fig.add_subplot(111, projection="3d")
+      plot_tf(ax, T_WC, size=1.0)
+      frustum.plot(ax, points=points)
 
-    plot_set_axes_equal(ax)
-    ax.set_xlabel("X axis")
-    ax.set_ylabel("Y axis")
-    ax.set_zlabel("Z axis")
-    plt.show()
+      plot_set_axes_equal(ax)
+      ax.set_xlabel("X axis")
+      ax.set_ylabel("Y axis")
+      ax.set_zlabel("Z axis")
+      plt.show()
 
 
 class TestOctree(unittest.TestCase):
@@ -6541,7 +6596,7 @@ class TestOctree(unittest.TestCase):
     octree_bboxes = []
     octree.get_points_and_bboxes(octree.root, octree_points, octree_bboxes)
 
-    # Visualize octree
+    # Visualize
     debug = False
     if debug:
       fig = plt.figure()
