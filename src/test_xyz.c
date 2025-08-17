@@ -28,16 +28,16 @@ int test_mean_value(void) {
  ******************************************************************************/
 
 int test_tic_toc(void) {
-  struct timespec t_start = tic();
+  tic();
   usleep(1);
-  MU_ASSERT(fabs(toc(&t_start) - 1e-3) < 1e-2);
+  MU_ASSERT(fabs(toc() - 1e-3) < 1e-2);
   return 0;
 }
 
 int test_mtoc(void) {
-  struct timespec t_start = tic();
+  tic();
   usleep(1);
-  MU_ASSERT(fabs(mtoc(&t_start) - 1e-3) < 1);
+  MU_ASSERT(fabs(mtoc() - 1e-3) < 1);
   return 0;
 }
 
@@ -5850,6 +5850,26 @@ int test_bundle_adjustment(void) {
 //
 //   return 0;
 // }
+
+/*******************************************************************************
+ * MORTON CODES
+ ******************************************************************************/
+
+int test_morton_codes_3d(void) {
+  uint32_t x = 1;
+  uint32_t y = 2;
+  uint32_t z = 3;
+  uint32_t code = morton_encode_3d(x, y, z);
+  printf("code: %d\n", code);
+
+  uint32_t x_ = 0;
+  uint32_t y_ = 0;
+  uint32_t z_ = 0;
+  morton_decode_3d(code, &x_, &y_, &z_);
+  printf("decode : %d, %d, %d\n", x_, y_, z_);
+
+  return 0;
+}
 
 /*******************************************************************************
  * OCTREE

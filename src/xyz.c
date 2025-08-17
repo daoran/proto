@@ -9684,6 +9684,89 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
 }
 
 /*******************************************************************************
+ * MORTON CODES
+ ******************************************************************************/
+
+// "Insert" a 0 bit after each of the 16 low bits of x
+uint32_t part1by1(uint32_t x) {
+  // x = ---- ---- ---- ---- fedc ba98 7654 3210
+  // x = ---- ---- fedc ba98 ---- ---- 7654 3210
+  // x = ---- fedc ---- ba98 ---- 7654 ---- 3210
+  // x = --fe --dc --ba --98 --76 --54 --32 --10
+  // x = -f-e -d-c -b-a -9-8 -7-6 -5-4 -3-2 -1-0
+  x &= 0x0000ffff;
+  x = (x ^ (x << 8)) & 0x00ff00ff;
+  x = (x ^ (x << 4)) & 0x0f0f0f0f;
+  x = (x ^ (x << 2)) & 0x33333333;
+  x = (x ^ (x << 1)) & 0x55555555;
+  return x;
+}
+
+// "Insert" two 0 bits after each of the 10 low bits of x
+uint32_t part1by2(uint32_t x) {
+  // x = ---- ---- ---- ---- ---- --98 7654 3210
+  // x = ---- --98 ---- ---- ---- ---- 7654 3210
+  // x = ---- --98 ---- ---- 7654 ---- ---- 3210
+  // x = ---- --98 ---- 76-- --54 ---- 32-- --10
+  // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
+  x &= 0x000003ff;
+  x = (x ^ (x << 16)) & 0xff0000ff;
+  x = (x ^ (x << 8)) & 0x0300f00f;
+  x = (x ^ (x << 4)) & 0x030c30c3;
+  x = (x ^ (x << 2)) & 0x09249249;
+  return x;
+}
+
+// Inverse of part1by1 - "delete" all odd-indexed bits
+uint32_t compact1by1(uint32_t x) {
+  // x = -f-e -d-c -b-a -9-8 -7-6 -5-4 -3-2 -1-0
+  // x = --fe --dc --ba --98 --76 --54 --32 --10
+  // x = ---- fedc ---- ba98 ---- 7654 ---- 3210
+  // x = ---- ---- fedc ba98 ---- ---- 7654 3210
+  // x = ---- ---- ---- ---- fedc ba98 7654 3210
+  x &= 0x55555555;
+  x = (x ^ (x >> 1)) & 0x33333333;
+  x = (x ^ (x >> 2)) & 0x0f0f0f0f;
+  x = (x ^ (x >> 4)) & 0x00ff00ff;
+  x = (x ^ (x >> 8)) & 0x0000ffff;
+  return x;
+}
+
+// Inverse of part1by2 - "delete" all bits not at positions divisible by 3
+uint32_t compact1by2(uint32_t x) {
+  // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
+  // x = ---- --98 ---- 76-- --54 ---- 32-- --10
+  // x = ---- --98 ---- ---- 7654 ---- ---- 3210
+  // x = ---- --98 ---- ---- ---- ---- 7654 3210
+  // x = ---- ---- ---- ---- ---- --98 7654 3210
+  x &= 0x09249249;
+  x = (x ^ (x >> 2)) & 0x030c30c3;
+  x = (x ^ (x >> 4)) & 0x0300f00f;
+  x = (x ^ (x >> 8)) & 0xff0000ff;
+  x = (x ^ (x >> 16)) & 0x000003ff;
+  return x;
+}
+
+uint32_t morton_encode_2d(uint32_t x, uint32_t y) {
+  return (part1by1(y) << 1) + part1by1(x);
+}
+
+uint32_t morton_encode_3d(uint32_t x, uint32_t y, uint32_t z) {
+  return (part1by2(z) << 2) + (part1by2(y) << 1) + part1by2(x);
+}
+
+void morton_decode_2d(uint32_t code, uint32_t *x, uint32_t *y) {
+  *x = compact1by1(code >> 0);
+  *y = compact1by1(code >> 1);
+}
+
+void morton_decode_3d(uint32_t code, uint32_t *x, uint32_t *y, uint32_t *z) {
+  *x = compact1by2(code >> 0);
+  *y = compact1by2(code >> 1);
+  *z = compact1by2(code >> 2);
+}
+
+/*******************************************************************************
  * OCTREE
  ******************************************************************************/
 

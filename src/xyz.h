@@ -1655,6 +1655,19 @@ aprilgrid_t *aprilgrid_detector_detect(const aprilgrid_detector_t *det,
                                        uint8_t *image_data);
 
 /*******************************************************************************
+ * MORTON CODES
+ ******************************************************************************/
+
+uint32_t part1by1(uint32_t x);
+uint32_t part1by2(uint32_t x);
+uint32_t compact1by1(uint32_t x);
+uint32_t compact1by2(uint32_t x);
+uint32_t morton_encode_2d(uint32_t x, uint32_t y);
+uint32_t morton_encode_3d(uint32_t x, uint32_t y, uint32_t z);
+void morton_decode_2d(uint32_t code, uint32_t *x, uint32_t *y);
+void morton_decode_3d(uint32_t code, uint32_t *x, uint32_t *y, uint32_t *z);
+
+/*******************************************************************************
  * OCTREE
  ******************************************************************************/
 
