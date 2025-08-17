@@ -910,6 +910,8 @@ int file_copy(const char *src, const char *dst) {
  * TIME
  ******************************************************************************/
 
+struct timespec __tic_time; // global tic start time
+
 timestamp_t *timestamp_malloc(timestamp_t ts) {
   timestamp_t *ts_ptr = malloc(sizeof(timestamp_t));
   *ts_ptr = ts;
@@ -922,24 +924,19 @@ void timestamp_free(timestamp_t *ts_ptr) { free(ts_ptr); }
  * Tic, start timer.
  * @returns A timespec encapsulating the time instance when tic() is called
  */
-struct timespec tic(void) {
-  struct timespec time_start;
-  clock_gettime(CLOCK_MONOTONIC, &time_start);
-  return time_start;
-}
+void tic(void) { clock_gettime(CLOCK_MONOTONIC, &__tic_time); }
 
 /**
  * Toc, stop timer.
  * @returns Time elapsed in seconds
  */
-float toc(struct timespec *tic) {
-  assert(tic != NULL);
+double toc(void) {
   struct timespec toc;
-  float time_elasped;
+  double time_elasped;
 
   clock_gettime(CLOCK_MONOTONIC, &toc);
-  time_elasped = (toc.tv_sec - tic->tv_sec);
-  time_elasped += (toc.tv_nsec - tic->tv_nsec) / 1000000000.0;
+  time_elasped = (toc.tv_sec - __tic_time.tv_sec);
+  time_elasped += (toc.tv_nsec - __tic_time.tv_nsec) / 1e9;
 
   return time_elasped;
 }
@@ -948,9 +945,8 @@ float toc(struct timespec *tic) {
  * Toc, stop timer.
  * @returns Time elapsed in milli-seconds
  */
-float mtoc(struct timespec *tic) {
-  assert(tic != NULL);
-  return toc(tic) * 1000.0;
+double mtoc(void) {
+  return toc() * 1e3;
 }
 
 /**
@@ -14543,27 +14539,27 @@ void marg_factor_marginalize(marg_factor_t *marg,
   marg->fix_params = fix_params;
 
   // Form Hessian and RHS of Gauss newton
-  TIC(hessian_form);
+  tic();
   marg_factor_hessian_form(marg);
-  marg->time_hessian_form = TOC(hessian_form);
+  marg->time_hessian_form = toc();
   marg->time_total += marg->time_hessian_form;
 
   // Apply Schur Complement
-  TIC(schur);
+  tic();
   marg_factor_schur_complement(marg);
-  marg->time_schur_complement = TOC(schur);
+  marg->time_schur_complement = toc();
   marg->time_total += marg->time_schur_complement;
 
   // Decompose marginalized Hessian
-  TIC(hessian_decomp);
+  tic();
   marg_factor_hessian_decomp(marg);
-  marg->time_hessian_decomp = TOC(hessian_decomp);
+  marg->time_hessian_decomp = toc();
   marg->time_total += marg->time_hessian_decomp;
 
   // Form FEJs
-  TIC(fejs);
+  tic();
   marg_factor_form_fejs(marg);
-  marg->time_fejs = TOC(fejs);
+  marg->time_fejs = toc();
   marg->time_total += marg->time_fejs;
 
   // Update state

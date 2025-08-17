@@ -270,19 +270,12 @@ status_t file_copy(const char *src, const char *dest);
 typedef int64_t timestamp_t;
 #endif
 
-// Tic toc macros
-#define TIC(X) struct timespec X = tic()
-#define TOC(X) toc(&X)
-#define MTOC(X) mtoc(&X)
-#define PRINT_TOC(PREFIX, X) printf("[%s]: %.4fs\n", PREFIX, toc(&X))
-#define PRINT_MTOC(PREFIX, X) printf("[%s]: %.4fms\n", PREFIX, mtoc(&X))
-
 timestamp_t *timestamp_malloc(timestamp_t ts);
 void timestamp_free(timestamp_t *ts_ptr);
 
-struct timespec tic(void);
-float toc(struct timespec *tic);
-float mtoc(struct timespec *tic);
+void tic(void);
+double toc(void);
+double mtoc(void);
 timestamp_t time_now(void);
 
 timestamp_t str2ts(const char *ts_str);
