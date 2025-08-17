@@ -1697,20 +1697,10 @@ void setup_cube_shader(gl_shader_t *shader) {
   }
 }
 
-gl_cube_t *gl_cube_malloc(const gl_float_t T[4 * 4],
-                          const gl_float_t size,
-                          const gl_color_t color) {
-  assert(T);
-  assert(size > 0);
-
+gl_cube_t *gl_cube_malloc(void) {
   gl_cube_t *cube = malloc(sizeof(gl_cube_t));
   cube->VAO = 0;
   cube->VBO = 0;
-  for (int i = 0; i < 16; ++i) {
-    cube->T[i] = T[i];
-  }
-  cube->size = size;
-  cube->color = color;
 
   // clang-format off
   // Vertices
@@ -1793,7 +1783,10 @@ void gl_cube_free(gl_cube_t *cube) {
   free(cube);
 }
 
-void draw_cube(gl_cube_t *cube) {
+void draw_cube(gl_cube_t *cube,
+               const gl_float_t T[4 * 4],
+               const gl_float_t size,
+               const gl_color_t color) {
   assert(cube);
 
   // Disable cull face
@@ -1814,12 +1807,12 @@ void draw_cube(gl_cube_t *cube) {
 
   gl_set_mat4(shader->program_id, "projection", _camera.P);
   gl_set_mat4(shader->program_id, "view", _camera.V);
-  gl_set_mat4(shader->program_id, "model", cube->T);
-  gl_set_float(shader->program_id, "size", cube->size);
+  gl_set_mat4(shader->program_id, "model", T);
+  gl_set_float(shader->program_id, "size", size);
   gl_set_vec3(shader->program_id, "view_pos", view_pos);
   gl_set_vec3(shader->program_id, "light_pos", light_pos);
   gl_set_color(shader->program_id, "light_color", light_color);
-  gl_set_color(shader->program_id, "object_color", cube->color);
+  gl_set_color(shader->program_id, "object_color", color);
 
   glBindVertexArray(cube->VAO);
   glDrawArrays(GL_TRIANGLES, 0, 36); // 36 Vertices
@@ -1833,7 +1826,7 @@ void draw_cube(gl_cube_t *cube) {
   }
 }
 
-// FRUSTUM ///////////////////////////////////////////////////////////////////
+// FRUSTUM /////////////////////////////////////////////////////////////////////
 
 #define gl_frustum_VS                                                          \
   "#version 330 core\n"                                                        \
@@ -2278,8 +2271,8 @@ void setup_points3d_shader(gl_shader_t *shader) {
   }
 }
 
-gl_points3d_t *gl_points3d_malloc(const gl_float_t *points_data,
-                                  const size_t num_points,
+gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
+                                  size_t num_points,
                                   const gl_float_t point_size) {
   assert(num_points >= 0);
   assert(point_size >= 0);
@@ -2299,7 +2292,7 @@ gl_points3d_t *gl_points3d_malloc(const gl_float_t *points_data,
   glBindVertexArray(points->VAO);
 
   // VBO
-  const size_t vbo_size = sizeof(points->points_data);
+  const size_t vbo_size = sizeof(float) * 3 * num_points;
   glGenBuffers(1, &points->VBO);
   glBindBuffer(GL_ARRAY_BUFFER, points->VBO);
   glBufferData(GL_ARRAY_BUFFER, vbo_size, points->points_data, GL_STATIC_DRAW);
@@ -2324,15 +2317,14 @@ void gl_points3d_free(gl_points3d_t *points) {
   if (points == NULL) {
     return;
   }
-
   GL_DEL_VERTEX_ARRAY(points->VAO);
   GL_DEL_BUFFER(points->VBO);
   free(points);
 }
 
 void gl_points3d_update(gl_points3d_t *points,
-                        const gl_float_t *points_data,
-                        const size_t num_points,
+                        gl_float_t *points_data,
+                        size_t num_points,
                         const gl_float_t point_size) {
   points->points_data = points_data;
   points->num_points = num_points;
@@ -2385,8 +2377,8 @@ void draw_points3d(gl_points3d_t *points) {
   // Use shader program
   gl_shader_t *shader = &_shader_points;
   glUseProgram(shader->program_id);
-  gl_set_mat4(shader->program_id, "projection", _camera.P);
   gl_set_mat4(shader->program_id, "view", _camera.V);
+  gl_set_mat4(shader->program_id, "projection", _camera.P);
   gl_set_float(shader->program_id, "size", points->point_size);
 
   // Draw
@@ -2632,7 +2624,7 @@ gl_image_t *gl_image_malloc(const int x,
 
 void gl_image_free(gl_image_t *image) {
   if (image == NULL) {
-    return ;
+    return;
   }
   GL_DEL_VERTEX_ARRAY(image->VAO);
   GL_DEL_BUFFER(image->VBO);

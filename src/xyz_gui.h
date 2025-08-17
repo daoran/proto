@@ -23,7 +23,6 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-
 /******************************************************************************
  * MACROS
  *****************************************************************************/
@@ -332,7 +331,6 @@ gui_t *gui_malloc(const char *window_title,
 void gui_free(gui_t *gui);
 int gui_poll(gui_t *gui);
 void gui_update(gui_t *gui);
-void gui_loop(void);
 
 // RECT //////////////////////////////////////////////////////////////////////
 
@@ -354,18 +352,15 @@ void draw_rect(gl_rect_t *rect);
 typedef struct gl_cube_t {
   gl_uint_t VAO;
   gl_uint_t VBO;
-
-  gl_float_t T[4 * 4];
-  gl_float_t size;
-  gl_color_t color;
 } gl_cube_t;
 
 void setup_cube_shader(gl_shader_t *cube);
-gl_cube_t *gl_cube_malloc(const gl_float_t T[4 * 4],
-                          const gl_float_t size,
-                          const gl_color_t color);
+gl_cube_t *gl_cube_malloc(void);
 void gl_cube_free(gl_cube_t *cube);
-void draw_cube(gl_cube_t *cube);
+void draw_cube(gl_cube_t *cube,
+               const gl_float_t T[4 * 4],
+               const gl_float_t size,
+               const gl_color_t color);
 
 // FRUSTUM ///////////////////////////////////////////////////////////////////
 
@@ -429,19 +424,19 @@ typedef struct gl_points3d_t {
   gl_uint_t VAO;
   gl_uint_t VBO;
 
-  const gl_float_t *points_data;
+  gl_float_t *points_data;
   size_t num_points;
   gl_float_t point_size;
 } gl_points3d_t;
 
 void setup_points3d_shader(gl_shader_t *points);
-gl_points3d_t *gl_points3d_malloc(const gl_float_t *points_data,
-                                  const size_t num_points,
+gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
+                                  size_t num_points,
                                   const gl_float_t point_size);
 void gl_points3d_free(gl_points3d_t *points);
 void gl_points3d_update(gl_points3d_t *points,
-                        const gl_float_t *points_data,
-                        const size_t num_points,
+                        gl_float_t *points_data,
+                        size_t num_points,
                         const gl_float_t point_size);
 void draw_points3d(gl_points3d_t *points);
 

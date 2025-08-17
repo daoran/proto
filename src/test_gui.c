@@ -536,7 +536,7 @@ int test_components(void) {
   cube_T[14] = 1.0;
   gl_float_t cube_size = 0.5f;
   gl_color_t cube_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_cube_t *cube = gl_cube_malloc(cube_T, cube_size, cube_color);
+  gl_cube_t *cube = gl_cube_malloc();
 
   // Frustum
   gl_float_t frustum_T[4 * 4];
@@ -562,8 +562,8 @@ int test_components(void) {
 
   // Points
   gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
-  gl_float_t point_size = 2.0;
-  size_t num_points = 1e5;
+  gl_float_t point_size = 5.0;
+  size_t num_points = 1e3;
   gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
   for (size_t i = 0; i < num_points; ++i) {
     points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
@@ -597,9 +597,9 @@ int test_components(void) {
   int width = 0;
   int height = 0;
   int channels = 0;
-  const char *image_path = "/home/chutsu/smile.jpeg";
+  const char *image_path = "test_data/images/awesomeface.png";
   stbi_set_flip_vertically_on_load(1);
-  uint8_t *image_data = stbi_load(image_path, &width, &height, &channels, 0);
+  uint8_t *image_data = stbi_load(image_path, &width, &height, &channels, 3);
   gl_image_t *image = gl_image_malloc(10, 120, image_data, width, height, channels);
   stbi_image_free(image_data);
 
@@ -638,18 +638,18 @@ int test_components(void) {
 
   // Render
   while (gui_poll(gui)) {
-    draw_rect(rect);
-    draw_cube(cube);
-    draw_frustum(frustum);
-    draw_axes3d(axes);
+    // draw_rect(rect);
+    // draw_cube(cube, cube_T, cube_size, cube_color);
+    // draw_frustum(frustum);
+    // draw_axes3d(axes);
     draw_grid3d(grid);
     draw_points3d(points3d);
-    draw_line3d(line);
-    draw_image(image);
-    draw_text(text, "Hello World", 10, 350, text_color);
-    for (int i = 0; i < 10; ++i) {
-      draw_axes3d(frames[i]);
-    }
+    // draw_line3d(line);
+    // draw_image(image);
+    // draw_text(text, "Hello World", 10, 350, text_color);
+    // for (int i = 0; i < 10; ++i) {
+    //   draw_axes3d(frames[i]);
+    // }
 
     gui_update(gui);
   }
