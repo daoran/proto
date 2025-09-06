@@ -6121,7 +6121,15 @@ def float_to_uint10(x: float, min_val: float = 0.0, max_val: float = 1.0):
 
 
 def part1by2(n: int):
-  """Interleave 10-bit integer with two zeros between each bit."""
+  """
+  Interleave 10-bit integer with two zeros between each bit.
+
+  The function take the bits of 1 number and insert 2 zero bits between each of
+  them. This is sometimes called **bit partitioning** or **bit dilation**. It
+  is essentially "spreading out" the bits of a number so that you can
+  interleave them with other numbers.
+
+  """
   n &= 0x3FF
   n = (n | (n << 16)) & 0x30000FF
   n = (n | (n << 8)) & 0x300F00F
@@ -6130,17 +6138,25 @@ def part1by2(n: int):
   return n
 
 
-def morton_xyz_f32(
-  x: float,
-  y: float,
-  z: float,
-  min_val: float = 0.0,
-  max_val: float = 1.0,
-):
-  """ Create 3D Morton code
+def compact1by2(n):
+  """
+  The opposite of part1by2(), it reverses the operation to de-interlave the
+  bits to obtain the original integer.
+  """
+  n &= 0x09249249
+  n = (n ^ (n >> 2)) & 0x030C30C3
+  n = (n ^ (n >> 4)) & 0x0300F00F
+  n = (n ^ (n >> 8)) & 0x030000FF
+  n = (n ^ (n >> 16)) & 0x000003FF
+  return n
 
-  The following uses 10 bits per axis, so the final Morton code fits in a
-  30-bit integer.
+
+def morton_encode(x: int, y: int, z: int):
+  """
+  Create 3D Morton code from three integer numbers in x, y, and z axis.
+
+  The function uses 10 bits per axis, so the final Morton code fits in a 30-bit
+  integer.
 
   Notes:
 
@@ -6151,11 +6167,57 @@ def morton_xyz_f32(
   S = v * N   # 0.01 * 1024 = 10.24 meters
 
   """
-  xi = float_to_uint10(x, min_val, max_val)
-  yi = float_to_uint10(y, min_val, max_val)
-  zi = float_to_uint10(z, min_val, max_val)
-  return (part1by2(zi) << 2) | (part1by2(yi) << 1) | part1by2(xi)
+  return (part1by2(z) << 2) | (part1by2(y) << 1) | part1by2(x)
 
+
+def morton_decode(code):
+  """
+  Decode morton code back to its x, y, z components.
+  """
+  x = compact1by2(code)
+  y = compact1by2(code >> 1)
+  z = compact1by2(code >> 2)
+  return (x, y, z)
+
+
+# def get_parent(x, y, z):
+#   return (x >> 1, y >> 1, z >> 1)
+#
+# def get_children(x, y, z):
+#   children = []
+#   base_x = x << 1
+#   base_y = y << 1
+#   base_z = z << 1
+#   for dx in [0, 1]:
+#     for dy in [0, 1]:
+#       for dz in [0, 1]:
+#         children.append((base_x + dx, base_y + dy, base_z + dz))
+#   return children
+
+# def morton_parent(code, level):
+#   """Morton code Parent"""
+#   # x, y, z = morton_decode(code)
+#   # px, py, pz = x >> 1, y >> 1, z >> 1
+#   return morton_xyz_f32(px, py, pz)
+
+# def morton_children(code):
+#   x, y, z = morton_decode(code)
+#   return [
+#     morton3D((x << 1) + dx, (y << 1) + dy, (z << 1) + dz)
+#     for dx in [0, 1]
+#     for dy in [0, 1]
+#     for dz in [0, 1]
+#   ]
+
+# def morton_neighbors(code):
+#   x, y, z = morton_decode(code)
+#   return [
+#     morton3D(x + dx, y + dy, z + dz)
+#     for dx in [-1, 0, 1]
+#     for dy in [-1, 0, 1]
+#     for dz in [-1, 0, 1]
+#     if not (dx == dy == dz == 0)
+#   ]
 
 
 class Plane:
@@ -6177,9 +6239,11 @@ class Plane:
       self.point = -self.dist * n
 
   def vector(self) -> Vec4:
+    """Plane coefficients as a vector (nx, ny, nz, d)"""
     return np.array([self.normal[0], self.normal[1], self.normal[2], self.dist])
 
   def transform(self, T: Mat4):
+    """Transform plane"""
     x, y, z, d = np.transpose(np.linalg.inv(T)) @ self.vector()
     self.normal = np.array([x, y, z])
 
@@ -6188,12 +6252,14 @@ class Plane:
     self.dist = d / length
 
   def distance(self, p: Vec3) -> float:
+    """Point to plane distance"""
     a, b, c = self.normal
     d = self.dist
     x, y, z = p
     return a * x + b * y + c * z - d
 
   def get_transform(self) -> Mat4:
+    """Plane homogeneous transform"""
     world_up = np.array([0, 1, 0])
     z_axis = self.normal / np.linalg.norm(self.normal)
     x_axis = np.cross(z_axis, world_up)
@@ -6216,6 +6282,7 @@ class Plane:
     xrange=np.linspace(-1.0, 1.0, 10),
     yrange=np.linspace(-1.0, 1.0, 10),
   ):
+    """Plot the plane"""
     xx, yy = np.meshgrid(xrange, yrange)
     a, b, c, d = self.vector()
     zz = (d - a * xx - b * yy) / c
@@ -6303,6 +6370,7 @@ class Frustum:
     plot_planes: bool = False,
     plot_plane_frames: bool = False,
   ):
+    """Plot Frustum"""
     # Plot planes
     if plot_planes:
       self.near.plot(ax, color="r")
@@ -6398,6 +6466,7 @@ class Frustum:
 
 
 class Ray:
+  """ 3D Ray """
   def __init__(self, origin: Vec3, dir: Vec3):
     self.origin = origin
     self.dir = dir
