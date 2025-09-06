@@ -534,8 +534,6 @@ int test_components(void) {
   cube_T[12] = 0.0;
   cube_T[13] = 0.0;
   cube_T[14] = 1.0;
-  gl_float_t cube_size = 0.5f;
-  gl_color_t cube_color = (gl_color_t){0.9, 0.4, 0.2};
   gl_cube_t *cube = gl_cube_malloc();
 
   // Frustum
@@ -563,17 +561,18 @@ int test_components(void) {
   // Points
   gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
   gl_float_t point_size = 5.0;
-  size_t num_points = 1e3;
+  size_t num_points = 1e7;
   gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
   for (size_t i = 0; i < num_points; ++i) {
-    points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
-    points_data[i * 6 + 1] = gl_randf(-1.0f, 1.0f);
-    points_data[i * 6 + 2] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 0] = gl_randf(-100.0f, 100.0f);
+    points_data[i * 6 + 1] = gl_randf(-100.0f, 100.0f);
+    points_data[i * 6 + 2] = gl_randf(-100.0f, 100.0f);
     points_data[i * 6 + 3] = points_color.r;
     points_data[i * 6 + 4] = points_color.g;
     points_data[i * 6 + 5] = points_color.b;
   }
-  gl_points3d_t *points3d = gl_points3d_malloc(points_data, num_points, point_size);
+  gl_points3d_t *points3d =
+      gl_points3d_malloc(points_data, num_points, point_size);
   free(points_data);
 
   // Line
@@ -590,7 +589,8 @@ int test_components(void) {
     line_data[i * 3 + 2] = radius * cos(theta);
     theta += dtheta;
   }
-  gl_line3d_t *line = gl_line3d_malloc(line_data, line_size, line_color, line_lw);
+  gl_line3d_t *line =
+      gl_line3d_malloc(line_data, line_size, line_color, line_lw);
   free(line_data);
 
   // Image
@@ -600,11 +600,12 @@ int test_components(void) {
   const char *image_path = "test_data/images/awesomeface.png";
   stbi_set_flip_vertically_on_load(1);
   uint8_t *image_data = stbi_load(image_path, &width, &height, &channels, 3);
-  gl_image_t *image = gl_image_malloc(10, 120, image_data, width, height, channels);
+  gl_image_t *image =
+      gl_image_malloc(10, 120, image_data, width, height, channels);
   stbi_image_free(image_data);
 
   // Text
-  gl_color_t text_color = (gl_color_t){1.0, 1.0, 1.0};
+  // gl_color_t text_color = (gl_color_t){1.0, 1.0, 1.0};
   int text_size = 18;
   gl_text_t *text = gl_text_malloc(text_size);
 

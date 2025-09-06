@@ -91,7 +91,7 @@ run_memcheck() {
 # python3 src/xyz.py TestKitti
 # python3 src/xyz.py TestKalmanFilter
 # python3 src/xyz.py TestPlane
-python3 src/xyz.py TestFrustum
+# python3 src/xyz.py TestFrustum
 # python3 src/xyz.py TestOctree
 # python3 src/xyz.py TestOctree.test_octree
 # python3 src/xyz.py TestSimulation
@@ -141,8 +141,10 @@ run_test() {
       && time make tests -j \
       && cd build \
       && ./$1 --target $2 \
-      && cd ~/code/xyz
+      # && perf record -g --call-graph=dwarf ./$1 --target $2 \
+      # && perf annotate --stdio > profile.txt
   " C-m C-m
+      # && ./$1 --target $2 \
 
 #   tmux send-keys -t $TARGET -R "\
 # python3 - <<EOF
@@ -390,11 +392,14 @@ run_test() {
 # run_test test_xyz test_bundle_adjustment
 ## XYZ-TIMELINE
 # run_test test_xyz test_timeline
+## XYZ-MORTON-CODES
+# run_test test_xyz test_morton_codes
 ## XYZ-OCTREE
 # run_test test_xyz test_octree_node
+# run_test test_xyz test_octree_node_check_point
 # run_test test_xyz test_octree
 # run_test test_xyz test_octree_points
-# run_test test_xyz test_octree_downsample
+run_test test_xyz test_voxel_downsample
 ## XYZ-KD-TREE
 # run_test test_xyz test_sort
 # run_test test_xyz test_kdtree_node

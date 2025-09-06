@@ -1095,7 +1095,7 @@ void gl_camera_setup(gl_camera_t *camera,
   camera->fov_min = gl_deg2rad(10.0f);
   camera->fov_max = gl_deg2rad(120.0f);
   camera->near = 0.01f;
-  camera->far = 100.0f;
+  camera->far = 500.0f;
 
   // gl_camera_update(camera);
 }
@@ -1443,8 +1443,10 @@ gui_t *gui_malloc(const char *window_title,
   // Camera
   gl_camera_setup(&_camera, &_window_width, &_window_height);
   _camera.position[0] = 0.0f;
-  _camera.position[1] = 4.0f;
-  _camera.position[2] = 5.0f;
+  // _camera.position[1] = 4.0f;
+  // _camera.position[2] = 5.0f;
+  _camera.position[1] = 200.0f;
+  _camera.position[2] = 200.0f;
   _mouse_sensitivity = 0.02f;
 
   // UI event
@@ -1506,6 +1508,7 @@ void gui_update(gui_t *gui) {
   const double time_now = glfwGetTime();
   _frame_dt = time_now - _frame_last;
   _frame_last = time_now;
+  printf("fps: %f\n", 1.0 / _frame_dt);
   // const double time_now = glfwGetTime();
   // const double dt = time_now - gui->last_frame;
   // if (dt >= gui->fps_limit) {
@@ -2247,10 +2250,10 @@ void draw_grid3d(gl_grid3d_t *grid) {
   "out vec3 color;\n"                                                          \
   "uniform mat4 view;\n"                                                       \
   "uniform mat4 projection;\n"                                                 \
-  "uniform float size;\n"                                                      \
+  "uniform float point_size;\n"                                                \
   "void main() {\n"                                                            \
   "  gl_Position = projection * view * vec4(in_pos, 1.0);\n"                   \
-  "  gl_PointSize = size;\n"                                                   \
+  "  gl_PointSize = point_size;\n"                                             \
   "  color = in_color;\n"                                                      \
   "}\n"
 
@@ -2258,8 +2261,9 @@ void draw_grid3d(gl_grid3d_t *grid) {
   "#version 330 core\n"                                                        \
   "in vec3 color;\n"                                                           \
   "out vec4 frag_color;\n"                                                     \
+  "uniform float alpha;\n"                                                     \
   "void main() {\n"                                                            \
-  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "  frag_color = vec4(color, alpha);\n"                                       \
   "}\n"
 
 void setup_points3d_shader(gl_shader_t *shader) {
@@ -2379,7 +2383,8 @@ void draw_points3d(gl_points3d_t *points) {
   glUseProgram(shader->program_id);
   gl_set_mat4(shader->program_id, "view", _camera.V);
   gl_set_mat4(shader->program_id, "projection", _camera.P);
-  gl_set_float(shader->program_id, "size", points->point_size);
+  gl_set_float(shader->program_id, "point_size", points->point_size);
+  gl_set_float(shader->program_id, "alpha", 1.0f);
 
   // Draw
   glBindVertexArray(points->VAO);
@@ -2564,10 +2569,8 @@ gl_image_t *gl_image_malloc(const int x,
   };
   const size_t num_vertices = 4;
   const size_t vertex_size = sizeof(gl_float_t) * 4;
-  const size_t vbo_size = sizeof(vertices);
-  const size_t ebo_size = sizeof(indices);
-  assert(vbo_size == vertex_size * num_vertices);
-  assert(ebo_size == sizeof(gl_uint_t) * 6);
+  const size_t vbo_size = sizeof(vertex_size * num_vertices);
+  const size_t ebo_size = sizeof(gl_uint_t) * 2 * 3;
   // clang-format on
 
   // VAO

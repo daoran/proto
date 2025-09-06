@@ -110,24 +110,18 @@ install: ## Install libxyz
 	ln -sf $(CUR_DIR)/xyz.py $(PYTHON3_PATH)/xyz.py
 	ln -sf $(CUR_DIR)/build/libxyz.a $(PREFIX)/lib/libxyz.a
 	ln -sf $(CUR_DIR)/*.h $(PREFIX)/include/*.h
-	ln -sf $(CUR_DIR)/xyz.h            $(PREFIX)/include/xyz.h
-	ln -sf $(CUR_DIR)/xyz_calib.h      $(PREFIX)/include/xyz_calib.h
-	ln -sf $(CUR_DIR)/xyz_ceres.h      $(PREFIX)/include/xyz_ceres.h
-	ln -sf $(CUR_DIR)/xyz_gui.h        $(PREFIX)/include/xyz_gui.h
-	ln -sf $(CUR_DIR)/xyz_http.h       $(PREFIX)/include/xyz_http.h
-	ln -sf $(CUR_DIR)/xyz_se.h         $(PREFIX)/include/xyz_se.h
-	ln -sf $(CUR_DIR)/xyz_voxel.h   $(PREFIX)/include/xyz_voxel.h
+	ln -sf $(CUR_DIR)/xyz.h         $(PREFIX)/include/xyz.h
+	ln -sf $(CUR_DIR)/xyz_ceres.h   $(PREFIX)/include/xyz_ceres.h
+	ln -sf $(CUR_DIR)/xyz_gui.h     $(PREFIX)/include/xyz_gui.h
+	ln -sf $(CUR_DIR)/xyz_http.h    $(PREFIX)/include/xyz_http.h
 
 uninstall: ## Uninstall libxyz
 	rm $(PYTHON3_PATH)/xyz.py
 	rm $(PREFIX)/lib/libxyz.a
 	rm $(PREFIX)/include/xyz.h
-	rm $(PREFIX)/include/xyz_calib.h
 	rm $(PREFIX)/include/xyz_ceres.h
 	rm $(PREFIX)/include/xyz_gui.h
 	rm $(PREFIX)/include/xyz_http.h
-	rm $(PREFIX)/include/xyz_se.h
-	rm $(PREFIX)/include/xyz_voxel.h
 
 avs: $(BLD_DIR)/libxyz.a
 	@g++ \
