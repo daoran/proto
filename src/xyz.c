@@ -945,9 +945,7 @@ double toc(void) {
  * Toc, stop timer.
  * @returns Time elapsed in milli-seconds
  */
-double mtoc(void) {
-  return toc() * 1e3;
-}
+double mtoc(void) { return toc() * 1e3; }
 
 /**
  * Get time now since epoch.
@@ -2156,8 +2154,9 @@ void *hm_get(const hm_t *hm, const void *key) {
 int hm_expand(hm_t *hm) {
   assert(hm);
   assert(hm->hash);
+  printf("expand!\n");
 
-  // Allocate new voxels array.
+  // Allocate new hashmap array.
   const size_t new_capacity = hm->capacity * 2;
   hm_entry_t *new_entries = calloc(new_capacity, sizeof(hm_entry_t));
   if (new_entries == NULL) {
@@ -3985,6 +3984,22 @@ void vec3_sub(const real_t x[3], const real_t y[3], real_t z[3]) {
   z[0] = x[0] - y[0];
   z[1] = x[1] - y[1];
   z[2] = x[2] - y[2];
+}
+
+/**
+ * Scale vector of size 3.
+ */
+void vec3_scale(const real_t a[3], const real_t s, real_t b[3]) {
+  b[0] = a[0] * s;
+  b[1] = a[1] * s;
+  b[2] = a[2] * s;
+}
+
+/**
+ * Dot product vector of size 3 `a * b`.
+ */
+real_t vec3_dot(const real_t a[3], const real_t b[3]) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
 /**
@@ -9767,6 +9782,273 @@ void morton_decode_3d(uint32_t code, uint32_t *x, uint32_t *y, uint32_t *z) {
 }
 
 /*******************************************************************************
+ * VOXEL
+ ******************************************************************************/
+
+void voxel_setup(voxel_t *voxel, const int32_t key[3]) {
+  assert(voxel);
+  assert(key);
+
+  voxel->key[0] = key[0];
+  voxel->key[1] = key[1];
+  voxel->key[2] = key[2];
+
+  for (int i = 0; i < VOXEL_MAX_POINTS; ++i) {
+    voxel->points[i * 3 + 0] = 0.0f;
+    voxel->points[i * 3 + 1] = 0.0f;
+    voxel->points[i * 3 + 2] = 0.0f;
+  }
+
+  voxel->length = 0;
+}
+
+voxel_t *voxel_malloc(const int32_t key[3]) {
+  voxel_t *voxel = malloc(sizeof(voxel_t));
+  voxel->points = calloc(VOXEL_MAX_POINTS * 3, sizeof(float));
+  voxel_setup(voxel, key);
+  return voxel;
+}
+
+void voxel_free(voxel_t *voxel) {
+  assert(voxel);
+  free(voxel->points);
+  free(voxel);
+}
+
+void voxel_print(voxel_t *voxel) {
+  assert(voxel);
+
+  printf("key: [%d, %d, %d]\n", voxel->key[0], voxel->key[1], voxel->key[2]);
+  printf("length: %ld\n", voxel->length);
+  for (int i = 0; i < voxel->length; ++i) {
+    const float x = voxel->points[i * 3 + 0];
+    const float y = voxel->points[i * 3 + 1];
+    const float z = voxel->points[i * 3 + 2];
+    printf("%d: [%.2f, %.2f, %.2f]\n", i, x, y, z);
+  }
+}
+
+void voxel_reset(voxel_t *voxel) {
+  assert(voxel);
+  assert(voxel->points != NULL);
+
+  voxel->key[0] = -1;
+  voxel->key[1] = -1;
+  voxel->key[2] = -1;
+
+  for (int i = 0; i < VOXEL_MAX_POINTS; ++i) {
+    voxel->points[i * 3 + 0] = 0.0f;
+    voxel->points[i * 3 + 1] = 0.0f;
+    voxel->points[i * 3 + 2] = 0.0f;
+  }
+
+  voxel->length = 0;
+}
+
+void voxel_copy(const voxel_t *src, voxel_t *dst) {
+  assert(src && dst);
+  assert(src->points != NULL);
+  assert(dst->points != NULL);
+
+  dst->key[0] = src->key[0];
+  dst->key[1] = src->key[1];
+  dst->key[2] = src->key[2];
+  for (int i = 0; i < src->length; ++i) {
+    dst->points[i] = src->points[i];
+  }
+  dst->length = src->length;
+}
+
+void voxel_add(voxel_t *voxel, const float p[3]) {
+  if (voxel->length >= VOXEL_MAX_POINTS) {
+    return;
+  }
+  voxel->points[voxel->length * 3 + 0] = p[0];
+  voxel->points[voxel->length * 3 + 1] = p[1];
+  voxel->points[voxel->length * 3 + 2] = p[2];
+  voxel->length++;
+}
+
+typedef struct {
+  uint32_t key;
+  uint32_t value;
+} voxel_kv_t;
+
+void voxel_radix_sort(voxel_kv_t *arr, const int n) {
+  if (n <= 1)
+    return;
+
+  const int radix_bits = 8;
+  const int radix = 1 << radix_bits;
+  const int MASK = radix - 1;
+
+  voxel_kv_t *temp = malloc(n * sizeof(voxel_kv_t));
+  if (!temp) {
+    fprintf(stderr, "Memory allocation failed\n");
+    return;
+  }
+
+  // Find maximum to determine number of passes needed
+  uint32_t max_val = arr[0].key;
+  for (int i = 1; i < n; i++) {
+    if (arr[i].key > max_val) {
+      max_val = arr[i].key;
+    }
+  }
+
+  voxel_kv_t *current = arr;
+  voxel_kv_t *next = temp;
+
+  // Process 8 bits at a time
+  for (int shift = 0; shift < 32 && (max_val >> shift) > 0;
+       shift += radix_bits) {
+    int count[256] = {0};
+
+    // Count occurrences
+    for (int i = 0; i < n; i++) {
+      int digit = (current[i].key >> shift) & MASK;
+      count[digit]++;
+    }
+
+    // Convert counts to positions
+    for (int i = 1; i < radix; i++) {
+      count[i] += count[i - 1];
+    }
+
+    // Build output array (from right to left for stability)
+    for (int i = n - 1; i >= 0; i--) {
+      int digit = (current[i].key >> shift) & MASK;
+      next[count[digit] - 1] = current[i];
+      count[digit]--;
+    }
+
+    // Swap arrays
+    voxel_kv_t *swap = current;
+    current = next;
+    next = swap;
+  }
+
+  // Copy back if needed
+  if (current != arr) {
+    memcpy(arr, current, n * sizeof(voxel_kv_t));
+  }
+
+  free(temp);
+}
+
+float *voxel_grid_downsample(const float *points,
+                             const int num_points,
+                             const float voxel_size,
+                             int *output_count) {
+  const int min_points_per_voxel = 1;
+
+  // First pass: Get min x-y-z
+  float min_x = FLT_MAX;
+  float min_y = FLT_MAX;
+  float min_z = FLT_MAX;
+  float max_x = -FLT_MAX;
+  float max_y = -FLT_MAX;
+  float max_z = -FLT_MAX;
+  for (int i = 0; i < num_points; ++i) {
+    const float x = points[i * 3 + 0];
+    const float y = points[i * 3 + 1];
+    const float z = points[i * 3 + 2];
+    min_x = (x < min_x) ? x : min_x;
+    min_y = (y < min_y) ? y : min_y;
+    min_z = (z < min_z) ? z : min_z;
+    max_x = (x > max_x) ? x : max_x;
+    max_y = (y > max_y) ? y : max_y;
+    max_z = (z > max_z) ? z : max_z;
+  }
+
+  const float inv_voxel_size = 1.0 / voxel_size;
+  const uint64_t dx = (uint64_t) ((max_x - min_x) * inv_voxel_size) + 1;
+  const uint64_t dy = (uint64_t) ((max_y - min_y) * inv_voxel_size) + 1;
+  const uint64_t dz = (uint64_t) ((max_z - min_z) * inv_voxel_size) + 1;
+  if ((dx * dy * dz) > UINT32_MAX) {
+    LOG_ERROR("Voxel size too small! Index overflow!");
+    return NULL;
+  }
+
+  // Compute the min and max bounding box values
+  const int32_t bb_min_x = (int32_t) (floor(min_x * inv_voxel_size));
+  const int32_t bb_max_x = (int32_t) (floor(max_x * inv_voxel_size));
+  const int32_t bb_min_y = (int32_t) (floor(min_y * inv_voxel_size));
+  const int32_t bb_max_y = (int32_t) (floor(max_y * inv_voxel_size));
+  const int32_t bb_min_z = (int32_t) (floor(min_z * inv_voxel_size));
+  const int32_t bb_dx = bb_max_x - bb_min_x + 1;
+  const int32_t bb_dy = bb_max_y - bb_min_y + 1;
+  const int32_t bb_dxdy = bb_dx * bb_dy;
+
+  // Second pass: Convert 3D points to voxel index, and sort by voxel index
+  voxel_kv_t *kvs = malloc(sizeof(voxel_kv_t) * num_points);
+  for (int i = 0; i < num_points; ++i) {
+    const uint32_t vx = floor(points[i * 3 + 0] * inv_voxel_size - bb_min_x);
+    const uint32_t vy = floor(points[i * 3 + 1] * inv_voxel_size - bb_min_y);
+    const uint32_t vz = floor(points[i * 3 + 2] * inv_voxel_size - bb_min_z);
+    const uint32_t vindex = vx + vy * bb_dx + vz * bb_dxdy;
+    kvs[i].key = vindex;
+    kvs[i].value = i;
+  }
+  voxel_radix_sort(kvs, num_points);
+
+  // Third pass: Form pairs of first and last index
+  size_t total = 0;
+  size_t index = 0;
+  typedef struct {
+    int first;
+    int second;
+  } pair_t;
+  pair_t *pairs = malloc(sizeof(pair_t) * num_points);
+
+  while (index < num_points) {
+    size_t i = index + 1;
+    while (i < num_points && kvs[i].key == kvs[index].key) {
+      ++i;
+    }
+
+    if ((i - index) >= min_points_per_voxel) {
+      pairs[total].first = index;
+      pairs[total].second = i;
+      ++total;
+    }
+    index = i;
+  }
+
+  // Fourth pass: compute centroids, insert them into their final position
+  float *output = malloc(sizeof(float) * 3 * total);
+  for (int i = 0; i < total; ++i) {
+    // Calculate centroid
+    const int first_index = pairs[i].first;
+    const int last_index = pairs[i].second;
+    float centroid_x = 0.0f;
+    float centroid_y = 0.0f;
+    float centroid_z = 0.0f;
+    const float count = last_index - first_index;
+    for (int j = first_index; j < last_index; ++j) {
+      const int point_index = kvs[j].value;
+      centroid_x += points[point_index * 3 + 0];
+      centroid_y += points[point_index * 3 + 1];
+      centroid_z += points[point_index * 3 + 2];
+    }
+    centroid_x /= count;
+    centroid_y /= count;
+    centroid_z /= count;
+
+    output[i * 3 + 0] = centroid_x;
+    output[i * 3 + 1] = centroid_y;
+    output[i * 3 + 2] = centroid_z;
+  }
+  *output_count = total;
+
+  // Clean up
+  free(kvs);
+  free(pairs);
+
+  return output;
+}
+
+/*******************************************************************************
  * OCTREE
  ******************************************************************************/
 
@@ -9811,12 +10093,27 @@ void octree_node_free(octree_node_t *node) {
   free(node);
 }
 
+bool octree_node_check_point(const octree_node_t *node, const float point[3]) {
+  const float hsize = node->size / 2.0;
+  const float xmin = node->center[0] - hsize;
+  const float xmax = node->center[0] + hsize;
+  const float ymin = node->center[1] - hsize;
+  const float ymax = node->center[1] + hsize;
+  const float zmin = node->center[2] - hsize;
+  const float zmax = node->center[2] + hsize;
+
+  const bool x_ok = xmin <= point[0] && point[0] <= xmax;
+  const bool y_ok = ymin <= point[1] && point[1] <= ymax;
+  const bool z_ok = zmin <= point[2] && point[2] <= zmax;
+  return x_ok && y_ok && z_ok;
+}
+
 ////////////
 // OCTREE //
 ////////////
 
 octree_t *octree_malloc(const float octree_center[3],
-                        const float octree_size,
+                        const float map_size,
                         const int octree_max_depth,
                         const int voxel_max_points,
                         const float *octree_points,
@@ -9827,9 +10124,9 @@ octree_t *octree_malloc(const float octree_center[3],
   octree->center[0] = octree_center[0];
   octree->center[1] = octree_center[1];
   octree->center[2] = octree_center[2];
-  octree->size = octree_size;
+  octree->map_size = map_size;
   octree->root = octree_node_malloc(octree->center,
-                                    octree->size,
+                                    octree->map_size,
                                     0,
                                     octree_max_depth,
                                     voxel_max_points);
@@ -9854,6 +10151,7 @@ void octree_add_point(octree_node_t *node, const float point[3]) {
 
   // Max depth reached? Add the point
   if (node->depth == node->max_depth) {
+    assert(octree_node_check_point(node, point));
     if (node->num_points >= node->max_points) {
       return;
     }
@@ -9870,17 +10168,18 @@ void octree_add_point(octree_node_t *node, const float point[3]) {
 
   // Calculate node index
   int index = 0;
-  index |= (point[0] > node->center[0]) ? 1 : 0;
-  index |= (point[1] > node->center[1]) ? 2 : 0;
-  index |= (point[2] > node->center[2]) ? 4 : 0;
+  index |= (point[0] >= node->center[0]) ? 1 : 0;
+  index |= (point[1] >= node->center[1]) ? 2 : 0;
+  index |= (point[2] >= node->center[2]) ? 4 : 0;
 
   // Create new child node if it doesn't exist already
   octree_node_t *child = node->children[index];
   if (child == NULL) {
-    const float offset = node->size / 2;
-    const float center[3] = {node->center[0] + (index & 1 ? offset : -offset),
-                             node->center[1] + (index & 2 ? offset : -offset),
-                             node->center[2] + (index & 4 ? offset : -offset)};
+    const float offset = node->size / 4;
+    const float *node_center = node->center;
+    const float center[3] = {node_center[0] + (index & 1 ? offset : -offset),
+                             node_center[1] + (index & 2 ? offset : -offset),
+                             node_center[2] + (index & 4 ? offset : -offset)};
     const float size = node->size / 2.0;
     const int depth = node->depth + 1;
     const int max_depth = node->max_depth;
@@ -9893,7 +10192,8 @@ void octree_add_point(octree_node_t *node, const float point[3]) {
   octree_add_point(child, point);
 }
 
-void octree_points(const octree_node_t *node, octree_data_t *data) {
+static void octree_get_points_recurse(const octree_node_t *node,
+                                      octree_data_t *data) {
   assert(node);
   assert(data && data->points && data->capacity > 0);
 
@@ -9913,7 +10213,19 @@ void octree_points(const octree_node_t *node, octree_data_t *data) {
 
   for (size_t i = 0; i < 8; ++i) {
     if (node->children[i]) {
-      octree_points(node->children[i], data);
+      octree_get_points_recurse(node->children[i], data);
+    }
+  }
+}
+
+void octree_get_points(const octree_node_t *node, octree_data_t *data) {
+  assert(node);
+  assert(data && data->points && data->capacity > 0);
+
+#pragma omp parallel for
+  for (size_t i = 0; i < 8; ++i) {
+    if (node->children[i]) {
+      octree_get_points_recurse(node->children[i], data);
     }
   }
 }
@@ -9927,18 +10239,22 @@ float *octree_downsample(const float *octree_data,
   assert(n > 0);
 
   // Find center
-  float xmin, ymin, zmin = INFINITY;
-  float xmax, ymax, zmax = -INFINITY;
+  float xmin = FLT_MAX;
+  float ymin = FLT_MAX;
+  float zmin = FLT_MAX;
+  float xmax = -FLT_MAX;
+  float ymax = -FLT_MAX;
+  float zmax = -FLT_MAX;
   for (size_t i = 0; i < n; ++i) {
     const float x = octree_data[i * 3 + 0];
     const float y = octree_data[i * 3 + 1];
     const float z = octree_data[i * 3 + 2];
-    xmin = (x < xmin) ? x : xmin;
-    xmax = (x > xmax) ? x : xmax;
-    ymin = (y < ymin) ? y : ymin;
-    ymax = (y > ymax) ? y : ymax;
-    zmin = (z < zmin) ? z : zmin;
-    zmax = (z > zmax) ? z : zmax;
+    xmin = (x <= xmin) ? x : xmin;
+    xmax = (x >= xmax) ? x : xmax;
+    ymin = (y <= ymin) ? y : ymin;
+    ymax = (y >= ymax) ? y : ymax;
+    zmin = (z <= zmin) ? z : zmin;
+    zmax = (z >= zmax) ? z : zmax;
   }
   const float octree_center[3] = {
       (xmax + xmin) / 2.0,
@@ -9947,18 +10263,19 @@ float *octree_downsample(const float *octree_data,
   };
 
   // Find octree size
-  float octree_size = 0.0f;
-  octree_size = (fabs(xmin) > octree_size) ? fabs(xmin) : octree_size;
-  octree_size = (fabs(ymin) > octree_size) ? fabs(ymin) : octree_size;
-  octree_size = (fabs(zmin) > octree_size) ? fabs(zmin) : octree_size;
-  octree_size = (xmax > octree_size) ? xmax : octree_size;
-  octree_size = (ymax > octree_size) ? ymax : octree_size;
-  octree_size = (zmax > octree_size) ? zmax : octree_size;
+  float map_size = 0.0f;
+  map_size = (fabs(xmin) > map_size) ? fabs(xmin) : map_size;
+  map_size = (fabs(ymin) > map_size) ? fabs(ymin) : map_size;
+  map_size = (fabs(zmin) > map_size) ? fabs(zmin) : map_size;
+  map_size = (xmax > map_size) ? xmax : map_size;
+  map_size = (ymax > map_size) ? ymax : map_size;
+  map_size = (zmax > map_size) ? zmax : map_size;
+  map_size *= 2.0;
 
   // Create octree
-  const int octree_max_depth = ceil(log2(octree_size / voxel_size));
+  const int octree_max_depth = ceil(log2(map_size / voxel_size));
   octree_t *octree = octree_malloc(octree_center,
-                                   octree_size,
+                                   map_size,
                                    octree_max_depth,
                                    voxel_max_points,
                                    octree_data,
@@ -9969,7 +10286,7 @@ float *octree_downsample(const float *octree_data,
   data.points = malloc(sizeof(float) * 3 * n);
   data.num_points = 0;
   data.capacity = n;
-  octree_points(octree->root, &data);
+  octree_get_points(octree->root, &data);
 
   // Clean up
   octree_free(octree);

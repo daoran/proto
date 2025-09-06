@@ -5872,6 +5872,53 @@ int test_morton_codes_3d(void) {
 }
 
 /*******************************************************************************
+ * VOXEL
+ ******************************************************************************/
+
+int test_voxel_downsample(void) {
+  // Setup
+  // const float voxel_size = 5.0;
+  // const size_t n = 1e4;
+  // const float offset[3] = {0.0f, 0.0f, 0.0f};
+  // float *points = malloc(sizeof(float) * 3 * n);
+  // for (int i = 0; i < n; ++i) {
+  //   const float x = randf(-100.0 - offset[0], 100.0 + offset[0]);
+  //   const float y = randf(-100.0 - offset[1], 100.0 + offset[1]);
+  //   const float z = randf(-100.0 - offset[2], 100.0 + offset[2]);
+  //   points[i * 3 + 0] = x;
+  //   points[i * 3 + 1] = y;
+  //   points[i * 3 + 2] = z;
+  // }
+
+  const float voxel_size = 0.1;
+  size_t n = 0;
+  float *points = torus_knot_points(&n);
+
+  tic();
+  int nout = 0;
+  float *points_sampled = voxel_grid_downsample(points, n, voxel_size, &nout);
+  printf("time taken: %f[s]\n", toc());
+  printf("input: %ld\n", n);
+  printf("output: %d\n", nout);
+
+
+  FILE *fp = fopen("/tmp/torus-downsampled.csv", "w");
+  fprintf(fp, "x y z\n");
+  for (int i = 0; i < nout; ++i) {
+    fprintf(fp, "%f ", points_sampled[i * 3 + 0]);
+    fprintf(fp, "%f ", points_sampled[i * 3 + 1]);
+    fprintf(fp, "%f\n", points_sampled[i * 3 + 2]);
+  }
+  fclose(fp);
+
+  // Clean up
+  free(points);
+  free(points_sampled);
+
+  return 0;
+}
+
+/*******************************************************************************
  * OCTREE
  ******************************************************************************/
 
@@ -5889,14 +5936,39 @@ int test_octree_node(void) {
   return 0;
 }
 
+int test_octree_node_check_point(void) {
+  const float center[3] = {0.0, 0.0, 0.0};
+  const float size = 1.0;
+  const int depth = 0;
+  const int max_depth = 10;
+  const int max_points = 100;
+
+  octree_node_t *n =
+      octree_node_malloc(center, size, depth, max_depth, max_points);
+
+  float p0[3] = {0.0, 0.0, 0.0};
+  float p1[3] = {size / 2.0, 0.0, 0.0};
+  float p2[3] = {0.0, size / 2.0, 0.0};
+  float p3[3] = {0.0, 0.0, size / 2.0};
+  MU_ASSERT(octree_node_check_point(n, p0));
+  MU_ASSERT(octree_node_check_point(n, p1));
+  MU_ASSERT(octree_node_check_point(n, p2));
+  MU_ASSERT(octree_node_check_point(n, p3));
+
+  octree_node_free(n);
+
+  return 0;
+}
+
 int test_octree(void) {
   // Setup
   const float octree_center[3] = {0.0, 0.0, 0.0};
-  const float octree_size = 1.0;
-  const int octree_max_depth = 3;
-  const int voxel_max_points = 5;
+  const float map_size = 100.0;
+  const float voxel_size = 0.1;
+  const int max_depth = ceil(log2(map_size / voxel_size));
+  const int voxel_max_points = 100;
 
-  const int n = 2000;
+  const int n = 1e6;
   float *octree_points = malloc(sizeof(float) * 3 * n);
   for (int i = 0; i < n; ++i) {
     const float x = randf(-1.0, 1.0);
@@ -5908,12 +5980,14 @@ int test_octree(void) {
   }
 
   // Build octree
+  tic();
   octree_t *octree = octree_malloc(octree_center,
-                                   octree_size,
-                                   octree_max_depth,
+                                   map_size,
+                                   max_depth,
                                    voxel_max_points,
                                    octree_points,
                                    n);
+  printf("time taken: %f[s]\n", toc());
 
   // Clean up
   free(octree_points);
@@ -5922,7 +5996,7 @@ int test_octree(void) {
   return 0;
 }
 
-int test_octree_points(void) {
+int test_octree_get_points(void) {
   // Setup
   const float octree_center[3] = {0.0, 0.0, 0.0};
   const float octree_size = 1.0;
@@ -5953,7 +6027,7 @@ int test_octree_points(void) {
   data.points = malloc(sizeof(float) * 3 * n);
   data.num_points = 0;
   data.capacity = n;
-  octree_points(octree->root, &data);
+  octree_get_points(octree->root, &data);
 
   // Assert
   MU_ASSERT(data.num_points == n);
@@ -5962,37 +6036,6 @@ int test_octree_points(void) {
   free(octree_data);
   octree_free(octree);
   free(data.points);
-
-  return 0;
-}
-
-int test_octree_downsample(void) {
-  // Setup
-  const int n = 2000;
-  float offset[3] = {10.0f, 20.0f, 30.0f};
-  float *points = malloc(sizeof(float) * 3 * n);
-  for (int i = 0; i < n; ++i) {
-    const float x = randf(-1.0 + offset[0], 1.0 + offset[0]);
-    const float y = randf(-1.0 + offset[1], 1.0 + offset[1]);
-    const float z = randf(-1.0 + offset[2], 1.0 + offset[2]);
-    points[i * 3 + 0] = x;
-    points[i * 3 + 1] = y;
-    points[i * 3 + 2] = z;
-  }
-
-  // Downsample
-  float voxel_size = 0.5;
-  size_t voxel_limit = 10;
-  size_t n_out = 0;
-  float *points_out =
-      octree_downsample(points, n, voxel_size, voxel_limit, &n_out);
-
-  // Assert
-  MU_ASSERT(n_out < n);
-
-  // Clean up
-  free(points);
-  free(points_out);
 
   return 0;
 }
@@ -7296,11 +7339,17 @@ void test_suite(void) {
   // TIMELINE
   // MU_ADD_TEST(test_timeline);
 
+  // MORTON CODES
+  MU_ADD_TEST(test_morton_codes_3d);
+
+  // VOXEL
+  MU_ADD_TEST(test_voxel_downsample);
+
   // OCTREE
   MU_ADD_TEST(test_octree_node);
+  MU_ADD_TEST(test_octree_node_check_point);
   MU_ADD_TEST(test_octree);
-  MU_ADD_TEST(test_octree_points);
-  MU_ADD_TEST(test_octree_downsample);
+  MU_ADD_TEST(test_octree_get_points);
 
   // KD-TREE
   // MU_ADD_TEST(test_sort);

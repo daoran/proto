@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <inttypes.h>
 #include <time.h>
+#include <float.h>
 #include <math.h>
 #include <string.h>
 #include <dirent.h>
@@ -433,10 +434,8 @@ bool rbt_node_check(rbt_node_t *root, cmp_t cmp);
 rbt_node_t *rbt_node_insert(rbt_node_t *n, void *key, void *value, cmp_t cmp);
 rbt_node_t *rbt_node_delete_min(rbt_node_t *n);
 rbt_node_t *rbt_node_delete_max(rbt_node_t *n);
-rbt_node_t *rbt_node_delete(rbt_node_t *n,
-                            void *key,
-                            cmp_t cmp,
-                            free_func_t kfree);
+rbt_node_t *
+rbt_node_delete(rbt_node_t *n, void *key, cmp_t cmp, free_func_t kfree);
 void *rbt_node_search(rbt_node_t *rbt, const void *key, cmp_t cmp);
 bool rbt_node_contains(const rbt_node_t *rbt, const void *key, cmp_t cmp);
 
@@ -706,6 +705,8 @@ void vec_normalize(real_t *x, const size_t n);
 void vec3_copy(const real_t src[3], real_t dst[3]);
 void vec3_add(const real_t a[3], const real_t b[3], real_t c[3]);
 void vec3_sub(const real_t a[3], const real_t b[3], real_t c[3]);
+void vec3_scale(const real_t a[3], const real_t s, real_t b[3]);
+real_t vec3_dot(const real_t a[3], const real_t b[3]);
 void vec3_cross(const real_t a[3], const real_t b[3], real_t c[3]);
 real_t vec3_norm(const real_t x[3]);
 void vec3_normalize(real_t x[3]);
@@ -1668,6 +1669,31 @@ void morton_decode_2d(uint32_t code, uint32_t *x, uint32_t *y);
 void morton_decode_3d(uint32_t code, uint32_t *x, uint32_t *y, uint32_t *z);
 
 /*******************************************************************************
+ * VOXEL
+ ******************************************************************************/
+
+#define VOXEL_MAX_POINTS 100
+
+typedef struct voxel_t {
+  int32_t key[3];
+  float *points;
+  size_t length;
+} voxel_t;
+
+void voxel_setup(voxel_t *voxel, const int32_t key[3]);
+voxel_t *voxel_malloc(const int32_t key[3]);
+void voxel_free(voxel_t *voxel);
+void voxel_reset(voxel_t *voxel);
+void voxel_print(voxel_t *voxel);
+void voxel_copy(const voxel_t *src, voxel_t *dst);
+void voxel_add(voxel_t *voxel, const float p[3]);
+
+float *voxel_grid_downsample(const float *points,
+                             const int num_points,
+                             const float voxel_size,
+                             int *output_count);
+
+/*******************************************************************************
  * OCTREE
  ******************************************************************************/
 
@@ -1694,6 +1720,7 @@ octree_node_t *octree_node_malloc(const float center[3],
                                   const int max_depth,
                                   const int max_points);
 void octree_node_free(octree_node_t *node);
+bool octree_node_check_point(const octree_node_t *node, const float point[3]);
 
 ////////////
 // OCTREE //
@@ -1707,19 +1734,19 @@ typedef struct octree_data_t {
 
 typedef struct octree_t {
   float center[3];
-  float size;
+  float map_size;
   octree_node_t *root;
 } octree_t;
 
 octree_t *octree_malloc(const float octree_center[3],
-                        const float octree_size,
+                        const float map_size,
                         const int octree_max_depth,
                         const int voxel_max_points,
                         const float *octree_points,
                         const size_t num_points);
 void octree_free(octree_t *octree);
 void octree_add_point(octree_node_t *node, const float point[3]);
-void octree_points(const octree_node_t *node, octree_data_t *data);
+void octree_get_points(const octree_node_t *node, octree_data_t *data);
 float *octree_downsample(const float *octree_points,
                          const size_t n,
                          const float voxel_size,
