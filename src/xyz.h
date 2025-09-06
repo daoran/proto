@@ -1669,6 +1669,48 @@ void morton_decode_2d(uint32_t code, uint32_t *x, uint32_t *y);
 void morton_decode_3d(uint32_t code, uint32_t *x, uint32_t *y, uint32_t *z);
 
 /*******************************************************************************
+ * PLANE
+ ******************************************************************************/
+
+typedef struct plane_t {
+  real_t normal[3];
+  real_t p[3];
+  real_t d;
+} plane_t;
+
+void plane_setup(plane_t *plane,
+                 const real_t normal[3],
+                 const real_t p[3],
+                 const real_t d);
+void plane_vector(const plane_t *plane, real_t v[4]);
+void plane_transform(plane_t *plane, real_t T[4 * 4]);
+real_t plane_point_dist(const plane_t *plane, real_t p[3]);
+
+/*******************************************************************************
+ * FRUSTUM
+ ******************************************************************************/
+
+typedef struct frustum_t {
+  real_t hfov;
+  real_t aspect;
+  real_t znear;
+  real_t zfar;
+
+  plane_t near;
+  plane_t far;
+  plane_t left;
+  plane_t right;
+  plane_t top;
+  plane_t bottom;
+} frustum_t;
+
+void frustum_setup(frustum_t *frustum,
+                   const real_t hfov,
+                   const real_t aspect,
+                   const real_t znear,
+                   const real_t zfar);
+
+/*******************************************************************************
  * VOXEL
  ******************************************************************************/
 
@@ -1691,7 +1733,7 @@ void voxel_add(voxel_t *voxel, const float p[3]);
 float *voxel_grid_downsample(const float *points,
                              const int num_points,
                              const float voxel_size,
-                             int *output_count);
+                             size_t *output_count);
 
 /*******************************************************************************
  * OCTREE
@@ -2311,28 +2353,28 @@ int imu_factor_ceres_eval(void *factor_ptr,
                           real_t *r_out,
                           real_t **J_out);
 
-// //////////////////
-// // LIDAR FACTOR //
-// //////////////////
-//
-// typedef struct pcd_t {
-//   timestamp_t ts_start;
-//   timestamp_t ts_end;
-//   float *data;
-//   float *time_diffs;
-//   size_t num_points;
-// } pcd_t;
-//
-// pcd_t *pcd_malloc(const timestamp_t ts_start,
-//                   const timestamp_t ts_end,
-//                   const float *data,
-//                   const float *time_diffs,
-//                   const size_t num_points);
-// void pcd_free(pcd_t *pcd);
-// void pcd_deskew(pcd_t *points,
-//                 const real_t T_WL_km1[4 * 4],
-//                 const real_t T_WL_km2[4 * 4]);
-//
+//////////////////
+// LIDAR FACTOR //
+//////////////////
+
+typedef struct pcd_t {
+  timestamp_t ts_start;
+  timestamp_t ts_end;
+  float *data;
+  float *time_diffs;
+  size_t num_points;
+} pcd_t;
+
+pcd_t *pcd_malloc(const timestamp_t ts_start,
+                  const timestamp_t ts_end,
+                  const float *data,
+                  const float *time_diffs,
+                  const size_t num_points);
+void pcd_free(pcd_t *pcd);
+void pcd_deskew(pcd_t *points,
+                const real_t T_WL_km1[4 * 4],
+                const real_t T_WL_km2[4 * 4]);
+
 // typedef struct lidar_factor_t {
 //   pcd_t *pcd;
 //   kdtree_t *kdtree;
@@ -3261,6 +3303,10 @@ typedef struct kitti_velodyne_t {
 float *kitti_load_points(const char *pcd_path, size_t *num_points);
 kitti_velodyne_t *kitti_velodyne_load(const char *data_dir);
 void kitti_velodyne_free(kitti_velodyne_t *data);
+
+float *kitti_lidar_xyz(const char *pcd_path,
+                       const float voxel_size,
+                       size_t *nout);
 
 ///////////////////
 // kitti_calib_t //

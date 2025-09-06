@@ -85,7 +85,7 @@ int test_ceres_example(void) {
                                      parameter_pointers);
   }
 
-  // ceres_solve(problem, 10, 0);
+  // Solve
   ceres_solve(problem);
   ceres_free_problem(problem);
   // printf("Initial m: 0.0, c: 0.0\n");

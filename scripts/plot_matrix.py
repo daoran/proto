@@ -3,11 +3,9 @@ import argparse
 import numpy as np
 import matplotlib.pylab as plt
 
-import scipy
-import scipy.linalg
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(prog='plot_matrix.py')
+  parser = argparse.ArgumentParser()
   parser.add_argument('--input', required=True)
   args = parser.parse_args()
 

@@ -5884,7 +5884,7 @@ int test_voxel_downsample(void) {
 
   // Voxel downsample
   tic();
-  int nout = 0;
+  size_t nout = 0;
   float *points_sampled = voxel_grid_downsample(points, n, voxel_size, &nout);
   float time_taken = toc();
 
@@ -5892,7 +5892,7 @@ int test_voxel_downsample(void) {
   if (debug) {
     printf("time taken: %f[s]\n", time_taken);
     printf("input: %ld\n", n);
-    printf("output: %d\n", nout);
+    printf("output: %ld\n", nout);
 
     // Original points
     {
@@ -6006,12 +6006,12 @@ int test_octree(void) {
 
 int test_octree_get_points(void) {
   // Setup
-  const float octree_center[3] = {0.0, 0.0, 0.0};
-  const float octree_size = 1.0;
-  const int voxel_max_points = 100;
-  const int octree_max_depth = 8;
+  const float center[3] = {0.0, 0.0, 0.0};
+  const float map_size = 2.0;
+  const int max_depth = 18;
+  const int max_points = 1000;
 
-  const int n = 2000;
+  const size_t n = 2000;
   float *octree_data = malloc(sizeof(float) * 3 * n);
   for (int i = 0; i < n; ++i) {
     const float x = randf(-1.0, 1.0);
@@ -6023,10 +6023,10 @@ int test_octree_get_points(void) {
   }
 
   // Build octree
-  octree_t *octree = octree_malloc(octree_center,
-                                   octree_size,
-                                   octree_max_depth,
-                                   voxel_max_points,
+  octree_t *octree = octree_malloc(center,
+                                   map_size,
+                                   max_depth,
+                                   max_points,
                                    octree_data,
                                    n);
 

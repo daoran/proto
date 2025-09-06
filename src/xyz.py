@@ -6335,7 +6335,7 @@ class Frustum:
     self.fbl = fc - (up * hfar / 2.0) - (right * wfar / 2.0)
     self.fbr = fc - (up * hfar / 2.0) + (right * wfar / 2.0)
 
-    # Points on the near plane
+    # Points on left, right, top and bottom
     p_left = (nc - right * wnear / 2.0) - cam_pos
     p_right = (nc + right * wnear / 2.0) - cam_pos
     p_top = (nc + up * hnear / 2.0) - cam_pos

@@ -329,6 +329,8 @@ gui_t *gui_malloc(const char *window_title,
                   const int window_width,
                   const int window_height);
 void gui_free(gui_t *gui);
+
+double gui_time(void);
 int gui_poll(gui_t *gui);
 void gui_update(gui_t *gui);
 

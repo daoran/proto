@@ -15,11 +15,11 @@ char _window_title[100] = {0};
 int _window_loop = 1;
 int _window_width = 0;
 int _window_height = 0;
-float _frame_dt;
-float _frame_last;
+float _frame_dt = 0.0f;
+float _frame_last = 0.0f;
 
 gl_camera_t _camera;
-float _camera_speed = 20.0f;
+float _camera_speed = 0.004f;
 
 float _mouse_sensitivity = 0.02f;
 int _mouse_button_left = 0;
@@ -1486,6 +1486,12 @@ void gui_free(gui_t *gui) {
   free(gui);
 }
 
+double gui_time(void) {
+  struct timespec time;
+  clock_gettime(CLOCK_REALTIME, &time);
+  return time.tv_sec + time.tv_nsec * 1e-9;
+}
+
 int gui_poll(gui_t *gui) {
   assert(gui);
 
@@ -1505,10 +1511,10 @@ void gui_update(gui_t *gui) {
   assert(gui);
   glfwSwapBuffers(gui->window);
 
-  const double time_now = glfwGetTime();
+  const double time_now = gui_time();
   _frame_dt = time_now - _frame_last;
   _frame_last = time_now;
-  printf("fps: %f\n", 1.0 / _frame_dt);
+  // printf("fps: %f\n", 1.0 / _frame_dt);
   // const double time_now = glfwGetTime();
   // const double dt = time_now - gui->last_frame;
   // if (dt >= gui->fps_limit) {

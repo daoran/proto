@@ -9784,6 +9784,262 @@ void morton_decode_3d(uint32_t code, uint32_t *x, uint32_t *y, uint32_t *z) {
 }
 
 /*******************************************************************************
+ * PLANE
+ ******************************************************************************/
+
+void plane_setup(plane_t *plane,
+                 const real_t normal[3],
+                 const real_t p[3],
+                 const real_t d) {
+  plane->normal[0] = normal[0];
+  plane->normal[1] = normal[1];
+  plane->normal[2] = normal[2];
+
+  plane->p[0] = p[0];
+  plane->p[1] = p[1];
+  plane->p[2] = p[2];
+
+  plane->d = d;
+}
+
+void plane_vector(const plane_t *plane, real_t v[4]) {
+  v[0] = plane->normal[0];
+  v[1] = plane->normal[1];
+  v[2] = plane->normal[2];
+  v[3] = plane->d;
+}
+
+void plane_set_transform(plane_t *plane, const real_t T[4 * 4]) {
+  real_t T_inv[4 * 4] = {0};
+  real_t T_inv_T[4 * 4] = {0};
+  real_t v[4] = {0};
+  real_t v_[4] = {0};
+
+  // [x, y, z, d] = inv(T)' * v
+  tf_inv(T, T_inv);
+  mat_transpose(T_inv, 4, 4, T_inv_T);
+  plane_vector(plane, v);
+  dot(T_inv_T, 4, 4, v, 4, 1, v_);
+
+  // Normalize plane and distance
+  const float norm = sqrt(v_[0] * v_[0] + v_[1] * v_[1] + v_[2] * v_[2]);
+  plane->normal[0] = v_[0] / norm;
+  plane->normal[1] = v_[1] / norm;
+  plane->normal[2] = v_[2] / norm;
+  plane->d = plane->d / norm;
+}
+
+void plane_get_transform(const plane_t *plane,
+                         const real_t world_up[3],
+                         real_t T[4 * 4]) {
+  const real_t *p = plane->p;
+  real_t xax[3] = {0};
+  real_t yax[3] = {0};
+  real_t zax[3] = {0};
+
+  // z-axis
+  vec3_copy(plane->normal, zax);
+  vec3_normalize(zax);
+
+  // x-axis
+  vec3_cross(zax, world_up, xax);
+  vec3_normalize(xax);
+
+  // y-axis
+  vec3_cross(zax, xax, yax);
+
+  // Plane transform
+  // clang-format off
+  T[0]  = xax[0]; T[1]  = yax[0]; T[2]  = zax[0]; T[3]  = p[0];
+  T[4]  = xax[1]; T[5]  = yax[1]; T[6]  = zax[1]; T[7]  = p[1];
+  T[8]  = xax[2]; T[9]  = yax[2]; T[10] = zax[2]; T[11] = p[2];
+  T[12] = 0.0;    T[13] = 0.0;    T[14] = 0.0;    T[15] = 1.0;
+  // clang-format on
+}
+
+real_t plane_point_dist(const plane_t *plane, real_t p[3]) {
+  const real_t a = plane->normal[0];
+  const real_t b = plane->normal[1];
+  const real_t c = plane->normal[2];
+  const real_t d = plane->d;
+  const real_t x = p[0];
+  const real_t y = p[1];
+  const real_t z = p[2];
+  return a * x + b * y + c * z - d;
+}
+
+/*******************************************************************************
+ * FRUSTUM
+ ******************************************************************************/
+
+#define POINT_PLANE_DIST(NORMAL, P, D)                                         \
+  (NORMAL[0] * P[0] + NORMAL[1] * P[1] + NORMAL[2] * P[2] - D)
+
+void frustum_setup(frustum_t *frustum,
+                   const real_t hfov,
+                   const real_t aspect,
+                   const real_t znear,
+                   const real_t zfar) {
+  frustum->hfov = hfov;
+  frustum->aspect = aspect;
+  frustum->znear = znear;
+  frustum->zfar = zfar;
+
+  const real_t wnear = 2.0 * tan(hfov / 2.0) * znear;
+  const real_t hnear = wnear * (1.0 / aspect);
+  const real_t wfar = 2.0 * tan(hfov / 2.0) * zfar;
+  const real_t hfar = wfar * (1.0 / aspect);
+
+  // OpenGL
+  const real_t front[3] = {0.0, 0.0, -1.0};
+  const real_t right[3] = {1.0, 0.0, 0.0};
+  const real_t left[3] = {-right[0], -right[1], -right[2]};
+  const real_t up[3] = {0.0, 1.0, 0.0};
+  const real_t cam_pos[3] = {0.0, 0.0, 0.0};
+
+  // Near and far center
+  real_t nc[3] = {0};
+  real_t fc[3] = {0};
+
+  nc[0] = cam_pos[0] + front[0] * znear;
+  nc[1] = cam_pos[1] + front[1] * znear;
+  nc[2] = cam_pos[2] + front[2] * znear;
+
+  fc[0] = cam_pos[0] + front[0] * zfar;
+  fc[1] = cam_pos[1] + front[1] * zfar;
+  fc[2] = cam_pos[2] + front[2] * zfar;
+
+  // Near frustum corners
+  real_t ntl[3] = {0};
+  real_t ntr[3] = {0};
+  real_t nbl[3] = {0};
+  real_t nbr[3] = {0};
+
+  ntl[0] = nc[0] + (up[0] * hnear / 2.0) - (right[0] * wnear / 2.0);
+  ntl[1] = nc[1] + (up[1] * hnear / 2.0) - (right[1] * wnear / 2.0);
+  ntl[2] = nc[2] + (up[2] * hnear / 2.0) - (right[2] * wnear / 2.0);
+
+  ntr[0] = nc[0] + (up[0] * hnear / 2.0) + (right[0] * wnear / 2.0);
+  ntr[1] = nc[1] + (up[1] * hnear / 2.0) + (right[1] * wnear / 2.0);
+  ntr[2] = nc[2] + (up[2] * hnear / 2.0) + (right[2] * wnear / 2.0);
+
+  nbl[0] = nc[0] - (up[0] * hnear / 2.0) - (right[0] * wnear / 2.0);
+  nbl[1] = nc[1] - (up[1] * hnear / 2.0) - (right[1] * wnear / 2.0);
+  nbl[2] = nc[2] - (up[2] * hnear / 2.0) - (right[2] * wnear / 2.0);
+
+  nbr[0] = nc[0] - (up[0] * hnear / 2.0) + (right[0] * wnear / 2.0);
+  nbr[1] = nc[1] - (up[1] * hnear / 2.0) + (right[1] * wnear / 2.0);
+  nbr[2] = nc[2] - (up[2] * hnear / 2.0) + (right[2] * wnear / 2.0);
+
+  // Far frustum corners
+  real_t ftl[3] = {0};
+  real_t ftr[3] = {0};
+  real_t fbl[3] = {0};
+  real_t fbr[3] = {0};
+
+  ftl[0] = fc[0] + (up[0] * hfar / 2.0) - (right[0] * wfar / 2.0);
+  ftl[1] = fc[1] + (up[1] * hfar / 2.0) - (right[1] * wfar / 2.0);
+  ftl[2] = fc[2] + (up[2] * hfar / 2.0) - (right[2] * wfar / 2.0);
+
+  ftr[0] = fc[0] + (up[0] * hfar / 2.0) + (right[0] * wfar / 2.0);
+  ftr[1] = fc[1] + (up[1] * hfar / 2.0) + (right[1] * wfar / 2.0);
+  ftr[2] = fc[2] + (up[2] * hfar / 2.0) + (right[2] * wfar / 2.0);
+
+  fbl[0] = fc[0] - (up[0] * hfar / 2.0) - (right[0] * wfar / 2.0);
+  fbl[1] = fc[1] - (up[1] * hfar / 2.0) - (right[1] * wfar / 2.0);
+  fbl[2] = fc[2] - (up[2] * hfar / 2.0) - (right[2] * wfar / 2.0);
+
+  fbr[0] = fc[0] - (up[0] * hfar / 2.0) + (right[0] * wfar / 2.0);
+  fbr[1] = fc[1] - (up[1] * hfar / 2.0) + (right[1] * wfar / 2.0);
+  fbr[2] = fc[2] - (up[2] * hfar / 2.0) + (right[2] * wfar / 2.0);
+
+  // Points on the near plane
+  real_t pl[3] = {0};
+  real_t pr[3] = {0};
+  real_t pt[3] = {0};
+  real_t pb[3] = {0};
+
+  pl[0] = (nc[0] - right[0] * wnear / 2.0) - cam_pos[0];
+  pl[1] = (nc[1] - right[1] * wnear / 2.0) - cam_pos[1];
+  pl[2] = (nc[2] - right[2] * wnear / 2.0) - cam_pos[2];
+
+  pr[0] = (nc[0] + right[0] * wnear / 2.0) - cam_pos[0];
+  pr[1] = (nc[1] + right[1] * wnear / 2.0) - cam_pos[1];
+  pr[2] = (nc[2] + right[2] * wnear / 2.0) - cam_pos[2];
+
+  pt[0] = (nc[0] + right[0] * hnear / 2.0) - cam_pos[0];
+  pt[1] = (nc[1] + right[1] * hnear / 2.0) - cam_pos[1];
+  pt[2] = (nc[2] + right[2] * hnear / 2.0) - cam_pos[2];
+
+  pb[0] = (nc[0] - right[0] * hnear / 2.0) - cam_pos[0];
+  pb[1] = (nc[1] - right[1] * hnear / 2.0) - cam_pos[1];
+  pb[2] = (nc[2] - right[2] * hnear / 2.0) - cam_pos[2];
+
+  // Normals on the left, right, top and bottom planes
+  real_t normal_near[3] = {0};
+  real_t normal_far[3] = {0};
+  real_t normal_left[3] = {0};
+  real_t normal_right[3] = {0};
+  real_t normal_top[3] = {0};
+  real_t normal_bottom[3] = {0};
+
+  vec3_normalize(pl);
+  vec3_normalize(pr);
+  vec3_normalize(pt);
+  vec3_normalize(pb);
+
+  vec3_copy(front, normal_near);
+  vec3_copy(front, normal_far);
+  vec3_scale(normal_far, -1, normal_far);
+
+  vec3_cross(pl, up, normal_left);
+  vec3_cross(up, pr, normal_right);
+  vec3_cross(left, pt, normal_top);
+  vec3_cross(right, pb, normal_bottom);
+
+  // Distance
+  const real_t dnear = vec3_dot(nc, normal_near);
+  const real_t dfar = vec3_dot(fc, normal_far);
+  const real_t dleft = vec3_dot(pl, normal_left);
+  const real_t dright = vec3_dot(pr, normal_right);
+  const real_t dtop = vec3_dot(pt, normal_top);
+  const real_t dbottom = vec3_dot(pb, normal_bottom);
+
+  // Form planes
+  plane_setup(&frustum->near, normal_near, nc, dnear);
+  plane_setup(&frustum->far, normal_far, fc, dfar);
+  plane_setup(&frustum->left, normal_left, pl, dleft);
+  plane_setup(&frustum->right, normal_right, pr, dright);
+  plane_setup(&frustum->top, normal_top, pt, dtop);
+  plane_setup(&frustum->bottom, normal_bottom, pb, dbottom);
+}
+
+bool frustum_check_point(const frustum_t *frustum, const real_t p[3]) {
+  const real_t *normal_near = frustum->near.normal;
+  const real_t *normal_far = frustum->far.normal;
+  const real_t *normal_left = frustum->left.normal;
+  const real_t *normal_right = frustum->right.normal;
+  const real_t *normal_top = frustum->top.normal;
+  const real_t *normal_bottom = frustum->bottom.normal;
+
+  const real_t d_near = frustum->near.d;
+  const real_t d_far = frustum->near.d;
+  const real_t d_left = frustum->near.d;
+  const real_t d_right = frustum->near.d;
+  const real_t d_top = frustum->near.d;
+  const real_t d_bottom = frustum->near.d;
+
+  int status = 0;
+  status += POINT_PLANE_DIST(normal_near, p, d_near) >= 0;
+  status += POINT_PLANE_DIST(normal_far, p, d_far) >= 0;
+  status += POINT_PLANE_DIST(normal_left, p, d_left) >= 0;
+  status += POINT_PLANE_DIST(normal_right, p, d_right) >= 0;
+  status += POINT_PLANE_DIST(normal_top, p, d_top) >= 0;
+  status += POINT_PLANE_DIST(normal_bottom, p, d_bottom) >= 0;
+  return (status == 6) ? true : false;
+}
+
+/*******************************************************************************
  * VOXEL
  ******************************************************************************/
 
@@ -9941,7 +10197,7 @@ void voxel_radix_sort(voxel_kv_t *arr, const int n) {
 float *voxel_grid_downsample(const float *points,
                              const int num_points,
                              const float voxel_size,
-                             int *output_count) {
+                             size_t *output_count) {
   const int min_points_per_voxel = 1;
 
   // First pass: Get min x-y-z
@@ -10224,7 +10480,6 @@ void octree_get_points(const octree_node_t *node, octree_data_t *data) {
   assert(node);
   assert(data && data->points && data->capacity > 0);
 
-#pragma omp parallel for
   for (size_t i = 0; i < 8; ++i) {
     if (node->children[i]) {
       octree_get_points_recurse(node->children[i], data);
@@ -13148,94 +13403,93 @@ int imu_factor_ceres_eval(void *factor_ptr,
                     J_out);
 }
 
-// //////////////////
-// // LIDAR FACTOR //
-// //////////////////
-//
-// pcd_t *pcd_malloc(const timestamp_t ts_start,
-//                   const timestamp_t ts_end,
-//                   const float *data,
-//                   const float *time_diffs,
-//                   const size_t num_points) {
-//   pcd_t *pcd = malloc(sizeof(pcd_t));
-//
-//   pcd->ts_start = ts_start;
-//   pcd->ts_end = ts_end;
-//
-//   pcd->data = malloc(sizeof(float) * 3 * num_points);
-//   for (size_t i = 0; i < num_points; ++i) {
-//     pcd->data[i * 3 + 0] = data[i * 3 + 0];
-//     pcd->data[i * 3 + 1] = data[i * 3 + 1];
-//     pcd->data[i * 3 + 2] = data[i * 3 + 2];
-//   }
-//
-//   pcd->time_diffs = malloc(sizeof(float) * num_points);
-//   for (size_t i = 0; i < num_points; ++i) {
-//     pcd->time_diffs[i] = time_diffs[i];
-//   }
-//   pcd->num_points = num_points;
-//
-//   return pcd;
-// }
-//
-// void pcd_free(pcd_t *pcd) {
-//   if (pcd == NULL) {
-//     return;
-//   }
-//
-//   free(pcd->data);
-//   free(pcd->time_diffs);
-//   free(pcd);
-// }
-//
-// void pcd_deskew(pcd_t *pcd,
-//                 const real_t T_WL_km1[4 * 4],
-//                 const real_t T_WL_km2[4 * 4]) {
-//   assert(pcd);
-//   assert(T_WL_km1);
-//   assert(T_WL_km2);
-//
-//   // Setup
-//   const real_t ts_start = ts2sec(pcd->ts_start);
-//   const real_t ts_end = ts2sec(pcd->ts_end);
-//   const real_t dt = ts_end - ts_start;
-//   TF_ROT(T_WL_km2, C_WL_km2);
-//   TF_ROT(T_WL_km1, C_WL_km1);
-//   TF_TRANS(T_WL_km2, r_WL_km2);
-//   TF_TRANS(T_WL_km1, r_WL_km1);
-//
-//   // v_WL = (C_WL_km2' * (r_WL_km1 - r_WL_km2)) / dt
-//   VEC_SUB(r_WL_km1, r_WL_km2, dr, 3);
-//   MAT_TRANSPOSE(C_WL_km2, 3, 3, C_WL_t_km2);
-//   DOT(C_WL_t_km2, 3, 3, dr, 3, 1, v_WL);
-//   vec_scale(v_WL, 3, 1.0 / dt);
-//
-//   // w_WL = (Log(C_WL_km2' * C_WL_km1)) / dt
-//   real_t w_WL[3] = {0};
-//   DOT(C_WL_t_km2, 3, 3, C_WL_km1, 3, 3, dC);
-//   lie_Log(dC, w_WL);
-//   vec_scale(w_WL, 3, 1.0 / dt);
-//
-//   // Deskew point cloud
-//   // p = Exp(s_i * w_WL) * p + s_i * v_WL
-//   for (size_t i = 0; i < pcd->num_points; ++i) {
-//     real_t p[3] = {
-//         pcd->data[i * 3 + 0],
-//         pcd->data[i * 3 + 1],
-//         pcd->data[i * 3 + 2],
-//     };
-//
-//     const real_t s_i = pcd->time_diffs[i];
-//     const real_t v_WL_i[3] = {s_i * v_WL[0], s_i * v_WL[1], s_i * v_WL[2]};
-//     const real_t w_WL_i[3] = {s_i * w_WL[0], s_i * w_WL[1], s_i * w_WL[2]};
-//
-//     real_t dC[3 * 3] = {0};
-//     lie_Exp(w_WL_i, dC);
-//     DOT(dC, 3, 3, p, 3, 1, p_new);
-//     vec_add(p_new, v_WL_i, p, 3);
-//   }
-// }
-//
+//////////////////
+// LIDAR FACTOR //
+//////////////////
+
+pcd_t *pcd_malloc(const timestamp_t ts_start,
+                  const timestamp_t ts_end,
+                  const float *data,
+                  const float *time_diffs,
+                  const size_t num_points) {
+  pcd_t *pcd = malloc(sizeof(pcd_t));
+  pcd->ts_start = ts_start;
+  pcd->ts_end = ts_end;
+
+  pcd->data = malloc(sizeof(float) * 3 * num_points);
+  for (size_t i = 0; i < num_points; ++i) {
+    pcd->data[i * 3 + 0] = data[i * 3 + 0];
+    pcd->data[i * 3 + 1] = data[i * 3 + 1];
+    pcd->data[i * 3 + 2] = data[i * 3 + 2];
+  }
+
+  pcd->time_diffs = malloc(sizeof(float) * num_points);
+  for (size_t i = 0; i < num_points; ++i) {
+    pcd->time_diffs[i] = time_diffs[i];
+  }
+  pcd->num_points = num_points;
+
+  return pcd;
+}
+
+void pcd_free(pcd_t *pcd) {
+  if (pcd == NULL) {
+    return;
+  }
+
+  free(pcd->data);
+  free(pcd->time_diffs);
+  free(pcd);
+}
+
+void pcd_deskew(pcd_t *pcd,
+                const real_t T_WL_km1[4 * 4],
+                const real_t T_WL_km2[4 * 4]) {
+  assert(pcd);
+  assert(T_WL_km1);
+  assert(T_WL_km2);
+
+  // Setup
+  const real_t ts_start = ts2sec(pcd->ts_start);
+  const real_t ts_end = ts2sec(pcd->ts_end);
+  const real_t dt = ts_end - ts_start;
+  TF_ROT(T_WL_km2, C_WL_km2);
+  TF_ROT(T_WL_km1, C_WL_km1);
+  TF_TRANS(T_WL_km2, r_WL_km2);
+  TF_TRANS(T_WL_km1, r_WL_km1);
+
+  // v_WL = (C_WL_km2' * (r_WL_km1 - r_WL_km2)) / dt
+  VEC_SUB(r_WL_km1, r_WL_km2, dr, 3);
+  MAT_TRANSPOSE(C_WL_km2, 3, 3, C_WL_t_km2);
+  DOT(C_WL_t_km2, 3, 3, dr, 3, 1, v_WL);
+  vec_scale(v_WL, 3, 1.0 / dt);
+
+  // w_WL = (Log(C_WL_km2' * C_WL_km1)) / dt
+  real_t w_WL[3] = {0};
+  DOT(C_WL_t_km2, 3, 3, C_WL_km1, 3, 3, dC);
+  lie_Log(dC, w_WL);
+  vec_scale(w_WL, 3, 1.0 / dt);
+
+  // Deskew point cloud
+  // p = Exp(s_i * w_WL) * p + s_i * v_WL
+  for (size_t i = 0; i < pcd->num_points; ++i) {
+    real_t p[3] = {
+        pcd->data[i * 3 + 0],
+        pcd->data[i * 3 + 1],
+        pcd->data[i * 3 + 2],
+    };
+
+    const real_t s_i = pcd->time_diffs[i];
+    const real_t v_WL_i[3] = {s_i * v_WL[0], s_i * v_WL[1], s_i * v_WL[2]};
+    const real_t w_WL_i[3] = {s_i * w_WL[0], s_i * w_WL[1], s_i * w_WL[2]};
+
+    real_t dC[3 * 3] = {0};
+    lie_Exp(w_WL_i, dC);
+    DOT(dC, 3, 3, p, 3, 1, p_new);
+    vec_add(p_new, v_WL_i, p, 3);
+  }
+}
+
 // /**
 //  * Setup lidar factor
 //  */
@@ -18582,6 +18836,31 @@ void kitti_velodyne_free(kitti_velodyne_t *data) {
   }
   free(data->pcd_paths);
   free(data);
+}
+
+float *kitti_lidar_xyz(const char *pcd_path,
+                       const float voxel_size,
+                       size_t *nout) {
+  // Load Kitti LIDAR points [x, y, z, intensity]
+  size_t n = 0;
+  float *raw_points = kitti_load_points(pcd_path, &n);
+
+  // Extract only the relevant parts (x, y, z)
+  float *points_xyz = malloc(sizeof(float) * 3 * n);
+  for (size_t i = 0; i < n; ++i) {
+    points_xyz[i * 3 + 0] = raw_points[i * 4 + 0];
+    points_xyz[i * 3 + 1] = raw_points[i * 4 + 1];
+    points_xyz[i * 3 + 2] = raw_points[i * 4 + 2];
+  }
+
+  // Downsample
+  float *points_out = voxel_grid_downsample(points_xyz, n, voxel_size, nout);
+
+  // Clean up
+  free(raw_points);
+  free(points_xyz);
+
+  return points_out;
 }
 
 ///////////////////
