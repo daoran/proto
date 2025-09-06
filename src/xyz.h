@@ -2794,6 +2794,24 @@ timeline_t *timeline_load_data(const char *data_dir,
  * SIMULATION
  ******************************************************************************/
 
+////////////////
+// TORUS KNOT //
+////////////////
+
+void torus_knot(real_t t, int p, int q, real_t R, real_t r, real_t out[3]);
+void torus_knot_deriv(real_t t,
+                      int p,
+                      int q,
+                      real_t R,
+                      real_t r,
+                      real_t out[3]);
+float *torus_knot_points(size_t *num_points);
+int torus_knot_save(const char *csv_path);
+
+////////////////
+// SIM CIRCLE //
+////////////////
+
 /** Sim Circle Trajectory **/
 typedef struct sim_circle_t {
   real_t imu_rate;

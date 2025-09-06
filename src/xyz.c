@@ -15799,6 +15799,123 @@ timeline_t *timeline_load_data(const char *data_dir,
  * SIMULATION
  ******************************************************************************/
 
+////////////////
+// TORUS KNOT //
+////////////////
+
+/* Base knot K(t). Adjust p, q, R, r for different shapes. */
+void torus_knot(real_t t, int p, int q, real_t R, real_t r, real_t out[3]) {
+  real_t cosqt = cos((real_t) q * t / (real_t) p);
+  real_t sinqt = sin((real_t) q * t / (real_t) p);
+  out[0] = (R + r * cosqt) * cos(t);
+  out[1] = (R + r * cosqt) * sin(t);
+  out[2] = r * sinqt;
+}
+
+/* Central difference derivative of K */
+void torus_knot_deriv(real_t t,
+                      int p,
+                      int q,
+                      real_t R,
+                      real_t r,
+                      real_t out[3]) {
+  real_t h = 1e-5;
+  real_t a[3], b[3];
+  torus_knot(t + h, p, q, R, r, a);
+  torus_knot(t - h, p, q, R, r, b);
+  out[0] = (a[0] - b[0]) / (2 * h);
+  out[1] = (a[1] - b[1]) / (2 * h);
+  out[2] = (a[2] - b[2]) / (2 * h);
+}
+
+float *torus_knot_points(size_t *num_points) {
+  // Parameters — tweak for different complexity
+  const int p = 3, q = 2;  // knot type
+  const real_t R = 2.0;    // major radius of base
+  const real_t r = 0.7;    // minor radius of base
+  const real_t a = 0.25;   // tube radius (thickness)
+  const int t_steps = 600; // along knot
+  const int s_steps = 48;  // around tube
+
+  *num_points = t_steps * s_steps;
+  float *points = malloc(sizeof(float) * 3 * *num_points);
+
+  // Generate points
+  int point_index = 0;
+  for (int i = 0; i < t_steps; i++) {
+    real_t t = 2.0 * M_PI * (real_t) i / (real_t) t_steps;
+    real_t Kp[3], K0[3];
+    torus_knot(t, p, q, R, r, K0);
+    torus_knot_deriv(t, p, q, R, r, Kp);
+    vec3_normalize(Kp); /* tangent T */
+
+    // choose reference vector not parallel to tangent
+    real_t ref[3] = {0.0, 0.0, 1.0};
+    if (fabs(vec3_dot(ref, Kp)) > 0.99) {
+      ref[0] = 0.0;
+      ref[1] = 1.0;
+      ref[2] = 0.0;
+    }
+
+    // N = normalize(ref - T * dot(ref, T))
+    real_t proj[3];
+    real_t N[3];
+    vec3_scale(Kp, vec3_dot(ref, Kp), proj);
+    vec3_sub(ref, proj, N);
+    vec3_normalize(N);
+
+    // B = T x N
+    real_t B[3];
+    vec3_cross(Kp, N, B);
+    vec3_normalize(B);
+
+    for (int j = 0; j < s_steps; j++) {
+      real_t s = 2.0 * M_PI * (real_t) j / (real_t) s_steps;
+      real_t c = cos(s), si = sin(s);
+      real_t offset1[3], offset2[3], off[3], P[3];
+
+      vec3_scale(N, a * c, offset1);
+      vec3_scale(B, a * si, offset2);
+      vec3_add(offset1, offset2, off);
+      vec3_add(K0, off, P);
+
+      points[point_index * 3 + 0] = P[0];
+      points[point_index * 3 + 1] = P[1];
+      points[point_index * 3 + 2] = P[2];
+      point_index++;
+    }
+  }
+
+  return points;
+}
+
+int torus_knot_save(const char *csv_path) {
+  size_t num_points = 0;
+  float *points = torus_knot_points(&num_points);
+
+  FILE *f = fopen(csv_path, "w");
+  if (!f) {
+    perror(csv_path);
+    return -1;
+  }
+
+  fprintf(f, "x y z\n");
+  for (int i = 0; i < num_points; ++i) {
+    fprintf(f, "%f ", points[i * 3 + 0]);
+    fprintf(f, "%f ", points[i * 3 + 1]);
+    fprintf(f, "%f\n", points[i * 3 + 2]);
+  }
+
+  fclose(f);
+  free(points);
+
+  return 0;
+}
+
+////////////////
+// SIM CIRCLE //
+////////////////
+
 /**
  * Default circle trajectory settings.
  */
