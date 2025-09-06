@@ -243,8 +243,8 @@ status_t tcp_server_loop(tcp_server_t *server) {
  * Configure TCP client
  */
 status_t tcp_client_setup(tcp_client_t *client,
-                        const char *server_ip,
-                        const int server_port) {
+                          const char *server_ip,
+                          const int server_port) {
   assert(client != NULL);
   assert(server_ip != NULL);
 
@@ -470,7 +470,7 @@ uint8_t *ws_frame_serialize(ws_frame_t *frame) {
   size_t payload_size = frame->payload_size;
 
   if (payload_size <= 126) {
-    header[1] = (uint8_t)(payload_size & 0x00000000000000FFU);
+    header[1] = (uint8_t) (payload_size & 0x00000000000000FFU);
     header_size = 2;
 
   } else if (payload_size >= 126 && payload_size <= 65535) {
@@ -500,21 +500,15 @@ uint8_t *ws_frame_serialize(ws_frame_t *frame) {
   return frame_bytes;
 }
 
-int ws_frame_fin_bit(uint8_t *data_frame) {
-  return data_frame[0] >> 7;
-}
+int ws_frame_fin_bit(uint8_t *data_frame) { return data_frame[0] >> 7; }
 
 int ws_frame_rsv_bit(uint8_t *data_frame) {
   return (data_frame[0] ^ 0x80) >> 4;
 }
 
-int ws_frame_op_code(uint8_t *data_frame) {
-  return data_frame[0] & 0x0F;
-}
+int ws_frame_op_code(uint8_t *data_frame) { return data_frame[0] & 0x0F; }
 
-int ws_frame_mask_enabled(uint8_t *data_frame) {
-  return data_frame[1] >> 7;
-}
+int ws_frame_mask_enabled(uint8_t *data_frame) { return data_frame[1] >> 7; }
 
 ws_frame_t *ws_frame_parse(int connfd) {
   // Parse header
