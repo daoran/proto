@@ -5877,39 +5877,47 @@ int test_morton_codes_3d(void) {
 
 int test_voxel_downsample(void) {
   // Setup
-  // const float voxel_size = 5.0;
-  // const size_t n = 1e4;
-  // const float offset[3] = {0.0f, 0.0f, 0.0f};
-  // float *points = malloc(sizeof(float) * 3 * n);
-  // for (int i = 0; i < n; ++i) {
-  //   const float x = randf(-100.0 - offset[0], 100.0 + offset[0]);
-  //   const float y = randf(-100.0 - offset[1], 100.0 + offset[1]);
-  //   const float z = randf(-100.0 - offset[2], 100.0 + offset[2]);
-  //   points[i * 3 + 0] = x;
-  //   points[i * 3 + 1] = y;
-  //   points[i * 3 + 2] = z;
-  // }
-
+  const bool debug = false;
   const float voxel_size = 0.1;
   size_t n = 0;
   float *points = torus_knot_points(&n);
 
+  // Voxel downsample
   tic();
   int nout = 0;
   float *points_sampled = voxel_grid_downsample(points, n, voxel_size, &nout);
-  printf("time taken: %f[s]\n", toc());
-  printf("input: %ld\n", n);
-  printf("output: %d\n", nout);
+  float time_taken = toc();
 
+  // Debug
+  if (debug) {
+    printf("time taken: %f[s]\n", time_taken);
+    printf("input: %ld\n", n);
+    printf("output: %d\n", nout);
 
-  FILE *fp = fopen("/tmp/torus-downsampled.csv", "w");
-  fprintf(fp, "x y z\n");
-  for (int i = 0; i < nout; ++i) {
-    fprintf(fp, "%f ", points_sampled[i * 3 + 0]);
-    fprintf(fp, "%f ", points_sampled[i * 3 + 1]);
-    fprintf(fp, "%f\n", points_sampled[i * 3 + 2]);
+    // Original points
+    {
+      FILE *fp = fopen("/tmp/torus.csv", "w");
+      fprintf(fp, "x y z\n");
+      for (int i = 0; i < nout; ++i) {
+        fprintf(fp, "%f ", points[i * 3 + 0]);
+        fprintf(fp, "%f ", points[i * 3 + 1]);
+        fprintf(fp, "%f\n", points[i * 3 + 2]);
+      }
+      fclose(fp);
+    }
+
+    // Downsampled points
+    {
+      FILE *fp = fopen("/tmp/torus-downsampled.csv", "w");
+      fprintf(fp, "x y z\n");
+      for (int i = 0; i < nout; ++i) {
+        fprintf(fp, "%f ", points_sampled[i * 3 + 0]);
+        fprintf(fp, "%f ", points_sampled[i * 3 + 1]);
+        fprintf(fp, "%f\n", points_sampled[i * 3 + 2]);
+      }
+      fclose(fp);
+    }
   }
-  fclose(fp);
 
   // Clean up
   free(points);
