@@ -2233,6 +2233,8 @@ int hm_set(hm_t *hm, void *key, void *value) {
 hm_iter_t hm_iterator(hm_t *hm) {
   assert(hm);
   hm_iter_t it;
+  it.key = NULL;
+  it.value = NULL;
   it._hm = hm;
   it._index = 0;
   return it;
@@ -12807,11 +12809,11 @@ void imu_factor_velocity_i_jac(imu_factor_t *factor) {
 }
 
 void imu_factor_biases_i_jac(imu_factor_t *factor,
-                             const real_t dq_dbg[3],
-                             const real_t dr_dba[3],
-                             const real_t dv_dba[3],
-                             const real_t dr_dbg[3],
-                             const real_t dv_dbg[3]) {
+                             const real_t dq_dbg[3 * 3],
+                             const real_t dr_dba[3 * 3],
+                             const real_t dv_dba[3 * 3],
+                             const real_t dr_dbg[3 * 3],
+                             const real_t dv_dbg[3 * 3]) {
   real_t q_i[4] = {0};
   real_t q_j[4] = {0};
   pose_get_quat(factor->pose_i, q_i);
