@@ -9832,6 +9832,7 @@ void plane_set_transform(plane_t *plane, const real_t T[4 * 4]) {
 void plane_get_transform(const plane_t *plane,
                          const real_t world_up[3],
                          real_t T[4 * 4]) {
+  // Setup
   const real_t *p = plane->p;
   real_t xax[3] = {0};
   real_t yax[3] = {0};
@@ -9857,23 +9858,16 @@ void plane_get_transform(const plane_t *plane,
   // clang-format on
 }
 
-real_t plane_point_dist(const plane_t *plane, real_t p[3]) {
-  const real_t a = plane->normal[0];
-  const real_t b = plane->normal[1];
-  const real_t c = plane->normal[2];
-  const real_t d = plane->d;
-  const real_t x = p[0];
-  const real_t y = p[1];
-  const real_t z = p[2];
-  return a * x + b * y + c * z - d;
+inline __attribute__((always_inline)) real_t
+plane_point_dist(const plane_t *plane, const real_t p[3]) {
+  // dist = a * x + b * y + c * z - d
+  return plane->normal[0] * p[0] + plane->normal[1] * p[1] +
+         plane->normal[2] * p[2] - plane->d;
 }
 
 /*******************************************************************************
  * FRUSTUM
  ******************************************************************************/
-
-#define POINT_PLANE_DIST(NORMAL, P, D)                                         \
-  (NORMAL[0] * P[0] + NORMAL[1] * P[1] + NORMAL[2] * P[2] - D)
 
 void frustum_setup(frustum_t *frustum,
                    const real_t hfov,
@@ -10015,27 +10009,13 @@ void frustum_setup(frustum_t *frustum,
 }
 
 bool frustum_check_point(const frustum_t *frustum, const real_t p[3]) {
-  const real_t *normal_near = frustum->near.normal;
-  const real_t *normal_far = frustum->far.normal;
-  const real_t *normal_left = frustum->left.normal;
-  const real_t *normal_right = frustum->right.normal;
-  const real_t *normal_top = frustum->top.normal;
-  const real_t *normal_bottom = frustum->bottom.normal;
-
-  const real_t d_near = frustum->near.d;
-  const real_t d_far = frustum->near.d;
-  const real_t d_left = frustum->near.d;
-  const real_t d_right = frustum->near.d;
-  const real_t d_top = frustum->near.d;
-  const real_t d_bottom = frustum->near.d;
-
   int status = 0;
-  status += POINT_PLANE_DIST(normal_near, p, d_near) >= 0;
-  status += POINT_PLANE_DIST(normal_far, p, d_far) >= 0;
-  status += POINT_PLANE_DIST(normal_left, p, d_left) >= 0;
-  status += POINT_PLANE_DIST(normal_right, p, d_right) >= 0;
-  status += POINT_PLANE_DIST(normal_top, p, d_top) >= 0;
-  status += POINT_PLANE_DIST(normal_bottom, p, d_bottom) >= 0;
+  status += plane_point_dist(&frustum->near, p) >= 0;
+  status += plane_point_dist(&frustum->far, p) >= 0;
+  status += plane_point_dist(&frustum->left, p) >= 0;
+  status += plane_point_dist(&frustum->right, p) >= 0;
+  status += plane_point_dist(&frustum->top, p) >= 0;
+  status += plane_point_dist(&frustum->bottom, p) >= 0;
   return (status == 6) ? true : false;
 }
 

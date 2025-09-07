@@ -334,6 +334,18 @@ double gui_time(void);
 int gui_poll(gui_t *gui);
 void gui_update(gui_t *gui);
 
+// LINE //////////////////////////////////////////////////////////////////////
+
+typedef struct gl_line_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+} gl_line_t;
+
+void setup_line_shader(gl_shader_t *line);
+gl_line_t *gl_line_malloc(void);
+void gl_line_free(gl_line_t *line);
+void draw_line(gl_line_t *line);
+
 // RECT //////////////////////////////////////////////////////////////////////
 
 typedef struct gl_rect_t {
@@ -364,9 +376,47 @@ void draw_cube(gl_cube_t *cube,
                const gl_float_t size,
                const gl_color_t color);
 
+// PLANE /////////////////////////////////////////////////////////////////////
+
+// typedef struct gl_plane_t {
+//   gl_float_t normal[3];
+//   gl_float_t p[3];
+//   gl_float_t d;
+//
+//   gl_uint_t VAO;
+//   gl_uint_t VBO;
+//
+//   gl_float_t size;
+//   gl_color_t color;
+//   gl_float_t lw;
+// } gl_plane_t;
+//
+// void gl_plane_setup(plane_t *plane,
+//                  const real_t normal[3],
+//                  const real_t p[3],
+//                  const real_t d);
+// void gl_plane_vector(const plane_t *plane, real_t v[4]);
+// void gl_plane_set_transform(plane_t *plane, const real_t T[4 * 4]);
+// void gl_plane_get_transform(const plane_t *plane,
+//                          const real_t world_up[3],
+//                          real_t T[4 * 4]);
+// real_t gl_plane_point_dist(const plane_t *plane, const real_t p[3]);
+
 // FRUSTUM ///////////////////////////////////////////////////////////////////
 
 typedef struct gl_frustum_t {
+  gl_float_t hfov;
+  gl_float_t aspect;
+  gl_float_t znear;
+  gl_float_t zfar;
+
+  // gl_plane_t near;
+  // gl_plane_t far;
+  // gl_plane_t left;
+  // gl_plane_t right;
+  // gl_plane_t top;
+  // gl_plane_t bottom;
+
   gl_uint_t VAO;
   gl_uint_t VBO;
 
@@ -377,7 +427,11 @@ typedef struct gl_frustum_t {
 } gl_frustum_t;
 
 void setup_frustum_shader(gl_shader_t *frustum);
-gl_frustum_t *gl_frustum_malloc(const gl_float_t T[4 * 4],
+gl_frustum_t *gl_frustum_malloc(const gl_float_t hfov,
+                                const gl_float_t aspect,
+                                const gl_float_t znear,
+                                const gl_float_t zfar,
+                                const gl_float_t T[4 * 4],
                                 const gl_float_t size,
                                 const gl_color_t color,
                                 const gl_float_t lw);
@@ -451,6 +505,7 @@ typedef struct gl_line3d_t {
   const gl_float_t *data;
   size_t num_points;
   gl_color_t color;
+  gl_float_t alpha;
   gl_float_t lw;
 } gl_line3d_t;
 

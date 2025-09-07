@@ -523,6 +523,9 @@ int test_components(void) {
   const int window_height = 768;
   gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
+  // Line
+  gl_line_t *line = gl_line_malloc();
+
   // Rect
   gl_bounds_t rect_bounds = (gl_bounds_t){10, 10, 100, 100};
   gl_color_t rect_color = (gl_color_t){1.0f, 0.0f, 1.0f};
@@ -537,13 +540,23 @@ int test_components(void) {
   gl_cube_t *cube = gl_cube_malloc();
 
   // Frustum
+  gl_float_t hfov = 90.0;
+  gl_float_t aspect = 1.0;
+  gl_float_t znear = 0.1;
+  gl_float_t zfar = 1.0;
   gl_float_t frustum_T[4 * 4];
   gl_eye(frustum_T, 4, 4);
   gl_float_t frustum_size = 0.5f;
   gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
   gl_float_t frustum_lw = 1.0f;
-  gl_frustum_t *frustum =
-      gl_frustum_malloc(frustum_T, frustum_size, frustum_color, frustum_lw);
+  gl_frustum_t *frustum = gl_frustum_malloc(hfov,
+                                            aspect,
+                                            znear,
+                                            zfar,
+                                            frustum_T,
+                                            frustum_size,
+                                            frustum_color,
+                                            frustum_lw);
 
   // Axes
   gl_float_t axes_T[4 * 4];
@@ -561,12 +574,12 @@ int test_components(void) {
   // Points
   gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
   gl_float_t point_size = 5.0;
-  size_t num_points = 1e7;
+  size_t num_points = 1e3;
   gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
   for (size_t i = 0; i < num_points; ++i) {
-    points_data[i * 6 + 0] = gl_randf(-100.0f, 100.0f);
-    points_data[i * 6 + 1] = gl_randf(-100.0f, 100.0f);
-    points_data[i * 6 + 2] = gl_randf(-100.0f, 100.0f);
+    points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 1] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 2] = gl_randf(-1.0f, 1.0f);
     points_data[i * 6 + 3] = points_color.r;
     points_data[i * 6 + 4] = points_color.g;
     points_data[i * 6 + 5] = points_color.b;
@@ -576,7 +589,7 @@ int test_components(void) {
   free(points_data);
 
   // Line
-  gl_float_t line_lw = 5.0f;
+  gl_float_t line_lw = 1.0f;
   gl_color_t line_color = (gl_color_t){1.0, 0.0, 0.0};
   size_t line_size = 1000;
   float radius = 3.0f;
@@ -589,7 +602,7 @@ int test_components(void) {
     line_data[i * 3 + 2] = radius * cos(theta);
     theta += dtheta;
   }
-  gl_line3d_t *line =
+  gl_line3d_t *line3d =
       gl_line3d_malloc(line_data, line_size, line_color, line_lw);
   free(line_data);
 
@@ -639,13 +652,14 @@ int test_components(void) {
 
   // Render
   while (gui_poll(gui)) {
+    draw_line(line);
     // draw_rect(rect);
     // draw_cube(cube, cube_T, cube_size, cube_color);
     // draw_frustum(frustum);
     // draw_axes3d(axes);
-    draw_grid3d(grid);
-    draw_points3d(points3d);
-    // draw_line3d(line);
+    // draw_grid3d(grid);
+    // draw_points3d(points3d);
+    draw_line3d(line3d);
     // draw_image(image);
     // draw_text(text, "Hello World", 10, 350, text_color);
     // for (int i = 0; i < 10; ++i) {
@@ -656,13 +670,14 @@ int test_components(void) {
   }
 
   // Clean up
+  gl_line_free(line);
   gl_rect_free(rect);
   gl_cube_free(cube);
   gl_frustum_free(frustum);
   gl_axes3d_free(axes);
   gl_grid3d_free(grid);
   gl_points3d_free(points3d);
-  gl_line3d_free(line);
+  gl_line3d_free(line3d);
   gl_image_free(image);
   gl_text_free(text);
   for (int i = 0; i < 10; ++i) {

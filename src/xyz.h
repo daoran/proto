@@ -1683,8 +1683,11 @@ void plane_setup(plane_t *plane,
                  const real_t p[3],
                  const real_t d);
 void plane_vector(const plane_t *plane, real_t v[4]);
-void plane_transform(plane_t *plane, real_t T[4 * 4]);
-real_t plane_point_dist(const plane_t *plane, real_t p[3]);
+void plane_set_transform(plane_t *plane, const real_t T[4 * 4]);
+void plane_get_transform(const plane_t *plane,
+                         const real_t world_up[3],
+                         real_t T[4 * 4]);
+real_t plane_point_dist(const plane_t *plane, const real_t p[3]);
 
 /*******************************************************************************
  * FRUSTUM
@@ -1709,6 +1712,7 @@ void frustum_setup(frustum_t *frustum,
                    const real_t aspect,
                    const real_t znear,
                    const real_t zfar);
+bool frustum_check_point(const frustum_t *frustum, const real_t p[3]);
 
 /*******************************************************************************
  * VOXEL

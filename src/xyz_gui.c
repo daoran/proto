@@ -19,7 +19,7 @@ float _frame_dt = 0.0f;
 float _frame_last = 0.0f;
 
 gl_camera_t _camera;
-float _camera_speed = 0.004f;
+float _camera_speed = 0.001f;
 
 float _mouse_sensitivity = 0.02f;
 int _mouse_button_left = 0;
@@ -43,13 +43,14 @@ int _key_esc = 0;
 int _key_equal = 0;
 int _key_minus = 0;
 
+gl_shader_t _shader_line;
 gl_shader_t _shader_rect;
 gl_shader_t _shader_cube;
 gl_shader_t _shader_frustum;
-gl_shader_t _shader_axes;
-gl_shader_t _shader_grid;
-gl_shader_t _shader_points;
-gl_shader_t _shader_line;
+gl_shader_t _shader_axes3d;
+gl_shader_t _shader_grids3d;
+gl_shader_t _shader_points3d;
+gl_shader_t _shader_line3d;
 gl_shader_t _shader_image;
 gl_shader_t _shader_text;
 
@@ -866,6 +867,7 @@ gl_uint_t gl_compile(const char *src, const int type) {
     char log[9046] = {0};
     glGetShaderInfoLog(shader, 9046, NULL, log);
     LOG_ERROR("Failed to compile shader:\n%s", log);
+    // LOG_ERROR("source:\n%s", src);
     return retval;
   }
 
@@ -899,10 +901,10 @@ gl_uint_t gl_link(const gl_uint_t vs, const gl_uint_t fs, const gl_uint_t gs) {
   // Attach shaders to link
   gl_uint_t program = glCreateProgram();
   glAttachShader(program, vs);
-  glAttachShader(program, fs);
   if (gs != GL_FALSE) {
     glAttachShader(program, gs);
   }
+  glAttachShader(program, fs);
   glLinkProgram(program);
 
   // Link program
@@ -917,10 +919,10 @@ gl_uint_t gl_link(const gl_uint_t vs, const gl_uint_t fs, const gl_uint_t gs) {
 
   // Delete shaders
   glDeleteShader(vs);
-  glDeleteShader(fs);
   if (gs == GL_FALSE) {
     glDeleteShader(gs);
   }
+  glDeleteShader(fs);
 
   return program;
 }
@@ -936,12 +938,12 @@ gl_uint_t gl_shader(const char *vs_src,
     vs = gl_compile(vs_src, GL_VERTEX_SHADER);
   }
 
-  if (fs_src) {
-    fs = gl_compile(fs_src, GL_FRAGMENT_SHADER);
-  }
-
   if (gs_src) {
     gs = gl_compile(gs_src, GL_GEOMETRY_SHADER);
+  }
+
+  if (fs_src) {
+    fs = gl_compile(fs_src, GL_FRAGMENT_SHADER);
   }
 
   const gl_uint_t program_id = gl_link(vs, fs, gs);
@@ -1270,13 +1272,13 @@ void gui_process_input(GLFWwindow *window) {
   // -- FPS MODE
   if (_camera.view_mode == FPS) {
     if (_key_w) {
-      _camera.position[0] += _camera_speed * _camera.front[0] * _frame_dt;
-      _camera.position[1] += _camera_speed * _camera.front[1] * _frame_dt;
-      _camera.position[2] += _camera_speed * _camera.front[2] * _frame_dt;
+      _camera.position[0] += _camera.front[0] * _camera_speed * _frame_dt;
+      _camera.position[1] += _camera.front[1] * _camera_speed * _frame_dt;
+      _camera.position[2] += _camera.front[2] * _camera_speed * _frame_dt;
     } else if (_key_s) {
-      _camera.position[0] -= _camera_speed * _camera.front[0] * _frame_dt;
-      _camera.position[1] -= _camera_speed * _camera.front[1] * _frame_dt;
-      _camera.position[2] -= _camera_speed * _camera.front[2] * _frame_dt;
+      _camera.position[0] -= _camera.front[0] * _camera_speed * _frame_dt;
+      _camera.position[1] -= _camera.front[1] * _camera_speed * _frame_dt;
+      _camera.position[2] -= _camera.front[2] * _camera_speed * _frame_dt;
     } else if (_key_a) {
       gl_float_t camera_left[3] = {0};
       gl_vec3_cross(_camera.front, _camera.up, camera_left);
@@ -1443,23 +1445,24 @@ gui_t *gui_malloc(const char *window_title,
   // Camera
   gl_camera_setup(&_camera, &_window_width, &_window_height);
   _camera.position[0] = 0.0f;
-  // _camera.position[1] = 4.0f;
-  // _camera.position[2] = 5.0f;
-  _camera.position[1] = 200.0f;
-  _camera.position[2] = 200.0f;
+  _camera.position[1] = 4.0f;
+  _camera.position[2] = 5.0f;
+  // _camera.position[1] = 200.0f;
+  // _camera.position[2] = 200.0f;
   _mouse_sensitivity = 0.02f;
 
   // UI event
   _ui_engaged = 0;
 
   // Shaders
+  setup_line_shader(&_shader_line);
   setup_rect_shader(&_shader_rect);
   setup_cube_shader(&_shader_cube);
   setup_frustum_shader(&_shader_frustum);
-  setup_axes3d_shader(&_shader_axes);
-  setup_grid3d_shader(&_shader_grid);
-  setup_points3d_shader(&_shader_points);
-  setup_line3d_shader(&_shader_line);
+  setup_axes3d_shader(&_shader_axes3d);
+  setup_grid3d_shader(&_shader_grids3d);
+  setup_points3d_shader(&_shader_points3d);
+  setup_line3d_shader(&_shader_line3d);
   setup_image_shader(&_shader_image);
   setup_text_shader(&_shader_text);
 
@@ -1473,13 +1476,14 @@ gui_t *gui_malloc(const char *window_title,
 void gui_free(gui_t *gui) {
   assert(gui);
 
+  gl_shader_cleanup(&_shader_line);
   gl_shader_cleanup(&_shader_rect);
   gl_shader_cleanup(&_shader_cube);
   gl_shader_cleanup(&_shader_frustum);
-  gl_shader_cleanup(&_shader_axes);
-  gl_shader_cleanup(&_shader_grid);
-  gl_shader_cleanup(&_shader_points);
-  gl_shader_cleanup(&_shader_line);
+  gl_shader_cleanup(&_shader_axes3d);
+  gl_shader_cleanup(&_shader_grids3d);
+  gl_shader_cleanup(&_shader_points3d);
+  gl_shader_cleanup(&_shader_line3d);
   gl_shader_cleanup(&_shader_image);
   gl_shader_cleanup(&_shader_text);
   glfwTerminate();
@@ -1522,6 +1526,176 @@ void gui_update(gui_t *gui) {
   //   gui->last_frame = time_now;
   // }
   // gui->last_time = time_now;
+}
+
+// LINE //////////////////////////////////////////////////////////////////////
+
+#define GL_LINE_VS                                                             \
+  "#version 330 core\n"                                                        \
+  "layout (location = 0) in vec3 in_pos;\n"                                    \
+  "uniform mat4 model;\n"                                                      \
+  "uniform mat4 view;\n"                                                       \
+  "uniform mat4 projection;\n"                                                 \
+  "void main() {\n"                                                            \
+  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
+  "}\n"
+
+#define GL_LINE_GS                                                             \
+  "#version 330 core\n"                                                        \
+  "layout (lines) in;\n"                                                       \
+  "layout (triangle_strip, max_vertices = 4) out;\n"                           \
+  "\n"                                                                         \
+  "uniform vec2 viewport_size;\n"                                              \
+  "uniform float linewidth;\n"                                                 \
+  "\n"                                                                         \
+  "bool within_clipspace(vec4 v) {\n"                                          \
+  "  if (v.x < -v.w || v.x > v.w ||\n"                                         \
+  "      v.y < -v.w || v.y > v.w ||\n"                                         \
+  "      v.z < -v.w || v.z > v.w) {\n"                                         \
+  "    return false;\n"                                                        \
+  "  }\n"                                                                      \
+  "\n"                                                                         \
+  "  return true;\n"                                                           \
+  "}\n"                                                                        \
+  "\n"                                                                         \
+  "void main() {\n"                                                            \
+  "  // Transform from clip -> NCD -> screen space\n"                          \
+  "  vec4 p1_clip = gl_in[0].gl_Position;\n"                                   \
+  "  vec4 p2_clip = gl_in[1].gl_Position;\n"                                   \
+  "  vec2 p1_ndc = p1_clip.xy / p1_clip.w;\n"                                  \
+  "  vec2 p2_ndc = p2_clip.xy / p2_clip.w;\n"                                  \
+  "  vec2 p1_screen = 0.5 * (p1_ndc + 1.0) * viewport_size;\n"                 \
+  "  vec2 p2_screen = 0.5 * (p2_ndc + 1.0) * viewport_size;\n"                 \
+  "\n"                                                                         \
+  "  // Form thick line four vertices\n"                                       \
+  "  vec2 line = p2_screen - p1_screen;\n"                                     \
+  "  vec2 normal = normalize(vec2(-line.y, line.x));\n"                        \
+  "  vec2 a_screen = p1_screen - 0.5 * linewidth * normal;\n"                  \
+  "  vec2 b_screen = p1_screen + 0.5 * linewidth * normal;\n"                  \
+  "  vec2 c_screen = p2_screen - 0.5 * linewidth * normal;\n"                  \
+  "  vec2 d_screen = p2_screen + 0.5 * linewidth * normal;\n"                  \
+  "\n"                                                                         \
+  "  // Convert back from screen space -> NDC -> clip space\n"                 \
+  "  vec2 a_ndc = (a_screen / viewport_size) * 2.0 - 1.0;\n"                   \
+  "  vec2 b_ndc = (b_screen / viewport_size) * 2.0 - 1.0;\n"                   \
+  "  vec2 c_ndc = (c_screen / viewport_size) * 2.0 - 1.0;\n"                   \
+  "  vec2 d_ndc = (d_screen / viewport_size) * 2.0 - 1.0;\n"                   \
+  "  float z1 = p1_clip.z / p1_clip.w;\n"                                      \
+  "  float z2 = p2_clip.z / p2_clip.w;\n"                                      \
+  "  vec4 a_clip = vec4(a_ndc.x, a_ndc.y, z1, 1.0f);\n"                        \
+  "  vec4 b_clip = vec4(b_ndc.x, b_ndc.y, z1, 1.0f);\n"                        \
+  "  vec4 c_clip = vec4(c_ndc.x, c_ndc.y, z2, 1.0f);\n"                        \
+  "  vec4 d_clip = vec4(d_ndc.x, d_ndc.y, z2, 1.0f);\n"                        \
+  "\n"                                                                         \
+  "  // Emit the for quad vertices\n"                                          \
+  "  // IMPORTANT!: Vertices are ordered CCW, assert glFrontFace is CCW\n"     \
+  "  gl_Position = a_clip;\n"                                                  \
+  "  EmitVertex();\n"                                                          \
+  "  gl_Position = c_clip;\n"                                                  \
+  "  EmitVertex();\n"                                                          \
+  "  gl_Position = b_clip;\n"                                                  \
+  "  EmitVertex();\n"                                                          \
+  "  gl_Position = d_clip;\n"                                                  \
+  "  EmitVertex();\n"                                                          \
+  "  EndPrimitive();\n"                                                        \
+  "}\n"
+
+#define GL_LINE_FS                                                             \
+  "#version 330 core\n"                                                        \
+  "uniform vec3 color;\n"                                                      \
+  "uniform float alpha;\n"                                                     \
+  "out vec4 frag_color;\n"                                                     \
+  "void main() {\n"                                                            \
+  "  frag_color = vec4(color, alpha);\n"                                       \
+  "}\n"
+
+void setup_line_shader(gl_shader_t *line) {
+  assert(line);
+  gl_shader_setup(line);
+  line->program_id = gl_shader(GL_LINE_VS, GL_LINE_FS, GL_LINE_GS);
+  if (line->program_id == GL_FALSE) {
+    FATAL("Failed to create shaders!");
+  }
+}
+
+gl_line_t *gl_line_malloc(void) {
+  gl_line_t *line = malloc(sizeof(gl_line_t));
+  line->VAO = 0;
+  line->VBO = 0;
+
+  // VAO
+  glGenVertexArrays(1, &line->VAO);
+  glBindVertexArray(line->VAO);
+  assert(line->VAO != 0);
+
+  // VBO
+  size_t max_length_size = sizeof(float) * 3 * 100;
+  glGenBuffers(1, &line->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, line->VBO);
+  glBufferData(GL_ARRAY_BUFFER, max_length_size, NULL, GL_DYNAMIC_DRAW);
+  assert(line->VBO != 0);
+
+  // Position attribute
+  const size_t vertex_size = sizeof(float) * 3;
+  void *pos_offset = (void *) 0;
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
+  glEnableVertexAttribArray(0);
+
+  // Unbind VBO and VAO
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+
+  return line;
+}
+
+void gl_line_free(gl_line_t *line) {
+  if (line == NULL) {
+    return;
+  }
+  GL_DEL_VERTEX_ARRAY(line->VAO);
+  GL_DEL_BUFFER(line->VBO);
+  free(line);
+}
+
+void draw_line(gl_line_t *line) {
+  assert(line);
+
+  // Get viewport
+  GLint viewport[4];
+  glGetIntegerv(GL_VIEWPORT, viewport);
+
+  // Upload line data
+  glBindBuffer(GL_ARRAY_BUFFER, line->VBO);
+  size_t offset = 0;
+  size_t data_size = sizeof(float) * 3 * 2;
+  float data_ptr[3 * 2] = {0.0, 0.0, 0.0, 0.0, 1.0, 0.0};
+  glBufferSubData(GL_ARRAY_BUFFER, offset, data_size, data_ptr);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  // Draw
+  gl_float_t T[4 * 4] = {0};
+  gl_eye(T, 4, 4);
+
+  gl_float_t v[2] = {0};
+  v[0] = viewport[2];
+  v[1] = viewport[3];
+
+  gl_color_t color = (gl_color_t){1.0, 1.0, 1.0};
+
+  // Use shader
+  const gl_shader_t *shader = &_shader_line;
+  glUseProgram(shader->program_id);
+  gl_set_mat4(shader->program_id, "projection", _camera.P);
+  gl_set_mat4(shader->program_id, "view", _camera.V);
+  gl_set_mat4(shader->program_id, "model", T);
+  gl_set_vec2(shader->program_id, "viewport_size", v);
+  gl_set_float(shader->program_id, "linewidth", 5.0);
+  gl_set_color(shader->program_id, "color", color);
+  gl_set_float(shader->program_id, "alpha", 1.0);
+
+  glBindVertexArray(line->VAO);
+  glDrawArrays(GL_LINE_STRIP, 0, 2);
+  glBindVertexArray(0);
 }
 
 // RECT //////////////////////////////////////////////////////////////////////
@@ -1837,7 +2011,7 @@ void draw_cube(gl_cube_t *cube,
 
 // FRUSTUM /////////////////////////////////////////////////////////////////////
 
-#define gl_frustum_VS                                                          \
+#define GL_FRUSTUM_VS                                                          \
   "#version 330 core\n"                                                        \
   "layout (location = 0) in vec3 in_pos;\n"                                    \
   "uniform mat4 model;\n"                                                      \
@@ -1847,7 +2021,7 @@ void draw_cube(gl_cube_t *cube,
   "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
   "}\n"
 
-#define gl_frustum_FS                                                          \
+#define GL_FRUSTUM_FS                                                          \
   "#version 150 core\n"                                                        \
   "out vec4 frag_color;\n"                                                     \
   "void main() {\n"                                                            \
@@ -1857,13 +2031,17 @@ void draw_cube(gl_cube_t *cube,
 void setup_frustum_shader(gl_shader_t *shader) {
   assert(shader);
   gl_shader_setup(shader);
-  shader->program_id = gl_shader(gl_frustum_VS, gl_frustum_FS, NULL);
+  shader->program_id = gl_shader(GL_FRUSTUM_VS, GL_FRUSTUM_FS, NULL);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
 }
 
-gl_frustum_t *gl_frustum_malloc(const gl_float_t T[4 * 4],
+gl_frustum_t *gl_frustum_malloc(const gl_float_t hfov,
+                                const gl_float_t aspect,
+                                const gl_float_t znear,
+                                const gl_float_t zfar,
+                                const gl_float_t T[4 * 4],
                                 const gl_float_t size,
                                 const gl_color_t color,
                                 const gl_float_t lw) {
@@ -1872,6 +2050,11 @@ gl_frustum_t *gl_frustum_malloc(const gl_float_t T[4 * 4],
   assert(lw > 0);
 
   gl_frustum_t *frustum = malloc(sizeof(gl_frustum_t));
+  frustum->hfov = hfov;
+  frustum->aspect = aspect;
+  frustum->znear = znear;
+  frustum->zfar = zfar;
+
   frustum->VAO = 0;
   frustum->VBO = 0;
   for (int i = 0; i < 16; ++i) {
@@ -1882,8 +2065,8 @@ gl_frustum_t *gl_frustum_malloc(const gl_float_t T[4 * 4],
   frustum->lw = lw;
 
   // Form the camera fov frame
-  gl_float_t fov = gl_deg2rad(60.0);
-  gl_float_t hfov = fov / 2.0f;
+  // gl_float_t fov = gl_deg2rad(60.0);
+  // gl_float_t hfov = fov / 2.0f;
   gl_float_t scale = 1.0f;
   gl_float_t z = scale;
   gl_float_t hwidth = z * tan(hfov);
@@ -2073,7 +2256,7 @@ void draw_axes3d(gl_axes3d_t *axes) {
   assert(axes);
 
   // Use shader program
-  const gl_shader_t *shader = &_shader_axes;
+  const gl_shader_t *shader = &_shader_axes3d;
   glUseProgram(shader->program_id);
   gl_set_mat4(shader->program_id, "projection", _camera.P);
   gl_set_mat4(shader->program_id, "view", _camera.V);
@@ -2229,7 +2412,7 @@ void draw_grid3d(gl_grid3d_t *grid) {
   assert(grid);
 
   // Use shader program
-  const gl_shader_t *shader = &_shader_grid;
+  const gl_shader_t *shader = &_shader_grids3d;
   gl_float_t T[4 * 4] = {0};
   gl_eye(T, 4, 4);
 
@@ -2385,7 +2568,7 @@ void draw_points3d(gl_points3d_t *points) {
   }
 
   // Use shader program
-  gl_shader_t *shader = &_shader_points;
+  gl_shader_t *shader = &_shader_points3d;
   glUseProgram(shader->program_id);
   gl_set_mat4(shader->program_id, "view", _camera.V);
   gl_set_mat4(shader->program_id, "projection", _camera.P);
@@ -2403,27 +2586,89 @@ void draw_points3d(gl_points3d_t *points) {
 #define GL_LINE3D_VS                                                           \
   "#version 330 core\n"                                                        \
   "layout (location = 0) in vec3 in_pos;\n"                                    \
-  "out vec3 color;\n"                                                          \
   "uniform mat4 view;\n"                                                       \
   "uniform mat4 projection;\n"                                                 \
-  "uniform vec3 in_color;\n"                                                   \
   "void main() {\n"                                                            \
   "  gl_Position = projection * view * vec4(in_pos, 1.0);\n"                   \
-  "  color = in_color;\n"                                                      \
+  "}\n"
+
+#define GL_LINE3D_GS                                                           \
+  "#version 330 core\n"                                                        \
+  "layout (lines) in;\n"                                                       \
+  "layout (triangle_strip, max_vertices = 4) out;\n"                           \
+  "\n"                                                                         \
+  "uniform vec2 viewport_size;\n"                                              \
+  "uniform float linewidth;\n"                                                 \
+  "\n"                                                                         \
+  "bool within_clipspace(vec4 v) {\n"                                          \
+  "  if (v.x < -v.w || v.x > v.w ||\n"                                         \
+  "      v.y < -v.w || v.y > v.w ||\n"                                         \
+  "      v.z < -v.w || v.z > v.w) {\n"                                         \
+  "    return false;\n"                                                        \
+  "  }\n"                                                                      \
+  "\n"                                                                         \
+  "  return true;\n"                                                           \
+  "}\n"                                                                        \
+  "\n"                                                                         \
+  "void main() {\n"                                                            \
+  "  // Transform from clip -> NCD -> screen space\n"                          \
+  "  vec4 p1_clip = gl_in[0].gl_Position;\n"                                   \
+  "  vec4 p2_clip = gl_in[1].gl_Position;\n"                                   \
+  "  vec2 p1_ndc = p1_clip.xy / p1_clip.w;\n"                                  \
+  "  vec2 p2_ndc = p2_clip.xy / p2_clip.w;\n"                                  \
+  "  vec2 p1_screen = 0.5 * (p1_ndc + 1.0) * viewport_size;\n"                 \
+  "  vec2 p2_screen = 0.5 * (p2_ndc + 1.0) * viewport_size;\n"                 \
+  "\n"                                                                         \
+  "  // Form thick line four vertices\n"                                       \
+  "  vec2 line = p2_screen - p1_screen;\n"                                     \
+  "  vec2 normal = normalize(vec2(-line.y, line.x));\n"                        \
+  "  vec2 a_screen = p1_screen - 0.5 * linewidth * normal;\n"                  \
+  "  vec2 b_screen = p1_screen + 0.5 * linewidth * normal;\n"                  \
+  "  vec2 c_screen = p2_screen - 0.5 * linewidth * normal;\n"                  \
+  "  vec2 d_screen = p2_screen + 0.5 * linewidth * normal;\n"                  \
+  "\n"                                                                         \
+  "  // Convert back from screen space -> NDC -> clip space\n"                 \
+  "  vec2 a_ndc = (a_screen / viewport_size) * 2.0 - 1.0;\n"                   \
+  "  vec2 b_ndc = (b_screen / viewport_size) * 2.0 - 1.0;\n"                   \
+  "  vec2 c_ndc = (c_screen / viewport_size) * 2.0 - 1.0;\n"                   \
+  "  vec2 d_ndc = (d_screen / viewport_size) * 2.0 - 1.0;\n"                   \
+  "  float z1 = p1_clip.z / p1_clip.w;\n"                                      \
+  "  float z2 = p2_clip.z / p2_clip.w;\n"                                      \
+  "  a_ndc = clamp(a_ndc, -1.0, 1.0);\n"                                       \
+  "  b_ndc = clamp(b_ndc, -1.0, 1.0);\n"                                       \
+  "  c_ndc = clamp(c_ndc, -1.0, 1.0);\n"                                       \
+  "  d_ndc = clamp(d_ndc, -1.0, 1.0);\n"                                       \
+  "  vec4 a_clip = vec4(a_ndc.x, a_ndc.y, z1, 1.0f);\n"                        \
+  "  vec4 b_clip = vec4(b_ndc.x, b_ndc.y, z1, 1.0f);\n"                        \
+  "  vec4 c_clip = vec4(c_ndc.x, c_ndc.y, z2, 1.0f);\n"                        \
+  "  vec4 d_clip = vec4(d_ndc.x, d_ndc.y, z2, 1.0f);\n"                        \
+  "\n"                                                                         \
+  "  // Emit the for quad vertices\n"                                          \
+  "  // IMPORTANT!: Vertices are ordered CCW, assert glFrontFace is CCW\n"     \
+  "  gl_Position = a_clip;\n"                                                  \
+  "  EmitVertex();\n"                                                          \
+  "  gl_Position = c_clip;\n"                                                  \
+  "  EmitVertex();\n"                                                          \
+  "  gl_Position = b_clip;\n"                                                  \
+  "  EmitVertex();\n"                                                          \
+  "  gl_Position = d_clip;\n"                                                  \
+  "  EmitVertex();\n"                                                          \
+  "  EndPrimitive();\n"                                                        \
   "}\n"
 
 #define GL_LINE3D_FS                                                           \
   "#version 330 core\n"                                                        \
-  "in vec3 color;\n"                                                           \
+  "uniform vec3 color;\n"                                                      \
+  "uniform float alpha;\n"                                                     \
   "out vec4 frag_color;\n"                                                     \
   "void main() {\n"                                                            \
-  "  frag_color = vec4(color, 1.0f);\n"                                        \
+  "  frag_color = vec4(color, alpha);\n"                                       \
   "}\n"
 
 void setup_line3d_shader(gl_shader_t *shader) {
   // Shader program
   gl_shader_setup(shader);
-  shader->program_id = gl_shader(GL_LINE3D_VS, GL_LINE3D_FS, NULL);
+  shader->program_id = gl_shader(GL_LINE3D_VS, GL_LINE3D_FS, GL_LINE3D_GS);
   if (shader->program_id == GL_FALSE) {
     FATAL("Failed to create shaders!");
   }
@@ -2443,6 +2688,7 @@ gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
   line->data = data;
   line->num_points = num_points;
   line->color = color;
+  line->alpha = 1.0f;
   line->lw = lw;
 
   // Upload data
@@ -2476,27 +2722,28 @@ void gl_line3d_free(gl_line3d_t *line) {
 }
 
 void draw_line3d(gl_line3d_t *line) {
+  // Get viewport
+  GLint viewport[4];
+  glGetIntegerv(GL_VIEWPORT, viewport);
+
+  gl_float_t viewport_wh[2] = {0};
+  viewport_wh[0] = viewport[2];
+  viewport_wh[1] = viewport[3];
+
   // Use shader program
-  gl_shader_t *shader = &_shader_line;
+  gl_shader_t *shader = &_shader_line3d;
   glUseProgram(shader->program_id);
   gl_set_mat4(shader->program_id, "projection", _camera.P);
   gl_set_mat4(shader->program_id, "view", _camera.V);
-  gl_set_color(shader->program_id, "in_color", line->color);
-
-  // Store original line width
-  gl_float_t original_line_width = 0.0f;
-  glGetFloatv(GL_LINE_WIDTH, &original_line_width);
-
-  // Set line width
-  glLineWidth(line->lw);
+  gl_set_vec2(shader->program_id, "viewport_size", viewport_wh);
+  gl_set_float(shader->program_id, "linewidth", line->lw);
+  gl_set_color(shader->program_id, "color", line->color);
+  gl_set_float(shader->program_id, "alpha", line->alpha);
 
   // Draw frame
   glBindVertexArray(line->VAO);
   glDrawArrays(GL_LINE_STRIP, 0, line->num_points);
-  glBindVertexArray(0); // Unbind VAO
-
-  // Restore original line width
-  glLineWidth(original_line_width);
+  glBindVertexArray(0);
 }
 
 // IMAGE /////////////////////////////////////////////////////////////////////
