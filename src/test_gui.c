@@ -523,9 +523,6 @@ int test_components(void) {
   const int window_height = 768;
   gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
-  // Line
-  gl_line_t *line = gl_line_malloc();
-
   // Rect
   gl_bounds_t rect_bounds = (gl_bounds_t){10, 10, 100, 100};
   gl_color_t rect_color = (gl_color_t){1.0f, 0.0f, 1.0f};
@@ -589,7 +586,7 @@ int test_components(void) {
   free(points_data);
 
   // Line
-  gl_float_t line_lw = 1.0f;
+  gl_float_t line_lw = 5.0f;
   gl_color_t line_color = (gl_color_t){1.0, 0.0, 0.0};
   size_t line_size = 1000;
   float radius = 3.0f;
@@ -652,7 +649,6 @@ int test_components(void) {
 
   // Render
   while (gui_poll(gui)) {
-    draw_line(line);
     // draw_rect(rect);
     // draw_cube(cube, cube_T, cube_size, cube_color);
     // draw_frustum(frustum);
@@ -670,7 +666,6 @@ int test_components(void) {
   }
 
   // Clean up
-  gl_line_free(line);
   gl_rect_free(rect);
   gl_cube_free(cube);
   gl_frustum_free(frustum);

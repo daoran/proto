@@ -394,12 +394,12 @@ run_test() {
 # run_test test_xyz test_timeline
 ## XYZ-MORTON-CODES
 # run_test test_xyz test_morton_codes
+# run_test test_xyz test_voxel_downsample
 ## XYZ-OCTREE
 # run_test test_xyz test_octree_node
 # run_test test_xyz test_octree_node_check_point
 # run_test test_xyz test_octree
-# run_test test_xyz test_octree_points
-run_test test_xyz test_voxel_downsample
+# run_test test_xyz test_octree_get_points
 ## XYZ-KD-TREE
 # run_test test_xyz test_sort
 # run_test test_xyz test_kdtree_node
@@ -425,7 +425,6 @@ run_test test_xyz test_voxel_downsample
 # run_test test_xyz test_kitti_calib_load
 # run_test test_xyz test_kitti_raw_load
 
-
 # XYZ-GUI
 # run_test test_gui
 # run_test test_gui test_gl_zeros
@@ -446,7 +445,8 @@ run_test test_xyz test_voxel_downsample
 # run_test test_gui test_gl_prog_setup
 # run_test test_gui test_gl_camera_setup
 # run_test test_gui test_gui
-# run_test test_gui test_components
+run_test test_gui test_components
 # run_test test_imshow
-# XYZ-VOXEL
-# run_test test_voxel
+
+# XYZ-SE
+# run_test test_se

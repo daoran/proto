@@ -43,7 +43,6 @@ int _key_esc = 0;
 int _key_equal = 0;
 int _key_minus = 0;
 
-gl_shader_t _shader_line;
 gl_shader_t _shader_rect;
 gl_shader_t _shader_cube;
 gl_shader_t _shader_frustum;
@@ -1455,7 +1454,6 @@ gui_t *gui_malloc(const char *window_title,
   _ui_engaged = 0;
 
   // Shaders
-  setup_line_shader(&_shader_line);
   setup_rect_shader(&_shader_rect);
   setup_cube_shader(&_shader_cube);
   setup_frustum_shader(&_shader_frustum);
@@ -1476,7 +1474,6 @@ gui_t *gui_malloc(const char *window_title,
 void gui_free(gui_t *gui) {
   assert(gui);
 
-  gl_shader_cleanup(&_shader_line);
   gl_shader_cleanup(&_shader_rect);
   gl_shader_cleanup(&_shader_cube);
   gl_shader_cleanup(&_shader_frustum);
@@ -1526,176 +1523,6 @@ void gui_update(gui_t *gui) {
   //   gui->last_frame = time_now;
   // }
   // gui->last_time = time_now;
-}
-
-// LINE //////////////////////////////////////////////////////////////////////
-
-#define GL_LINE_VS                                                             \
-  "#version 330 core\n"                                                        \
-  "layout (location = 0) in vec3 in_pos;\n"                                    \
-  "uniform mat4 model;\n"                                                      \
-  "uniform mat4 view;\n"                                                       \
-  "uniform mat4 projection;\n"                                                 \
-  "void main() {\n"                                                            \
-  "  gl_Position = projection * view * model * vec4(in_pos, 1.0);\n"           \
-  "}\n"
-
-#define GL_LINE_GS                                                             \
-  "#version 330 core\n"                                                        \
-  "layout (lines) in;\n"                                                       \
-  "layout (triangle_strip, max_vertices = 4) out;\n"                           \
-  "\n"                                                                         \
-  "uniform vec2 viewport_size;\n"                                              \
-  "uniform float linewidth;\n"                                                 \
-  "\n"                                                                         \
-  "bool within_clipspace(vec4 v) {\n"                                          \
-  "  if (v.x < -v.w || v.x > v.w ||\n"                                         \
-  "      v.y < -v.w || v.y > v.w ||\n"                                         \
-  "      v.z < -v.w || v.z > v.w) {\n"                                         \
-  "    return false;\n"                                                        \
-  "  }\n"                                                                      \
-  "\n"                                                                         \
-  "  return true;\n"                                                           \
-  "}\n"                                                                        \
-  "\n"                                                                         \
-  "void main() {\n"                                                            \
-  "  // Transform from clip -> NCD -> screen space\n"                          \
-  "  vec4 p1_clip = gl_in[0].gl_Position;\n"                                   \
-  "  vec4 p2_clip = gl_in[1].gl_Position;\n"                                   \
-  "  vec2 p1_ndc = p1_clip.xy / p1_clip.w;\n"                                  \
-  "  vec2 p2_ndc = p2_clip.xy / p2_clip.w;\n"                                  \
-  "  vec2 p1_screen = 0.5 * (p1_ndc + 1.0) * viewport_size;\n"                 \
-  "  vec2 p2_screen = 0.5 * (p2_ndc + 1.0) * viewport_size;\n"                 \
-  "\n"                                                                         \
-  "  // Form thick line four vertices\n"                                       \
-  "  vec2 line = p2_screen - p1_screen;\n"                                     \
-  "  vec2 normal = normalize(vec2(-line.y, line.x));\n"                        \
-  "  vec2 a_screen = p1_screen - 0.5 * linewidth * normal;\n"                  \
-  "  vec2 b_screen = p1_screen + 0.5 * linewidth * normal;\n"                  \
-  "  vec2 c_screen = p2_screen - 0.5 * linewidth * normal;\n"                  \
-  "  vec2 d_screen = p2_screen + 0.5 * linewidth * normal;\n"                  \
-  "\n"                                                                         \
-  "  // Convert back from screen space -> NDC -> clip space\n"                 \
-  "  vec2 a_ndc = (a_screen / viewport_size) * 2.0 - 1.0;\n"                   \
-  "  vec2 b_ndc = (b_screen / viewport_size) * 2.0 - 1.0;\n"                   \
-  "  vec2 c_ndc = (c_screen / viewport_size) * 2.0 - 1.0;\n"                   \
-  "  vec2 d_ndc = (d_screen / viewport_size) * 2.0 - 1.0;\n"                   \
-  "  float z1 = p1_clip.z / p1_clip.w;\n"                                      \
-  "  float z2 = p2_clip.z / p2_clip.w;\n"                                      \
-  "  vec4 a_clip = vec4(a_ndc.x, a_ndc.y, z1, 1.0f);\n"                        \
-  "  vec4 b_clip = vec4(b_ndc.x, b_ndc.y, z1, 1.0f);\n"                        \
-  "  vec4 c_clip = vec4(c_ndc.x, c_ndc.y, z2, 1.0f);\n"                        \
-  "  vec4 d_clip = vec4(d_ndc.x, d_ndc.y, z2, 1.0f);\n"                        \
-  "\n"                                                                         \
-  "  // Emit the for quad vertices\n"                                          \
-  "  // IMPORTANT!: Vertices are ordered CCW, assert glFrontFace is CCW\n"     \
-  "  gl_Position = a_clip;\n"                                                  \
-  "  EmitVertex();\n"                                                          \
-  "  gl_Position = c_clip;\n"                                                  \
-  "  EmitVertex();\n"                                                          \
-  "  gl_Position = b_clip;\n"                                                  \
-  "  EmitVertex();\n"                                                          \
-  "  gl_Position = d_clip;\n"                                                  \
-  "  EmitVertex();\n"                                                          \
-  "  EndPrimitive();\n"                                                        \
-  "}\n"
-
-#define GL_LINE_FS                                                             \
-  "#version 330 core\n"                                                        \
-  "uniform vec3 color;\n"                                                      \
-  "uniform float alpha;\n"                                                     \
-  "out vec4 frag_color;\n"                                                     \
-  "void main() {\n"                                                            \
-  "  frag_color = vec4(color, alpha);\n"                                       \
-  "}\n"
-
-void setup_line_shader(gl_shader_t *line) {
-  assert(line);
-  gl_shader_setup(line);
-  line->program_id = gl_shader(GL_LINE_VS, GL_LINE_FS, GL_LINE_GS);
-  if (line->program_id == GL_FALSE) {
-    FATAL("Failed to create shaders!");
-  }
-}
-
-gl_line_t *gl_line_malloc(void) {
-  gl_line_t *line = malloc(sizeof(gl_line_t));
-  line->VAO = 0;
-  line->VBO = 0;
-
-  // VAO
-  glGenVertexArrays(1, &line->VAO);
-  glBindVertexArray(line->VAO);
-  assert(line->VAO != 0);
-
-  // VBO
-  size_t max_length_size = sizeof(float) * 3 * 100;
-  glGenBuffers(1, &line->VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, line->VBO);
-  glBufferData(GL_ARRAY_BUFFER, max_length_size, NULL, GL_DYNAMIC_DRAW);
-  assert(line->VBO != 0);
-
-  // Position attribute
-  const size_t vertex_size = sizeof(float) * 3;
-  void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-  glEnableVertexAttribArray(0);
-
-  // Unbind VBO and VAO
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-
-  return line;
-}
-
-void gl_line_free(gl_line_t *line) {
-  if (line == NULL) {
-    return;
-  }
-  GL_DEL_VERTEX_ARRAY(line->VAO);
-  GL_DEL_BUFFER(line->VBO);
-  free(line);
-}
-
-void draw_line(gl_line_t *line) {
-  assert(line);
-
-  // Get viewport
-  GLint viewport[4];
-  glGetIntegerv(GL_VIEWPORT, viewport);
-
-  // Upload line data
-  glBindBuffer(GL_ARRAY_BUFFER, line->VBO);
-  size_t offset = 0;
-  size_t data_size = sizeof(float) * 3 * 2;
-  float data_ptr[3 * 2] = {0.0, 0.0, 0.0, 0.0, 1.0, 0.0};
-  glBufferSubData(GL_ARRAY_BUFFER, offset, data_size, data_ptr);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  // Draw
-  gl_float_t T[4 * 4] = {0};
-  gl_eye(T, 4, 4);
-
-  gl_float_t v[2] = {0};
-  v[0] = viewport[2];
-  v[1] = viewport[3];
-
-  gl_color_t color = (gl_color_t){1.0, 1.0, 1.0};
-
-  // Use shader
-  const gl_shader_t *shader = &_shader_line;
-  glUseProgram(shader->program_id);
-  gl_set_mat4(shader->program_id, "projection", _camera.P);
-  gl_set_mat4(shader->program_id, "view", _camera.V);
-  gl_set_mat4(shader->program_id, "model", T);
-  gl_set_vec2(shader->program_id, "viewport_size", v);
-  gl_set_float(shader->program_id, "linewidth", 5.0);
-  gl_set_color(shader->program_id, "color", color);
-  gl_set_float(shader->program_id, "alpha", 1.0);
-
-  glBindVertexArray(line->VAO);
-  glDrawArrays(GL_LINE_STRIP, 0, 2);
-  glBindVertexArray(0);
 }
 
 // RECT //////////////////////////////////////////////////////////////////////
@@ -2679,37 +2506,54 @@ gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
                               const gl_color_t color,
                               const gl_float_t lw) {
   assert(data);
-  assert(num_points > 0);
-  assert(lw > 0);
 
-  gl_line3d_t *line = malloc(sizeof(gl_line3d_t));
-  line->VAO = 0;
-  line->VBO = 0;
-  line->data = data;
-  line->num_points = num_points;
-  line->color = color;
-  line->alpha = 1.0f;
-  line->lw = lw;
+  gl_line3d_t *line3d = malloc(sizeof(gl_line3d_t));
+  line3d->VAO = 0;
+  line3d->VBO = 0;
+  line3d->data = data;
+  line3d->num_points = num_points;
+  line3d->color = color;
+  line3d->alpha = 1.0f;
+  line3d->lw = lw;
 
-  // Upload data
-  // -- VAO
-  glGenVertexArrays(1, &line->VAO);
-  glBindVertexArray(line->VAO);
-  // -- VBO
-  const size_t vbo_size = sizeof(gl_float_t) * 3 * line->num_points;
-  glGenBuffers(1, &line->VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, line->VBO);
-  glBufferData(GL_ARRAY_BUFFER, vbo_size, line->data, GL_STATIC_DRAW);
-  // -- Position attribute
+  // VAO
+  glGenVertexArrays(1, &line3d->VAO);
+  glBindVertexArray(line3d->VAO);
+
+  // VBO
+  const size_t max_size = sizeof(float) * 3 * 10000;
+  size_t vbo_size = sizeof(gl_float_t) * 3 * line3d->num_points;
+  if (data == NULL || vbo_size == 0) {
+    vbo_size = max_size;
+  }
+  glGenBuffers(1, &line3d->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, line3d->VBO);
+  glBufferData(GL_ARRAY_BUFFER, vbo_size, data, GL_STATIC_DRAW);
+
+  // Position attribute
   const size_t vertex_size = sizeof(gl_float_t) * 3;
   const void *pos_offset = (void *) 0;
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
   glEnableVertexAttribArray(0);
-  // -- Clean up
+
+  // Unbind VBO and VAO
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
   glBindVertexArray(0);             // Unbind VAO
 
-  return line;
+  return line3d;
+}
+
+void gl_line3d_update(gl_line3d_t *line3d,
+                      const size_t offset,
+                      const gl_float_t *data,
+                      const size_t num_points) {
+  line3d->data = data;
+  line3d->num_points = num_points;
+
+  glBindBuffer(GL_ARRAY_BUFFER, line3d->VBO);
+  size_t data_size = sizeof(float) * 3 * num_points;
+  glBufferSubData(GL_ARRAY_BUFFER, offset, data_size, data);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void gl_line3d_free(gl_line3d_t *line) {

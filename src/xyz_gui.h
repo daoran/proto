@@ -514,6 +514,10 @@ gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
                               const size_t num_points,
                               const gl_color_t color,
                               const gl_float_t lw);
+void gl_line3d_update(gl_line3d_t *line3d,
+                      const size_t offset,
+                      const gl_float_t *data,
+                      const size_t num_points);
 void gl_line3d_free(gl_line3d_t *line);
 void draw_line3d(gl_line3d_t *line);
 
