@@ -107,4 +107,6 @@ LIBXYZ_OBJS := \
 TESTS := \
 	$(BLD_DIR)/test_xyz \
 	$(BLD_DIR)/test_http \
-	$(BLD_DIR)/test_gui
+	$(BLD_DIR)/test_gui \
+	$(BLD_DIR)/test_ceres \
+	$(BLD_DIR)/test_se

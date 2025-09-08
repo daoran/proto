@@ -2,11 +2,9 @@ include config.mk
 .PHONY: benchmarks build docs scripts src third_party
 
 help:
-	@echo "make targets:"
-	@echo "----------------------------------------"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile \
 		| awk 'BEGIN {FS = ":.*?## "}; \
-		{printf "%-16s%s\n", $$1, $$2}'
+		{printf "\033[1;34m%-14s\033[0m%s\n", $$1, $$2}'
 
 third_party: ## Install dependencies
 	@# Update apt
@@ -65,7 +63,7 @@ third_party: ## Install dependencies
 		libglfw3-dev
 
 docs: ## Build docs
-	@livereload .
+	@cd docs && livereload .
 
 setup:
 	@mkdir -p $(BLD_DIR)
@@ -151,8 +149,3 @@ all: libxyz tests
 
 cppcheck: ## Run cppcheck on xyz.c
 	@cppcheck src/xyz.c src/xyz.h
-
-docker:  ## Build docker
-	@docker build -t xyz:latest \
-		--build-arg UID=$(shell id -u) \
-		--build-arg GID=$(shell id -g) .
