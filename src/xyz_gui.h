@@ -334,18 +334,6 @@ double gui_time(void);
 int gui_poll(gui_t *gui);
 void gui_update(gui_t *gui);
 
-// LINE //////////////////////////////////////////////////////////////////////
-
-typedef struct gl_line_t {
-  gl_uint_t VAO;
-  gl_uint_t VBO;
-} gl_line_t;
-
-void setup_line_shader(gl_shader_t *line);
-gl_line_t *gl_line_malloc(void);
-void gl_line_free(gl_line_t *line);
-void draw_line(gl_line_t *line);
-
 // RECT //////////////////////////////////////////////////////////////////////
 
 typedef struct gl_rect_t {
@@ -360,6 +348,51 @@ void setup_rect_shader(gl_shader_t *rect);
 gl_rect_t *gl_rect_malloc(const gl_bounds_t bounds, const gl_color_t color);
 void gl_rect_free(gl_rect_t *rect);
 void draw_rect(gl_rect_t *rect);
+
+// POINTS 3D /////////////////////////////////////////////////////////////////
+
+typedef struct gl_points3d_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+
+  gl_float_t *points_data;
+  size_t num_points;
+  gl_float_t point_size;
+} gl_points3d_t;
+
+void setup_points3d_shader(gl_shader_t *points);
+gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
+                                  size_t num_points,
+                                  const gl_float_t point_size);
+void gl_points3d_free(gl_points3d_t *points);
+void gl_points3d_update(gl_points3d_t *points,
+                        gl_float_t *points_data,
+                        size_t num_points,
+                        const gl_float_t point_size);
+void draw_points3d(gl_points3d_t *points);
+
+// LINE 3D ///////////////////////////////////////////////////////////////////
+
+typedef struct gl_line3d_t {
+  gl_uint_t VAO;
+  gl_uint_t VBO;
+  size_t num_points;
+  gl_color_t color;
+  gl_float_t alpha;
+  gl_float_t lw;
+} gl_line3d_t;
+
+void setup_line3d_shader(gl_shader_t *line);
+void gl_line3d_setup(gl_line3d_t *line3d,
+                     const gl_color_t color,
+                     const gl_float_t lw);
+gl_line3d_t *gl_line3d_malloc(const gl_color_t color, const gl_float_t lw);
+void gl_line3d_update(gl_line3d_t *line3d,
+                      const size_t offset,
+                      const gl_float_t *data,
+                      const size_t num_points);
+void gl_line3d_free(gl_line3d_t *line);
+void draw_line3d(gl_line3d_t *line);
 
 // CUBE //////////////////////////////////////////////////////////////////////
 
@@ -441,15 +474,15 @@ void draw_frustum(gl_frustum_t *frustum);
 // AXES 3D ///////////////////////////////////////////////////////////////////
 
 typedef struct gl_axes3d_t {
-  gl_uint_t VAO;
-  gl_uint_t VBO;
+  gl_line3d_t x_axis;
+  gl_line3d_t y_axis;
+  gl_line3d_t z_axis;
 
   gl_float_t T[4 * 4];
   gl_float_t size;
   gl_float_t lw;
 } gl_axes3d_t;
 
-void setup_axes3d_shader(gl_shader_t *axes);
 gl_axes3d_t *gl_axes3d_malloc(const gl_float_t T[4 * 4],
                               const gl_float_t size,
                               const gl_float_t lw);
@@ -473,53 +506,6 @@ gl_grid3d_t *gl_grid3d_malloc(const gl_float_t size,
                               const gl_float_t lw);
 void gl_grid3d_free(gl_grid3d_t *grid);
 void draw_grid3d(gl_grid3d_t *grid);
-
-// POINTS 3D /////////////////////////////////////////////////////////////////
-
-typedef struct gl_points3d_t {
-  gl_uint_t VAO;
-  gl_uint_t VBO;
-
-  gl_float_t *points_data;
-  size_t num_points;
-  gl_float_t point_size;
-} gl_points3d_t;
-
-void setup_points3d_shader(gl_shader_t *points);
-gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
-                                  size_t num_points,
-                                  const gl_float_t point_size);
-void gl_points3d_free(gl_points3d_t *points);
-void gl_points3d_update(gl_points3d_t *points,
-                        gl_float_t *points_data,
-                        size_t num_points,
-                        const gl_float_t point_size);
-void draw_points3d(gl_points3d_t *points);
-
-// LINE 3D ///////////////////////////////////////////////////////////////////
-
-typedef struct gl_line3d_t {
-  gl_uint_t VAO;
-  gl_uint_t VBO;
-
-  const gl_float_t *data;
-  size_t num_points;
-  gl_color_t color;
-  gl_float_t alpha;
-  gl_float_t lw;
-} gl_line3d_t;
-
-void setup_line3d_shader(gl_shader_t *line);
-gl_line3d_t *gl_line3d_malloc(const gl_float_t *data,
-                              const size_t num_points,
-                              const gl_color_t color,
-                              const gl_float_t lw);
-void gl_line3d_update(gl_line3d_t *line3d,
-                      const size_t offset,
-                      const gl_float_t *data,
-                      const size_t num_points);
-void gl_line3d_free(gl_line3d_t *line);
-void draw_line3d(gl_line3d_t *line);
 
 // IMAGE /////////////////////////////////////////////////////////////////////
 

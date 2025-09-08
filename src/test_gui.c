@@ -528,6 +528,40 @@ int test_components(void) {
   gl_color_t rect_color = (gl_color_t){1.0f, 0.0f, 1.0f};
   gl_rect_t *rect = gl_rect_malloc(rect_bounds, rect_color);
 
+  // Points3D
+  gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
+  gl_float_t point_size = 5.0;
+  size_t num_points = 1e3;
+  gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
+  for (size_t i = 0; i < num_points; ++i) {
+    points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 1] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 2] = gl_randf(-1.0f, 1.0f);
+    points_data[i * 6 + 3] = points_color.r;
+    points_data[i * 6 + 4] = points_color.g;
+    points_data[i * 6 + 5] = points_color.b;
+  }
+  gl_points3d_t *points3d =
+      gl_points3d_malloc(points_data, num_points, point_size);
+  free(points_data);
+
+  // Line3D
+  gl_float_t line_lw = 5.0f;
+  gl_color_t line_color = (gl_color_t){1.0, 0.0, 0.0};
+  size_t line_length = 1000;
+  float radius = 3.0f;
+  float dtheta = 2 * M_PI / line_length;
+  float theta = 0.0f;
+  float *line_data = malloc(sizeof(float) * line_length * 3);
+  for (size_t i = 0; i < line_length; ++i) {
+    line_data[i * 3 + 0] = radius * sin(theta);
+    line_data[i * 3 + 1] = 0.0f;
+    line_data[i * 3 + 2] = radius * cos(theta);
+    theta += dtheta;
+  }
+  gl_line3d_t *line3d = gl_line3d_malloc(line_color, line_lw);
+  gl_line3d_update(line3d, 0, line_data, line_length);
+
   // Cube
   gl_float_t cube_T[4 * 4] = {0};
   gl_eye(cube_T, 4, 4);
@@ -559,7 +593,7 @@ int test_components(void) {
   gl_float_t axes_T[4 * 4];
   gl_eye(axes_T, 4, 4);
   gl_float_t axes_size = 0.5f;
-  gl_float_t axes_lw = 5.0f;
+  gl_float_t axes_lw = 1.0f;
   gl_axes3d_t *axes = gl_axes3d_malloc(axes_T, axes_size, axes_lw);
 
   // Grid
@@ -567,41 +601,6 @@ int test_components(void) {
   gl_float_t grid_lw = 5.0f;
   gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
   gl_grid3d_t *grid = gl_grid3d_malloc(grid_size, grid_color, grid_lw);
-
-  // Points
-  gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
-  gl_float_t point_size = 5.0;
-  size_t num_points = 1e3;
-  gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
-  for (size_t i = 0; i < num_points; ++i) {
-    points_data[i * 6 + 0] = gl_randf(-1.0f, 1.0f);
-    points_data[i * 6 + 1] = gl_randf(-1.0f, 1.0f);
-    points_data[i * 6 + 2] = gl_randf(-1.0f, 1.0f);
-    points_data[i * 6 + 3] = points_color.r;
-    points_data[i * 6 + 4] = points_color.g;
-    points_data[i * 6 + 5] = points_color.b;
-  }
-  gl_points3d_t *points3d =
-      gl_points3d_malloc(points_data, num_points, point_size);
-  free(points_data);
-
-  // Line
-  gl_float_t line_lw = 5.0f;
-  gl_color_t line_color = (gl_color_t){1.0, 0.0, 0.0};
-  size_t line_size = 1000;
-  float radius = 3.0f;
-  float dtheta = 2 * M_PI / line_size;
-  float theta = 0.0f;
-  float *line_data = malloc(sizeof(float) * line_size * 3);
-  for (size_t i = 0; i < line_size; ++i) {
-    line_data[i * 3 + 0] = radius * sin(theta);
-    line_data[i * 3 + 1] = 0.0f;
-    line_data[i * 3 + 2] = radius * cos(theta);
-    theta += dtheta;
-  }
-  gl_line3d_t *line3d =
-      gl_line3d_malloc(line_data, line_size, line_color, line_lw);
-  free(line_data);
 
   // Image
   int width = 0;
@@ -642,7 +641,7 @@ int test_components(void) {
       gl_float_t T[4 * 4] = {0};
       gl_tf_qr(&quat, pos, T);
       frames[i] = gl_axes3d_malloc(T, frame_size, frame_lw);
-      draw_axes3d(frames[i]);
+      // draw_axes3d(frames[i]);
       theta += dtheta;
     }
   }
@@ -652,7 +651,7 @@ int test_components(void) {
     // draw_rect(rect);
     // draw_cube(cube, cube_T, cube_size, cube_color);
     // draw_frustum(frustum);
-    // draw_axes3d(axes);
+    draw_axes3d(axes);
     // draw_grid3d(grid);
     // draw_points3d(points3d);
     draw_line3d(line3d);
