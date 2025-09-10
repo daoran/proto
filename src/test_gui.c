@@ -516,7 +516,7 @@ int test_gui(void) {
   return 0;
 }
 
-int test_components(void) {
+int test_gl_rect(void) {
   // Setup
   const char *window_title = "viz";
   const int window_width = 1024;
@@ -527,6 +527,26 @@ int test_components(void) {
   gl_bounds_t rect_bounds = (gl_bounds_t){10, 10, 100, 100};
   gl_color_t rect_color = (gl_color_t){1.0f, 0.0f, 1.0f};
   gl_rect_t *rect = gl_rect_malloc(rect_bounds, rect_color);
+
+  // Render
+  while (gui_poll(gui)) {
+    draw_rect(rect);
+    gui_update(gui);
+  }
+
+  // Clean up
+  gl_rect_free(rect);
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_gl_points3d(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
   // Points3D
   gl_color_t points_color = (gl_color_t){1.0, 0.0, 0.0};
@@ -545,10 +565,30 @@ int test_components(void) {
       gl_points3d_malloc(points_data, num_points, point_size);
   free(points_data);
 
+  // Render
+  while (gui_poll(gui)) {
+    draw_points3d(points3d);
+    gui_update(gui);
+  }
+
+  // Clean up
+  gl_points3d_free(points3d);
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_gl_line3d(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
+
   // Line3D
   gl_float_t line_lw = 5.0f;
   gl_color_t line_color = (gl_color_t){1.0, 0.0, 0.0};
-  size_t line_length = 1000;
+  size_t line_length = 10;
   float radius = 3.0f;
   float dtheta = 2 * M_PI / line_length;
   float theta = 0.0f;
@@ -562,32 +602,56 @@ int test_components(void) {
   gl_line3d_t *line3d = gl_line3d_malloc(line_color, line_lw);
   gl_line3d_update(line3d, 0, line_data, line_length);
 
+  // Draw
+  while (gui_poll(gui)) {
+    draw_line3d(line3d);
+    gui_update(gui);
+  }
+
+  // Clean up
+  gl_line3d_free(line3d);
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_gl_cube(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
+
   // Cube
   gl_float_t cube_T[4 * 4] = {0};
+
   gl_eye(cube_T, 4, 4);
   cube_T[12] = 0.0;
   cube_T[13] = 0.0;
   cube_T[14] = 1.0;
+  const gl_float_t cube_size = 1.0f;
+  const gl_color_t cube_color = (gl_color_t){1.0, 0.0, 0.0};
   gl_cube_t *cube = gl_cube_malloc();
 
-  // Frustum
-  gl_float_t hfov = 90.0;
-  gl_float_t aspect = 1.0;
-  gl_float_t znear = 0.1;
-  gl_float_t zfar = 1.0;
-  gl_float_t frustum_T[4 * 4];
-  gl_eye(frustum_T, 4, 4);
-  gl_float_t frustum_size = 0.5f;
-  gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_float_t frustum_lw = 1.0f;
-  gl_frustum_t *frustum = gl_frustum_malloc(hfov,
-                                            aspect,
-                                            znear,
-                                            zfar,
-                                            frustum_T,
-                                            frustum_size,
-                                            frustum_color,
-                                            frustum_lw);
+  // Render
+  while (gui_poll(gui)) {
+    draw_cube(cube, cube_T, cube_size, cube_color);
+    gui_update(gui);
+  }
+
+  // Clean up
+  gl_cube_free(cube);
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_gl_axes3d(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
   // Axes
   gl_float_t axes_T[4 * 4];
@@ -596,11 +660,51 @@ int test_components(void) {
   gl_float_t axes_lw = 1.0f;
   gl_axes3d_t *axes = gl_axes3d_malloc(axes_T, axes_size, axes_lw);
 
+  // Render
+  while (gui_poll(gui)) {
+    draw_axes3d(axes);
+    gui_update(gui);
+  }
+
+  // Clean up
+  gl_axes3d_free(axes);
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_gl_grid3d(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
+
   // Grid
   gl_float_t grid_size = 0.5f;
   gl_float_t grid_lw = 5.0f;
   gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
   gl_grid3d_t *grid = gl_grid3d_malloc(grid_size, grid_color, grid_lw);
+
+  // Render
+  while (gui_poll(gui)) {
+    draw_grid3d(grid);
+    gui_update(gui);
+  }
+
+  // Clean up
+  gl_grid3d_free(grid);
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_gl_image(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
   // Image
   int width = 0;
@@ -613,50 +717,110 @@ int test_components(void) {
       gl_image_malloc(10, 120, image_data, width, height, channels);
   stbi_image_free(image_data);
 
+  // Render
+  while (gui_poll(gui)) {
+    draw_image(image);
+    gui_update(gui);
+  }
+
+  // Clean up
+  gl_image_free(image);
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_gl_text(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
+
   // Text
-  // gl_color_t text_color = (gl_color_t){1.0, 1.0, 1.0};
+  gl_color_t text_color = (gl_color_t){1.0, 1.0, 1.0};
   int text_size = 18;
   gl_text_t *text = gl_text_malloc(text_size);
 
-  // Trajectory
-  gl_axes3d_t *frames[10] = {0};
-  {
-    gl_float_t frame_size = 0.1f;
-    gl_float_t frame_lw = 5.0f;
+  // Render
+  while (gui_poll(gui)) {
+    // Get text width and height
+    gl_float_t text_w = 0.0f;
+    gl_float_t text_h = 0.0f;
+    const char *text_str = "Hello World";
+    text_width_height(text, text_str, &text_w, &text_h);
 
-    gl_float_t r = 2.0f;
-    gl_float_t theta = 0.0f;
-    gl_float_t dtheta = 2.0 * M_PI / 10;
+    // Center text and draw
+    const int text_x = window_width / 2.0 - text_w / 2.0;
+    const int text_y = window_height / 2.0 - text_h / 2.0;
+    draw_text(text, text_str, text_x, text_y, text_color);
 
-    for (int i = 0; i < 10; ++i) {
-      const gl_float_t x = r * sin(theta);
-      const gl_float_t y = 0.0f;
-      const gl_float_t z = r * cos(theta);
-      const gl_float_t pos[3] = {x, y, z};
-
-      gl_float_t euler[3] = {0.0f, theta, 0.0f};
-      gl_quat_t quat = {0};
-      gl_euler2quat(euler, &quat);
-
-      gl_float_t T[4 * 4] = {0};
-      gl_tf_qr(&quat, pos, T);
-      frames[i] = gl_axes3d_malloc(T, frame_size, frame_lw);
-      // draw_axes3d(frames[i]);
-      theta += dtheta;
-    }
+    gui_update(gui);
   }
+
+  // Clean up
+  gl_text_free(text);
+  gui_free(gui);
+
+  return 0;
+}
+
+int test_components(void) {
+  // Setup
+  const char *window_title = "viz";
+  const int window_width = 1024;
+  const int window_height = 768;
+  gui_t *gui = gui_malloc(window_title, window_width, window_height);
+
+  // // Frustum
+  // gl_float_t hfov = 90.0;
+  // gl_float_t aspect = 1.0;
+  // gl_float_t znear = 0.1;
+  // gl_float_t zfar = 1.0;
+  // gl_float_t frustum_T[4 * 4];
+  // gl_eye(frustum_T, 4, 4);
+  // gl_float_t frustum_size = 0.5f;
+  // gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
+  // gl_float_t frustum_lw = 1.0f;
+  // gl_frustum_t *frustum = gl_frustum_malloc(hfov,
+  //                                           aspect,
+  //                                           znear,
+  //                                           zfar,
+  //                                           frustum_T,
+  //                                           frustum_size,
+  //                                           frustum_color,
+  //                                           frustum_lw);
+  //
+  // // Trajectory
+  // gl_axes3d_t *frames[10] = {0};
+  // {
+  //   gl_float_t frame_size = 0.1f;
+  //   gl_float_t frame_lw = 5.0f;
+  //
+  //   gl_float_t r = 2.0f;
+  //   gl_float_t theta = 0.0f;
+  //   gl_float_t dtheta = 2.0 * M_PI / 10;
+  //
+  //   for (int i = 0; i < 10; ++i) {
+  //     const gl_float_t x = r * sin(theta);
+  //     const gl_float_t y = 0.0f;
+  //     const gl_float_t z = r * cos(theta);
+  //     const gl_float_t pos[3] = {x, y, z};
+  //
+  //     gl_float_t euler[3] = {0.0f, theta, 0.0f};
+  //     gl_quat_t quat = {0};
+  //     gl_euler2quat(euler, &quat);
+  //
+  //     gl_float_t T[4 * 4] = {0};
+  //     gl_tf_qr(&quat, pos, T);
+  //     frames[i] = gl_axes3d_malloc(T, frame_size, frame_lw);
+  //     // draw_axes3d(frames[i]);
+  //     theta += dtheta;
+  //   }
+  // }
 
   // Render
   while (gui_poll(gui)) {
-    // draw_rect(rect);
-    // draw_cube(cube, cube_T, cube_size, cube_color);
-    // draw_frustum(frustum);
-    draw_axes3d(axes);
-    // draw_grid3d(grid);
-    // draw_points3d(points3d);
-    draw_line3d(line3d);
-    // draw_image(image);
-    // draw_text(text, "Hello World", 10, 350, text_color);
     // for (int i = 0; i < 10; ++i) {
     //   draw_axes3d(frames[i]);
     // }
@@ -665,18 +829,9 @@ int test_components(void) {
   }
 
   // Clean up
-  gl_rect_free(rect);
-  gl_cube_free(cube);
-  gl_frustum_free(frustum);
-  gl_axes3d_free(axes);
-  gl_grid3d_free(grid);
-  gl_points3d_free(points3d);
-  gl_line3d_free(line3d);
-  gl_image_free(image);
-  gl_text_free(text);
-  for (int i = 0; i < 10; ++i) {
-    gl_axes3d_free(frames[i]);
-  }
+  // for (int i = 0; i < 10; ++i) {
+  //   gl_axes3d_free(frames[i]);
+  // }
   gui_free(gui);
 
   return 0;
@@ -729,6 +884,13 @@ void test_suite(void) {
   MU_ADD_TEST(test_gl_model_load);
 #if CI_MODE == 0
   MU_ADD_TEST(test_gui);
+  MU_ADD_TEST(test_gl_rect);
+  MU_ADD_TEST(test_gl_points3d);
+  MU_ADD_TEST(test_gl_line3d);
+  MU_ADD_TEST(test_gl_cube);
+  MU_ADD_TEST(test_gl_axes3d);
+  MU_ADD_TEST(test_gl_image);
+  MU_ADD_TEST(test_gl_text);
   MU_ADD_TEST(test_components);
   MU_ADD_TEST(test_sandbox);
 #endif
