@@ -709,17 +709,18 @@ int test_gl_image(void) {
   const int window_height = 768;
   gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
-  // Image
+  // Load image
   int w = 0;
   int h = 0;
   int c = 0;
   const char *image_path = "test_data/images/awesomeface.png";
   stbi_set_flip_vertically_on_load(1);
   uint8_t *image_data = stbi_load(image_path, &w, &h, &c, 3);
-  printf("w: %d, h: %d\n", w, h);
 
-  gl_image_t *image = gl_image_malloc(10, 120, image_data, w, h, c);
-  stbi_image_free(image_data);
+  // Form gl_image
+  const int x = window_width / 2.0 - w / 2.0;
+  const int y = window_height / 2.0 - h / 2.0;
+  gl_image_t *image = gl_image_malloc(x, y, image_data, w, h, c);
 
   // Render
   while (gui_poll(gui)) {
@@ -728,6 +729,7 @@ int test_gl_image(void) {
   }
 
   // Clean up
+  stbi_image_free(image_data);
   gl_image_free(image);
   gui_free(gui);
 
@@ -764,78 +766,6 @@ int test_gl_text(void) {
 
   // Clean up
   gl_text_free(text);
-  gui_free(gui);
-
-  return 0;
-}
-
-int test_components(void) {
-  // Setup
-  const char *window_title = "viz";
-  const int window_width = 1024;
-  const int window_height = 768;
-  gui_t *gui = gui_malloc(window_title, window_width, window_height);
-
-  // // Frustum
-  // gl_float_t hfov = 90.0;
-  // gl_float_t aspect = 1.0;
-  // gl_float_t znear = 0.1;
-  // gl_float_t zfar = 1.0;
-  // gl_float_t frustum_T[4 * 4];
-  // gl_eye(frustum_T, 4, 4);
-  // gl_float_t frustum_size = 0.5f;
-  // gl_color_t frustum_color = (gl_color_t){0.9, 0.4, 0.2};
-  // gl_float_t frustum_lw = 1.0f;
-  // gl_frustum_t *frustum = gl_frustum_malloc(hfov,
-  //                                           aspect,
-  //                                           znear,
-  //                                           zfar,
-  //                                           frustum_T,
-  //                                           frustum_size,
-  //                                           frustum_color,
-  //                                           frustum_lw);
-  //
-  // // Trajectory
-  // gl_axes3d_t *frames[10] = {0};
-  // {
-  //   gl_float_t frame_size = 0.1f;
-  //   gl_float_t frame_lw = 5.0f;
-  //
-  //   gl_float_t r = 2.0f;
-  //   gl_float_t theta = 0.0f;
-  //   gl_float_t dtheta = 2.0 * M_PI / 10;
-  //
-  //   for (int i = 0; i < 10; ++i) {
-  //     const gl_float_t x = r * sin(theta);
-  //     const gl_float_t y = 0.0f;
-  //     const gl_float_t z = r * cos(theta);
-  //     const gl_float_t pos[3] = {x, y, z};
-  //
-  //     gl_float_t euler[3] = {0.0f, theta, 0.0f};
-  //     gl_quat_t quat = {0};
-  //     gl_euler2quat(euler, &quat);
-  //
-  //     gl_float_t T[4 * 4] = {0};
-  //     gl_tf_qr(&quat, pos, T);
-  //     frames[i] = gl_axes3d_malloc(T, frame_size, frame_lw);
-  //     // draw_axes3d(frames[i]);
-  //     theta += dtheta;
-  //   }
-  // }
-
-  // Render
-  while (gui_poll(gui)) {
-    // for (int i = 0; i < 10; ++i) {
-    //   draw_axes3d(frames[i]);
-    // }
-
-    gui_update(gui);
-  }
-
-  // Clean up
-  // for (int i = 0; i < 10; ++i) {
-  //   gl_axes3d_free(frames[i]);
-  // }
   gui_free(gui);
 
   return 0;
@@ -896,7 +826,6 @@ void test_suite(void) {
   MU_ADD_TEST(test_gl_grid3d);
   MU_ADD_TEST(test_gl_image);
   MU_ADD_TEST(test_gl_text);
-  MU_ADD_TEST(test_components);
   MU_ADD_TEST(test_sandbox);
 #endif
 }

@@ -1412,19 +1412,19 @@ gui_t *gui_malloc(const char *window_title,
   }
 
   // OpenGL functions
-  // glEnable(GL_DEBUG_OUTPUT);
-  // glEnable(GL_PROGRAM_POINT_SIZE);
-  // glEnable(GL_LINE_SMOOTH);
-  // glEnable(GL_DEPTH_TEST);
-  // glEnable(GL_CULL_FACE);
-  // glEnable(GL_BLEND);
-  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_DEBUG_OUTPUT);
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_LINE_SMOOTH);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  // assert(glIsEnabled(GL_PROGRAM_POINT_SIZE));
-  // assert(glIsEnabled(GL_LINE_SMOOTH));
-  // assert(glIsEnabled(GL_DEPTH_TEST));
-  // assert(glIsEnabled(GL_CULL_FACE));
-  // assert(glIsEnabled(GL_BLEND));
+  assert(glIsEnabled(GL_PROGRAM_POINT_SIZE));
+  assert(glIsEnabled(GL_LINE_SMOOTH));
+  assert(glIsEnabled(GL_DEPTH_TEST));
+  assert(glIsEnabled(GL_CULL_FACE));
+  assert(glIsEnabled(GL_BLEND));
 
   // Camera
   gl_camera_setup(&_camera, &_window_width, &_window_height);
@@ -1531,14 +1531,14 @@ gl_rect_t *gl_rect_malloc(const gl_bounds_t bounds, const gl_color_t color) {
   // Vertices
   // clang-format off
   const float vertices[2 * 4] = {
-     1.0f, 0.0f,  // Top-right
-     1.0f, 1.0f,  // Bottom-right
-     0.0f, 1.0f,  // Bottom-left
-     0.0f, 0.0f,  // Top-left
+    1.0f, 0.0f,  // Top-right
+    1.0f, 1.0f,  // Bottom-right
+    0.0f, 1.0f,  // Bottom-left
+    0.0f, 0.0f,  // Top-left
   };
   const gl_int_t indices[6] = {
-      0, 3, 1, // First triangle
-      2, 1, 3  // Second triangle
+    0, 3, 1, // First triangle
+    2, 1, 3  // Second triangle
   };
   const size_t vertex_size = sizeof(gl_float_t) * 2;
   const size_t vbo_size = sizeof(vertices);
@@ -1633,6 +1633,7 @@ void draw_rect(gl_rect_t *rect) {
 gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
                                   size_t num_points,
                                   const gl_float_t point_size) {
+  glEnable(GL_PROGRAM_POINT_SIZE); // Need this for setting point size
   assert(num_points >= 0);
   assert(point_size >= 0);
 
@@ -2531,6 +2532,7 @@ gl_image_t *gl_image_malloc(const int x,
                             const int width,
                             const int height,
                             const int channels) {
+  assert(glIsEnabled(GL_BLEND)); // Need this for text-rendering
   assert(x >= 0 && y >= 0);
   assert(data);
   assert(width > 0);
@@ -2565,8 +2567,8 @@ gl_image_t *gl_image_malloc(const int x,
   };
   const size_t num_vertices = 4;
   const size_t vertex_size = sizeof(gl_float_t) * 4;
-  const size_t vbo_size = sizeof(vertex_size * num_vertices);
-  const size_t ebo_size = sizeof(gl_uint_t) * 2 * 3;
+  const size_t vbo_size = sizeof(vertices);
+  const size_t ebo_size = sizeof(indices);
   // clang-format on
 
   // Shader
