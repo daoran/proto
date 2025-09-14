@@ -208,6 +208,10 @@ void mu_run_test(const char *test_name,
   }
 
   // Run test
+  if (redirect == 0) {
+    printf("-> [%s]", test_name);
+    fflush(stdout);
+  }
   int test_retval = (*test_ptr)();
 
   // Restore stdout and stderr
@@ -220,7 +224,7 @@ void mu_run_test(const char *test_name,
     if (redirect) {
       printf(".");
     } else {
-      printf("-> [%s] " MU_GRN "OK!\n" MU_NRM, test_name);
+      printf(" " MU_GRN "OK!\n" MU_NRM);
     }
     fflush(stdout);
     num_passed++;
@@ -230,7 +234,7 @@ void mu_run_test(const char *test_name,
     }
 
   } else {
-    printf("\n" MU_RED "[%s] FAILED!\n" MU_NRM, test_name);
+    printf(" " MU_RED " FAILED!\n" MU_NRM);
     fflush(stdout);
     mu_print_log(log_path);
     num_failed++;
