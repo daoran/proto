@@ -588,9 +588,9 @@ int test_gl_line3d(void) {
   // Line3D
   gl_float_t line_lw = 5.0f;
   gl_color_t line_color = (gl_color_t){1.0, 0.0, 0.0};
-  size_t line_length = 10;
+  size_t line_length = 100;
   float radius = 3.0f;
-  float dtheta = 2 * M_PI / line_length;
+  float dtheta = 2 * M_PI / (line_length - 1);
   float theta = 0.0f;
   float *line_data = malloc(sizeof(float) * line_length * 3);
   for (size_t i = 0; i < line_length; ++i) {
@@ -611,11 +611,12 @@ int test_gl_line3d(void) {
   // Clean up
   gl_line3d_free(line3d);
   gui_free(gui);
+  free(line_data);
 
   return 0;
 }
 
-int test_gl_cube(void) {
+int test_gl_cube3d(void) {
   // Setup
   const char *window_title = "viz";
   const int window_width = 1024;
@@ -631,7 +632,7 @@ int test_gl_cube(void) {
   cube_T[14] = 1.0;
   const gl_float_t cube_size = 1.0f;
   const gl_color_t cube_color = (gl_color_t){1.0, 0.0, 0.0};
-  gl_cube_t *cube = gl_cube_malloc();
+  gl_cube3d_t *cube = gl_cube3d_malloc();
 
   // Render
   while (gui_poll(gui)) {
@@ -640,7 +641,7 @@ int test_gl_cube(void) {
   }
 
   // Clean up
-  gl_cube_free(cube);
+  gl_cube3d_free(cube);
   gui_free(gui);
 
   return 0;
@@ -657,7 +658,7 @@ int test_gl_axes3d(void) {
   gl_float_t axes_T[4 * 4];
   gl_eye(axes_T, 4, 4);
   gl_float_t axes_size = 0.5f;
-  gl_float_t axes_lw = 1.0f;
+  gl_float_t axes_lw = 3.0f;
   gl_axes3d_t *axes = gl_axes3d_malloc(axes_T, axes_size, axes_lw);
 
   // Render
@@ -681,10 +682,12 @@ int test_gl_grid3d(void) {
   gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
   // Grid
-  gl_float_t grid_size = 0.5f;
-  gl_float_t grid_lw = 5.0f;
-  gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_grid3d_t *grid = gl_grid3d_malloc(grid_size, grid_color, grid_lw);
+  gl_int_t num_rows = 10;
+  gl_int_t num_cols = 10;
+  gl_float_t size = 1.0f;
+  gl_float_t lw = 2.0f;
+  gl_color_t color = (gl_color_t){1.0, 1.0, 1.0};
+  gl_grid3d_t *grid = gl_grid3d_malloc(num_rows, num_cols, size, color, lw);
 
   // Render
   while (gui_poll(gui)) {
@@ -707,14 +710,15 @@ int test_gl_image(void) {
   gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
   // Image
-  int width = 0;
-  int height = 0;
-  int channels = 0;
+  int w = 0;
+  int h = 0;
+  int c = 0;
   const char *image_path = "test_data/images/awesomeface.png";
   stbi_set_flip_vertically_on_load(1);
-  uint8_t *image_data = stbi_load(image_path, &width, &height, &channels, 3);
-  gl_image_t *image =
-      gl_image_malloc(10, 120, image_data, width, height, channels);
+  uint8_t *image_data = stbi_load(image_path, &w, &h, &c, 3);
+  printf("w: %d, h: %d\n", w, h);
+
+  gl_image_t *image = gl_image_malloc(10, 120, image_data, w, h, c);
   stbi_image_free(image_data);
 
   // Render
@@ -887,8 +891,9 @@ void test_suite(void) {
   MU_ADD_TEST(test_gl_rect);
   MU_ADD_TEST(test_gl_points3d);
   MU_ADD_TEST(test_gl_line3d);
-  MU_ADD_TEST(test_gl_cube);
+  MU_ADD_TEST(test_gl_cube3d);
   MU_ADD_TEST(test_gl_axes3d);
+  MU_ADD_TEST(test_gl_grid3d);
   MU_ADD_TEST(test_gl_image);
   MU_ADD_TEST(test_gl_text);
   MU_ADD_TEST(test_components);

@@ -3,8 +3,8 @@
 #include "xyz_gui.h"
 
 void vis_scan(gl_points3d_t *gl_points,
-                    const gl_float_t *pcd,
-                    const size_t num_points) {
+              const gl_float_t *pcd,
+              const size_t num_points) {
   gl_float_t point_size = 2.0;
   gl_float_t *points_data = malloc(sizeof(gl_float_t) * num_points * 6);
 
@@ -102,10 +102,13 @@ int test_icp(void) {
   gui_t *gui = gui_malloc(window_title, window_width, window_height);
 
   // Grid
+  gl_int_t grid_rows = 10;
+  gl_int_t grid_cols = 10;
   gl_float_t grid_size = 0.5f;
   gl_float_t grid_lw = 5.0f;
-  gl_color_t grid_color = (gl_color_t){0.9, 0.4, 0.2};
-  gl_grid3d_t *gl_grid = gl_grid3d_malloc(grid_size, grid_color, grid_lw);
+  gl_color_t grid_color = (gl_color_t){1.0, 1.0, 1.0};
+  gl_grid3d_t *gl_grid =
+      gl_grid3d_malloc(grid_rows, grid_cols, grid_size, grid_color, grid_lw);
 
   // KITTI
   const char *data_dir = "/data/kitti_raw/2011_09_26";
@@ -178,7 +181,5 @@ int test_icp(void) {
   return 0;
 }
 
-void test_suite(void) {
-  MU_ADD_TEST(test_icp);
-}
+void test_suite(void) { MU_ADD_TEST(test_icp); }
 MU_RUN_TESTS(test_suite)
