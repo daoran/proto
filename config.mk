@@ -9,8 +9,8 @@ PYTHON3_PATH := $(shell python3 -c "import site; print(site.getsitepackages()[0]
 export LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH):$(THIRD_PARTY_DIR)/lib
 
 # SETTINGS
-# BUILD_TYPE := debug
-BUILD_TYPE := release
+BUILD_TYPE := debug
+# BUILD_TYPE := release
 CI_MODE := 0
 CC := clang
 # CC := gcc
@@ -39,7 +39,7 @@ CFLAGS := -std=c99 -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE -Wall -Wpedantic -Wst
 
 ifeq ($(BUILD_TYPE), debug)
 	CFLAGS += -g -fopenmp
-	ADDRESS_SANITIZER := 0
+	ADDRESS_SANITIZER := 1
 else
 	CFLAGS += -g -O3 -march=native -DNDEBUG -fopenmp
 	ADDRESS_SANITIZER := 0

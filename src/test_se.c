@@ -95,6 +95,31 @@ void icp_jacobian(const float pose_est[4 * 4], float J[3 * 6]) {
 // }
 
 int test_icp(void) {
+  // Kitti data
+  const char *data_dir = "/data/kitti_raw/2011_09_26";
+  const char *seq_name = "2011_09_26_drive_0001_sync";
+  kitti_raw_t *kitti = kitti_raw_load(data_dir, seq_name);
+
+  const float voxel_size = 0.5;
+  size_t km1_num_points = 0;
+  size_t k_num_points = 0;
+
+  const timestamp_t ts_km1_start = kitti->velodyne->timestamps_start[0];
+  const timestamp_t ts_km1_end = kitti->velodyne->timestamps_end[0];
+  const char *km1_pcd_path = kitti->velodyne->pcd_paths[0];
+  const char *k_pcd_path = kitti->velodyne->pcd_paths[1];
+  float *points_km1 = kitti_lidar_xyz(k_pcd_path, voxel_size, &km1_num_points);
+  float *points_k = kitti_lidar_xyz(k_pcd_path, voxel_size, &k_num_points);
+
+  // Clean up
+  free(points_km1);
+  free(points_k);
+  kitti_raw_free(kitti);
+
+  return 0;
+}
+
+int test_kitti(void) {
   // Setup
   const char *window_title = "viz";
   const int window_width = 1024;
@@ -105,7 +130,7 @@ int test_icp(void) {
   gl_int_t grid_rows = 10;
   gl_int_t grid_cols = 10;
   gl_float_t grid_size = 0.5f;
-  gl_float_t grid_lw = 5.0f;
+  gl_float_t grid_lw = 1.0f;
   gl_color_t grid_color = (gl_color_t){1.0, 1.0, 1.0};
   gl_grid3d_t *gl_grid =
       gl_grid3d_malloc(grid_rows, grid_cols, grid_size, grid_color, grid_lw);
@@ -114,7 +139,7 @@ int test_icp(void) {
   const char *data_dir = "/data/kitti_raw/2011_09_26";
   const char *seq_name = "2011_09_26_drive_0001_sync";
   kitti_raw_t *kitti = kitti_raw_load(data_dir, seq_name);
-  gl_points3d_t *gl_points = gl_points3d_malloc(NULL, 0, 0);
+  gl_points3d_t *gl_points = gl_points3d_malloc(NULL, 0, 1.0);
 
   int pcd_index = 0;
   double time_prev = gui_time();
@@ -181,5 +206,9 @@ int test_icp(void) {
   return 0;
 }
 
-void test_suite(void) { MU_ADD_TEST(test_icp); }
+void test_suite(void) {
+  MU_ADD_TEST(test_icp);
+  MU_ADD_TEST(test_kitti);
+}
+
 MU_RUN_TESTS(test_suite)

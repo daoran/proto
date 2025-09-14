@@ -356,7 +356,7 @@ typedef struct gl_points3d_t {
 } gl_points3d_t;
 
 gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
-                                  size_t num_points,
+                                  const size_t num_points,
                                   const gl_float_t point_size);
 void gl_points3d_free(gl_points3d_t *points);
 void gl_points3d_update(gl_points3d_t *points,

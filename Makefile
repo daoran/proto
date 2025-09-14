@@ -148,4 +148,5 @@ ci: ## Run CI tests
 all: libxyz tests
 
 cppcheck: ## Run cppcheck on xyz.c
-	@cppcheck src/xyz.c src/xyz.h
+	# @cppcheck src/xyz.c src/xyz.h
+	@cppcheck src/xyz_gui.c src/xyz_gui.h

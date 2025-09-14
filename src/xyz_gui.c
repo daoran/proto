@@ -1630,8 +1630,10 @@ void draw_rect(gl_rect_t *rect) {
   "  frag_color = vec4(color, alpha);\n"                                       \
   "}\n"
 
+#define GL_POINTS3D_MAX_POINTS 1000000
+
 gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
-                                  size_t num_points,
+                                  const size_t num_points,
                                   const gl_float_t point_size) {
   glEnable(GL_PROGRAM_POINT_SIZE); // Need this for setting point size
   assert(num_points >= 0);
@@ -1642,11 +1644,8 @@ gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
   points->VAO = 0;
   points->VBO = 0;
   points->points_data = points_data;
-  points->num_points = num_points;
+  points->num_points = (num_points == 0) ? GL_POINTS3D_MAX_POINTS : num_points;
   points->point_size = point_size;
-  if (num_points == 0) {
-    return points;
-  }
 
   // Shader
   points->program_id = gl_shader(GL_POINTS3D_VS, GL_POINTS3D_FS, NULL);
@@ -1659,7 +1658,7 @@ gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
   glBindVertexArray(points->VAO);
 
   // VBO
-  const size_t vbo_size = sizeof(float) * 3 * num_points;
+  const size_t vbo_size = sizeof(float) * 3 * points->num_points;
   glGenBuffers(1, &points->VBO);
   glBindBuffer(GL_ARRAY_BUFFER, points->VBO);
   glBufferData(GL_ARRAY_BUFFER, vbo_size, points->points_data, GL_STATIC_DRAW);
@@ -1673,7 +1672,7 @@ gl_points3d_t *gl_points3d_malloc(gl_float_t *points_data,
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
   glEnableVertexAttribArray(1);
 
-  // Clean up
+  // Unbind VBO and VAO
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
   glBindVertexArray(0);             // Unbind VAO
 
@@ -1693,46 +1692,19 @@ void gl_points3d_update(gl_points3d_t *points,
                         gl_float_t *points_data,
                         size_t num_points,
                         const gl_float_t point_size) {
-  points->points_data = points_data;
-  points->num_points = num_points;
-  points->point_size = point_size;
-
-  // Clear GPU memory of previous data
-  if (points->VAO != 0) {
-    GL_DEL_VERTEX_ARRAY(points->VAO);
-    GL_DEL_BUFFER(points->VBO);
-    points->VAO = 0;
-    points->VBO = 0;
-  }
-
   // Check if we have data to upload
   if (num_points == 0) {
     return;
   }
 
-  // Upload data to GPU
-  // -- VAO
-  glGenVertexArrays(1, &points->VAO);
-  glBindVertexArray(points->VAO);
+  points->points_data = points_data;
+  points->num_points = num_points;
+  points->point_size = point_size;
 
-  // -- VBO
   const size_t vbo_size = sizeof(gl_float_t) * 6 * points->num_points;
-  glGenBuffers(1, &points->VBO);
   glBindBuffer(GL_ARRAY_BUFFER, points->VBO);
-  glBufferData(GL_ARRAY_BUFFER, vbo_size, points->points_data, GL_STATIC_DRAW);
-  // ---- Position attribute
-  size_t vertex_size = 6 * sizeof(float);
-  void *pos_offset = (void *) 0;
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_size, pos_offset);
-  glEnableVertexAttribArray(0);
-  // ---- Color attribute
-  void *color_offset = (void *) (3 * sizeof(float));
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_size, color_offset);
-  glEnableVertexAttribArray(1);
-
-  // -- Clean up
+  glBufferSubData(GL_ARRAY_BUFFER, 0, vbo_size, points->points_data);
   glBindBuffer(GL_ARRAY_BUFFER, 0); // Unbind VBO
-  glBindVertexArray(0);             // Unbind VAO
 }
 
 void draw_points3d(gl_points3d_t *points) {

@@ -561,8 +561,8 @@ int test_gl_points3d(void) {
     points_data[i * 6 + 4] = points_color.g;
     points_data[i * 6 + 5] = points_color.b;
   }
-  gl_points3d_t *points3d =
-      gl_points3d_malloc(points_data, num_points, point_size);
+  gl_points3d_t *points3d = gl_points3d_malloc(NULL, 0, point_size);
+  gl_points3d_update(points3d, points_data, num_points, point_size);
   free(points_data);
 
   // Render
