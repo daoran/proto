@@ -94,7 +94,7 @@ void icp_jacobian(const float pose_est[4 * 4], float J[3 * 6]) {
 //   return;
 // }
 
-int test_kabsch_umeyama(void) {
+int test_umeyama(void) {
   // Test setup
   real_t scale_gnd[1] = {2.0};
   real_t ypr_gnd[3] = {0.1, 0.2, 0.3};
@@ -131,12 +131,12 @@ int test_kabsch_umeyama(void) {
     Y[i * 3 + 2] = p_dst[2];
   }
 
-  // Test kabsch_umeyama
+  // Test umeyama
   // tic();
   real_t scale_est[1] = {0};
   real_t R_est[3 * 3] = {0};
   real_t t_est[3] = {0};
-  kabsch_umeyama(X, Y, n, scale_est, R_est, t_est);
+  umeyama(X, Y, n, scale_est, R_est, t_est);
 
   real_t t_diff[3] = {0};
   vec3_sub(t_est, t_gnd, t_diff);
@@ -144,7 +144,7 @@ int test_kabsch_umeyama(void) {
   MU_ASSERT(fabs(scale_est[0] - scale_gnd[0]) < 1e-2);
   MU_ASSERT(rot_diff(R_est, R_gnd) < 1e-2);
   MU_ASSERT(vec3_norm(t_diff) < 1e-2);
-  // printf("kabsch_umeyama time taken: %f [s]\n", toc());
+  // printf("umeyama time taken: %f [s]\n", toc());
 
   return 0;
 }
@@ -262,7 +262,7 @@ int test_kitti(void) {
 }
 
 void test_suite(void) {
-  MU_ADD_TEST(test_kabsch_umeyama);
+  MU_ADD_TEST(test_umeyama);
   MU_ADD_TEST(test_icp);
   MU_ADD_TEST(test_kitti);
 }

@@ -1719,12 +1719,12 @@ bool frustum_check_point(const frustum_t *frustum, const real_t p[3]);
  * POINT CLOUD UTILS
  ******************************************************************************/
 
-void kabsch_umeyama(const float *X,
-                    const float *Y,
-                    const size_t n,
-                    real_t scale[1],
-                    real_t R[3 * 3],
-                    real_t t[3]);
+void umeyama(const float *X,
+             const float *Y,
+             const size_t n,
+             real_t scale[1],
+             real_t R[3 * 3],
+             real_t t[3]);
 
 /*******************************************************************************
  * VOXEL
