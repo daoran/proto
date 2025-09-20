@@ -5702,6 +5702,21 @@ void rotz(const real_t theta, real_t C[3 * 3]) {
   C[8] = 1.0;
 }
 
+/** Compare two rotation matrices **/
+real_t rot_diff(const real_t R0[3 * 3], const real_t R1[3 * 3]) {
+  real_t R0t[3 * 3] = {0};
+  real_t dR[3 * 3] = {0};
+  mat_transpose(R0, 3, 3, R0t);
+  dot(R0t, 3, 3, R1, 3, 3, dR);
+
+  const real_t tr = mat_trace(dR, 3, 3);
+  if (fabs(tr - 3.0) < 1e-5) {
+    return 0.0;
+  }
+
+  return acos((tr - 1.0) / 2.0);
+}
+
 /**
  * Form 4x4 homogeneous transformation matrix `T` from a 7x1 pose vector
  * `params`.
@@ -10017,6 +10032,144 @@ bool frustum_check_point(const frustum_t *frustum, const real_t p[3]) {
   status += plane_point_dist(&frustum->top, p) >= 0;
   status += plane_point_dist(&frustum->bottom, p) >= 0;
   return (status == 6) ? true : false;
+}
+
+/*******************************************************************************
+ * POINT CLOUD UTILS
+ ******************************************************************************/
+
+/**
+ * Estimates scale `c`, rotation matrix `R` and translation vector `t` between
+ * two sets of points `X` and `Y` such that:
+ *
+ *   Y ~= scale * R * X + t
+ *
+ * Source:
+ *
+ *   Least-Squares Estimation of Transformation Parameters Between Two Point
+ *   Patterns (Shinji Umeyama, 1991)
+ *
+ * Args:
+ *
+ *   X: src 3D points
+ *   Y: dest 3D points
+ *   n: Number of 3D points
+ *
+ * Returns:
+ *
+ *   scale: Scale factor
+ *   R: Rotation matrix
+ *   t: translation vector
+ *
+ */
+void umeyama(const float *X,
+             const float *Y,
+             const size_t n,
+             real_t scale[1],
+             real_t R[3 * 3],
+             real_t t[3]) {
+  // Compute centroid
+  real_t mu_x[3] = {0};
+  real_t mu_y[3] = {0};
+  for (size_t i = 0; i < n; ++i) {
+    mu_x[0] += X[i * 3 + 0];
+    mu_x[1] += X[i * 3 + 1];
+    mu_x[2] += X[i * 3 + 2];
+
+    mu_y[0] += Y[i * 3 + 0];
+    mu_y[1] += Y[i * 3 + 1];
+    mu_y[2] += Y[i * 3 + 2];
+  }
+  mu_x[0] /= n;
+  mu_x[1] /= n;
+  mu_x[2] /= n;
+  mu_y[0] /= n;
+  mu_y[1] /= n;
+  mu_y[2] /= n;
+
+  // Calculate variance of points X relative to its centroid
+  // var_x = square(X - mu_x).sum(axis=0).mean()
+  real_t var_x = 0.0;
+  for (size_t i = 0; i < n; ++i) {
+    const real_t dx0 = X[i * 3 + 0] - mu_x[0];
+    const real_t dx1 = X[i * 3 + 1] - mu_x[1];
+    const real_t dx2 = X[i * 3 + 2] - mu_x[2];
+    var_x += dx0 * dx0 + dx1 * dx1 + dx2 * dx2;
+  }
+  var_x /= n;
+
+  // Form covariance matrix and decompose with SVD
+  // covar = ((Y - mu_y) * (X - mu_x).T) / X.shape[1]
+  // -- Accumulate covariance sums
+  real_t *covar = calloc(3 * 3, sizeof(real_t));
+  for (int k = 0; k < n; k++) {
+    const real_t dx0 = X[k * 3 + 0] - mu_x[0];
+    const real_t dx1 = X[k * 3 + 1] - mu_x[1];
+    const real_t dx2 = X[k * 3 + 2] - mu_x[2];
+
+    const real_t dy0 = Y[k * 3 + 0] - mu_y[0];
+    const real_t dy1 = Y[k * 3 + 1] - mu_y[1];
+    const real_t dy2 = Y[k * 3 + 2] - mu_y[2];
+
+    covar[0] += dy0 * dx0;
+    covar[1] += dy0 * dx1;
+    covar[2] += dy0 * dx2;
+
+    covar[3] += dy1 * dx0;
+    covar[4] += dy1 * dx1;
+    covar[5] += dy1 * dx2;
+
+    covar[6] += dy2 * dx0;
+    covar[7] += dy2 * dx1;
+    covar[8] += dy2 * dx2;
+  }
+  // -- Normalize by n
+  const real_t covar_scale = 1.0 / n;
+  covar[0] *= covar_scale;
+  covar[1] *= covar_scale;
+  covar[2] *= covar_scale;
+  covar[3] *= covar_scale;
+  covar[4] *= covar_scale;
+  covar[5] *= covar_scale;
+  covar[6] *= covar_scale;
+  covar[7] *= covar_scale;
+  covar[8] *= covar_scale;
+  // -- U, s, V = svd(covar)
+  real_t U[3 * 3] = {0};
+  real_t s[3] = {0};
+  real_t V[3 * 3] = {0};
+  svd(covar, 3, 3, U, s, V);
+
+  // Check to see if rotation matrix det(R) is 1
+  real_t U_det = 0;
+  real_t V_det = 0;
+  svd_det(U, 3, 3, &U_det);
+  svd_det(V, 3, 3, &V_det);
+  const real_t d = U_det * V_det;
+  const real_t D[3 * 3] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, d};
+
+  // Calculate scale, rotation matrix and translation vector
+  // -- Scale
+  // scale = trace(diag(s) * D) / var_x
+  real_t S[3 * 3] = {0};
+  real_t SD[3 * 3] = {0};
+  mat_diag_set(S, 3, 3, s);
+  dot(S, 3, 3, D, 3, 3, SD);
+  scale[0] = mat_trace(SD, 3, 3) / var_x;
+
+  // -- Rotation
+  // R = U * D * V'
+  real_t Vt[3 * 3] = {0};
+  mat_transpose(V, 3, 3, Vt);
+  dot3(U, 3, 3, D, 3, 3, Vt, 3, 3, R);
+
+  // -- Translation
+  // t = mu_y - scale * R * mu_x
+  real_t y[3] = {0};
+  dot(R, 3, 3, mu_x, 3, 1, y);
+  t[0] = mu_y[0] - scale[0] * y[0];
+  t[1] = mu_y[1] - scale[0] * y[1];
+  t[2] = mu_y[2] - scale[0] * y[2];
 }
 
 /*******************************************************************************

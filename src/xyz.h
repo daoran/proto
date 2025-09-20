@@ -1129,6 +1129,7 @@ real_t suitesparse_chol_solve(cholmod_common *c,
 void rotx(const real_t theta, real_t C[3 * 3]);
 void roty(const real_t theta, real_t C[3 * 3]);
 void rotz(const real_t theta, real_t C[3 * 3]);
+real_t rot_diff(const real_t R0[3 * 3], const real_t R1[3 * 3]);
 void tf(const real_t params[7], real_t T[4 * 4]);
 void tf_cr(const real_t C[3 * 3], const real_t r[3], real_t T[4 * 4]);
 void tf_qr(const real_t q[4], const real_t r[3], real_t T[4 * 4]);
@@ -1713,6 +1714,17 @@ void frustum_setup(frustum_t *frustum,
                    const real_t znear,
                    const real_t zfar);
 bool frustum_check_point(const frustum_t *frustum, const real_t p[3]);
+
+/*******************************************************************************
+ * POINT CLOUD UTILS
+ ******************************************************************************/
+
+void umeyama(const float *X,
+             const float *Y,
+             const size_t n,
+             real_t scale[1],
+             real_t R[3 * 3],
+             real_t t[3]);
 
 /*******************************************************************************
  * VOXEL

@@ -94,6 +94,61 @@ void icp_jacobian(const float pose_est[4 * 4], float J[3 * 6]) {
 //   return;
 // }
 
+int test_umeyama(void) {
+  // Test setup
+  real_t scale_gnd[1] = {2.0};
+  real_t ypr_gnd[3] = {0.1, 0.2, 0.3};
+  real_t R_gnd[3 * 3] = {0};
+  real_t t_gnd[3] = {0.1, 0.2, 0.3};
+  euler321(ypr_gnd, R_gnd);
+
+  // Generate random points X and Y
+  const size_t n = 100;
+  const real_t x_bounds[2] = {-1.0, 1.0};
+  const real_t y_bounds[2] = {-1.0, 1.0};
+  const real_t z_bounds[2] = {-1.0, 1.0};
+  float *X = malloc(sizeof(float) * 3 * n);
+  float *Y = malloc(sizeof(float) * 3 * n);
+
+  for (int i = 0; i < n; i++) {
+    X[i * 3 + 0] = randf(x_bounds[0], x_bounds[1]);
+    X[i * 3 + 1] = randf(y_bounds[0], y_bounds[1]);
+    X[i * 3 + 2] = randf(z_bounds[0], z_bounds[1]);
+  }
+
+  for (int i = 0; i < n; i++) {
+    // p_dst = R_gnd * p + t_gnd
+    real_t p[3] = {X[i * 3 + 0], X[i * 3 + 1], X[i * 3 + 2]};
+    real_t p_dst[3] = {0};
+    dot(R_gnd, 3, 3, p, 3, 1, p_dst);
+    p_dst[0] = scale_gnd[0] * p_dst[0] + t_gnd[0];
+    p_dst[1] = scale_gnd[0] * p_dst[1] + t_gnd[1];
+    p_dst[2] = scale_gnd[0] * p_dst[2] + t_gnd[2];
+
+    // Add to points Y
+    Y[i * 3 + 0] = p_dst[0];
+    Y[i * 3 + 1] = p_dst[1];
+    Y[i * 3 + 2] = p_dst[2];
+  }
+
+  // Test umeyama
+  // tic();
+  real_t scale_est[1] = {0};
+  real_t R_est[3 * 3] = {0};
+  real_t t_est[3] = {0};
+  umeyama(X, Y, n, scale_est, R_est, t_est);
+
+  real_t t_diff[3] = {0};
+  vec3_sub(t_est, t_gnd, t_diff);
+
+  MU_ASSERT(fabs(scale_est[0] - scale_gnd[0]) < 1e-2);
+  MU_ASSERT(rot_diff(R_est, R_gnd) < 1e-2);
+  MU_ASSERT(vec3_norm(t_diff) < 1e-2);
+  // printf("umeyama time taken: %f [s]\n", toc());
+
+  return 0;
+}
+
 int test_icp(void) {
   // Kitti data
   const char *data_dir = "/data/kitti_raw/2011_09_26";
@@ -207,6 +262,7 @@ int test_kitti(void) {
 }
 
 void test_suite(void) {
+  MU_ADD_TEST(test_umeyama);
   MU_ADD_TEST(test_icp);
   MU_ADD_TEST(test_kitti);
 }
