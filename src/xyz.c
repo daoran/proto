@@ -10062,12 +10062,12 @@ bool frustum_check_point(const frustum_t *frustum, const real_t p[3]) {
  *   t: translation vector
  *
  */
-void umeyama(const float *X,
-             const float *Y,
-             const size_t n,
-             real_t scale[1],
-             real_t R[3 * 3],
-             real_t t[3]) {
+void kabsch_umeyama(const float *X,
+                    const float *Y,
+                    const size_t n,
+                    real_t scale[1],
+                    real_t R[3 * 3],
+                    real_t t[3]) {
   // Compute centroid
   real_t mu_x[3] = {0};
   real_t mu_y[3] = {0};
