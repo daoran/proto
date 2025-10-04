@@ -1,5 +1,5 @@
 include config.mk
-.PHONY: benchmarks build docs scripts src third_party
+.PHONY: benchmarks build docs scripts src third_party tools
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile \
@@ -136,10 +136,23 @@ avs: $(BLD_DIR)/libxyz.a
 		-lxyz \
 		$(shell pkg-config opencv4 --libs)
 
+cpp:
+	@g++ \
+		-std=c++17 \
+		-fsanitize=address -static-libasan \
+		-fopenmp \
+		-g \
+		-c src/xyz.cpp \
+		-o $(BLD_DIR)/xyz.o \
+		$(LDFLAGS)
+
 tests: $(TESTS) ## Build tests
 
 run_tests: tests ## Run tests
 	@cd ./build && $(foreach TEST, $(TESTS), ./$(notdir ${TEST});)
+
+tools:
+	@gcc -c tools/calib_camera.c -o $(BLD_DIR)/calib_camera
 
 ci: ## Run CI tests
 	@make tests CI_MODE=1 --no-print-directory

@@ -5334,10 +5334,13 @@ class TestPointCloud(unittest.TestCase):
     R_gnd = euler321(*np.random.rand(3))
     t_gnd = np.random.rand(3, 1) * 0.1
 
-    points = np.random.rand(1000, 3)
+    points = np.random.rand(int(1e7), 3)
     src = points
     dst = points @ R_gnd.T + t_gnd.T
+    time_start = time.time()
     c, R, t = umeyama(src.T, dst.T)
+    elapsed = time.time() - time_start
+    print(f"python umeyama elapsed: {elapsed:.2f} [s]")
     est = c * src @ R.T + t.T
 
     self.assertTrue(np.allclose(R, R_gnd, atol=1e-4))
@@ -5400,6 +5403,97 @@ class TestPointCloud(unittest.TestCase):
     # Assert
     self.assertTrue(np.linalg.norm(t_est - t_gnd) < 1e-2)
     self.assertTrue(rot_diff(R_est, R_gnd) < 1e-2)
+
+  def test_icp_kitti(self):
+    # Setup
+    data_dir = Path("/data/kitti_raw")
+    date = "2011_09_26"
+    seq = "93"
+    dataset = KittiRawDataset(data_dir, date, seq, True)
+
+    # Load scans
+    lidar_timestamps = dataset.velodyne_data.timestamps
+    pcd0 = dataset.velodyne_data.load_scan(lidar_timestamps[0])[:, :3]
+    pcd1 = dataset.velodyne_data.load_scan(lidar_timestamps[20])[:, :3]
+
+    import open3d as o3d
+    pcd_src = o3d.geometry.PointCloud()
+    pcd_dst = o3d.geometry.PointCloud()
+    pcd_src.points = o3d.utility.Vector3dVector(pcd0)
+    pcd_dst.points = o3d.utility.Vector3dVector(pcd1)
+    threshold = 0.001
+    trans_init = np.eye(4)
+    result = o3d.pipelines.registration.registration_icp(
+      pcd_src,
+      pcd_dst,
+      threshold,
+      trans_init,
+      o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+      o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=20000),
+    )
+    print("Estimated transformation:")
+    print(result.transformation)
+    pcd_src_icp = pcd_src.transform(result.transformation)
+
+    # max_iter = 100
+    # tree = scipy.spatial.KDTree(pcd1)
+    # R_est = eye(3)
+    # t_est = np.array([0.0, 0.0, 0.0])
+    #
+    # for _ in range(max_iter):
+    #   pcd1_est = (R_est @ pcd0.T).T + t_est
+    #
+    #   distances, indicies = tree.query(pcd1_est)
+    #   pcd1_gnd = pcd1[indicies]
+    #   N = len(indicies)
+    #
+    #   # print(pcd1_est.shape)
+    #   # print(pcd1_gnd.shape)
+    #   # c, R_est, t_est = umeyama(pcd1_est, pcd1_gnd)
+    #
+    #   jacobians = []
+    #   residuals = []
+    #   for i in range(N):
+    #     residuals.append(pcd1_gnd[i] - pcd1_est[i])
+    #     J = zeros((3, 6))
+    #     J[0:3, 0:3] = -1.0 * eye(3)
+    #     J[0:3, 3:6] = R_est @ hat(pcd1_est[i])
+    #     jacobians.append(J)
+    #   J = np.vstack(jacobians)
+    #   r = np.hstack(residuals)
+    #   cost = 0.5 * (r.T @ r)
+    #   print(f"{cost=:.2e}")
+    #
+    #   H = J.T @ J
+    #   # H += 1e-20 * eye(6)
+    #   b = -1.0 * J.T @ r
+    #
+    #   c, low = scipy.linalg.cho_factor(H)
+    #   dx = scipy.linalg.cho_solve((c, low), b)
+    #   # dx = solve_svd(H, b)
+    #
+    #   t_est += dx[0:3]
+    #   R_est = R_est @ Exp(dx[3:6])
+
+    voxel_size = 0.5
+    pcd_src = pcd_src.voxel_down_sample(voxel_size)
+    pcd_src_icp = pcd_src_icp.voxel_down_sample(voxel_size)
+    pcd_dst = pcd_dst.voxel_down_sample(voxel_size)
+
+    pcd = np.asarray(pcd_src.points)
+    pcd0 = np.asarray(pcd_src_icp.points)
+    pcd1 = np.asarray(pcd_dst.points)
+
+    # Visualize
+    fig = plt.figure(figsize=(12, 10))
+    ax = plt.axes(projection='3d')
+    ax.scatter(pcd0[:, 0], pcd0[:, 1], pcd0[:, 2], 'r', alpha=0.1)
+    ax.scatter(pcd1[:, 0], pcd1[:, 1], pcd1[:, 2], 'g', alpha=0.1)
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]")
+    ax.set_zlabel("z [m]")
+    plot_set_axes_equal(ax)
+    plt.show()
 
 
 ################################################################################
@@ -6466,7 +6560,8 @@ class Frustum:
 
 
 class Ray:
-  """ 3D Ray """
+  """3D Ray"""
+
   def __init__(self, origin: Vec3, dir: Vec3):
     self.origin = origin
     self.dir = dir

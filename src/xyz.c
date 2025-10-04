@@ -10035,7 +10035,7 @@ bool frustum_check_point(const frustum_t *frustum, const real_t p[3]) {
 }
 
 /*******************************************************************************
- * POINT CLOUD UTILS
+ * POINT CLOUD
  ******************************************************************************/
 
 /**
@@ -10170,6 +10170,27 @@ void umeyama(const float *X,
   t[0] = mu_y[0] - scale[0] * y[0];
   t[1] = mu_y[1] - scale[0] * y[1];
   t[2] = mu_y[2] - scale[0] * y[2];
+
+  real_t diff = 0.0;
+  for (int i = 0; i < n; ++i) {
+    // y_est = R * x + t
+    const real_t px = X[i * 3 + 0];
+    const real_t py = X[i * 3 + 1];
+    const real_t pz = X[i * 3 + 2];
+    const real_t x[3] = {px, py, pz};
+
+    real_t y_est[3] = {0};
+    dot(R, 3, 3, x, 3, 1, y_est);
+
+    y_est[0] = y_est[0] + t[0];
+    y_est[1] = y_est[1] + t[1];
+    y_est[2] = y_est[2] + t[2];
+
+    diff += (y[0] - y_est[0]) * (y[0] - y_est[0]);
+    diff += (y[1] - y_est[1]) * (y[1] - y_est[1]);
+    diff += (y[2] - y_est[2]) * (y[2] - y_est[2]);
+  }
+  printf("euclidean norm: %f\n", sqrt(diff));
 }
 
 /*******************************************************************************
@@ -10782,11 +10803,11 @@ static void _kdtree_points(const kdtree_node_t *node, kdtree_data_t *data) {
     return;
   }
 
-  data->points[data->num_points * 3 + 0] = node->p[0];
-  data->points[data->num_points * 3 + 1] = node->p[1];
-  data->points[data->num_points * 3 + 2] = node->p[2];
-  data->num_points++;
-  if (data->num_points >= data->capacity) {
+  data->points[data->size * 3 + 0] = node->p[0];
+  data->points[data->size * 3 + 1] = node->p[1];
+  data->points[data->size * 3 + 2] = node->p[2];
+  data->size++;
+  if (data->size >= data->capacity) {
     data->capacity = data->capacity * 2;
     data->points = realloc(data->points, sizeof(float) * 3 * data->capacity);
   }
@@ -10847,6 +10868,27 @@ void kdtree_nn(const kdtree_t *kdtree,
   best_point[1] = target[1];
   best_point[2] = target[2];
   _kdtree_nn(kdtree->root, target, best_dist, best_point, 0);
+}
+
+kdtree_data_t *kdtree_nns(const kdtree_t *kdtree,
+                          const float *query_points,
+                          const size_t n) {
+  kdtree_data_t *data = malloc(sizeof(kdtree_data_t));
+  data->points = malloc(sizeof(float) * 3 * n);
+  data->size = 0;
+  data->capacity = n;
+
+  for (size_t i = 0; i < n; ++i) {
+    float best_point[3] = {0};
+    float best_dist = 0.0f;
+    kdtree_nn(kdtree, &query_points[i * 3], best_point, &best_dist);
+    data->points[data->size * 3 + 0] = best_point[0];
+    data->points[data->size * 3 + 1] = best_point[1];
+    data->points[data->size * 3 + 2] = best_point[2];
+    data->size++;
+  }
+
+  return data;
 }
 
 /*******************************************************************************
@@ -13545,6 +13587,8 @@ pcd_t *pcd_malloc(const timestamp_t ts_start,
                   const float *data,
                   const float *time_diffs,
                   const size_t num_points) {
+  assert(data != NULL);
+
   pcd_t *pcd = malloc(sizeof(pcd_t));
   pcd->ts_start = ts_start;
   pcd->ts_end = ts_end;
@@ -13556,11 +13600,17 @@ pcd_t *pcd_malloc(const timestamp_t ts_start,
     pcd->data[i * 3 + 2] = data[i * 3 + 2];
   }
 
-  pcd->time_diffs = malloc(sizeof(float) * num_points);
-  for (size_t i = 0; i < num_points; ++i) {
-    pcd->time_diffs[i] = time_diffs[i];
+  if (time_diffs) {
+    pcd->time_diffs = malloc(sizeof(float) * num_points);
+    for (size_t i = 0; i < num_points; ++i) {
+      pcd->time_diffs[i] = time_diffs[i];
+    }
+  } else {
+    pcd->time_diffs = NULL;
   }
+
   pcd->num_points = num_points;
+  pcd->kdtree = kdtree_malloc(pcd->data, pcd->num_points);
 
   return pcd;
 }
@@ -13572,6 +13622,7 @@ void pcd_free(pcd_t *pcd) {
 
   free(pcd->data);
   free(pcd->time_diffs);
+  kdtree_free(pcd->kdtree);
   free(pcd);
 }
 

@@ -1716,7 +1716,7 @@ void frustum_setup(frustum_t *frustum,
 bool frustum_check_point(const frustum_t *frustum, const real_t p[3]);
 
 /*******************************************************************************
- * POINT CLOUD UTILS
+ * POINT CLOUD
  ******************************************************************************/
 
 void umeyama(const float *X,
@@ -1837,7 +1837,7 @@ void kdtree_node_free(kdtree_node_t *node);
 
 typedef struct kdtree_data_t {
   float *points;
-  size_t num_points;
+  size_t size;
   size_t capacity;
 } kdtree_data_t;
 
@@ -1856,6 +1856,9 @@ void kdtree_nn(const kdtree_t *kdtree,
                const float target[3],
                float *best_point,
                float *best_dist);
+kdtree_data_t *kdtree_nns(const kdtree_t *kdtree,
+                          const float *query_points,
+                          const size_t n);
 
 /*******************************************************************************
  * STATE-ESTIMATION
@@ -2379,6 +2382,7 @@ typedef struct pcd_t {
   float *data;
   float *time_diffs;
   size_t num_points;
+  kdtree_t *kdtree;
 } pcd_t;
 
 pcd_t *pcd_malloc(const timestamp_t ts_start,
@@ -2391,27 +2395,27 @@ void pcd_deskew(pcd_t *points,
                 const real_t T_WL_km1[4 * 4],
                 const real_t T_WL_km2[4 * 4]);
 
-// typedef struct lidar_factor_t {
-//   pcd_t *pcd;
-//   kdtree_t *kdtree;
-//
-//   pose_t *pose;
-//   extrinsic_t *extrinsic;
-//
-//   real_t covar[3 * 3];
-//   real_t sqrt_info[3 * 3];
-//
-//   real_t *r;
-//   int r_size;
-//
-//   int param_types[2];
-//   real_t *params[2];
-//   int num_params;
-//
-//   real_t *jacs[1];
-//   real_t *J_pose;
-// } lidar_factor_t;
-//
+typedef struct lidar_factor_t {
+  pcd_t *pcd;
+  kdtree_t *kdtree;
+
+  real_t *pose;
+  real_t *extrinsic;
+
+  real_t covar[3 * 3];
+  real_t sqrt_info[3 * 3];
+
+  real_t *r;
+  int r_size;
+
+  int param_types[2];
+  real_t *params[2];
+  int num_params;
+
+  real_t *jacs[1];
+  real_t *J_pose;
+} lidar_factor_t;
+
 // void lidar_factor_setup(lidar_factor_t *factor,
 //                         pcd_t *pcd,
 //                         pose_t *pose_k,
