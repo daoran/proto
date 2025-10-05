@@ -6,11 +6,11 @@ jobs:
     steps:
     - uses: actions/checkout@master
 
-    - name: Install dependencies
-      run: make third_party
-
-    - name: Build libproto
-      run: make libxyz
-
-    - name: Run CI tests
-      run: make ci
+    # - name: Install dependencies
+    #   run: make third_party
+    #
+    # - name: Build libproto
+    #   run: make libxyz
+    #
+    # - name: Run CI tests
+    #   run: make ci

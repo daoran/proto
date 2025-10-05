@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-ctags src/*.c src/*.h
+# ctags src/*.c src/*.h
 # ctags xyz/xyz.py
 
 run_gdb() {
@@ -23,98 +23,100 @@ run_memcheck() {
 
 # python3 scripts/plot_frames.py
 
-# python3 src/xyz.py -b
-# python3 src/xyz.py TestNetwork
-# python3 src/xyz.py TestNetwork.test_http_parse_request
-# python3 src/xyz.py TestNetwork.test_websocket_hash
-# python3 src/xyz.py TestNetwork.test_websocket_encode_frame
-# python3 src/xyz.py TestNetwork.test_debug_server
-# python3 src/xyz.py TestLinearAlgebra
-# python3 src/xyz.py TestLie
-# python3 src/xyz.py TestLie.test_sandbox
-# python3 src/xyz.py TestTransform
-# python3 src/xyz.py TestTransform.test_quat2rot
-# python3 src/xyz.py TestTransform.test_rot2quat
-# python3 src/xyz.py TestTransform.test_rot2euler
-# python3 src/xyz.py TestTransform.test_quat_inv
-# python3 src/xyz.py TestTransform.test_quat_conj
-# python3 src/xyz.py TestTransform.test_quat_slerp
-# python3 src/xyz.py TestCV
-# python3 src/xyz.py TestCV.test_linear_triangulation
-# python3 src/xyz.py TestCV.test_parallax
-# python3 src/xyz.py TestCV.test_homography_find
-# python3 src/xyz.py TestCV.test_homography_pose
-# python3 src/xyz.py TestCV.test_dlt_pose
-# python3 src/xyz.py TestCV.test_solvepnp
-# python3 src/xyz.py TestCV.test_harris_corner
-# python3 src/xyz.py TestCV.test_shi_tomasi_corner
-# python3 src/xyz.py TestPointCloud
-# python3 src/xyz.py TestPointCloud.test_icp
-# python3 src/xyz.py TestOctree
-# python3 src/xyz.py TestOctree.test_octree
-# python3 src/xyz.py TestOctree.test_point_plane
-# python3 src/xyz.py TestKDTree
-# python3 src/xyz.py TestFrustum
-# python3 src/xyz.py TestFrustum.test_frustum
-# python3 src/xyz.py TestFrustum.test_livox
-# python3 src/xyz.py TestPoseFactor
-# python3 src/xyz.py TestBAFactor
-# python3 src/xyz.py TestVisionFactor
-# python3 src/xyz.py TestCameraFactor
-# python3 src/xyz.py TestCalibVisionFactor
-# python3 src/xyz.py TestTwoStateVisionFactor
-# python3 src/xyz.py TestCalibGimbalFactor
-# python3 src/xyz.py TestIMUFactor
-# python3 src/xyz.py TestIMUFactor.test_imu_buffer_with_interpolation
-# python3 src/xyz.py TestIMUFactor.test_imu_factor_propagate
-# python3 src/xyz.py TestIMUFactor.test_imu_factor
-# python3 src/xyz.py TestIMUFactor.test_imu_propagation_jacobians
-# python3 src/xyz.py TestIMUFactor.test_imu_factor2_propagate
-# python3 src/xyz.py TestIMUFactor.test_imu_factor2
-# python3 src/xyz.py TestMargFactor
-# python3 src/xyz.py TestFactorGraph
-# python3 src/xyz.py TestFactorGraph.test_add_param
-# python3 src/xyz.py TestFactorGraph.test_add_factor
-# python3 src/xyz.py TestFactorGraph.test_solve_vo
-# python3 src/xyz.py TestFactorGraph.test_solve_io
-# python3 src/xyz.py TestFactorGraph.test_solve_vio
-# python3 src/xyz.py TestFeatureTracking
-# python3 src/xyz.py TestFeatureTracking.test_spread_keypoints
-# python3 src/xyz.py TestFeatureTracking.test_feature_grid_cell_index
-# python3 src/xyz.py TestFeatureTracking.test_grid_detect
-# python3 src/xyz.py TestFeatureTracking.test_good_grid
-# python3 src/xyz.py TestFeatureTracking.test_optflow_track
-# python3 src/xyz.py TestFeatureTracking.test_feature_track
-# python3 src/xyz.py TestFeatureTracking.test_estimate_pose
-# python3 src/xyz.py TestCalibration
-# python3 src/xyz.py TestEuroc
-# python3 src/xyz.py TestKitti
-# python3 src/xyz.py TestKalmanFilter
-# python3 src/xyz.py TestPlane
-# python3 src/xyz.py TestFrustum
-# python3 src/xyz.py TestOctree
-# python3 src/xyz.py TestOctree.test_octree
-# python3 src/xyz.py TestSimulation
-# python3 src/xyz.py TestSimulation.test_create_3d_features
-# python3 src/xyz.py TestSimulation.test_create_3d_features_perimeter
-# python3 src/xyz.py TestSimulation.test_sim_camera_frame
-# python3 src/xyz.py TestSimulation.test_sim_data
-# python3 src/xyz.py TestSimulation.test_sim_feature_tracker
-# python3 src/xyz.py TestSimulation.test_sim_arm
-# python3 src/xyz.py TestViz.test_multiplot
-# python3 src/xyz.py TestViz.test_server
-# python3 src/xyz.py TestSandbox.test_gimbal
-# python3 src/xyz.py TestPoE.test_scene
-# python3 src/xyz.py TestMav
-# python3 src/xyz.py TestMav.test_symdiff_velocity
-# python3 src/xyz.py TestMav.test_plot
-# python3 src/xyz.py TestMav.test_mav_attitude_control
-# python3 src/xyz.py TestMav.test_mav_velocity_control
-# python3 src/xyz.py TestMav.test_mav_position_control
-# python3 src/xyz.py TestMav.test_mav_trajectory_control
+# CMD="python3 src/xyz.py -b"
+# CMD="python3 src/xyz.py TestNetwork"
+# CMD="python3 src/xyz.py TestNetwork.test_http_parse_request"
+# CMD="python3 src/xyz.py TestNetwork.test_websocket_hash"
+# CMD="python3 src/xyz.py TestNetwork.test_websocket_encode_frame"
+# CMD="python3 src/xyz.py TestNetwork.test_debug_server"
+# CMD="python3 src/xyz.py TestLinearAlgebra"
+# CMD="python3 src/xyz.py TestLie"
+# CMD="python3 src/xyz.py TestLie.test_sandbox"
+# CMD="python3 src/xyz.py TestTransform"
+# CMD="python3 src/xyz.py TestTransform.test_quat2rot"
+# CMD="python3 src/xyz.py TestTransform.test_rot2quat"
+# CMD="python3 src/xyz.py TestTransform.test_rot2euler"
+# CMD="python3 src/xyz.py TestTransform.test_quat_inv"
+# CMD="python3 src/xyz.py TestTransform.test_quat_conj"
+# CMD="python3 src/xyz.py TestTransform.test_quat_slerp"
+# CMD="python3 src/xyz.py TestCV"
+# CMD="python3 src/xyz.py TestCV.test_linear_triangulation"
+# CMD="python3 src/xyz.py TestCV.test_parallax"
+# CMD="python3 src/xyz.py TestCV.test_homography_find"
+# CMD="python3 src/xyz.py TestCV.test_homography_pose"
+# CMD="python3 src/xyz.py TestCV.test_dlt_pose"
+# CMD="python3 src/xyz.py TestCV.test_solvepnp"
+# CMD="python3 src/xyz.py TestCV.test_harris_corner"
+# CMD="python3 src/xyz.py TestCV.test_shi_tomasi_corner"
+# CMD="python3 src/xyz.py TestPointCloud"
+# CMD="python3 src/xyz.py TestPointCloud.test_umeyama"
+# CMD="python3 src/xyz.py TestPointCloud.test_icp"
+# CMD="python3 src/xyz.py TestPointCloud.test_icp_kitti"
+# CMD="python3 src/xyz.py TestOctree"
+# CMD="python3 src/xyz.py TestOctree.test_octree"
+# CMD="python3 src/xyz.py TestOctree.test_point_plane"
+# CMD="python3 src/xyz.py TestKDTree"
+# CMD="python3 src/xyz.py TestFrustum"
+# CMD="python3 src/xyz.py TestFrustum.test_frustum"
+# CMD="python3 src/xyz.py TestFrustum.test_livox"
+# CMD="python3 src/xyz.py TestPoseFactor"
+# CMD="python3 src/xyz.py TestBAFactor"
+# CMD="python3 src/xyz.py TestVisionFactor"
+# CMD="python3 src/xyz.py TestCameraFactor"
+# CMD="python3 src/xyz.py TestCalibVisionFactor"
+# CMD="python3 src/xyz.py TestTwoStateVisionFactor"
+# CMD="python3 src/xyz.py TestCalibGimbalFactor"
+# CMD="python3 src/xyz.py TestIMUFactor"
+# CMD="python3 src/xyz.py TestIMUFactor.test_imu_buffer_with_interpolation"
+# CMD="python3 src/xyz.py TestIMUFactor.test_imu_factor_propagate"
+# CMD="python3 src/xyz.py TestIMUFactor.test_imu_factor"
+# CMD="python3 src/xyz.py TestIMUFactor.test_imu_propagation_jacobians"
+# CMD="python3 src/xyz.py TestIMUFactor.test_imu_factor2_propagate"
+# CMD="python3 src/xyz.py TestIMUFactor.test_imu_factor2"
+# CMD="python3 src/xyz.py TestMargFactor"
+# CMD="python3 src/xyz.py TestFactorGraph"
+# CMD="python3 src/xyz.py TestFactorGraph.test_add_param"
+# CMD="python3 src/xyz.py TestFactorGraph.test_add_factor"
+# CMD="python3 src/xyz.py TestFactorGraph.test_solve_vo"
+# CMD="python3 src/xyz.py TestFactorGraph.test_solve_io"
+# CMD="python3 src/xyz.py TestFactorGraph.test_solve_vio"
+# CMD="python3 src/xyz.py TestFeatureTracking"
+# CMD="python3 src/xyz.py TestFeatureTracking.test_spread_keypoints"
+# CMD="python3 src/xyz.py TestFeatureTracking.test_feature_grid_cell_index"
+# CMD="python3 src/xyz.py TestFeatureTracking.test_grid_detect"
+# CMD="python3 src/xyz.py TestFeatureTracking.test_good_grid"
+# CMD="python3 src/xyz.py TestFeatureTracking.test_optflow_track"
+# CMD="python3 src/xyz.py TestFeatureTracking.test_feature_track"
+# CMD="python3 src/xyz.py TestFeatureTracking.test_estimate_pose"
+# CMD="python3 src/xyz.py TestCalibration"
+# CMD="python3 src/xyz.py TestEuroc"
+# CMD="python3 src/xyz.py TestKitti"
+# CMD="python3 src/xyz.py TestKalmanFilter"
+# CMD="python3 src/xyz.py TestPlane"
+# CMD="python3 src/xyz.py TestFrustum"
+# CMD="python3 src/xyz.py TestOctree"
+# CMD="python3 src/xyz.py TestOctree.test_octree"
+# CMD="python3 src/xyz.py TestSimulation"
+# CMD="python3 src/xyz.py TestSimulation.test_create_3d_features"
+# CMD="python3 src/xyz.py TestSimulation.test_create_3d_features_perimeter"
+# CMD="python3 src/xyz.py TestSimulation.test_sim_camera_frame"
+# CMD="python3 src/xyz.py TestSimulation.test_sim_data"
+# CMD="python3 src/xyz.py TestSimulation.test_sim_feature_tracker"
+# CMD="python3 src/xyz.py TestSimulation.test_sim_arm"
+# CMD="python3 src/xyz.py TestViz.test_multiplot"
+# CMD="python3 src/xyz.py TestViz.test_server"
+# CMD="python3 src/xyz.py TestSandbox.test_gimbal"
+# CMD="python3 src/xyz.py TestPoE.test_scene"
+# CMD="python3 src/xyz.py TestMav"
+# CMD="python3 src/xyz.py TestMav.test_symdiff_velocity"
+# CMD="python3 src/xyz.py TestMav.test_plot"
+# CMD="python3 src/xyz.py TestMav.test_mav_attitude_control"
+# CMD="python3 src/xyz.py TestMav.test_mav_velocity_control"
+# CMD="python3 src/xyz.py TestMav.test_mav_position_control"
+# CMD="python3 src/xyz.py TestMav.test_mav_trajectory_control"
 
 # tmux send-keys -t dev -R C-l C-m
-# tmux send-keys -t dev -R "python3 xyz.py TestOctree" C-m C-m
+# tmux send-keys -t dev -R "${CMD}" C-m
 # exit
 
 ###############################################################################
@@ -133,6 +135,10 @@ run_all_tests() {
 
 run_test() {
   TARGET="dev"
+  DEBUG="gdb -ex=run -ex=bt -ex=quit --args"
+  PROFILE_RECORD="perf record -g --call-graph=dwarf"
+  PROFILE_ANNOTATE="perf annotate --stdio > profile.txt"
+
   tmux send-keys -t $TARGET -R C-l C-m
   tmux send-keys -t $TARGET -R "\
     cd ~/code/xyz \
@@ -140,11 +146,9 @@ run_test() {
       && make libxyz -j \
       && time make tests -j \
       && cd build \
-      && ./$1 --target $2 \
-      # && perf record -g --call-graph=dwarf ./$1 --target $2 \
-      # && perf annotate --stdio > profile.txt
+      && $DEBUG ./$1 --target $2 \
+      && python3 ~/code/xyz/scripts/plot_lidar_points.py
   " C-m C-m
-      # && ./$1 --target $2 \
 
 #   tmux send-keys -t $TARGET -R "\
 # python3 - <<EOF
@@ -395,6 +399,8 @@ run_test() {
 ## XYZ-MORTON-CODES
 # run_test test_xyz test_morton_codes
 # run_test test_xyz test_voxel_downsample
+## XYZ-POINT CLOUD
+# run_test test_xyz test_umeyama
 ## XYZ-OCTREE
 # run_test test_xyz test_octree_node
 # run_test test_xyz test_octree_node_check_point
@@ -445,8 +451,42 @@ run_test() {
 # run_test test_gui test_gl_prog_setup
 # run_test test_gui test_gl_camera_setup
 # run_test test_gui test_gui
-run_test test_gui test_components
+# run_test test_gui test_gl_rect
+# run_test test_gui test_gl_points3d
+# run_test test_gui test_gl_line3d
+# run_test test_gui test_gl_cube3d
+# run_test test_gui test_gl_axes3d
+# run_test test_gui test_gl_grid3d
+# run_test test_gui test_gl_image
+# run_test test_gui test_gl_text
 # run_test test_imshow
 
 # XYZ-SE
 # run_test test_se
+# run_test test_se test_icp
+# run_test test_se test_kitti
+
+# make tools
+
+TARGET="dev"
+DEBUG="gdb -ex=run -ex=bt -ex=quit --args"
+PROFILE_RECORD="perf record -g --call-graph=dwarf"
+PROFILE_ANNOTATE="perf annotate --stdio > profile.txt"
+
+# CMD="./build/TestAprilGrid"
+# CMD="./build/TestCalibCamera"
+# CMD="./build/TestCalibCameraImu"
+# CMD="./build/TestCalibData"
+# CMD="./build/TestCameraChain"
+# CMD="./build/TestCameraModel"
+# CMD="./build/TestImuError"
+# CMD="./build/TestReprojectionError"
+# CMD="./build/TestSim"
+CMD="./build/TestTimeline"
+
+tmux send-keys -t $TARGET -R C-l C-m
+tmux send-keys -t $TARGET -R "\
+cd $HOME/code/xyz \
+  && make release -j \
+  && ${CMD}
+" C-m C-m
