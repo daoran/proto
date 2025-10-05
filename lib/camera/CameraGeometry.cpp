@@ -62,9 +62,9 @@ double *CameraGeometry::getIntrinsicPtr() { return intrinsic_.data(); }
 
 double *CameraGeometry::getExtrinsicPtr() { return extrinsic_.data(); }
 
-mat4_t CameraGeometry::getTransform() const { return tf(extrinsic_); }
+Mat4 CameraGeometry::getTransform() const { return tf(extrinsic_); }
 
-void CameraGeometry::setExtrinsic(const mat4_t &extrinsic) {
+void CameraGeometry::setExtrinsic(const Mat4 &extrinsic) {
   extrinsic_ = tf_vec(extrinsic);
 }
 

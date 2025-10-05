@@ -16,7 +16,7 @@ CalibView::CalibView(std::shared_ptr<ceres::Problem> &problem,
   problem_->SetManifold(pose_.data(), &pose_plus_);
 
   // Add camera residuals
-  const mat2_t covar = I(2);
+  const Mat2 covar = I(2);
   for (const auto &[camera_index, calib_target] : view_data) {
     // Check if detected
     if (calib_target->detected() == false) {

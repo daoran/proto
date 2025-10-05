@@ -52,7 +52,7 @@ void CalibCamera::initializeIntrinsics() {
       }
 
       // Estimate relative pose T_CF
-      mat4_t T_CF;
+      Mat4 T_CF;
       SolvePnp pnp{camera_geometry};
       int status = pnp.estimate(keypoints, object_points, T_CF);
       if (status != 0) {
@@ -60,7 +60,7 @@ void CalibCamera::initializeIntrinsics() {
       }
 
       // Add pose
-      mat2_t covar = I(2);
+      Mat2 covar = I(2);
       relposes[ts] = tf_vec(T_CF);
       init_problem->AddParameterBlock(relposes[ts].data(), 7);
       init_problem->SetManifold(relposes[ts].data(), &pose_plus_);
@@ -119,7 +119,7 @@ void CalibCamera::initializeExtrinsics() {
   // Setup camera chain
   CameraChain camchain(getAllCameraGeometries(), getAllCameraData());
   for (auto &[camera_index, camera_geometry] : getAllCameraGeometries()) {
-    mat4_t T_CiCj;
+    Mat4 T_CiCj;
     if (camchain.find(0, camera_index, T_CiCj) != 0) {
       FATAL("No observations between camera0 and camera%d\n", camera_index);
     }
@@ -127,7 +127,7 @@ void CalibCamera::initializeExtrinsics() {
   }
 
   // Setup Problem
-  mat2_t covar = I(2);
+  Mat2 covar = I(2);
   std::map<timestamp_t, Vec7> relposes;
   std::vector<std::shared_ptr<ReprojectionError>> resblocks;
   auto init_problem = std::make_unique<ceres::Problem>(prob_options_);
@@ -166,10 +166,10 @@ void CalibCamera::initializeExtrinsics() {
       }
 
       // Estimate relative pose T_C0F
-      mat4_t T_C0F;
+      Mat4 T_C0F;
       if (relposes.count(ts) == 0) {
         // Solvepnp T_CiF
-        mat4_t T_CiF;
+        Mat4 T_CiF;
         SolvePnp pnp{camera_geometry};
         int status = pnp.estimate(keypoints, object_points, T_CiF);
         if (status != 0) {
@@ -177,7 +177,7 @@ void CalibCamera::initializeExtrinsics() {
         }
 
         // Form T_C0F
-        const mat4_t T_C0Ci = camera_geometry->getTransform();
+        const Mat4 T_C0Ci = camera_geometry->getTransform();
         T_C0F = T_C0Ci * T_CiF;
 
         // Add pose
@@ -276,7 +276,7 @@ void CalibCamera::addView(const std::map<int, CalibTargetPtr> &measurements) {
   }
 
   // Estimate relative pose T_CF
-  mat4_t T_CiF;
+  Mat4 T_CiF;
   SolvePnp pnp{camera_geometries_[best_camera_index]};
   int status = pnp.estimate(keypoints, object_points, T_CiF);
   if (status != 0) {
@@ -292,8 +292,8 @@ void CalibCamera::addView(const std::map<int, CalibTargetPtr> &measurements) {
   }
 
   // Add calibration view
-  const mat4_t T_C0Ci = camera_geometries_[best_camera_index]->getTransform();
-  const mat4_t T_C0F = T_C0Ci * T_CiF;
+  const Mat4 T_C0Ci = camera_geometries_[best_camera_index]->getTransform();
+  const Mat4 T_C0F = T_C0Ci * T_CiF;
   const Vec7 pose = tf_vec(T_C0F);
   timestamps_.insert(ts);
   calib_views_[ts] = std::make_shared<CalibView>(problem_,

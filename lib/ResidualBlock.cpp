@@ -3,8 +3,8 @@
 namespace xyz {
 
 static int check_jacobian(const std::string &jac_name,
-                          const matx_t &fdiff,
-                          const matx_t &jac,
+                          const MatX &fdiff,
+                          const MatX &jac,
                           const double tol,
                           const bool print) {
   // Pre-check
@@ -23,7 +23,7 @@ static int check_jacobian(const std::string &jac_name,
   }
 
   // Check if any of the values are beyond the tol
-  const matx_t delta = (fdiff - jac);
+  const MatX delta = (fdiff - jac);
   bool failed = false;
   for (long i = 0; i < delta.rows(); i++) {
     for (long j = 0; j < delta.cols(); j++) {
@@ -117,7 +117,7 @@ bool ResidualBlock::checkJacobian(const int param_idx,
   double *param = param_ptrs_[param_idx];
   const auto param_type = param_types_[param_idx];
   const int param_local_size = ParamBlock::getLocalSize(param_type);
-  matx_t fdiff = zeros(r_size, param_local_size);
+  MatX fdiff = zeros(r_size, param_local_size);
   VecX r_fd = zeros(r_size, 1);
   for (int i = 0; i < param_local_size; i++) {
     ParamBlock::perturb(param_type, i, step, param);
@@ -128,7 +128,7 @@ bool ResidualBlock::checkJacobian(const int param_idx,
 
   // Check jacobian
   const auto min_jac_ptr = min_jac_ptrs[param_idx];
-  Eigen::Map<matx_row_major_t> min_jac(min_jac_ptr, r_size, param_local_size);
+  Eigen::Map<MatXRowMajor> min_jac(min_jac_ptr, r_size, param_local_size);
   const int retval = check_jacobian(jac_name, fdiff, min_jac, tol, verbose);
 
   // Clean up

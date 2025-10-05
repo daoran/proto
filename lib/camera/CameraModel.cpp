@@ -40,7 +40,7 @@ Vec2 radtan4_undistort(const Vec4 &dist_params, const Vec2 &p0) {
     const Vec2 err = (p0 - p_distorted);
 
     // Jacobian
-    const mat2_t J = radtan4_point_jacobian(dist_params, p);
+    const Mat2 J = radtan4_point_jacobian(dist_params, p);
     const Vec2 dp = (J.transpose() * J).inverse() * J.transpose() * err;
     p = p + dp;
 
@@ -52,7 +52,7 @@ Vec2 radtan4_undistort(const Vec4 &dist_params, const Vec2 &p0) {
   return p;
 }
 
-mat2_t radtan4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
+Mat2 radtan4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   const double x = p(0);
   const double y = p(1);
 
@@ -69,7 +69,7 @@ mat2_t radtan4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   // Let p = [x; y] normalized point
   // Let p' be the distorted p
   // The jacobian of p' w.r.t. p (or dp'/dp) is:
-  mat2_t J_point;
+  Mat2 J_point;
   J_point(0, 0) = 1.0 + k1 * r2 + k2 * r4;
   J_point(0, 0) += 2.0 * p1 * y + 6.0 * p2 * x;
   J_point(0, 0) += x * (2.0 * k1 * x + 4.0 * k2 * x * r2);
@@ -84,7 +84,7 @@ mat2_t radtan4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   return J_point;
 }
 
-matx_t radtan4_params_jacobian(const Vec4 &dist_params, const Vec2 &p) {
+MatX radtan4_params_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   UNUSED(dist_params);
 
   const double x = p.x();
@@ -96,7 +96,7 @@ matx_t radtan4_params_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   const double r2 = x2 + y2;
   const double r4 = r2 * r2;
 
-  mat_t<2, 4> J_dist = zeros(2, 4);
+  Mat<2, 4> J_dist = zeros(2, 4);
   J_dist(0, 0) = x * r2;
   J_dist(0, 1) = x * r4;
   J_dist(0, 2) = 2.0 * xy;
@@ -156,7 +156,7 @@ Vec2 equi4_undistort(const Vec4 &dist_params, const Vec2 &p) {
   return Vec2{p(0) * scaling, p(1) * scaling};
 }
 
-mat2_t equi4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
+Mat2 equi4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   const double k1 = dist_params(0);
   const double k2 = dist_params(1);
   const double k3 = dist_params(2);
@@ -183,7 +183,7 @@ mat2_t equi4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   const double r_x = 1.0 / r * x;
   const double r_y = 1.0 / r * y;
 
-  mat2_t J_point = I(2);
+  Mat2 J_point = I(2);
   J_point(0, 0) = s + x * s_r * r_x;
   J_point(0, 1) = x * s_r * r_y;
   J_point(1, 0) = y * s_r * r_x;
@@ -192,7 +192,7 @@ mat2_t equi4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   return J_point;
 }
 
-matx_t equi4_params_jacobian(const Vec4 &dist_params, const Vec2 &p) {
+MatX equi4_params_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   UNUSED(dist_params);
 
   const double x = p(0);
@@ -205,7 +205,7 @@ matx_t equi4_params_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   const double th7 = th5 * th * th;
   const double th9 = th7 * th * th;
 
-  matx_t J_dist = zeros(2, 4);
+  MatX J_dist = zeros(2, 4);
   J_dist(0, 0) = x * th3 / r;
   J_dist(0, 1) = x * th5 / r;
   J_dist(0, 2) = x * th7 / r;
@@ -225,12 +225,12 @@ Vec2 project_point(const Vec3 &p_C) {
   return Vec2{p_C.x() / p_C.z(), p_C.y() / p_C.z()};
 }
 
-mat_t<2, 3> project_jacobian(const Vec3 &p_C) {
+Mat<2, 3> project_jacobian(const Vec3 &p_C) {
   const double x = p_C.x();
   const double y = p_C.y();
   const double z = p_C.z();
 
-  mat_t<2, 3> J;
+  Mat<2, 3> J;
 
   J(0, 0) = 1.0 / z;
   J(0, 1) = 0.0;
@@ -249,9 +249,9 @@ double pinhole_focal(const int image_size, const double fov) {
   return ((image_size / 2.0) / tan(deg2rad(fov) / 2.0));
 }
 
-mat3_t
+Mat3
 pinhole_K(const double fx, const double fy, const double cx, const double cy) {
-  mat3_t K = zeros(3, 3);
+  Mat3 K = zeros(3, 3);
   K(0, 0) = fx;
   K(1, 1) = fy;
   K(0, 2) = cx;
@@ -283,18 +283,18 @@ int pinhole_project(const Vec2i &res,
   return (valid) ? 0 : -1;
 }
 
-mat2_t pinhole_point_jacobian(const Vec4 &proj_params) {
+Mat2 pinhole_point_jacobian(const Vec4 &proj_params) {
   UNUSED(proj_params);
-  mat2_t J = zeros(2, 2);
+  Mat2 J = zeros(2, 2);
   J(0, 0) = proj_params(0); // fx
   J(1, 1) = proj_params(1); // fy
   return J;
 }
 
-mat_t<2, 4> pinhole_params_jacobian(const Vec4 &proj_params,
+Mat<2, 4> pinhole_params_jacobian(const Vec4 &proj_params,
                                     const Vec2 &x) {
   UNUSED(proj_params);
-  mat_t<2, 4> J = zeros(2, 4);
+  Mat<2, 4> J = zeros(2, 4);
   J(0, 0) = x(0); // x
   J(1, 1) = x(1); // y
   J(0, 2) = 1;

@@ -8,32 +8,32 @@ namespace xyz {
 
 Vec2 radtan4_distort(const Vec4 &dist_params, const Vec2 &p);
 Vec2 radtan4_undistort(const Vec4 &dist_params, const Vec2 &p0);
-mat2_t radtan4_point_jacobian(const Vec4 &dist_params, const Vec2 &p);
-matx_t radtan4_params_jacobian(const Vec4 &dist_params, const Vec2 &p);
+Mat2 radtan4_point_jacobian(const Vec4 &dist_params, const Vec2 &p);
+MatX radtan4_params_jacobian(const Vec4 &dist_params, const Vec2 &p);
 
 /********************************** EQUI4 *************************************/
 
 Vec2 equi4_distort(const Vec4 &dist_params, const Vec2 &p);
 Vec2 equi4_undistort(const Vec4 &dist_params, const Vec2 &p0);
-mat2_t equi4_point_jacobian(const Vec4 &dist_params, const Vec2 &p);
-matx_t equi4_params_jacobian(const Vec4 &dist_params, const Vec2 &p);
+Mat2 equi4_point_jacobian(const Vec4 &dist_params, const Vec2 &p);
+MatX equi4_params_jacobian(const Vec4 &dist_params, const Vec2 &p);
 
 /********************************* PROJECT ************************************/
 
 Vec2 project_point(const Vec3 &p_C);
-mat_t<2, 3> project_jacobian(const Vec3 &p_C);
+Mat<2, 3> project_jacobian(const Vec3 &p_C);
 
 /********************************* PINHOLE ************************************/
 
 double pinhole_focal(const int image_size, const double fov);
-mat3_t
+Mat3
 pinhole_K(const double fx, const double fy, const double cx, const double cy);
 int pinhole_project(const Vec2i &res,
                     const Vec4 &proj_params,
                     const Vec3 &p,
                     Vec2 &z_hat);
-mat2_t pinhole_point_jacobian(const Vec4 &proj_params);
-mat_t<2, 4> pinhole_params_jacobian(const Vec4 &proj_params, const Vec2 &p);
+Mat2 pinhole_point_jacobian(const Vec4 &proj_params);
+Mat<2, 4> pinhole_params_jacobian(const Vec4 &proj_params, const Vec2 &p);
 
 #define PINHOLE_PROJECT(FUNC_NAME, DIST_FUNC)                                  \
   int FUNC_NAME(const Vec2i &res,                                            \
@@ -64,33 +64,33 @@ mat_t<2, 4> pinhole_params_jacobian(const Vec4 &proj_params, const Vec2 &p);
   }
 
 #define PINHOLE_PROJECT_J(FUNC_NAME, DIST_POINT_JAC_FUNC)                      \
-  matx_t FUNC_NAME(const VecX &params, const Vec3 &p_C) {                  \
+  MatX FUNC_NAME(const VecX &params, const Vec3 &p_C) {                  \
     const Vec4 proj_params = params.head(4);                                 \
     const VecX dist_params = params.tail(params.size() - 4);                 \
     const Vec2 p = project_point(p_C);                                       \
                                                                                \
-    const mat_t<2, 2> J_k = pinhole_point_jacobian(proj_params);               \
-    const mat_t<2, 2> J_d = DIST_POINT_JAC_FUNC(dist_params, p);               \
-    const matx_t J_p = project_jacobian(p_C);                                  \
-    matx_t J_proj = J_k * J_d * J_p;                                           \
+    const Mat<2, 2> J_k = pinhole_point_jacobian(proj_params);               \
+    const Mat<2, 2> J_d = DIST_POINT_JAC_FUNC(dist_params, p);               \
+    const MatX J_p = project_jacobian(p_C);                                  \
+    MatX J_proj = J_k * J_d * J_p;                                           \
                                                                                \
     return J_proj;                                                             \
   }
 
 #define PINHOLE_PARAMS_J(FUNC_NAME, DIST_PARAMS_JAC_FUNC)                      \
-  matx_t FUNC_NAME(const VecX &params, const Vec3 &p_C) {                  \
+  MatX FUNC_NAME(const VecX &params, const Vec3 &p_C) {                  \
     const Vec4 proj_params = params.head(4);                                 \
     const VecX dist_params = params.tail(params.size() - 4);                 \
                                                                                \
     const Vec2 p = project_point(p_C);                                       \
     const Vec2 p_d = radtan4_distort(dist_params, p);                        \
                                                                                \
-    const matx_t J_proj_params = pinhole_params_jacobian(proj_params, p_d);    \
-    const matx_t J_proj_point = pinhole_point_jacobian(proj_params);           \
-    const matx_t J_dist_params = DIST_PARAMS_JAC_FUNC(dist_params, p);         \
+    const MatX J_proj_params = pinhole_params_jacobian(proj_params, p_d);    \
+    const MatX J_proj_point = pinhole_point_jacobian(proj_params);           \
+    const MatX J_dist_params = DIST_PARAMS_JAC_FUNC(dist_params, p);         \
                                                                                \
     const int d_size = dist_params.size();                                     \
-    matx_t J_params;                                                           \
+    MatX J_params;                                                           \
     J_params.resize(2, 4 + d_size);                                            \
     J_params.block(0, 0, 2, 4) = J_proj_params;                                \
     J_params.block(0, 4, 2, d_size) = J_proj_point * J_dist_params;            \
@@ -145,9 +145,9 @@ int pinhole_radtan4_project(const Vec2i &res,
                             const VecX &params,
                             const Vec3 &p_C,
                             Vec2 &z_hat);
-matx_t pinhole_radtan4_project_jacobian(const VecX &params,
+MatX pinhole_radtan4_project_jacobian(const VecX &params,
                                         const Vec3 &p_C);
-matx_t pinhole_radtan4_params_jacobian(const VecX &params, const Vec3 &p_C);
+MatX pinhole_radtan4_params_jacobian(const VecX &params, const Vec3 &p_C);
 int pinhole_radtan4_back_project(const VecX &params,
                                  const Vec2 &x,
                                  Vec3 &ray);
@@ -159,8 +159,8 @@ int pinhole_equi4_project(const Vec2i &res,
                           const VecX &params,
                           const Vec3 &p_C,
                           Vec2 &z_hat);
-matx_t pinhole_equi4_project_jacobian(const VecX &params, const Vec3 &p_C);
-matx_t pinhole_equi4_params_jacobian(const VecX &params, const Vec3 &p_C);
+MatX pinhole_equi4_project_jacobian(const VecX &params, const Vec3 &p_C);
+MatX pinhole_equi4_params_jacobian(const VecX &params, const Vec3 &p_C);
 int pinhole_equi4_back_project(const VecX &params,
                                const Vec2 &x,
                                Vec3 &ray);
@@ -179,10 +179,10 @@ struct CameraModel {
                       const Vec3 &p_C,
                       Vec2 &z_hat) const = 0;
 
-  virtual matx_t projectJacobian(const VecX &params,
+  virtual MatX projectJacobian(const VecX &params,
                                  const Vec3 &p_C) const = 0;
 
-  virtual matx_t paramsJacobian(const VecX &params,
+  virtual MatX paramsJacobian(const VecX &params,
                                 const Vec3 &p_C) const = 0;
 
   virtual int backProject(const VecX &params,
@@ -202,12 +202,12 @@ struct PinholeRadtan4 : CameraModel {
     return pinhole_radtan4_project(res, params, p_C, z_hat);
   }
 
-  matx_t projectJacobian(const VecX &params,
+  MatX projectJacobian(const VecX &params,
                          const Vec3 &p_C) const override {
     return pinhole_radtan4_project_jacobian(params, p_C);
   }
 
-  matx_t paramsJacobian(const VecX &params,
+  MatX paramsJacobian(const VecX &params,
                         const Vec3 &p_C) const override {
     return pinhole_radtan4_params_jacobian(params, p_C);
   }
@@ -233,12 +233,12 @@ struct PinholeEqui4 : CameraModel {
     return pinhole_equi4_project(res, params, p_C, z_hat);
   }
 
-  matx_t projectJacobian(const VecX &params,
+  MatX projectJacobian(const VecX &params,
                          const Vec3 &p_C) const override {
     return pinhole_equi4_project_jacobian(params, p_C);
   }
 
-  matx_t paramsJacobian(const VecX &params,
+  MatX paramsJacobian(const VecX &params,
                         const Vec3 &p_C) const override {
     return pinhole_equi4_params_jacobian(params, p_C);
   }

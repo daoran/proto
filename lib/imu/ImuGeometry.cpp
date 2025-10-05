@@ -15,9 +15,9 @@ VecX ImuGeometry::getExtrinsic() const { return extrinsic_; }
 
 double *ImuGeometry::getExtrinsicPtr() { return extrinsic_.data(); }
 
-mat4_t ImuGeometry::getTransform() const { return tf(extrinsic_); }
+Mat4 ImuGeometry::getTransform() const { return tf(extrinsic_); }
 
-void ImuGeometry::setExtrinsic(const mat4_t &extrinsic) {
+void ImuGeometry::setExtrinsic(const Mat4 &extrinsic) {
   extrinsic_ = tf_vec(extrinsic);
 }
 

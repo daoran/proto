@@ -25,8 +25,8 @@ Sim::Sim() {
     const double ry = circle_r * sin(theta);
     const double rz = 0.0;
     const Vec3 r_WS{rx, ry, rz};
-    const mat3_t C_WS = euler321(Vec3{0.0, 0.0, yaw});
-    const mat4_t T_WS = tf(C_WS, r_WS);
+    const Mat3 C_WS = euler321(Vec3{0.0, 0.0, yaw});
+    const Mat4 T_WS = tf(C_WS, r_WS);
 
     // IMU velocity
     const double vx = -circle_r * w * sin(theta);
@@ -87,9 +87,9 @@ void Sim::save(const std::string &save_path) const {
   // Write data
   for (int k = 0; k < getNumMeasurements(); k++) {
     const timestamp_t ts = timestamps.at(k);
-    const mat4_t pose = poses.at(ts);
+    const Mat4 pose = poses.at(ts);
     const Vec3 r = tf_trans(pose);
-    const quat_t q = tf_quat(pose);
+    const Quat q = tf_quat(pose);
     const Vec3 v = vel.at(ts);
     const Vec3 acc = imu_acc.at(ts);
     const Vec3 gyr = imu_gyr.at(ts);

@@ -7,7 +7,7 @@ ReprojectionError::ReprojectionError(
     const std::vector<double *> &param_ptrs,
     const std::vector<ParamBlock::Type> &param_types,
     const Vec2 &z,
-    const mat2_t &covar)
+    const Mat2 &covar)
     : ResidualBlock{"ReprojectionError", param_ptrs, param_types, 2},
       camera_geometry_{camera_geometry}, z_{z}, covar_{covar},
       info_{covar.inverse()}, sqrt_info_{info_.llt().matrixU()} {}
@@ -17,7 +17,7 @@ ReprojectionError::create(const std::shared_ptr<CameraGeometry> &camera,
                           double *T_C0F,
                           double *p_FFi,
                           const Vec2 &z,
-                          const mat2_t &covar) {
+                          const Mat2 &covar) {
   std::vector<double *> param_ptrs = {p_FFi,
                                       T_C0F,
                                       camera->getExtrinsicPtr(),
@@ -51,14 +51,14 @@ bool ReprojectionError::EvaluateWithMinimalJacobians(
     double **min_jacs) const {
   // Map parameters out
   Eigen::Map<const Vec3> p_FFi(params[0], 3);
-  const mat4_t T_C0F = tf(params[1]);
-  const mat4_t T_C0Ci = tf(params[2]);
+  const Mat4 T_C0F = tf(params[1]);
+  const Mat4 T_C0Ci = tf(params[2]);
   Eigen::Map<const VecX> intrinsic(params[3], 8);
 
   // Transform and project point to image plane
   // -- Transform point from fiducial frame to camera-n
-  const mat4_t T_CiC0 = tf_inv(T_C0Ci);
-  const mat4_t T_CiF = T_CiC0 * T_C0F;
+  const Mat4 T_CiC0 = tf_inv(T_C0Ci);
+  const Mat4 T_CiF = T_CiC0 * T_C0F;
   const Vec3 p_Ci = tf_point(T_CiF, p_FFi);
   // -- Project point from camera frame to image plane
   const auto camera_model = camera_geometry_->getCameraModel();
@@ -75,22 +75,22 @@ bool ReprojectionError::EvaluateWithMinimalJacobians(
   residuals_ = z_ - z_hat;
 
   // Jacobians
-  const matx_t Jh = camera_model->projectJacobian(intrinsic, p_Ci);
-  const matx_t Jh_weighted = -1.0 * sqrt_info_ * Jh;
+  const MatX Jh = camera_model->projectJacobian(intrinsic, p_Ci);
+  const MatX Jh_weighted = -1.0 * sqrt_info_ * Jh;
   if (jacs == nullptr) {
     return true;
   }
 
   // Jacobians w.r.t p_FFi
   if (jacs[0]) {
-    const mat3_t C_CiF = tf_rot(T_CiF);
-    matx_t J_min = Jh_weighted * C_CiF;
+    const Mat3 C_CiF = tf_rot(T_CiF);
+    MatX J_min = Jh_weighted * C_CiF;
 
-    Eigen::Map<mat_t<2, 3, row_major_t>> J(jacs[0]);
+    Eigen::Map<Mat<2, 3, RowMajor>> J(jacs[0]);
     J = (valid_) ? J_min : zeros(2, 3);
 
     if (min_jacs && min_jacs[0]) {
-      Eigen::Map<mat_t<2, 3, row_major_t>> min_J(min_jacs[0]);
+      Eigen::Map<Mat<2, 3, RowMajor>> min_J(min_jacs[0]);
       min_J = (valid_) ? J_min : zeros(2, 3);
     }
   }
@@ -98,21 +98,21 @@ bool ReprojectionError::EvaluateWithMinimalJacobians(
   // Jacobians w.r.t T_C0F
   if (jacs[1]) {
     // clang-format off
-      const mat3_t C_CiC0 = tf_rot(T_CiC0);
-      const mat3_t C_C0F = tf_rot(T_C0F);
-      matx_t J_min = zeros(2, 6);
+      const Mat3 C_CiC0 = tf_rot(T_CiC0);
+      const Mat3 C_C0F = tf_rot(T_C0F);
+      MatX J_min = zeros(2, 6);
       J_min.block(0, 0, 2, 3) = Jh_weighted * C_CiC0;
       J_min.block(0, 3, 2, 3) = Jh_weighted * C_CiC0 * -C_C0F * skew(p_FFi);
     // clang-format on
 
-    Eigen::Map<mat_t<2, 7, row_major_t>> J(jacs[1]);
+    Eigen::Map<Mat<2, 7, RowMajor>> J(jacs[1]);
     J.setZero();
     if (valid_) {
       J.block<2, 6>(0, 0) = J_min;
     }
 
     if (min_jacs && min_jacs[1]) {
-      Eigen::Map<mat_t<2, 6, row_major_t>> min_J(min_jacs[1]);
+      Eigen::Map<Mat<2, 6, RowMajor>> min_J(min_jacs[1]);
       min_J = (valid_) ? J_min : zeros(2, 6);
     }
   }
@@ -120,35 +120,35 @@ bool ReprojectionError::EvaluateWithMinimalJacobians(
   // Jacobians w.r.t T_C0Ci
   if (jacs[2]) {
     // clang-format off
-      const mat3_t C_C0Ci = tf_rot(T_C0Ci);
+      const Mat3 C_C0Ci = tf_rot(T_C0Ci);
       const Vec3 p_C0Fi = tf_point(T_C0F, p_FFi);
       const Vec3 p_C0Ci = tf_trans(T_C0Ci);
-      matx_t J_min = zeros(2, 6);
+      MatX J_min = zeros(2, 6);
       J_min.block(0, 0, 2, 3) = Jh_weighted * -C_C0Ci;
       J_min.block(0, 3, 2, 3) = Jh_weighted * -C_C0Ci * skew(p_C0Fi - p_C0Ci) * -C_C0Ci;
     // clang-format on
 
-    Eigen::Map<mat_t<2, 7, row_major_t>> J(jacs[2]);
+    Eigen::Map<Mat<2, 7, RowMajor>> J(jacs[2]);
     J.setZero();
     if (valid_) {
       J.block<2, 6>(0, 0) = J_min;
     }
 
     if (min_jacs && min_jacs[2]) {
-      Eigen::Map<mat_t<2, 6, row_major_t>> min_J(min_jacs[2]);
+      Eigen::Map<Mat<2, 6, RowMajor>> min_J(min_jacs[2]);
       min_J = (valid_) ? J_min : zeros(2, 6);
     }
   }
 
   // Jacobians w.r.t intrinsic
   if (jacs[3]) {
-    Eigen::Map<mat_t<2, 8, row_major_t>> J(jacs[3]);
-    const matx_t J_cam = camera_model->paramsJacobian(intrinsic, p_Ci);
-    const matx_t J_min = -1 * sqrt_info_ * J_cam;
+    Eigen::Map<Mat<2, 8, RowMajor>> J(jacs[3]);
+    const MatX J_cam = camera_model->paramsJacobian(intrinsic, p_Ci);
+    const MatX J_min = -1 * sqrt_info_ * J_cam;
     J = (valid_) ? J_min : zeros(2, 8);
 
     if (min_jacs && min_jacs[3]) {
-      Eigen::Map<mat_t<2, 8, row_major_t>> min_J(min_jacs[3]);
+      Eigen::Map<Mat<2, 8, RowMajor>> min_J(min_jacs[3]);
       min_J = (valid_) ? J_min : zeros(2, 8);
     }
   }

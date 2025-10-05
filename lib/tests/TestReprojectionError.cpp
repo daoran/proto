@@ -55,7 +55,7 @@ TEST(ReprojectionError, evaluate) {
   // clang-format on
 
   // Estimate relative pose
-  mat4_t T_CiF;
+  Mat4 T_CiF;
   SolvePnp pnp{camera_geometry};
   int status = pnp.estimate(keypoints, object_points, T_CiF);
   if (status != 0) {
@@ -63,7 +63,7 @@ TEST(ReprojectionError, evaluate) {
   }
 
   // Create residual block
-  mat2_t covar = I(2);
+  Mat2 covar = I(2);
   VecX relpose = tf_vec(T_CiF);
   auto residual_block = ReprojectionError::create(camera_geometry,
                                                   relpose.data(),

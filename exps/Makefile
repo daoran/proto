@@ -1,13 +1,31 @@
 DATA_DIR=/data
-HOME_PATH=/home/slam_bench
 
 BUILD_TARGETS := build_kalibr
-BUILD_TARGETS += build_msckf
+BUILD_TARGETS += build_msckf-vio
 BUILD_TARGETS += build_okvis
 BUILD_TARGETS += build_orbslam3
-BUILD_TARGETS += build_vins_mono
-BUILD_TARGETS += build_vins_mono
-BUILD_TARGETS += build_vins_fusion
+BUILD_TARGETS += build_vins-fusion
+BUILD_TARGETS += build_vins-mono
+
+define build_docker
+	@docker build \
+		-t benchmark/$(1) \
+		-f Dockerfile.$(1) \
+		--build-arg UID=$(shell id -u) \
+		--build-arg GID=$(shell id -g) .
+endef
+
+define run_docker
+	@xhost +local:docker
+	@docker run -e DISPLAY \
+		-v /tmp/.X11-unix:/tmp/.X11-unix \
+		-v /tmp:/tmp \
+		-v $(DATA_DIR):$(DATA_DIR) \
+		-v $(PWD)/configs:/home/docker/configs \
+		--network="host" \
+		-it --rm benchmark/$(1) \
+		/bin/bash
+endef
 
 help:
 	@echo "\033[1;34m[make targets]:\033[0m"
@@ -21,91 +39,37 @@ install_docker: ## Install Docker
 build_all: $(BUILD_TARGETS) ## Build all
 
 build_kalibr:  ## Build Kalibr
-	@cd kalibr && docker build -t benchmark/kalibr \
-		--build-arg USER_ID=`id -u` \
-		--build-arg GROUP_ID=`id -g` .
+	$(call build_docker,kalibr)
 
-build_msckf:  ## Build MSCKF-VIO
-	@cd msckf_vio && docker build -t benchmark/msckf \
-		--build-arg USER_ID=`id -u` \
-		--build-arg GROUP_ID=`id -g` .
+build_msckf-vio:  ## Build MSCKF-VIO
+	$(call build_docker,msckf-vio)
 
 build_okvis:  ## Build OKVIS
-	@cd okvis && docker build -t benchmark/okvis \
-		--build-arg USER_ID=`id -u` \
-		--build-arg GROUP_ID=`id -g` .
+	$(call build_docker,okvis)
 
 build_orbslam3: ## Build ORBSLAM3
-	@cd orbslam3 && docker build -t benchmark/orbslam3 \
-		--build-arg USER_ID=`id -u` \
-		--build-arg GROUP_ID=`id -g` .
+	$(call build_docker,orbslam3)
 
-build_vins_mono: ## Build VINS-Mono
-	@cd vins-mono && docker build -t benchmark/vins-mono \
-		--build-arg USER_ID=`id -u` \
-		--build-arg GROUP_ID=`id -g` .
+build_vins-fusion: ## Build VINS-Fusion
+	$(call build_docker,vins-fusion)
 
-build_vins_fusion: ## Build VINS-Fusion
-	@cd vins-fusion && docker build -t benchmark/vins-fusion \
-		--build-arg USER_ID=`id -u` \
-		--build-arg GROUP_ID=`id -g` .
+build_vins-mono: ## Build VINS-Mono
+	$(call build_docker,vins-mono)
 
 run_kalibr: build_kalibr  ## Run Kalibr
-	@xhost +local:docker
-	@docker run -e DISPLAY \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-v /tmp:/tmp \
-		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:/home/docker/configs \
-		--network="host" \
-		-it --rm benchmark/kalibr /bin/bash
+	$(call run_docker,kalibr)
 
-run_msckf: build_msckf  ## Run MSKCF
-	@xhost +local:docker
-	@docker run -e DISPLAY \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-v /tmp:/tmp \
-		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:/home/docker/configs \
-		--network="host" \
-		-it --rm benchmark/msckf /bin/bash
+run_msckf-vio: build_msckf-vio  ## Run MSKCF-VIO
+	$(call run_docker,msckf-vio)
 
 run_okvis: build_okvis ## RUN OKVIS
-	@xhost +local:docker
-	@docker run -e DISPLAY \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-v /tmp:/tmp \
-		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:/home/docker/configs \
-		--network="host" \
-		-it --rm benchmark/okvis /bin/bash
+	$(call run_docker,okvis)
 
 run_orbslam3: build_orbslam3  ## Run ORBSLAM3
-	@xhost +local:docker
-	@docker run -e DISPLAY \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-v /tmp:/tmp \
-		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:/home/docker/configs \
-		--network="host" \
-		-it --rm benchmark/orbslam3 /bin/bash
+	$(call run_docker,orbslam3)
 
-run_vins_mono: build_vins_mono  ## Run VINS-Mono
-	@xhost +local:docker
-	@docker run -e DISPLAY \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-v /tmp:/tmp \
-		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:/home/docker/configs \
-		--network="host" \
-		-it --rm benchmark/vins-mono /bin/bash
+run_vins-fusion: build_vins-fusion  ## Run VINS-Fusion
+	$(call run_docker,vins-fusion)
 
-run_vins_fusion: build_vins_fusion  ## Run VINS-Fusion
-	@xhost +local:docker
-	@docker run -e DISPLAY \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-v /tmp:/tmp \
-		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:/home/docker/configs \
-		--network="host" \
-		-it --rm benchmark/vins-fusion /bin/bash
+run_vins-mono: build_vins-mono  ## Run VINS-Mono
+	$(call run_docker,vins-mono)

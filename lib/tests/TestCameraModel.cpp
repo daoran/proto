@@ -154,7 +154,7 @@ TEST(CameraModel, pinhole_K) {
   const double fy = pinhole_focal(cam_res[0], 90.0);
   const double cx = cam_res[0] / 2.0;
   const double cy = cam_res[1] / 2.0;
-  const mat3_t K = pinhole_K(fx, fy, cx, cy);
+  const Mat3 K = pinhole_K(fx, fy, cx, cy);
   ASSERT_FLOAT_EQ(K(0, 0), fx);
   ASSERT_FLOAT_EQ(K(1, 1), fy);
   ASSERT_FLOAT_EQ(K(0, 2), cx);
@@ -237,11 +237,11 @@ TEST(CameraModel, pinhole_radtan4_project_jacobian) {
     if (pinhole_radtan4_project(cam_res, params, p_C, z_hat) != 0) {
       continue;
     }
-    const matx_t J = pinhole_radtan4_project_jacobian(params, p_C);
+    const MatX J = pinhole_radtan4_project_jacobian(params, p_C);
 
     // Numerical diff
     const double step = 1e-8;
-    matx_t fdiff = zeros(2, 3);
+    MatX fdiff = zeros(2, 3);
 
     for (int i = 0; i < 3; i++) {
       Vec3 p_C_diff = p_C;
@@ -263,11 +263,11 @@ TEST(CameraModel, pinhole_radtan4_params_jacobian) {
 
   // Analytical jacobian
   const Vec3 p_C{0.1, 0.2, 1.0};
-  const matx_t J = pinhole_radtan4_params_jacobian(params, p_C);
+  const MatX J = pinhole_radtan4_params_jacobian(params, p_C);
 
   // Numerical diff
   const double step = 1e-8;
-  matx_t fdiff = zeros(2, 8);
+  MatX fdiff = zeros(2, 8);
 
   Vec2 z_hat;
   pinhole_radtan4_project(cam_res, params, p_C, z_hat);
@@ -385,11 +385,11 @@ TEST(CameraModel, pinhole_equi4_project_jacobian) {
 
   // Analytical jacobian
   const Vec3 p_C{0.1, 0.2, 1.0};
-  const matx_t J = pinhole_equi4_project_jacobian(params, p_C);
+  const MatX J = pinhole_equi4_project_jacobian(params, p_C);
 
   // Numerical diff
   const double step = 1e-8;
-  matx_t fdiff = zeros(2, 3);
+  MatX fdiff = zeros(2, 3);
 
   Vec2 z_hat;
   pinhole_equi4_project(cam_res, params, p_C, z_hat);
@@ -414,11 +414,11 @@ TEST(CameraModel, pinhole_equi4_params_jacobian) {
 
   // Analytical jacobian
   const Vec3 p_C{0.1, 0.2, 5.0};
-  const matx_t J = pinhole_equi4_params_jacobian(params, p_C);
+  const MatX J = pinhole_equi4_params_jacobian(params, p_C);
 
   // Numerical diff
   const double step = 1e-8;
-  matx_t fdiff = zeros(2, 8);
+  MatX fdiff = zeros(2, 8);
 
   Vec2 z_hat;
   pinhole_equi4_project(cam_res, params, p_C, z_hat);

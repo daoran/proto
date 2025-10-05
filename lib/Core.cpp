@@ -602,7 +602,7 @@ int parse(const config_t &config,
 
 int parse(const config_t &config,
           const std::string &key,
-          mat2_t &mat,
+          Mat2 &mat,
           const bool optional) {
   // Get node
   YAML::Node node;
@@ -611,7 +611,7 @@ int parse(const config_t &config,
   }
 
   // Parse
-  yaml_check_matrix<mat2_t>(node, key, optional);
+  yaml_check_matrix<Mat2>(node, key, optional);
   mat(0, 0) = node["data"][0].as<double>();
   mat(0, 1) = node["data"][1].as<double>();
   mat(1, 0) = node["data"][2].as<double>();
@@ -621,7 +621,7 @@ int parse(const config_t &config,
 
 int parse(const config_t &config,
           const std::string &key,
-          mat3_t &mat,
+          Mat3 &mat,
           const bool optional) {
   // Get node
   YAML::Node node;
@@ -630,7 +630,7 @@ int parse(const config_t &config,
   }
 
   // Parse
-  yaml_check_matrix<mat3_t>(node, key, optional);
+  yaml_check_matrix<Mat3>(node, key, optional);
   // -- Col 1
   mat(0, 0) = node["data"][0].as<double>();
   mat(0, 1) = node["data"][1].as<double>();
@@ -648,7 +648,7 @@ int parse(const config_t &config,
 
 int parse(const config_t &config,
           const std::string &key,
-          mat4_t &mat,
+          Mat4 &mat,
           const bool optional) {
   // Get node
   YAML::Node node;
@@ -657,7 +657,7 @@ int parse(const config_t &config,
   }
 
   // Parse
-  yaml_check_matrix<mat4_t>(node, key, optional);
+  yaml_check_matrix<Mat4>(node, key, optional);
   size_t index = 0;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -671,7 +671,7 @@ int parse(const config_t &config,
 
 int parse(const config_t &config,
           const std::string &key,
-          matx_t &mat,
+          MatX &mat,
           const bool optional) {
   // Get node
   YAML::Node node;
@@ -682,7 +682,7 @@ int parse(const config_t &config,
   // Parse
   size_t rows = 0;
   size_t cols = 0;
-  yaml_check_matrix<matx_t>(node, key, optional, rows, cols);
+  yaml_check_matrix<MatX>(node, key, optional, rows, cols);
 
   mat.resize(rows, cols);
   size_t index = 0;
@@ -1065,7 +1065,7 @@ int csv_cols(const std::string &file_path) {
   return (found_separator) ? nb_elements : 0;
 }
 
-int csv2mat(const std::string &file_path, const bool header, matx_t &data) {
+int csv2mat(const std::string &file_path, const bool header, MatX &data) {
   // Load file
   std::ifstream infile(file_path);
   if (infile.good() != true) {
@@ -1142,7 +1142,7 @@ int csv2vec(const std::string &file_path, const bool header, VecX &data) {
   return 0;
 }
 
-int mat2csv(const std::string &file_path, const matx_t &data) {
+int mat2csv(const std::string &file_path, const MatX &data) {
   // Open file
   FILE *outfile = fopen(file_path.c_str(), "w");
   if (outfile == nullptr) {
@@ -1254,7 +1254,7 @@ void save_data(const std::string &save_path,
 
 void save_data(const std::string &save_path,
                const timestamps_t &ts,
-               const quats_t &y) {
+               const Quats &y) {
   std::ofstream file{save_path};
   if (file.good() != true) {
     printf("Failed to open file for output!");
@@ -1305,7 +1305,7 @@ void save_poses(const std::string &path,
   fclose(csv);
 }
 
-void save_extrinsics(const std::string &path, const mat4_t &extrinsics) {
+void save_extrinsics(const std::string &path, const Mat4 &extrinsics) {
   FILE *csv = fopen(path.c_str(), "w");
   fprintf(csv, "#rx,ry,rz,qx,qy,qz,qw\n");
 
@@ -1348,8 +1348,8 @@ void save_imu_data(const std::string &path,
   fclose(csv);
 }
 
-mat4_t load_pose(const std::string &fpath) {
-  mat4_t T_WF;
+Mat4 load_pose(const std::string &fpath) {
+  Mat4 T_WF;
 
   // Open file for loading
   int nb_rows = 0;
@@ -1384,7 +1384,7 @@ mat4_t load_pose(const std::string &fpath) {
 
     // Just need 1 pose
     Vec3 r{rx, ry, rz};
-    quat_t q{qw, qx, qy, qz};
+    Quat q{qw, qx, qy, qz};
     return tf(q, r);
   }
 
@@ -1428,7 +1428,7 @@ void load_poses(const std::string &fpath,
     // Record
     timestamps.push_back(ts);
     Vec3 r{rx, ry, rz};
-    quat_t q{qw, qx, qy, qz};
+    Quat q{qw, qx, qy, qz};
     poses.push_back(tf(q, r));
   }
 }
@@ -1468,7 +1468,7 @@ double binomial(const double n, const double k) {
  *                            LINEAR ALGEBRA
  *****************************************************************************/
 
-void print_shape(const std::string &name, const matx_t &A) {
+void print_shape(const std::string &name, const MatX &A) {
   std::cout << name << ": " << A.rows() << "x" << A.cols() << std::endl;
 }
 
@@ -1509,7 +1509,7 @@ void print_vector(const std::string &name, const double *v, const int N) {
 }
 
 void print_matrix(const std::string &name,
-                  const matx_t &m,
+                  const MatX &m,
                   const std::string &indent) {
   printf("%s:\n", name.c_str());
   for (long i = 0; i < m.rows(); i++) {
@@ -1525,7 +1525,7 @@ void print_matrix(const std::string &name,
   printf("\n");
 }
 
-void print_quaternion(const std::string &name, const quat_t &q) {
+void print_quaternion(const std::string &name, const Quat &q) {
   printf("%s: ", name.c_str());
   printf("w:%f, x:%f, y:%f, z:%f\n", q.w(), q.x(), q.y(), q.z());
 }
@@ -1555,7 +1555,7 @@ double *vec2array(const VecX &v) {
   return array;
 }
 
-double *mat2array(const matx_t &m) {
+double *mat2array(const MatX &m) {
   double *array = (double *)malloc(sizeof(double) * m.size());
 
   int index = 0;
@@ -1568,7 +1568,7 @@ double *mat2array(const matx_t &m) {
   return array;
 }
 
-double *quat2array(const quat_t &q) {
+double *quat2array(const Quat &q) {
   double *array = (double *)malloc(sizeof(double) * 4);
 
   array[0] = q.x();
@@ -1585,7 +1585,7 @@ void vec2array(const VecX &v, double *out) {
   }
 }
 
-void mat2array(const matx_t &A, double *out) {
+void mat2array(const MatX &A, double *out) {
   int index = 0;
   for (int i = 0; i < A.rows(); i++) {
     for (int j = 0; j < A.cols(); j++) {
@@ -1595,7 +1595,7 @@ void mat2array(const matx_t &A, double *out) {
   }
 }
 
-std::vector<VecX> mat2vec(const matx_t &m, bool row_wise) {
+std::vector<VecX> mat2vec(const MatX &m, bool row_wise) {
   std::vector<VecX> vectors;
 
   if (row_wise) {
@@ -1611,7 +1611,7 @@ std::vector<VecX> mat2vec(const matx_t &m, bool row_wise) {
   return vectors;
 }
 
-Vec3s mat2vec3(const matx_t &m, bool row_wise) {
+Vec3s mat2vec3(const MatX &m, bool row_wise) {
   Vec3s vectors;
 
   if (row_wise) {
@@ -1629,7 +1629,7 @@ Vec3s mat2vec3(const matx_t &m, bool row_wise) {
   return vectors;
 }
 
-Vec2s mat2vec2(const matx_t &m, bool row_wise) {
+Vec2s mat2vec2(const MatX &m, bool row_wise) {
   Vec2s vectors;
 
   if (row_wise) {
@@ -1647,8 +1647,8 @@ Vec2s mat2vec2(const matx_t &m, bool row_wise) {
   return vectors;
 }
 
-matx_t vecs2mat(const Vec3s &vs) {
-  matx_t retval;
+MatX vecs2mat(const Vec3s &vs) {
+  MatX retval;
   retval.resize(4, vs.size());
 
   int idx = 0;
@@ -1712,7 +1712,7 @@ std::string arr2str(const double *arr, const size_t len, bool brackets) {
   return str;
 }
 
-std::string mat2str(const matx_t &m,
+std::string mat2str(const MatX &m,
                     const std::string &indent,
                     const bool max_digits) {
   std::string str;
@@ -1732,54 +1732,54 @@ std::string mat2str(const matx_t &m,
 
 Vec3 normalize(const Vec3 &v) { return v / v.norm(); }
 
-double cond(const matx_t &A) {
-  Eigen::JacobiSVD<matx_t> svd(A);
+double cond(const MatX &A) {
+  Eigen::JacobiSVD<MatX> svd(A);
   const auto max_sigma = svd.singularValues()(0);
   const auto min_sigma = svd.singularValues()(svd.singularValues().size() - 1);
   return max_sigma / min_sigma;
 }
 
-matx_t zeros(const int rows, const int cols) {
-  return matx_t::Zero(rows, cols);
+MatX zeros(const int rows, const int cols) {
+  return MatX::Zero(rows, cols);
 }
 
-matx_t zeros(const int size) { return matx_t::Zero(size, size); }
+MatX zeros(const int size) { return MatX::Zero(size, size); }
 
-matx_t I(const int rows, const int cols) {
-  return matx_t::Identity(rows, cols);
+MatX I(const int rows, const int cols) {
+  return MatX::Identity(rows, cols);
 }
 
-matx_t I(const int size) { return matx_t::Identity(size, size); }
+MatX I(const int size) { return MatX::Identity(size, size); }
 
-matx_t ones(const int rows, const int cols) {
-  matx_t A{rows, cols};
+MatX ones(const int rows, const int cols) {
+  MatX A{rows, cols};
   A.fill(1.0);
   return A;
 }
 
-matx_t ones(const int size) { return ones(size, size); }
+MatX ones(const int size) { return ones(size, size); }
 
-matx_t hstack(const matx_t &A, const matx_t &B) {
-  matx_t C(A.rows(), A.cols() + B.cols());
+MatX hstack(const MatX &A, const MatX &B) {
+  MatX C(A.rows(), A.cols() + B.cols());
   C << A, B;
   return C;
 }
 
-matx_t vstack(const matx_t &A, const matx_t &B) {
-  matx_t C(A.rows() + B.rows(), A.cols());
+MatX vstack(const MatX &A, const MatX &B) {
+  MatX C(A.rows() + B.rows(), A.cols());
   C << A, B;
   return C;
 }
 
-matx_t dstack(const matx_t &A, const matx_t &B) {
-  matx_t C = zeros(A.rows() + B.rows(), A.cols() + B.cols());
+MatX dstack(const MatX &A, const MatX &B) {
+  MatX C = zeros(A.rows() + B.rows(), A.cols() + B.cols());
   C.block(0, 0, A.rows(), A.cols()) = A;
   C.block(A.rows(), A.cols(), B.rows(), B.cols()) = B;
   return C;
 }
 
-mat3_t skew(const Vec3 &w) {
-  mat3_t S;
+Mat3 skew(const Vec3 &w) {
+  Mat3 S;
   // clang-format off
   S << 0.0, -w(2), w(1),
        w(2), 0.0, -w(0),
@@ -1788,13 +1788,13 @@ mat3_t skew(const Vec3 &w) {
   return S;
 }
 
-mat3_t skewsq(const Vec3 &w) {
-  mat3_t SS = (w * w.transpose()) - pow(w.norm(), 2) * I(3);
+Mat3 skewsq(const Vec3 &w) {
+  Mat3 SS = (w * w.transpose()) - pow(w.norm(), 2) * I(3);
   return SS;
 }
 
-matx_t enforce_psd(const matx_t &A) {
-  matx_t A_psd;
+MatX enforce_psd(const MatX &A) {
+  MatX A_psd;
 
   A_psd.resize(A.rows(), A.cols());
 
@@ -1813,13 +1813,13 @@ matx_t enforce_psd(const matx_t &A) {
   return A_psd;
 }
 
-matx_t nullspace(const matx_t &A) {
-  Eigen::FullPivLU<matx_t> lu(A);
-  matx_t A_null_space = lu.kernel();
+MatX nullspace(const MatX &A) {
+  Eigen::FullPivLU<MatX> lu(A);
+  MatX A_null_space = lu.kernel();
   return A_null_space;
 }
 
-bool equals(const matx_t &A, const matx_t &B) {
+bool equals(const MatX &A, const MatX &B) {
   if (A.rows() != B.rows()) {
     return false;
   }
@@ -1842,7 +1842,7 @@ bool equals(const matx_t &A, const matx_t &B) {
 void load_matrix(const std::vector<double> &x,
                  const int rows,
                  const int cols,
-                 matx_t &y) {
+                 MatX &y) {
   int idx;
 
   // Setup
@@ -1858,7 +1858,7 @@ void load_matrix(const std::vector<double> &x,
   }
 }
 
-void load_matrix(const matx_t &A, std::vector<double> &x) {
+void load_matrix(const MatX &A, std::vector<double> &x) {
   for (int i = 0; i < A.cols(); i++) {
     for (int j = 0; j < A.rows(); j++) {
       x.push_back(A(j, i));
@@ -1866,10 +1866,10 @@ void load_matrix(const matx_t &A, std::vector<double> &x) {
   }
 }
 
-matx_t pinv(const matx_t &A, const double tol) {
+MatX pinv(const MatX &A, const double tol) {
   auto svd = A.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
   const auto &vals_ = svd.singularValues();
-  matx_t vals_inv = zeros(A.cols(), A.rows());
+  MatX vals_inv = zeros(A.cols(), A.rows());
 
   for (unsigned int i = 0; i < vals_.size(); ++i) {
     if (vals_(i) > tol) {
@@ -1882,12 +1882,12 @@ matx_t pinv(const matx_t &A, const double tol) {
   return svd.matrixV() * vals_inv * svd.matrixU().adjoint();
 }
 
-long int rank(const matx_t &A) {
-  Eigen::FullPivLU<matx_t> lu_decomp(A);
+long int rank(const MatX &A) {
+  Eigen::FullPivLU<MatX> lu_decomp(A);
   return lu_decomp.rank();
 }
 
-bool full_rank(const matx_t &A) {
+bool full_rank(const MatX &A) {
   if (rank(A) != A.rows() || rank(A) != A.cols()) {
     return false;
   }
@@ -1896,17 +1896,17 @@ bool full_rank(const matx_t &A) {
 }
 
 int schurs_complement(
-    matx_t &H, VecX &b, const size_t m, const size_t r, const bool precond) {
+    MatX &H, VecX &b, const size_t m, const size_t r, const bool precond) {
   assert(m > 0 && r > 0);
   assert(H.isZero() == false);
 
   // Setup
   const long size = m + r;
-  matx_t H_marg = zeros(size, size);
+  MatX H_marg = zeros(size, size);
   VecX b_marg = zeros(size, 1);
 
   // Precondition Hmm
-  matx_t Hmm = H.block(0, 0, m, m);
+  MatX Hmm = H.block(0, 0, m, m);
   if (precond) {
     Hmm = 0.5 * (Hmm + Hmm.transpose());
   }
@@ -1919,14 +1919,14 @@ int schurs_complement(
   // by its reciprocal, leaving the zeros in place, and transposing the
   // resulting matrix.**
   const double eps = 1.0e-8;
-  const Eigen::SelfAdjointEigenSolver<matx_t> eig(Hmm);
-  const matx_t V = eig.eigenvectors();
+  const Eigen::SelfAdjointEigenSolver<MatX> eig(Hmm);
+  const MatX V = eig.eigenvectors();
   const auto eigvals = eig.eigenvalues().array();
   const auto eigvals_inv = (eigvals > eps).select(eigvals.inverse(), 0);
-  const matx_t Lambda_inv = VecX(eigvals_inv).asDiagonal();
-  const matx_t Hmm_inv = V * Lambda_inv * V.transpose();
-  // const matx_t Hmm_inv = pinv(Hmm);
-  // const matx_t Hmm_inv = Hmm.inverse();
+  const MatX Lambda_inv = VecX(eigvals_inv).asDiagonal();
+  const MatX Hmm_inv = V * Lambda_inv * V.transpose();
+  // const MatX Hmm_inv = pinv(Hmm);
+  // const MatX Hmm_inv = Hmm.inverse();
   const double inv_check = ((Hmm * Hmm_inv) - I(m, m)).sum();
   if (fabs(inv_check) > 1e-4) {
     LOG_ERROR("FAILED!: Inverse identity check: %f", inv_check);
@@ -1934,9 +1934,9 @@ int schurs_complement(
   }
 
   // Calculate Schur's complement
-  const matx_t Hmr = H.block(0, m, m, r);
-  const matx_t Hrm = H.block(m, 0, r, m);
-  const matx_t Hrr = H.block(m, m, r, r);
+  const MatX Hmr = H.block(0, m, m, r);
+  const MatX Hrm = H.block(m, 0, r, m);
+  const MatX Hrr = H.block(m, m, r, r);
   const VecX bmm = b.segment(0, m);
   const VecX brr = b.segment(m, r);
   H_marg = Hrr - Hrm * Hmm_inv * Hmr;
@@ -1947,9 +1947,9 @@ int schurs_complement(
   return 0;
 }
 
-mat4_t oplus(const quat_t &q) {
+Mat4 oplus(const Quat &q) {
   // clang-format off
-  mat4_t Q;
+  Mat4 Q;
   Q(0,0) =  q.w(); Q(0,1) =  q.z(); Q(0,2) = -q.y(); Q(0,3) =  q.x();
   Q(1,0) = -q.z(); Q(1,1) =  q.w(); Q(1,2) =  q.x(); Q(1,3) =  q.y();
   Q(2,0) =  q.y(); Q(2,1) = -q.x(); Q(2,2) =  q.w(); Q(2,3) =  q.z();
@@ -1958,15 +1958,15 @@ mat4_t oplus(const quat_t &q) {
   return Q;
 }
 
-mat_t<6, 7, row_major_t> lift_pose_jacobian(const mat4_t pose) {
+Mat<6, 7, RowMajor> lift_pose_jacobian(const Mat4 pose) {
   Eigen::Matrix<double, 3, 4> Jq_pinv;
   Jq_pinv.bottomRightCorner<3, 1>().setZero();
   Jq_pinv.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity() * 2.0;
 
-  const quat_t q = tf_quat(pose);
+  const Quat q = tf_quat(pose);
   Eigen::Matrix4d Qplus = oplus(q.inverse());
 
-  Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
+  Eigen::Matrix<double, 6, 7, RowMajor> J_lift;
   J_lift.setZero();
   J_lift.topLeftCorner<3, 3>().setIdentity();
   J_lift.bottomRightCorner<3, 4>() = Jq_pinv * Qplus;
@@ -2027,7 +2027,7 @@ Vec3 sphere(const double rho, const double theta, const double phi) {
   return Vec3{x, y, z};
 }
 
-mat4_t lookat(const Vec3 &cam_pos,
+Mat4 lookat(const Vec3 &cam_pos,
               const Vec3 &target,
               const Vec3 &up_axis) {
   // Note: If we were using OpenGL the cam_dir would be the opposite direction,
@@ -2038,7 +2038,7 @@ mat4_t lookat(const Vec3 &cam_pos,
   const Vec3 cam_up = cam_dir.cross(cam_right);
 
   // clang-format off
-  mat4_t A;
+  Mat4 A;
   A << cam_right(0), cam_right(1), cam_right(2), 0.0,
        cam_up(0), cam_up(1), cam_up(2), 0.0,
        cam_dir(0), cam_dir(1), cam_dir(2), 0.0,
@@ -2046,15 +2046,15 @@ mat4_t lookat(const Vec3 &cam_pos,
   // clang-format on
 
   // clang-format off
-  mat4_t B;
+  Mat4 B;
   B << 1.0, 0.0, 0.0, -cam_pos(0),
        0.0, 1.0, 0.0, -cam_pos(1),
        0.0, 0.0, 1.0, -cam_pos(2),
        0.0, 0.0, 0.0, 1.0;
   // clang-format on
 
-  mat4_t T_camera_target = A * B;
-  mat4_t T_target_camera = T_camera_target.inverse();
+  Mat4 T_camera_target = A * B;
+  Mat4 T_target_camera = T_camera_target.inverse();
   return T_target_camera;
 }
 
@@ -2137,7 +2137,7 @@ void fit_circle(const Vec2s &points, double &cx, double &cy, double &radius) {
 
   // Form A matrix and vector b
   int nb_points = points.size();
-  matx_t A;
+  MatX A;
   VecX b;
   A.resize(nb_points, 3);
   b.resize(nb_points, 1);
@@ -2151,7 +2151,7 @@ void fit_circle(const Vec2s &points, double &cx, double &cy, double &radius) {
   }
 
   // Solve Ax = b
-  Eigen::JacobiSVD<matx_t> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::JacobiSVD<MatX> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
   VecX x = svd.solve(b);
 
   // Results
@@ -2433,74 +2433,74 @@ double gauss_normal() {
  *                               TRANSFORM
  *****************************************************************************/
 
-mat4_t tf(const double *params) {
+Mat4 tf(const double *params) {
   const Vec3 r{params[0], params[1], params[2]};
-  const quat_t q{params[6], params[3], params[4], params[5]};
+  const Quat q{params[6], params[3], params[4], params[5]};
   return tf(q, r);
 }
 
-mat4_t tf(const VecX &params) {
+Mat4 tf(const VecX &params) {
   assert(params.size() == 7);
   const Vec3 r{params[0], params[1], params[2]};
-  const quat_t q{params[6], params[3], params[4], params[5]};
+  const Quat q{params[6], params[3], params[4], params[5]};
   return tf(q, r);
 }
 
-mat4_t tf(const mat3_t &C, const Vec3 &r) {
-  mat4_t T = I(4);
+Mat4 tf(const Mat3 &C, const Vec3 &r) {
+  Mat4 T = I(4);
   T.block(0, 0, 3, 3) = C;
   T.block(0, 3, 3, 1) = r;
   return T;
 }
 
-mat4_t tf(const quat_t &q, const Vec3 &r) {
+Mat4 tf(const Quat &q, const Vec3 &r) {
   return tf(q.toRotationMatrix(), r);
 }
 
-mat4_t tf_inv(const mat4_t &T) {
+Mat4 tf_inv(const Mat4 &T) {
   const Vec3 r = tf_trans(T);
-  const mat3_t C = tf_rot(T);
+  const Mat3 C = tf_rot(T);
   return tf(C.transpose(), -C.transpose() * r);
 }
 
-VecX tf_vec(const mat4_t &T) {
+VecX tf_vec(const Mat4 &T) {
   const Vec3 r = tf_trans(T);
-  const quat_t q = tf_quat(T);
+  const Quat q = tf_quat(T);
   VecX vec;
   vec.resize(7);
   vec << r.x(), r.y(), r.z(), q.x(), q.y(), q.z(), q.w();
   return vec;
 }
 
-mat4_t tf_perturb_rot(const mat4_t &T, double step_size, const int i) {
-  const mat3_t C = tf_rot(T);
+Mat4 tf_perturb_rot(const Mat4 &T, double step_size, const int i) {
+  const Mat3 C = tf_rot(T);
   const Vec3 r = tf_trans(T);
 
-  mat3_t C_diff;
+  Mat3 C_diff;
   if (i == -1) {
     C_diff = rvec2rot(ones(3, 1) * step_size, 1e-8) * C;
   } else {
-    const mat3_t drvec = I(3) * step_size;
+    const Mat3 drvec = I(3) * step_size;
     C_diff = rvec2rot(drvec.col(i), 1e-8) * C;
   }
   return tf(C_diff, r);
 }
 
-mat4_t tf_perturb_trans(const mat4_t &T, const double step_size, const int i) {
-  const mat3_t C = tf_rot(T);
+Mat4 tf_perturb_trans(const Mat4 &T, const double step_size, const int i) {
+  const Mat3 C = tf_rot(T);
   const Vec3 r = tf_trans(T);
 
   Vec3 r_diff;
   if (i == -1) {
     r_diff = r + ones(3, 1) * step_size;
   } else {
-    const mat3_t dr = I(3) * step_size;
+    const Mat3 dr = I(3) * step_size;
     r_diff = r + dr.col(i);
   }
   return tf(C, r_diff);
 }
 
-mat4_t tf_perturb(const mat4_t &T, const double dr, const double drot) {
+Mat4 tf_perturb(const Mat4 &T, const double dr, const double drot) {
   const double dx = randf(dr, -dr);
   const double dy = randf(dr, -dr);
   const double dz = randf(dr, -dr);
@@ -2519,7 +2519,7 @@ mat4_t tf_perturb(const mat4_t &T, const double dr, const double drot) {
   return T_perturbed;
 }
 
-Vec3 tf_point(const mat4_t &T, const Vec3 &p) {
+Vec3 tf_point(const Mat4 &T, const Vec3 &p) {
   return (T * p.homogeneous()).head(3);
 }
 
@@ -2592,8 +2592,8 @@ void pose_diff(const double pose0[7],
   *drot = dtheta.norm();
 }
 
-mat3_t rotx(const double theta) {
-  mat3_t R;
+Mat3 rotx(const double theta) {
+  Mat3 R;
 
   // clang-format off
   R << 1.0, 0.0, 0.0,
@@ -2604,8 +2604,8 @@ mat3_t rotx(const double theta) {
   return R;
 }
 
-mat3_t roty(const double theta) {
-  mat3_t R;
+Mat3 roty(const double theta) {
+  Mat3 R;
 
   // clang-format off
   R << cos(theta), 0.0, -sin(theta),
@@ -2616,8 +2616,8 @@ mat3_t roty(const double theta) {
   return R;
 }
 
-mat3_t rotz(const double theta) {
-  mat3_t R;
+Mat3 rotz(const double theta) {
+  Mat3 R;
 
   // clang-format off
   R << cos(theta), sin(theta), 0.0,
@@ -2628,7 +2628,7 @@ mat3_t rotz(const double theta) {
   return R;
 }
 
-mat3_t euler123(const Vec3 &euler) {
+Mat3 euler123(const Vec3 &euler) {
   // i.e. XYZ rotation sequence (body to world)
   const double phi = euler(0);
   const double theta = euler(1);
@@ -2646,7 +2646,7 @@ mat3_t euler123(const Vec3 &euler) {
   const double R23 = cos(theta) * sin(phi);
   const double R33 = cos(theta) * cos(phi);
 
-  mat3_t R;
+  Mat3 R;
   // clang-format off
   R << R11, R12, R13,
        R21, R22, R23,
@@ -2656,7 +2656,7 @@ mat3_t euler123(const Vec3 &euler) {
   return R;
 }
 
-mat3_t euler321(const Vec3 &euler) {
+Mat3 euler321(const Vec3 &euler) {
   // i.e. ZYX rotation sequence (world to body)
   const double phi = euler.x();
   const double theta = euler.y();
@@ -2674,7 +2674,7 @@ mat3_t euler321(const Vec3 &euler) {
   const double R23 = sin(psi) * sin(theta) * cos(phi) - cos(psi) * sin(phi);
   const double R33 = cos(theta) * cos(phi);
 
-  mat3_t R;
+  Mat3 R;
   // clang-format off
   R << R11, R12, R13,
        R21, R22, R23,
@@ -2684,7 +2684,7 @@ mat3_t euler321(const Vec3 &euler) {
   return R;
 }
 
-quat_t euler2quat(const Vec3 &euler) {
+Quat euler2quat(const Vec3 &euler) {
   const double phi = euler.x();
   const double theta = euler.y();
   const double psi = euler.z();
@@ -2702,10 +2702,10 @@ quat_t euler2quat(const Vec3 &euler) {
   const double qw = c_phi * c_theta * c_psi + s_phi * s_theta * s_psi;
 
   const double mag = sqrt(qw * qw + qx * qx + qy * qy + qz * qz);
-  return quat_t{qw / mag, qx / mag, qy / mag, qz / mag};
+  return Quat{qw / mag, qx / mag, qy / mag, qz / mag};
 }
 
-mat3_t vecs2rot(const Vec3 &a_B, const Vec3 &g) {
+Mat3 vecs2rot(const Vec3 &a_B, const Vec3 &g) {
   // Create Quaternion from two vectors
   const double cos_theta = a_B.normalized().transpose() * g.normalized();
   const double half_cos = sqrt(0.5 * (1.0 + cos_theta));
@@ -2735,12 +2735,12 @@ mat3_t vecs2rot(const Vec3 &a_B, const Vec3 &g) {
   const double R32 = 2 * (qy * qz + qw * qx);
   const double R33 = qw2 - qx2 - qy2 + qz2;
 
-  mat3_t R;
+  Mat3 R;
   R << R11, R12, R13, R21, R22, R23, R31, R32, R33;
   return R;
 }
 
-mat3_t rvec2rot(const Vec3 &rvec, const double eps) {
+Mat3 rvec2rot(const Vec3 &rvec, const double eps) {
   // Magnitude of rvec
   const double theta = sqrt(rvec.transpose() * rvec);
   // ^ basically norm(rvec), but faster
@@ -2748,7 +2748,7 @@ mat3_t rvec2rot(const Vec3 &rvec, const double eps) {
   // Check if rotation is too small
   if (theta < eps) {
     // clang-format off
-    mat3_t R;
+    Mat3 R;
     R << 1.0, -rvec.z(), rvec.y(),
          rvec.z(), 1.0, -rvec.x(),
          -rvec.y(), rvec.x(), 1.0;
@@ -2779,7 +2779,7 @@ mat3_t rvec2rot(const Vec3 &rvec, const double eps) {
   const double zxC = z * xC;
 
   // clang-format off
-  mat3_t R;
+  Mat3 R;
   R << x * xC + c, xyC - zs, zxC + ys,
        xyC + zs, y * yC + c, yzC - xs,
        zxC - ys, yzC + xs, z * zC + c;
@@ -2787,7 +2787,7 @@ mat3_t rvec2rot(const Vec3 &rvec, const double eps) {
   // clang-format on
 }
 
-Vec3 quat2euler(const quat_t &q) {
+Vec3 quat2euler(const Quat &q) {
   const double qw = q.w();
   const double qx = q.x();
   const double qy = q.y();
@@ -2805,7 +2805,7 @@ Vec3 quat2euler(const quat_t &q) {
   return Vec3{t1, t2, t3};
 }
 
-mat3_t quat2rot(const quat_t &q) {
+Mat3 quat2rot(const Quat &q) {
   const double qw = q.w();
   const double qx = q.x();
   const double qy = q.y();
@@ -2817,7 +2817,7 @@ mat3_t quat2rot(const quat_t &q) {
   const double qw2 = qw * qw;
 
   // Homogeneous form
-  mat3_t C;
+  Mat3 C;
   // -- 1st row
   C(0, 0) = qw2 + qx2 - qy2 - qz2;
   C(0, 1) = 2 * (qx * qy - qw * qz);
@@ -2834,16 +2834,16 @@ mat3_t quat2rot(const quat_t &q) {
   return C;
 }
 
-quat_t quat_delta(const Vec3 &dalpha) {
+Quat quat_delta(const Vec3 &dalpha) {
   const double half_norm = 0.5 * dalpha.norm();
   const Vec3 vector = sinc(half_norm) * 0.5 * dalpha;
   const double scalar = cos(half_norm);
-  return quat_t{scalar, vector(0), vector(1), vector(2)};
+  return Quat{scalar, vector(0), vector(1), vector(2)};
 }
 
-mat4_t quat_left(const quat_t &q) {
+Mat4 quat_left(const Quat &q) {
   // clang-format off
-  mat4_t Q_left;
+  Mat4 Q_left;
   Q_left <<
     q.w(), -q.x(), -q.y(), -q.z(),
     q.x(), q.w(), -q.z(), q.y(),
@@ -2854,9 +2854,9 @@ mat4_t quat_left(const quat_t &q) {
   return Q_left;
 }
 
-mat4_t quat_right(const quat_t &q) {
+Mat4 quat_right(const Quat &q) {
   // clang-format off
-  mat4_t Q_right;
+  Mat4 Q_right;
   Q_right <<
     q.w(), -q.x(), -q.y(), -q.z(),
     q.x(), q.w(), q.z(), -q.y(),
@@ -2867,12 +2867,12 @@ mat4_t quat_right(const quat_t &q) {
   return Q_right;
 }
 
-mat4_t quat_lmul(const quat_t &q) {
+Mat4 quat_lmul(const Quat &q) {
   const double qw = q.w();
   const double qx = q.x();
   const double qy = q.y();
   const double qz = q.z();
-  mat4_t lmul;
+  Mat4 lmul;
   // clang-format off
   lmul << qw, -qx, -qy, -qz,
           qx,  qw, -qz,  qy,
@@ -2882,17 +2882,17 @@ mat4_t quat_lmul(const quat_t &q) {
   return lmul;
 }
 
-mat3_t quat_lmul_xyz(const quat_t &q) {
-  mat4_t Q = quat_lmul(q);
+Mat3 quat_lmul_xyz(const Quat &q) {
+  Mat4 Q = quat_lmul(q);
   return Q.bottomRightCorner<3, 3>();
 }
 
-mat4_t quat_rmul(const quat_t &q) {
+Mat4 quat_rmul(const Quat &q) {
   const double qw = q.w();
   const double qx = q.x();
   const double qy = q.y();
   const double qz = q.z();
-  mat4_t lmul;
+  Mat4 lmul;
   // clang-format off
   lmul << qw, -qx, -qy, -qz,
           qx,  qw,  qz, -qy,
@@ -2902,12 +2902,12 @@ mat4_t quat_rmul(const quat_t &q) {
   return lmul;
 }
 
-mat3_t quat_rmul_xyz(const quat_t &q) {
-  mat4_t Q = quat_rmul(q);
+Mat3 quat_rmul_xyz(const Quat &q) {
+  Mat4 Q = quat_rmul(q);
   return Q.bottomRightCorner<3, 3>();
 }
 
-mat3_t quat_mat_xyz(const mat4_t &Q) { return Q.bottomRightCorner<3, 3>(); }
+Mat3 quat_mat_xyz(const Mat4 &Q) { return Q.bottomRightCorner<3, 3>(); }
 
 Eigen::Quaterniond
 quat_average(const std::vector<Eigen::Quaterniond> &quaternions) {
@@ -2945,9 +2945,9 @@ quat_average(const std::vector<Eigen::Quaterniond> &quaternions) {
   return average_quaternion.normalized();
 }
 
-mat3_t add_noise(const mat3_t &rot, const double n) {
+Mat3 add_noise(const Mat3 &rot, const double n) {
   const Vec3 rpy_n{randf(-n, n), randf(-n, n), randf(-n, n)};
-  const Vec3 rpy = quat2euler(quat_t{rot}) + deg2rad(rpy_n);
+  const Vec3 rpy = quat2euler(Quat{rot}) + deg2rad(rpy_n);
   return euler321(rpy);
 }
 
@@ -2956,15 +2956,15 @@ Vec3 add_noise(const Vec3 &pos, const double n) {
   return pos + pos_n;
 }
 
-mat4_t add_noise(const mat4_t &pose, const double pos_n, const double rot_n) {
+Mat4 add_noise(const Mat4 &pose, const double pos_n, const double rot_n) {
   Vec3 pos = add_noise(tf_trans(pose), pos_n);
-  mat3_t rot = add_noise(tf_rot(pose), rot_n);
+  Mat3 rot = add_noise(tf_rot(pose), rot_n);
   return tf(rot, pos);
 }
 
 void imu_init_attitude(const Vec3s w_m,
                        const Vec3s a_m,
-                       mat3_t &C_WS,
+                       Mat3 &C_WS,
                        const size_t buffer_size) {
   // Sample IMU measurements
   Vec3 sum_angular_vel = Vec3::Zero();
@@ -2981,7 +2981,7 @@ void imu_init_attitude(const Vec3s w_m,
   C_WS = vecs2rot(mean_accel, -gravity);
 
   // Extract roll, pitch and set yaw to 0
-  const quat_t q_WS = quat_t(C_WS);
+  const Quat q_WS = Quat(C_WS);
   const Vec3 rpy = quat2euler(q_WS);
   const double roll = rpy(0);
   const double pitch = rpy(1);
@@ -3048,7 +3048,7 @@ double time_now() {
  *                             INTERPOLATION
  ****************************************************************************/
 
-quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
+Quat slerp(const Quat &q_start, const Quat &q_end, const double alpha) {
   Vec4 q0{q_start.coeffs().data()};
   Vec4 q1{q_end.coeffs().data()};
 
@@ -3075,7 +3075,7 @@ quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
     // and normalize the result.
     Vec4 result = q0 + alpha * (q1 - q0);
     result.normalize();
-    return quat_t{result(3), result(0), result(1), result(2)};
+    return Quat{result(3), result(0), result(1), result(2)};
   }
 
   // Since dot is in range [0, DOT_THRESHOLD], acos is safe
@@ -3089,17 +3089,17 @@ quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha) {
   const double s1 = sin_theta / sin_theta_0;
 
   const Vec4 result = (s0 * q0) + (s1 * q1);
-  return quat_t{result(3), result(0), result(1), result(2)};
+  return Quat{result(3), result(0), result(1), result(2)};
 }
 
-mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha) {
+Mat4 interp_pose(const Mat4 &p0, const Mat4 &p1, const double alpha) {
   // Decompose start pose
   const Vec3 trans0 = tf_trans(p0);
-  const quat_t quat0{tf_rot(p0)};
+  const Quat quat0{tf_rot(p0)};
 
   // Decompose end pose
   const Vec3 trans1 = tf_trans(p1);
-  const quat_t quat1{tf_rot(p1)};
+  const Quat quat1{tf_rot(p1)};
 
   // Interpolate translation and rotation
   const auto trans_interp = lerp(trans0, trans1, alpha);
@@ -3122,13 +3122,13 @@ void interp_poses(const timestamps_t &timestamps,
   // Interpolation variables
   timestamp_t ts_start = 0;
   timestamp_t ts_end = 0;
-  mat4_t pose0 = I(4);
-  mat4_t pose1 = I(4);
+  Mat4 pose0 = I(4);
+  Mat4 pose1 = I(4);
 
   size_t interp_idx = 0;
   for (size_t i = 0; i < timestamps.size(); i++) {
     const timestamp_t ts = timestamps[i];
-    const mat4_t T = poses[i];
+    const Mat4 T = poses[i];
 
     const double diff = (ts - interp_ts[interp_idx]) * 1e-9;
     if (diff < threshold) {
@@ -3178,12 +3178,12 @@ void closest_poses(const timestamps_t &timestamps,
   // Variables
   const timestamp_t ts = timestamps[0];
   double diff_closest = fabs((ts - target_ts[0]) * 1e-9);
-  mat4_t pose_closest = poses[0];
+  Mat4 pose_closest = poses[0];
 
   size_t target_idx = 0;
   for (size_t i = 1; i < timestamps.size(); i++) {
     const timestamp_t ts = timestamps[i];
-    const mat4_t pose = poses[i];
+    const Mat4 pose = poses[i];
 
     // Find closest pose
     const double diff = fabs((ts - target_ts[target_idx]) * 1e-9);
@@ -3300,10 +3300,10 @@ void lerp_data(const std::deque<timestamp_t> &lerp_ts,
   target_data = result_data;
 }
 
-mat4_t lerp_pose(const timestamp_t &t0,
-                 const mat4_t &pose0,
+Mat4 lerp_pose(const timestamp_t &t0,
+                 const Mat4 &pose0,
                  const timestamp_t &t1,
-                 const mat4_t &pose1,
+                 const Mat4 &pose1,
                  const timestamp_t &t_lerp) {
   // Calculate alpha
   const double numerator = (t_lerp - t0) * 1e-9;
@@ -3312,11 +3312,11 @@ mat4_t lerp_pose(const timestamp_t &t0,
 
   // Decompose start pose
   const Vec3 trans0 = tf_trans(pose0);
-  const quat_t quat0{tf_rot(pose0)};
+  const Quat quat0{tf_rot(pose0)};
 
   // Decompose end pose
   const Vec3 trans1 = tf_trans(pose1);
-  const quat_t quat1{tf_rot(pose1)};
+  const Quat quat1{tf_rot(pose1)};
 
   // Interpolate translation and rotation
   const auto trans_interp = lerp(trans0, trans1, alpha);
@@ -3384,7 +3384,7 @@ void sim_imu_reset(sim_imu_t &imu) {
 void sim_imu_measurement(sim_imu_t &imu,
                          std::default_random_engine &rndeng,
                          const timestamp_t &ts,
-                         const mat4_t &T_WS_W,
+                         const Mat4 &T_WS_W,
                          const Vec3 &w_WS_W,
                          const Vec3 &a_WS_W,
                          Vec3 &a_WS_S,
@@ -3417,7 +3417,7 @@ void sim_imu_measurement(sim_imu_t &imu,
   }
 
   // Compute gyro measurement
-  const mat3_t C_SW = tf_rot(T_WS_W).transpose();
+  const Mat3 C_SW = tf_rot(T_WS_W).transpose();
   const Vec3 w_g = mvn(rndeng); // Gyro white noise
   // w_WS_S = C_SW * w_WS_W + imu.b_g + w_g * imu.sigma_g_c * sqrt(dt);
   UNUSED(w_g);

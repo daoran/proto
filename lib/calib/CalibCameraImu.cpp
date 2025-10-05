@@ -61,7 +61,7 @@ void CalibCameraImu::addView(
   }
 
   // Estimate relative pose T_CF
-  mat4_t T_CiF;
+  Mat4 T_CiF;
   SolvePnp pnp{camera_geometries_[best_camera_index]};
   int status = pnp.estimate(keypoints, object_points, T_CiF);
   if (status != 0) {
@@ -77,8 +77,8 @@ void CalibCameraImu::addView(
   }
 
   // Add calibration view
-  const mat4_t T_C0Ci = camera_geometries_[best_camera_index]->getTransform();
-  const mat4_t T_C0F = T_C0Ci * T_CiF;
+  const Mat4 T_C0Ci = camera_geometries_[best_camera_index]->getTransform();
+  const Mat4 T_C0F = T_C0Ci * T_CiF;
   const Vec7 pose = tf_vec(T_C0F);
   timestamps_.insert(ts);
   calib_views_[ts] = std::make_shared<CalibView>(problem_,

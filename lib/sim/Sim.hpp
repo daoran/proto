@@ -7,7 +7,7 @@ namespace xyz {
 struct Sim {
   // Data
   std::vector<timestamp_t> timestamps;
-  std::map<timestamp_t, mat4_t> poses;
+  std::map<timestamp_t, Mat4> poses;
   std::map<timestamp_t, Vec3> vel;
   std::map<timestamp_t, Vec3> imu_acc;
   std::map<timestamp_t, Vec3> imu_gyr;

@@ -144,9 +144,9 @@ typedef std::vector<timestamp_t> timestamps_t;
 
 // -- VECTOR ------------------------------------------------------------------
 
-#define dynamic_t Eigen::Dynamic
-#define col_major_t Eigen::ColMajor
-#define row_major_t Eigen::RowMajor
+#define Dynamic Eigen::Dynamic
+#define ColMajor Eigen::ColMajor
+#define RowMajor Eigen::RowMajor
 
 using Vec2i = Eigen::Matrix<int, 2, 1>;
 using Vec3i = Eigen::Matrix<int, 3, 1>;
@@ -154,7 +154,7 @@ using Vec4i = Eigen::Matrix<int, 4, 1>;
 using Vec5i = Eigen::Matrix<int, 5, 1>;
 using Vec6i = Eigen::Matrix<int, 6, 1>;
 using Vec7i = Eigen::Matrix<int, 7, 1>;
-using VecXi = Eigen::Matrix<int, dynamic_t, 1>;
+using VecXi = Eigen::Matrix<int, Dynamic, 1>;
 
 using Vec2 = Eigen::Matrix<double, 2, 1>;
 using Vec3 = Eigen::Matrix<double, 3, 1>;
@@ -162,7 +162,7 @@ using Vec4 = Eigen::Matrix<double, 4, 1>;
 using Vec5 = Eigen::Matrix<double, 5, 1>;
 using Vec6 = Eigen::Matrix<double, 6, 1>;
 using Vec7 = Eigen::Matrix<double, 7, 1>;
-using VecX = Eigen::Matrix<double, dynamic_t, 1>;
+using VecX = Eigen::Matrix<double, Dynamic, 1>;
 
 using Vec2s = std::vector<Vec2, Eigen::aligned_allocator<Vec2>>;
 using Vec3s = std::vector<Vec3, Eigen::aligned_allocator<Vec3>>;
@@ -172,47 +172,47 @@ using Vec6s = std::vector<Vec6, Eigen::aligned_allocator<Vec6>>;
 using Vec7s = std::vector<Vec7, Eigen::aligned_allocator<Vec7>>;
 using VecXs = std::vector<VecX, Eigen::aligned_allocator<VecX>>;
 
-using row_vector_t = Eigen::Matrix<double, 1, dynamic_t>;
-using col_vector_t = Eigen::Matrix<double, dynamic_t, 1>;
+using row_vector_t = Eigen::Matrix<double, 1, Dynamic>;
+using col_vector_t = Eigen::Matrix<double, Dynamic, 1>;
 
-template <int LENGTH, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+template <int LENGTH, Eigen::StorageOptions STRIDE_TYPE = ColMajor>
 using vec_t = Eigen::Matrix<double, LENGTH, 1, STRIDE_TYPE>;
 
 // -- MATRIX -------------------------------------------------------------------
 
 // clang-format off
-using mat2_t = Eigen::Matrix<double, 2, 2>;
-using mat3_t = Eigen::Matrix<double, 3, 3>;
-using mat4_t = Eigen::Matrix<double, 4, 4>;
-using matx_t = Eigen::Matrix<double, dynamic_t, dynamic_t>;
-using matx_row_major_t = Eigen::Matrix<double, dynamic_t, dynamic_t, row_major_t>;
-using mat34_t = Eigen::Matrix<double, 3, 4>;
+using Mat2 = Eigen::Matrix<double, 2, 2>;
+using Mat3 = Eigen::Matrix<double, 3, 3>;
+using Mat4 = Eigen::Matrix<double, 4, 4>;
+using MatX = Eigen::Matrix<double, Dynamic, Dynamic>;
+using MatXRowMajor = Eigen::Matrix<double, Dynamic, Dynamic, RowMajor>;
+using Mat34 = Eigen::Matrix<double, 3, 4>;
 
-using mat2s_t = std::vector<mat2_t, Eigen::aligned_allocator<mat2_t>>;
-using mat3s_t = std::vector<mat3_t, Eigen::aligned_allocator<mat3_t>>;
-using mat4s_t = std::vector<mat4_t, Eigen::aligned_allocator<mat4_t>>;
-using matxs_t = std::vector<matx_t, Eigen::aligned_allocator<matx_t>>;
-using matxs_row_major_t = std::vector<matx_row_major_t, Eigen::aligned_allocator<matx_row_major_t>>;
+using Mat2s = std::vector<Mat2, Eigen::aligned_allocator<Mat2>>;
+using Mat3s = std::vector<Mat3, Eigen::aligned_allocator<Mat3>>;
+using mat4s_t = std::vector<Mat4, Eigen::aligned_allocator<Mat4>>;
+using MatXs = std::vector<MatX, Eigen::aligned_allocator<MatX>>;
+using MatXsRowMajor = std::vector<MatXRowMajor, Eigen::aligned_allocator<MatXRowMajor>>;
 
-using mat_hash_t = std::unordered_map<long, std::unordered_map<long, double>>;
-using mat_indicies_t = std::vector<std::pair<long int, long int>>;
+using MatHash = std::unordered_map<long, std::unordered_map<long, double>>;
+using MatIndicies = std::vector<std::pair<long int, long int>>;
 
-template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using mat_t = Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>;
+template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = ColMajor>
+using Mat = Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>;
 
-template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-using map_mat_t = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
+// template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+// using map_Mat = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
 
-template <int ROWS>
-using map_vec_t = Eigen::Map<Eigen::Matrix<double, ROWS, 1>>;
+// template <int ROWS>
+// using map_vec_t = Eigen::Map<Eigen::Matrix<double, ROWS, 1>>;
 // clang-format on
 
 // -- GEOMETRY -----------------------------------------------------------------
 
-using quat_t = Eigen::Quaternion<double>;
-using quats_t = std::vector<quat_t, Eigen::aligned_allocator<quat_t>>;
-using angle_axis_t = Eigen::AngleAxis<double>;
-using arrayx_t = Eigen::Array<double, dynamic_t, 1>;
+using Quat = Eigen::Quaternion<double>;
+using Quats = std::vector<Quat, Eigen::aligned_allocator<Quat>>;
+using AngleAxis = Eigen::AngleAxis<double>;
+using ArrayX = Eigen::Array<double, Dynamic, 1>;
 
 /******************************************************************************
  *                                FILESYSTEM
@@ -508,22 +508,22 @@ int parse(const config_t &config,
 
 int parse(const config_t &config,
           const std::string &key,
-          mat2_t &mat,
+          Mat2 &mat,
           const bool optional = false);
 
 int parse(const config_t &config,
           const std::string &key,
-          mat3_t &mat,
+          Mat3 &mat,
           const bool optional = false);
 
 int parse(const config_t &config,
           const std::string &key,
-          mat4_t &mat,
+          Mat4 &mat,
           const bool optional = false);
 
 int parse(const config_t &config,
           const std::string &key,
-          matx_t &mat,
+          MatX &mat,
           const bool optional = false);
 
 int parse(const config_t &config,
@@ -600,13 +600,13 @@ void yaml_check_matrix(const YAML::Node &node,
 
   // Check number of elements
   size_t nb_elements = 0;
-  if (std::is_same<T, mat2_t>::value) {
+  if (std::is_same<T, Mat2>::value) {
     nb_elements = 4;
-  } else if (std::is_same<T, mat3_t>::value) {
+  } else if (std::is_same<T, Mat3>::value) {
     nb_elements = 9;
-  } else if (std::is_same<T, mat4_t>::value) {
+  } else if (std::is_same<T, Mat4>::value) {
     nb_elements = 16;
-  } else if (std::is_same<T, matx_t>::value) {
+  } else if (std::is_same<T, MatX>::value) {
     nb_elements = node["data"].size();
 
   } else if (std::is_same<T, cv::Mat>::value) {
@@ -771,7 +771,7 @@ int csv_cols(const std::string &file_path);
  * Convert CSV file to matrix.
  * @returns 0 for success, -1 for failure
  */
-int csv2mat(const std::string &file_path, const bool header, matx_t &data);
+int csv2mat(const std::string &file_path, const bool header, MatX &data);
 
 /**
  * Convert CSV file to vector.
@@ -783,7 +783,7 @@ int csv2vec(const std::string &file_path, const bool header, VecX &data);
  * Convert matrix to csv file.
  * @returns 0 for success, -1 for failure
  */
-int mat2csv(const std::string &file_path, const matx_t &data);
+int mat2csv(const std::string &file_path, const MatX &data);
 
 /**
  * Convert vector to csv file.
@@ -1016,7 +1016,7 @@ void save_data(const std::string &save_path,
 /* Save quaternions with timestamps `ts` to `save_path`. */
 void save_data(const std::string &save_path,
                const timestamps_t &ts,
-               const quats_t &y);
+               const Quats &y);
 
 /**
  * Save 3D features to csv file defined in `path`.
@@ -1033,7 +1033,7 @@ void save_poses(const std::string &path,
 /**
  * Save extrinsics to csv file in `path`.
  */
-void save_extrinsics(const std::string &path, const mat4_t &ext);
+void save_extrinsics(const std::string &path, const Mat4 &ext);
 
 /**
  * Save IMU measurements
@@ -1044,7 +1044,7 @@ void save_imu_data(const std::string &path,
                    const Vec3s &imu_gyr);
 
 /** Load pose */
-mat4_t load_pose(const std::string &fpath);
+Mat4 load_pose(const std::string &fpath);
 
 /** Load poses */
 void load_poses(const std::string &fpath,
@@ -1121,7 +1121,7 @@ std::vector<T> linspace(const T start, const T end, const int num) {
  * @param[in] name Name of matrix
  * @param[in] A Matrix
  */
-void print_shape(const std::string &name, const matx_t &A);
+void print_shape(const std::string &name, const MatX &A);
 
 /**
  * Print shape of a vector
@@ -1156,13 +1156,13 @@ void print_vector(const std::string &name, const double *v, const int N);
  * Print matrix `m` with a `name`.
  */
 void print_matrix(const std::string &name,
-                  const matx_t &m,
+                  const MatX &m,
                   const std::string &indent = "");
 
 /**
  * Print quaternion `q` with a `name`.
  */
-void print_quaternion(const std::string &name, const quat_t &q);
+void print_quaternion(const std::string &name, const Quat &q);
 
 /**
  * Array to string
@@ -1196,7 +1196,7 @@ double *vec2array(const VecX &v);
  * @param[in] m Matrix
  * @returns Array
  */
-double *mat2array(const matx_t &m);
+double *mat2array(const MatX &m);
 
 /**
  * Quaternion to array
@@ -1206,7 +1206,7 @@ double *mat2array(const matx_t &m);
  * @param[in] q Quaternion
  * @returns Array
  */
-double *quat2array(const quat_t &q);
+double *quat2array(const Quat &q);
 
 /**
  * Vector to array
@@ -1222,7 +1222,7 @@ void vec2array(const VecX &v, double *out);
  * @param[in] m Matrix
  * @param[in] out Output array
  */
-void mat2array(const matx_t &m, double *out);
+void mat2array(const MatX &m, double *out);
 
 /**
  * Matrix to list of vectors
@@ -1231,7 +1231,7 @@ void mat2array(const matx_t &m, double *out);
  * @param[in] row_wise Row wise
  * @returns Vectors
  */
-std::vector<VecX> mat2vec(const matx_t &m, const bool row_wise = true);
+std::vector<VecX> mat2vec(const MatX &m, const bool row_wise = true);
 
 /**
  * Matrix to list of vectors of size 3
@@ -1240,7 +1240,7 @@ std::vector<VecX> mat2vec(const matx_t &m, const bool row_wise = true);
  * @param[in] row_wise Row wise
  * @returns Vectors
  */
-Vec3s mat2vec3(const matx_t &m, const bool row_wise = true);
+Vec3s mat2vec3(const MatX &m, const bool row_wise = true);
 
 /**
  * Matrix to list of vectors of size 3
@@ -1249,12 +1249,12 @@ Vec3s mat2vec3(const matx_t &m, const bool row_wise = true);
  * @param[in] row_wise Row wise
  * @returns Vectors
  */
-Vec2s mat2vec2(const matx_t &m, const bool row_wise = true);
+Vec2s mat2vec2(const MatX &m, const bool row_wise = true);
 
 /**
  * Vectors to matrix
  */
-matx_t vecs2mat(const Vec3s &vs);
+MatX vecs2mat(const Vec3s &vs);
 
 /**
  * Vector to string
@@ -1322,7 +1322,7 @@ std::string arr2str(const double *arr, const size_t len, bool brackets = true);
  * @param[in] indent Indent string
  * @returns Array as a string
  */
-std::string mat2str(const matx_t &m,
+std::string mat2str(const MatX &m,
                     const std::string &indent = "  ",
                     const bool max_digits = false);
 
@@ -1339,7 +1339,7 @@ Vec3 normalize(const Vec3 &v);
 /**
  * Condition number of `A`.
  */
-double cond(const matx_t &A);
+double cond(const MatX &A);
 
 /**
  * Zeros-matrix
@@ -1348,7 +1348,7 @@ double cond(const matx_t &A);
  * @param cols Number of cols
  * @returns Zeros matrix
  */
-matx_t zeros(const int rows, const int cols);
+MatX zeros(const int rows, const int cols);
 
 /**
  * Zeros square matrix
@@ -1356,7 +1356,7 @@ matx_t zeros(const int rows, const int cols);
  * @param size Square size of matrix
  * @returns Zeros matrix
  */
-matx_t zeros(const int size);
+MatX zeros(const int size);
 
 /**
  * Identity-matrix
@@ -1365,7 +1365,7 @@ matx_t zeros(const int size);
  * @param cols Number of cols
  * @returns Identity matrix
  */
-matx_t I(const int rows, const int cols);
+MatX I(const int rows, const int cols);
 
 /**
  * Identity square matrix
@@ -1373,7 +1373,7 @@ matx_t I(const int rows, const int cols);
  * @param size Square size of matrix
  * @returns Identity square matrix
  */
-matx_t I(const int size);
+MatX I(const int size);
 
 /**
  * Ones-matrix
@@ -1382,7 +1382,7 @@ matx_t I(const int size);
  * @param cols Number of cols
  * @returns Ones square matrix
  */
-matx_t ones(const int rows, const int cols);
+MatX ones(const int rows, const int cols);
 
 /**
  * Ones square matrix
@@ -1390,7 +1390,7 @@ matx_t ones(const int rows, const int cols);
  * @param size Square size of matrix
  * @returns Ones square matrix
  */
-matx_t ones(const int size);
+MatX ones(const int size);
 
 /**
  * Horizontally stack matrices A and B
@@ -1399,7 +1399,7 @@ matx_t ones(const int size);
  * @param B Matrix B
  * @returns Stacked matrix
  */
-matx_t hstack(const matx_t &A, const matx_t &B);
+MatX hstack(const MatX &A, const MatX &B);
 
 /**
  * Vertically stack matrices A and B
@@ -1408,7 +1408,7 @@ matx_t hstack(const matx_t &A, const matx_t &B);
  * @param B Matrix B
  * @returns Stacked matrix
  */
-matx_t vstack(const matx_t &A, const matx_t &B);
+MatX vstack(const MatX &A, const MatX &B);
 
 /**
  * Diagonally stack matrices A and B
@@ -1417,7 +1417,7 @@ matx_t vstack(const matx_t &A, const matx_t &B);
  * @param B Matrix B
  * @returns Stacked matrix
  */
-matx_t dstack(const matx_t &A, const matx_t &B);
+MatX dstack(const MatX &A, const MatX &B);
 
 /**
  * Skew symmetric-matrix
@@ -1425,7 +1425,7 @@ matx_t dstack(const matx_t &A, const matx_t &B);
  * @param w Input vector
  * @returns Skew symmetric matrix
  */
-mat3_t skew(const Vec3 &w);
+Mat3 skew(const Vec3 &w);
 
 /**
  * Skew symmetric-matrix squared
@@ -1433,7 +1433,7 @@ mat3_t skew(const Vec3 &w);
  * @param w Input vector
  * @returns Skew symmetric matrix squared
  */
-mat3_t skewsq(const Vec3 &w);
+Mat3 skewsq(const Vec3 &w);
 
 /**
  * Enforce Positive Semi-Definite
@@ -1441,7 +1441,7 @@ mat3_t skewsq(const Vec3 &w);
  * @param A Input matrix
  * @returns Positive semi-definite matrix
  */
-matx_t enforce_psd(const matx_t &A);
+MatX enforce_psd(const MatX &A);
 
 /**
  * Null-space of A
@@ -1449,12 +1449,12 @@ matx_t enforce_psd(const matx_t &A);
  * @param A Input matrix
  * @returns Null space of A
  */
-matx_t nullspace(const matx_t &A);
+MatX nullspace(const MatX &A);
 
 /**
  * Check if two matrices `A` and `B` are equal.
  */
-bool equals(const matx_t &A, const matx_t &B);
+bool equals(const MatX &A, const MatX &B);
 
 /**
  * Load std::vector of doubles to an Eigen::Matrix
@@ -1467,7 +1467,7 @@ bool equals(const matx_t &A, const matx_t &B);
 void load_matrix(const std::vector<double> &x,
                  const int rows,
                  const int cols,
-                 matx_t &y);
+                 MatX &y);
 
 /**
  * Load an Eigen::Matrix into a std::vector of doubles
@@ -1475,22 +1475,22 @@ void load_matrix(const std::vector<double> &x,
  * @param[in] A Matrix
  * @param[out] x Output vector of matrix values
  */
-void load_matrix(const matx_t A, std::vector<double> &x);
+void load_matrix(const MatX A, std::vector<double> &x);
 
 /** Pseudo Inverse via SVD **/
-matx_t pinv(const matx_t &A, const double tol = 1e-4);
+MatX pinv(const MatX &A, const double tol = 1e-4);
 
 /** Rank of matrix A **/
-long int rank(const matx_t &A);
+long int rank(const MatX &A);
 
 
 /** Check if matrix A is full rank */
-bool full_rank(const matx_t &A);
+bool full_rank(const MatX &A);
 
 /**
  * Perform Schur's Complement
  */
-int schurs_complement(matx_t &H,
+int schurs_complement(MatX &H,
                       VecX &b,
                       const size_t m,
                       const size_t r,
@@ -1583,7 +1583,7 @@ Vec3 sphere(const double rho, const double theta, const double phi);
 /**
  * Create look at matrix.
  */
-mat4_t lookat(const Vec3 &cam_pos,
+Mat4 lookat(const Vec3 &cam_pos,
               const Vec3 &target,
               const Vec3 &up_axis = Vec3{0.0, -1.0, 0.0});
 
@@ -1808,72 +1808,72 @@ Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
  * Form a 4x4 homogeneous transformation matrix from a pointer to double array
  * containing (quaternion + translation) 7 elements: (qw, qx, qy, qz, x, y, z)
  */
-mat4_t tf(const double *params);
+Mat4 tf(const double *params);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a pointer to double array
  * containing (quaternion + translation) 7 elements: (qw, qx, qy, qz, x, y, z)
  */
-mat4_t tf(const VecX &params);
+Mat4 tf(const VecX &params);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
  * rotation matrix `C` and translation vector `r`.
  */
-mat4_t tf(const mat3_t &C, const Vec3 &r);
+Mat4 tf(const Mat3 &C, const Vec3 &r);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a
  * Hamiltonian quaternion `q` and translation vector `r`.
  */
-mat4_t tf(const quat_t &q, const Vec3 &r);
+Mat4 tf(const Quat &q, const Vec3 &r);
 
 /**
  * Invert a 4x4 homogeneous transformation matrix
  */
-mat4_t tf_inv(const mat4_t &T);
+Mat4 tf_inv(const Mat4 &T);
 
 /**
  * Form a 7x1 pose vector
  */
-VecX tf_vec(const mat4_t &T);
+VecX tf_vec(const Mat4 &T);
 
 /**
  * Extract rotation from transform
  */
-inline mat3_t tf_rot(const mat4_t &tf) { return tf.block<3, 3>(0, 0); }
+inline Mat3 tf_rot(const Mat4 &tf) { return tf.block<3, 3>(0, 0); }
 
 /**
  * Extract rotation and convert to quaternion from transform
  */
-inline quat_t tf_quat(const mat4_t &tf) { return quat_t{tf.block<3, 3>(0, 0)}; }
+inline Quat tf_quat(const Mat4 &tf) { return Quat{tf.block<3, 3>(0, 0)}; }
 
 /**
  * Extract translation from transform
  */
-inline Vec3 tf_trans(const mat4_t &tf) { return tf.block<3, 1>(0, 3); }
+inline Vec3 tf_trans(const Mat4 &tf) { return tf.block<3, 1>(0, 3); }
 
 /**
  * Perturb the rotation element in the tranform `T` by `step_size` at index
  * `i`. Where i = 0 for x-axis, i = 1 for y-axis, and i = 2 for z-axis.
  */
-mat4_t tf_perturb_rot(const mat4_t &T, double step_size, const int i);
+Mat4 tf_perturb_rot(const Mat4 &T, double step_size, const int i);
 
 /**
  * Perturb the translation element in the tranform `T` by `step_size` at index
  * `i`. Where i = 0 for x-axis, i = 1 for y-axis, and i = 2 for z-axis.
  */
-mat4_t tf_perturb_trans(const mat4_t &T, double step_size, const int i);
+Mat4 tf_perturb_trans(const Mat4 &T, double step_size, const int i);
 
 /**
  * Perturb the translation and rotation component.
  */
-mat4_t tf_perturb(const mat4_t &T, const double dr, const double drot);
+Mat4 tf_perturb(const Mat4 &T, const double dr, const double drot);
 
 /**
  * Transform point `p` with transform `T`.
  */
-Vec3 tf_point(const mat4_t &T, const Vec3 &p);
+Vec3 tf_point(const Mat4 &T, const Vec3 &p);
 
 /**
  * Pose difference between pose0 and pose1.
@@ -1887,19 +1887,19 @@ void pose_diff(const double pose0[7],
  * Rotation matrix around x-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
-mat3_t rotx(const double theta);
+Mat3 rotx(const double theta);
 
 /**
  * Rotation matrix around y-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
-mat3_t roty(const double theta);
+Mat3 roty(const double theta);
 
 /**
  * Rotation matrix around z-axis (counter-clockwise, right-handed).
  * @returns Rotation matrix
  */
-mat3_t rotz(const double theta);
+Mat3 rotz(const double theta);
 
 /**
  * Convert euler sequence 123 to rotation matrix R
@@ -1915,7 +1915,7 @@ mat3_t rotz(const double theta);
  *
  * @returns Rotation matrix
  */
-mat3_t euler123(const Vec3 &euler);
+Mat3 euler123(const Vec3 &euler);
 
 /**
  * Convert euler sequence 321 to rotation matrix R
@@ -1931,73 +1931,73 @@ mat3_t euler123(const Vec3 &euler);
  *
  * @returns Rotation matrix
  */
-mat3_t euler321(const Vec3 &euler);
+Mat3 euler321(const Vec3 &euler);
 
 /**
  * Convert roll, pitch and yaw to quaternion.
  */
-quat_t euler2quat(const Vec3 &euler);
+Quat euler2quat(const Vec3 &euler);
 
 /**
  * Convert rotation vectors to rotation matrix using measured acceleration
  * `a_m` from an IMU and gravity vector `g`.
  */
-mat3_t vecs2rot(const Vec3 &a_m, const Vec3 &g);
+Mat3 vecs2rot(const Vec3 &a_m, const Vec3 &g);
 
 /**
  * Convert rotation vector `rvec` to rotation matrix.
  */
-mat3_t rvec2rot(const Vec3 &rvec, const double eps = 1e-5);
+Mat3 rvec2rot(const Vec3 &rvec, const double eps = 1e-5);
 
 /**
  * Convert quaternion to euler angles.
  */
-Vec3 quat2euler(const quat_t &q);
+Vec3 quat2euler(const Quat &q);
 
 /**
  * Convert quaternion to rotation matrix.
  */
-mat3_t quat2rot(const quat_t &q);
+Mat3 quat2rot(const Quat &q);
 
 /**
  * Convert small angle euler angle to quaternion.
  */
-quat_t quat_delta(const Vec3 &dalpha);
+Quat quat_delta(const Vec3 &dalpha);
 
 /**
  * Left quaternion product matrix
  */
-mat4_t quat_left(const quat_t &q);
+Mat4 quat_left(const Quat &q);
 
 /**
  * Right quaternion product matrix
  */
-mat4_t quat_right(const quat_t &q);
+Mat4 quat_right(const Quat &q);
 
 /**
  * Return left quaternion product matrix.
  */
-mat4_t quat_lmul(const quat_t &q);
+Mat4 quat_lmul(const Quat &q);
 
 /**
  * Return left quaternion product matrix (but only for x, y, z components).
  */
-mat3_t quat_lmul_xyz(const quat_t &q);
+Mat3 quat_lmul_xyz(const Quat &q);
 
 /**
  * Return right quaternion product matrix.
  */
-mat4_t quat_rmul(const quat_t &q);
+Mat4 quat_rmul(const Quat &q);
 
 /**
  * Return right quaternion product matrix (but only for x, y, z components).
  */
-mat3_t quat_rmul_xyz(const quat_t &q);
+Mat3 quat_rmul_xyz(const Quat &q);
 
 /**
  * Return only the x, y, z, components of a quaternion matrix.
  */
-mat3_t quat_mat_xyz(const mat4_t &Q);
+Mat3 quat_mat_xyz(const Mat4 &Q);
 
 /**
  * Average quaternion
@@ -2008,7 +2008,7 @@ quat_average(const std::vector<Eigen::Quaterniond> &quaternions);
 /**
  * Add noise to rotation matrix `rot`, where noise `n` is in degrees.
  */
-mat3_t add_noise(const mat3_t &rot, const double n);
+Mat3 add_noise(const Mat3 &rot, const double n);
 
 /**
  * Add noise to position vector `pos`, where noise `n` is in meters.
@@ -2019,7 +2019,7 @@ Vec3 add_noise(const Vec3 &pos, const double n);
  * Add noise to transform `pose`, where `pos_n` is in meters and `rot_n` is in
  * degrees.
  */
-mat4_t add_noise(const mat4_t &pose, const double pos_n, const double rot_n);
+Mat4 add_noise(const Mat4 &pose, const double pos_n, const double rot_n);
 
 /**
  * Initialize attitude using IMU gyroscope `w_m` and accelerometer `a_m`
@@ -2029,7 +2029,7 @@ mat4_t add_noise(const mat4_t &pose, const double pos_n, const double rot_n);
  */
 void imu_init_attitude(const Vec3s w_m,
                        const Vec3s a_m,
-                       mat3_t &C_WS,
+                       Mat3 &C_WS,
                        const size_t buffer_size = 50);
 
 /*****************************************************************************
@@ -2139,12 +2139,12 @@ T lerp(const T &a, const T &b, const double t) {
 /**
  * Slerp
  */
-quat_t slerp(const quat_t &q_start, const quat_t &q_end, const double alpha);
+Quat slerp(const Quat &q_start, const Quat &q_end, const double alpha);
 
 /**
  * Interpolate between two poses `p0` and `p1` with parameter `alpha`.
  */
-mat4_t interp_pose(const mat4_t &p0, const mat4_t &p1, const double alpha);
+Mat4 interp_pose(const Mat4 &p0, const Mat4 &p1, const double alpha);
 
 /**
  * Interpolate `poses` where each pose has a timestamp in `timestamps` and the
@@ -2207,10 +2207,10 @@ void lerp_data(const std::deque<timestamp_t> &lerp_ts,
                const bool keep_old = false);
 
 /** Lerp pose */
-mat4_t lerp_pose(const timestamp_t &t0,
-                 const mat4_t &pose0,
+Mat4 lerp_pose(const timestamp_t &t0,
+                 const Mat4 &pose0,
                  const timestamp_t &t1,
-                 const mat4_t &pose1,
+                 const Mat4 &pose1,
                  const timestamp_t &t_lerp);
 
 /**
@@ -2263,7 +2263,7 @@ void sim_imu_reset(sim_imu_t &imu);
 void sim_imu_measurement(sim_imu_t &imu,
                          std::default_random_engine &rndeng,
                          const timestamp_t &ts,
-                         const mat4_t &T_WS_W,
+                         const Mat4 &T_WS_W,
                          const Vec3 &w_WS_W,
                          const Vec3 &a_WS_W,
                          Vec3 &a_WS_S,
@@ -2430,7 +2430,7 @@ struct imu_data_t {
     return buf;
   }
 
-  mat3_t initial_attitude(ssize_t limit = -1) {
+  Mat3 initial_attitude(ssize_t limit = -1) {
     // Sample IMU measurements
     Vec3 sum_angular_vel = Vec3::Zero();
     Vec3 sum_linear_acc = Vec3::Zero();
@@ -2444,10 +2444,10 @@ struct imu_data_t {
     // is consistent with the inertial frame.
     const Vec3 mean_accel = sum_linear_acc / buf_size;
     const Vec3 gravity{0.0, 0.0, -9.81};
-    mat3_t C_WS = vecs2rot(mean_accel, -gravity);
+    Mat3 C_WS = vecs2rot(mean_accel, -gravity);
 
     // Extract roll, pitch and set yaw to 0
-    // const quat_t q_WS = quat_t(C_WS);
+    // const Quat q_WS = Quat(C_WS);
     // const Vec3 rpy = quat2euler(q_WS);
     // const double roll = rpy(0);
     // const double pitch = rpy(1);

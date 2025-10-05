@@ -9,8 +9,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y sudo
 ARG USERNAME=docker
 ARG PASSWORD=docker
-ARG UID=1000
-ARG GID=1000
+ARG UID
+ARG GID
 RUN useradd -m ${USERNAME} --uid=${UID} && echo "${USERNAME}:${PASSWORD}" | chpasswd
 RUN adduser ${USERNAME} sudo
 ENV HOME /home/$USERNAME
@@ -117,5 +117,6 @@ RUN echo 'export PS1="[\u@docker] \W # "' >> $HOME/.bashrc
 
 # Entry point script
 WORKDIR $HOME
-COPY entry.sh /
-ENTRYPOINT ["/entry.sh"]
+RUN echo "export LD_LIBRARY_PATH=/usr/local/lib" >> $HOME/entry.sh \
+  echo "exec $@" >> $HOME/entry.sh
+ENTRYPOINT ["/home/docker/entry.sh"]

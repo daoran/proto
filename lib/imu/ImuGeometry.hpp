@@ -31,10 +31,10 @@ public:
   double *getExtrinsicPtr();
 
   /** Get transform T_body_camera **/
-  mat4_t getTransform() const;
+  Mat4 getTransform() const;
 
   /** Set extrinsic */
-  void setExtrinsic(const mat4_t &extrinsic);
+  void setExtrinsic(const Mat4 &extrinsic);
 };
 
 } // namespace xyz

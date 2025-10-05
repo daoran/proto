@@ -6,12 +6,12 @@ bool PoseManifold::Plus(const double *x,
                                      const double *delta,
                                      double *x_plus_delta) const {
   // Form transform
-  mat4_t T = tf(x);
+  Mat4 T = tf(x);
 
   // Update rotation
   Vec3 dalpha{delta[3], delta[4], delta[5]};
-  quat_t q = tf_quat(T);
-  quat_t dq = quat_delta(dalpha);
+  Quat q = tf_quat(T);
+  Quat dq = quat_delta(dalpha);
   q = q * dq;
   q.normalize();
 
@@ -36,7 +36,7 @@ bool PoseManifold::Plus(const double *x,
 bool PoseManifold::PlusJacobian(const double *x,
                                              double *jacobian) const {
   // Jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-  Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> Jp(jacobian);
+  Eigen::Map<Eigen::Matrix<double, 7, 6, RowMajor>> Jp(jacobian);
   UNUSED(x);
   Jp.topRows<6>().setIdentity();
   Jp.bottomRows<1>().setZero();

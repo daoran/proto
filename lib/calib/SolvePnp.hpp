@@ -21,11 +21,11 @@ public:
   /** Estimate relative pose */
   int estimate(const Vec2s &keypoints,
                const Vec3s &object_points,
-               mat4_t &T_camera_object);
+               Mat4 &T_camera_object);
 
   static int estimate(const std::shared_ptr<CameraGeometry> &camera_geometry,
                       const std::shared_ptr<CalibTarget> &calib_target,
-                      mat4_t &T_camera_target) {
+                      Mat4 &T_camera_target) {
     // Get calibration target measurements
     std::vector<int> tag_ids;
     std::vector<int> corner_indicies;

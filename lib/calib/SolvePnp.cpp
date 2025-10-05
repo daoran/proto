@@ -7,7 +7,7 @@ SolvePnp::SolvePnp(const std::shared_ptr<CameraGeometry> &camera_geometry)
 
 int SolvePnp::estimate(const Vec2s &keypoints,
                        const Vec3s &object_points,
-                       mat4_t &T_camera_object) {
+                       Mat4 &T_camera_object) {
   assert(keypoints.size() == object_points.size());
 
   // Form object and image points

@@ -9,8 +9,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y sudo
 ARG USERNAME=docker
 ARG PASSWORD=docker
-ARG UID=1000
-ARG GID=1000
+ARG UID
+ARG GID
 RUN useradd -m ${USERNAME} --uid=${UID} && echo "${USERNAME}:${PASSWORD}" | chpasswd
 RUN adduser ${USERNAME} sudo
 ENV HOME /home/$USERNAME
@@ -48,24 +48,29 @@ WORKDIR $CATKIN_WS
 RUN mkdir -p src \
   && cd src \
   && git clone https://github.com/HKUST-Aerial-Robotics/VINS-Fusion.git
-RUN catkin config \
+  && catkin config \
     --extend /opt/ros/$ROS_DISTRO \
     --cmake-args \
     -DCMAKE_BUILD_TYPE=Release
-RUN catkin build -DCMAKE_BUILD_TYPE=Release
+  && catkin build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -j
+
+# Install tools
+RUN apt-get install -qq -y tmux vim vifm ncdu
 
 # Switch to $USERNAME
 USER $USERNAME
-RUN echo 'export PS1="[\u@docker] \W # "' >> $HOME/.bashrc
-RUN echo 'source /opt/ros/kinetic/setup.bash' >> $HOME/.bashrc
-RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/.bashrc
+RUN echo 'export PS1="[\u@docker] \W # "' >> $HOME/.bashrc \
+  && echo 'source /opt/ros/kinetic/setup.bash' >> $HOME/.bashrc \
+  && echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/.bashrc \
 
 # Entry point script
 WORKDIR $HOME
-RUN echo '#!/bin/bash' >> $HOME/entry.sh
-RUN echo 'export LD_LIBRARY_PATH=/usr/local/lib' >> $HOME/entry.sh
-RUN echo 'source /opt/ros/kinetic/setup.bash' >> $HOME/entry.sh
-RUN echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/entry.sh
-RUN echo 'exec "$@"' >> $HOME/entry.sh
-RUN chmod +x $HOME/entry.sh
+RUN echo '#!/bin/bash' >> $HOME/entry.sh \
+  && echo 'export LD_LIBRARY_PATH=/usr/local/lib' >> $HOME/entry.sh \
+  && echo 'source /opt/ros/kinetic/setup.bash' >> $HOME/entry.sh \
+  && echo 'source $HOME/catkin_ws/devel/setup.bash' >> $HOME/entry.sh \
+  && echo 'exec "$@"' >> $HOME/entry.sh \
+  && chmod +x $HOME/entry.sh
 ENTRYPOINT ["/home/docker/entry.sh"]

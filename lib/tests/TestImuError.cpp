@@ -25,12 +25,12 @@ TEST(ImuError, evaluate) {
 
   // Pose i
   const timestamp_t ts_i = sim.timestamps[start_index];
-  const mat4_t T_WS_i = sim.poses[ts_i];
+  const Mat4 T_WS_i = sim.poses[ts_i];
   VecX pose_i = tf_vec(T_WS_i);
 
   // Pose j
   const timestamp_t ts_j = sim.timestamps[end_index - 1];
-  const mat4_t T_WS_j = sim.poses[ts_j];
+  const Mat4 T_WS_j = sim.poses[ts_j];
   VecX pose_j = tf_vec(T_WS_j);
   pose_j[0] += 0.01;
   pose_j[1] += 0.02;

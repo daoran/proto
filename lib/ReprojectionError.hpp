@@ -9,9 +9,9 @@ class ReprojectionError : public ResidualBlock {
 private:
   std::shared_ptr<CameraGeometry> camera_geometry_;
   Vec2 z_;
-  mat2_t covar_;
-  mat2_t info_;
-  mat2_t sqrt_info_;
+  Mat2 covar_;
+  Mat2 info_;
+  Mat2 sqrt_info_;
   mutable bool valid_ = true;
   mutable Vec2 residuals_;
 
@@ -21,7 +21,7 @@ public:
                     const std::vector<double *> &param_ptrs,
                     const std::vector<ParamBlock::Type> &param_types,
                     const Vec2 &z,
-                    const mat2_t &covar);
+                    const Mat2 &covar);
 
   /** Create residual block */
   static std::shared_ptr<ReprojectionError>
@@ -29,7 +29,7 @@ public:
          double *T_C0F,
          double *p_FFi,
          const Vec2 &z,
-         const mat2_t &covar);
+         const Mat2 &covar);
 
   /** Get residuals */
   bool getResiduals(Vec2 &r) const;

@@ -75,7 +75,7 @@ TEST(CameraChain, construct) {
   camera_geometries[1] = camera1;
 
   // Construct camera chain
-  mat4_t T_CiCj;
+  Mat4 T_CiCj;
   CameraChain camchain{camera_geometries, camera_data};
   ASSERT_EQ(camchain.find(0, 1, T_CiCj), 0);
 

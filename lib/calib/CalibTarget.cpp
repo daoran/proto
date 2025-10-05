@@ -130,7 +130,7 @@ void CalibTarget::imshow(const std::string &title, const cv::Mat &image) const {
 // int CalibTarget::estimate(const CameraModel *cam,
 //                         const int cam_res[2],
 //                         const VecX &cam_params,
-//                         mat4_t &T_CF) const {
+//                         Mat4 &T_CF) const {
 //
 //
 //   // Check if we actually have data to work with

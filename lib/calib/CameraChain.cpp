@@ -31,7 +31,7 @@ CameraChain::CameraChain(
     const int index_i = camera_indicies[0];
     const auto &target_i = observations[index_i];
     const auto camera_i = camera_geometries.at(index_i);
-    mat4_t T_CiF;
+    Mat4 T_CiF;
     if (SolvePnp::estimate(camera_i, target_i, T_CiF) != 0) {
       continue;
     }
@@ -43,7 +43,7 @@ CameraChain::CameraChain(
       const auto camera_j = camera_geometries.at(index_j);
 
       // Solvepnp T_CjF
-      mat4_t T_CjF;
+      Mat4 T_CjF;
       if (SolvePnp::estimate(camera_j, target_j, T_CjF) != 0) {
         continue;
       }
@@ -54,23 +54,23 @@ CameraChain::CameraChain(
   }
 }
 
-void CameraChain::insert(const int i, const int j, const mat4_t &T_ij) {
+void CameraChain::insert(const int i, const int j, const Mat4 &T_ij) {
   adjlist_[i][j].push_back(T_ij);
   adjlist_[j][i].push_back(T_ij.inverse());
 }
 
-int CameraChain::find(const int i, const int j, mat4_t &T_CiCj) const {
+int CameraChain::find(const int i, const int j, Mat4 &T_CiCj) const {
   // Average extrinsic
   auto average_extrinsic = [&](const int i, const int j) {
     Vec3s positions;
-    std::vector<quat_t> rotations;
+    std::vector<Quat> rotations;
     for (const auto &extrinsic : adjlist_.at(i).at(j)) {
       positions.push_back(tf_trans(extrinsic));
       rotations.push_back(tf_quat(extrinsic));
     }
 
     Vec3 pos = mean(positions);
-    quat_t rot = quat_average(rotations);
+    Quat rot = quat_average(rotations);
     return tf(rot, pos);
   };
 
@@ -124,7 +124,7 @@ int CameraChain::find(const int i, const int j, mat4_t &T_CiCj) const {
   }
 
   // Traverse the path backwards and chain the transforms
-  mat4_t T_CjCi = I(4);
+  Mat4 T_CjCi = I(4);
   int child = j;
   while (path_map.count(child)) {
     const int parent = path_map[child];

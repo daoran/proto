@@ -63,9 +63,9 @@ void ParamBlock::perturb(const ParamBlock::Type type,
           Vec3 dalpha{0.0, 0.0, 0.0};
           dalpha(i - 3) = step;
 
-          quat_t dq = quat_delta(dalpha);
-          quat_t q{ptr[6], ptr[3], ptr[4], ptr[5]};
-          quat_t q_new = q * dq;
+          Quat dq = quat_delta(dalpha);
+          Quat q{ptr[6], ptr[3], ptr[4], ptr[5]};
+          Quat q_new = q * dq;
 
           ptr[6] = q_new.w();
           ptr[3] = q_new.x();

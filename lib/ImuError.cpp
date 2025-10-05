@@ -2,8 +2,8 @@
 
 namespace xyz {
 
-matx_t ImuError::formQ() {
-  matx_t Q = zeros(18, 18);
+MatX ImuError::formQ() {
+  MatX Q = zeros(18, 18);
   Q.block<3, 3>(0, 0) = pow(imu_params_.noise_acc, 2) * I(3);
   Q.block<3, 3>(3, 3) = pow(imu_params_.noise_gyr, 2) * I(3);
   Q.block<3, 3>(6, 6) = pow(imu_params_.noise_acc, 2) * I(3);
@@ -13,25 +13,25 @@ matx_t ImuError::formQ() {
   return Q;
 }
 
-matx_t ImuError::formF(const int k,
-                       const quat_t &dq_i,
-                       const quat_t &dq_j,
-                       const Vec3 &ba_i,
-                       const Vec3 &bg_i,
-                       const double dt) {
+MatX ImuError::formF(const int k,
+                     const Quat &dq_i,
+                     const Quat &dq_j,
+                     const Vec3 &ba_i,
+                     const Vec3 &bg_i,
+                     const double dt) {
   const Vec3 w_k = imu_buffer_.getGyr(k);
   const Vec3 w_kp1 = imu_buffer_.getGyr(k + 1);
   const Vec3 a_k = imu_buffer_.getAcc(k);
   const Vec3 a_kp1 = imu_buffer_.getAcc(k + 1);
-  const mat3_t gyr_x = skew(0.5 * (w_k + w_kp1) - bg_i);
-  const mat3_t acc_i_x = skew(a_k - ba_i);
-  const mat3_t acc_j_x = skew(a_kp1 - ba_i);
-  const mat3_t dC_i = dq_i.toRotationMatrix();
-  const mat3_t dC_j = dq_j.toRotationMatrix();
+  const Mat3 gyr_x = skew(0.5 * (w_k + w_kp1) - bg_i);
+  const Mat3 acc_i_x = skew(a_k - ba_i);
+  const Mat3 acc_j_x = skew(a_kp1 - ba_i);
+  const Mat3 dC_i = dq_i.toRotationMatrix();
+  const Mat3 dC_j = dq_j.toRotationMatrix();
   const double dt_sq = dt * dt;
 
   // Form transition matrix F
-  matx_t F = zeros(15, 15);
+  MatX F = zeros(15, 15);
   // -- F row block 1
   F.block<3, 3>(0, 0) = I(3);
   F.block<3, 3>(0, 3) = -0.25 * dC_i * acc_i_x * dt_sq;
@@ -56,18 +56,18 @@ matx_t ImuError::formF(const int k,
   return F;
 }
 
-matx_t ImuError::formG(const int k,
-                       const quat_t &dq_i,
-                       const quat_t &dq_j,
-                       const Vec3 &ba_i,
-                       const double dt) {
+MatX ImuError::formG(const int k,
+                     const Quat &dq_i,
+                     const Quat &dq_j,
+                     const Vec3 &ba_i,
+                     const double dt) {
   const Vec3 a_k = imu_buffer_.getAcc(k);
-  const mat3_t acc_i_x = skew(a_k - ba_i);
-  const mat3_t dC_i = dq_i.toRotationMatrix();
-  const mat3_t dC_j = dq_j.toRotationMatrix();
+  const Mat3 acc_i_x = skew(a_k - ba_i);
+  const Mat3 dC_i = dq_i.toRotationMatrix();
+  const Mat3 dC_j = dq_j.toRotationMatrix();
   const double dt_sq = dt * dt;
 
-  matx_t G = zeros(15, 18);
+  MatX G = zeros(15, 18);
   // -- G row block 1
   G.block<3, 3>(0, 0) = 0.25 * dC_i * dt_sq;
   G.block<3, 3>(0, 3) = 0.25 * -dC_j * acc_i_x * dt_sq * 0.5 * dt;
@@ -91,7 +91,7 @@ matx_t ImuError::formG(const int k,
 
 void ImuError::propagate() {
   // Noise matrix Q
-  const matx_t &Q = formQ();
+  const MatX &Q = formQ();
 
   // Pre-integrate imu measuremenets
   for (int k = 0; k < (imu_buffer_.getNumMeasurements() - 1); k++) {
@@ -102,7 +102,7 @@ void ImuError::propagate() {
     const double dt_sq = dt * dt;
 
     // Setup
-    const quat_t dq_i = dq_;
+    const Quat dq_i = dq_;
     const Vec3 dr_i = dr_;
     const Vec3 dv_i = dv_;
     const Vec3 ba_i = ba_;
@@ -112,10 +112,10 @@ void ImuError::propagate() {
     const Vec3 w_k = imu_buffer_.getGyr(k);
     const Vec3 w_kp1 = imu_buffer_.getGyr(k + 1);
     const Vec3 w = 0.5 * (w_k + w_kp1) - bg_i;
-    const quat_t dq_perturb{1.0,
-                            w.x() * dt / 2.0,
-                            w.y() * dt / 2.0,
-                            w.z() * dt / 2.0};
+    const Quat dq_perturb{1.0,
+                          w.x() * dt / 2.0,
+                          w.y() * dt / 2.0,
+                          w.z() * dt / 2.0};
 
     // Accelerometer measurement
     const Vec3 a_k = imu_buffer_.getAcc(k);
@@ -125,15 +125,15 @@ void ImuError::propagate() {
     const Vec3 a = 0.5 * (acc_i + acc_j);
 
     // Propagate IMU state using mid-point method
-    const quat_t dq_j = dq_i * dq_perturb;
+    const Quat dq_j = dq_i * dq_perturb;
     const Vec3 dr_j = dr_i + dv_i * dt + 0.5 * a * dt_sq;
     const Vec3 dv_j = dv_i + a * dt;
     const Vec3 ba_j = ba_i;
     const Vec3 bg_j = bg_i;
 
     // Continuous time transition matrix F and input matrix G
-    const matx_t F = formF(k, dq_i, dq_j, ba_i, bg_i, dt);
-    const matx_t G = formG(k, dq_i, dq_j, ba_i, dt);
+    const MatX F = formF(k, dq_i, dq_j, ba_i, bg_i, dt);
+    const MatX G = formG(k, dq_i, dq_j, ba_i, dt);
 
     // Map results
     dq_ = dq_j;
@@ -172,11 +172,11 @@ ImuError::ImuError(const std::vector<double *> &param_ptrs,
   propagate();
 }
 
-matx_t ImuError::getMatrixF() const { return state_F_; }
+MatX ImuError::getMatrixF() const { return state_F_; }
 
-matx_t ImuError::getMatrixP() const { return state_P_; }
+MatX ImuError::getMatrixP() const { return state_P_; }
 
-quat_t ImuError::getRelativeRotation() const { return dq_; }
+Quat ImuError::getRelativeRotation() const { return dq_; }
 
 Vec3 ImuError::getRelativePosition() const { return dr_; }
 
@@ -204,20 +204,20 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
                                             double **jacs,
                                             double **min_jacs) const {
   // Map parameters out
-  const mat4_t T_i = tf(params[0]);
+  const Mat4 T_i = tf(params[0]);
   Eigen::Map<const VecX> sb_i(params[1], 9);
-  const mat4_t T_j = tf(params[2]);
+  const Mat4 T_j = tf(params[2]);
   Eigen::Map<const VecX> sb_j(params[3], 9);
 
-  const quat_t q_i = tf_quat(T_i);
-  const mat3_t C_i = tf_rot(T_i);
+  const Quat q_i = tf_quat(T_i);
+  const Mat3 C_i = tf_rot(T_i);
   const Vec3 r_i = tf_trans(T_i);
   const Vec3 v_i = sb_i.segment<3>(0);
   const Vec3 ba_i = sb_i.segment<3>(3);
   const Vec3 bg_i = sb_i.segment<3>(6);
 
-  const quat_t q_j = tf_quat(T_j);
-  const mat3_t C_j = tf_rot(T_j);
+  const Quat q_j = tf_quat(T_j);
+  const Mat3 C_j = tf_rot(T_j);
   const Vec3 r_j = tf_trans(T_j);
   const Vec3 v_j = sb_j.segment<3>(0);
   const Vec3 ba_j = sb_j.segment<3>(3);
@@ -225,11 +225,11 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
 
   // Correct the relative position, velocity and orientation
   // -- Extract jacobians from error-state jacobian
-  const mat3_t dr_dba = state_F_.block<3, 3>(0, 9);
-  const mat3_t dr_dbg = state_F_.block<3, 3>(0, 12);
-  const mat3_t dv_dba = state_F_.block<3, 3>(3, 9);
-  const mat3_t dv_dbg = state_F_.block<3, 3>(3, 12);
-  const mat3_t dq_dbg = state_F_.block<3, 3>(6, 12);
+  const Mat3 dr_dba = state_F_.block<3, 3>(0, 9);
+  const Mat3 dr_dbg = state_F_.block<3, 3>(0, 12);
+  const Mat3 dv_dba = state_F_.block<3, 3>(3, 9);
+  const Mat3 dv_dbg = state_F_.block<3, 3>(3, 12);
+  const Mat3 dq_dbg = state_F_.block<3, 3>(6, 12);
   const Vec3 dba = ba_i - ba_;
   const Vec3 dbg = bg_i - bg_;
 
@@ -241,7 +241,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
   // Form residuals
   const Vec3 g = imu_params_.g;
   const double Dt_sq = Dt_ * Dt_;
-  const mat3_t C_iT = C_i.transpose();
+  const Mat3 C_iT = C_i.transpose();
   Vec3 dr_meas = C_iT * ((r_j - r_i) - (v_i * Dt_) + (0.5 * g * Dt_sq));
   Vec3 dv_meas = C_iT * ((v_j - v_i) + (g * Dt_));
 
@@ -266,11 +266,11 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
 
   // Jacobian w.r.t pose i
   if (jacs[0]) {
-    const quat_t q_ji{C_j.transpose() * C_i};
-    const mat4_t q_left_dq_right = quat_left(q_ji) * quat_right(dq_);
-    const mat3_t dtheta_dCi = -(q_left_dq_right).block<3, 3>(1, 1);
+    const Quat q_ji{C_j.transpose() * C_i};
+    const Mat4 q_left_dq_right = quat_left(q_ji) * quat_right(dq_);
+    const Mat3 dtheta_dCi = -(q_left_dq_right).block<3, 3>(1, 1);
 
-    Eigen::Map<mat_t<15, 7, row_major_t>> J(jacs[0]);
+    Eigen::Map<Mat<15, 7, RowMajor>> J(jacs[0]);
     J.setZero();
     J.block<3, 3>(0, 0) = -C_iT;         // dr w.r.t r_i
     J.block<3, 3>(0, 3) = skew(dr_meas); // dr w.r.t C_i
@@ -279,17 +279,17 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     J = sqrt_info_ * J;
 
     if (min_jacs && min_jacs[0]) {
-      Eigen::Map<mat_t<15, 6, row_major_t>> min_J(min_jacs[0]);
+      Eigen::Map<Mat<15, 6, RowMajor>> min_J(min_jacs[0]);
       min_J = J.block<15, 6>(0, 0);
     }
   }
 
   // Jacobian w.r.t speed and biases i
   if (jacs[1]) {
-    const quat_t dq_ji{C_j.transpose() * C_i * dq_.toRotationMatrix()};
-    const mat3_t dQ_left_xyz = quat_left(dq_ji).block<3, 3>(1, 1);
+    const Quat dq_ji{C_j.transpose() * C_i * dq_.toRotationMatrix()};
+    const Mat3 dQ_left_xyz = quat_left(dq_ji).block<3, 3>(1, 1);
 
-    Eigen::Map<mat_t<15, 9, row_major_t>> J(jacs[1]);
+    Eigen::Map<Mat<15, 9, RowMajor>> J(jacs[1]);
     J.setZero();
     J.block<3, 3>(0, 0) = -C_i.transpose() * Dt_; // dr w.r.t v_i
     J.block<3, 3>(0, 3) = -dr_dba;                // dr w.r.t ba
@@ -303,31 +303,31 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     J = sqrt_info_ * J;
 
     if (min_jacs && min_jacs[1]) {
-      Eigen::Map<mat_t<15, 9, row_major_t>> min_J(min_jacs[1]);
+      Eigen::Map<Mat<15, 9, RowMajor>> min_J(min_jacs[1]);
       min_J = J;
     }
   }
 
   // Jacobian w.r.t. pose j
   if (jacs[2]) {
-    const quat_t error_rot = dq_.inverse() * (q_i.inverse() * q_j);
-    const mat3_t dtheta_dCj = quat_left(error_rot).block<3, 3>(1, 1);
+    const Quat error_rot = dq_.inverse() * (q_i.inverse() * q_j);
+    const Mat3 dtheta_dCj = quat_left(error_rot).block<3, 3>(1, 1);
 
-    Eigen::Map<mat_t<15, 7, row_major_t>> J(jacs[2]);
+    Eigen::Map<Mat<15, 7, RowMajor>> J(jacs[2]);
     J.setZero();
     J.block<3, 3>(0, 0) = C_i.transpose(); // dr w.r.t r_j
     J.block<3, 3>(6, 3) = dtheta_dCj;      // dtheta w.r.t C_j
     J = sqrt_info_ * J;
 
     if (min_jacs && min_jacs[2]) {
-      Eigen::Map<mat_t<15, 6, row_major_t>> min_J(min_jacs[2]);
+      Eigen::Map<Mat<15, 6, RowMajor>> min_J(min_jacs[2]);
       min_J = J.block<15, 6>(0, 0);
     }
   }
 
   //  Jacobian w.r.t. speed and biases j
   if (jacs[3]) {
-    Eigen::Map<mat_t<15, 9, row_major_t>> J(jacs[3]);
+    Eigen::Map<Mat<15, 9, RowMajor>> J(jacs[3]);
     J.setZero();
     J.block<3, 3>(3, 0) = C_i.transpose(); // dv w.r.t v_j
     J.block<3, 3>(9, 3) = I(3);
@@ -335,7 +335,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     J = sqrt_info_ * J;
 
     if (min_jacs && min_jacs[3]) {
-      Eigen::Map<mat_t<15, 9, row_major_t>> min_J(min_jacs[3]);
+      Eigen::Map<Mat<15, 9, RowMajor>> min_J(min_jacs[3]);
       min_J = J;
     }
   }
