@@ -42,6 +42,7 @@ define cmake_build
 		&& cmake \
 			-DCMAKE_COLOR_MAKEFILE=OFF \
 			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_PREFIX_PATH=$(PREFIX) \
 			-DCMAKE_INSTALL_PREFIX=$(PREFIX) \
 			.. \
 		&& make -j$(NUM_PROCS) \
@@ -75,15 +76,7 @@ clean: ## Clean
 	@rm -rf lib
 	@rm -rf log
 	@rm -rf share
-	@rm -rf src/SuiteSparse/build
-	@rm -rf src/abseil-cpp/build
-	@rm -rf src/apriltag/build
-	@rm -rf src/apriltags/build
-	@rm -rf src/ceres-solver/build
-	@rm -rf src/eigen/build
-	@rm -rf src/googletest/build
-	@rm -rf src/opencv/build
-	@rm -rf src/yaml-cpp/build
+	@rm -rf src
 
 build_yaml:  ## Build yaml
 	$(call cmake_build,$(YAML_REPO),$(YAML_VERSION))
@@ -91,22 +84,22 @@ build_yaml:  ## Build yaml
 build_abseil:  ## Build abseil
 	$(call cmake_build,$(ABSEIL_REPO),$(ABSEIL_VERSION))
 
-build_gtest:  ## Build GTest
+build_gtest:  ## Build gtest
 	$(call cmake_build,$(GTEST_REPO),$(GTEST_VERSION))
 
-build_eigen:  ## Build Eigen
+build_eigen:  ## Build eigen
 	$(call cmake_build,$(EIGEN_REPO),$(EIGEN_VERSION))
 
-build_suitesparse: build_eigen ## Build SuiteSparse
+build_suitesparse: build_eigen ## Build suitesparse
 	$(call cmake_build,$(SUITESPARSE_REPO),$(SUITESPARSE_VERSION))
 
-build_ceres: build_abseil build_gtest build_suite_sparse ## Build ceres-solver
+build_ceres: build_abseil build_gtest build_suitesparse ## Build ceres-solver
 	$(call cmake_build,$(CERES_REPO),$(CERES_VERSION))
 
-build_opencv: build_eigen ## Build OpenCV
-	$(call cmake_build,opencv,$(OPENCV_REPO),$(OPENCV_VERSION))
+build_opencv: build_eigen ## Build opencv
+	$(call cmake_build,$(OPENCV_REPO),$(OPENCV_VERSION))
 
-build_apriltag: build_opencv  ## Build AprilTag
+build_apriltag: build_opencv  ## Build apriltag
 	$(call cmake_build,$(APRILTAG_REPO),$(APRILTAG_VERSION))
 
 BUILD_TARGETS := \
