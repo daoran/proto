@@ -2,8 +2,8 @@
 
 #include "sim/Sim.hpp"
 #include "imu/ImuState.hpp"
-#include "ImuError.hpp"
-#include "PoseManifold.hpp"
+#include "ceres/ImuError.hpp"
+#include "ceres/PoseManifold.hpp"
 
 namespace xyz {
 

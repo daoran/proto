@@ -2,7 +2,8 @@
 
 #include "CalibData.hpp"
 #include "CalibView.hpp"
-#include "../ImuError.hpp"
+#include "../ceres/ImuError.hpp"
+#include "../ceres/PoseManifold.hpp"
 
 namespace xyz {
 

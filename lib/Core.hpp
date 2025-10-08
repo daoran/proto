@@ -118,7 +118,7 @@ namespace xyz {
 
 #define UNUSED(expr)                                                           \
   do {                                                                         \
-    (void)(expr);                                                              \
+    (void) (expr);                                                             \
   } while (0)
 
 #ifndef CHECK
@@ -144,17 +144,13 @@ typedef std::vector<timestamp_t> timestamps_t;
 
 // -- VECTOR ------------------------------------------------------------------
 
-#define Dynamic Eigen::Dynamic
-#define ColMajor Eigen::ColMajor
-#define RowMajor Eigen::RowMajor
-
 using Vec2i = Eigen::Matrix<int, 2, 1>;
 using Vec3i = Eigen::Matrix<int, 3, 1>;
 using Vec4i = Eigen::Matrix<int, 4, 1>;
 using Vec5i = Eigen::Matrix<int, 5, 1>;
 using Vec6i = Eigen::Matrix<int, 6, 1>;
 using Vec7i = Eigen::Matrix<int, 7, 1>;
-using VecXi = Eigen::Matrix<int, Dynamic, 1>;
+using VecXi = Eigen::Matrix<int, Eigen::Dynamic, 1>;
 
 using Vec2 = Eigen::Matrix<double, 2, 1>;
 using Vec3 = Eigen::Matrix<double, 3, 1>;
@@ -162,57 +158,46 @@ using Vec4 = Eigen::Matrix<double, 4, 1>;
 using Vec5 = Eigen::Matrix<double, 5, 1>;
 using Vec6 = Eigen::Matrix<double, 6, 1>;
 using Vec7 = Eigen::Matrix<double, 7, 1>;
-using VecX = Eigen::Matrix<double, Dynamic, 1>;
+using VecX = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 
-using Vec2s = std::vector<Vec2, Eigen::aligned_allocator<Vec2>>;
-using Vec3s = std::vector<Vec3, Eigen::aligned_allocator<Vec3>>;
-using Vec4s = std::vector<Vec4, Eigen::aligned_allocator<Vec4>>;
-using Vec5s = std::vector<Vec5, Eigen::aligned_allocator<Vec5>>;
-using Vec6s = std::vector<Vec6, Eigen::aligned_allocator<Vec6>>;
-using Vec7s = std::vector<Vec7, Eigen::aligned_allocator<Vec7>>;
-using VecXs = std::vector<VecX, Eigen::aligned_allocator<VecX>>;
+using Vec2s = std::vector<Vec2>;
+using Vec3s = std::vector<Vec3>;
+using Vec4s = std::vector<Vec4>;
+using Vec5s = std::vector<Vec5>;
+using Vec6s = std::vector<Vec6>;
+using Vec7s = std::vector<Vec7>;
+using VecXs = std::vector<VecX>;
 
-using row_vector_t = Eigen::Matrix<double, 1, Dynamic>;
-using col_vector_t = Eigen::Matrix<double, Dynamic, 1>;
-
-template <int LENGTH, Eigen::StorageOptions STRIDE_TYPE = ColMajor>
-using vec_t = Eigen::Matrix<double, LENGTH, 1, STRIDE_TYPE>;
+template <int LENGTH, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
+using Vec = Eigen::Matrix<double, LENGTH, 1, STRIDE_TYPE>;
 
 // -- MATRIX -------------------------------------------------------------------
 
-// clang-format off
 using Mat2 = Eigen::Matrix<double, 2, 2>;
 using Mat3 = Eigen::Matrix<double, 3, 3>;
 using Mat4 = Eigen::Matrix<double, 4, 4>;
-using MatX = Eigen::Matrix<double, Dynamic, Dynamic>;
-using MatXRowMajor = Eigen::Matrix<double, Dynamic, Dynamic, RowMajor>;
+using MatX = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
+using MatXRowMajor =
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 using Mat34 = Eigen::Matrix<double, 3, 4>;
 
-using Mat2s = std::vector<Mat2, Eigen::aligned_allocator<Mat2>>;
-using Mat3s = std::vector<Mat3, Eigen::aligned_allocator<Mat3>>;
-using mat4s_t = std::vector<Mat4, Eigen::aligned_allocator<Mat4>>;
-using MatXs = std::vector<MatX, Eigen::aligned_allocator<MatX>>;
-using MatXsRowMajor = std::vector<MatXRowMajor, Eigen::aligned_allocator<MatXRowMajor>>;
+using Mat2s = std::vector<Mat2>;
+using Mat3s = std::vector<Mat3>;
+using Mat4s = std::vector<Mat4>;
+using MatXs = std::vector<MatX>;
+using MatXsRowMajor = std::vector<MatXRowMajor>;
 
-using MatHash = std::unordered_map<long, std::unordered_map<long, double>>;
-using MatIndicies = std::vector<std::pair<long int, long int>>;
-
-template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = ColMajor>
+template <int ROWS,
+          int COLS,
+          Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
 using Mat = Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>;
-
-// template <int ROWS, int COLS, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
-// using map_Mat = Eigen::Map<Eigen::Matrix<double, ROWS, COLS, STRIDE_TYPE>>;
-
-// template <int ROWS>
-// using map_vec_t = Eigen::Map<Eigen::Matrix<double, ROWS, 1>>;
-// clang-format on
 
 // -- GEOMETRY -----------------------------------------------------------------
 
 using Quat = Eigen::Quaternion<double>;
-using Quats = std::vector<Quat, Eigen::aligned_allocator<Quat>>;
+using Quats = std::vector<Quat>;
 using AngleAxis = Eigen::AngleAxis<double>;
-using ArrayX = Eigen::Array<double, Dynamic, 1>;
+using ArrayX = Eigen::Array<double, Eigen::Dynamic, 1>;
 
 /******************************************************************************
  *                                FILESYSTEM
@@ -1028,7 +1013,7 @@ void save_features(const std::string &path, const Vec3s &features);
  */
 void save_poses(const std::string &path,
                 const timestamps_t &timestamps,
-                const mat4s_t &poses);
+                const Mat4s &poses);
 
 /**
  * Save extrinsics to csv file in `path`.
@@ -1049,7 +1034,7 @@ Mat4 load_pose(const std::string &fpath);
 /** Load poses */
 void load_poses(const std::string &fpath,
                 timestamps_t &timestamps,
-                mat4s_t &poses);
+                Mat4s &poses);
 
 /******************************************************************************
  *                                  ALGEBRA
@@ -1483,7 +1468,6 @@ MatX pinv(const MatX &A, const double tol = 1e-4);
 /** Rank of matrix A **/
 long int rank(const MatX &A);
 
-
 /** Check if matrix A is full rank */
 bool full_rank(const MatX &A);
 
@@ -1584,8 +1568,8 @@ Vec3 sphere(const double rho, const double theta, const double phi);
  * Create look at matrix.
  */
 Mat4 lookat(const Vec3 &cam_pos,
-              const Vec3 &target,
-              const Vec3 &up_axis = Vec3{0.0, -1.0, 0.0});
+            const Vec3 &target,
+            const Vec3 &up_axis = Vec3{0.0, -1.0, 0.0});
 
 /**
  * Cross-Track error based on waypoint line between p1, p2, and robot position
@@ -1624,10 +1608,8 @@ int point_left_right(const Vec2 &p1, const Vec2 &p2, const Vec2 &pos);
  *    (50%) of the waypoint line, alternatively a negative number denotes the
  *    closest point is behind the first waypoint.
  */
-double closest_point(const Vec2 &p1,
-                     const Vec2 &p2,
-                     const Vec2 &p3,
-                     Vec2 &closest);
+double
+closest_point(const Vec2 &p1, const Vec2 &p2, const Vec2 &p3, Vec2 &closest);
 
 /**
  * Fit a circle from a list of points.
@@ -1638,11 +1620,11 @@ void fit_circle(const Vec2s &points, double &cx, double &cy, double &radius);
  * Find the intersect of two circles.
  */
 Vec2s intersect_circles(const double cx0,
-                          const double cy0,
-                          const double r0,
-                          const double cx1,
-                          const double cy1,
-                          const double r1);
+                        const double cy0,
+                        const double r0,
+                        const double cx1,
+                        const double cy1,
+                        const double r1);
 
 #define EARTH_RADIUS_M 6378137.0
 
@@ -1778,8 +1760,8 @@ Vec3 rmse(const Vec3s &vecs);
  * Multivariate normal.
  */
 Vec3 mvn(std::default_random_engine &engine,
-           const Vec3 &mu = Vec3{0.0, 0.0, 0.0},
-           const Vec3 &stdev = Vec3{1.0, 1.0, 1.0});
+         const Vec3 &mu = Vec3{0.0, 0.0, 0.0},
+         const Vec3 &stdev = Vec3{1.0, 1.0, 1.0});
 
 /**
  * Gassian normal.
@@ -2153,9 +2135,9 @@ Mat4 interp_pose(const Mat4 &p0, const Mat4 &p1, const double alpha);
  * @returns 0 for success, -1 for failure
  */
 void interp_poses(const timestamps_t &timestamps,
-                  const mat4s_t &poses,
+                  const Mat4s &poses,
                   const timestamps_t &interp_ts,
-                  mat4s_t &interped_poses,
+                  Mat4s &interped_poses,
                   const double threshold = 0.001);
 
 /**
@@ -2165,9 +2147,9 @@ void interp_poses(const timestamps_t &timestamps,
  * @returns 0 for success, -1 for failure
  */
 void closest_poses(const timestamps_t &timestamps,
-                   const mat4s_t &poses,
+                   const Mat4s &poses,
                    const timestamps_t &interp_ts,
-                   mat4s_t &result);
+                   Mat4s &result);
 
 /**
  * Let `t0` and `t1` be timestamps from two signals. If one of them is measured
@@ -2208,10 +2190,10 @@ void lerp_data(const std::deque<timestamp_t> &lerp_ts,
 
 /** Lerp pose */
 Mat4 lerp_pose(const timestamp_t &t0,
-                 const Mat4 &pose0,
-                 const timestamp_t &t1,
-                 const Mat4 &pose1,
-                 const timestamp_t &t_lerp);
+               const Mat4 &pose0,
+               const timestamp_t &t1,
+               const Mat4 &pose1,
+               const timestamp_t &t_lerp);
 
 /**
  * Given two data signals with timestamps `ts0`, `vs0`, `ts1`, and `vs1`, this
@@ -2287,8 +2269,8 @@ struct imu_meas_t {
 struct imu_data_t {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   std::deque<timestamp_t> timestamps;
-  std::deque<Vec3, Eigen::aligned_allocator<Vec3>> accel;
-  std::deque<Vec3, Eigen::aligned_allocator<Vec3>> gyro;
+  std::deque<Vec3> accel;
+  std::deque<Vec3> gyro;
 
   imu_data_t() = default;
   ~imu_data_t() = default;
@@ -2340,8 +2322,8 @@ struct imu_data_t {
     // }
 
     std::deque<timestamp_t> timestamps_new;
-    std::deque<Vec3, Eigen::aligned_allocator<Vec3>> accel_new;
-    std::deque<Vec3, Eigen::aligned_allocator<Vec3>> gyro_new;
+    std::deque<Vec3> accel_new;
+    std::deque<Vec3> gyro_new;
     for (size_t k = 0; k < timestamps.size(); k++) {
       if (timestamps[k] >= ts_end) {
         if (k > 0 && timestamps_new.size() == 0) {
@@ -2389,7 +2371,7 @@ struct imu_data_t {
         acc_km1 = accel[k - 1];
         gyr_km1 = gyro[k - 1];
 
-        const double alpha = (ts_start - ts_km1) / (double)(ts_k - ts_km1);
+        const double alpha = (ts_start - ts_km1) / (double) (ts_k - ts_km1);
         const Vec3 acc_km1 = (1.0 - alpha) * acc_km1 + alpha * acc_k;
         const Vec3 gyr_km1 = (1.0 - alpha) * gyr_km1 + alpha * gyr_k;
         ts_km1 = ts_start;
@@ -2402,7 +2384,7 @@ struct imu_data_t {
         acc_km1 = accel[k - 1];
         gyr_km1 = gyro[k - 1];
 
-        const double alpha = (ts_end - ts_km1) / (double)(ts_k - ts_km1);
+        const double alpha = (ts_end - ts_km1) / (double) (ts_k - ts_km1);
         const Vec3 acc_k = (1.0 - alpha) * acc_km1 + alpha * acc_k;
         const Vec3 gyr_k = (1.0 - alpha) * gyr_km1 + alpha * gyr_k;
         ts_k = ts_end;
@@ -2458,7 +2440,7 @@ struct imu_data_t {
   }
 
   friend std::ostream &operator<<(std::ostream &os, const imu_data_t &data) {
-    os << "nb_measurements: " << data.size() << std::endl;
+    os << "num_measurements: " << data.size() << std::endl;
     for (size_t k = 0; k < data.timestamps.size(); k++) {
       os << "ts: " << std::to_string(data.timestamps[k]) << " ";
       os << "acc: " << vec2str(data.accel[k]) << " ";
@@ -2485,5 +2467,120 @@ cv::Mat gray2rgb(const cv::Mat &image);
  * @returns Gray-scale image
  */
 cv::Mat rgb2gray(const cv::Mat &image);
+
+/**
+ * Convert cv::Mat type to string
+ */
+std::string cvtype2str(const int cvtype);
+
+/**
+ * Convert std::vector<cv::KeyPoint> to std::vector<cv::Point2f>
+ */
+std::vector<cv::Point2f> kps2pts(const std::vector<cv::KeyPoint> &kps);
+
+/**
+ * Print Keypoint
+ */
+void print_keypoint(const cv::KeyPoint &kp);
+
+/**
+ * Sort Keypoints
+ */
+void sort_keypoints(std::vector<cv::KeyPoint> &kps);
+
+/**
+ * Given a set of keypoints `kps` make sure they are atleast `min_dist` pixels
+ * away from each other, if they are not remove them.
+ */
+std::vector<cv::KeyPoint> spread_keypoints(
+    const cv::Mat &image,
+    const std::vector<cv::KeyPoint> &kps,
+    const int min_dist = 10,
+    const std::vector<cv::KeyPoint> &kps_prev = std::vector<cv::KeyPoint>(),
+    const bool debug = false);
+
+/**
+ * Returns number of inliers, outliers and total from inlier vector.
+ */
+void inlier_stats(const std::vector<uchar> inliers,
+                  size_t &num_inliers,
+                  size_t &num_outliers,
+                  size_t &num_total,
+                  float &inlier_ratio);
+
+/**
+ * Filter Outliers
+ */
+void filter_outliers(std::vector<cv::KeyPoint> &kps_i,
+                     std::vector<cv::KeyPoint> &kps_j,
+                     const std::vector<uchar> &inliers);
+
+/**
+ * Track keypoints `pts_i` from image `img_i` to image `img_j` using optical
+ * flow. Returns a tuple of `(pts_i, pts_j, inliers)` points in image i, j and a
+ * vector of inliers.
+ */
+void optflow_track(const cv::Mat &img_i,
+                   const cv::Mat &img_j,
+                   const std::vector<cv::KeyPoint> &kps_i,
+                   std::vector<cv::KeyPoint> &kps_j,
+                   std::vector<uchar> &inliers,
+                   const int patch_size = 50,
+                   const int max_iter = 50,
+                   const int max_level = 3,
+                   const double epsilon = 0.001,
+                   const bool debug = false);
+
+// /**
+//  * Perform RANSAC on keypoints `kps0` and `kps1` to reject outliers.
+//  */
+// void ransac(const std::vector<cv::KeyPoint> &kps0,
+//             const std::vector<cv::KeyPoint> &kps1,
+//             const undistort_func_t cam0_undist,
+//             const undistort_func_t cam1_undist,
+//             const double cam0_params[8],
+//             const double cam1_params[8],
+//             std::vector<uchar> &inliers,
+//             const double reproj_threshold = 0.5,
+//             const double confidence = 0.99);
+//
+// /**
+//  * Perform RANSAC on keypoints `kps0` and `kps1` to reject outliers.
+//  */
+// void ransac(const std::vector<cv::KeyPoint> &kps0,
+//             const std::vector<cv::KeyPoint> &kps1,
+//             const undistort_func_t undist_func,
+//             const double cam_params[8],
+//             std::vector<uchar> &inliers,
+//             const double reproj_threshold = 0.75,
+//             const double confidence = 0.99);
+//
+// /**
+//  * Check parallax
+//  */
+// void check_parallax(const camera_params_t &cam0_params,
+//                     const camera_params_t &cam1_params,
+//                     const extrinsic_t &cam0_ext,
+//                     const extrinsic_t &cam1_ext,
+//                     const std::vector<cv::KeyPoint> &kps0,
+//                     const std::vector<cv::KeyPoint> &kps1,
+//                     const double parallax_threshold,
+//                     std::vector<uchar> &inliers);
+//
+// /**
+//  * Filter features by triangulating them via a stereo-pair and see if the
+//  * reprojection error is reasonable.
+//  */
+// void reproj_filter(const project_func_t cam_i_proj_func,
+//                    const int cam_i_res[2],
+//                    const double *cam_i_params,
+//                    const double *cam_j_params,
+//                    const double T_C0Ci[4 * 4],
+//                    const double T_C0Cj[4 * 4],
+//                    const std::vector<cv::KeyPoint> &kps_i,
+//                    const std::vector<cv::KeyPoint> &kps_j,
+//                    std::vector<cv::Point3d> &points,
+//                    std::vector<bool> &inliers,
+//                    const double reproj_threshold = 0.5);
 
 } //  namespace xyz

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CalibData.hpp"
-#include "../ImuError.hpp"
-#include "../ReprojectionError.hpp"
+#include "../ceres/ImuError.hpp"
+#include "../ceres/ReprojectionError.hpp"
 
 namespace xyz {
 

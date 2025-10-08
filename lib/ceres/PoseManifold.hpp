@@ -5,6 +5,7 @@
 
 namespace xyz {
 
+/** Pose Manifold **/
 class PoseManifold : public ceres::Manifold {
 public:
   PoseManifold() = default;

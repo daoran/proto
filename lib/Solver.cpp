@@ -1,4 +1,4 @@
-#include "Solve.hpp"
+#include "Solver.hpp"
 
 namespace xyz {
 

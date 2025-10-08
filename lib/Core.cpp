@@ -435,8 +435,7 @@ int parse(const config_t &config,
 
   // Parse
   yaml_check_vector<Vec3>(node, key, optional);
-  vec =
-      Vec3{node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
+  vec = Vec3{node[0].as<double>(), node[1].as<double>(), node[2].as<double>()};
   return 0;
 }
 
@@ -453,9 +452,9 @@ int parse(const config_t &config,
   // Parse
   yaml_check_vector<Vec4>(node, key, optional);
   vec = Vec4{node[0].as<double>(),
-               node[1].as<double>(),
-               node[2].as<double>(),
-               node[3].as<double>()};
+             node[1].as<double>(),
+             node[2].as<double>(),
+             node[3].as<double>()};
   return 0;
 }
 
@@ -575,9 +574,9 @@ int parse(const config_t &config,
   // Parse
   yaml_check_vector<Vec4i>(node, key, optional);
   vec = Vec4i{node[0].as<int>(),
-                node[1].as<int>(),
-                node[2].as<int>(),
-                node[3].as<int>()};
+              node[1].as<int>(),
+              node[2].as<int>(),
+              node[3].as<int>()};
   return 0;
 }
 
@@ -728,33 +727,33 @@ int parse(const config_t &config,
  *****************************************************************************/
 
 int8_t int8(const uint8_t *data, const size_t offset) {
-  return (int8_t)(data[offset]);
+  return (int8_t) (data[offset]);
 }
 
 uint8_t uint8(const uint8_t *data, const size_t offset) {
-  return (uint8_t)(data[offset]);
+  return (uint8_t) (data[offset]);
 }
 
 int16_t int16(const uint8_t *data, const size_t offset) {
-  return (int16_t)((data[offset + 1] << 8) | (data[offset]));
+  return (int16_t) ((data[offset + 1] << 8) | (data[offset]));
 }
 
 uint16_t uint16(const uint8_t *data, const size_t offset) {
-  return (uint16_t)((data[offset + 1] << 8) | (data[offset]));
+  return (uint16_t) ((data[offset + 1] << 8) | (data[offset]));
 }
 
 int32_t sint32(const uint8_t *data, const size_t offset) {
-  return (int32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
-                   (data[offset + 1] << 8) | (data[offset]));
-}
-
-uint32_t uint32(const uint8_t *data, const size_t offset) {
-  return (uint32_t)((data[offset + 3] << 24) | (data[offset + 2] << 16) |
+  return (int32_t) ((data[offset + 3] << 24) | (data[offset + 2] << 16) |
                     (data[offset + 1] << 8) | (data[offset]));
 }
 
+uint32_t uint32(const uint8_t *data, const size_t offset) {
+  return (uint32_t) ((data[offset + 3] << 24) | (data[offset + 2] << 16) |
+                     (data[offset + 1] << 8) | (data[offset]));
+}
+
 char *malloc_string(const char *s) {
-  char *retval = (char *)malloc(sizeof(char) * strlen(s) + 1);
+  char *retval = (char *) malloc(sizeof(char) * strlen(s) + 1);
   strcpy(retval, s);
   return retval;
 }
@@ -844,7 +843,7 @@ char **csv_fields(const char *fp, int *nb_fields) {
 
   // Parse fields
   *nb_fields = csv_cols(fp);
-  char **fields = (char **)malloc(sizeof(char *) * *nb_fields);
+  char **fields = (char **) malloc(sizeof(char *) * *nb_fields);
   int field_idx = 0;
   char field_name[100] = {0};
 
@@ -882,9 +881,9 @@ double **csv_data(const char *fp, int *nb_rows, int *nb_cols) {
   }
 
   // Initialize memory for csv data
-  double **data = (double **)malloc(sizeof(double *) * *nb_rows);
+  double **data = (double **) malloc(sizeof(double *) * *nb_rows);
   for (int i = 0; i < *nb_cols; i++) {
-    data[i] = (double *)malloc(sizeof(double) * *nb_cols);
+    data[i] = (double *) malloc(sizeof(double) * *nb_cols);
   }
 
   // Load file
@@ -945,7 +944,7 @@ static int *parse_iarray_line(char *line) {
     if (c == ',' || c == '\n') {
       if (data == NULL) {
         size_t array_size = strtod(entry, NULL);
-        data = (int *)calloc(array_size + 1, sizeof(int));
+        data = (int *) calloc(array_size + 1, sizeof(int));
       }
       data[index] = strtod(entry, NULL);
       index++;
@@ -961,7 +960,7 @@ static int *parse_iarray_line(char *line) {
 int **load_iarrays(const char *csv_path, int *nb_arrays) {
   FILE *csv_file = fopen(csv_path, "r");
   *nb_arrays = csv_rows(csv_path);
-  int **array = (int **)calloc(*nb_arrays, sizeof(int *));
+  int **array = (int **) calloc(*nb_arrays, sizeof(int *));
 
   char line[1024] = {0};
   int frame_idx = 0;
@@ -992,7 +991,7 @@ static double *parse_darray_line(char *line) {
     if (c == ',' || c == '\n') {
       if (data == NULL) {
         size_t array_size = strtod(entry, NULL);
-        data = (double *)calloc(array_size, sizeof(double));
+        data = (double *) calloc(array_size, sizeof(double));
       }
       data[index] = strtod(entry, NULL);
       index++;
@@ -1008,7 +1007,7 @@ static double *parse_darray_line(char *line) {
 double **load_darrays(const char *csv_path, int *nb_arrays) {
   FILE *csv_file = fopen(csv_path, "r");
   *nb_arrays = csv_rows(csv_path);
-  double **array = (double **)calloc(*nb_arrays, sizeof(double *));
+  double **array = (double **) calloc(*nb_arrays, sizeof(double *));
 
   char line[1024] = {0};
   int frame_idx = 0;
@@ -1216,8 +1215,8 @@ void print_progress(const double percentage, const std::string &prefix) {
     return;
   }
 
-  int val = (int)(percentage * 100);
-  int lpad = (int)(percentage * PBWIDTH);
+  int val = (int) (percentage * 100);
+  int lpad = (int) (percentage * PBWIDTH);
   int rpad = PBWIDTH - lpad;
   printf("\r%s[%.*s%*s]%3d%%", prefix.c_str(), lpad, PBSTR, rpad, "", val);
   fflush(stdout);
@@ -1283,7 +1282,7 @@ void save_features(const std::string &path, const Vec3s &features) {
 
 void save_poses(const std::string &path,
                 const timestamps_t &timestamps,
-                const mat4s_t &poses) {
+                const Mat4s &poses) {
   FILE *csv = fopen(path.c_str(), "w");
   fprintf(csv, "#ts,rx,ry,rz,qx,qy,qz,qw\n");
 
@@ -1393,7 +1392,7 @@ Mat4 load_pose(const std::string &fpath) {
 
 void load_poses(const std::string &fpath,
                 timestamps_t &timestamps,
-                mat4s_t &poses) {
+                Mat4s &poses) {
   // Open file for loading
   int nb_rows = 0;
   FILE *fp = file_open(fpath.c_str(), "r", &nb_rows);
@@ -1548,7 +1547,7 @@ void array2vec(const double *x, const size_t size, VecX y) {
 }
 
 double *vec2array(const VecX &v) {
-  double *array = (double *)malloc(sizeof(double) * v.size());
+  double *array = (double *) malloc(sizeof(double) * v.size());
   for (int i = 0; i < v.size(); i++) {
     array[i] = v(i);
   }
@@ -1556,7 +1555,7 @@ double *vec2array(const VecX &v) {
 }
 
 double *mat2array(const MatX &m) {
-  double *array = (double *)malloc(sizeof(double) * m.size());
+  double *array = (double *) malloc(sizeof(double) * m.size());
 
   int index = 0;
   for (int i = 0; i < m.rows(); i++) {
@@ -1569,7 +1568,7 @@ double *mat2array(const MatX &m) {
 }
 
 double *quat2array(const Quat &q) {
-  double *array = (double *)malloc(sizeof(double) * 4);
+  double *array = (double *) malloc(sizeof(double) * 4);
 
   array[0] = q.x();
   array[1] = q.y();
@@ -1663,9 +1662,7 @@ MatX vecs2mat(const Vec3s &vs) {
   return retval;
 }
 
-std::string vec2str(const VecX &v,
-                    const bool brackets,
-                    const bool max_digits) {
+std::string vec2str(const VecX &v, const bool brackets, const bool max_digits) {
   std::ostringstream ss;
 
   if (max_digits) {
@@ -1739,15 +1736,11 @@ double cond(const MatX &A) {
   return max_sigma / min_sigma;
 }
 
-MatX zeros(const int rows, const int cols) {
-  return MatX::Zero(rows, cols);
-}
+MatX zeros(const int rows, const int cols) { return MatX::Zero(rows, cols); }
 
 MatX zeros(const int size) { return MatX::Zero(size, size); }
 
-MatX I(const int rows, const int cols) {
-  return MatX::Identity(rows, cols);
-}
+MatX I(const int rows, const int cols) { return MatX::Identity(rows, cols); }
 
 MatX I(const int size) { return MatX::Identity(size, size); }
 
@@ -1873,9 +1866,9 @@ MatX pinv(const MatX &A, const double tol) {
 
   for (unsigned int i = 0; i < vals_.size(); ++i) {
     if (vals_(i) > tol) {
-      vals_inv(i, i) = ((double)1.0) / vals_(i);
+      vals_inv(i, i) = ((double) 1.0) / vals_(i);
     } else {
-      vals_inv(i, i) = ((double)0);
+      vals_inv(i, i) = ((double) 0);
     }
   }
 
@@ -1895,8 +1888,11 @@ bool full_rank(const MatX &A) {
   return true;
 }
 
-int schurs_complement(
-    MatX &H, VecX &b, const size_t m, const size_t r, const bool precond) {
+int schurs_complement(MatX &H,
+                      VecX &b,
+                      const size_t m,
+                      const size_t r,
+                      const bool precond) {
   assert(m > 0 && r > 0);
   assert(H.isZero() == false);
 
@@ -1958,7 +1954,7 @@ Mat4 oplus(const Quat &q) {
   return Q;
 }
 
-Mat<6, 7, RowMajor> lift_pose_jacobian(const Mat4 pose) {
+Mat<6, 7, Eigen::RowMajor> lift_pose_jacobian(const Mat4 pose) {
   Eigen::Matrix<double, 3, 4> Jq_pinv;
   Jq_pinv.bottomRightCorner<3, 1>().setZero();
   Jq_pinv.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity() * 2.0;
@@ -1966,7 +1962,7 @@ Mat<6, 7, RowMajor> lift_pose_jacobian(const Mat4 pose) {
   const Quat q = tf_quat(pose);
   Eigen::Matrix4d Qplus = oplus(q.inverse());
 
-  Eigen::Matrix<double, 6, 7, RowMajor> J_lift;
+  Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
   J_lift.setZero();
   J_lift.topLeftCorner<3, 3>().setIdentity();
   J_lift.bottomRightCorner<3, 4>() = Jq_pinv * Qplus;
@@ -2027,9 +2023,7 @@ Vec3 sphere(const double rho, const double theta, const double phi) {
   return Vec3{x, y, z};
 }
 
-Mat4 lookat(const Vec3 &cam_pos,
-              const Vec3 &target,
-              const Vec3 &up_axis) {
+Mat4 lookat(const Vec3 &cam_pos, const Vec3 &target, const Vec3 &up_axis) {
   // Note: If we were using OpenGL the cam_dir would be the opposite direction,
   // since in OpenGL the camera forward is -z. In robotics however our camera
   // is +z forward.
@@ -2058,9 +2052,7 @@ Mat4 lookat(const Vec3 &cam_pos,
   return T_target_camera;
 }
 
-double cross_track_error(const Vec2 &p1,
-                         const Vec2 &p2,
-                         const Vec2 &pos) {
+double cross_track_error(const Vec2 &p1, const Vec2 &p2, const Vec2 &pos) {
   const double x0 = pos(0);
   const double y0 = pos(1);
 
@@ -2097,10 +2089,8 @@ int point_left_right(const Vec2 &a, const Vec2 &b, const Vec2 &c) {
   return -1;
 }
 
-double closest_point(const Vec2 &a,
-                     const Vec2 &b,
-                     const Vec2 &p,
-                     Vec2 &closest) {
+double
+closest_point(const Vec2 &a, const Vec2 &b, const Vec2 &p, Vec2 &closest) {
   // pre-check
   if ((a - b).norm() == 0) {
     closest = a;
@@ -2161,11 +2151,11 @@ void fit_circle(const Vec2s &points, double &cx, double &cy, double &radius) {
 }
 
 Vec2s intersect_circles(const double cx0,
-                          const double cy0,
-                          const double r0,
-                          const double cx1,
-                          const double cy1,
-                          const double r1) {
+                        const double cy0,
+                        const double r0,
+                        const double cx1,
+                        const double cy1,
+                        const double r1) {
   Vec2s ipts;
 
   // Check if circles are separate
@@ -2235,7 +2225,7 @@ double latlon_dist(double lat_ref, double lon_ref, double lat, double lon) {
 int randi(int ub, int lb) { return rand() % lb + ub; }
 
 double randf(const double ub, const double lb) {
-  const double f = (double)rand() / RAND_MAX;
+  const double f = (double) rand() / RAND_MAX;
   return lb + f * (ub - lb);
 }
 
@@ -2397,8 +2387,8 @@ Vec3 rmse(const Vec3s &vecs) {
 }
 
 Vec3 mvn(std::default_random_engine &engine,
-           const Vec3 &mu,
-           const Vec3 &stdev) {
+         const Vec3 &mu,
+         const Vec3 &stdev) {
   std::normal_distribution<double> normal_x(mu(0), stdev(0));
   std::normal_distribution<double> normal_y(mu(1), stdev(1));
   std::normal_distribution<double> normal_z(mu(2), stdev(2));
@@ -2412,8 +2402,8 @@ double gauss_normal() {
 
   if (phase == 0) {
     do {
-      double U1 = (double)rand() / RAND_MAX;
-      double U2 = (double)rand() / RAND_MAX;
+      double U1 = (double) rand() / RAND_MAX;
+      double U2 = (double) rand() / RAND_MAX;
 
       V1 = 2 * U1 - 1;
       V2 = 2 * U2 - 1;
@@ -2453,9 +2443,7 @@ Mat4 tf(const Mat3 &C, const Vec3 &r) {
   return T;
 }
 
-Mat4 tf(const Quat &q, const Vec3 &r) {
-  return tf(q.toRotationMatrix(), r);
-}
+Mat4 tf(const Quat &q, const Vec3 &r) { return tf(q.toRotationMatrix(), r); }
 
 Mat4 tf_inv(const Mat4 &T) {
   const Vec3 r = tf_trans(T);
@@ -3010,11 +2998,11 @@ double ts2sec(const timestamp_t &ts) { return ts * 1.0e-9; }
 
 void tsdecomp(const timestamp_t &ts, long int &sec, long int &nsec) {
   sec = ts * 1e-9;
-  nsec = ts - (long int)(sec * 1e9);
+  nsec = ts - (long int) (sec * 1e9);
 }
 
 timestamp_t tsform(const long int sec, const long int &nsec) {
-  return (long int)(sec * 1e9) + nsec;
+  return (long int) (sec * 1e9) + nsec;
 }
 
 double ns2sec(const int64_t ns) { return ns * 1.0e-9; }
@@ -3041,7 +3029,7 @@ float mtoc(struct timespec *tic) { return toc(tic) * 1000.0; }
 double time_now() {
   struct timeval t;
   gettimeofday(&t, NULL);
-  return ((double)t.tv_sec + ((double)t.tv_usec) / 1000000.0);
+  return ((double) t.tv_sec + ((double) t.tv_usec) / 1000000.0);
 }
 
 /*****************************************************************************
@@ -3110,9 +3098,9 @@ Mat4 interp_pose(const Mat4 &p0, const Mat4 &p1, const double alpha) {
 }
 
 void interp_poses(const timestamps_t &timestamps,
-                  const mat4s_t &poses,
+                  const Mat4s &poses,
                   const timestamps_t &interp_ts,
-                  mat4s_t &interped_poses,
+                  Mat4s &interped_poses,
                   const double threshold) {
   assert(timestamps.size() > 0);
   assert(timestamps.size() == poses.size());
@@ -3167,9 +3155,9 @@ void interp_poses(const timestamps_t &timestamps,
 }
 
 void closest_poses(const timestamps_t &timestamps,
-                   const mat4s_t &poses,
+                   const Mat4s &poses,
                    const timestamps_t &target_ts,
-                   mat4s_t &result) {
+                   Mat4s &result) {
   assert(timestamps.size() > 0);
   assert(timestamps.size() == poses.size());
   assert(target_ts.size() > 0);
@@ -3301,10 +3289,10 @@ void lerp_data(const std::deque<timestamp_t> &lerp_ts,
 }
 
 Mat4 lerp_pose(const timestamp_t &t0,
-                 const Mat4 &pose0,
-                 const timestamp_t &t1,
-                 const Mat4 &pose1,
-                 const timestamp_t &t_lerp) {
+               const Mat4 &pose0,
+               const timestamp_t &t1,
+               const Mat4 &pose1,
+               const timestamp_t &t_lerp) {
   // Calculate alpha
   const double numerator = (t_lerp - t0) * 1e-9;
   const double denominator = (t1 - t0) * 1e-9;
@@ -3462,5 +3450,462 @@ cv::Mat rgb2gray(const cv::Mat &image) {
 
   return image_gray;
 }
+
+std::string cvtype2str(const int cvtype) {
+  std::string r;
+
+  uchar depth = cvtype & CV_MAT_DEPTH_MASK;
+  uchar chans = 1 + (cvtype >> CV_CN_SHIFT);
+
+  switch (depth) {
+    case CV_8U:
+      r = "8U";
+      break;
+    case CV_8S:
+      r = "8S";
+      break;
+    case CV_16U:
+      r = "16U";
+      break;
+    case CV_16S:
+      r = "16S";
+      break;
+    case CV_32S:
+      r = "32S";
+      break;
+    case CV_32F:
+      r = "32F";
+      break;
+    case CV_64F:
+      r = "64F";
+      break;
+    default:
+      r = "User";
+      break;
+  }
+
+  r += "C";
+  r += (chans + '0');
+
+  return r;
+}
+
+std::vector<cv::Point2f> kps2pts(const std::vector<cv::KeyPoint> &kps) {
+  std::vector<cv::Point2f> pts;
+  for (const auto &kp : kps) {
+    pts.push_back(kp.pt);
+  }
+  return pts;
+}
+
+void print_keypoint(const cv::KeyPoint &kp) {
+  printf("angle: %f\n", kp.angle);
+  printf("class_id: %d\n", kp.class_id);
+  printf("octave: %d\n", kp.octave);
+  printf("pt: [%.2f, %.2f]\n", kp.pt.x, kp.pt.y);
+  printf("response: %f\n", kp.response);
+  printf("size: %f\n", kp.size);
+}
+
+void sort_keypoints(std::vector<cv::KeyPoint> &kps) {
+  std::sort(kps.begin(), kps.end(), [](cv::KeyPoint a, cv::KeyPoint b) {
+    return a.response > b.response;
+  });
+}
+
+std::vector<cv::KeyPoint>
+spread_keypoints(const cv::Mat &image,
+                 const std::vector<cv::KeyPoint> &kps,
+                 const int min_dist,
+                 const std::vector<cv::KeyPoint> &kps_prev,
+                 const bool debug) {
+  // Pre-check
+  std::vector<cv::KeyPoint> kps_filtered;
+  if (kps.size() == 0) {
+    return kps_filtered;
+  }
+
+  // Setup
+  const int img_w = image.size().width;
+  const int img_h = image.size().height;
+  cv::Mat A = cv::Mat::zeros(img_h, img_w, CV_8UC1);
+
+  // Loop through previous keypoints
+  for (const auto kp : kps_prev) {
+    // Fill the area of the matrix where the next keypoint cannot be around
+    const int px = kp.pt.x;
+    const int py = kp.pt.y;
+    const int rs = std::max(py - min_dist, 0);
+    const int re = std::min(py + min_dist + 1, img_h - 1);
+    const int cs = std::max(px - min_dist, 0);
+    const int ce = std::min(px + min_dist + 1, img_w - 1);
+
+    for (int i = rs; i < re; i++) {
+      for (int j = cs; j < ce; j++) {
+        A.at<uint8_t>(i, j) = 255;
+      }
+    }
+  }
+
+  // Loop through keypoints
+  for (const auto kp : kps) {
+    // Check if point is ok to be added to results
+    const int px = kp.pt.x;
+    const int py = kp.pt.y;
+    if (A.at<uint8_t>(py, px) > 0) {
+      continue;
+    }
+    kps_filtered.push_back(kp);
+
+    // Fill the area of the matrix where the next keypoint cannot be around
+    const int rs = std::max(py - min_dist, 0);
+    const int re = std::min(py + min_dist + 1, img_h - 1);
+    const int cs = std::max(px - min_dist, 0);
+    const int ce = std::min(px + min_dist + 1, img_w - 1);
+
+    for (int i = rs; i < re; i++) {
+      for (int j = cs; j < ce; j++) {
+        A.at<uint8_t>(i, j) = 255;
+      }
+    }
+  }
+
+  // Debug
+  if (debug) {
+    cv::imshow("Debug", A);
+    cv::waitKey(0);
+  }
+
+  return kps_filtered;
+}
+
+void inlier_stats(const std::vector<uchar> inliers,
+                  size_t &num_inliers,
+                  size_t &num_outliers,
+                  size_t &num_total,
+                  float &inlier_ratio) {
+  num_inliers = 0;
+  num_outliers = 0;
+  num_total = inliers.size();
+  for (size_t i = 0; i < inliers.size(); i++) {
+    if (inliers[i]) {
+      num_inliers++;
+    } else {
+      num_outliers++;
+    }
+  }
+
+  inlier_ratio = (float) num_inliers / (float) num_total;
+}
+
+void filter_outliers(std::vector<cv::KeyPoint> &kps_i,
+                     std::vector<cv::KeyPoint> &kps_j,
+                     const std::vector<uchar> &inliers) {
+  std::vector<cv::KeyPoint> a;
+  std::vector<cv::KeyPoint> b;
+
+  for (size_t i = 0; i < inliers.size(); i++) {
+    if (inliers[i]) {
+      a.push_back(kps_i[i]);
+      b.push_back(kps_j[i]);
+    }
+  }
+  kps_i = a;
+  kps_j = b;
+}
+
+void optflow_track(const cv::Mat &img_i,
+                   const cv::Mat &img_j,
+                   const std::vector<cv::KeyPoint> &kps_i,
+                   std::vector<cv::KeyPoint> &kps_j,
+                   std::vector<uchar> &inliers,
+                   const int patch_size,
+                   const int max_iter,
+                   const int max_level,
+                   const double epsilon,
+                   const bool debug) {
+  // Convert std::vector<cv::KeyPoint> to std::vector<cv::Point2f>
+  std::vector<cv::Point2f> pts_i = kps2pts(kps_i);
+  std::vector<cv::Point2f> pts_j = kps2pts(kps_j);
+
+  // Track features from img i to img j
+  const auto win_size = cv::Size(patch_size, patch_size);
+  const auto crit_type = cv::TermCriteria::MAX_ITER | cv::TermCriteria::EPS;
+  const auto crit = cv::TermCriteria(crit_type, max_iter, epsilon);
+  const auto errs = cv::noArray();
+  std::vector<uchar> optflow_inliers;
+  cv::calcOpticalFlowPyrLK(img_i,
+                           img_j,
+                           pts_i,
+                           pts_j,
+                           optflow_inliers,
+                           errs,
+                           win_size,
+                           max_level,
+                           crit);
+
+  // Make sure keypoints are within image dimensions
+  std::vector<bool> bound_inliers;
+  const int img_h = img_i.rows;
+  const int img_w = img_i.cols;
+  for (const auto &p : pts_j) {
+    const auto x_ok = p.x >= 0 && p.x <= img_w;
+    const auto y_ok = p.y >= 0 && p.y <= img_h;
+    bound_inliers.push_back((x_ok && y_ok));
+  }
+
+  // Write out final inliers
+  assert(pts_i.size() == optflow_inliers.size());
+  assert(pts_i.size() == bound_inliers.size());
+
+  kps_j.clear();
+  inliers.clear();
+  for (size_t i = 0; i < pts_i.size(); i++) {
+    kps_j.emplace_back(pts_j[i],
+                       kps_i[i].size,
+                       kps_i[i].angle,
+                       kps_i[i].response,
+                       kps_i[i].octave,
+                       kps_i[i].class_id);
+    inliers.push_back(optflow_inliers[i] && bound_inliers[i]);
+  }
+
+  // Debug
+  bool quit = false;
+  while (debug && quit == false) {
+    // Draw properties
+    const int radius = 2;
+    const cv::Scalar red{0, 0, 255};
+
+    // Setup
+    cv::Mat viz_i;
+    cv::Mat viz_j;
+    cv::cvtColor(img_i, viz_i, cv::COLOR_GRAY2RGB);
+    cv::cvtColor(img_j, viz_j, cv::COLOR_GRAY2RGB);
+
+    // Draw KeyPoints
+    for (size_t n = 0; n < kps_i.size(); n++) {
+      if (inliers[n] == 0) {
+        continue;
+      }
+
+      auto pt_i = kps_i[n].pt;
+      auto pt_j = kps_j[n].pt;
+      cv::circle(viz_i, pt_i, radius, red, -1);
+      cv::circle(viz_j, pt_j, radius, red, -1);
+    }
+
+    // Stitch images horizontally
+    cv::Mat viz;
+    cv::hconcat(viz_i, viz_j, viz);
+
+    // Draw lines
+    for (size_t n = 0; n < kps_i.size(); n++) {
+      auto pt_i = kps_i[n].pt;
+      auto pt_j = kps_j[n].pt;
+      pt_j.x += viz_i.cols;
+      const auto line = cv::LINE_AA;
+      cv::line(viz, pt_i, pt_j, red, 1, line);
+    }
+
+    // Show
+    cv::imshow("Optical-Flow Tracking", viz);
+    if (cv::waitKey(0) == 'q') {
+      quit = true;
+    }
+  }
+}
+
+// void ransac(const std::vector<cv::KeyPoint> &kps0,
+//             const std::vector<cv::KeyPoint> &kps1,
+//             const undistort_func_t cam0_undist,
+//             const undistort_func_t cam1_undist,
+//             const double cam0_params[8],
+//             const double cam1_params[8],
+//             std::vector<uchar> &inliers,
+//             const double reproj_threshold = 0.5,
+//             const double confidence = 0.99) {
+//   assert(kps0.size() > 0 && kps1.size() > 0);
+//   assert(kps0.size() == kps1.size());
+//   assert(cam0_undist && cam1_undist);
+//   assert(cam0_params && cam1_params);
+//
+//   // Undistort image points
+//   std::vector<cv::Point2f> pts0 = kps2pts(kps0);
+//   std::vector<cv::Point2f> pts1 = kps2pts(kps1);
+//   for (size_t i = 0; i < pts0.size(); i++) {
+//     const double z0_in[2] = {pts0[i].x, pts0[i].y};
+//     const double z1_in[2] = {pts1[i].x, pts1[i].y};
+//
+//     double z0[2] = {0};
+//     double z1[2] = {0};
+//     cam0_undist(cam0_params, z0_in, z0);
+//     cam1_undist(cam1_params, z1_in, z1);
+//
+//     pts0[i].x = z0[0];
+//     pts0[i].y = z0[1];
+//
+//     pts1[i].x = z1[0];
+//     pts1[i].y = z1[1];
+//   }
+//
+//   // Perform ransac
+//   const int method = cv::FM_RANSAC;
+//   cv::findFundamentalMat(pts0,
+//                          pts1,
+//                          method,
+//                          reproj_threshold,
+//                          confidence,
+//                          inliers);
+// }
+//
+// void ransac(const std::vector<cv::KeyPoint> &kps0,
+//             const std::vector<cv::KeyPoint> &kps1,
+//             const undistort_func_t undist_func,
+//             const double cam_params[8],
+//             std::vector<uchar> &inliers,
+//             const double reproj_threshold,
+//             const double confidence) {
+//   ransac(kps0,
+//          kps1,
+//          undist_func,
+//          undist_func,
+//          cam_params,
+//          cam_params,
+//          inliers,
+//          reproj_threshold,
+//          confidence);
+// }
+
+// void check_parallax(const camera_params_t &cam0_params,
+//                     const camera_params_t &cam1_params,
+//                     const extrinsic_t &cam0_ext,
+//                     const extrinsic_t &cam1_ext,
+//                     const std::vector<cv::KeyPoint> &kps0,
+//                     const std::vector<cv::KeyPoint> &kps1,
+//                     const double parallax_threshold,
+//                     std::vector<uchar> &inliers) {
+//   assert(parallax_threshold > 0);
+//   assert(kps0.size() == kps1.size());
+//
+//   // Form projection matrices P_i and P_j
+//   const double *params0 = cam0_params.data;
+//   const double *params1 = cam1_params.data;
+//
+//   double I4[4 * 4] = {0};
+//   eye(I4, 4, 4);
+//
+//   POSE2TF(cam0_ext.data, T_BC0);
+//   POSE2TF(cam1_ext.data, T_BC1);
+//   TF_INV(T_BC0, T_C0B);
+//   TF_CHAIN(T_C0C1, 2, T_C0B, T_BC1);
+//   TF_INV(T_C0C1, T_C1C0);
+//
+//   double P0[4 * 4] = {0};
+//   double P1[4 * 4] = {0};
+//   pinhole_projection_matrix(params0, I4, P0);
+//   pinhole_projection_matrix(params1, T_C0C1, P1);
+//
+//   // Check parallax
+//   inliers.clear();
+//   const size_t N = kps0.size();
+//   for (size_t i = 0; i < N; i++) {
+//     // Undistort
+//     const double z0_in[2] = {kps0[i].pt.x, kps0[i].pt.y};
+//     const double z1_in[2] = {kps1[i].pt.x, kps1[i].pt.y};
+//     double z0[2] = {0};
+//     double z1[2] = {0};
+//     cam0_params.undistort_func(params0, z0_in, z0);
+//     cam1_params.undistort_func(params1, z1_in, z1);
+//
+//     // Triangulate
+//     double p_C0[3] = {0};
+//     double p_C1[3] = {0};
+//     linear_triangulation(P0, P1, z0, z1, p_C0);
+//     tf_point(T_C1C0, p_C0, p_C1);
+//     if (p_C0[2] < 0 && p_C1[2] < 0) {
+//       inliers.push_back(false);
+//       continue;
+//     }
+//
+//     // Check parallax
+//     DOT(p_C0, 1, 3, p_C1, 3, 1, numerator);
+//     const double denominator = vec3_norm(p_C0) * vec3_norm(p_C1);
+//     const double parallax = rad2deg(acos(numerator[0] / denominator));
+//     if (parallax < parallax_threshold) {
+//       inliers.push_back(false);
+//     } else {
+//       inliers.push_back(true);
+//     }
+//   }
+// }
+//
+// void reproj_filter(const project_func_t cam_i_proj_func,
+//                    const int cam_i_res[2],
+//                    const double *cam_i_params,
+//                    const double *cam_j_params,
+//                    const double T_C0Ci[4 * 4],
+//                    const double T_C0Cj[4 * 4],
+//                    const std::vector<cv::KeyPoint> &kps_i,
+//                    const std::vector<cv::KeyPoint> &kps_j,
+//                    std::vector<cv::Point3d> &points,
+//                    std::vector<bool> &inliers,
+//                    const double reproj_threshold = 0.5) {
+//   // Form camera i and camera j extrinsics T_CiCj
+//   TF_INV(T_C0Ci, T_CiC0);
+//   TF_CHAIN(T_CiCj, 2, T_CiC0, T_C0Cj);
+//
+//   // Form Projection matrices P_i and P_j
+//   TF_IDENTITY(T_eye);
+//   double P_i[3 * 4] = {0};
+//   double P_j[3 * 4] = {0};
+//   pinhole_projection_matrix(cam_i_params, T_eye, P_i);
+//   pinhole_projection_matrix(cam_j_params, T_CiCj, P_j);
+//
+//   // Check features
+//   for (size_t n = 0; n < kps_i.size(); n++) {
+//     // Triangulate feature
+//     const double z_i[2] = {kps_i[n].pt.x, kps_i[n].pt.y};
+//     const double z_j[2] = {kps_j[n].pt.x, kps_j[n].pt.y};
+//
+//     double uz_i[2] = {0};
+//     double uz_j[2] = {0};
+//     pinhole_radtan4_undistort(cam_i_params, z_i, uz_i);
+//     pinhole_radtan4_undistort(cam_j_params, z_j, uz_j);
+//
+//     double p_Ci[3] = {0};
+//     linear_triangulation(P_i, P_j, uz_i, uz_j, p_Ci);
+//     points.emplace_back(p_Ci[0], p_Ci[1], p_Ci[2]);
+//
+//     // Check feature depth
+//     if (p_Ci[2] < 0.0) {
+//       inliers.push_back(false);
+//       continue;
+//     }
+//
+//     // Reproject feature into camera i
+//     double z_i_hat[2] = {0};
+//     cam_i_proj_func(cam_i_params, p_Ci, z_i_hat);
+//
+//     // Check image point bounds
+//     const bool x_ok = (z_i_hat[0] < cam_i_res[0] && z_i_hat[0] > 0);
+//     const bool y_ok = (z_i_hat[1] < cam_i_res[1] && z_i_hat[1] > 0);
+//     if (!x_ok || !y_ok) {
+//       inliers.push_back(false);
+//       continue;
+//     }
+//
+//     // Check reprojection error
+//     const double r[2] = {z_i[0] - z_i_hat[0], z_i[1] - z_i_hat[1]};
+//     const double reproj_error = sqrt(r[0] * r[0] + r[1] * r[1]);
+//     if (reproj_error > reproj_threshold) {
+//       inliers.push_back(false);
+//       continue;
+//     }
+//
+//     // Passed all tests
+//     inliers.push_back(true);
+//   }
+// }
 
 } // namespace xyz

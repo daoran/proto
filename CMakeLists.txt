@@ -38,6 +38,11 @@ add_library(
   lib/calib/SolvePnp.cpp
   lib/camera/CameraGeometry.cpp
   lib/camera/CameraModel.cpp
+  lib/ceres/ImuError.cpp
+  lib/ceres/ParamBlock.cpp
+  lib/ceres/PoseManifold.cpp
+  lib/ceres/ReprojectionError.cpp
+  lib/ceres/ResidualBlock.cpp
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
   lib/imu/ImuState.cpp
@@ -48,11 +53,6 @@ add_library(
   lib/timeline/Timeline.cpp
   lib/timeline/TimelineEvent.cpp
   lib/Core.cpp
-  lib/ImuError.cpp
-  lib/ParamBlock.cpp
-  lib/PoseManifold.cpp
-  lib/ReprojectionError.cpp
-  lib/ResidualBlock.cpp
 )
 set(DEPS
   yaml-cpp::yaml-cpp
@@ -65,44 +65,19 @@ target_link_libraries(${PROJECT_NAME} ${DEPS})
 
 # Build unit-tests
 set(TEST_DEPS GTest::gtest_main ${PROJECT_NAME} ${DEPS})
-set(TEST_DATA ${CMAKE_CURRENT_LIST_DIR}/tests/test_data)
+set(TEST_DATA ${CMAKE_CURRENT_LIST_DIR}/lib/tests/test_data)
 
-add_executable(TestAprilGrid lib/tests/TestAprilGrid.cpp)
-add_compile_definitions(TestAprilGrid PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestAprilGrid ${TEST_DEPS})
-
-add_executable(TestCalibCamera lib/tests/TestCalibCamera.cpp)
-add_compile_definitions(TestCalibCamera PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestCalibCamera ${TEST_DEPS})
-
-# add_executable(TestCalibCameraImu lib/tests/TestCalibCameraImu.cpp)
-# add_compile_definitions(TestCalibCameraImu PRIVATE TEST_DATA="${TEST_DATA}")
-# target_link_libraries(TestCalibCameraImu ${TEST_DEPS})
-
-add_executable(TestCalibData lib/tests/TestCalibData.cpp)
-add_compile_definitions(TestCalibData PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestCalibData ${TEST_DEPS})
-
-add_executable(TestCameraChain lib/tests/TestCameraChain.cpp)
-add_compile_definitions(TestCameraChain PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestCameraChain ${TEST_DEPS})
-
-add_executable(TestCameraModel lib/tests/TestCameraModel.cpp)
-add_compile_definitions(TestCameraModel PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestCameraModel ${TEST_DEPS})
-
-add_executable(TestImuError lib/tests/TestImuError.cpp)
-add_compile_definitions(TestImuError PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestImuError ${TEST_DEPS})
-
-add_executable(TestReprojectionError lib/tests/TestReprojectionError.cpp)
-add_compile_definitions(TestReprojectionError PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestReprojectionError ${TEST_DEPS})
-
-add_executable(TestSim lib/tests/TestSim.cpp)
-add_compile_definitions(TestSim PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestSim ${TEST_DEPS})
-
-add_executable(TestTimeline lib/tests/TestTimeline.cpp)
-add_compile_definitions(TestTimeline PRIVATE TEST_DATA="${TEST_DATA}")
-target_link_libraries(TestTimeline ${TEST_DEPS})
+add_executable(unittests
+  lib/tests/calib/TestAprilGrid.cpp
+  lib/tests/calib/TestCalibCamera.cpp
+  # lib/tests/calib/TestCalibCameraImu.cpp
+  lib/tests/calib/TestCalibData.cpp
+  lib/tests/calib/TestCameraChain.cpp
+  lib/tests/camera/TestCameraModel.cpp
+  lib/tests/ceres/TestImuError.cpp
+  lib/tests/ceres/TestReprojectionError.cpp
+  lib/tests/sim/TestSim.cpp
+  lib/tests/timeline/TestTimeline.cpp
+)
+add_compile_definitions(unittests PRIVATE TEST_DATA="${TEST_DATA}")
+target_link_libraries(unittests ${TEST_DEPS})

@@ -2,7 +2,7 @@
 
 #include "calib/CalibData.hpp"
 #include "calib/SolvePnp.hpp"
-#include "ReprojectionError.hpp"
+#include "ceres/ReprojectionError.hpp"
 
 #define TEST_CONFIG TEST_DATA "/calib_camera.yaml"
 

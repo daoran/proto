@@ -5,7 +5,7 @@
 #include "../camera/CameraGeometry.hpp"
 #include "../imu/ImuBuffer.hpp"
 #include "../imu/ImuGeometry.hpp"
-#include "../PoseManifold.hpp"
+#include "../ceres/PoseManifold.hpp"
 
 #include "AprilGrid.hpp"
 

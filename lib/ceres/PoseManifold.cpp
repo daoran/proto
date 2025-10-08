@@ -3,8 +3,8 @@
 namespace xyz {
 
 bool PoseManifold::Plus(const double *x,
-                                     const double *delta,
-                                     double *x_plus_delta) const {
+                        const double *delta,
+                        double *x_plus_delta) const {
   // Form transform
   Mat4 T = tf(x);
 
@@ -33,10 +33,9 @@ bool PoseManifold::Plus(const double *x,
   return true;
 }
 
-bool PoseManifold::PlusJacobian(const double *x,
-                                             double *jacobian) const {
+bool PoseManifold::PlusJacobian(const double *x, double *jacobian) const {
   // Jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-  Eigen::Map<Eigen::Matrix<double, 7, 6, RowMajor>> Jp(jacobian);
+  Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> Jp(jacobian);
   UNUSED(x);
   Jp.topRows<6>().setIdentity();
   Jp.bottomRows<1>().setZero();
@@ -44,16 +43,15 @@ bool PoseManifold::PlusJacobian(const double *x,
 }
 
 bool PoseManifold::Minus(const double *x,
-                                      const double *delta,
-                                      double *x_minus_delta) const {
+                         const double *delta,
+                         double *x_minus_delta) const {
   UNUSED(x);
   UNUSED(delta);
   UNUSED(x_minus_delta);
   return false;
 }
 
-bool PoseManifold::MinusJacobian(const double *x,
-                                              double *jacobian) const {
+bool PoseManifold::MinusJacobian(const double *x, double *jacobian) const {
   UNUSED(x);
   UNUSED(jacobian);
   return false;

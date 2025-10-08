@@ -270,7 +270,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     const Mat4 q_left_dq_right = quat_left(q_ji) * quat_right(dq_);
     const Mat3 dtheta_dCi = -(q_left_dq_right).block<3, 3>(1, 1);
 
-    Eigen::Map<Mat<15, 7, RowMajor>> J(jacs[0]);
+    Eigen::Map<Mat<15, 7, Eigen::RowMajor>> J(jacs[0]);
     J.setZero();
     J.block<3, 3>(0, 0) = -C_iT;         // dr w.r.t r_i
     J.block<3, 3>(0, 3) = skew(dr_meas); // dr w.r.t C_i
@@ -279,7 +279,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     J = sqrt_info_ * J;
 
     if (min_jacs && min_jacs[0]) {
-      Eigen::Map<Mat<15, 6, RowMajor>> min_J(min_jacs[0]);
+      Eigen::Map<Mat<15, 6, Eigen::RowMajor>> min_J(min_jacs[0]);
       min_J = J.block<15, 6>(0, 0);
     }
   }
@@ -289,7 +289,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     const Quat dq_ji{C_j.transpose() * C_i * dq_.toRotationMatrix()};
     const Mat3 dQ_left_xyz = quat_left(dq_ji).block<3, 3>(1, 1);
 
-    Eigen::Map<Mat<15, 9, RowMajor>> J(jacs[1]);
+    Eigen::Map<Mat<15, 9, Eigen::RowMajor>> J(jacs[1]);
     J.setZero();
     J.block<3, 3>(0, 0) = -C_i.transpose() * Dt_; // dr w.r.t v_i
     J.block<3, 3>(0, 3) = -dr_dba;                // dr w.r.t ba
@@ -303,7 +303,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     J = sqrt_info_ * J;
 
     if (min_jacs && min_jacs[1]) {
-      Eigen::Map<Mat<15, 9, RowMajor>> min_J(min_jacs[1]);
+      Eigen::Map<Mat<15, 9, Eigen::RowMajor>> min_J(min_jacs[1]);
       min_J = J;
     }
   }
@@ -313,21 +313,21 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     const Quat error_rot = dq_.inverse() * (q_i.inverse() * q_j);
     const Mat3 dtheta_dCj = quat_left(error_rot).block<3, 3>(1, 1);
 
-    Eigen::Map<Mat<15, 7, RowMajor>> J(jacs[2]);
+    Eigen::Map<Mat<15, 7, Eigen::RowMajor>> J(jacs[2]);
     J.setZero();
     J.block<3, 3>(0, 0) = C_i.transpose(); // dr w.r.t r_j
     J.block<3, 3>(6, 3) = dtheta_dCj;      // dtheta w.r.t C_j
     J = sqrt_info_ * J;
 
     if (min_jacs && min_jacs[2]) {
-      Eigen::Map<Mat<15, 6, RowMajor>> min_J(min_jacs[2]);
+      Eigen::Map<Mat<15, 6, Eigen::RowMajor>> min_J(min_jacs[2]);
       min_J = J.block<15, 6>(0, 0);
     }
   }
 
   //  Jacobian w.r.t. speed and biases j
   if (jacs[3]) {
-    Eigen::Map<Mat<15, 9, RowMajor>> J(jacs[3]);
+    Eigen::Map<Mat<15, 9, Eigen::RowMajor>> J(jacs[3]);
     J.setZero();
     J.block<3, 3>(3, 0) = C_i.transpose(); // dv w.r.t v_j
     J.block<3, 3>(9, 3) = I(3);
@@ -335,7 +335,7 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     J = sqrt_info_ * J;
 
     if (min_jacs && min_jacs[3]) {
-      Eigen::Map<Mat<15, 9, RowMajor>> min_J(min_jacs[3]);
+      Eigen::Map<Mat<15, 9, Eigen::RowMajor>> min_J(min_jacs[3]);
       min_J = J;
     }
   }
