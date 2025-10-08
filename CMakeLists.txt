@@ -70,7 +70,7 @@ set(TEST_DATA ${CMAKE_CURRENT_LIST_DIR}/lib/tests/test_data)
 add_executable(unittests
   lib/tests/calib/TestAprilGrid.cpp
   lib/tests/calib/TestCalibCamera.cpp
-  # lib/tests/calib/TestCalibCameraImu.cpp
+  lib/tests/calib/TestCalibCameraImu.cpp
   lib/tests/calib/TestCalibData.cpp
   lib/tests/calib/TestCameraChain.cpp
   lib/tests/camera/TestCameraModel.cpp

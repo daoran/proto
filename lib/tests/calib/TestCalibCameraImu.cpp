@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "calib/CalibCameraImu.hpp"
+#include "timeline/timeline.hpp"
 
 #define TEST_CONFIG TEST_DATA "/calib_camera_imu.yaml"
 
@@ -31,21 +32,22 @@ TEST(CalibCameraImu, construct) {
 
   // Iterate through timeline
   for (const auto ts : timeline.timestamps) {
+    // Calibration target event
     std::map<int, CalibTargetPtr> camera_measurements;
-    for (const auto &event : timeline.getEvents(ts)) {
-      // Calibration target event
-      if (const auto &camera_event = static_cast<CalibTargetEvent>(event)) {
+    for (auto &event : timeline.getEvents(ts)) {
+      if (auto camera_event = static_cast<CalibTargetEvent *>(event)) {
         const int camera_index = camera_event->camera_index;
         const auto calib_target = camera_event->calib_target;
         camera_measurements[camera_index] = calib_target;
       }
 
       // Imu Event
-      if (const auto &imu_event = static_cast<ImuEvent>(event)) {
+      if (const auto &imu_event = static_cast<ImuEvent *>(event)) {
         calib.addImuMeasurement(ts, imu_event->acc, imu_event->gyr);
       }
     }
-    calib.addView(measurements);
+
+    calib.addView(camera_measurements);
   }
 
 }

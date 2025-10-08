@@ -1,6 +1,6 @@
 #pragma once
 #include "../Core.hpp"
-#include "../imu/ImuBuffer.hpp"
+#include "../imu/imu.hpp"
 
 namespace xyz {
 
