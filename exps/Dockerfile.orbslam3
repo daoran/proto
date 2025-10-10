@@ -71,8 +71,6 @@ WORKDIR $HOME
 RUN git clone https://github.com/UZ-SLAMLab/ORB_SLAM3.git
 WORKDIR ORB_SLAM3
 RUN git checkout v1.0-release
-COPY orbslam-no_loop_closure.patch .
-RUN git apply orbslam-no_loop_closure.patch
 RUN sed -i 's/find_package(OpenCV 4.4)/find_package(OpenCV)/g' CMakeLists.txt
 # -- Build DBoW2
 RUN cd Thirdparty/DBoW2 \
