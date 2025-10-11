@@ -4,7 +4,7 @@ project(xyz)
 # Compilation Settings
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(USE_ADDRESS_SANITIZER OFF)
+set(USE_ADDRESS_SANITIZER ON)
 add_compile_options(-Wall -Wextra)
 
 # Address Sanitizer
@@ -21,6 +21,7 @@ find_package(OpenCV REQUIRED)
 find_package(apriltag REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(GTest REQUIRED)
+find_package(rerun_sdk REQUIRED)
 
 # Build libyac
 link_directories(${CMAKE_PREFIX_PATH}/lib)
@@ -30,18 +31,21 @@ add_library(
   STATIC
   lib/calib/AprilGrid.cpp
   lib/calib/CalibCamera.cpp
-  lib/calib/CalibCameraImu.cpp
+  # lib/calib/CalibCameraImu.cpp
   lib/calib/CalibData.cpp
   lib/calib/CalibTarget.cpp
   lib/calib/CalibView.cpp
   lib/calib/CameraChain.cpp
   lib/calib/SolvePnp.cpp
+  lib/camera/distortion/Equi4.cpp
+  lib/camera/distortion/NoDistortion.cpp
+  lib/camera/distortion/RadTan4.cpp
   lib/camera/CameraGeometry.cpp
-  lib/camera/CameraModel.cpp
+  lib/camera/Pinhole.cpp
   lib/ceres/ImuError.cpp
   lib/ceres/ParamBlock.cpp
   lib/ceres/PoseManifold.cpp
-  lib/ceres/ReprojectionError.cpp
+  lib/ceres/CalibCameraError.cpp
   lib/ceres/ResidualBlock.cpp
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
@@ -65,19 +69,24 @@ target_link_libraries(${PROJECT_NAME} ${DEPS})
 
 # Build unit-tests
 set(TEST_DEPS GTest::gtest_main ${PROJECT_NAME} ${DEPS})
-set(TEST_DATA ${CMAKE_CURRENT_LIST_DIR}/lib/tests/test_data)
+set(TEST_DATA ${CMAKE_CURRENT_LIST_DIR}/lib/test_data)
 
 add_executable(unittests
-  lib/tests/calib/TestAprilGrid.cpp
-  lib/tests/calib/TestCalibCamera.cpp
-  lib/tests/calib/TestCalibCameraImu.cpp
-  lib/tests/calib/TestCalibData.cpp
-  lib/tests/calib/TestCameraChain.cpp
-  lib/tests/camera/TestCameraModel.cpp
-  lib/tests/ceres/TestImuError.cpp
-  lib/tests/ceres/TestReprojectionError.cpp
-  lib/tests/sim/TestSim.cpp
-  lib/tests/timeline/TestTimeline.cpp
+  lib/calib/TestAprilGrid.cpp
+  lib/calib/TestCalibCamera.cpp
+  # lib/calib/TestCalibCameraImu.cpp
+  lib/calib/TestCalibData.cpp
+  lib/calib/TestCameraChain.cpp
+  lib/camera/distortion/TestEqui4.cpp
+  lib/camera/distortion/TestNoDistortion.cpp
+  lib/camera/distortion/TestRadTan4.cpp
+  lib/camera/TestPinhole.cpp
+  lib/camera/TestPinholeEqui4.cpp
+  lib/camera/TestPinholeRadTan4.cpp
+  lib/ceres/TestCalibCameraError.cpp
+  lib/ceres/TestImuError.cpp
+  lib/sim/TestSim.cpp
+  lib/timeline/TestTimeline.cpp
 )
 add_compile_definitions(unittests PRIVATE TEST_DATA="${TEST_DATA}")
 target_link_libraries(unittests ${TEST_DEPS})

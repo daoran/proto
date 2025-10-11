@@ -19,13 +19,13 @@ public:
                  const Vec2i &resolution,
                  const VecX &intrinsic,
                  const VecX &extrinsic);
-  virtual ~CameraGeometry() = default;
+  virtual ~CameraGeometry();
 
   /** Get camera index **/
   int getCameraIndex() const;
 
   /** Get camera model **/
-  std::shared_ptr<CameraModel> getCameraModel() const;
+  CameraModel *getCameraModel() const;
 
   /** Get camera model string **/
   std::string getCameraModelString() const;

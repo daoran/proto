@@ -1,5 +1,3 @@
-DATA_DIR=/data
-
 BUILD_TARGETS := build_kalibr
 BUILD_TARGETS += build_msckf-vio
 BUILD_TARGETS += build_okvis
@@ -9,7 +7,7 @@ BUILD_TARGETS += build_vins-mono
 
 define build_docker
 	@docker build \
-		-t benchmark/$(1) \
+		-t $(1) \
 		-f Dockerfile.$(1) \
 		--build-arg UID=$(shell id -u) \
 		--build-arg GID=$(shell id -g) .
@@ -20,8 +18,7 @@ define run_docker
 	@docker run -e DISPLAY \
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
 		-v /tmp:/tmp \
-		-v $(DATA_DIR):$(DATA_DIR) \
-		-v $(PWD)/configs:/home/docker/configs \
+		-v $(PWD)/resource:/home/docker/resource \
 		--network="host" \
 		-it --rm benchmark/$(1) \
 		/bin/bash

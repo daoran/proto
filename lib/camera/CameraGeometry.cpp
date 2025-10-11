@@ -1,4 +1,6 @@
 #include "CameraGeometry.hpp"
+#include "PinholeEqui4.hpp"
+#include "PinholeRadTan4.hpp"
 
 namespace xyz {
 
@@ -11,7 +13,7 @@ CameraGeometry::CameraGeometry(const int camera_index,
       intrinsic_{intrinsic}, extrinsic_{extrinsic} {
   // Initialize camera model
   if (camera_model == "pinhole-radtan4") {
-    camera_model_ = std::make_shared<PinholeRadtan4>();
+    camera_model_ = std::make_shared<PinholeRadTan4>();
   } else if (camera_model == "pinhole-equi4") {
     camera_model_ = std::make_shared<PinholeEqui4>();
   } else {
@@ -42,14 +44,18 @@ CameraGeometry::CameraGeometry(const int camera_index,
   intrinsic_[3] = cy;
 }
 
+CameraGeometry::~CameraGeometry() {
+  // delete camera_model_;
+}
+
 int CameraGeometry::getCameraIndex() const { return camera_index_; }
 
-std::shared_ptr<CameraModel> CameraGeometry::getCameraModel() const {
-  return camera_model_;
+CameraModel *CameraGeometry::getCameraModel() const {
+  return camera_model_.get();
 }
 
 std::string CameraGeometry::getCameraModelString() const {
-  return camera_model_->type;
+  return camera_model_->type();
 }
 
 Vec2i CameraGeometry::getResolution() const { return resolution_; }

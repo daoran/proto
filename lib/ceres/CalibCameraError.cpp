@@ -1,19 +1,19 @@
-#include "ReprojectionError.hpp"
+#include "CalibCameraError.hpp"
 
 namespace xyz {
 
-ReprojectionError::ReprojectionError(
+CalibCameraError::CalibCameraError(
     const std::shared_ptr<CameraGeometry> &camera_geometry,
     const std::vector<double *> &param_ptrs,
     const std::vector<ParamBlock::Type> &param_types,
     const Vec2 &z,
     const Mat2 &covar)
-    : ResidualBlock{"ReprojectionError", param_ptrs, param_types, 2},
+    : ResidualBlock{"CalibCameraError", param_ptrs, param_types, 2},
       camera_geometry_{camera_geometry}, z_{z}, covar_{covar},
       info_{covar.inverse()}, sqrt_info_{info_.llt().matrixU()} {}
 
-std::shared_ptr<ReprojectionError>
-ReprojectionError::create(const std::shared_ptr<CameraGeometry> &camera,
+std::shared_ptr<CalibCameraError>
+CalibCameraError::create(const std::shared_ptr<CameraGeometry> &camera,
                           double *T_C0F,
                           double *p_FFi,
                           const Vec2 &z,
@@ -27,24 +27,24 @@ ReprojectionError::create(const std::shared_ptr<CameraGeometry> &camera,
                                                ParamBlock::EXTRINSIC,
                                                ParamBlock::INTRINSIC8};
 
-  return std::make_shared<ReprojectionError>(camera,
+  return std::make_shared<CalibCameraError>(camera,
                                              param_ptrs,
                                              param_types,
                                              z,
                                              covar);
 }
 
-bool ReprojectionError::getResiduals(Vec2 &r) const {
+bool CalibCameraError::getResiduals(Vec2 &r) const {
   r = residuals_;
   return valid_;
 }
 
-bool ReprojectionError::getReprojError(double *error) const {
+bool CalibCameraError::getReprojError(double *error) const {
   *error = residuals_.norm();
   return valid_;
 }
 
-bool ReprojectionError::EvaluateWithMinimalJacobians(
+bool CalibCameraError::EvaluateWithMinimalJacobians(
     double const *const *params,
     double *res,
     double **jacs,
@@ -75,7 +75,7 @@ bool ReprojectionError::EvaluateWithMinimalJacobians(
   residuals_ = z_ - z_hat;
 
   // Jacobians
-  const MatX Jh = camera_model->projectJacobian(intrinsic, p_Ci);
+  const MatX Jh = camera_model->project_jacobian(intrinsic, p_Ci);
   const MatX Jh_weighted = -1.0 * sqrt_info_ * Jh;
   if (jacs == nullptr) {
     return true;
@@ -143,7 +143,7 @@ bool ReprojectionError::EvaluateWithMinimalJacobians(
   // Jacobians w.r.t intrinsic
   if (jacs[3]) {
     Eigen::Map<Mat<2, 8, Eigen::RowMajor>> J(jacs[3]);
-    const MatX J_cam = camera_model->paramsJacobian(intrinsic, p_Ci);
+    const MatX J_cam = camera_model->params_jacobian(intrinsic, p_Ci);
     const MatX J_min = -1 * sqrt_info_ * J_cam;
     J = (valid_) ? J_min : zeros(2, 8);
 

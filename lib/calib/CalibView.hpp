@@ -2,7 +2,7 @@
 
 #include "CalibData.hpp"
 #include "../ceres/ImuError.hpp"
-#include "../ceres/ReprojectionError.hpp"
+#include "../ceres/CalibCameraError.hpp"
 
 namespace xyz {
 
@@ -17,7 +17,7 @@ private:
   std::map<int, Vec3> &target_points_;
   Vec7 pose_;
 
-  std::map<int, std::vector<std::shared_ptr<ReprojectionError>>> resblocks_;
+  std::map<int, std::vector<std::shared_ptr<CalibCameraError>>> resblocks_;
   std::map<int, std::vector<ceres::ResidualBlockId>> resblock_ids_;
 
 public:

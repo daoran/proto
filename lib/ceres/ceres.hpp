@@ -4,5 +4,5 @@
 #include "MarginalError.hpp"
 #include "ParamBlock.hpp"
 #include "PoseManifold.hpp"
-#include "ReprojectionError.hpp"
+#include "CalibCameraError.hpp"
 #include "ResidualBlock.hpp"

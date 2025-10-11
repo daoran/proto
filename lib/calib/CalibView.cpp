@@ -46,7 +46,7 @@ CalibView::CalibView(std::shared_ptr<ceres::Problem> &problem,
       auto pose_ptr = pose_.data();
       auto pt_ptr = pt.data();
       auto kp = keypoints[i];
-      auto resblock = ReprojectionError::create(camera_geometry,
+      auto resblock = CalibCameraError::create(camera_geometry,
                                                 pose_ptr,
                                                 pt_ptr,
                                                 kp,

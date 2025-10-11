@@ -1348,8 +1348,6 @@ void save_imu_data(const std::string &path,
 }
 
 Mat4 load_pose(const std::string &fpath) {
-  Mat4 T_WF;
-
   // Open file for loading
   int nb_rows = 0;
   FILE *fp = file_open(fpath.c_str(), "r", &nb_rows);
@@ -1860,7 +1858,7 @@ void load_matrix(const MatX &A, std::vector<double> &x) {
 }
 
 MatX pinv(const MatX &A, const double tol) {
-  auto svd = A.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
+  auto svd = A.jacobiSvd<Eigen::ComputeFullU | Eigen::ComputeFullV>();
   const auto &vals_ = svd.singularValues();
   MatX vals_inv = zeros(A.cols(), A.rows());
 

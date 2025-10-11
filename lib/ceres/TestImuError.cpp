@@ -21,7 +21,7 @@ TEST(ImuError, evaluate) {
   // Setup imu buffer
   const int start_index = 0;
   const int end_index = 100;
-  const ImuBuffer imu_buffer = sim.formImuBuffer(start_index, end_index - 1);
+  const ImuBuffer imu_buffer = sim.form_imu_buffer(start_index, end_index - 1);
 
   // Pose i
   const timestamp_t ts_i = sim.timestamps[start_index];
@@ -98,7 +98,7 @@ TEST(ImuError, propagation) {
   // Form IMU buffer
   const int start_index = 0;
   const int end_index = 100;
-  const ImuBuffer imu_buffer = sim.formImuBuffer(start_index, end_index);
+  const ImuBuffer imu_buffer = sim.form_imu_buffer(start_index, end_index);
 
   // State at timestamp i
   const timestamp_t ts_i = sim.timestamps[start_index];
@@ -152,7 +152,7 @@ TEST(ImuError, solve) {
   ceres::Problem problem{prob_options};
   PoseManifold pose_plus;
 
-  const int N = sim.getNumMeasurements();
+  const int N = sim.get_num_measurements();
   int step_size = 30;
   int start_index = 0;
   int end_index = step_size;
@@ -176,7 +176,7 @@ TEST(ImuError, solve) {
     // Form IMU buffer
     const timestamp_t ts_i = sim.timestamps[start_index];
     const timestamp_t ts_j = sim.timestamps[end_index];
-    const ImuBuffer imu_buffer = sim.formImuBuffer(start_index, end_index);
+    const ImuBuffer imu_buffer = sim.form_imu_buffer(start_index, end_index);
 
     // Pose and velocity at timestamp j
     const VecX pose_j_gnd = tf_vec(sim.poses[ts_j]);

@@ -12,23 +12,16 @@ CalibCameraImu::CalibCameraImu(const std::string &config_file)
   problem_ = std::make_shared<ceres::Problem>(prob_options_);
 }
 
-void CalibCameraImu::addImuMeasurement(const timestamp_t ts,
-                                       const Vec3 &imu_acc,
-                                       const Vec3 &imu_gyr) {
-  imu_buffer_.add(ts, imu_acc, imu_gyr);
-}
-
-void CalibCameraImu::addView(
-    const std::map<int, CalibTargetPtr> &measurements) {
+void CalibCameraImu::addView() {
   // Check if we have IMU measurements
   if (imu_buffer_.getNumMeasurements() == 0) {
     return;
   }
 
-  // Check if AprilGrid was detected and get the best detected target
+  // Check if calib target was detected and get the best detection
   int best_camera_index = 0;
   CalibTargetPtr best_target = nullptr;
-  for (const auto &[camera_index, calib_target] : measurements) {
+  for (const auto &[camera_index, calib_target] : camera_buffer_) {
     // Check if calibration target is detected
     if (calib_target->detected() == false) {
       continue;
@@ -44,6 +37,7 @@ void CalibCameraImu::addView(
     }
   }
   if (best_target == nullptr) {
+    camera_buffer_.clear();
     return;
   }
 
@@ -57,36 +51,72 @@ void CalibCameraImu::addView(
                                keypoints,
                                object_points);
   if (keypoints.size() < 10) {
+    camera_buffer_.clear();
     return;
   }
 
-  // Estimate relative pose T_CF
+  // Estimate relative pose T_CiF
   Mat4 T_CiF;
   SolvePnp pnp{camera_geometries_[best_camera_index]};
   int status = pnp.estimate(keypoints, object_points, T_CiF);
   if (status != 0) {
+    camera_buffer_.clear();
     return;
   }
 
   // Add to calib data if it does not exist
   const timestamp_t ts = best_target->getTimestamp();
-  for (const auto &[camera_index, calib_target] : measurements) {
+  for (const auto &[camera_index, calib_target] : camera_buffer_) {
     if (hasCameraMeasurement(ts, camera_index) == false) {
       addCameraMeasurement(ts, camera_index, calib_target);
     }
   }
 
   // Add calibration view
-  const Mat4 T_C0Ci = camera_geometries_[best_camera_index]->getTransform();
-  const Mat4 T_C0F = T_C0Ci * T_CiF;
-  const Vec7 pose = tf_vec(T_C0F);
+  const Mat4 T_FCi = T_CiF.inverse();
+  const Mat4 T_BCi = camera_geometries_[best_camera_index]->getTransform();
+  const Mat4 T_BS = imu_geometries_[0]->getTransform();
+  const Mat4 T_CiS = T_BCi.inverse() * T_BS;
+  const Mat4 T_WF;
+  const Mat4 T_WS = T_WF * T_FCi * T_CiS;
+  const Vec7 pose = tf_vec(T_WS);
   timestamps_.insert(ts);
-  calib_views_[ts] = std::make_shared<CalibView>(problem_,
-                                                 ts,
-                                                 measurements,
-                                                 camera_geometries_,
-                                                 target_points_,
-                                                 pose);
+  // calib_views_[ts] = std::make_shared<CalibView>(problem_,
+  //                                                ts,
+  //                                                camera_buffer_,
+  //                                                camera_geometries_,
+  //                                                target_points_,
+  //                                                pose);
+  camera_buffer_.clear();
+}
+
+void CalibCameraImu::addMeasurement(const timestamp_t ts,
+                                    const Vec3 &imu_acc,
+                                    const Vec3 &imu_gyr) {
+  imu_buffer_.add(ts, imu_acc, imu_gyr);
+  imu_started_ = true;
+
+  // Check if calibration target buffer is filled
+  if (static_cast<int>(camera_buffer_.size()) != getNumCameras()) {
+    return;
+  }
+
+  // Add view
+  addView();
+}
+
+void CalibCameraImu::addMeasurement(const int camera_index,
+                                    const CalibTargetPtr &calib_target) {
+  // Do not add vision data before first imu measurement
+  if (imu_started_ == false) {
+    return;
+  }
+
+  // Add to camera buffer
+  camera_buffer_[camera_index] = calib_target;
+  camera_started_ = true;
+
+  return;
 }
 
 void CalibCameraImu::solve() {
@@ -103,9 +133,8 @@ void CalibCameraImu::solve() {
 
   // Solve
   ceres::Solver::Summary summary;
-  // ceres::Solve(options, problem_.get(), &summary);
+  ceres::Solve(options, problem_.get(), &summary);
   // std::cout << summary.FullReport() << std::endl << std::endl;
-  //
   // printSummary(stdout);
 }
 

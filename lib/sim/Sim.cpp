@@ -59,9 +59,9 @@ Sim::Sim() {
   }
 }
 
-int Sim::getNumMeasurements() const { return timestamps.size(); }
+int Sim::get_num_measurements() const { return timestamps.size(); }
 
-ImuBuffer Sim::formImuBuffer(const int start_index, const int end_index) const {
+ImuBuffer Sim::form_imu_buffer(const int start_index, const int end_index) const {
   ImuBuffer buffer;
   for (int i = 0; i < (end_index - start_index); i++) {
     const timestamp_t ts = timestamps.at(start_index + i);
@@ -85,7 +85,7 @@ void Sim::save(const std::string &save_path) const {
   fprintf(csv_file, "wx,wy,wz\n");
 
   // Write data
-  for (int k = 0; k < getNumMeasurements(); k++) {
+  for (int k = 0; k < get_num_measurements(); k++) {
     const timestamp_t ts = timestamps.at(k);
     const Mat4 pose = poses.at(ts);
     const Vec3 r = tf_trans(pose);

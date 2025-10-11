@@ -15,10 +15,10 @@ struct Sim {
   Sim();
 
   /** Return number of measurements */
-  int getNumMeasurements() const;
+  int get_num_measurements() const;
 
   /** Extract subset of data */
-  ImuBuffer formImuBuffer(const int start_index, const int end_index) const;
+  ImuBuffer form_imu_buffer(const int start_index, const int end_index) const;
 
   /** Save simulation data */
   void save(const std::string &save_path) const;

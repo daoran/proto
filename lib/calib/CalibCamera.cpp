@@ -18,7 +18,7 @@ void CalibCamera::initializeIntrinsics() {
   for (const auto &[camera_index, camera_measurements] : getAllCameraData()) {
     // Setup Problem
     std::map<timestamp_t, Vec7> relposes;
-    std::vector<std::shared_ptr<ReprojectionError>> resblocks;
+    std::vector<std::shared_ptr<CalibCameraError>> resblocks;
     auto init_problem = std::make_unique<ceres::Problem>(prob_options_);
 
     // Add camera to problem
@@ -74,7 +74,7 @@ void CalibCamera::initializeIntrinsics() {
         init_problem->AddParameterBlock(pt.data(), 3);
         init_problem->SetParameterBlockConstant(pt.data());
 
-        auto resblock = ReprojectionError::create(camera_geometry,
+        auto resblock = CalibCameraError::create(camera_geometry,
                                                   relposes[ts].data(),
                                                   pt.data(),
                                                   keypoints[i],
@@ -129,7 +129,7 @@ void CalibCamera::initializeExtrinsics() {
   // Setup Problem
   Mat2 covar = I(2);
   std::map<timestamp_t, Vec7> relposes;
-  std::vector<std::shared_ptr<ReprojectionError>> resblocks;
+  std::vector<std::shared_ptr<CalibCameraError>> resblocks;
   auto init_problem = std::make_unique<ceres::Problem>(prob_options_);
 
   // Build problem
@@ -197,7 +197,7 @@ void CalibCamera::initializeExtrinsics() {
         init_problem->AddParameterBlock(pt.data(), 3);
         init_problem->SetParameterBlockConstant(pt.data());
 
-        auto resblock = ReprojectionError::create(camera_geometry,
+        auto resblock = CalibCameraError::create(camera_geometry,
                                                   relposes[ts].data(),
                                                   pt.data(),
                                                   keypoints[i],

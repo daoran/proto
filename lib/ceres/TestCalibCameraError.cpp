@@ -2,13 +2,13 @@
 
 #include "calib/CalibData.hpp"
 #include "calib/SolvePnp.hpp"
-#include "ceres/ReprojectionError.hpp"
+#include "ceres/CalibCameraError.hpp"
 
 #define TEST_CONFIG TEST_DATA "/calib_camera.yaml"
 
 namespace xyz {
 
-TEST(ReprojectionError, evaluate) {
+TEST(CalibCameraError, evaluate) {
   // Load test data
   CalibData calib_data{TEST_CONFIG};
 
@@ -65,7 +65,7 @@ TEST(ReprojectionError, evaluate) {
   // Create residual block
   Mat2 covar = I(2);
   VecX relpose = tf_vec(T_CiF);
-  auto residual_block = ReprojectionError::create(camera_geometry,
+  auto residual_block = CalibCameraError::create(camera_geometry,
                                                   relpose.data(),
                                                   object_points[0].data(),
                                                   keypoints[0],

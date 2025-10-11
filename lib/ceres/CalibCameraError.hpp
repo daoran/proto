@@ -5,7 +5,7 @@
 namespace xyz {
 
 /** Reprojection Error */
-class ReprojectionError : public ResidualBlock {
+class CalibCameraError : public ResidualBlock {
 private:
   std::shared_ptr<CameraGeometry> camera_geometry_;
   Vec2 z_;
@@ -17,14 +17,14 @@ private:
 
 public:
   /** Constructor */
-  ReprojectionError(const std::shared_ptr<CameraGeometry> &camera_geometry,
+  CalibCameraError(const std::shared_ptr<CameraGeometry> &camera_geometry,
                     const std::vector<double *> &param_ptrs,
                     const std::vector<ParamBlock::Type> &param_types,
                     const Vec2 &z,
                     const Mat2 &covar);
 
   /** Create residual block */
-  static std::shared_ptr<ReprojectionError>
+  static std::shared_ptr<CalibCameraError>
   create(const std::shared_ptr<CameraGeometry> &camera,
          double *T_C0F,
          double *p_FFi,

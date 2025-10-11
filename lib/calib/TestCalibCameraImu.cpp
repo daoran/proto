@@ -32,24 +32,21 @@ TEST(CalibCameraImu, construct) {
 
   // Iterate through timeline
   for (const auto ts : timeline.timestamps) {
-    // Calibration target event
-    std::map<int, CalibTargetPtr> camera_measurements;
+    // Handle multiple events in the same timestamp
     for (auto &event : timeline.getEvents(ts)) {
+      // Camera event
       if (auto camera_event = static_cast<CalibTargetEvent *>(event)) {
         const int camera_index = camera_event->camera_index;
         const auto calib_target = camera_event->calib_target;
-        camera_measurements[camera_index] = calib_target;
+        calib.addMeasurement(camera_index, calib_target);
       }
 
       // Imu Event
       if (const auto &imu_event = static_cast<ImuEvent *>(event)) {
-        calib.addImuMeasurement(ts, imu_event->acc, imu_event->gyr);
+        calib.addMeasurement(ts, imu_event->acc, imu_event->gyr);
       }
     }
-
-    calib.addView(camera_measurements);
   }
-
 }
 
 } // namespace xyz

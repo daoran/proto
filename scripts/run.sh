@@ -473,15 +473,18 @@ DEBUG="gdb -ex=run -ex=bt -ex=quit --args"
 PROFILE_RECORD="perf record -g --call-graph=dwarf"
 PROFILE_ANNOTATE="perf annotate --stdio > profile.txt"
 
+CMD="./build/unittests"
 # CMD="./build/unittests --gtest_filter=AprilGrid.*"
-# CMD="./build/unittests --gtest_filter=CalibCamera.*"
-CMD="./build/unittests --gtest_filter=CalibCameraImu.*"
+# CMD="./build/unittests --gtest_filter=PinholeEqui4.*"
+# CMD="./build/unittests --gtest_filter=CalibCamera.solve"
+# CMD="./build/unittests --gtest_filter=CalibCameraImu.*"
 # CMD="./build/unittests --gtest_filter=CalibData.*"
 # CMD="./build/unittests --gtest_filter=CameraChain.*"
 # CMD="./build/unittests --gtest_filter=CameraModel.*"
 # CMD="./build/unittests --gtest_filter=ImuError.*"
-# CMD="./build/unittests --gtest_filter=ReprojectionError.*"
+# CMD="./build/unittests --gtest_filter=CalibCameraError.*"
 # CMD="./build/unittests --gtest_filter=Sim.*"
+# CMD="./build/unittests --gtest_filter=Timeline.*"
 
 tmux send-keys -t $TARGET -R C-l C-m
 tmux send-keys -t $TARGET -R "\

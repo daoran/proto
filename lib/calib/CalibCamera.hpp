@@ -4,7 +4,7 @@
 #include "CalibData.hpp"
 #include "CalibView.hpp"
 #include "../ceres/PoseManifold.hpp"
-#include "../ceres/ReprojectionError.hpp"
+#include "../ceres/CalibCameraError.hpp"
 
 namespace xyz {
 
