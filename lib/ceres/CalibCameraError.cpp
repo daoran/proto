@@ -14,10 +14,10 @@ CalibCameraError::CalibCameraError(
 
 std::shared_ptr<CalibCameraError>
 CalibCameraError::create(const std::shared_ptr<CameraGeometry> &camera,
-                          double *T_C0F,
-                          double *p_FFi,
-                          const Vec2 &z,
-                          const Mat2 &covar) {
+                         double *T_C0F,
+                         double *p_FFi,
+                         const Vec2 &z,
+                         const Mat2 &covar) {
   std::vector<double *> param_ptrs = {p_FFi,
                                       T_C0F,
                                       camera->getExtrinsicPtr(),
@@ -28,10 +28,10 @@ CalibCameraError::create(const std::shared_ptr<CameraGeometry> &camera,
                                                ParamBlock::INTRINSIC8};
 
   return std::make_shared<CalibCameraError>(camera,
-                                             param_ptrs,
-                                             param_types,
-                                             z,
-                                             covar);
+                                            param_ptrs,
+                                            param_types,
+                                            z,
+                                            covar);
 }
 
 bool CalibCameraError::getResiduals(Vec2 &r) const {
@@ -44,11 +44,10 @@ bool CalibCameraError::getReprojError(double *error) const {
   return valid_;
 }
 
-bool CalibCameraError::EvaluateWithMinimalJacobians(
-    double const *const *params,
-    double *res,
-    double **jacs,
-    double **min_jacs) const {
+bool CalibCameraError::EvaluateWithMinimalJacobians(double const *const *params,
+                                                    double *res,
+                                                    double **jacs,
+                                                    double **min_jacs) const {
   // Map parameters out
   Eigen::Map<const Vec3> p_FFi(params[0], 3);
   const Mat4 T_C0F = tf(params[1]);
@@ -81,7 +80,7 @@ bool CalibCameraError::EvaluateWithMinimalJacobians(
     return true;
   }
 
-  // Jacobians w.r.t p_FFi
+  // -- Jacobians w.r.t p_FFi
   if (jacs[0]) {
     const Mat3 C_CiF = tf_rot(T_CiF);
     MatX J_min = Jh_weighted * C_CiF;
@@ -95,7 +94,7 @@ bool CalibCameraError::EvaluateWithMinimalJacobians(
     }
   }
 
-  // Jacobians w.r.t T_C0F
+  // -- Jacobians w.r.t T_C0F
   if (jacs[1]) {
     // clang-format off
       const Mat3 C_CiC0 = tf_rot(T_CiC0);
@@ -117,7 +116,7 @@ bool CalibCameraError::EvaluateWithMinimalJacobians(
     }
   }
 
-  // Jacobians w.r.t T_C0Ci
+  // -- Jacobians w.r.t T_C0Ci
   if (jacs[2]) {
     // clang-format off
     const Mat3 C_C0Ci = tf_rot(T_C0Ci);
@@ -140,7 +139,7 @@ bool CalibCameraError::EvaluateWithMinimalJacobians(
     }
   }
 
-  // Jacobians w.r.t intrinsic
+  // -- Jacobians w.r.t intrinsic
   if (jacs[3]) {
     Eigen::Map<Mat<2, 8, Eigen::RowMajor>> J(jacs[3]);
     const MatX J_cam = camera_model->params_jacobian(intrinsic, p_Ci);

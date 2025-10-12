@@ -4,7 +4,7 @@
 
 namespace xyz {
 
-/** Reprojection Error */
+/** Camera Calibration Reprojection Error */
 class CalibCameraError : public ResidualBlock {
 private:
   std::shared_ptr<CameraGeometry> camera_geometry_;
