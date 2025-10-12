@@ -51,10 +51,12 @@ add_library(
   lib/ceres/PoseManifold.cpp
   lib/ceres/CalibCameraError.cpp
   lib/ceres/ResidualBlock.cpp
+  lib/dataset/EuRoC.cpp
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
   lib/imu/ImuState.cpp
-  lib/sim/Sim.cpp
+  lib/sim/SimImu.cpp
+  # lib/sim/SimVio.cpp
   lib/timeline/CalibTargetEvent.cpp
   lib/timeline/CameraEvent.cpp
   lib/timeline/ImuEvent.cpp
@@ -89,7 +91,8 @@ add_executable(unittests
   lib/camera/TestPinholeRadTan4.cpp
   lib/ceres/TestCalibCameraError.cpp
   lib/ceres/TestImuError.cpp
-  lib/sim/TestSim.cpp
+  lib/sim/TestSimImu.cpp
+  # lib/sim/TestSimVio.cpp
   lib/timeline/TestTimeline.cpp
 )
 add_compile_definitions(unittests PRIVATE TEST_DATA="${TEST_DATA}")

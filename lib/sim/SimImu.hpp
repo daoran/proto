@@ -4,7 +4,7 @@
 
 namespace xyz {
 
-struct Sim {
+struct SimImu {
   // Data
   std::vector<timestamp_t> timestamps;
   std::map<timestamp_t, Mat4> poses;
@@ -12,7 +12,8 @@ struct Sim {
   std::map<timestamp_t, Vec3> imu_acc;
   std::map<timestamp_t, Vec3> imu_gyr;
 
-  Sim();
+  SimImu();
+  virtual ~SimImu() = default;
 
   /** Return number of measurements */
   int get_num_measurements() const;

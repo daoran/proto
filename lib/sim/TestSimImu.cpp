@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
-#include "sim/Sim.hpp"
+#include "sim/SimImu.hpp"
 
 namespace xyz {
 
 TEST(Sim, construct) {
-  Sim sim;
+  SimImu sim;
   sim.save("/tmp/sim.csv");
 }
 

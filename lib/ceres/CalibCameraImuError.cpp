@@ -63,14 +63,14 @@ bool CalibCameraImuError::eval(double const *const *params,
 
   // Transform and project point to image plane
   // -- Transform point from fiducial frame to camera
-  const Mat4 T_WCi = T_WS * T_SC0 * T_C0Ci;
-  const Mat4 T_CiW = tf_inv(T_WCi);
-  const Mat4 T_CiF = T_CiW * T_WF;
-  const Vec3 p_Ci = tf_point(T_CiF, p_FFi);
+  const Mat4 T_CiC0 = tf_inv(T_C0Ci);
+  const Mat4 T_C0S = tf_inv(T_SC0);
+  const Mat4 T_SW = tf_inv(T_WS);
+  const Mat4 T_CiF = T_CiC0 * T_C0S * T_SW * T_WF;
+  const Vec3 p_Ci = tf_point(T_CiF, p_FFi_);
   // -- Project point from camera frame to image plane
   const auto camera_model = camera_geometry_->getCameraModel();
   const Vec2i resolution = camera_geometry_->getResolution();
-
   Vec2 z_hat;
   if (camera_model->project(resolution, intrinsic, p_Ci, z_hat) != 0) {
     valid_ = false;
@@ -90,12 +90,11 @@ bool CalibCameraImuError::eval(double const *const *params,
 
   // -- Jacobians w.r.t imu pose T_WS
   if (jacs[0]) {
-    const Mat3 r_WS = tf_trans(T_WS);
+    const Vec3 r_WS = tf_trans(T_WS);
     const Mat3 C_WS = tf_rot(T_WS);
     const Mat3 T_CiS = T_CiC0 * T_C0S;
     const Mat3 C_CiW = tf_rot(T_CiS * T_SW);
-    const Mat3 C_CiF = tf_rot(T_CiS * T_SW * T_WF);
-    const Vec3 p_W = tf_point(T_WF, p_F);
+    const Vec3 p_W = tf_point(T_WF, p_FFi_);
 
     Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[0]);
     J.setZero();
@@ -115,7 +114,7 @@ bool CalibCameraImuError::eval(double const *const *params,
     J.setZero();
     if (valid_) {
       J.block<2, 3>(0, 0) = Jh_weighted * C_CiW;
-      J.block<2, 3>(0, 3) = Jh_weighted * C_CiW * -C_CWF * skew(p_F);
+      J.block<2, 3>(0, 3) = Jh_weighted * C_CiW * -C_WF * skew(p_FFi_);
     }
   }
 
@@ -123,8 +122,8 @@ bool CalibCameraImuError::eval(double const *const *params,
   if (jacs[2]) {
     const Mat4 T_CiS = T_CiC0 * T_C0S;
     const Mat4 T_SF = T_SW * T_WF;
-    const Vec3 r_SFi = tf_point(T_SF, p_FFi);
-    const Mat3 r_SC0 = tf_trans(T_SC0);
+    const Vec3 p_SFi = tf_point(T_SF, p_FFi_);
+    const Vec3 r_SC0 = tf_trans(T_SC0);
     const Mat3 C_SC0 = tf_rot(T_SC0);
     const Mat3 C_CiS = tf_rot(T_CiS);
 
@@ -132,36 +131,34 @@ bool CalibCameraImuError::eval(double const *const *params,
     J.setZero();
     if (valid_) {
       J.block<2, 3>(0, 0) = Jh_weighted * -C_CiS;
-      J.block<2, 3>(0, 3) = Jh_weighted * -C_CiS * skew(r_SFi - r_SC0) * -C_SC0;
+      J.block<2, 3>(0, 3) = Jh_weighted * -C_CiS * skew(p_SFi - r_SC0) * -C_SC0;
     }
   }
 
   // -- Jacobians w.r.t camera extrinsic T_C0Ci
   if (jacs[3]) {
+    const Mat4 T_SF = T_SW * T_WF;
+    const Vec3 p_SFi = tf_point(T_SF, p_FFi_);
+    const Mat3 C_SC0 = tf_rot(T_SC0);
     const Vec3 r_C0Ci = tf_trans(T_C0Ci);
-    const Mat3 C_C0Ci = tf_trans(T_C0Ci);
     const Mat3 C_CiC0 = tf_trans(T_CiC0);
-    const Vec3 p_C0 = tf_point(T_C0S * T_SF * T_WF, p_F);
+    // const Vec3 p_C0 = tf_point(T_C0S * T_SW * T_WF, p_FFi_);
 
     Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[3]);
     J.setZero();
     if (valid_) {
       J.block<2, 3>(0, 0) = Jh_weighted * -C_CiC0;
       J.block<2, 3>(0, 3) =
-          Jh_weighted * -C_CiC0 * skew(r_SFi - r_C0Ci) * -C_SC0;
+          Jh_weighted * -C_CiC0 * skew(p_SFi - r_C0Ci) * -C_SC0;
     }
   }
 
   // -- Jacobians w.r.t intrinsic
   if (jacs[4]) {
     Eigen::Map<Mat<2, 8, Eigen::RowMajor>> J(jacs[4]);
-    const MatX J_cam = camera_model->params_jacobian(intrinsic, p_Ci);
-    const MatX J_min = -1 * sqrt_info_ * J_cam;
-    J = (valid_) ? J_min : zeros(2, 8);
-
-    if (min_jacs && min_jacs[3]) {
-      Eigen::Map<Mat<2, 8, Eigen::RowMajor>> min_J(min_jacs[3]);
-      min_J = (valid_) ? J_min : zeros(2, 8);
+    J.setZero();
+    if (valid_) {
+      J = -1.0 * sqrt_info_ * camera_model->params_jacobian(intrinsic, p_Ci);
     }
   }
 

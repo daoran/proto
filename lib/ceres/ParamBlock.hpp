@@ -4,8 +4,7 @@
 namespace xyz {
 
 /** Parameter Block **/
-class ParamBlock {
-public:
+struct ParamBlock {
   enum Type {
     POSE,
     EXTRINSIC,

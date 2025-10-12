@@ -1,8 +1,8 @@
-#include "Sim.hpp"
+#include "SimImu.hpp"
 
 namespace xyz {
 
-Sim::Sim() {
+SimImu::SimImu() {
   const Vec3 g{0.0, 0.0, 9.81};
   const double imu_rate = 200.0;
   const double circle_r = 10.0;
@@ -59,9 +59,10 @@ Sim::Sim() {
   }
 }
 
-int Sim::get_num_measurements() const { return timestamps.size(); }
+int SimImu::get_num_measurements() const { return timestamps.size(); }
 
-ImuBuffer Sim::form_imu_buffer(const int start_index, const int end_index) const {
+ImuBuffer SimImu::form_imu_buffer(const int start_index,
+                                  const int end_index) const {
   ImuBuffer buffer;
   for (int i = 0; i < (end_index - start_index); i++) {
     const timestamp_t ts = timestamps.at(start_index + i);
@@ -72,7 +73,7 @@ ImuBuffer Sim::form_imu_buffer(const int start_index, const int end_index) const
   return buffer;
 }
 
-void Sim::save(const std::string &save_path) const {
+void SimImu::save(const std::string &save_path) const {
   // Open csv file
   FILE *csv_file = fopen(save_path.c_str(), "w");
 

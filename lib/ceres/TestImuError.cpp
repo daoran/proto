@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "sim/Sim.hpp"
+#include "sim/SimImu.hpp"
 #include "imu/ImuState.hpp"
 #include "ceres/ImuError.hpp"
 #include "ceres/PoseManifold.hpp"
@@ -9,7 +9,7 @@ namespace xyz {
 
 TEST(ImuError, evaluate) {
   // Setup sim data
-  Sim sim;
+  SimImu sim;
 
   // Setup imu parameters
   ImuParams imu_params;
@@ -86,7 +86,7 @@ TEST(ImuError, evaluate) {
 
 TEST(ImuError, propagation) {
   // Setup sim
-  Sim sim;
+  SimImu sim;
 
   // Setup imu parameters
   ImuParams imu_params;
@@ -129,7 +129,7 @@ TEST(ImuError, propagation) {
 
 TEST(ImuError, solve) {
   // Setup imu simulation  data
-  Sim sim;
+  SimImu sim;
 
   // Setup imu parameters
   ImuParams imu_params;

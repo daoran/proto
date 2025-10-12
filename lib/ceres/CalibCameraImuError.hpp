@@ -28,8 +28,10 @@ public:
   /** Create residual block */
   static std::shared_ptr<CalibCameraImuError>
   create(const std::shared_ptr<CameraGeometry> &camera,
-         double *T_C0F,
-         double *p_FFi,
+         double *T_WS,
+         double *T_WF,
+         double *T_SC0,
+         const Vec3 &p_FFi,
          const Vec2 &z,
          const Mat2 &covar);
 

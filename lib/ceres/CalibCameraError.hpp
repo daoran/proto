@@ -31,6 +31,9 @@ public:
          const Vec2 &z,
          const Mat2 &covar);
 
+  /** Is point reprojection valid? */
+  bool valid() const;
+
   /** Get residuals */
   bool getResiduals(Vec2 &r) const;
 
