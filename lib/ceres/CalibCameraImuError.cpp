@@ -51,11 +51,9 @@ bool CalibCameraImuError::getReprojError(double *error) const {
   return valid_;
 }
 
-bool CalibCameraImuError::EvaluateWithMinimalJacobians(
-    double const *const *params,
-    double *res,
-    double **jacs,
-    double **min_jacs) const {
+bool CalibCameraImuError::eval(double const *const *params,
+                               double *res,
+                               double **jacs) const {
   // Map parameters out
   const Mat4 T_WS = tf(params[0]);
   const Mat4 T_WF = tf(params[1]);
@@ -149,7 +147,8 @@ bool CalibCameraImuError::EvaluateWithMinimalJacobians(
     J.setZero();
     if (valid_) {
       J.block<2, 3>(0, 0) = Jh_weighted * -C_CiC0;
-      J.block<2, 3>(0, 3) = Jh_weighted * -C_CiC0 * skew(r_SFi - r_C0Ci) * -C_SC0;
+      J.block<2, 3>(0, 3) =
+          Jh_weighted * -C_CiC0 * skew(r_SFi - r_C0Ci) * -C_SC0;
     }
   }
 

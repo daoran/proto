@@ -6,6 +6,7 @@ int ParamBlock::getParamSize(const ParamBlock::Type type) {
   switch (type) {
     case POSE:
     case EXTRINSIC:
+    case FIDUCIAL:
       return 7;
     case POINT:
     case VELOCITY:
@@ -26,6 +27,7 @@ int ParamBlock::getLocalSize(const ParamBlock::Type type) {
   switch (type) {
     case POSE:
     case EXTRINSIC:
+    case FIDUCIAL:
       return 6;
     case POINT:
     case VELOCITY:
@@ -49,6 +51,7 @@ void ParamBlock::perturb(const ParamBlock::Type type,
   switch (type) {
     case POSE:
     case EXTRINSIC:
+    case FIDUCIAL:
       switch (i) {
         case 0:
         case 1:

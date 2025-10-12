@@ -43,10 +43,10 @@ public:
   bool getReprojError(double *error) const;
 
   /** Evaluate with minimial Jacobians */
-  bool EvaluateWithMinimalJacobians(double const *const *params,
-                                    double *res,
-                                    double **jacs,
-                                    double **min_jacs) const override;
+  bool eval(double const *const *params,
+            double *res,
+            double **jacs,
+            double **min_jacs) const override;
 };
 
 } // namespace xyz

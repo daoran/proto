@@ -64,7 +64,7 @@ int SolvePnp::estimate(const Vec2s &keypoints,
   return 0;
 }
 
-int SolvePnP::estimate(const std::shared_ptr<CameraGeometry> &camera_geometry,
+int SolvePnp::estimate(const std::shared_ptr<CameraGeometry> &camera_geometry,
                        const std::shared_ptr<CalibTarget> &calib_target,
                        Mat4 &T_camera_target) {
   // Get calibration target measurements

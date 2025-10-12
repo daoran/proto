@@ -19,7 +19,7 @@ private:
   Vec3 ba_{0.0, 0.0, 0.0};              // Accel biase at i
   Vec3 bg_{0.0, 0.0, 0.0};              // Gyro biase at i
 
-  double Dt_ = 0.0;                // Preintegration time period [s]
+  double Dt_ = 0.0;              // Preintegration time period [s]
   MatX state_F_ = I(15);         // State jacobian
   MatX state_P_ = zeros(15, 15); // State covariance
   MatX sqrt_info_ = I(15, 15);   // Square root information
@@ -29,18 +29,18 @@ private:
 
   /** Form transiton matrix F */
   MatX formF(const int k,
-               const Quat &dq_i,
-               const Quat &dq_j,
-               const Vec3 &ba_i,
-               const Vec3 &bg_i,
-               const double dt);
+             const Quat &dq_i,
+             const Quat &dq_j,
+             const Vec3 &ba_i,
+             const Vec3 &bg_i,
+             const double dt);
 
   /** Form matrix G */
   MatX formG(const int k,
-               const Quat &dq_i,
-               const Quat &dq_j,
-               const Vec3 &ba_i,
-               const double dt);
+             const Quat &dq_i,
+             const Quat &dq_j,
+             const Vec3 &ba_i,
+             const double dt);
 
   /** Propagate IMU measurements */
   void propagate();
@@ -76,10 +76,9 @@ public:
                                           double *sb_j);
 
   /** Evaluate with minimial Jacobians */
-  bool EvaluateWithMinimalJacobians(double const *const *params,
-                                    double *res,
-                                    double **jacs,
-                                    double **min_jacs) const override;
+  bool eval(double const *const *params,
+            double *res,
+            double **jacs) const override;
 };
 
 } // namespace xyz

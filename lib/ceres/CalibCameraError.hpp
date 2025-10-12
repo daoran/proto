@@ -18,10 +18,10 @@ private:
 public:
   /** Constructor */
   CalibCameraError(const std::shared_ptr<CameraGeometry> &camera_geometry,
-                    const std::vector<double *> &param_ptrs,
-                    const std::vector<ParamBlock::Type> &param_types,
-                    const Vec2 &z,
-                    const Mat2 &covar);
+                   const std::vector<double *> &param_ptrs,
+                   const std::vector<ParamBlock::Type> &param_types,
+                   const Vec2 &z,
+                   const Mat2 &covar);
 
   /** Create residual block */
   static std::shared_ptr<CalibCameraError>
@@ -38,10 +38,9 @@ public:
   bool getReprojError(double *error) const;
 
   /** Evaluate with minimial Jacobians */
-  bool EvaluateWithMinimalJacobians(double const *const *params,
-                                    double *res,
-                                    double **jacs,
-                                    double **min_jacs) const override;
+  bool eval(double const *const *params,
+            double *res,
+            double **jacs) const override;
 };
 
 } // namespace xyz

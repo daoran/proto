@@ -1,5 +1,5 @@
 #pragma once
-#include "Core.hpp"
+#include "../Core.hpp"
 
 namespace xyz {
 
@@ -15,6 +15,7 @@ public:
     TIME_DELAY,
     INTRINSIC8,
     SPEED_BIASES,
+    FIDUCIAL,
   };
 
   /** Get Parameter Size */

@@ -199,10 +199,9 @@ std::shared_ptr<ImuError> ImuError::create(const ImuParams &imu_params,
                                     imu_buffer);
 }
 
-bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
-                                            double *res,
-                                            double **jacs,
-                                            double **min_jacs) const {
+bool ImuError::eval(double const *const *params,
+                    double *res,
+                    double **jacs) const {
   // Map parameters out
   const Mat4 T_i = tf(params[0]);
   Eigen::Map<const VecX> sb_i(params[1], 9);
@@ -270,18 +269,13 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     const Mat4 q_left_dq_right = quat_left(q_ji) * quat_right(dq_);
     const Mat3 dtheta_dCi = -(q_left_dq_right).block<3, 3>(1, 1);
 
-    Eigen::Map<Mat<15, 7, Eigen::RowMajor>> J(jacs[0]);
+    Eigen::Map<Mat<15, 6, Eigen::RowMajor>> J(jacs[0]);
     J.setZero();
     J.block<3, 3>(0, 0) = -C_iT;         // dr w.r.t r_i
     J.block<3, 3>(0, 3) = skew(dr_meas); // dr w.r.t C_i
     J.block<3, 3>(3, 3) = skew(dv_meas); // dv w.r.t C_i
     J.block<3, 3>(6, 3) = dtheta_dCi;    // dtheta w.r.t C_i
     J = sqrt_info_ * J;
-
-    if (min_jacs && min_jacs[0]) {
-      Eigen::Map<Mat<15, 6, Eigen::RowMajor>> min_J(min_jacs[0]);
-      min_J = J.block<15, 6>(0, 0);
-    }
   }
 
   // Jacobian w.r.t speed and biases i
@@ -301,11 +295,6 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     J.block<3, 3>(9, 3) = -I(3);
     J.block<3, 3>(12, 6) = -I(3);
     J = sqrt_info_ * J;
-
-    if (min_jacs && min_jacs[1]) {
-      Eigen::Map<Mat<15, 9, Eigen::RowMajor>> min_J(min_jacs[1]);
-      min_J = J;
-    }
   }
 
   // Jacobian w.r.t. pose j
@@ -313,16 +302,11 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     const Quat error_rot = dq_.inverse() * (q_i.inverse() * q_j);
     const Mat3 dtheta_dCj = quat_left(error_rot).block<3, 3>(1, 1);
 
-    Eigen::Map<Mat<15, 7, Eigen::RowMajor>> J(jacs[2]);
+    Eigen::Map<Mat<15, 6, Eigen::RowMajor>> J(jacs[2]);
     J.setZero();
     J.block<3, 3>(0, 0) = C_i.transpose(); // dr w.r.t r_j
     J.block<3, 3>(6, 3) = dtheta_dCj;      // dtheta w.r.t C_j
     J = sqrt_info_ * J;
-
-    if (min_jacs && min_jacs[2]) {
-      Eigen::Map<Mat<15, 6, Eigen::RowMajor>> min_J(min_jacs[2]);
-      min_J = J.block<15, 6>(0, 0);
-    }
   }
 
   //  Jacobian w.r.t. speed and biases j
@@ -333,11 +317,6 @@ bool ImuError::EvaluateWithMinimalJacobians(double const *const *params,
     J.block<3, 3>(9, 3) = I(3);
     J.block<3, 3>(12, 6) = I(3);
     J = sqrt_info_ * J;
-
-    if (min_jacs && min_jacs[3]) {
-      Eigen::Map<Mat<15, 9, Eigen::RowMajor>> min_J(min_jacs[3]);
-      min_J = J;
-    }
   }
 
   return true;

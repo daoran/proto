@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.0.0)
 project(xyz)
 
 # Compilation Settings
+set(CMAKE_C_COMPILER "clang")
+set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(USE_ADDRESS_SANITIZER ON)
 add_compile_options(-Wall -Wextra)
@@ -11,7 +14,8 @@ add_compile_options(-Wall -Wextra)
 if (USE_ADDRESS_SANITIZER)
   message(AUTHOR_WARNING "Building with ASAN - Executables will be slower!")
   add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
-  link_libraries(-fsanitize=address -static-libasan) # Use -static-libsan for Clang
+  # link_libraries(-fsanitize=address -static-libasan) # g++
+  link_libraries(-fsanitize=address -static-libsan) # clang
 endif()
 
 # Dependencies

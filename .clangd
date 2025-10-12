@@ -1,0 +1,6 @@
+CompileFlags:
+  CompilationDatabase: build
+  Add: [
+    -Ilib
+    -DDEBUG_MODE
+  ]
