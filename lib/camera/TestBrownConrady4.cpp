@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "PinholeRadTan4.hpp"
+#include "BrownConrady4.hpp"
 
 namespace xyz {
 
-static void setup_pinhole_radtan4_test(Vec2i &cam_res, VecX &params) {
+static void setup_test(Vec2i &cam_res, VecX &params) {
   cam_res = Vec2i{640, 480};
 
   const double fx = pinhole_focal(cam_res[0], 90.0);
@@ -20,12 +20,66 @@ static void setup_pinhole_radtan4_test(Vec2i &cam_res, VecX &params) {
   params << fx, fy, cx, cy, k1, k2, p1, p2;
 }
 
-TEST(PinholeRadTan4, project) {
+TEST(BrownConrady4, radtan4_distort) {
+  const int nb_points = 100;
+  const Vec4 dist_params{0.1, 0.01, 0.01, 0.01};
+  const double k1 = dist_params(0);
+  const double k2 = dist_params(1);
+  const double p1 = dist_params(2);
+  const double p2 = dist_params(3);
+
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    const Vec3 p{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    const Vec2 x{p(0) / p(2), p(1) / p(2)};
+    const Vec2 pixel = radtan4_distort(dist_params, x);
+
+    // Use opencv to use radtan distortion to distort point
+    const std::vector<cv::Point3f> points{cv::Point3f(p(0), p(1), p(2))};
+    const cv::Vec3f rvec;
+    const cv::Vec3f tvec;
+    const cv::Mat K = cv::Mat::eye(3, 3, CV_32F);
+    const cv::Vec4f D(k1, k2, p1, p2);
+    std::vector<cv::Point2f> image_points;
+    cv::projectPoints(points, rvec, tvec, K, D, image_points);
+    const Vec2 expected{image_points[0].x, image_points[0].y};
+
+    // // Debug
+    // std::cout << p.transpose() << std::endl;
+    // std::cout << pixel.transpose() << std::endl;
+    // std::cout << expected.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    ASSERT_TRUE((pixel - expected).norm() < 1.0e-5);
+  }
+}
+
+TEST(BrownConrady4, radtan4_undistort) {
+  const int nb_points = 100;
+  const Vec4 dist_params{0.1, 0.01, 0.01, 0.01};
+
+  for (int i = 0; i < nb_points; i++) {
+    // Distort point
+    const Vec3 point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    const Vec2 p{point(0) / point(2), point(1) / point(2)};
+    const Vec2 p_d = radtan4_distort(dist_params, p);
+    const Vec2 p_ud = radtan4_undistort(dist_params, p_d);
+
+    // // Debug
+    // std::cout << p.transpose() << std::endl;
+    // std::cout << p_ud.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    ASSERT_TRUE((p - p_ud).norm() < 1.0e-5);
+  }
+}
+
+TEST(BrownConrady4, project) {
   // Setup
-  PinholeRadTan4 camera;
+  BrownConrady4 camera;
   Vec2i cam_res;
   VecX params;
-  setup_pinhole_radtan4_test(cam_res, params);
+  setup_test(cam_res, params);
 
   // Test pinhole radtan4 project
   for (int i = 0; i < 1000; i++) {
@@ -63,12 +117,12 @@ TEST(PinholeRadTan4, project) {
   }
 }
 
-TEST(PinholeRadTan4, project_jacobian) {
+TEST(BrownConrady4, project_jacobian) {
   // Setup
-  PinholeRadTan4 camera;
+  BrownConrady4 camera;
   Vec2i cam_res;
   VecX params;
-  setup_pinhole_radtan4_test(cam_res, params);
+  setup_test(cam_res, params);
 
   // Analytical jacobian
   for (int i = 0; i < 100; i++) {
@@ -99,12 +153,12 @@ TEST(PinholeRadTan4, project_jacobian) {
   }
 }
 
-TEST(PinholeRadTan4, params_jacobian) {
+TEST(BrownConrady4, params_jacobian) {
   // Setup
-  PinholeRadTan4 camera;
+  BrownConrady4 camera;
   Vec2i cam_res;
   VecX params;
-  setup_pinhole_radtan4_test(cam_res, params);
+  setup_test(cam_res, params);
 
   // Analytical jacobian
   const Vec3 p_C{0.1, 0.2, 1.0};
@@ -152,12 +206,12 @@ static Vec2 opencv_undistort_point(const VecX &cam_params, const Vec2 &kp) {
   return kp_opencv;
 }
 
-TEST(PinholeRadTan4, undistort) {
+TEST(BrownConrady4, undistort) {
   // Setup
-  PinholeRadTan4 camera;
+  BrownConrady4 camera;
   Vec2i cam_res;
   VecX params;
-  setup_pinhole_radtan4_test(cam_res, params);
+  setup_test(cam_res, params);
 
   for (int i = 0; i < 100; i++) {
     // Project without distortion

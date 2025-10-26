@@ -1,7 +1,6 @@
 #pragma once
-#include "distortion/distortion.hpp"
+#include "BrownConrady4.hpp"
 #include "CameraGeometry.hpp"
 #include "CameraModel.hpp"
+#include "KannalaBrandt4.hpp"
 #include "Pinhole.hpp"
-#include "PinholeEqui4.hpp"
-#include "PinholeRadTan4.hpp"

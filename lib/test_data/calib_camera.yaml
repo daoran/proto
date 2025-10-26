@@ -9,8 +9,8 @@ calib_target:
 
 cam0:
   resolution: [752, 480]
-  camera_model: "pinhole-radtan4"
+  camera_model: "BrownConrady4"
 
 cam1:
   resolution: [752, 480]
-  camera_model: "pinhole-radtan4"
+  camera_model: "BrownConrady4"

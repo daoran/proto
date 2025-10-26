@@ -43,9 +43,6 @@ class AprilGrid : public CalibTarget {
 private:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  // Default constructor
-  AprilGrid() = default;
-
   /** Calculate AprilGrid tag index based on tag ID */
   void getGridIndex(const int tag_id, int &i, int &j) const;
 

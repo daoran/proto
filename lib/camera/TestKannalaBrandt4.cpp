@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "PinholeEqui4.hpp"
+#include "KannalaBrandt4.hpp"
 
 namespace xyz {
 
-static void setup_pinhole_equi4_test(Vec2i &cam_res, VecX &params) {
+static void setup_test(Vec2i &cam_res, VecX &params) {
   cam_res = Vec2i{640, 480};
 
   const double fx = pinhole_focal(cam_res[0], 90.0);
@@ -20,12 +20,64 @@ static void setup_pinhole_equi4_test(Vec2i &cam_res, VecX &params) {
   params << fx, fy, cx, cy, k1, k2, k3, k4;
 }
 
-TEST(PinholeEqui4, project) {
+TEST(KannalaBrandt4, equi4_distort) {
+  const int num_points = 100;
+  const Vec4 dist_params{0.1, 0.01, 0.01, 0.01};
+  const double k1 = dist_params(0);
+  const double k2 = dist_params(1);
+  const double k3 = dist_params(2);
+  const double k4 = dist_params(3);
+
+  for (int i = 0; i < num_points; i++) {
+    // Distort point
+    const Vec3 point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    const Vec2 p{point(0) / point(2), point(1) / point(2)};
+    const Vec2 p_d = equi4_distort(dist_params, p);
+
+    // Use opencv to use equi distortion to distort point
+    const std::vector<cv::Point2f> points{cv::Point2f(p(0), p(1))};
+    const cv::Mat K = cv::Mat::eye(3, 3, CV_32F);
+    const cv::Vec4f D(k1, k2, k3, k4);
+    std::vector<cv::Point2f> image_points;
+    cv::fisheye::distortPoints(points, image_points, K, D);
+    const Vec2 expected{image_points[0].x, image_points[0].y};
+
+    // // Debug
+    // std::cout << p_d.transpose() << std::endl;
+    // std::cout << expected.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    ASSERT_TRUE((p_d - expected).norm() < 1.0e-5);
+  }
+}
+
+TEST(KannalaBrandt4, equi4_undistort) {
+  const int num_points = 100;
+  const Vec4 dist_params{0.1, 0.2, 0.3, 0.4};
+
+  for (int i = 0; i < num_points; i++) {
+    // Distort point
+    const Vec3 point{randf(-1.0, 1.0), randf(-1.0, 1.0), randf(5.0, 10.0)};
+    const Vec2 p{point.x() / point.z(), point.y() / point.z()};
+    const Vec2 p_d = equi4_distort(dist_params, p);
+    const Vec2 p_ud = equi4_undistort(dist_params, p_d);
+
+    // // Debug
+    // std::cout << p.transpose() << std::endl;
+    // std::cout << p_d.transpose() << std::endl;
+    // std::cout << p_ud.transpose() << std::endl;
+    // std::cout << std::endl;
+
+    ASSERT_TRUE((p - p_ud).norm() < 1.0e-5);
+  }
+}
+
+TEST(KannalaBrandt4, project) {
   // Setup
-  PinholeEqui4 camera;
+  KannalaBrandt4 camera;
   Vec2i cam_res;
   VecX params;
-  setup_pinhole_equi4_test(cam_res, params);
+  setup_test(cam_res, params);
 
   // Test pinhole equi4 project
   const Vec3 p_C{0.1, 0.2, 1.0};
@@ -56,12 +108,12 @@ TEST(PinholeEqui4, project) {
   ASSERT_TRUE(fltcmp(z_hat_gnd.y(), z_hat.y()) == 0);
 }
 
-TEST(PinholeEqui4, project_jacobian) {
+TEST(KannalaBrandt4, project_jacobian) {
   // Setup
-  PinholeEqui4 camera;
+  KannalaBrandt4 camera;
   Vec2i cam_res;
   VecX params;
-  setup_pinhole_equi4_test(cam_res, params);
+  setup_test(cam_res, params);
 
   // Analytical jacobian
   const Vec3 p_C{0.1, 0.2, 1.0};
@@ -86,12 +138,12 @@ TEST(PinholeEqui4, project_jacobian) {
   ASSERT_TRUE((J - fdiff).norm() < 1e-4);
 }
 
-TEST(PinholeEqui4, params_jacobian) {
+TEST(KannalaBrandt4, params_jacobian) {
   // Setup
-  PinholeEqui4 camera;
+  KannalaBrandt4 camera;
   Vec2i cam_res;
   VecX params;
-  setup_pinhole_equi4_test(cam_res, params);
+  setup_test(cam_res, params);
 
   // Analytical jacobian
   const Vec3 p_C{0.1, 0.2, 5.0};
@@ -116,12 +168,12 @@ TEST(PinholeEqui4, params_jacobian) {
   ASSERT_TRUE((J - fdiff).norm() < 1e-4);
 }
 
-TEST(PinholeEqui4, undistort) {
+TEST(KannalaBrandt4, undistort) {
   // Setup
-  PinholeEqui4 camera;
+  KannalaBrandt4 camera;
   Vec2i cam_res;
   VecX params;
-  setup_pinhole_equi4_test(cam_res, params);
+  setup_test(cam_res, params);
 
   // Project without distortion
   const Vec3 p_C{0.1, 0.2, 1.0};

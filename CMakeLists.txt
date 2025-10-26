@@ -41,10 +41,9 @@ add_library(
   lib/calib/CalibView.cpp
   lib/calib/CameraChain.cpp
   lib/calib/SolvePnp.cpp
-  lib/camera/distortion/Equi4.cpp
-  lib/camera/distortion/NoDistortion.cpp
-  lib/camera/distortion/RadTan4.cpp
+  lib/camera/BrownConrady4.cpp
   lib/camera/CameraGeometry.cpp
+  lib/camera/KannalaBrandt4.cpp
   lib/camera/Pinhole.cpp
   lib/ceres/ImuError.cpp
   lib/ceres/ParamBlock.cpp
@@ -56,7 +55,7 @@ add_library(
   lib/imu/ImuGeometry.cpp
   lib/imu/ImuState.cpp
   lib/sim/SimImu.cpp
-  # lib/sim/SimVio.cpp
+  lib/sim/SimVio.cpp
   lib/timeline/CalibTargetEvent.cpp
   lib/timeline/CameraEvent.cpp
   lib/timeline/ImuEvent.cpp
@@ -83,12 +82,9 @@ add_executable(unittests
   # lib/calib/TestCalibCameraImu.cpp
   lib/calib/TestCalibData.cpp
   lib/calib/TestCameraChain.cpp
-  lib/camera/distortion/TestEqui4.cpp
-  lib/camera/distortion/TestNoDistortion.cpp
-  lib/camera/distortion/TestRadTan4.cpp
+  lib/camera/TestBrownConrady4.cpp
+  lib/camera/TestKannalaBrandt4.cpp
   lib/camera/TestPinhole.cpp
-  lib/camera/TestPinholeEqui4.cpp
-  lib/camera/TestPinholeRadTan4.cpp
   lib/ceres/TestCalibCameraError.cpp
   lib/ceres/TestImuError.cpp
   lib/sim/TestSimImu.cpp
