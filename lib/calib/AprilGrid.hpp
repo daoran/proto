@@ -43,12 +43,6 @@ class AprilGrid : public CalibTarget {
 private:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-  /** Calculate AprilGrid tag index based on tag ID */
-  void getGridIndex(const int tag_id, int &i, int &j) const;
-
-  /** Calculate object point based on tag ID and corner index */
-  Vec3 getObjectPoint(const int tag_id, const int corner_index) const;
-
 public:
   AprilGrid(const timestamp_t &timestamp,
             const int tag_rows,
@@ -56,6 +50,12 @@ public:
             const double tag_size,
             const double tag_spacing);
   ~AprilGrid() = default;
+
+  /** Calculate AprilGrid tag index based on tag ID */
+  void getGridIndex(const int tag_id, int &i, int &j) const;
+
+  /** Calculate object point based on tag ID and corner index */
+  Vec3 getObjectPoint(const int tag_id, const int corner_index) const;
 
   /** Get measurements */
   void getMeasurements(std::vector<int> &tag_ids,

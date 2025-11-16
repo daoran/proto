@@ -150,6 +150,8 @@ using Vec4i = Eigen::Matrix<int, 4, 1>;
 using Vec5i = Eigen::Matrix<int, 5, 1>;
 using Vec6i = Eigen::Matrix<int, 6, 1>;
 using Vec7i = Eigen::Matrix<int, 7, 1>;
+using Vec8i = Eigen::Matrix<int, 8, 1>;
+using Vec9i = Eigen::Matrix<int, 9, 1>;
 using VecXi = Eigen::Matrix<int, Eigen::Dynamic, 1>;
 
 using Vec2 = Eigen::Matrix<double, 2, 1>;
@@ -158,6 +160,8 @@ using Vec4 = Eigen::Matrix<double, 4, 1>;
 using Vec5 = Eigen::Matrix<double, 5, 1>;
 using Vec6 = Eigen::Matrix<double, 6, 1>;
 using Vec7 = Eigen::Matrix<double, 7, 1>;
+using Vec8 = Eigen::Matrix<double, 8, 1>;
+using Vec9 = Eigen::Matrix<double, 9, 1>;
 using VecX = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 
 using Vec2s = std::vector<Vec2>;
@@ -166,6 +170,8 @@ using Vec4s = std::vector<Vec4>;
 using Vec5s = std::vector<Vec5>;
 using Vec6s = std::vector<Vec6>;
 using Vec7s = std::vector<Vec7>;
+using Vec8s = std::vector<Vec8>;
+using Vec9s = std::vector<Vec9>;
 using VecXs = std::vector<VecX>;
 
 template <int LENGTH, Eigen::StorageOptions STRIDE_TYPE = Eigen::ColMajor>
@@ -1788,13 +1794,13 @@ Eigen::Matrix<T, 4, 4> tf(const Eigen::Matrix<T, 3, 3> &C,
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a pointer to double array
- * containing (quaternion + translation) 7 elements: (qw, qx, qy, qz, x, y, z)
+ * containing (translation + rotation) 7 elements: (x, y, z, qx, qy, qz, qw)
  */
 Mat4 tf(const double *params);
 
 /**
  * Form a 4x4 homogeneous transformation matrix from a pointer to double array
- * containing (quaternion + translation) 7 elements: (qw, qx, qy, qz, x, y, z)
+ * containing (translation + rotation) 7 elements: (x, y, z, qx, qy, qz, qw)
  */
 Mat4 tf(const VecX &params);
 

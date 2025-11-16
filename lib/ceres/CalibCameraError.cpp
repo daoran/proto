@@ -75,7 +75,7 @@ bool CalibCameraError::eval(double const *const *params,
 
   // Jacobians
   const MatX Jh = camera_model->project_jacobian(intrinsic, p_Ci);
-  const MatX Jh_weighted = -1.0 * sqrt_info_ * Jh;
+  const MatX Jhw = -1.0 * sqrt_info_ * Jh;
   if (jacs == nullptr) {
     return true;
   }
@@ -87,7 +87,7 @@ bool CalibCameraError::eval(double const *const *params,
 
     if (valid_) {
       const Mat3 C_CiF = tf_rot(T_CiF);
-      J = Jh_weighted * C_CiF;
+      J = Jhw * C_CiF;
     }
   }
 
@@ -99,8 +99,8 @@ bool CalibCameraError::eval(double const *const *params,
     if (valid_) {
       const Mat3 C_CiC0 = tf_rot(T_CiC0);
       const Mat3 C_C0F = tf_rot(T_C0F);
-      J.block(0, 0, 2, 3) = Jh_weighted * C_CiC0;
-      J.block(0, 3, 2, 3) = Jh_weighted * C_CiC0 * -C_C0F * skew(p_FFi);
+      J.block(0, 0, 2, 3) = Jhw * C_CiC0;
+      J.block(0, 3, 2, 3) = Jhw * C_CiC0 * -C_C0F * skew(p_FFi);
     }
   }
 
@@ -109,14 +109,14 @@ bool CalibCameraError::eval(double const *const *params,
     Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[2]);
     J.setZero();
 
-    const Mat3 C_C0Ci = tf_rot(T_C0Ci);
-    const Vec3 p_C0Fi = tf_point(T_C0F, p_FFi);
-    const Vec3 p_C0Ci = tf_trans(T_C0Ci);
-
     if (valid_) {
-      J.block(0, 0, 2, 3) = Jh_weighted * -C_C0Ci;
-      J.block(0, 3, 2, 3) =
-          Jh_weighted * -C_C0Ci * skew(p_C0Fi - p_C0Ci) * -C_C0Ci;
+      const Mat3 C_CiC0 = tf_rot(T_CiC0);
+      const Mat3 C_C0Ci = C_CiC0.transpose();
+      const Vec3 p_C0Fi = tf_point(T_C0F, p_FFi);
+      const Vec3 p_C0Ci = tf_trans(T_C0Ci);
+
+      J.block(0, 0, 2, 3) = Jhw * -C_CiC0;
+      J.block(0, 3, 2, 3) = Jhw * -C_CiC0 * skew(p_C0Fi - p_C0Ci) * -C_C0Ci;
     }
   }
 
