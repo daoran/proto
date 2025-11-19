@@ -35,7 +35,7 @@ add_library(
   STATIC
   lib/calib/AprilGrid.cpp
   lib/calib/CalibCamera.cpp
-  # lib/calib/CalibCameraImu.cpp
+  lib/calib/CalibCameraImu.cpp
   lib/calib/CalibData.cpp
   lib/calib/CalibTarget.cpp
   lib/calib/CalibView.cpp
@@ -48,7 +48,9 @@ add_library(
   lib/ceres/ImuError.cpp
   lib/ceres/ParamBlock.cpp
   lib/ceres/PoseManifold.cpp
+  lib/ceres/ReprojError.cpp
   lib/ceres/CalibCameraError.cpp
+  lib/ceres/CalibCameraImuError.cpp
   lib/ceres/ResidualBlock.cpp
   lib/dataset/EuRoC.cpp
   lib/imu/ImuBuffer.cpp
@@ -79,14 +81,16 @@ set(TEST_DATA ${CMAKE_CURRENT_LIST_DIR}/lib/test_data)
 add_executable(unittests
   lib/calib/TestAprilGrid.cpp
   lib/calib/TestCalibCamera.cpp
-  # lib/calib/TestCalibCameraImu.cpp
+  lib/calib/TestCalibCameraImu.cpp
   lib/calib/TestCalibData.cpp
   lib/calib/TestCameraChain.cpp
   lib/camera/TestBrownConrady4.cpp
   lib/camera/TestKannalaBrandt4.cpp
   lib/camera/TestPinhole.cpp
   lib/ceres/TestCalibCameraError.cpp
+  lib/ceres/TestCalibCameraImuError.cpp
   lib/ceres/TestImuError.cpp
+  lib/ceres/TestReprojError.cpp
   lib/sim/TestSimImu.cpp
   # lib/sim/TestSimVio.cpp
   lib/timeline/TestTimeline.cpp
