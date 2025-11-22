@@ -47,8 +47,7 @@ public:
   /** Evaluate with minimial Jacobians */
   bool eval(double const *const *params,
             double *res,
-            double **jacs,
-            double **min_jacs) const override;
+            double **jacs) const override;
 };
 
 } // namespace xyz

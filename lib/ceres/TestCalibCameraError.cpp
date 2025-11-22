@@ -1,23 +1,20 @@
 #include <gtest/gtest.h>
 
 #include "calib/CalibData.hpp"
-#include "calib/SolvePnp.hpp"
 #include "ceres/CalibCameraError.hpp"
-
-#define TEST_CONFIG TEST_DATA "/calib_camera.yaml"
 
 namespace xyz {
 
 static Vec7 setup_body_pose() {
-  // Body pose in world frame: T_WS
+  // Body pose in world frame: T_WB
   // clang-format off
-  Mat4 T_WS;
-  T_WS <<  1.0, 0.0, 0.0, 0.0,
+  Mat4 T_WB;
+  T_WB <<  1.0, 0.0, 0.0, 0.0,
            0.0, 1.0, 0.0, 0.0,
            0.0, 0.0, 1.0, 0.0,
            0.0, 0.0, 0.0, 1.0;
-  T_WS = tf_perturb_rot(T_WS, 0.01, 1);
-  auto body_pose = tf_vec(T_WS);
+  T_WB = tf_perturb_rot(T_WB, 0.01, 1);
+  auto body_pose = tf_vec(T_WB);
   // ^ Note: Due to numerical stability issues the translation component
   // cannot be 0 for checking jacobians
   // clang-format on
@@ -161,32 +158,32 @@ TEST(CalibCameraError, evaluate) {
   const Mat4 T_WF = tf(fiducial_pose);
   const Mat4 T_BF = T_WB.inverse() * T_WF;
   VecX relpose = tf_vec(T_BF);
-  auto residual_block = CalibCameraError::create(camera_geometry,
-                                                 relpose.data(),
-                                                 object_points[0].data(),
-                                                 keypoints[0],
-                                                 covar);
+  auto resblock = CalibCameraError::create(camera_geometry,
+                                           relpose.data(),
+                                           object_points[0].data(),
+                                           keypoints[0],
+                                           covar);
 
   // Check residual size and parameter block sizes
-  auto block_sizes = residual_block->parameter_block_sizes();
-  ASSERT_EQ(residual_block->num_residuals(), 2);
+  auto block_sizes = resblock->parameter_block_sizes();
+  ASSERT_EQ(resblock->num_residuals(), 2);
   ASSERT_EQ(block_sizes[0], 3);
   ASSERT_EQ(block_sizes[1], 7);
   ASSERT_EQ(block_sizes[2], 7);
   ASSERT_EQ(block_sizes[3], 8);
 
   // Check param pointers
-  auto param_ptrs = residual_block->getParamPtrs();
+  auto param_ptrs = resblock->getParamPtrs();
   ASSERT_EQ(param_ptrs[0], object_points[0].data());
   ASSERT_EQ(param_ptrs[1], relpose.data());
   ASSERT_EQ(param_ptrs[2], camera_geometry->getExtrinsicPtr());
   ASSERT_EQ(param_ptrs[3], camera_geometry->getIntrinsicPtr());
 
   // Check Jacobians
-  ASSERT_TRUE(residual_block->checkJacobian(0, "J_point"));
-  ASSERT_TRUE(residual_block->checkJacobian(1, "J_relpose"));
-  ASSERT_TRUE(residual_block->checkJacobian(2, "J_extrinsic"));
-  ASSERT_TRUE(residual_block->checkJacobian(3, "J_camera"));
+  ASSERT_TRUE(resblock->checkJacobian(0, "J_point"));
+  ASSERT_TRUE(resblock->checkJacobian(1, "J_relpose"));
+  ASSERT_TRUE(resblock->checkJacobian(2, "J_extrinsic"));
+  ASSERT_TRUE(resblock->checkJacobian(3, "J_camera"));
 }
 
 } // namespace xyz

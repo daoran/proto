@@ -3,6 +3,70 @@
 
 namespace xyz {
 
+// class CalibImuView {
+//   // Settings
+//   bool live_mode = false;
+//   int max_corners = 20;
+//
+//   // Data
+//   timestamp_t ts;
+//   std::map<int, CalibTargetPtr> grids;
+//
+//   // Parameters (internal)
+//   Vec7 pose;
+//   Vec9 sb;
+//
+//   // Parameters (external)
+//   // CamIdx2Geometry &cam_geoms;
+//   // CamIdx2Parameters &cam_params;
+//   // CamIdx2Extrinsics &cam_exts;
+//   // std::shared_ptr<extrinsics_t> imu_exts;
+//   // std::shared_ptr<fiducial_t> fiducial;
+//   // std::shared_ptr<time_delay_t> time_delay;
+//   // PoseLocalParameterization *pose_plus;
+//
+//   // Problem
+//   std::shared_ptr<ceres::Problem> problem;
+//   // -- Fiducial errors
+//   // std::shared_ptr<calib_loss_t> vision_loss;
+//   // CamIdx2FiducialResidualIds fiducial_residual_ids;
+//   // CamIdx2FiducialResiduals fiducial_residuals;
+//   // -- Imu residual
+//   // std::shared_ptr<calib_loss_t> imu_loss;
+//   // ceres::ResidualBlockId imu_residual_id;
+//   // std::shared_ptr<imu_residual_t> imu_residual;
+//
+//   CalibImuView() = default;
+//   CalibImuView(const bool live_mode_,
+//                const timestamp_t ts_,
+//                const CamIdx2Grids &grids_,
+//                const mat4_t &T_WS,
+//                const vec_t<9> &sb,
+//                CamIdx2Geometry &cam_geoms_,
+//                CamIdx2Parameters &cam_params_,
+//                CamIdx2Extrinsics &cam_exts_,
+//                std::shared_ptr<extrinsics_t> imu_exts_,
+//                std::shared_ptr<fiducial_t> fiducial_,
+//                std::shared_ptr<time_delay_t> time_delay_,
+//                std::shared_ptr<ceres::Problem> problem_,
+//                std::shared_ptr<calib_loss_t> vision_loss,
+//                std::shared_ptr<calib_loss_t> imu_loss,
+//                PoseLocalParameterization *pose_plus);
+//   virtual ~CalibImuView();
+//
+//   // std::vector<int> get_camera_indices() const;
+//   // std::vector<real_t> get_reproj_errors(const int cam_idx) const;
+//   // std::map<int, std::vector<real_t>> get_reproj_errors() const;
+//   // std::vector<real_t> get_imu_errors() const;
+//   // int filter_view(const real_t outlier_threshold);
+//   // void form_imu_residual(const imu_params_t &imu_params,
+//   //                        const imu_data_t imu_buf,
+//   //                        pose_t *pose_j,
+//   //                        sb_params_t *sb_j,
+//   //                        double time_delay_jac_step);
+//   // ceres::ResidualBlockId marginalize(marg_residual_t *marg_residual);
+// };
+
 CalibCameraImu::CalibCameraImu(const std::string &config_file)
     : CalibData{config_file} {
   prob_options_.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
@@ -77,9 +141,9 @@ void CalibCameraImu::addView() {
   const Mat4 T_BCi = camera_geometries_[best_camera_index]->getTransform();
   const Mat4 T_BS = imu_geometries_[0]->getTransform();
   const Mat4 T_CiS = T_BCi.inverse() * T_BS;
-  const Mat4 T_WF;
-  const Mat4 T_WS = T_WF * T_FCi * T_CiS;
-  const Vec7 pose = tf_vec(T_WS);
+  Mat4 T_WF;
+  Mat4 T_WS = T_WF * T_FCi * T_CiS;
+  Vec7 pose = tf_vec(T_WS);
   timestamps_.insert(ts);
   // calib_views_[ts] = std::make_shared<CalibView>(problem_,
   //                                                ts,
