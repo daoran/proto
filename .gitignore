@@ -12,11 +12,15 @@
 *.fls
 *~
 
+# Docs
+docs/_build/
+
 # C++
 build
 
 # Python
 .venv
+venv
 *.pyc
 *.egg-info
 
