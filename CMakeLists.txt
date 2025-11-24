@@ -64,9 +64,11 @@ add_library(
   lib/timeline/Timeline.cpp
   lib/timeline/TimelineEvent.cpp
   lib/Core.cpp
+  lib/Logger.cpp
 )
 set(DEPS
   yaml-cpp::yaml-cpp
+  rerun_sdk
   Eigen3::Eigen
   ${OpenCV_LIBS}
   apriltag::apriltag
@@ -94,6 +96,7 @@ add_executable(unittests
   lib/sim/TestSimImu.cpp
   # lib/sim/TestSimVio.cpp
   lib/timeline/TestTimeline.cpp
+  lib/TestLogger.cpp
 )
 add_compile_definitions(unittests PRIVATE TEST_DATA="${TEST_DATA}")
 target_link_libraries(unittests ${TEST_DEPS})
