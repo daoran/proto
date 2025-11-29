@@ -5,10 +5,6 @@
 #include <set>
 #include <unordered_map>
 
-// #include <opencv2/objdetect/aruco_board.hpp>
-// #include <opencv2/objdetect/aruco_detector.hpp>
-// #include <opencv2/objdetect/aruco_dictionary.hpp>
-
 #include "../Core.hpp"
 #include "../camera/CameraModel.hpp"
 
@@ -21,35 +17,40 @@ extern "C" {
 #include "apriltag/common/getopt.h"
 }
 
-// // AprilTags by Michael Kaess
-// #include "AprilTags/TagDetector.h"
-// #include "AprilTags/Tag36h11.h"
+// AprilTags by Michael Kaess
+#include "ethz_apriltag/TagDetector.h"
+#include "ethz_apriltag/Tag36h11.h"
 
 namespace xyz {
-// namespace internal {
-//
-// /** Grid Detector */
-// class GridDetector : public AprilTags::TagDetector {
-// public:
-//   GridDetector() : TagDetector(AprilTags::tagCodes36h11) {
-//     thisTagFamily.blackBorder = 2;
-//   }
-// };
-//
-// } // namespace internal
+
+namespace internal {
+
+/** Grid Detector */
+class GridDetector : public ethz_apriltag::TagDetector {
+public:
+  GridDetector() : TagDetector(ethz_apriltag::tagCodes36h11) {
+    thisTagFamily.blackBorder = 2;
+  }
+};
+
+} // namespace internal
 
 /** AprilGrid */
 class AprilGrid : public CalibTarget {
-private:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-
 public:
   AprilGrid(const timestamp_t &timestamp,
             const int tag_rows,
             const int tag_cols,
             const double tag_size,
             const double tag_spacing);
+  AprilGrid(const AprilGrid &src);
   ~AprilGrid() = default;
+
+  /** Calculate width and height */
+  Vec2 getWidthHeight() const;
+
+  /** Calculate center */
+  Vec2 getCenter() const;
 
   /** Calculate AprilGrid tag index based on tag ID */
   void getGridIndex(const int tag_id, int &i, int &j) const;
@@ -93,12 +94,12 @@ private:
                    std::vector<Vec2> &keypoints);
 
   // Michale Kaess's AprilTag detector
-  // internal::GridDetector detector;
+  internal::GridDetector detector;
 
-  // void kaessDetect(const cv::Mat &image,
-  //                  std::vector<int> &tag_ids,
-  //                  std::vector<int> &corner_indicies,
-  //                  std::vector<Vec2> &keypoints);
+  void kaessDetect(const cv::Mat &image,
+                   std::vector<int> &tag_ids,
+                   std::vector<int> &corner_indicies,
+                   std::vector<Vec2> &keypoints);
 
 public:
   AprilGridDetector(const int tag_rows,

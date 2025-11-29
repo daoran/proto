@@ -9,6 +9,37 @@ AprilGrid::AprilGrid(const timestamp_t &ts,
                      const double tag_spacing)
     : CalibTarget{ts, tag_rows, tag_cols, tag_size, tag_spacing} {}
 
+AprilGrid::AprilGrid(const AprilGrid &src)
+    : CalibTarget{src.getTimestamp(),
+                  src.getTagRows(),
+                  src.getTagCols(),
+                  src.getTagSize(),
+                  src.getTagSpacing()} {
+  std::vector<int> tag_ids;
+  std::vector<int> corner_indicies;
+  Vec2s keypoints;
+  Vec3s object_points;
+  src.getMeasurements(tag_ids, corner_indicies, keypoints, object_points);
+
+  for (size_t i = 0; i < tag_ids.size(); ++i) {
+    add(tag_ids[i], corner_indicies[i], keypoints[i]);
+  }
+}
+
+Vec2 AprilGrid::getWidthHeight() const {
+  const auto rows = getTagRows();
+  const auto cols = getTagCols();
+  const auto size = getTagSize();
+  const auto spacing = getTagSpacing();
+  const auto w = (cols * size) + ((cols - 1) * size * spacing);
+  const auto h = (rows * size) + ((rows - 1) * size * spacing);
+  return Vec2{w, h};
+}
+
+Vec2 AprilGrid::getCenter() const {
+  return getWidthHeight() / 2.0;
+}
+
 void AprilGrid::getGridIndex(const int tag_id, int &i, int &j) const {
   if (tag_id > (tag_rows_ * tag_cols_)) {
     FATAL("tag_id > (tag_rows * tag_cols)!");
@@ -20,8 +51,7 @@ void AprilGrid::getGridIndex(const int tag_id, int &i, int &j) const {
   j = int(tag_id % tag_cols_);
 }
 
-Vec3 AprilGrid::getObjectPoint(const int tag_id,
-                                 const int corner_index) const {
+Vec3 AprilGrid::getObjectPoint(const int tag_id, const int corner_index) const {
   // Calculate the AprilGrid index using tag id
   int i = 0;
   int j = 0;
@@ -152,11 +182,11 @@ static void aprilgrid_parse_line(FILE *fp,
   }
 
   if (strcmp(value_type, "uint64_t") == 0) {
-    *(uint64_t *)value = atol(value_str);
+    *(uint64_t *) value = atol(value_str);
   } else if (strcmp(value_type, "int") == 0) {
-    *(int *)value = atoi(value_str);
+    *(int *) value = atoi(value_str);
   } else if (strcmp(value_type, "double") == 0) {
-    *(double *)value = atof(value_str);
+    *(double *) value = atof(value_str);
   } else {
     FATAL("Invalid value type [%s]\n", value_type);
   }
@@ -317,54 +347,54 @@ void AprilGridDetector::olsenDetect(const cv::Mat &image,
   apriltag_detections_destroy(detections);
 }
 
-// void AprilGridDetector::kaessDetect(const cv::Mat &image,
-//                                     std::vector<int> &tag_ids,
-//                                     std::vector<int> &corner_indicies,
-//                                     std::vector<Vec2> &keypoints) {
-//   assert(image.channels() == 1);
-//   const int image_width = image.cols;
-//   const int image_height = image.rows;
-//
-//   const auto detections = detector.extractTags(image);
-//   for (const auto &tag : detections) {
-//     // Check detection
-//     if (tag.good == false) {
-//       continue;
-//     }
-//
-//     // Check tag id
-//     if (tag.id < 0 || tag.id >= (tag_rows_ * tag_cols_)) {
-//       continue;
-//     }
-//
-//     // Check if too close to image bounds
-//     bool bad_tag = false;
-//     for (int i = 0; i < 4; i++) {
-//       bad_tag |= tag.p[i].first < min_border_dist_;
-//       bad_tag |= tag.p[i].first > image_width - min_border_dist_;
-//       bad_tag |= tag.p[i].second < min_border_dist_;
-//       bad_tag |= tag.p[i].second > image_height - min_border_dist_;
-//       if (bad_tag) {
-//         break;
-//       }
-//     }
-//
-//     tag_ids.push_back(tag.id); // Bottom left
-//     tag_ids.push_back(tag.id); // Bottom right
-//     tag_ids.push_back(tag.id); // Top right
-//     tag_ids.push_back(tag.id); // Top left
-//
-//     corner_indicies.push_back(0); // Bottom left
-//     corner_indicies.push_back(1); // Bottom right
-//     corner_indicies.push_back(2); // Top right
-//     corner_indicies.push_back(3); // Top left
-//
-//     keypoints.emplace_back(tag.p[0].first, tag.p[0].second); // Bottom left
-//     keypoints.emplace_back(tag.p[1].first, tag.p[1].second); // Bottom right
-//     keypoints.emplace_back(tag.p[2].first, tag.p[2].second); // Top right
-//     keypoints.emplace_back(tag.p[3].first, tag.p[3].second); // Top left
-//   }
-// }
+void AprilGridDetector::kaessDetect(const cv::Mat &image,
+                                    std::vector<int> &tag_ids,
+                                    std::vector<int> &corner_indicies,
+                                    std::vector<Vec2> &keypoints) {
+  assert(image.channels() == 1);
+  const int image_width = image.cols;
+  const int image_height = image.rows;
+
+  const auto detections = detector.extractTags(image);
+  for (const auto &tag : detections) {
+    // Check detection
+    if (tag.good == false) {
+      continue;
+    }
+
+    // Check tag id
+    if (tag.id < 0 || tag.id >= (tag_rows_ * tag_cols_)) {
+      continue;
+    }
+
+    // Check if too close to image bounds
+    bool bad_tag = false;
+    for (int i = 0; i < 4; i++) {
+      bad_tag |= tag.p[i].first < min_border_dist_;
+      bad_tag |= tag.p[i].first > image_width - min_border_dist_;
+      bad_tag |= tag.p[i].second < min_border_dist_;
+      bad_tag |= tag.p[i].second > image_height - min_border_dist_;
+      if (bad_tag) {
+        break;
+      }
+    }
+
+    tag_ids.push_back(tag.id); // Bottom left
+    tag_ids.push_back(tag.id); // Bottom right
+    tag_ids.push_back(tag.id); // Top right
+    tag_ids.push_back(tag.id); // Top left
+
+    corner_indicies.push_back(0); // Bottom left
+    corner_indicies.push_back(1); // Bottom right
+    corner_indicies.push_back(2); // Top right
+    corner_indicies.push_back(3); // Top left
+
+    keypoints.emplace_back(tag.p[0].first, tag.p[0].second); // Bottom left
+    keypoints.emplace_back(tag.p[1].first, tag.p[1].second); // Bottom right
+    keypoints.emplace_back(tag.p[2].first, tag.p[2].second); // Top right
+    keypoints.emplace_back(tag.p[3].first, tag.p[3].second); // Top left
+  }
+}
 
 std::shared_ptr<AprilGrid> AprilGridDetector::detect(const timestamp_t ts,
                                                      const cv::Mat &image) {
@@ -377,8 +407,8 @@ std::shared_ptr<AprilGrid> AprilGridDetector::detect(const timestamp_t ts,
   std::vector<int> tag_ids;
   std::vector<int> corner_indicies;
   std::vector<Vec2> keypoints;
-  // kaessDetect(image, tag_ids, corner_indicies, keypoints);
-  olsenDetect(image, tag_ids, corner_indicies, keypoints);
+  kaessDetect(image, tag_ids, corner_indicies, keypoints);
+  // olsenDetect(image, tag_ids, corner_indicies, keypoints);
   for (size_t i = 0; i < tag_ids.size(); i++) {
     grid->add(tag_ids[i], corner_indicies[i], keypoints[i]);
   }
