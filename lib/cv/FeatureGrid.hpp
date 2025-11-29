@@ -1,4 +1,6 @@
+#pragma once
 
+namespace xyz {
 
 /**
  * Feature Grid
@@ -89,3 +91,5 @@ struct FeatureGrid {
     }
   }
 };
+
+} // namespace xyz

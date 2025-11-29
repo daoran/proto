@@ -1,5 +1,4 @@
 
-
 /**
  * Grid detector
  */

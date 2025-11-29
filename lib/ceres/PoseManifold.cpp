@@ -35,10 +35,10 @@ bool PoseManifold::Plus(const double *x,
 
 bool PoseManifold::PlusJacobian(const double *x, double *jacobian) const {
   // Jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-  Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> Jp(jacobian);
+  Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> J(jacobian);
   UNUSED(x);
-  Jp.topRows<6>().setIdentity();
-  Jp.bottomRows<1>().setZero();
+  J.topRows<6>().setIdentity();
+  J.bottomRows<1>().setZero();
   return true;
 }
 
