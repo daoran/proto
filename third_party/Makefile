@@ -111,6 +111,9 @@ apriltag: setup opencv  ## Build apriltag
 	$(call git_clone,$(APRILTAG_REPO),$(APRILTAG_VERSION))
 	$(call cmake_build,apriltag)
 
+ethz_apriltag: setup opencv  ## Build ethz_apriltag
+	$(call cmake_build,ethz_apriltag)
+
 rerun: setup ## Build rerun
 	@wget $(RERUN_URL) -O $(SRC_PATH)/$(shell basename $(RERUN_URL))
 	@unzip -o $(SRC_PATH)/$(shell basename $(RERUN_URL)) -d $(SRC_PATH)
@@ -125,5 +128,6 @@ BUILD_TARGETS := \
 	ceres \
 	opencv \
 	apriltag \
+	ethz_apriltag \
 	rerun
 all: $(BUILD_TARGETS)  ## Build all

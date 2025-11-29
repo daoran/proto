@@ -29,7 +29,15 @@ third_party/bin
 third_party/include
 third_party/lib
 third_party/share
-third_party/src
+third_party/src/SuiteSparse/
+third_party/src/abseil-cpp/
+third_party/src/apriltag/
+third_party/src/ceres-solver/
+third_party/src/eigen/
+third_party/src/googletest/
+third_party/src/opencv/
+third_party/src/rerun_cpp_sdk/
+third_party/src/yaml-cpp/
 
 # Misc
 tags
