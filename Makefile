@@ -36,3 +36,7 @@ debug: setup ## Build in debug mode
 .PHONY: release
 release: setup ## Build in release mode
 	$(call cmake_build,Release)
+
+.PHONY: docs
+docs: ## Build docs
+	make -s -C docs html
