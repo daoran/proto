@@ -1,6 +1,6 @@
 data_path: "/data/euroc/cam_april/mav0"
 
-calib_target:
+target0:
   target_type: "aprilgrid"
   tag_rows: 6
   tag_cols: 6
