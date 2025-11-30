@@ -23,22 +23,22 @@ extern "C" {
 
 namespace xyz {
 
-namespace internal {
-
-/** Grid Detector */
-class GridDetector : public ethz_apriltag::TagDetector {
-public:
-  GridDetector() : TagDetector(ethz_apriltag::tagCodes36h11) {
-    thisTagFamily.blackBorder = 2;
-  }
+/** AprilGridConfig **/
+struct AprilGridConfig {
+  int target_id = 0;
+  int tag_rows = 0;
+  int tag_cols = 0;
+  double tag_size = 0.0;
+  double tag_spacing = 0.0;
+  int tag_id_offset = 0;
 };
-
-} // namespace internal
 
 /** AprilGrid */
 class AprilGrid : public CalibTarget {
 public:
   AprilGrid(const timestamp_t &timestamp,
+            const int camera_id,
+            const int target_id,
             const int tag_rows,
             const int tag_cols,
             const double tag_size,
@@ -78,11 +78,10 @@ public:
 /** AprilGrid Detector **/
 class AprilGridDetector {
 private:
-  int tag_rows_ = 0;
-  int tag_cols_ = 0;
-  double tag_size_ = 0.0;
-  double tag_spacing_ = 0.0;
+  // Settings
   int min_border_dist_ = 5;
+  std::map<int, AprilGridConfig> target_configs_;
+  std::map<int, int> target_lut_; // tag_id, target_id
 
   // Ed Olsen's AprilTag detector
   apriltag_family_t *tf_ = tag36h11_create();
@@ -94,7 +93,7 @@ private:
                    std::vector<Vec2> &keypoints);
 
   // Michale Kaess's AprilTag detector
-  internal::GridDetector detector;
+  ethz_apriltag::TagDetector detector{ethz_apriltag::tagCodes36h11};
 
   void kaessDetect(const cv::Mat &image,
                    std::vector<int> &tag_ids,
@@ -102,15 +101,16 @@ private:
                    std::vector<Vec2> &keypoints);
 
 public:
-  AprilGridDetector(const int tag_rows,
-                    const int tag_cols,
-                    const double tag_size,
-                    const double tag_spacing);
-
+  /** Constructor / Destructor **/
+  AprilGridDetector() = delete;
+  AprilGridDetector(const AprilGridConfig &target_config);
+  AprilGridDetector(const std::map<int, AprilGridConfig> &target_configs);
   virtual ~AprilGridDetector();
 
   /** Detect AprilGrid **/
-  std::shared_ptr<AprilGrid> detect(const timestamp_t ts, const cv::Mat &image);
+  std::vector<std::shared_ptr<AprilGrid>> detect(const timestamp_t ts,
+                                                 const int camera_id,
+                                                 const cv::Mat &image);
 };
 
 } // namespace xyz

@@ -2,15 +2,30 @@
 
 namespace xyz {
 
+// TODO: Add camera id
+// TODO: return target poinds only, not corner indices
+
 AprilGrid::AprilGrid(const timestamp_t &ts,
+                     const int camera_id,
+                     const int target_id,
                      const int tag_rows,
                      const int tag_cols,
                      const double tag_size,
                      const double tag_spacing)
-    : CalibTarget{ts, tag_rows, tag_cols, tag_size, tag_spacing} {}
+    : CalibTarget{ts,
+                  camera_id,
+                  "aprilgrid",
+                  target_id,
+                  tag_rows,
+                  tag_cols,
+                  tag_size,
+                  tag_spacing} {}
 
 AprilGrid::AprilGrid(const AprilGrid &src)
     : CalibTarget{src.getTimestamp(),
+                  src.getCameraId(),
+                  src.getTargetType(),
+                  src.getTargetId(),
                   src.getTagRows(),
                   src.getTagCols(),
                   src.getTagSize(),
@@ -36,9 +51,7 @@ Vec2 AprilGrid::getWidthHeight() const {
   return Vec2{w, h};
 }
 
-Vec2 AprilGrid::getCenter() const {
-  return getWidthHeight() / 2.0;
-}
+Vec2 AprilGrid::getCenter() const { return getWidthHeight() / 2.0; }
 
 void AprilGrid::getGridIndex(const int tag_id, int &i, int &j) const {
   if (tag_id > (tag_rows_ * tag_cols_)) {
@@ -123,6 +136,9 @@ int AprilGrid::save(const std::string &save_path) const {
 
   // Output header
   fprintf(fp, "timestamp %ld\n", ts_);
+  fprintf(fp, "camera_id %d\n", camera_id_);
+  fprintf(fp, "target_type %s\n", getTargetType().c_str());
+  fprintf(fp, "target_id %d\n", target_id_);
   fprintf(fp, "tag_rows %d\n", tag_rows_);
   fprintf(fp, "tag_cols %d\n", tag_cols_);
   fprintf(fp, "tag_size %f\n", tag_size_);
@@ -187,6 +203,8 @@ static void aprilgrid_parse_line(FILE *fp,
     *(int *) value = atoi(value_str);
   } else if (strcmp(value_type, "double") == 0) {
     *(double *) value = atof(value_str);
+  } else if (strcmp(value_type, "string") == 0) {
+    *(std::string *) value = std::string(value_str);
   } else {
     FATAL("Invalid value type [%s]\n", value_type);
   }
@@ -209,12 +227,18 @@ std::shared_ptr<AprilGrid> AprilGrid::load(const std::string &data_path) {
 
   // Parse configuration
   timestamp_t ts = 0;
+  int camera_id = 0;
+  std::string target_type;
+  int target_id = 0;
   int tag_rows = 0;
   int tag_cols = 0;
   double tag_size = 0;
   double tag_spacing = 0;
   int corners_detected = 0;
   aprilgrid_parse_line(fp, "timestamp", "uint64_t", &ts);
+  aprilgrid_parse_line(fp, "camera_id", "int", &camera_id);
+  aprilgrid_parse_line(fp, "target_type", "string", &target_type);
+  aprilgrid_parse_line(fp, "target_id", "int", &target_id);
   aprilgrid_parse_line(fp, "tag_rows", "int", &tag_rows);
   aprilgrid_parse_line(fp, "tag_cols", "int", &tag_cols);
   aprilgrid_parse_line(fp, "tag_size", "double", &tag_size);
@@ -223,6 +247,8 @@ std::shared_ptr<AprilGrid> AprilGrid::load(const std::string &data_path) {
   aprilgrid_parse_skip_line(fp);
   aprilgrid_parse_skip_line(fp);
   auto grid = std::make_shared<AprilGrid>(ts,
+                                          camera_id,
+                                          target_id,
                                           tag_rows,
                                           tag_cols,
                                           tag_size,
@@ -274,17 +300,59 @@ AprilGrid::loadDirectory(const std::string &dir_path) {
   return grids;
 }
 
-AprilGridDetector::AprilGridDetector(const int tag_rows,
-                                     const int tag_cols,
-                                     const double tag_size,
-                                     const double tag_spacing)
-    : tag_rows_{tag_rows}, tag_cols_{tag_cols}, tag_size_{tag_size},
-      tag_spacing_{tag_spacing} {
+AprilGridDetector::AprilGridDetector(const AprilGridConfig &target_config) {
+  // Initialize Ed Olsen's AprilTag detector
   det_->quad_decimate = 1.0;
   det_->quad_sigma = 0.0; // Blur
   det_->nthreads = 2;
   det_->debug = 0;
   det_->refine_edges = 1;
+
+  // Add target config
+  target_configs_[target_config.target_id] = target_config;
+
+  // Create tag_id -> target_id look-up-table
+  for (const auto [target_id, target_config] : target_configs_) {
+    const int tag_id_offset = target_config.tag_id_offset;
+    const int num_tags = target_config.tag_rows * target_config.tag_cols;
+
+    for (int tag_id = tag_id_offset; tag_id < num_tags; ++tag_id) {
+      if (target_lut_.count(tag_id)) {
+        FATAL("tag_id: %d already exists in target_id: %d!",
+              tag_id,
+              target_lut_[tag_id]);
+      }
+
+      target_lut_[tag_id] = target_id;
+    }
+  }
+}
+
+AprilGridDetector::AprilGridDetector(
+    const std::map<int, AprilGridConfig> &target_configs)
+    : target_configs_{target_configs} {
+  // Initialize Ed Olsen's AprilTag detector
+  det_->quad_decimate = 1.0;
+  det_->quad_sigma = 0.0; // Blur
+  det_->nthreads = 2;
+  det_->debug = 0;
+  det_->refine_edges = 1;
+
+  // Create tag_id -> target_id look-up-table
+  for (const auto [target_id, target_config] : target_configs_) {
+    const int tag_id_offset = target_config.tag_id_offset;
+    const int num_tags = target_config.tag_rows * target_config.tag_cols;
+
+    for (int tag_id = tag_id_offset; tag_id < num_tags; ++tag_id) {
+      if (target_lut_.count(tag_id)) {
+        FATAL("tag_id: %d already exists in target_id: %d!",
+              tag_id,
+              target_lut_[tag_id]);
+      }
+
+      target_lut_[tag_id] = target_id;
+    }
+  }
 }
 
 AprilGridDetector::~AprilGridDetector() {
@@ -313,9 +381,9 @@ void AprilGridDetector::olsenDetect(const cv::Mat &image,
     zarray_get(detections, i, &det);
 
     // Check tag id
-    if (det->id < 0 || det->id >= (tag_rows_ * tag_cols_)) {
-      continue;
-    }
+    // if (det->id < 0 || det->id >= (tag_rows_ * tag_cols_)) {
+    //   continue;
+    // }
 
     // Check if too close to image bounds
     bool bad_tag = false;
@@ -363,9 +431,9 @@ void AprilGridDetector::kaessDetect(const cv::Mat &image,
     }
 
     // Check tag id
-    if (tag.id < 0 || tag.id >= (tag_rows_ * tag_cols_)) {
-      continue;
-    }
+    // if (tag.id < 0 || tag.id >= (tag_rows_ * tag_cols_)) {
+    //   continue;
+    // }
 
     // Check if too close to image bounds
     bool bad_tag = false;
@@ -396,24 +464,49 @@ void AprilGridDetector::kaessDetect(const cv::Mat &image,
   }
 }
 
-std::shared_ptr<AprilGrid> AprilGridDetector::detect(const timestamp_t ts,
-                                                     const cv::Mat &image) {
-  auto grid = std::make_shared<AprilGrid>(ts,
-                                          tag_rows_,
-                                          tag_cols_,
-                                          tag_size_,
-                                          tag_spacing_);
-
+std::vector<std::shared_ptr<AprilGrid>>
+AprilGridDetector::detect(const timestamp_t ts,
+                          const int camera_id,
+                          const cv::Mat &image) {
+  // Detect AprilTags
   std::vector<int> tag_ids;
   std::vector<int> corner_indicies;
   std::vector<Vec2> keypoints;
   kaessDetect(image, tag_ids, corner_indicies, keypoints);
   // olsenDetect(image, tag_ids, corner_indicies, keypoints);
-  for (size_t i = 0; i < tag_ids.size(); i++) {
-    grid->add(tag_ids[i], corner_indicies[i], keypoints[i]);
+
+  // Form AprilGrids
+  std::map<int, std::shared_ptr<AprilGrid>> aprilgrids;
+  for (const auto &[target_id, target_config] : target_configs_) {
+    const auto config = target_configs_[target_id];
+    aprilgrids[target_id] = std::make_shared<AprilGrid>(ts,
+                                                        camera_id,
+                                                        config.target_id,
+                                                        config.tag_rows,
+                                                        config.tag_cols,
+                                                        config.tag_size,
+                                                        config.tag_spacing);
   }
 
-  return grid;
+  // Add measurement
+  for (size_t i = 0; i < tag_ids.size(); ++i) {
+    const auto tag_id = tag_ids[i];
+    if (target_lut_.count(tag_id) == 0) {
+      continue;
+    }
+
+    const auto target_id = target_lut_[tag_id];
+    const auto corner_index = corner_indicies[i];
+    aprilgrids[target_id]->add(tag_id, corner_index, keypoints[i]);
+  }
+
+  // Form result
+  std::vector<std::shared_ptr<AprilGrid>> result;
+  for (const auto &[target_id, target] : aprilgrids) {
+    result.push_back(target);
+  }
+
+  return result;
 }
 
 } // namespace xyz

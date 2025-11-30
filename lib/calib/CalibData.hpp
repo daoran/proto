@@ -1,5 +1,5 @@
 #pragma once
-#include <ceres/ceres.h>
+#include <filesystem>
 
 #include "../Core.hpp"
 #include "../camera/CameraGeometry.hpp"
@@ -11,6 +11,8 @@
 
 namespace xyz {
 
+namespace fs = std::filesystem;
+
 using CameraGeometryPtr = std::shared_ptr<CameraGeometry>;
 using ImuGeometryPtr = std::shared_ptr<ImuGeometry>;
 using CalibTargetPtr = std::shared_ptr<CalibTarget>;
@@ -20,15 +22,11 @@ using CameraData = std::map<timestamp_t, CalibTargetPtr>;
 class CalibData {
 protected:
   // Settings
-  std::string config_path_;
-  std::string data_path_;
+  fs::path config_path_;
+  fs::path data_path_;
 
   // Calibration Target
-  std::string target_type_;
-  int tag_rows_;
-  int tag_cols_;
-  double tag_size_;
-  double tag_spacing_;
+  std::map<int, AprilGridConfig> target_configs_;
 
   // Data
   std::map<int, CameraData> camera_data_;
@@ -38,13 +36,13 @@ protected:
   std::map<int, Vec3> target_points_;
 
   /** Load Camera Data */
-  void loadCameraData(const int camera_index);
+  void loadCameraData(const int camera_id);
 
   /** Load IMU Data */
-  void loadImuData(const int imu_index);
+  void loadImuData(const int imu_id);
 
   /** Check if we have a camera measurement already */
-  bool hasCameraMeasurement(const timestamp_t ts, const int camera_index) const;
+  bool hasCameraMeasurement(const timestamp_t ts, const int camera_id) const;
 
   /** Print settings */
   void printSettings(FILE *fp) const;
@@ -67,20 +65,20 @@ public:
   virtual ~CalibData() = default;
 
   /** Add Camera */
-  void addCamera(const int camera_index,
+  void addCamera(const int camera_id,
                  const std::string &camera_model,
                  const Vec2i &resolution,
                  const VecX &intrinsic,
                  const Vec7 &extrinsic);
 
   /** Add Imu */
-  void addImu(const int imu_index,
+  void addImu(const int imu_id,
               const ImuParams &imu_params,
               const Vec7 &extrinsic);
 
   /** Add camera measurement */
   void addCameraMeasurement(const timestamp_t ts,
-                            const int camera_index,
+                            const int camera_id,
                             const std::shared_ptr<CalibTarget> &calib_target);
 
   /** Add calibration target point */
@@ -96,25 +94,25 @@ public:
   std::map<int, CameraData> &getAllCameraData();
 
   /** Get camera data */
-  CameraData &getCameraData(const int camera_index);
+  CameraData &getCameraData(const int camera_id);
 
   /** Get all IMU data */
   std::map<int, ImuBuffer> &getAllImuData();
 
   /** Get IMU data */
-  ImuBuffer &getImuData(const int imu_index);
+  ImuBuffer &getImuData(const int imu_id);
 
   /** Get camera geometries */
   std::map<int, CameraGeometryPtr> &getAllCameraGeometries();
 
   /** Get camera geometry */
-  CameraGeometryPtr &getCameraGeometry(const int camera_index);
+  CameraGeometryPtr &getCameraGeometry(const int camera_id);
 
   /** Get IMU geometries */
   std::map<int, ImuGeometryPtr> &getAllImuGeometries();
 
   /** Get IMU geometry */
-  ImuGeometryPtr &getImuGeometry(const int imu_index);
+  ImuGeometryPtr &getImuGeometry(const int imu_id);
 
   /** Get target point */
   Vec3 &getTargetPoint(const int point_id);

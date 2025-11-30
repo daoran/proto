@@ -3,16 +3,26 @@
 namespace xyz {
 
 CalibTarget::CalibTarget(const timestamp_t &ts,
+                         const int camera_id,
+                         const std::string &target_type,
+                         const int target_id,
                          const int tag_rows,
                          const int tag_cols,
                          const double tag_size,
                          const double tag_spacing)
-    : ts_{ts}, tag_rows_{tag_rows}, tag_cols_{tag_cols}, tag_size_{tag_size},
-      tag_spacing_{tag_spacing} {}
+    : ts_{ts}, camera_id_{camera_id}, target_type_{target_type},
+      target_id_{target_id}, tag_rows_{tag_rows}, tag_cols_{tag_cols},
+      tag_size_{tag_size}, tag_spacing_{tag_spacing} {}
 
 bool CalibTarget::detected() const { return (data_.size() > 0); }
 
 timestamp_t CalibTarget::getTimestamp() const { return ts_; }
+
+int CalibTarget::getCameraId() const { return camera_id_; }
+
+std::string CalibTarget::getTargetType() const { return target_type_; }
+
+int CalibTarget::getTargetId() const { return target_id_; }
 
 int CalibTarget::getTagRows() const { return tag_rows_; }
 
@@ -22,7 +32,7 @@ double CalibTarget::getTagSize() const { return tag_size_; }
 
 double CalibTarget::getTagSpacing() const { return tag_spacing_; }
 
-Vec2 CalibTarget::getCenter() const {
+Vec2 CalibTarget::getCenter2d() const {
   double x = ((tag_cols_ / 2.0) * tag_size_);
   x += (((tag_cols_ / 2.0) - 1) * tag_spacing_ * tag_size_);
   x += (0.5 * tag_spacing_ * tag_size_);
@@ -32,6 +42,11 @@ Vec2 CalibTarget::getCenter() const {
   y += (0.5 * tag_spacing_ * tag_size_);
 
   return Vec2{x, y};
+}
+
+Vec3 CalibTarget::getCenter3d() const {
+  const Vec2 center = getCenter2d();
+  return Vec3{center.x(), center.y(), 0.0};
 }
 
 int CalibTarget::getNumDetected() const {

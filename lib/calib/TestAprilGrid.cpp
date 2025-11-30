@@ -9,11 +9,14 @@ namespace xyz {
 
 TEST(AprilGrid, construct) {
   const timestamp_t ts = 0;
+  const int camera_id = 0;
+  const int target_id = 0;
   const int tag_rows = 6;
   const int tag_cols = 7;
   const double tag_size = 0.088;
   const double tag_spacing = 0.3;
-  const AprilGrid grid{ts, tag_rows, tag_cols, tag_size, tag_spacing};
+  const AprilGrid
+      grid{ts, camera_id, target_id, tag_rows, tag_cols, tag_size, tag_spacing};
 
   ASSERT_EQ(grid.getTagRows(), tag_rows);
   ASSERT_EQ(grid.getTagCols(), tag_cols);
@@ -23,11 +26,14 @@ TEST(AprilGrid, construct) {
 
 TEST(AprilGrid, addAndRemove) {
   const timestamp_t ts = 0;
+  const int camera_id = 0;
+  const int target_id = 0;
   const int tag_rows = 6;
   const int tag_cols = 7;
   const double tag_size = 0.088;
   const double tag_spacing = 0.3;
-  AprilGrid grid{ts, tag_rows, tag_cols, tag_size, tag_spacing};
+  AprilGrid
+      grid{ts, camera_id, target_id, tag_rows, tag_cols, tag_size, tag_spacing};
 
   // Keypoints
   const Vec2 kp1_gnd{1.0, 2.0};
@@ -79,11 +85,14 @@ TEST(AprilGrid, addAndRemove) {
 
 TEST(AprilGrid, saveAndLoad) {
   const timestamp_t ts = 0;
+  const int camera_id = 0;
+  const int target_id = 0;
   const int tag_rows = 6;
   const int tag_cols = 7;
   const double tag_size = 0.088;
   const double tag_spacing = 0.3;
-  AprilGrid grid{ts, tag_rows, tag_cols, tag_size, tag_spacing};
+  AprilGrid
+      grid{ts, camera_id, target_id, tag_rows, tag_cols, tag_size, tag_spacing};
 
   // Test save
   const int tag_id = 0;
@@ -114,21 +123,25 @@ TEST(AprilGrid, saveAndLoad) {
 }
 
 TEST(AprilGrid, detect) {
+  const int target_id = 0;
   const int tag_rows = 6;
   const int tag_cols = 6;
   const double tag_size = 0.088;
   const double tag_spacing = 0.3;
-  AprilGridDetector detector(tag_rows, tag_cols, tag_size, tag_spacing);
+  AprilGridConfig config{target_id, tag_rows, tag_cols, tag_size, tag_spacing};
+  AprilGridDetector detector(config);
 
+  const timestamp_t ts = 0;
+  const int camera_id = 0;
   const auto img = cv::imread(TEST_IMAGE, cv::IMREAD_GRAYSCALE);
-  auto grid = detector.detect(0, img);
+  auto grids = detector.detect(ts, camera_id, img);
+  ASSERT_EQ(grids.size(), 1);
 
   std::vector<int> tag_ids;
   std::vector<int> corner_indicies;
   Vec2s keypoints;
   Vec3s object_points;
-  grid->getMeasurements(tag_ids, corner_indicies, keypoints, object_points);
-
+  grids[0]->getMeasurements(tag_ids, corner_indicies, keypoints, object_points);
   ASSERT_EQ(tag_ids.size(), tag_rows * tag_cols * 4);
   ASSERT_EQ(corner_indicies.size(), tag_rows * tag_cols * 4);
   ASSERT_EQ(keypoints.size(), tag_rows * tag_cols * 4);

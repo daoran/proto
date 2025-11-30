@@ -11,22 +11,43 @@ CalibData::CalibData(const std::string &config_path)
   parse(config, "data_path", data_path_);
 
   // -- Parse target settings
-  parse(config, "calib_target.target_type", target_type_);
-  parse(config, "calib_target.tag_rows", tag_rows_);
-  parse(config, "calib_target.tag_cols", tag_cols_);
-  parse(config, "calib_target.tag_size", tag_size_);
-  parse(config, "calib_target.tag_spacing", tag_spacing_);
+  for (int target_id = 0; target_id < 10; target_id++) {
+    // Check if key exists
+    const std::string prefix = "target" + std::to_string(target_id);
+    if (yaml_has_key(config, prefix) == 0) {
+      continue;
+    }
+
+    std::string target_type;
+    int tag_rows = 0;
+    int tag_cols = 0;
+    double tag_size = 0;
+    double tag_spacing = 0;
+    int tag_id_offset = 0;
+    parse(config, prefix + ".target_type", target_type);
+    parse(config, prefix + ".tag_rows", tag_rows);
+    parse(config, prefix + ".tag_cols", tag_cols);
+    parse(config, prefix + ".tag_size", tag_size);
+    parse(config, prefix + ".tag_spacing", tag_spacing);
+    parse(config, prefix + ".tag_id_offset", tag_id_offset, true);
+    if (target_type != "aprilgrid") {
+      FATAL("CalibData currently only supports target type [aprilgrid]!");
+    }
+
+    target_configs_[target_id] =
+        AprilGridConfig{target_id, tag_rows, tag_cols, tag_size, tag_spacing};
+  }
 
   // -- Parse camera settings
-  for (int camera_index = 0; camera_index < 100; camera_index++) {
+  for (int camera_id = 0; camera_id < 10; camera_id++) {
     // Check if key exists
-    const std::string prefix = "cam" + std::to_string(camera_index);
+    const std::string prefix = "cam" + std::to_string(camera_id);
     if (yaml_has_key(config, prefix) == 0) {
       continue;
     }
 
     // Load camera data
-    loadCameraData(camera_index);
+    loadCameraData(camera_id);
 
     // Parse
     Vec2i resolution;
@@ -47,13 +68,13 @@ CalibData::CalibData(const std::string &config_path)
     }
 
     // Add camera
-    addCamera(camera_index, camera_model, resolution, intrinsic, extrinsic);
+    addCamera(camera_id, camera_model, resolution, intrinsic, extrinsic);
   }
 
   // -- Parse IMU settings
   {
-    const int imu_index = 0;
-    const std::string prefix = "imu" + std::to_string(imu_index);
+    const int imu_id = 0;
+    const std::string prefix = "imu" + std::to_string(imu_id);
     if (yaml_has_key(config, prefix) == 0) {
       return;
     }
@@ -66,14 +87,14 @@ CalibData::CalibData(const std::string &config_path)
 
     Vec7 extrinsic;
     extrinsic << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
-    addImu(imu_index, imu_params, extrinsic);
+    addImu(imu_id, imu_params, extrinsic);
 
     // Load IMU data
-    loadImuData(imu_index);
+    loadImuData(imu_id);
   }
 }
 
-void CalibData::loadCameraData(const int camera_index) {
+void CalibData::loadCameraData(const int camera_id) {
   assert(target_type_ == "aprilgrid");
   assert(tag_rows_ > 0);
   assert(tag_cols_ > 0);
@@ -81,60 +102,91 @@ void CalibData::loadCameraData(const int camera_index) {
   assert(tag_spacing_ > 0);
 
   // Setup detector
-  AprilGridDetector detector{tag_rows_, tag_cols_, tag_size_, tag_spacing_};
+  AprilGridDetector detector{target_configs_};
 
-  // Form calibration target path
-  const std::string camera_string = "cam" + std::to_string(camera_index);
-  const std::string camera_path = data_path_ + "/" + camera_string + "/data";
-  std::string target_dir = data_path_;
-  target_dir += (data_path_.back() == '/') ? "" : "/";
-  target_dir += "calib_target/" + camera_string;
+  // Form target dirs
+  bool cache_exists = false;
+  const std::string camera_string = "cam" + std::to_string(camera_id);
+  const fs::path &camera_dir = data_path_ / camera_string / "data";
 
-  // Create grids path
-  if (system(("mkdir -p " + target_dir).c_str()) != 0) {
-    FATAL("Failed to create dir [%s]", target_dir.c_str());
+  for (size_t target_id = 0; target_id < target_configs_.size(); ++target_id) {
+    // Check if target dir exists
+    const std::string target_prefix = "target" + std::to_string(target_id);
+    const fs::path &target_dir = data_path_ / target_prefix / camera_string;
+    if (fs::exists(target_dir)) {
+      cache_exists = true;
+      continue;
+    }
+
+    // Create target dir
+    if (system(("mkdir -p " + target_dir.string()).c_str()) != 0) {
+      FATAL("Failed to create dir [%s]", target_dir.c_str());
+    }
   }
 
   // Get image files
   std::vector<std::string> image_paths;
-  list_files(camera_path, image_paths);
+  list_files(camera_dir, image_paths);
 
   // Detect aprilgrids
+  if (cache_exists == false) {
+    const std::string desc = "Processing " + camera_string + " data: ";
+    for (size_t k = 0; k < image_paths.size(); k++) {
+      print_progress((double) k / (double) image_paths.size(), desc);
+
+      const std::string image_fname = image_paths[k];
+      const fs::path image_path = camera_dir / image_fname;
+      const std::string ts_str = image_fname.substr(0, 19);
+      const timestamp_t ts = std::stoull(ts_str);
+      if (std::all_of(ts_str.begin(), ts_str.end(), ::isdigit) == false) {
+        FATAL("Invalid image file: [%s]!", image_path.c_str());
+      }
+
+      const auto &image = cv::imread(image_path, cv::IMREAD_GRAYSCALE);
+      for (const auto &target : detector.detect(ts, camera_id, image)) {
+        const int target_id = target->getTargetId();
+        const fs::path target_prefix = "target" + std::to_string(target_id);
+        const fs::path target_dir = data_path_ / target_prefix / camera_string;
+        const fs::path target_csv = target_dir / (ts_str + ".csv");
+        target->save(target_csv);
+      }
+    }
+    print_progress(1.0);
+  }
+
+  // Load aprilgrids
   const std::string desc = "Loading " + camera_string + " data: ";
   for (size_t k = 0; k < image_paths.size(); k++) {
-    print_progress((double)k / (double)image_paths.size(), desc);
+    print_progress((double) k / (double) image_paths.size(), desc);
+
     const std::string image_fname = image_paths[k];
-    const std::string image_path = camera_path + "/" + image_fname;
-
+    const fs::path image_path = camera_dir / image_fname;
     const std::string ts_str = image_fname.substr(0, 19);
-    if (std::all_of(ts_str.begin(), ts_str.end(), ::isdigit) == false) {
-      LOG_WARN("Unexpected image file: [%s]!", image_path.c_str());
-      continue;
-    }
     const timestamp_t ts = std::stoull(ts_str);
-    const std::string target_fname = ts_str + ".csv";
-    const std::string target_path = target_dir + "/" + target_fname;
-    const auto image = cv::imread(image_path, cv::IMREAD_GRAYSCALE);
-
-    // Load or detect apriltag
-    std::shared_ptr<AprilGrid> calib_target;
-    if (file_exists(target_path)) {
-      calib_target = AprilGrid::load(target_path);
-    } else {
-      calib_target = detector.detect(ts, image);
-      calib_target->save(target_path);
+    const fs::path target_fname = ts_str + ".csv";
+    if (std::all_of(ts_str.begin(), ts_str.end(), ::isdigit) == false) {
+      FATAL("Invalid image file: [%s]!", image_path.c_str());
     }
 
-    // Add camera measurement
-    addCameraMeasurement(ts, camera_index, calib_target);
+    for (const auto &[target_id, target_config] : target_configs_) {
+      const fs::path target_prefix = "target" + std::to_string(target_id);
+      const fs::path target_dir = data_path_ / target_prefix / camera_string;
+      const fs::path target_csv = target_dir / (ts_str + ".csv");
+
+      // Load apriltag
+      std::shared_ptr<AprilGrid> calib_target = AprilGrid::load(target_csv);
+
+      // Add camera measurement
+      addCameraMeasurement(ts, camera_id, calib_target);
+    }
   }
   print_progress(1.0);
 }
 
-void CalibData::loadImuData(const int imu_index) {
+void CalibData::loadImuData(const int imu_id) {
   // Setup
-  const std::string imu_string = "imu" + std::to_string(imu_index);
-  const std::string imu_path = data_path_ + "/" + imu_string + "/data.csv";
+  const std::string imu_string = "imu" + std::to_string(imu_id);
+  const fs::path imu_path = data_path_ / imu_string / "data.csv";
 
   // Open IMU data.csv
   FILE *imu_csv = fopen(imu_path.c_str(), "r");
@@ -150,7 +202,7 @@ void CalibData::loadImuData(const int imu_index) {
 
   ImuBuffer imu_buffer;
   for (int i = 0; i < num_rows; i++) {
-    print_progress((double)i / (double)num_rows, desc);
+    print_progress((double) i / (double) num_rows, desc);
     // Parse line
     timestamp_t ts;
     Vec3 imu_acc;
@@ -174,12 +226,12 @@ void CalibData::loadImuData(const int imu_index) {
   print_progress(1.0);
 
   // Add imu data
-  imu_data_[imu_index] = imu_buffer;
+  imu_data_[imu_id] = imu_buffer;
 }
 
 bool CalibData::hasCameraMeasurement(const timestamp_t ts,
-                                     const int camera_index) const {
-  if (camera_data_.at(camera_index).count(ts) == 0) {
+                                     const int camera_id) const {
+  if (camera_data_.at(camera_id).count(ts) == 0) {
     return false;
   }
   return true;
@@ -193,23 +245,27 @@ void CalibData::printSettings(FILE *fp) const {
 }
 
 void CalibData::printCalibTarget(FILE *fp) const {
-  fprintf(fp, "calib_target:\n");
-  fprintf(fp, "  target_type: \"%s\"\n", target_type_.c_str());
-  fprintf(fp, "  tag_rows:     %d\n", tag_rows_);
-  fprintf(fp, "  tag_cols:     %d\n", tag_cols_);
-  fprintf(fp, "  tag_size:     %f\n", tag_size_);
-  fprintf(fp, "  tag_spacing:  %f\n", tag_spacing_);
-  fprintf(fp, "\n");
+  for (const auto &[target_id, target_config] : target_configs_) {
+    const std::string target_prefix = "target" + std::to_string(target_id);
+    fprintf(fp, "%s:\n", target_prefix.c_str());
+    fprintf(fp, "  target_type:  \"%s\"\n", "aprilgrid");
+    fprintf(fp, "  tag_rows:       %d\n", target_config.tag_rows);
+    fprintf(fp, "  tag_cols:       %d\n", target_config.tag_cols);
+    fprintf(fp, "  tag_size:       %f\n", target_config.tag_size);
+    fprintf(fp, "  tag_spacing:    %f\n", target_config.tag_spacing);
+    fprintf(fp, "  tag_id_offset:  %d\n", target_config.tag_id_offset);
+    fprintf(fp, "\n");
+  }
 }
 
 void CalibData::printCameraGeometries(FILE *fp, const bool max_digits) const {
-  for (const auto &[camera_index, camera] : camera_geometries_) {
+  for (const auto &[camera_id, camera] : camera_geometries_) {
     const auto model = camera->getCameraModelString();
     const auto resolution = camera->getResolution();
     const auto intrinsic = vec2str(camera->getIntrinsic(), false, max_digits);
     const auto extrinsic = vec2str(camera->getExtrinsic(), false, max_digits);
 
-    fprintf(fp, "camera%d:\n", camera_index);
+    fprintf(fp, "camera%d:\n", camera_id);
     fprintf(fp, "  model:     \"%s\"\n", model.c_str());
     fprintf(fp, "  resolution: [%d, %d]\n", resolution.x(), resolution.y());
     fprintf(fp, "  intrinsic:  [%s]\n", intrinsic.c_str());
@@ -219,11 +275,11 @@ void CalibData::printCameraGeometries(FILE *fp, const bool max_digits) const {
 }
 
 void CalibData::printImuGeometries(FILE *fp, const bool max_digits) const {
-  for (const auto &[imu_index, imu] : imu_geometries_) {
+  for (const auto &[imu_id, imu] : imu_geometries_) {
     const auto extrinsic = vec2str(imu->getExtrinsic(), false, max_digits);
     const auto imu_params = imu->getImuParams();
 
-    fprintf(fp, "imu%d:\n", imu_index);
+    fprintf(fp, "imu%d:\n", imu_id);
     fprintf(fp, "  noise_acc:   %f\n", imu_params.noise_acc);
     fprintf(fp, "  noise_gyr:   %f\n", imu_params.noise_gyr);
     fprintf(fp, "  random_walk_acc:   %f\n", imu_params.noise_ba);
@@ -248,30 +304,29 @@ void CalibData::printTargetPoints(FILE *fp) const {
   fprintf(fp, "\n");
 }
 
-void CalibData::addCamera(const int camera_index,
+void CalibData::addCamera(const int camera_id,
                           const std::string &camera_model,
                           const Vec2i &resolution,
                           const VecX &intrinsic,
                           const Vec7 &extrinsic) {
-  camera_geometries_[camera_index] =
-      std::make_shared<CameraGeometry>(camera_index,
-                                       camera_model,
-                                       resolution,
-                                       intrinsic,
-                                       extrinsic);
+  camera_geometries_[camera_id] = std::make_shared<CameraGeometry>(camera_id,
+                                                                   camera_model,
+                                                                   resolution,
+                                                                   intrinsic,
+                                                                   extrinsic);
 }
 
-void CalibData::addImu(const int imu_index,
+void CalibData::addImu(const int imu_id,
                        const ImuParams &imu_params,
                        const Vec7 &extrinsic) {
-  imu_geometries_[imu_index] =
-      std::make_shared<ImuGeometry>(imu_index, imu_params, extrinsic);
+  imu_geometries_[imu_id] =
+      std::make_shared<ImuGeometry>(imu_id, imu_params, extrinsic);
 }
 
 void CalibData::addCameraMeasurement(const timestamp_t ts,
-                                     const int camera_index,
+                                     const int camera_id,
                                      const CalibTargetPtr &calib_target) {
-  camera_data_[camera_index][ts] = calib_target;
+  camera_data_[camera_id][ts] = calib_target;
 }
 
 void CalibData::addTargetPoint(const int point_id, const Vec3 &point) {
@@ -288,30 +343,30 @@ std::map<int, CameraData> &CalibData::getAllCameraData() {
   return camera_data_;
 }
 
-CameraData &CalibData::getCameraData(const int camera_index) {
-  return camera_data_.at(camera_index);
+CameraData &CalibData::getCameraData(const int camera_id) {
+  return camera_data_.at(camera_id);
 }
 
 std::map<int, ImuBuffer> &CalibData::getAllImuData() { return imu_data_; }
 
-ImuBuffer &CalibData::getImuData(const int imu_index) {
-  return imu_data_.at(imu_index);
+ImuBuffer &CalibData::getImuData(const int imu_id) {
+  return imu_data_.at(imu_id);
 }
 
 std::map<int, CameraGeometryPtr> &CalibData::getAllCameraGeometries() {
   return camera_geometries_;
 }
 
-CameraGeometryPtr &CalibData::getCameraGeometry(const int camera_index) {
-  return camera_geometries_.at(camera_index);
+CameraGeometryPtr &CalibData::getCameraGeometry(const int camera_id) {
+  return camera_geometries_.at(camera_id);
 }
 
 std::map<int, ImuGeometryPtr> &CalibData::getAllImuGeometries() {
   return imu_geometries_;
 }
 
-ImuGeometryPtr &CalibData::getImuGeometry(const int imu_index) {
-  return imu_geometries_.at(imu_index);
+ImuGeometryPtr &CalibData::getImuGeometry(const int imu_id) {
+  return imu_geometries_.at(imu_id);
 }
 
 Vec3 &CalibData::getTargetPoint(const int point_id) {

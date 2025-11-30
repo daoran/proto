@@ -8,6 +8,9 @@ namespace xyz {
 class CalibTarget {
 protected:
   timestamp_t ts_ = 0;
+  int camera_id_ = 0;
+  std::string target_type_;
+  int target_id_ = 0;
   int tag_rows_ = 0;
   int tag_cols_ = 0;
   double tag_size_ = 0.0;
@@ -22,6 +25,9 @@ protected:
 
 public:
   CalibTarget(const timestamp_t &timestamp,
+              const int camera_id,
+              const std::string &target_type,
+              const int target_id,
               const int tag_rows,
               const int tag_cols,
               const double tag_size,
@@ -33,6 +39,15 @@ public:
 
   /** Get Timestamp **/
   timestamp_t getTimestamp() const;
+
+  /** Get Camera ID **/
+  int getCameraId() const;
+
+  /** Get Target Type **/
+  std::string getTargetType() const;
+
+  /** Get Target ID **/
+  int getTargetId() const;
 
   /** Return number of tag rows */
   int getTagRows() const;
@@ -46,8 +61,11 @@ public:
   /** Return number of tag spacing */
   double getTagSpacing() const;
 
-  /** Get the center of the AprilGrid */
-  Vec2 getCenter() const;
+  /** Get the 2D center of the AprilGrid */
+  Vec2 getCenter2d() const;
+
+  /** Get the 3D center of the AprilGrid */
+  Vec3 getCenter3d() const;
 
   /** Get number detected */
   int getNumDetected() const;
