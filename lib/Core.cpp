@@ -409,6 +409,21 @@ void yaml_check_matrix_fields(const YAML::Node &node,
 
 int parse(const config_t &config,
           const std::string &key,
+          fs::path &path,
+          const bool optional) {
+  // Get node
+  YAML::Node node;
+  if (yaml_get_node(config, key, optional, node) != 0) {
+    return -1;
+  }
+
+  // Parse
+  path = fs::path{node.as<std::string>()};
+  return 0;
+}
+
+int parse(const config_t &config,
+          const std::string &key,
           Vec2 &vec,
           const bool optional) {
   // Get node

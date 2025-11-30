@@ -41,6 +41,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <type_traits>
+#include <filesystem>
 
 #include <yaml-cpp/yaml.h>
 
@@ -57,6 +58,8 @@
 #include <opencv2/features2d/features2d.hpp>
 
 namespace xyz {
+
+namespace fs = std::filesystem;
 
 /******************************************************************************
  *                                MACROS
@@ -441,6 +444,11 @@ int parse(const config_t &config,
           const std::string &key,
           std::vector<T> &out,
           const bool optional);
+
+int parse(const config_t &config,
+          const std::string &key,
+          fs::path &path,
+          const bool optional = false);
 
 int parse(const config_t &config,
           const std::string &key,
