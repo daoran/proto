@@ -5,51 +5,68 @@ namespace xyz {
 
 CameraChain::CameraChain(
     const std::map<int, CameraGeometryPtr> &camera_geometries,
-    const std::map<int, CameraData> &camera_data) {
-  // Get camera timestamps
-  std::map<timestamp_t, std::vector<int>> camera_timestamps;
-  for (const auto &[camera_index, camera_measurements] : camera_data) {
-    for (const auto &[ts, calib_target] : camera_measurements) {
-      camera_timestamps[ts].push_back(camera_index);
+    const std::map<int, CameraData> &camera_measurements) {
+  // Get all camera timestamps
+  std::set<timestamp_t> timestamps;
+  for (const auto &[_, camera_data] : camera_measurements) {
+    for (const auto &[ts, _] : camera_data) {
+      timestamps.insert(ts);
     }
   }
 
-  // Loop through timestamps and get co-observations
-  for (auto &[ts, camera_indicies] : camera_timestamps) {
-    // Pre-check
-    if (camera_indicies.size() < 2) {
-      continue;
+  // Form camera adjacency matrix
+  for (const auto ts : timestamps) {
+    // Form (target_id, camera_ids) map at time ts
+    std::map<int, std::vector<int>> target_counter;
+    for (const auto &[camera_id, camera_data] : camera_measurements) {
+      if (camera_data.count(ts) == 0) {
+        continue;
+      }
+      for (const auto &[target_id, target] : camera_data.at(ts)) {
+        target_counter[target_id].push_back(camera_id);
+      }
     }
 
-    // Obtain co-observations
-    std::map<int, CalibTargetPtr> observations;
-    for (auto camera_index : camera_indicies) {
-      observations[camera_index] = camera_data.at(camera_index).at(ts);
-    }
-
-    // Estimate relative pose T_CiF
-    const int index_i = camera_indicies[0];
-    const auto &target_i = observations[index_i];
-    const auto camera_i = camera_geometries.at(index_i);
-    Mat4 T_CiF;
-    if (SolvePnp::estimate(camera_i, target_i, T_CiF) != 0) {
-      continue;
-    }
-
-    // Estimate relative pose T_CjF
-    for (size_t j = 1; j < camera_indicies.size(); j++) {
-      const int index_j = camera_indicies[j];
-      const auto &target_j = observations[index_j];
-      const auto camera_j = camera_geometries.at(index_j);
-
-      // Solvepnp T_CjF
-      Mat4 T_CjF;
-      if (SolvePnp::estimate(camera_j, target_j, T_CjF) != 0) {
+    // From the common observations estimate camera-camera extrinsics. Here we
+    // loop through different calibration targets observed by different cameras
+    // in the `camera_ids` vector and form the adjacency matrix at time `ts`.
+    for (const auto &[target_id, camera_ids] : target_counter) {
+      // Pre-check
+      if (camera_ids.size() < 2) {
         continue;
       }
 
-      // Insert into adjacency list
-      insert(index_i, index_j, T_CiF * T_CjF.inverse());
+      // Obtain co-observations
+      std::map<int, CalibTargetPtr> targets;
+      for (auto camera_id : camera_ids) {
+        targets[camera_id] =
+            camera_measurements.at(camera_id).at(ts).at(target_id);
+      }
+
+      // Estimate relative pose T_CiT
+      const int index_i = camera_ids[0];
+      const auto &target_i = targets[index_i];
+      const auto camera_i = camera_geometries.at(index_i);
+      Mat4 T_CiT;
+      if (SolvePnp::estimate(camera_i, target_i, T_CiT) != 0) {
+        continue;
+      }
+
+      // Estimate relative pose T_CjT
+      for (size_t j = 1; j < camera_ids.size(); j++) {
+        const int index_j = camera_ids[j];
+        const auto &target_j = targets[index_j];
+        const auto camera_j = camera_geometries.at(index_j);
+
+        // Solvepnp T_CjT
+        Mat4 T_CjT;
+        if (SolvePnp::estimate(camera_j, target_j, T_CjT) != 0) {
+          continue;
+        }
+
+        // Insert into adjacency list
+        insert(index_i, index_j, T_CiT * T_CjT.inverse());
+      }
     }
   }
 }

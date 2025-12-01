@@ -9,7 +9,7 @@ namespace xyz {
 static std::shared_ptr<CameraGeometry> setup_euroc_camera0() {
   const int camera_index = 0;
   const Vec2i resolution{752, 480};
-  const std::string camera_model = "pinhole-radtan4";
+  const std::string camera_model = "BrownConrady4";
 
   VecX intrinsic;
   intrinsic.resize(8);
@@ -37,7 +37,7 @@ static std::shared_ptr<CameraGeometry> setup_euroc_camera0() {
 static std::shared_ptr<CameraGeometry> setup_euroc_camera1() {
   const int camera_index = 1;
   const Vec2i resolution{752, 480};
-  const std::string camera_model = "pinhole-radtan4";
+  const std::string camera_model = "BrownConrady4";
 
   VecX intrinsic;
   intrinsic.resize(8);

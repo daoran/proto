@@ -16,7 +16,7 @@ private:
 public:
   CameraChain() = default;
   CameraChain(const std::map<int, CameraGeometryPtr> &camera_geometries,
-              const std::map<int, CameraData> &camera_data);
+              const std::map<int, CameraData> &camera_measurements);
   virtual ~CameraChain() = default;
 
   /** Insert link beteen camera i and j */
