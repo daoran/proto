@@ -7,19 +7,22 @@ namespace xyz {
 class CalibTargetGeometry {
 private:
   int target_id_;
-  Vec7 target_pose_;
+  Vec7 extrinsic_;
   std::map<int, Vec3> target_points_;
 
 public:
   CalibTargetGeometry() = delete;
-  CalibTargetGeometry(const int target_id, const Vec7 &target_pose);
+  CalibTargetGeometry(const int target_id, const Vec7 &extrinsic);
   virtual ~CalibTargetGeometry() = default;
 
   /** Get target pose **/
-  Vec7 getPose() const;
+  Vec7 getExtrinsic() const;
 
   /** Get target pose pointer **/
-  double *getPosePtr();
+  double *getExtrinsicPtr();
+
+  /** Get transform T_body_camera **/
+  Mat4 getTransform() const;
 
   /** Get target points **/
   std::map<int, Vec3> &getPoints();
@@ -32,6 +35,9 @@ public:
 
   /** Add target point **/
   void addPoint(const int point_id, const Vec3 &point);
+
+  /** Set extrinsic */
+  void setExtrinsic(const Mat4 &extrinsic);
 };
 
 } // namespace xyz

@@ -3,12 +3,14 @@
 namespace xyz {
 
 CalibTargetGeometry::CalibTargetGeometry(const int target_id,
-                                         const Vec7 &target_pose)
-    : target_id_{target_id}, target_pose_{target_pose} {}
+                                         const Vec7 &extrinsic)
+    : target_id_{target_id}, extrinsic_{extrinsic} {}
 
-Vec7 CalibTargetGeometry::getPose() const { return target_pose_; }
+Vec7 CalibTargetGeometry::getExtrinsic() const { return extrinsic_; }
 
-double *CalibTargetGeometry::getPosePtr() { return target_pose_.data(); }
+double *CalibTargetGeometry::getExtrinsicPtr() { return extrinsic_.data(); }
+
+Mat4 CalibTargetGeometry::getTransform() const { return tf(extrinsic_); }
 
 std::map<int, Vec3> &CalibTargetGeometry::getPoints() { return target_points_; }
 
@@ -25,6 +27,10 @@ double *CalibTargetGeometry::getPointPtr(const int point_id) {
 void CalibTargetGeometry::addPoint(const int point_id, const Vec3 &point) {
   assert(target_points_.count(point_id) == 0);
   target_points_[point_id] = point;
+}
+
+void CalibTargetGeometry::setExtrinsic(const Mat4 &extrinsic) {
+  extrinsic_ = tf_vec(extrinsic);
 }
 
 } // namespace xyz
