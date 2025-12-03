@@ -24,19 +24,15 @@ CalibView::CalibView(std::shared_ptr<ceres::Problem> &problem,
     }
 
     // Get calibration target measurements
-    std::vector<int> tag_ids;
-    std::vector<int> corner_indicies;
+    std::vector<int> point_ids;
     Vec2s keypoints;
     Vec3s object_points;
-    calib_target->getMeasurements(tag_ids,
-                                  corner_indicies,
-                                  keypoints,
-                                  object_points);
+    calib_target->getMeasurements(point_ids, keypoints, object_points);
 
     // Add residual blocks
-    for (size_t i = 0; i < tag_ids.size(); i++) {
+    for (size_t i = 0; i < point_ids.size(); i++) {
       // Add target point
-      const int point_id = (tag_ids[i] * 4) + corner_indicies[i];
+      const int point_id = point_ids[i];
       Vec3 &pt = target_points[point_id];
       problem_->AddParameterBlock(pt.data(), 3);
       problem_->SetParameterBlockConstant(pt.data());

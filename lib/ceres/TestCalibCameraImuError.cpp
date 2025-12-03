@@ -208,7 +208,7 @@ TEST(CalibCameraImuError, evaluate) {
   // Check Jacobians
   const double h = 1e-8;
   const double tol = 1e-4;
-  const bool verbose = true;
+  const bool verbose = false;
   ASSERT_TRUE(res_block->checkJacobian(0, "J_sensor_pose", h, tol, verbose));
   ASSERT_TRUE(res_block->checkJacobian(1, "J_fiducial_pose", h, tol, verbose));
   ASSERT_TRUE(res_block->checkJacobian(2, "J_imu_extrinsic", h, tol, verbose));

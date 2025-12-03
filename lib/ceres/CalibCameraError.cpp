@@ -54,6 +54,7 @@ bool CalibCameraError::eval(double const *const *params,
   const Mat4 T_C0F = tf(params[1]);
   const Mat4 T_C0Ci = tf(params[2]);
   Eigen::Map<const VecX> intrinsic(params[3], 8);
+  // T_CiC0 * T_C0W * T_WFj * p_Fj
 
   // Transform and project point to image plane
   // -- Transform point from fiducial frame to camera-n

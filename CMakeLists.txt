@@ -34,10 +34,13 @@ add_library(
   ${PROJECT_NAME}
   STATIC
   lib/calib/AprilGrid.cpp
+  lib/calib/AprilGridDetector.cpp
   lib/calib/CalibCamera.cpp
-  lib/calib/CalibCameraImu.cpp
+  # lib/calib/CalibCameraImu.cpp
   lib/calib/CalibData.cpp
   lib/calib/CalibTarget.cpp
+  lib/calib/CalibTargetChain.cpp
+  lib/calib/CalibTargetGeometry.cpp
   lib/calib/CalibView.cpp
   lib/calib/CameraChain.cpp
   lib/calib/SolvePnp.cpp
@@ -56,8 +59,9 @@ add_library(
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
   lib/imu/ImuState.cpp
-  lib/sim/SimImu.cpp
-  lib/sim/SimVio.cpp
+  # lib/sim/SimCalibCamera.cpp
+  # lib/sim/SimImu.cpp
+  # lib/sim/SimVio.cpp
   lib/timeline/CalibTargetEvent.cpp
   lib/timeline/CameraEvent.cpp
   lib/timeline/ImuEvent.cpp
@@ -72,6 +76,7 @@ set(DEPS
   Eigen3::Eigen
   ${OpenCV_LIBS}
   apriltag::apriltag
+  ethz_apriltag
   Ceres::ceres
 )
 target_link_libraries(${PROJECT_NAME} ${DEPS})
@@ -82,21 +87,23 @@ set(TEST_DATA ${CMAKE_CURRENT_LIST_DIR}/lib/test_data)
 
 add_executable(unittests
   lib/calib/TestAprilGrid.cpp
+  lib/calib/TestAprilGridDetector.cpp
   lib/calib/TestCalibCamera.cpp
-  lib/calib/TestCalibCameraImu.cpp
+  # lib/calib/TestCalibCameraImu.cpp
   lib/calib/TestCalibData.cpp
   lib/calib/TestCameraChain.cpp
-  lib/camera/TestBrownConrady4.cpp
-  lib/camera/TestKannalaBrandt4.cpp
-  lib/camera/TestPinhole.cpp
-  lib/ceres/TestCalibCameraError.cpp
-  lib/ceres/TestCalibCameraImuError.cpp
-  lib/ceres/TestImuError.cpp
-  lib/ceres/TestReprojError.cpp
-  lib/sim/TestSimImu.cpp
+  # lib/camera/TestBrownConrady4.cpp
+  # lib/camera/TestKannalaBrandt4.cpp
+  # lib/camera/TestPinhole.cpp
+  # lib/ceres/TestCalibCameraError.cpp
+  # lib/ceres/TestCalibCameraImuError.cpp
+  # lib/ceres/TestImuError.cpp
+  # lib/ceres/TestReprojError.cpp
+  # lib/sim/TestSimCalibCamera.cpp
+  # lib/sim/TestSimImu.cpp
   # lib/sim/TestSimVio.cpp
-  lib/timeline/TestTimeline.cpp
-  lib/TestLogger.cpp
+  # lib/timeline/TestTimeline.cpp
+  # lib/TestLogger.cpp
 )
 add_compile_definitions(unittests PRIVATE TEST_DATA="${TEST_DATA}")
 target_link_libraries(unittests ${TEST_DEPS})

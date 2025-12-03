@@ -5,7 +5,6 @@
 namespace xyz {
 
 struct ImuEvent : TimelineEvent {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   Vec3 acc = zeros(3, 1);
   Vec3 gyr = zeros(3, 1);
 

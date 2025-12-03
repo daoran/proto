@@ -6,37 +6,47 @@ namespace xyz {
 CameraChain::CameraChain(
     const std::map<int, CameraGeometryPtr> &camera_geometries,
     const std::map<int, CameraData> &camera_measurements) {
-  // Get all camera timestamps
-  std::set<timestamp_t> timestamps;
-  for (const auto &[_, camera_data] : camera_measurements) {
-    for (const auto &[ts, _] : camera_data) {
-      timestamps.insert(ts);
-    }
-  }
+  // Lambda function - Get all camera timestamps
+  auto get_timestamps =
+      [](const std::map<int, CameraData> &camera_measurements) {
+        std::set<timestamp_t> timestamps;
+        for (const auto &[_, camera_data] : camera_measurements) {
+          for (const auto &[ts, _] : camera_data) {
+            timestamps.insert(ts);
+          }
+        }
+        return timestamps;
+      };
 
-  // Form camera adjacency matrix
-  for (const auto ts : timestamps) {
-    // Form (target_id, camera_ids) map at time ts
-    std::map<int, std::vector<int>> target_counter;
+  // Lamda function - Form (target, camera ids) map
+  auto get_data = [](const timestamp_t ts,
+                     const std::map<int, CameraData> &camera_measurements) {
+    std::map<int, std::vector<int>> data;
     for (const auto &[camera_id, camera_data] : camera_measurements) {
       if (camera_data.count(ts) == 0) {
         continue;
       }
       for (const auto &[target_id, target] : camera_data.at(ts)) {
-        target_counter[target_id].push_back(camera_id);
+        if (target->getNumDetected() > 5) {
+          data[target_id].push_back(camera_id);
+        }
       }
     }
+    return data;
+  };
 
-    // From the common observations estimate camera-camera extrinsics. Here we
-    // loop through different calibration targets observed by different cameras
-    // in the `camera_ids` vector and form the adjacency matrix at time `ts`.
-    for (const auto &[target_id, camera_ids] : target_counter) {
-      // Pre-check
+  // Form camera-camera extrinsic adjacency matrix
+  // Note: From the common observations estimate camera-camera extrinsics. Here
+  // we loop through different calibration targets observed by different
+  // cameras and form the adjacency matrix.
+  for (const auto ts : get_timestamps(camera_measurements)) {
+    for (auto &[target_id, camera_ids] : get_data(ts, camera_measurements)) {
+      // Skip if target was observed by fewer than 2 cameras
       if (camera_ids.size() < 2) {
         continue;
       }
 
-      // Obtain co-observations
+      // Get calibration targets
       std::map<int, CalibTargetPtr> targets;
       for (auto camera_id : camera_ids) {
         targets[camera_id] =

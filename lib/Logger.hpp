@@ -44,10 +44,13 @@ public:
                   const double value);
 
   /** Log Transform */
-  void log_pose(const std::string &topic, const Mat4 &pose);
+  void log_pose(const std::string &topic,
+                const Mat4 &pose,
+                const float axis_length = 1.0);
   void log_pose(const std::string &topic,
                 const timestamp_t ts,
-                const Mat4 &pose);
+                const Mat4 &pose,
+                const float axis_length = 1.0);
 
   /** Log Points */
   void log_points(const std::string &topic,

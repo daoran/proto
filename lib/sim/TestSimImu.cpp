@@ -3,7 +3,7 @@
 
 namespace xyz {
 
-TEST(Sim, construct) {
+TEST(SimImu, construct) {
   SimImu sim;
   sim.save("/tmp/sim.csv");
 }

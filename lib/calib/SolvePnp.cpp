@@ -68,14 +68,10 @@ int SolvePnp::estimate(const std::shared_ptr<CameraGeometry> &camera_geometry,
                        const std::shared_ptr<CalibTarget> &calib_target,
                        Mat4 &T_camera_target) {
   // Get calibration target measurements
-  std::vector<int> tag_ids;
-  std::vector<int> corner_indicies;
+  std::vector<int> point_ids;
   Vec2s keypoints;
   Vec3s object_points;
-  calib_target->getMeasurements(tag_ids,
-                                corner_indicies,
-                                keypoints,
-                                object_points);
+  calib_target->getMeasurements(point_ids, keypoints, object_points);
   if (keypoints.size() < 10) {
     return -1;
   }

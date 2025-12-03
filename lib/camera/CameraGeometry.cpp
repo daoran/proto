@@ -5,13 +5,13 @@
 
 namespace xyz {
 
-CameraGeometry::CameraGeometry(const int camera_index,
+CameraGeometry::CameraGeometry(const int camera_id,
                                const std::string &camera_model,
                                const Vec2i &resolution,
                                const VecX &intrinsic,
                                const VecX &extrinsic)
-    : camera_index_{camera_index}, resolution_{resolution},
-      intrinsic_{intrinsic}, extrinsic_{extrinsic} {
+    : camera_id_{camera_id}, resolution_{resolution}, intrinsic_{intrinsic},
+      extrinsic_{extrinsic} {
   // Initialize camera model
   int intrinsic_size = 0;
   if (camera_model == "BrownConrady4") {
@@ -43,7 +43,7 @@ CameraGeometry::CameraGeometry(const int camera_index,
 
 CameraGeometry::~CameraGeometry() {}
 
-int CameraGeometry::getCameraIndex() const { return camera_index_; }
+int CameraGeometry::getCameraId() const { return camera_id_; }
 
 CameraModel *CameraGeometry::getCameraModel() const {
   return camera_model_.get();

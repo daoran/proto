@@ -76,15 +76,18 @@ void Logger::log_scalar(const std::string &topic,
   rec_->log(topic, rerun::Scalars{value});
 }
 
-void Logger::log_pose(const std::string &topic, const Mat4 &pose) {
-  rec_->log(topic, convert(pose));
+void Logger::log_pose(const std::string &topic,
+                      const Mat4 &pose,
+                      const float axis_length) {
+  rec_->log_static(topic, convert(pose, axis_length));
 }
 
 void Logger::log_pose(const std::string &topic,
                       const timestamp_t ts,
-                      const Mat4 &pose) {
+                      const Mat4 &pose,
+                      const float axis_length) {
   rec_->set_time_timestamp("time", convert(ts));
-  rec_->log(topic, convert(pose));
+  rec_->log(topic, convert(pose, axis_length));
 }
 
 void Logger::log_points(const std::string &topic,
@@ -92,7 +95,7 @@ void Logger::log_points(const std::string &topic,
                         const std::vector<Vec3> &colors,
                         const std::vector<double> &radii) {
   assert(points.size() == colors.size());
-  rec_->log(topic, convert(points, colors, radii));
+  rec_->log_static(topic, convert(points, colors, radii));
 }
 
 void Logger::log_points(const std::string &topic,

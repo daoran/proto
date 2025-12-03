@@ -4,6 +4,7 @@
 #include "CalibCameraImu.hpp"
 #include "CalibData.hpp"
 #include "CalibTarget.hpp"
+#include "CalibTargetGeometry.hpp"
 #include "CalibView.hpp"
 #include "CameraChain.hpp"
 #include "SolvePnp.hpp"

@@ -244,7 +244,7 @@ void CalibData::printSettings(FILE *fp) const {
   fprintf(fp, "\n");
 }
 
-void CalibData::printCalibTarget(FILE *fp) const {
+void CalibData::printCalibTargetConfigs(FILE *fp) const {
   for (const auto &[target_id, target_config] : target_configs_) {
     const std::string target_prefix = "target" + std::to_string(target_id);
     fprintf(fp, "%s:\n", target_prefix.c_str());
@@ -290,18 +290,20 @@ void CalibData::printImuGeometries(FILE *fp, const bool max_digits) const {
 }
 
 void CalibData::printTargetPoints(FILE *fp) const {
-  fprintf(fp, "# point_id, x, y, z\n");
-  fprintf(fp, "target_points: [\n");
-  for (const auto &[point_id, point] : target_points_) {
-    fprintf(fp,
-            "  %d, %f, %f, %f\n",
-            point_id,
-            point.x(),
-            point.y(),
-            point.z());
+  for (const auto &[target_id, target_geometry] : target_geometries_) {
+    fprintf(fp, "# point_id, x, y, z\n");
+    fprintf(fp, "target%d_points: [\n", target_id);
+    for (const auto &[point_id, point] : target_geometry->getPoints()) {
+      fprintf(fp,
+              "  %d, %f, %f, %f\n",
+              point_id,
+              point.x(),
+              point.y(),
+              point.z());
+    }
+    fprintf(fp, "]\n");
+    fprintf(fp, "\n");
   }
-  fprintf(fp, "]\n");
-  fprintf(fp, "\n");
 }
 
 void CalibData::addCamera(const int camera_id,
@@ -326,18 +328,21 @@ void CalibData::addImu(const int imu_id,
 void CalibData::addCameraMeasurement(const timestamp_t ts,
                                      const int camera_id,
                                      const CalibTargetPtr &calib_target) {
-  camera_data_[camera_id][ts] = calib_target;
+  const int target_id = calib_target->getTargetId();
+  camera_data_[camera_id][ts][target_id] = calib_target;
 }
 
-void CalibData::addTargetPoint(const int point_id, const Vec3 &point) {
-  if (target_points_.count(point_id) == 0) {
-    target_points_[point_id] = point;
-  }
+void CalibData::addTargetPoint(const int target_id,
+                               const int point_id,
+                               const Vec3 &point) {
+  target_geometries_[target_id]->addPoint(point_id, point);
 }
 
 int CalibData::getNumCameras() const { return camera_geometries_.size(); }
 
 int CalibData::getNumImus() const { return imu_geometries_.size(); }
+
+int CalibData::getNumTargets() const { return target_configs_.size(); }
 
 std::map<int, CameraData> &CalibData::getAllCameraData() {
   return camera_data_;
@@ -369,13 +374,13 @@ ImuGeometryPtr &CalibData::getImuGeometry(const int imu_id) {
   return imu_geometries_.at(imu_id);
 }
 
-Vec3 &CalibData::getTargetPoint(const int point_id) {
-  return target_points_[point_id];
+Vec3 &CalibData::getTargetPoint(const int target_id, const int point_id) {
+  return target_geometries_.at(target_id)->getPoint(point_id);
 }
 
 void CalibData::printSummary(FILE *fp, const bool max_digits) const {
   printSettings(fp);
-  printCalibTarget(fp);
+  printCalibTargetConfigs(fp);
   printCameraGeometries(fp, max_digits);
 }
 
@@ -386,7 +391,7 @@ void CalibData::saveResults(const std::string &save_path) const {
   }
 
   printSettings(fp);
-  printCalibTarget(fp);
+  printCalibTargetConfigs(fp);
   printCameraGeometries(fp, true);
 
   fclose(fp);

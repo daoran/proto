@@ -6,7 +6,7 @@ namespace xyz {
 /** Camera Geometry */
 class CameraGeometry {
 private:
-  int camera_index_;
+  int camera_id_;
   std::shared_ptr<CameraModel> camera_model_;
   Vec2i resolution_;
   VecX intrinsic_;
@@ -14,15 +14,15 @@ private:
 
 public:
   CameraGeometry() = delete;
-  CameraGeometry(const int camera_index,
+  CameraGeometry(const int camera_id,
                  const std::string &camera_model,
                  const Vec2i &resolution,
                  const VecX &intrinsic,
                  const VecX &extrinsic);
   virtual ~CameraGeometry();
 
-  /** Get camera index **/
-  int getCameraIndex() const;
+  /** Get camera id **/
+  int getCameraId() const;
 
   /** Get camera model **/
   CameraModel *getCameraModel() const;

@@ -17,18 +17,19 @@ struct Timeline {
 
   /** Add camera event **/
   void add(const timestamp_t &ts,
-           const int camera_index,
+           const int camera_id,
            const std::string &image_path);
 
   /** Add camera event **/
-  void add(const timestamp_t &ts, const int camera_index, const cv::Mat &image);
+  void add(const timestamp_t &ts, const int camera_id, const cv::Mat &image);
 
   /** Add imu event **/
   void add(const timestamp_t &ts, const Vec3 &acc, const Vec3 &gyr);
 
   /** Add calibration target event **/
   void add(const timestamp_t &ts,
-           const int camera_index,
+           const int camera_id,
+           const int target_id,
            const std::shared_ptr<CalibTarget> &calib_target);
 
   /** Get number of events **/

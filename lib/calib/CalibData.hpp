@@ -8,15 +8,18 @@
 #include "../ceres/PoseManifold.hpp"
 
 #include "AprilGrid.hpp"
+#include "AprilGridConfig.hpp"
+#include "AprilGridDetector.hpp"
+#include "CalibTargetGeometry.hpp"
 
 namespace xyz {
-
-namespace fs = std::filesystem;
 
 using CameraGeometryPtr = std::shared_ptr<CameraGeometry>;
 using ImuGeometryPtr = std::shared_ptr<ImuGeometry>;
 using CalibTargetPtr = std::shared_ptr<CalibTarget>;
-using CameraData = std::map<timestamp_t, CalibTargetPtr>;
+using CalibTargetMap = std::map<int, CalibTargetPtr>;
+using CalibTargetGeometryPtr = std::shared_ptr<CalibTargetGeometry>;
+using CameraData = std::map<timestamp_t, CalibTargetMap>;
 
 /** Calibration Data */
 class CalibData {
@@ -33,7 +36,7 @@ protected:
   std::map<int, ImuBuffer> imu_data_;
   std::map<int, CameraGeometryPtr> camera_geometries_;
   std::map<int, ImuGeometryPtr> imu_geometries_;
-  std::map<int, Vec3> target_points_;
+  std::map<int, CalibTargetGeometryPtr> target_geometries_;
 
   /** Load Camera Data */
   void loadCameraData(const int camera_id);
@@ -47,8 +50,8 @@ protected:
   /** Print settings */
   void printSettings(FILE *fp) const;
 
-  /** Print calibration target */
-  void printCalibTarget(FILE *fp) const;
+  /** Print calibration target configs */
+  void printCalibTargetConfigs(FILE *fp) const;
 
   /** Print camera geometries */
   void printCameraGeometries(FILE *fp, const bool max_digits = false) const;
@@ -82,13 +85,18 @@ public:
                             const std::shared_ptr<CalibTarget> &calib_target);
 
   /** Add calibration target point */
-  void addTargetPoint(const int point_id, const Vec3 &point);
+  void addTargetPoint(const int target_id,
+                      const int point_id,
+                      const Vec3 &point);
 
   /** Get number of cameras */
   int getNumCameras() const;
 
   /** Get number of IMUs */
   int getNumImus() const;
+
+  /** Get number of targets */
+  int getNumTargets() const;
 
   /** Get all camera data */
   std::map<int, CameraData> &getAllCameraData();
@@ -115,7 +123,7 @@ public:
   ImuGeometryPtr &getImuGeometry(const int imu_id);
 
   /** Get target point */
-  Vec3 &getTargetPoint(const int point_id);
+  Vec3 &getTargetPoint(const int target_id, const int point_id);
 
   /** Print summary */
   void printSummary(FILE *fp, const bool max_digits = false) const;
