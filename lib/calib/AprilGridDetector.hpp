@@ -1,0 +1,58 @@
+#pragma once
+
+#include "../Core.hpp"
+#include "AprilGrid.hpp"
+#include "AprilGridConfig.hpp"
+
+// AprilTags3 by Ed Olsen
+extern "C" {
+#include "apriltag/apriltag.h"
+#include "apriltag/tag36h11.h"
+#include "apriltag/common/getopt.h"
+}
+
+// AprilTags by Michael Kaess
+#include "ethz_apriltag/TagDetector.h"
+#include "ethz_apriltag/Tag36h11.h"
+
+namespace xyz {
+
+/** AprilGrid Detector **/
+class AprilGridDetector {
+private:
+  // Settings
+  int min_border_dist_ = 5;
+  std::map<int, AprilGridConfig> target_configs_;
+  std::map<int, int> target_lut_; // tag_id, target_id
+
+  // Ed Olsen's AprilTag detector
+  apriltag_family_t *tf_ = tag36h11_create();
+  apriltag_detector_t *det_ = apriltag_detector_create();
+
+  void olsenDetect(const cv::Mat &image,
+                   std::vector<int> &tag_ids,
+                   std::vector<int> &corner_indicies,
+                   std::vector<Vec2> &keypoints);
+
+  // Michale Kaess's AprilTag detector
+  ethz_apriltag::TagDetector detector{ethz_apriltag::tagCodes36h11};
+
+  void kaessDetect(const cv::Mat &image,
+                   std::vector<int> &tag_ids,
+                   std::vector<int> &corner_indicies,
+                   std::vector<Vec2> &keypoints);
+
+public:
+  /** Constructor / Destructor **/
+  AprilGridDetector() = delete;
+  AprilGridDetector(const AprilGridConfig &target_config);
+  AprilGridDetector(const std::map<int, AprilGridConfig> &target_configs);
+  virtual ~AprilGridDetector();
+
+  /** Detect AprilGrid **/
+  std::vector<std::shared_ptr<AprilGrid>> detect(const timestamp_t ts,
+                                                 const int camera_id,
+                                                 const cv::Mat &image);
+};
+
+} // namespace xyz

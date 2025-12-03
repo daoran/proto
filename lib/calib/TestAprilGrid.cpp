@@ -1,39 +1,39 @@
 #include <gtest/gtest.h>
 
 #include "calib/AprilGrid.hpp"
+#include "calib/AprilGridConfig.hpp"
 
 #define TEST_OUTPUT "/tmp/aprilgrid.csv"
-#define TEST_IMAGE TEST_DATA "/aprilgrid/aprilgrid.png"
 
 namespace xyz {
 
-TEST(AprilGrid, construct) {
+static AprilGrid setup_aprilgrid() {
   const timestamp_t ts = 0;
   const int camera_id = 0;
-  const int target_id = 0;
-  const int tag_rows = 6;
-  const int tag_cols = 7;
-  const double tag_size = 0.088;
-  const double tag_spacing = 0.3;
-  const AprilGrid
-      grid{ts, camera_id, target_id, tag_rows, tag_cols, tag_size, tag_spacing};
 
-  ASSERT_EQ(grid.getTagRows(), tag_rows);
-  ASSERT_EQ(grid.getTagCols(), tag_cols);
-  ASSERT_EQ(grid.getTagSize(), tag_size);
-  ASSERT_EQ(grid.getTagSpacing(), tag_spacing);
+  AprilGridConfig config;
+  config.target_id = 0;
+  config.tag_rows = 6;
+  config.tag_cols = 7;
+  config.tag_size = 0.088;
+  config.tag_spacing = 0.3;
+
+  return AprilGrid{ts, camera_id, config};
+}
+
+TEST(AprilGrid, construct) {
+  AprilGrid grid = setup_aprilgrid();
+
+  ASSERT_EQ(grid.getTimestamp(), 0);
+  ASSERT_EQ(grid.getCameraId(), 0);
+  ASSERT_EQ(grid.getTagRows(), 6);
+  ASSERT_EQ(grid.getTagCols(), 7);
+  ASSERT_EQ(grid.getTagSize(), 0.088);
+  ASSERT_EQ(grid.getTagSpacing(), 0.3);
 }
 
 TEST(AprilGrid, addAndRemove) {
-  const timestamp_t ts = 0;
-  const int camera_id = 0;
-  const int target_id = 0;
-  const int tag_rows = 6;
-  const int tag_cols = 7;
-  const double tag_size = 0.088;
-  const double tag_spacing = 0.3;
-  AprilGrid
-      grid{ts, camera_id, target_id, tag_rows, tag_cols, tag_size, tag_spacing};
+  AprilGrid grid = setup_aprilgrid();
 
   // Keypoints
   const Vec2 kp1_gnd{1.0, 2.0};
@@ -84,15 +84,7 @@ TEST(AprilGrid, addAndRemove) {
 }
 
 TEST(AprilGrid, saveAndLoad) {
-  const timestamp_t ts = 0;
-  const int camera_id = 0;
-  const int target_id = 0;
-  const int tag_rows = 6;
-  const int tag_cols = 7;
-  const double tag_size = 0.088;
-  const double tag_spacing = 0.3;
-  AprilGrid
-      grid{ts, camera_id, target_id, tag_rows, tag_cols, tag_size, tag_spacing};
+  AprilGrid grid = setup_aprilgrid();
 
   // Test save
   const int tag_id = 0;
@@ -120,32 +112,6 @@ TEST(AprilGrid, saveAndLoad) {
   ASSERT_FLOAT_EQ(0.0, (keypoints[1] - kp1).norm());
   ASSERT_FLOAT_EQ(0.0, (keypoints[2] - kp2).norm());
   ASSERT_FLOAT_EQ(0.0, (keypoints[3] - kp3).norm());
-}
-
-TEST(AprilGrid, detect) {
-  const int target_id = 0;
-  const int tag_rows = 6;
-  const int tag_cols = 6;
-  const double tag_size = 0.088;
-  const double tag_spacing = 0.3;
-  AprilGridConfig config{target_id, tag_rows, tag_cols, tag_size, tag_spacing};
-  AprilGridDetector detector(config);
-
-  const timestamp_t ts = 0;
-  const int camera_id = 0;
-  const auto img = cv::imread(TEST_IMAGE, cv::IMREAD_GRAYSCALE);
-  auto grids = detector.detect(ts, camera_id, img);
-  ASSERT_EQ(grids.size(), 1);
-
-  std::vector<int> tag_ids;
-  std::vector<int> corner_indicies;
-  Vec2s keypoints;
-  Vec3s object_points;
-  grids[0]->getMeasurements(tag_ids, corner_indicies, keypoints, object_points);
-  ASSERT_EQ(tag_ids.size(), tag_rows * tag_cols * 4);
-  ASSERT_EQ(corner_indicies.size(), tag_rows * tag_cols * 4);
-  ASSERT_EQ(keypoints.size(), tag_rows * tag_cols * 4);
-  ASSERT_EQ(object_points.size(), tag_rows * tag_cols * 4);
 }
 
 } // namespace xyz
