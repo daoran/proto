@@ -122,6 +122,12 @@ public:
   /** Get IMU geometry */
   ImuGeometryPtr &getImuGeometry(const int imu_id);
 
+  /** Get calibration target geometries */
+  std::map<int, CalibTargetGeometryPtr> &getAllTargetGeometries();
+
+  /** Get calibration target geometry */
+  CalibTargetGeometryPtr &getTargetGeometry(const int target_id);
+
   /** Get target point */
   Vec3 &getTargetPoint(const int target_id, const int point_id);
 

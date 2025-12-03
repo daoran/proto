@@ -374,6 +374,14 @@ ImuGeometryPtr &CalibData::getImuGeometry(const int imu_id) {
   return imu_geometries_.at(imu_id);
 }
 
+std::map<int, CalibTargetGeometryPtr> &CalibData::getAllTargetGeometries() {
+  return target_geometries_;
+}
+
+CalibTargetGeometryPtr &CalibData::getTargetGeometry(const int target_id) {
+  return target_geometries_.at(target_id);
+}
+
 Vec3 &CalibData::getTargetPoint(const int target_id, const int point_id) {
   return target_geometries_.at(target_id)->getPoint(point_id);
 }
