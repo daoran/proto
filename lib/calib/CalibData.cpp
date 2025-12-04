@@ -10,36 +10,39 @@ CalibData::CalibData(const std::string &config_path)
   // -- Parse data settings
   parse(config, "data_path", data_path_);
 
-  // -- Parse target settings
-  for (int target_id = 0; target_id < 10; target_id++) {
+  // -- Parse calibration target settings
+  for (int target_id = 0; target_id < 100; target_id++) {
     // Check if key exists
     const std::string prefix = "target" + std::to_string(target_id);
     if (yaml_has_key(config, prefix) == 0) {
       continue;
     }
 
+    // Load calibration target config
     std::string target_type;
-    int tag_rows = 0;
-    int tag_cols = 0;
-    double tag_size = 0;
-    double tag_spacing = 0;
-    int tag_id_offset = 0;
+    AprilGridConfig target_config;
     parse(config, prefix + ".target_type", target_type);
-    parse(config, prefix + ".tag_rows", tag_rows);
-    parse(config, prefix + ".tag_cols", tag_cols);
-    parse(config, prefix + ".tag_size", tag_size);
-    parse(config, prefix + ".tag_spacing", tag_spacing);
-    parse(config, prefix + ".tag_id_offset", tag_id_offset, true);
+    parse(config, prefix + ".tag_rows", target_config.tag_rows);
+    parse(config, prefix + ".tag_cols", target_config.tag_cols);
+    parse(config, prefix + ".tag_size", target_config.tag_size);
+    parse(config, prefix + ".tag_spacing", target_config.tag_spacing);
+    parse(config, prefix + ".tag_id_offset", target_config.tag_id_offset, true);
     if (target_type != "aprilgrid") {
       FATAL("CalibData currently only supports target type [aprilgrid]!");
     }
 
-    target_configs_[target_id] =
-        AprilGridConfig{target_id, tag_rows, tag_cols, tag_size, tag_spacing};
+    // Add calibration config and geometry
+    const Vec7 target_extrinsic = tf_vec();
+    const auto target_points = target_config.getObjectPoints();
+    target_configs_[target_id] = target_config;
+    target_geometries_[target_id] =
+        std::make_shared<CalibTargetGeometry>(target_id,
+                                              target_extrinsic,
+                                              target_points);
   }
 
   // -- Parse camera settings
-  for (int camera_id = 0; camera_id < 10; camera_id++) {
+  for (int camera_id = 0; camera_id < 100; camera_id++) {
     // Check if key exists
     const std::string prefix = "cam" + std::to_string(camera_id);
     if (yaml_has_key(config, prefix) == 0) {
@@ -95,12 +98,6 @@ CalibData::CalibData(const std::string &config_path)
 }
 
 void CalibData::loadCameraData(const int camera_id) {
-  assert(target_type_ == "aprilgrid");
-  assert(tag_rows_ > 0);
-  assert(tag_cols_ > 0);
-  assert(tag_size_ > 0);
-  assert(tag_spacing_ > 0);
-
   // Setup detector
   AprilGridDetector detector{target_configs_};
 
@@ -230,8 +227,13 @@ void CalibData::loadImuData(const int imu_id) {
 }
 
 bool CalibData::hasCameraMeasurement(const timestamp_t ts,
-                                     const int camera_id) const {
-  if (camera_data_.at(camera_id).count(ts) == 0) {
+                                     const int camera_id,
+                                     const int target_id) const {
+  if (camera_data_.count(camera_id) == 0) {
+    return false;
+  } else if (camera_data_.at(camera_id).count(ts) == 0) {
+    return false;
+  } else if (camera_data_.at(camera_id).at(ts).count(target_id) == 0) {
     return false;
   }
   return true;

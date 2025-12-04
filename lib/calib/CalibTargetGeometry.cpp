@@ -2,9 +2,12 @@
 
 namespace xyz {
 
-CalibTargetGeometry::CalibTargetGeometry(const int target_id,
-                                         const Vec7 &extrinsic)
-    : target_id_{target_id}, extrinsic_{extrinsic} {}
+CalibTargetGeometry::CalibTargetGeometry(
+    const int target_id,
+    const Vec7 &extrinsic,
+    const std::map<int, Vec3> &target_points)
+    : target_id_{target_id}, extrinsic_{extrinsic}, target_points_{
+                                                        target_points} {}
 
 Vec7 CalibTargetGeometry::getExtrinsic() const { return extrinsic_; }
 

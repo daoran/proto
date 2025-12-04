@@ -1832,22 +1832,22 @@ Mat4 tf_inv(const Mat4 &T);
 /**
  * Form a 7x1 pose vector
  */
-VecX tf_vec(const Mat4 &T);
+VecX tf_vec(const Mat4 &T = I(4));
 
 /**
  * Extract rotation from transform
  */
-inline Mat3 tf_rot(const Mat4 &tf) { return tf.block<3, 3>(0, 0); }
+Mat3 tf_rot(const Mat4 &tf);
 
 /**
  * Extract rotation and convert to quaternion from transform
  */
-inline Quat tf_quat(const Mat4 &tf) { return Quat{tf.block<3, 3>(0, 0)}; }
+Quat tf_quat(const Mat4 &tf);
 
 /**
  * Extract translation from transform
  */
-inline Vec3 tf_trans(const Mat4 &tf) { return tf.block<3, 1>(0, 3); }
+Vec3 tf_trans(const Mat4 &tf);
 
 /**
  * Perturb the rotation element in the tranform `T` by `step_size` at index

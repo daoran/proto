@@ -42,21 +42,21 @@ CalibView::CalibView(std::shared_ptr<ceres::Problem> &problem,
       auto pose_ptr = pose_.data();
       auto pt_ptr = pt.data();
       auto kp = keypoints[i];
-      auto resblock = CalibCameraError::create(camera_geometry,
-                                               pose_ptr,
-                                               pt_ptr,
-                                               kp,
-                                               covar);
+      // auto resblock = CalibCameraError::create(camera_geometry,
+      //                                          pose_ptr,
+      //                                          pt_ptr,
+      //                                          kp,
+      //                                          covar);
 
       // Add residual block
-      auto res_ptr = resblock.get();
-      auto loss_ptr = nullptr;
-      auto param_ptrs = resblock->getParamPtrs();
-      auto res_id = problem_->AddResidualBlock(res_ptr, loss_ptr, param_ptrs);
+      // auto res_ptr = resblock.get();
+      // auto loss_ptr = nullptr;
+      // auto param_ptrs = resblock->getParamPtrs();
+      // auto res_id = problem_->AddResidualBlock(res_ptr, loss_ptr, param_ptrs);
 
       // Book keeping
-      resblocks_[camera_index].push_back(resblock);
-      resblock_ids_[camera_index].push_back(res_id);
+      // resblocks_[camera_index].push_back(resblock);
+      // resblock_ids_[camera_index].push_back(res_id);
     }
   }
 }

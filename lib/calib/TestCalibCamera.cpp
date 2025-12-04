@@ -6,21 +6,21 @@
 
 namespace xyz {
 
-TEST(CalibCamera, initializeIntrinsics) {
-  CalibCamera calib{TEST_CONFIG};
-  calib.initializeIntrinsics();
-}
+// TEST(CalibCamera, initializeIntrinsics) {
+//   CalibCamera calib{TEST_CONFIG};
+//   calib.initializeIntrinsics();
+// }
 
 // TEST(CalibCamera, initializeExtrinsic) {
 //   CalibCamera calib{TEST_CONFIG};
 //   calib.initializeIntrinsics();
 //   calib.initializeExtrinsics();
 // }
-//
-// TEST(CalibCamera, solve) {
-//   CalibCamera calib{TEST_CONFIG};
-//   calib.solve();
-//   calib.saveResults("/tmp/calib_camera-results.yaml");
-// }
+
+TEST(CalibCamera, solve) {
+  CalibCamera calib{TEST_CONFIG};
+  calib.solve();
+  calib.saveResults("/tmp/calib_camera-results.yaml");
+}
 
 } // namespace xyz

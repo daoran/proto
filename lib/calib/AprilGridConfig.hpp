@@ -1,4 +1,5 @@
 #pragma once
+#include "../Core.hpp"
 
 namespace xyz {
 
@@ -10,6 +11,10 @@ struct AprilGridConfig {
   double tag_size = 0.0;
   double tag_spacing = 0.0;
   int tag_id_offset = 0;
+
+  void getGridIndex(const int tag_id, int &i, int &j) const;
+  Vec3 getObjectPoint(const int tag_id, const int corner_index) const;
+  std::map<int, Vec3> getObjectPoints() const;
 };
 
 } // namespace xyz

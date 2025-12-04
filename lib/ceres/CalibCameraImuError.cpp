@@ -31,7 +31,7 @@ CalibCameraImuError::create(const std::shared_ptr<CameraGeometry> &camera,
   std::vector<ParamBlock::Type> param_types;
   param_types.push_back(ParamBlock::POSE);      // T_WS
   param_types.push_back(ParamBlock::POSE);      // T_WF
-  param_types.push_back(ParamBlock::EXTRINSIC); // T_SC0
+  param_types.push_back(ParamBlock::EXTRINSIC); // T_C0S
   param_types.push_back(ParamBlock::EXTRINSIC); // T_C0Ci
   param_types.push_back(ParamBlock::INTRINSIC8);
 

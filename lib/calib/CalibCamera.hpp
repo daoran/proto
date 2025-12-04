@@ -2,11 +2,13 @@
 
 #include "SolvePnp.hpp"
 #include "CalibData.hpp"
-#include "CalibView.hpp"
 #include "../ceres/PoseManifold.hpp"
 #include "../ceres/CalibCameraError.hpp"
 
 namespace xyz {
+
+using CalibCameraErrorPtr = std::shared_ptr<CalibCameraError>;
+using CameraResiduals = std::map<int, std::vector<CalibCameraErrorPtr>>;
 
 /** Camera Calibrator **/
 class CalibCamera : public CalibData {
@@ -16,7 +18,8 @@ private:
   PoseManifold pose_plus_;
 
   std::set<timestamp_t> timestamps_;
-  std::map<timestamp_t, std::shared_ptr<CalibView>> calib_views_;
+  std::map<timestamp_t, Vec7> poses_;
+  std::map<timestamp_t, CameraResiduals> resblocks_;
 
 public:
   CalibCamera(const std::string &config_file);
@@ -28,7 +31,7 @@ public:
   void initializeExtrinsics();
 
   /** Add camera calibration view */
-  void addView(const std::map<int, CalibTargetPtr> &measurements);
+  void addView(const std::map<int, CalibTargetMap> &measurements);
 
   /** Solve */
   void solve();

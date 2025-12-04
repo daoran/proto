@@ -35,7 +35,7 @@ debug: setup ## Build in debug mode
 
 .PHONY: release
 release: setup ## Build in release mode
-	$(call cmake_build,Release)
+	$(call cmake_build,RelWithDebInfo)
 
 .PHONY: docs
 docs: ## Build docs

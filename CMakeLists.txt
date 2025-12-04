@@ -34,6 +34,7 @@ add_library(
   ${PROJECT_NAME}
   STATIC
   lib/calib/AprilGrid.cpp
+  lib/calib/AprilGridConfig.cpp
   lib/calib/AprilGridDetector.cpp
   lib/calib/CalibCamera.cpp
   # lib/calib/CalibCameraImu.cpp
@@ -41,7 +42,6 @@ add_library(
   lib/calib/CalibTarget.cpp
   lib/calib/CalibTargetChain.cpp
   lib/calib/CalibTargetGeometry.cpp
-  lib/calib/CalibView.cpp
   lib/calib/CameraChain.cpp
   lib/calib/SolvePnp.cpp
   lib/camera/BrownConrady4.cpp
@@ -92,13 +92,13 @@ add_executable(unittests
   # lib/calib/TestCalibCameraImu.cpp
   lib/calib/TestCalibData.cpp
   lib/calib/TestCameraChain.cpp
-  # lib/camera/TestBrownConrady4.cpp
-  # lib/camera/TestKannalaBrandt4.cpp
-  # lib/camera/TestPinhole.cpp
-  # lib/ceres/TestCalibCameraError.cpp
+  lib/camera/TestBrownConrady4.cpp
+  lib/camera/TestKannalaBrandt4.cpp
+  lib/camera/TestPinhole.cpp
+  lib/ceres/TestCalibCameraError.cpp
   # lib/ceres/TestCalibCameraImuError.cpp
   # lib/ceres/TestImuError.cpp
-  # lib/ceres/TestReprojError.cpp
+  lib/ceres/TestReprojError.cpp
   # lib/sim/TestSimCalibCamera.cpp
   # lib/sim/TestSimImu.cpp
   # lib/sim/TestSimVio.cpp

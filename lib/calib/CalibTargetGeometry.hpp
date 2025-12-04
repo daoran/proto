@@ -12,7 +12,9 @@ private:
 
 public:
   CalibTargetGeometry() = delete;
-  CalibTargetGeometry(const int target_id, const Vec7 &extrinsic);
+  CalibTargetGeometry(const int target_id,
+                      const Vec7 &extrinsic,
+                      const std::map<int, Vec3> &target_points);
   virtual ~CalibTargetGeometry() = default;
 
   /** Get target pose **/

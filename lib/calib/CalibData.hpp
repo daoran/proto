@@ -45,7 +45,9 @@ protected:
   void loadImuData(const int imu_id);
 
   /** Check if we have a camera measurement already */
-  bool hasCameraMeasurement(const timestamp_t ts, const int camera_id) const;
+  bool hasCameraMeasurement(const timestamp_t ts,
+                            const int camera_id,
+                            const int target_id) const;
 
   /** Print settings */
   void printSettings(FILE *fp) const;

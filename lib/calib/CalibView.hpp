@@ -22,14 +22,12 @@ private:
 
 public:
   CalibView() = delete;
-
   CalibView(std::shared_ptr<ceres::Problem> &problem,
             const timestamp_t ts,
             const std::map<int, CalibTargetPtr> &view_data,
             std::map<int, CameraGeometryPtr> &camera_geometries,
             std::map<int, Vec3> &target_points,
             const Vec7 &pose);
-
   virtual ~CalibView() = default;
 
   /** Get number of detections */

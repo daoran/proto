@@ -2473,6 +2473,12 @@ VecX tf_vec(const Mat4 &T) {
   return vec;
 }
 
+Mat3 tf_rot(const Mat4 &tf) { return tf.block<3, 3>(0, 0); }
+
+Quat tf_quat(const Mat4 &tf) { return Quat{tf.block<3, 3>(0, 0)}; }
+
+Vec3 tf_trans(const Mat4 &tf) { return tf.block<3, 1>(0, 3); }
+
 Mat4 tf_perturb_rot(const Mat4 &T, double step_size, const int i) {
   const Mat3 C = tf_rot(T);
   const Vec3 r = tf_trans(T);
