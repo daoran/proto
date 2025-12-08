@@ -17,6 +17,9 @@ public:
                       const std::map<int, Vec3> &target_points);
   virtual ~CalibTargetGeometry() = default;
 
+  /** Get target id **/
+  int getTargetId() const;
+
   /** Get target pose **/
   Vec7 getExtrinsic() const;
 

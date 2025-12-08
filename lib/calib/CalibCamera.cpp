@@ -301,7 +301,6 @@ void CalibCamera::initializeExtrinsics() {
       reproj_errors.push_back(error);
     }
   }
-
   printf("mean reproj error: %f\n", mean(reproj_errors));
   printf("rmse reproj error: %f\n", rmse(reproj_errors));
   printf("median reproj error: %f\n", median(reproj_errors));

@@ -1,10 +1,11 @@
 #pragma once
 #include "AprilGrid.hpp"
+#include "AprilGridConfig.hpp"
+#include "AprilGridDetector.hpp"
 #include "CalibCamera.hpp"
-#include "CalibCameraImu.hpp"
 #include "CalibData.hpp"
 #include "CalibTarget.hpp"
+#include "CalibTargetChain.hpp"
 #include "CalibTargetGeometry.hpp"
-#include "CalibView.hpp"
 #include "CameraChain.hpp"
 #include "SolvePnp.hpp"

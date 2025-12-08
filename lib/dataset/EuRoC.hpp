@@ -4,8 +4,8 @@
 #include <libgen.h>
 #include <inttypes.h>
 
-#include "Core.hpp"
-#include "timeline/timeline.hpp"
+#include "../Core.hpp"
+#include "../timeline/timeline.hpp"
 
 namespace xyz {
 

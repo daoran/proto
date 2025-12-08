@@ -9,6 +9,8 @@ CalibTargetGeometry::CalibTargetGeometry(
     : target_id_{target_id}, extrinsic_{extrinsic}, target_points_{
                                                         target_points} {}
 
+int CalibTargetGeometry::getTargetId() const { return target_id_; }
+
 Vec7 CalibTargetGeometry::getExtrinsic() const { return extrinsic_; }
 
 double *CalibTargetGeometry::getExtrinsicPtr() { return extrinsic_.data(); }

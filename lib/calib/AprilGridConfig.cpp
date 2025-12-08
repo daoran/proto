@@ -2,6 +2,16 @@
 
 namespace xyz {
 
+Vec2 AprilGridConfig::getWidthHeight() const {
+  auto w = (tag_cols * tag_size) + ((tag_cols - 1) * tag_size * tag_spacing);
+  auto h = (tag_rows * tag_size) + ((tag_rows - 1) * tag_size * tag_spacing);
+  return Vec2{w, h};
+}
+
+Vec2 AprilGridConfig::getCenter() const { return getWidthHeight() / 2.0; }
+
+int AprilGridConfig::getNumTags() const { return tag_rows * tag_cols; }
+
 void AprilGridConfig::getGridIndex(const int tag_id, int &i, int &j) const {
   if ((tag_id - tag_id_offset) > (tag_rows * tag_cols)) {
     FATAL("tag_id > (tag_rows * tag_cols)!");

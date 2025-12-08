@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CalibData.hpp"
-#include "CalibView.hpp"
 #include "../ceres/ImuError.hpp"
 #include "../ceres/PoseManifold.hpp"
 
@@ -15,7 +14,7 @@ private:
   PoseManifold pose_plus_;
 
   std::set<timestamp_t> timestamps_;
-  std::map<timestamp_t, std::shared_ptr<CalibView>> calib_views_;
+  // std::map<timestamp_t, std::shared_ptr<CalibView>> calib_views_;
 
   bool imu_started_ = false;
   bool camera_started_ = false;
