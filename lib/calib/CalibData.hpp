@@ -65,7 +65,7 @@ protected:
   void printTargetPoints(FILE *fp) const;
 
 public:
-  CalibData() = delete;
+  CalibData() = default;
   CalibData(const std::string &config_path);
   virtual ~CalibData() = default;
 
@@ -84,7 +84,10 @@ public:
   /** Add camera measurement */
   void addCameraMeasurement(const timestamp_t ts,
                             const int camera_id,
-                            const std::shared_ptr<CalibTarget> &calib_target);
+                            const CalibTargetPtr &calib_target);
+
+  /** Add calibration target */
+  void addTarget(const AprilGridConfig &config, const Vec7 &extrinsic);
 
   /** Add calibration target point */
   void addTargetPoint(const int target_id,

@@ -6,6 +6,14 @@
 
 namespace xyz {
 
+CalibCamera::CalibCamera() {
+  prob_options_.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options_.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options_.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options_.enable_fast_removal = true;
+  problem_ = std::make_shared<ceres::Problem>(prob_options_);
+}
+
 CalibCamera::CalibCamera(const std::string &config_file)
     : CalibData{config_file} {
   prob_options_.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
@@ -16,6 +24,17 @@ CalibCamera::CalibCamera(const std::string &config_file)
 }
 
 void CalibCamera::initializeIntrinsics() {
+  // Pre-check
+  if (camera_data_.size() == 0) {
+    FATAL("No camera data?");
+  }
+  if (camera_geometries_.size() == 0) {
+    FATAL("No cameras added?");
+  }
+  if (target_configs_.size() == 0 || target_geometries_.size() == 0) {
+    FATAL("No targets added?");
+  }
+
   // Find the target with the most observations for a particular camera
   auto find_optimal_target = [&](const CameraData &camera_data) {
     std::map<int, int> target_count; // target_id, count
@@ -154,11 +173,23 @@ void CalibCamera::initializeIntrinsics() {
 
   // Solve all camera intrinsics
   for (const auto &[camera_id, camera_data] : getAllCameraData()) {
+    printf("camera_id: %d\n", camera_id);
     solve_intrinsics(camera_id, camera_data);
   }
 }
 
 void CalibCamera::initializeExtrinsics() {
+  // Pre-check
+  if (camera_data_.size() == 0) {
+    FATAL("No camera data?");
+  }
+  if (camera_geometries_.size() == 0) {
+    FATAL("No cameras added?");
+  }
+  if (target_configs_.size() == 0 || target_geometries_.size() == 0) {
+    FATAL("No targets added?");
+  }
+
   // Initialize camera extrinsics
   CameraChain camchain(getAllCameraGeometries(), getAllCameraData());
   for (auto &[camera_id, camera_geometry] : getAllCameraGeometries()) {
@@ -420,6 +451,17 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
 }
 
 void CalibCamera::solve() {
+  // Pre-check
+  if (camera_data_.size() == 0) {
+    FATAL("No camera data?");
+  }
+  if (camera_geometries_.size() == 0) {
+    FATAL("No cameras added?");
+  }
+  if (target_configs_.size() == 0 || target_geometries_.size() == 0) {
+    FATAL("No targets added?");
+  }
+
   // Initialize intrinsics and extrinsics
   initializeIntrinsics();
   initializeExtrinsics();

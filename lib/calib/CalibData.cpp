@@ -31,14 +31,9 @@ CalibData::CalibData(const std::string &config_path)
       FATAL("CalibData currently only supports target type [aprilgrid]!");
     }
 
-    // Add calibration config and geometry
+    // Add calibration target
     const Vec7 target_extrinsic = tf_vec();
-    const auto target_points = target_config.getObjectPoints();
-    target_configs_[target_id] = target_config;
-    target_geometries_[target_id] =
-        std::make_shared<CalibTargetGeometry>(target_id,
-                                              target_extrinsic,
-                                              target_points);
+    addTarget(target_config, target_extrinsic);
   }
 
   // -- Parse camera settings
@@ -332,6 +327,15 @@ void CalibData::addCameraMeasurement(const timestamp_t ts,
                                      const CalibTargetPtr &calib_target) {
   const int target_id = calib_target->getTargetId();
   camera_data_[camera_id][ts][target_id] = calib_target;
+}
+
+void CalibData::addTarget(const AprilGridConfig &config,
+                          const Vec7 &extrinsic) {
+  const int target_id = config.target_id;
+  const auto points = config.getObjectPoints();
+  target_configs_[target_id] = config;
+  target_geometries_[target_id] =
+      std::make_shared<CalibTargetGeometry>(target_id, extrinsic, points);
 }
 
 void CalibData::addTargetPoint(const int target_id,

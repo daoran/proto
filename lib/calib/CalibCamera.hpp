@@ -22,7 +22,9 @@ private:
   std::map<timestamp_t, CameraResiduals> resblocks_;
 
 public:
+  CalibCamera();
   CalibCamera(const std::string &config_file);
+  virtual ~CalibCamera() = default;
 
   /** Initialize camera intrinsic */
   void initializeIntrinsics();
