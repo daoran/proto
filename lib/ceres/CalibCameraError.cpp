@@ -19,16 +19,19 @@ CalibCameraError::create(const std::shared_ptr<CameraGeometry> &camera,
                          double *T_C0T0,
                          const Vec2 &z,
                          const Mat2 &covar) {
-  std::vector<double *> param_ptrs = {T_C0T0,
-                                      target->getPointPtr(point_id),
-                                      target->getExtrinsicPtr(),
-                                      camera->getExtrinsicPtr(),
-                                      camera->getIntrinsicPtr()};
-  std::vector<ParamBlock::Type> param_types = {ParamBlock::POSE,
-                                               ParamBlock::POINT,
-                                               ParamBlock::EXTRINSIC,
-                                               ParamBlock::EXTRINSIC,
-                                               ParamBlock::INTRINSIC8};
+  std::vector<double *> param_ptrs;
+  param_ptrs.push_back(T_C0T0);                        // Relative pose T_C0T0
+  param_ptrs.push_back(target->getPointPtr(point_id)); // Target point p_Tj
+  param_ptrs.push_back(target->getExtrinsicPtr()); // Target extrinsic T_T0Tj
+  param_ptrs.push_back(camera->getExtrinsicPtr()); // Camera extrinsic T_C0Ci
+  param_ptrs.push_back(camera->getIntrinsicPtr()); // Camera intrinsic
+
+  std::vector<ParamBlock::Type> param_types;
+  param_types.push_back(ParamBlock::POSE);       // Relative pose T_C0T0
+  param_types.push_back(ParamBlock::POINT);      // Target point p_Tj
+  param_types.push_back(ParamBlock::EXTRINSIC);  // Target extrinsic T_T0Tj
+  param_types.push_back(ParamBlock::EXTRINSIC);  // Camera extrinsic T_C0Ci
+  param_types.push_back(ParamBlock::INTRINSIC8); // Camera intrinsic
 
   return std::make_shared<CalibCameraError>(camera,
                                             param_ptrs,
@@ -98,7 +101,7 @@ bool CalibCameraError::eval(double const *const *params,
     }
   }
 
-  // -- Jacobians w.r.t fiducial point p_Tj
+  // -- Jacobians w.r.t target point p_Tj
   if (jacs[1]) {
     Eigen::Map<Mat<2, 3, Eigen::RowMajor>> J(jacs[1]);
     J.setZero();

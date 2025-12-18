@@ -29,7 +29,6 @@ struct Timeline {
   /** Add calibration target event **/
   void add(const timestamp_t &ts,
            const int camera_id,
-           const int target_id,
            const std::shared_ptr<CalibTarget> &calib_target);
 
   /** Get number of events **/

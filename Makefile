@@ -39,4 +39,5 @@ release: setup ## Build in release mode
 
 .PHONY: docs
 docs: ## Build docs
+	ctags -R docs/source/notes --languages=reStructuredText
 	make -s -C docs html

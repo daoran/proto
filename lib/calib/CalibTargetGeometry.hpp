@@ -3,6 +3,10 @@
 
 namespace xyz {
 
+// Forward declaration
+class CalibTargetGeometry;
+using CalibTargetGeometryPtr = std::shared_ptr<CalibTargetGeometry>;
+
 /** Calibration Target Geometry */
 class CalibTargetGeometry {
 private:

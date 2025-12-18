@@ -3,6 +3,10 @@
 
 namespace xyz {
 
+// Forward declaration
+class CameraGeometry;
+using CameraGeometryPtr = std::shared_ptr<CameraGeometry>;
+
 /** Camera Geometry */
 class CameraGeometry {
 private:

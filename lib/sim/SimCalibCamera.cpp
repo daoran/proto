@@ -172,7 +172,7 @@ Timeline SimCalibCamera::get_timeline() const {
   for (const auto &[ts, camera_map] : camera_views) {
     for (const auto &[camera_id, target_map] : camera_map) {
       for (const auto &[target_id, target] : target_map) {
-        timeline.add(ts, camera_id, target_id, target);
+        timeline.add(ts, camera_id, target);
       }
     }
   }

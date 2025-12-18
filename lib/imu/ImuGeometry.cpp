@@ -2,12 +2,12 @@
 
 namespace xyz {
 
-ImuGeometry::ImuGeometry(const int imu_index,
+ImuGeometry::ImuGeometry(const int imu_id,
                          const ImuParams &imu_params,
                          const VecX &extrinsic)
-    : imu_index_{imu_index}, imu_params_{imu_params}, extrinsic_{extrinsic} {}
+    : imu_id_{imu_id}, imu_params_{imu_params}, extrinsic_{extrinsic} {}
 
-int ImuGeometry::getImuIndex() const { return imu_index_; }
+int ImuGeometry::getImuId() const { return imu_id_; }
 
 ImuParams ImuGeometry::getImuParams() const { return imu_params_; }
 

@@ -37,7 +37,7 @@ add_library(
   lib/calib/AprilGridConfig.cpp
   lib/calib/AprilGridDetector.cpp
   lib/calib/CalibCamera.cpp
-  # lib/calib/CalibCameraImu.cpp
+  lib/calib/CalibCameraImu.cpp
   lib/calib/CalibData.cpp
   lib/calib/CalibTarget.cpp
   lib/calib/CalibTargetChain.cpp
@@ -56,6 +56,7 @@ add_library(
   lib/ceres/CalibCameraImuError.cpp
   lib/ceres/ResidualBlock.cpp
   lib/dataset/EuRoC.cpp
+  lib/dataset/Kitti.cpp
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
   lib/imu/ImuState.cpp
@@ -89,14 +90,15 @@ add_executable(unittests
   lib/calib/TestAprilGrid.cpp
   lib/calib/TestAprilGridDetector.cpp
   lib/calib/TestCalibCamera.cpp
-  # lib/calib/TestCalibCameraImu.cpp
+  lib/calib/TestCalibCameraImu.cpp
   lib/calib/TestCalibData.cpp
   lib/calib/TestCameraChain.cpp
   lib/camera/TestBrownConrady4.cpp
   lib/camera/TestKannalaBrandt4.cpp
   lib/camera/TestPinhole.cpp
+  lib/imu/TestImuBuffer.cpp
   lib/ceres/TestCalibCameraError.cpp
-  # lib/ceres/TestCalibCameraImuError.cpp
+  lib/ceres/TestCalibCameraImuError.cpp
   lib/ceres/TestImuError.cpp
   lib/ceres/TestReprojError.cpp
   lib/sim/TestSimCalibCamera.cpp

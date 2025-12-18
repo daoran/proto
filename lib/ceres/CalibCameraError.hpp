@@ -5,6 +5,10 @@
 
 namespace xyz {
 
+// Forward declaration
+class CalibCameraError;
+using CalibCameraErrorPtr = std::shared_ptr<CalibCameraError>;
+
 /** Camera Calibration Reprojection Error */
 class CalibCameraError : public ResidualBlock {
 private:

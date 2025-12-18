@@ -4,6 +4,12 @@
 
 namespace xyz {
 
+// Forward declaration
+class CalibTarget;
+using CalibTargetPtr = std::shared_ptr<CalibTarget>;
+using CalibTargetMap = std::map<int, CalibTargetPtr>;
+using CameraData = std::map<timestamp_t, CalibTargetMap>;
+
 /** Calibration Target */
 class CalibTarget {
 private:

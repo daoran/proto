@@ -4,22 +4,26 @@
 
 namespace xyz {
 
+// Forward declaration
+class ImuGeometry;
+using ImuGeometryPtr = std::shared_ptr<ImuGeometry>;
+
 /** IMU Geometry */
 class ImuGeometry {
 private:
-  int imu_index_;
+  int imu_id_;
   ImuParams imu_params_;
   VecX extrinsic_;
 
 public:
   ImuGeometry() = delete;
-  ImuGeometry(const int imu_index,
+  ImuGeometry(const int imu_id,
               const ImuParams &imu_params,
               const VecX &extrinsic);
   virtual ~ImuGeometry() = default;
 
   /** Get Imu index */
-  int getImuIndex() const;
+  int getImuId() const;
 
   /** Get Imu Params */
   ImuParams getImuParams() const;
