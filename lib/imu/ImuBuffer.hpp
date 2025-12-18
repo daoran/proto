@@ -5,9 +5,9 @@ namespace xyz {
 
 class ImuBuffer {
 private:
-  std::vector<timestamp_t> timestamps_;
-  std::vector<Vec3> acc_data_;
-  std::vector<Vec3> gyr_data_;
+  std::deque<timestamp_t> timestamps_;
+  std::deque<Vec3> acc_data_;
+  std::deque<Vec3> gyr_data_;
 
 public:
   ImuBuffer() = default;
@@ -26,6 +26,18 @@ public:
 
   /** Add measurement */
   void add(const timestamp_t ts, const Vec3 &acc, const Vec3 gyr);
+
+  /** Trim */
+  void trim(const timestamp_t ts_end);
+
+  /** Extract */
+  ImuBuffer extract(const timestamp_t ts_start, const timestamp_t ts_end);
+
+  /** Estimate attitude */
+  Mat3 estimateAttitude(const int limit = -1) const;
+
+  /** Print */
+  void print() const;
 };
 
 } // namespace xyz
