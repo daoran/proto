@@ -1,6 +1,8 @@
 #pragma once
 #include "ResidualBlock.hpp"
+#include "imu/ImuGeometry.hpp"
 #include "camera/CameraGeometry.hpp"
+#include "calib/CalibTargetGeometry.hpp"
 
 namespace xyz {
 
@@ -8,7 +10,6 @@ namespace xyz {
 class CalibCameraImuError : public ResidualBlock {
 private:
   std::shared_ptr<CameraGeometry> camera_geometry_;
-  Vec3 p_FFi_;
   Vec2 z_;
   Mat2 covar_;
   Mat2 info_;
@@ -21,19 +22,19 @@ public:
   CalibCameraImuError(const std::shared_ptr<CameraGeometry> &camera_geometry,
                       const std::vector<double *> &param_ptrs,
                       const std::vector<ParamBlock::Type> &param_types,
-                      const Vec3 &p_FFi,
                       const Vec2 &z,
                       const Mat2 &covar);
 
   /** Create residual block */
   static std::shared_ptr<CalibCameraImuError>
   create(const std::shared_ptr<CameraGeometry> &camera,
+         const std::shared_ptr<ImuGeometry> &imu,
+         const std::shared_ptr<CalibTargetGeometry> &target,
          double *T_WS,
          double *T_WF,
-         double *T_SC0,
-         const Vec3 &p_FFi,
+         const int point_id,
          const Vec2 &z,
-         const Mat2 &covar);
+         const Mat2 &covar = I(2));
 
   /** Is point reprojection valid? */
   bool valid() const;

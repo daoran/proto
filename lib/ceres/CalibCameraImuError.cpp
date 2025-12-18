@@ -6,39 +6,42 @@ CalibCameraImuError::CalibCameraImuError(
     const std::shared_ptr<CameraGeometry> &camera_geometry,
     const std::vector<double *> &param_ptrs,
     const std::vector<ParamBlock::Type> &param_types,
-    const Vec3 &p_FFi,
     const Vec2 &z,
     const Mat2 &covar)
     : ResidualBlock{"CalibCameraImuError", param_ptrs, param_types, 2},
-      camera_geometry_{camera_geometry}, p_FFi_{p_FFi}, z_{z}, covar_{covar},
+      camera_geometry_{camera_geometry}, z_{z}, covar_{covar},
       info_{covar.inverse()}, sqrt_info_{info_.llt().matrixU()} {}
 
 std::shared_ptr<CalibCameraImuError>
 CalibCameraImuError::create(const std::shared_ptr<CameraGeometry> &camera,
+                            const std::shared_ptr<ImuGeometry> &imu,
+                            const std::shared_ptr<CalibTargetGeometry> &target,
                             double *T_WS,
-                            double *T_WF,
-                            double *T_SC0,
-                            const Vec3 &p_FFi,
+                            double *T_WT0,
+                            const int point_id,
                             const Vec2 &z,
                             const Mat2 &covar) {
   std::vector<double *> param_ptrs;
-  param_ptrs.push_back(T_WS);
-  param_ptrs.push_back(T_WF);
-  param_ptrs.push_back(T_SC0);
-  param_ptrs.push_back(camera->getExtrinsicPtr());
-  param_ptrs.push_back(camera->getIntrinsicPtr());
+  param_ptrs.push_back(T_WS);                          // Sensor pose T_WS
+  param_ptrs.push_back(T_WT0);                         // Target pose T_WT0
+  param_ptrs.push_back(target->getPointPtr(point_id)); // Target point p_Tj
+  param_ptrs.push_back(target->getExtrinsicPtr()); // Target extrinsic T_T0Tj
+  param_ptrs.push_back(imu->getExtrinsicPtr());    // Imu extrinsic T_C0S
+  param_ptrs.push_back(camera->getExtrinsicPtr()); // Camera extrinsic T_C0Ci
+  param_ptrs.push_back(camera->getIntrinsicPtr()); // Camera intrinsic
 
   std::vector<ParamBlock::Type> param_types;
-  param_types.push_back(ParamBlock::POSE);      // T_WS
-  param_types.push_back(ParamBlock::POSE);      // T_WF
-  param_types.push_back(ParamBlock::EXTRINSIC); // T_C0S
-  param_types.push_back(ParamBlock::EXTRINSIC); // T_C0Ci
-  param_types.push_back(ParamBlock::INTRINSIC8);
+  param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS
+  param_types.push_back(ParamBlock::POSE);       // Target pose T_WT0
+  param_types.push_back(ParamBlock::POINT);      // Target point p_Tj
+  param_types.push_back(ParamBlock::EXTRINSIC);  // Target extrinsic T_T0Tj
+  param_types.push_back(ParamBlock::EXTRINSIC);  // Imu extrinsic T_C0S
+  param_types.push_back(ParamBlock::EXTRINSIC);  // Camera extrinsic T_C0Ci
+  param_types.push_back(ParamBlock::INTRINSIC8); // Camera intrinsic
 
   return std::make_shared<CalibCameraImuError>(camera,
                                                param_ptrs,
                                                param_types,
-                                               p_FFi,
                                                z,
                                                covar);
 }
@@ -59,18 +62,20 @@ bool CalibCameraImuError::eval(double const *const *params,
                                double *res,
                                double **jacs) const {
   // Map parameters out
-  const Mat4 T_WS = tf(params[0]);                // Sensor pose
-  const Mat4 T_WF = tf(params[1]);                // Fiducial pose
-  const Mat4 T_C0S = tf(params[2]);               // Imu extrinsic
-  const Mat4 T_C0Ci = tf(params[3]);              // Camera extrinsic
-  Eigen::Map<const VecX> intrinsic(params[4], 8); // Camera parameters
+  const Mat4 T_WS = tf(params[0]);                 // Sensor pose
+  const Mat4 T_WT0 = tf(params[1]);                // Target pose
+  const Eigen::Map<const Vec3> p_Tj(params[2], 3); // Target point
+  const Mat4 T_T0Tj = tf(params[3]);               // Target extrinsic
+  const Mat4 T_C0S = tf(params[4]);                // Imu extrinsic
+  const Mat4 T_C0Ci = tf(params[5]);               // Camera extrinsic
+  Eigen::Map<const VecX> intrinsic(params[6], 8);  // Camera parameters
 
   // Transform and project point to image plane
-  // -- Transform point from fiducial frame to camera
+  // -- Transform point from target frame to camera
   const Mat4 T_CiC0 = tf_inv(T_C0Ci);
   const Mat4 T_SW = tf_inv(T_WS);
-  const Mat4 T_CiF = T_CiC0 * T_C0S * T_SW * T_WF;
-  const Vec3 p_Ci = tf_point(T_CiF, p_FFi_);
+  const Mat4 T_CiTj = T_CiC0 * T_C0S * T_SW * T_WT0 * T_T0Tj;
+  const Vec3 p_Ci = tf_point(T_CiTj, p_Tj);
   // -- Project point from camera frame to image plane
   const auto camera_model = camera_geometry_->getCameraModel();
   const Vec2i resolution = camera_geometry_->getResolution();
@@ -97,7 +102,7 @@ bool CalibCameraImuError::eval(double const *const *params,
     const Mat3 C_WS = tf_rot(T_WS);
     const Mat4 T_CiS = T_CiC0 * T_C0S;
     const Mat3 C_CiW = tf_rot(T_CiS * T_SW);
-    const Vec3 p_W = tf_point(T_WF, p_FFi_);
+    const Vec3 p_W = tf_point(T_WT0, p_Tj);
 
     Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[0]);
     J.setZero();
@@ -107,27 +112,53 @@ bool CalibCameraImuError::eval(double const *const *params,
     }
   }
 
-  // -- Jacobians w.r.t fiducial pose T_WF
+  // -- Jacobians w.r.t target pose T_WT0
   if (jacs[1]) {
     const Mat4 T_CiS = T_CiC0 * T_C0S;
     const Mat3 C_CiW = tf_rot(T_CiS * T_SW);
-    const Mat3 C_WF = tf_rot(T_WF);
+    const Mat3 C_WT0 = tf_rot(T_WT0);
+    const Vec3 p_T0 = tf_point(T_T0Tj, p_Tj);
 
     Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[1]);
     J.setZero();
     if (valid_) {
       J.block<2, 3>(0, 0) = Jhw * C_CiW;
-      J.block<2, 3>(0, 3) = Jhw * C_CiW * -C_WF * skew(p_FFi_);
+      J.block<2, 3>(0, 3) = Jhw * C_CiW * -C_WT0 * skew(p_T0);
+    }
+  }
+
+  // -- Jacobians w.r.t target point p_Tj
+  if (jacs[2]) {
+    Eigen::Map<Mat<2, 3, Eigen::RowMajor>> J(jacs[2]);
+    J.setZero();
+
+    if (valid_) {
+      const Mat3 C_CiTj = tf_rot(T_CiTj);
+      J = Jhw * C_CiTj;
+    }
+  }
+
+  // -- Jacobians w.r.t target extrinsic T_T0Tj
+  if (jacs[3]) {
+    const Mat4 T_CiT0 = T_CiC0 * T_C0S * T_SW * T_WT0;
+    const Mat3 C_CiT0 = tf_rot(T_CiT0);
+    const Mat3 C_T0Tj = tf_rot(T_T0Tj);
+
+    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[3]);
+    J.setZero();
+    if (valid_) {
+      J.block<2, 3>(0, 0) = Jhw * C_CiT0;
+      J.block<2, 3>(0, 3) = Jhw * C_CiT0 * -C_T0Tj * skew(p_Tj);
     }
   }
 
   // -- Jacobians w.r.t imu extrinsic T_C0S
-  if (jacs[2]) {
-    const Vec3 p_S = tf_point(T_WS.inverse() * T_WF, p_FFi_);
+  if (jacs[4]) {
+    const Vec3 p_S = tf_point(T_WS.inverse() * T_WT0, p_Tj);
     const Mat3 C_C0S = tf_rot(T_C0S);
     const Mat3 C_CiC0 = tf_rot(T_CiC0);
 
-    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[2]);
+    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[4]);
     J.setZero();
     if (valid_) {
       J.block<2, 3>(0, 0) = Jhw * C_CiC0;
@@ -136,13 +167,13 @@ bool CalibCameraImuError::eval(double const *const *params,
   }
 
   // -- Jacobians w.r.t camera extrinsic T_C0Ci
-  if (jacs[3]) {
-    const Vec3 p_C0 = tf_point(T_C0S * T_WS.inverse() * T_WF, p_FFi_);
+  if (jacs[5]) {
+    const Vec3 p_C0 = tf_point(T_C0S * T_WS.inverse() * T_WT0, p_Tj);
     const Vec3 r_C0Ci = tf_trans(T_C0Ci);
     const Mat3 C_CiC0 = tf_rot(T_CiC0);
     const Mat3 C_C0Ci = C_CiC0.transpose();
 
-    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[3]);
+    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[5]);
     J.setZero();
     if (valid_) {
       J.block<2, 3>(0, 0) = Jhw * -C_CiC0;
@@ -151,8 +182,8 @@ bool CalibCameraImuError::eval(double const *const *params,
   }
 
   // -- Jacobians w.r.t intrinsic
-  if (jacs[4]) {
-    Eigen::Map<Mat<2, 8, Eigen::RowMajor>> J(jacs[4]);
+  if (jacs[6]) {
+    Eigen::Map<Mat<2, 8, Eigen::RowMajor>> J(jacs[6]);
     J.setZero();
     if (valid_) {
       J = -1.0 * sqrt_info_ * camera_model->params_jacobian(intrinsic, p_Ci);

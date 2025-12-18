@@ -9,9 +9,9 @@ static Vec7 setup_sensor_pose() {
   // Imu pose in world frame: T_WS
   // clang-format off
   Mat4 T_WS;
-  T_WS <<  1.0, 0.0, 0.0, 0.0,
-           0.0, 1.0, 0.0, 0.0,
-           0.0, 0.0, 1.0, 0.0,
+  T_WS <<  1.0, 0.0, 0.0, 0.001,
+           0.0, 1.0, 0.0, 0.002,
+           0.0, 0.0, 1.0, 0.003,
            0.0, 0.0, 0.0, 1.0;
   T_WS = tf_perturb_rot(T_WS, 0.01, 1);
   auto sensor_pose = tf_vec(T_WS);
@@ -22,53 +22,79 @@ static Vec7 setup_sensor_pose() {
   return sensor_pose;
 }
 
-static Vec7 setup_fiducial_pose() {
-  // Fiducial pose: T_WF
+static Vec7 setup_target_pose() {
+  // Target pose: T_WT0
   // clang-format off
-  Mat4 T_WF;
-  T_WF <<  0.0,  0.0, -1.0, 0.5,
+  Mat4 T_WT0;
+  T_WT0 <<  0.0,  0.0, -1.0, 0.5,
           -1.0,  0.0,  0.0, 0.001,
            0.0,  1.0,  0.0, 0.001,
            0.0,  0.0,  0.0, 1.0;
-  T_WF = tf_perturb_rot(T_WF, 0.01, 2);
-  auto fiducial_pose = tf_vec(T_WF);
+  T_WT0 = tf_perturb_rot(T_WT0, 0.01, 2);
+  auto target_pose = tf_vec(T_WT0);
   // clang-format on
 
-  return fiducial_pose;
+  return target_pose;
+}
+
+static Vec7 setup_target_extrinsic() {
+  // Target extrinsics: T_T0Tj
+  // clang-format off
+  Mat4 T_T0Tj;
+  T_T0Tj << 1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0;
+  T_T0Tj = tf_perturb_rot(T_T0Tj, 0.01, 2);
+  auto extrinsic = tf_vec(T_T0Tj);
+  // clang-format on
+
+  return extrinsic;
 }
 
 static Vec7 setup_camera_extrinsic() {
-  // Camera extrinsics: T_BCi
+  // Camera extrinsics: T_C0Ci
   // clang-format off
-  Mat4 T_BCi;
-  T_BCi << 1.0, 0.0, 0.0, -0.01,
+  Mat4 T_C0Ci;
+  T_C0Ci << 1.0, 0.0, 0.0, -0.01,
            0.0, 1.0, 0.0, 0.0,
            0.0, 0.0, 1.0, 0.0,
            0.0, 0.0, 0.0, 1.0;
-  T_BCi = tf_perturb_rot(T_BCi, 0.01, 2);
-  auto camera_extrinsic = tf_vec(T_BCi);
+  T_C0Ci = tf_perturb_rot(T_C0Ci, 0.01, 2);
+  auto camera_extrinsic = tf_vec(T_C0Ci);
   // clang-format on
 
   return camera_extrinsic;
 }
 
 static Vec7 setup_imu_extrinsic() {
-  // Imu extrinsics: T_BS
+  // Imu extrinsics: T_C0S
   // clang-format off
-  Mat4 T_BS;
-  T_BS <<  0.0, -1.0,  0.0, 0.01,
-           0.0,  0.0, -1.0, 0.01,
-           1.0,  0.0,  0.0, 0.01,
-           0.0,  0.0,  0.0, 1.0;
-  T_BS = tf_perturb_rot(T_BS, -0.01, 2);
-  auto imu_extrinsic = tf_vec(T_BS);
+  Mat4 T_C0S;
+  T_C0S <<  0.0, -1.0,  0.0, 0.01,
+            0.0,  0.0, -1.0, 0.01,
+            1.0,  0.0,  0.0, 0.01,
+            0.0,  0.0,  0.0, 1.0;
+  T_C0S = tf_perturb_rot(T_C0S, -0.01, 2);
+  auto imu_extrinsic = tf_vec(T_C0S);
   // clang-format on
 
   return imu_extrinsic;
 }
 
-static std::shared_ptr<CameraGeometry> setup_camera_geometry(const int camera_index,
-                                                      const Vec7 &extrinsic) {
+static std::shared_ptr<ImuGeometry> setup_imu_geometry(const int imu_id,
+                                                       const Vec7 &extrinsic) {
+  ImuParams imu_params;
+  imu_params.noise_acc = 0.08;
+  imu_params.noise_gyr = 0.004;
+  imu_params.noise_ba = 0.00004;
+  imu_params.noise_bg = 2.0e-6;
+
+  return std::make_shared<ImuGeometry>(imu_id, imu_params, extrinsic);
+}
+
+static std::shared_ptr<CameraGeometry>
+setup_camera_geometry(const int camera_index, const Vec7 &extrinsic) {
   const Vec2i resolution{752, 480};
   const std::string camera_model = "BrownConrady4";
 
@@ -93,25 +119,32 @@ static std::shared_ptr<CameraGeometry> setup_camera_geometry(const int camera_in
                                           extrinsic);
 }
 
-static AprilGrid setup_aprilgrid() {
-  const timestamp_t ts = 0;
-  const int tag_rows = 10;
-  const int tag_cols = 10;
-  const double tag_size = 0.08;
-  const double tag_spacing = 0.3;
-  AprilGrid aprilgrid{ts, tag_rows, tag_cols, tag_size, tag_spacing};
+static AprilGridConfig setup_aprilgrid_config() {
+  AprilGridConfig config;
+  config.target_id = 0;
+  config.tag_rows = 10;
+  config.tag_cols = 10;
+  config.tag_size = 0.08;
+  config.tag_spacing = 0.3;
+  config.tag_id_offset = 0;
+  return config;
+}
 
-  return aprilgrid;
+static std::shared_ptr<CalibTargetGeometry>
+setup_target_geometry(const AprilGridConfig &config, const Vec7 &extrinsic) {
+  return std::make_shared<CalibTargetGeometry>(config.target_id,
+                                               extrinsic,
+                                               config.getObjectPoints());
 }
 
 static void simulate_camera_measurements(
-    const AprilGrid &aprilgrid,
+    const AprilGridConfig &config,
+    const std::shared_ptr<CalibTargetGeometry> &target_geometry,
     const std::shared_ptr<CameraGeometry> &camera_geometry,
     const Vec7 sensor_pose,
-    const Vec7 fiducial_pose,
+    const Vec7 target_pose,
     const Vec7 imu_extrinsic,
-    std::vector<int> &tag_ids,
-    std::vector<int> &corner_indicies,
+    std::vector<int> &point_ids,
     Vec2s &keypoints,
     Vec3s &object_points) {
   // Get camera parameters
@@ -120,28 +153,32 @@ static void simulate_camera_measurements(
   const auto params = camera_geometry->getIntrinsic();
   const Vec7 camera_extrinsic = camera_geometry->getExtrinsic();
 
-  // Form fiducial target to camera pose T_CiF
-  const Mat4 T_WS = tf(sensor_pose);
-  const Mat4 T_WF = tf(fiducial_pose);
-  const Mat4 T_C0S = tf(imu_extrinsic);
-  const Mat4 T_C0Ci = tf(camera_extrinsic);
-  const Mat4 T_CiF = T_C0Ci.inverse() * T_C0S * T_WS.inverse() * T_WF;
-
-  // Simulate camera measurements
+  // Get target parameters
+  const Vec7 target_extrinsic = target_geometry->getExtrinsic();
+  const AprilGrid aprilgrid{0, 0, config};
   const int tag_rows = aprilgrid.getTagRows();
   const int tag_cols = aprilgrid.getTagCols();
+
+  // Form fiducial target to camera pose T_CiF
+  const Mat4 T_SW = tf(sensor_pose).inverse();
+  const Mat4 T_WT0 = tf(target_pose);
+  const Mat4 T_T0Tj = tf(target_extrinsic);
+  const Mat4 T_C0S = tf(imu_extrinsic);
+  const Mat4 T_CiC0 = tf(camera_extrinsic).inverse();
+  const Mat4 T_CiTj = T_CiC0 * T_C0S * T_SW * T_WT0 * T_T0Tj;
+
+  // Simulate camera measurements
   for (int tag_id = 0; tag_id < (tag_rows * tag_cols); ++tag_id) {
     for (int corner_index = 0; corner_index < 4; ++corner_index) {
-      const Vec3 p_F = aprilgrid.getObjectPoint(tag_id, corner_index);
-      const Vec3 p_C = tf_point(T_CiF, p_F);
+      const Vec3 p_Tj = config.getObjectPoint(tag_id, corner_index);
+      const Vec3 p_Ci = tf_point(T_CiTj, p_Tj);
       Vec2 z{0.0, 0.0};
-      if (camera->project(res, params, p_C, z) != 0) {
+      if (camera->project(res, params, p_Ci, z) != 0) {
         continue;
       }
 
-      tag_ids.push_back(tag_id);
-      corner_indicies.push_back(corner_index);
-      object_points.push_back(p_F);
+      point_ids.push_back(tag_id * 4 + corner_index);
+      object_points.push_back(p_Tj);
       keypoints.push_back(z);
     }
   }
@@ -149,71 +186,73 @@ static void simulate_camera_measurements(
 
 TEST(CalibCameraImuError, evaluate) {
   // Setup
+  auto target_config = setup_aprilgrid_config();
   auto sensor_pose = setup_sensor_pose();
-  auto fiducial_pose = setup_fiducial_pose();
+  auto target_pose = setup_target_pose();
   auto imu_extrinsic = setup_imu_extrinsic();
+  auto imu_geometry = setup_imu_geometry(0, imu_extrinsic);
   auto camera_extrinsic = setup_camera_extrinsic();
   auto camera_geometry = setup_camera_geometry(0, camera_extrinsic);
-  auto aprilgrid = setup_aprilgrid();
-
-  // FILE *debug = fopen("/tmp/calib_camera_imu.yaml", "w");
-  // fprintf(debug, "sensor_pose: %s\n", vec2str(sensor_pose).c_str());
-  // fprintf(debug, "fiducial_pose: %s\n", vec2str(fiducial_pose).c_str());
-  // fprintf(debug, "imu_extrinsic: %s\n", vec2str(imu_extrinsic).c_str());
-  // fprintf(debug, "camera_extrinsic: %s\n", vec2str(camera_extrinsic).c_str());
-  // fclose(debug);
+  auto target_extrinsic = setup_target_extrinsic();
+  auto target_geometry = setup_target_geometry(target_config, target_extrinsic);
 
   // Simulate camera measurements
-  std::vector<int> tag_ids;
-  std::vector<int> corner_indicies;
+  std::vector<int> point_ids;
   Vec2s keypoints;
   Vec3s object_points;
-  simulate_camera_measurements(aprilgrid,
+  simulate_camera_measurements(target_config,
+                               target_geometry,
                                camera_geometry,
                                sensor_pose,
-                               fiducial_pose,
+                               target_pose,
                                imu_extrinsic,
-                               tag_ids,
-                               corner_indicies,
+                               point_ids,
                                keypoints,
                                object_points);
 
   // Create residual block
   Mat2 covar = I(2);
-  auto res_block = CalibCameraImuError::create(camera_geometry,
-                                               sensor_pose.data(),   // T_WS
-                                               fiducial_pose.data(), // T_WF
-                                               imu_extrinsic.data(), // T_C0S
-                                               object_points[0],
-                                               keypoints[0],
-                                               covar);
+  auto res = CalibCameraImuError::create(camera_geometry,
+                                         imu_geometry,
+                                         target_geometry,
+                                         sensor_pose.data(), // T_WS
+                                         target_pose.data(), // T_WT0
+                                         point_ids[0],
+                                         keypoints[0],
+                                         covar);
 
   // Check residual size and parameter block sizes
-  auto block_sizes = res_block->parameter_block_sizes();
-  ASSERT_EQ(res_block->num_residuals(), 2);
+  auto block_sizes = res->parameter_block_sizes();
+  ASSERT_EQ(res->num_residuals(), 2);
   ASSERT_EQ(block_sizes[0], 7); // Sensor pose
-  ASSERT_EQ(block_sizes[1], 7); // Fiducial pose
-  ASSERT_EQ(block_sizes[2], 7); // Imu extrinsic
-  ASSERT_EQ(block_sizes[3], 7); // Camera extrinsic
-  ASSERT_EQ(block_sizes[4], 8); // Camera parameters
+  ASSERT_EQ(block_sizes[1], 7); // Target pose
+  ASSERT_EQ(block_sizes[2], 3); // Target point
+  ASSERT_EQ(block_sizes[3], 7); // Target extrinsic
+  ASSERT_EQ(block_sizes[4], 7); // Imu extrinsic
+  ASSERT_EQ(block_sizes[5], 7); // Camera extrinsic
+  ASSERT_EQ(block_sizes[6], 8); // Camera parameters
 
   // Check param pointers
-  auto param_ptrs = res_block->getParamPtrs();
+  auto param_ptrs = res->getParamPtrs();
   ASSERT_EQ(param_ptrs[0], sensor_pose.data());
-  ASSERT_EQ(param_ptrs[1], fiducial_pose.data());
-  ASSERT_EQ(param_ptrs[2], imu_extrinsic.data());
-  ASSERT_EQ(param_ptrs[3], camera_geometry->getExtrinsicPtr());
-  ASSERT_EQ(param_ptrs[4], camera_geometry->getIntrinsicPtr());
+  ASSERT_EQ(param_ptrs[1], target_pose.data());
+  ASSERT_EQ(param_ptrs[2], target_geometry->getPointPtr(point_ids[0]));
+  ASSERT_EQ(param_ptrs[3], target_geometry->getExtrinsicPtr());
+  ASSERT_EQ(param_ptrs[4], imu_geometry->getExtrinsicPtr());
+  ASSERT_EQ(param_ptrs[5], camera_geometry->getExtrinsicPtr());
+  ASSERT_EQ(param_ptrs[6], camera_geometry->getIntrinsicPtr());
 
   // Check Jacobians
   const double h = 1e-8;
   const double tol = 1e-4;
   const bool verbose = false;
-  ASSERT_TRUE(res_block->checkJacobian(0, "J_sensor_pose", h, tol, verbose));
-  ASSERT_TRUE(res_block->checkJacobian(1, "J_fiducial_pose", h, tol, verbose));
-  ASSERT_TRUE(res_block->checkJacobian(2, "J_imu_extrinsic", h, tol, verbose));
-  ASSERT_TRUE(res_block->checkJacobian(3, "J_camera_extrinsic", h, tol, verbose));
-  ASSERT_TRUE(res_block->checkJacobian(4, "J_camera", h, tol, verbose));
+  ASSERT_TRUE(res->checkJacobian(0, "J_sensor_pose", h, tol, verbose));
+  ASSERT_TRUE(res->checkJacobian(1, "J_target_pose", h, tol, verbose));
+  ASSERT_TRUE(res->checkJacobian(2, "J_target_point", h, tol, verbose));
+  ASSERT_TRUE(res->checkJacobian(3, "J_target_extrinsic", h, tol, verbose));
+  ASSERT_TRUE(res->checkJacobian(4, "J_imu_extrinsic", h, tol, verbose));
+  ASSERT_TRUE(res->checkJacobian(5, "J_camera_extrinsic", h, tol, verbose));
+  ASSERT_TRUE(res->checkJacobian(6, "J_camera", h, tol, verbose));
 }
 
 } // namespace xyz
