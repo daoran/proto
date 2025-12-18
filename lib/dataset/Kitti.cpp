@@ -338,13 +338,15 @@ KittiOxts::KittiOxts(const fs::path &data_dir) {
   }
 }
 
-float *KittiVelodyne::load_points(const fs::path &pcd_path,
-                                  size_t *num_points) {
+std::vector<std::array<float, 4>>
+KittiVelodyne::load_points(const fs::path &pcd_path) {
+  std::vector<std::array<float, 4>> result;
+
   // Load pcd file
   FILE *pcd_file = fopen(pcd_path.c_str(), "rb");
   if (!pcd_file) {
     KITTI_LOG("Failed to open [%s]", pcd_path.c_str());
-    return NULL;
+    return result;
   }
 
   // Get the size of the file to know how many points
@@ -353,28 +355,36 @@ float *KittiVelodyne::load_points(const fs::path &pcd_path,
   rewind(pcd_file);
 
   // Allocate memory for the points
-  *num_points = file_size / (sizeof(float) * 4);
-  float *points = (float *) malloc(sizeof(float) * 4 * *num_points);
+  const size_t num_points = file_size / (sizeof(float) * 4);
+  float *points = (float *) malloc(sizeof(float) * 4 * num_points);
   if (!points) {
     KITTI_LOG("Failed to allocate memory for points");
     fclose(pcd_file);
-    return NULL;
+    return result;
   }
 
   // Read points from the file
   const size_t point_size = sizeof(float) * 4;
-  const size_t read_count = fread(points, point_size, *num_points, pcd_file);
-  if (read_count != *num_points) {
+  const size_t read_count = fread(points, point_size, num_points, pcd_file);
+  if (read_count != num_points) {
     KITTI_LOG("Failed to read all points");
     free(points);
     fclose(pcd_file);
-    return NULL;
+    return result;
   }
-
-  // Clean up
   fclose(pcd_file);
 
-  return points;
+  // Form results
+  for (size_t i = 0; i < num_points; ++i) {
+    const auto x = points[i * 4 + 0];
+    const auto y = points[i * 4 + 1];
+    const auto z = points[i * 4 + 2];
+    const auto intensity = points[i * 4 + 3];
+    result.push_back({x, y, z, intensity});
+  }
+  free(points);
+
+  return result;
 }
 
 // float *kitti_lidar_xyz(const char *pcd_path,

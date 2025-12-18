@@ -7,8 +7,8 @@
 #include <time.h>
 #include <assert.h>
 
-#include <filesystem>
 #include <vector>
+#include <filesystem>
 
 namespace xyz {
 
@@ -127,7 +127,8 @@ struct KittiVelodyne {
   KittiVelodyne(const fs::path &data_dir);
   ~KittiVelodyne() = default;
 
-  static float *load_points(const fs::path &pcd_path, size_t *num_points);
+  static std::vector<std::array<float, 4>>
+  load_points(const fs::path &pcd_path);
 };
 
 ///////////////////////
