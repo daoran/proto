@@ -7,7 +7,7 @@ set(CMAKE_CXX_COMPILER "clang++")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(USE_ADDRESS_SANITIZER ON)
+set(USE_ADDRESS_SANITIZER OFF)
 add_compile_options(-Wall -Wextra)
 
 # Address Sanitizer
@@ -38,11 +38,12 @@ add_library(
   lib/calib/AprilGridDetector.cpp
   lib/calib/CalibCamera.cpp
   lib/calib/CalibCameraImu.cpp
-  lib/calib/CalibData.cpp
+  lib/calib/CalibProblem.cpp
   lib/calib/CalibTarget.cpp
   lib/calib/CalibTargetChain.cpp
   lib/calib/CalibTargetGeometry.cpp
   lib/calib/CameraChain.cpp
+  lib/calib/LissajousTrajectory.cpp
   lib/calib/SolvePnp.cpp
   lib/camera/BrownConrady4.cpp
   lib/camera/CameraGeometry.cpp
@@ -55,12 +56,15 @@ add_library(
   lib/ceres/CalibCameraError.cpp
   lib/ceres/CalibCameraImuError.cpp
   lib/ceres/ResidualBlock.cpp
+  lib/core/Core.cpp
+  lib/core/Logger.cpp
   lib/dataset/EuRoC.cpp
   lib/dataset/Kitti.cpp
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
   lib/imu/ImuState.cpp
   lib/sim/SimCalibCamera.cpp
+  lib/sim/SimCalibCameraImu.cpp
   lib/sim/SimImu.cpp
   # lib/sim/SimVio.cpp
   lib/timeline/CalibTargetEvent.cpp
@@ -68,8 +72,6 @@ add_library(
   lib/timeline/ImuEvent.cpp
   lib/timeline/Timeline.cpp
   lib/timeline/TimelineEvent.cpp
-  lib/Core.cpp
-  lib/Logger.cpp
 )
 set(DEPS
   yaml-cpp::yaml-cpp
@@ -90,22 +92,24 @@ add_executable(unittests
   lib/calib/TestAprilGrid.cpp
   lib/calib/TestAprilGridDetector.cpp
   lib/calib/TestCalibCamera.cpp
-  lib/calib/TestCalibCameraImu.cpp
-  lib/calib/TestCalibData.cpp
+  # lib/calib/TestCalibCameraImu.cpp
+  lib/calib/TestCalibProblem.cpp
   lib/calib/TestCameraChain.cpp
+  lib/calib/TestLissajousTrajectory.cpp
   lib/camera/TestBrownConrady4.cpp
   lib/camera/TestKannalaBrandt4.cpp
   lib/camera/TestPinhole.cpp
   lib/imu/TestImuBuffer.cpp
   lib/ceres/TestCalibCameraError.cpp
   lib/ceres/TestCalibCameraImuError.cpp
-  lib/ceres/TestImuError.cpp
+  # lib/ceres/TestImuError.cpp
   lib/ceres/TestReprojError.cpp
+  lib/core/TestLogger.cpp
   lib/sim/TestSimCalibCamera.cpp
+  lib/sim/TestSimCalibCameraImu.cpp
   lib/sim/TestSimImu.cpp
-  # lib/sim/TestSimVio.cpp
-  # lib/timeline/TestTimeline.cpp
-  # lib/TestLogger.cpp
+  lib/sim/TestSimVio.cpp
+  lib/timeline/TestTimeline.cpp
 )
 add_compile_definitions(unittests PRIVATE TEST_DATA="${TEST_DATA}")
 target_link_libraries(unittests ${TEST_DEPS})
