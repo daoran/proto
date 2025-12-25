@@ -6,6 +6,10 @@
 
 namespace xyz {
 
+// Forward declaration
+class CalibCameraImuError;
+using CalibCameraImuErrorPtr = std::shared_ptr<CalibCameraImuError>;
+
 /** Camera-IMU Calibration Reprojection Error */
 class CalibCameraImuError : public ResidualBlock {
 private:
@@ -31,7 +35,7 @@ public:
          const std::shared_ptr<ImuGeometry> &imu,
          const std::shared_ptr<CalibTargetGeometry> &target,
          double *T_WS,
-         double *T_WF,
+         double *T_WT0,
          const int point_id,
          const Vec2 &z,
          const Mat2 &covar = I(2));

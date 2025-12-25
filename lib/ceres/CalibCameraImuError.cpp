@@ -22,13 +22,13 @@ CalibCameraImuError::create(const std::shared_ptr<CameraGeometry> &camera,
                             const Vec2 &z,
                             const Mat2 &covar) {
   std::vector<double *> param_ptrs;
-  param_ptrs.push_back(T_WS);                          // Sensor pose T_WS
-  param_ptrs.push_back(T_WT0);                         // Target pose T_WT0
-  param_ptrs.push_back(target->getPointPtr(point_id)); // Target point p_Tj
-  param_ptrs.push_back(target->getExtrinsicPtr()); // Target extrinsic T_T0Tj
-  param_ptrs.push_back(imu->getExtrinsicPtr());    // Imu extrinsic T_C0S
-  param_ptrs.push_back(camera->getExtrinsicPtr()); // Camera extrinsic T_C0Ci
-  param_ptrs.push_back(camera->getIntrinsicPtr()); // Camera intrinsic
+  param_ptrs.push_back(T_WS);                            // Sensor pose T_WS
+  param_ptrs.push_back(T_WT0);                           // Target pose T_WT0
+  param_ptrs.push_back(target->points[point_id].data()); // Target point p_Tj
+  param_ptrs.push_back(target->extrinsic.data()); // Target extrinsic T_T0Tj
+  param_ptrs.push_back(imu->extrinsic.data());    // Imu extrinsic T_C0S
+  param_ptrs.push_back(camera->extrinsic.data()); // Camera extrinsic T_C0Ci
+  param_ptrs.push_back(camera->intrinsic.data()); // Camera intrinsic
 
   std::vector<ParamBlock::Type> param_types;
   param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS
@@ -77,8 +77,8 @@ bool CalibCameraImuError::eval(double const *const *params,
   const Mat4 T_CiTj = T_CiC0 * T_C0S * T_SW * T_WT0 * T_T0Tj;
   const Vec3 p_Ci = tf_point(T_CiTj, p_Tj);
   // -- Project point from camera frame to image plane
-  const auto camera_model = camera_geometry_->getCameraModel();
-  const Vec2i resolution = camera_geometry_->getResolution();
+  const auto camera_model = camera_geometry_->camera_model;
+  const Vec2i resolution = camera_geometry_->resolution;
   Vec2 z_hat;
   if (camera_model->project(resolution, intrinsic, p_Ci, z_hat) != 0) {
     valid_ = false;

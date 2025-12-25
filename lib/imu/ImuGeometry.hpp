@@ -5,40 +5,23 @@
 namespace xyz {
 
 // Forward declaration
-class ImuGeometry;
+struct ImuGeometry;
 using ImuGeometryPtr = std::shared_ptr<ImuGeometry>;
 
 /** IMU Geometry */
-class ImuGeometry {
-private:
-  int imu_id_;
-  ImuParams imu_params_;
-  VecX extrinsic_;
+struct ImuGeometry {
+  int imu_id;
+  ImuParams imu_params;
+  VecX extrinsic;
 
-public:
   ImuGeometry() = delete;
-  ImuGeometry(const int imu_id,
-              const ImuParams &imu_params,
-              const VecX &extrinsic);
+  ImuGeometry(const int imu_id_,
+              const ImuParams &imu_params_,
+              const VecX &extrinsic_);
   virtual ~ImuGeometry() = default;
 
-  /** Get Imu index */
-  int getImuId() const;
-
-  /** Get Imu Params */
-  ImuParams getImuParams() const;
-
-  /** Get extrinsic **/
-  VecX getExtrinsic() const;
-
-  /** Get extrinsic **/
-  double *getExtrinsicPtr();
-
-  /** Get transform T_body_camera **/
-  Mat4 getTransform() const;
-
   /** Set extrinsic */
-  void setExtrinsic(const Mat4 &extrinsic);
+  void setExtrinsic(const Mat4 &transform);
 };
 
 } // namespace xyz

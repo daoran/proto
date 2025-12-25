@@ -1,5 +1,6 @@
 #pragma once
-#include "../Core.hpp"
+
+#include "../core/Core.hpp"
 #include "../calib/CalibTarget.hpp"
 #include "TimelineEvent.hpp"
 

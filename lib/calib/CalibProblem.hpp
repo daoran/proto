@@ -1,7 +1,7 @@
 #pragma once
 #include <filesystem>
 
-#include "../Core.hpp"
+#include "../core/Core.hpp"
 #include "../camera/CameraGeometry.hpp"
 #include "../imu/ImuBuffer.hpp"
 #include "../imu/ImuGeometry.hpp"
@@ -16,32 +16,36 @@
 
 namespace xyz {
 
-/** Calibration Data */
-class CalibData {
-protected:
+/** Calibration Problem */
+struct CalibProblem {
   // Settings
-  fs::path config_path_;
-  fs::path data_path_;
+  bool verbose = false;
+  fs::path config_path;
+  fs::path data_path;
 
   // Calibration Target
-  std::map<int, AprilGridConfig> target_configs_;
+  std::map<int, AprilGridConfig> target_configs;
 
   // Data
-  std::set<timestamp_t> timestamps_;
-  std::map<timestamp_t, Vec7> poses_;
-  std::map<timestamp_t, Vec9> speed_and_biases_;
-  Vec7 target_pose_;
+  std::set<timestamp_t> timestamps;
+  std::map<timestamp_t, Vec7> poses;
+  std::map<timestamp_t, Vec9> speed_and_biases;
+  Vec7 target_pose;
 
-  std::map<int, CameraData> camera_data_;
-  std::map<int, ImuBuffer> imu_data_;
-  std::map<int, CameraGeometryPtr> camera_geometries_;
-  std::map<int, ImuGeometryPtr> imu_geometries_;
-  std::map<int, CalibTargetGeometryPtr> target_geometries_;
+  std::map<int, CameraData> camera_data;
+  std::map<int, ImuBuffer> imu_data;
+  std::map<int, CalibTargetGeometryPtr> target_geometries;
+  std::map<int, CameraGeometryPtr> camera_geometries;
+  std::map<int, ImuGeometryPtr> imu_geometries;
 
-public:
-  CalibData() = default;
-  CalibData(const std::string &config_path);
-  virtual ~CalibData() = default;
+  // Ceres
+  ceres::Problem::Options prob_options;
+  std::shared_ptr<ceres::Problem> problem;
+  PoseManifold pose_plus;
+
+  CalibProblem();
+  CalibProblem(const std::string &config_path_);
+  virtual ~CalibProblem() = default;
 
   /*****************************************************************************
    * Load methods
@@ -126,11 +130,6 @@ public:
   /** Add calibration target */
   void addTarget(const AprilGridConfig &config, const Vec7 &extrinsic);
 
-  /** Add calibration target point */
-  void addTargetPoint(const int target_id,
-                      const int point_id,
-                      const Vec3 &point);
-
   /** Set target pose */
   void setTargetPose(const Mat4 &pose);
 
@@ -177,6 +176,16 @@ public:
 
   /** Get pose */
   Vec9 &getSpeedAndBiases(const timestamp_t ts);
+
+  /** Get pose pointer */
+  double *getSpeedAndBiasesPtr(const timestamp_t ts);
+
+  /*****************************************************************************
+   * Ceres
+   ****************************************************************************/
+
+  /** Add residual block */
+  void addResidualBlock(ResidualBlock *resblock);
 
   /*****************************************************************************
    * Misc methods

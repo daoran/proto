@@ -2,10 +2,18 @@
 
 namespace xyz {
 
-Vec2 AprilGridConfig::getWidthHeight() const {
+double AprilGridConfig::getWidth() const {
   auto w = (tag_cols * tag_size) + ((tag_cols - 1) * tag_size * tag_spacing);
+  return w;
+}
+
+double AprilGridConfig::getHeight() const {
   auto h = (tag_rows * tag_size) + ((tag_rows - 1) * tag_size * tag_spacing);
-  return Vec2{w, h};
+  return h;
+}
+
+Vec2 AprilGridConfig::getWidthHeight() const {
+  return Vec2{getWidth(), getHeight()};
 }
 
 Vec2 AprilGridConfig::getCenter() const { return getWidthHeight() / 2.0; }

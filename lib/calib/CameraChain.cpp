@@ -82,8 +82,8 @@ CameraChain::CameraChain(
 }
 
 void CameraChain::insert(const int i, const int j, const Mat4 &T_ij) {
-  adjlist_[i][j].push_back(T_ij);
-  adjlist_[j][i].push_back(T_ij.inverse());
+  adjlist[i][j].push_back(T_ij);
+  adjlist[j][i].push_back(T_ij.inverse());
 }
 
 int CameraChain::find(const int i, const int j, Mat4 &T_CiCj) const {
@@ -91,7 +91,7 @@ int CameraChain::find(const int i, const int j, Mat4 &T_CiCj) const {
   auto average_extrinsic = [&](const int i, const int j) {
     Vec3s positions;
     std::vector<Quat> rotations;
-    for (const auto &extrinsic : adjlist_.at(i).at(j)) {
+    for (const auto &extrinsic : adjlist.at(i).at(j)) {
       positions.push_back(tf_trans(extrinsic));
       rotations.push_back(tf_quat(extrinsic));
     }
@@ -108,12 +108,12 @@ int CameraChain::find(const int i, const int j, Mat4 &T_CiCj) const {
   }
 
   // Check if we have even inserted the cameras before
-  if (adjlist_.count(i) == 0 || adjlist_.count(j) == 0) {
+  if (adjlist.count(i) == 0 || adjlist.count(j) == 0) {
     return -1;
   }
 
   // Check if we already have the extrinsics pair
-  if (adjlist_.count(i) && adjlist_.at(i).count(j)) {
+  if (adjlist.count(i) && adjlist.at(i).count(j)) {
     T_CiCj = average_extrinsic(i, j);
     return 0;
   }
@@ -130,7 +130,7 @@ int CameraChain::find(const int i, const int j, Mat4 &T_CiCj) const {
     queue.pop_front();
     visited[parent] = true;
 
-    for (const auto &[child, _] : adjlist_.at(parent)) {
+    for (const auto &[child, _] : adjlist.at(parent)) {
       if (visited[child]) {
         continue;
       }

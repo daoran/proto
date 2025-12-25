@@ -1,5 +1,6 @@
 #pragma once
-#include "../Core.hpp"
+
+#include "../core/Core.hpp"
 #include "CalibTargetEvent.hpp"
 #include "CameraEvent.hpp"
 #include "ImuEvent.hpp"

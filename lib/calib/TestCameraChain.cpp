@@ -64,8 +64,8 @@ static std::shared_ptr<CameraGeometry> setup_euroc_camera1() {
 
 TEST(CameraChain, construct) {
   // Load data
-  CalibData calib_data{TEST_CONFIG};
-  auto camera_data = calib_data.getAllCameraData();
+  CalibProblem calib{TEST_CONFIG};
+  auto camera_data = calib.getAllCameraData();
 
   // Setup camera geometries
   auto camera0 = setup_euroc_camera0();
@@ -78,8 +78,6 @@ TEST(CameraChain, construct) {
   Mat4 T_CiCj;
   CameraChain camchain{camera_geometries, camera_data};
   ASSERT_EQ(camchain.find(0, 1, T_CiCj), 0);
-
-  print_matrix("T_CiCj", T_CiCj);
 }
 
 } // namespace xyz

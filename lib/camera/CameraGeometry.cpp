@@ -5,23 +5,23 @@
 
 namespace xyz {
 
-CameraGeometry::CameraGeometry(const int camera_id,
-                               const std::string &camera_model,
-                               const Vec2i &resolution,
-                               const VecX &intrinsic,
-                               const VecX &extrinsic)
-    : camera_id_{camera_id}, resolution_{resolution}, intrinsic_{intrinsic},
-      extrinsic_{extrinsic} {
+CameraGeometry::CameraGeometry(const int camera_id_,
+                               const std::string &camera_model_str_,
+                               const Vec2i &resolution_,
+                               const VecX &intrinsic_,
+                               const VecX &extrinsic_)
+    : camera_id{camera_id_},
+      resolution{resolution_}, intrinsic{intrinsic_}, extrinsic{extrinsic_} {
   // Initialize camera model
   int intrinsic_size = 0;
-  if (camera_model == "BrownConrady4") {
-    camera_model_ = std::make_shared<BrownConrady4>();
+  if (camera_model_str_ == "BrownConrady4") {
+    camera_model = std::make_shared<BrownConrady4>();
     intrinsic_size = 8;
-  } else if (camera_model == "KannalaBrandt4") {
-    camera_model_ = std::make_shared<KannalaBrandt4>();
+  } else if (camera_model_str_ == "KannalaBrandt4") {
+    camera_model = std::make_shared<KannalaBrandt4>();
     intrinsic_size = 8;
   } else {
-    FATAL("Unsupported camera model [%s]", camera_model.c_str());
+    FATAL("Unsupported camera model [%s]", camera_model_str_.c_str());
   }
 
   // Initialize camera intrinsic
@@ -33,40 +33,19 @@ CameraGeometry::CameraGeometry(const int camera_id,
   const double cx = resolution.x() / 2.0;
   const double cy = resolution.y() / 2.0;
 
-  intrinsic_.resize(intrinsic_size);
-  intrinsic_.setZero();
-  intrinsic_[0] = fx;
-  intrinsic_[1] = fy;
-  intrinsic_[2] = cx;
-  intrinsic_[3] = cy;
+  intrinsic.resize(intrinsic_size);
+  intrinsic.setZero();
+  intrinsic[0] = fx;
+  intrinsic[1] = fy;
+  intrinsic[2] = cx;
+  intrinsic[3] = cy;
 }
 
-CameraGeometry::~CameraGeometry() {}
-
-int CameraGeometry::getCameraId() const { return camera_id_; }
-
-CameraModel *CameraGeometry::getCameraModel() const {
-  return camera_model_.get();
-}
-
-std::string CameraGeometry::getCameraModelString() const {
-  return camera_model_->type();
-}
-
-Vec2i CameraGeometry::getResolution() const { return resolution_; }
-
-VecX CameraGeometry::getIntrinsic() const { return intrinsic_; }
-
-VecX CameraGeometry::getExtrinsic() const { return extrinsic_; }
-
-double *CameraGeometry::getIntrinsicPtr() { return intrinsic_.data(); }
-
-double *CameraGeometry::getExtrinsicPtr() { return extrinsic_.data(); }
-
-Mat4 CameraGeometry::getTransform() const { return tf(extrinsic_); }
-
-void CameraGeometry::setExtrinsic(const Mat4 &extrinsic) {
-  extrinsic_ = tf_vec(extrinsic);
+void CameraGeometry::setExtrinsic(const Mat4 &transform) {
+  const Vec7 data = tf_vec(transform);
+  for (int i = 0; i < 7; ++i) {
+    extrinsic(i) = data(i);
+  }
 }
 
 } // namespace xyz

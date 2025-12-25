@@ -481,13 +481,16 @@ PROFILE_ANNOTATE="perf annotate --stdio > profile.txt"
 # CMD="./build/unittests --gtest_filter=CalibCameraImu.*"
 # CMD="./build/unittests --gtest_filter=CalibData.*"
 # CMD="./build/unittests --gtest_filter=CameraChain.*"
+CMD="./build/unittests --gtest_filter=LissajousTrajectory.*"
 # CMD="./build/unittests --gtest_filter=CameraModel.*"
+# CMD="./build/unittests --gtest_filter=ImuBuffer.*"
 # CMD="./build/unittests --gtest_filter=ImuError.*"
 # CMD="./build/unittests --gtest_filter=ReprojError.*"
 # CMD="./build/unittests --gtest_filter=CalibCameraError.*"
 # CMD="./build/unittests --gtest_filter=CalibCameraImuError.*"
 # CMD="./build/unittests --gtest_filter=Sim.*"
-CMD="./build/unittests --gtest_filter=SimCalibCamera.*"
+# CMD="./build/unittests --gtest_filter=SimCalibCamera.*"
+# CMD="./build/unittests --gtest_filter=SimCalibCameraImu.*"
 # CMD="./build/unittests --gtest_filter=Timeline.*"
 # CMD="./build/unittests --gtest_filter=Logger.*"
 
@@ -495,6 +498,6 @@ tmux send-keys -t $TARGET -R C-l C-m
 tmux send-keys -t $TARGET -R "\
 cd $HOME/code/xyz \
   && time make release -j \
-  && ${CMD} \
-  # && python3 scripts/plot_calib_camera_imu.py
+  && ${CMD}
 " C-m C-m
+# && python3 scripts/plot_calib_camera_imu.py

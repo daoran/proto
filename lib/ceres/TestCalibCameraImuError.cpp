@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "calib/CalibData.hpp"
+#include "calib/CalibProblem.hpp"
 #include "ceres/CalibCameraImuError.hpp"
 
 namespace xyz {
@@ -148,13 +148,13 @@ static void simulate_camera_measurements(
     Vec2s &keypoints,
     Vec3s &object_points) {
   // Get camera parameters
-  const auto res = camera_geometry->getResolution();
-  const auto camera = camera_geometry->getCameraModel();
-  const auto params = camera_geometry->getIntrinsic();
-  const Vec7 camera_extrinsic = camera_geometry->getExtrinsic();
+  const auto res = camera_geometry->resolution;
+  const auto camera = camera_geometry->camera_model;
+  const auto params = camera_geometry->intrinsic;
+  const Vec7 camera_extrinsic = camera_geometry->extrinsic;
 
   // Get target parameters
-  const Vec7 target_extrinsic = target_geometry->getExtrinsic();
+  const Vec7 target_extrinsic = target_geometry->extrinsic;
   const AprilGrid aprilgrid{0, 0, config};
   const int tag_rows = aprilgrid.getTagRows();
   const int tag_cols = aprilgrid.getTagCols();
@@ -236,11 +236,11 @@ TEST(CalibCameraImuError, evaluate) {
   auto param_ptrs = res->getParamPtrs();
   ASSERT_EQ(param_ptrs[0], sensor_pose.data());
   ASSERT_EQ(param_ptrs[1], target_pose.data());
-  ASSERT_EQ(param_ptrs[2], target_geometry->getPointPtr(point_ids[0]));
-  ASSERT_EQ(param_ptrs[3], target_geometry->getExtrinsicPtr());
-  ASSERT_EQ(param_ptrs[4], imu_geometry->getExtrinsicPtr());
-  ASSERT_EQ(param_ptrs[5], camera_geometry->getExtrinsicPtr());
-  ASSERT_EQ(param_ptrs[6], camera_geometry->getIntrinsicPtr());
+  ASSERT_EQ(param_ptrs[2], target_geometry->points[point_ids[0]].data());
+  ASSERT_EQ(param_ptrs[3], target_geometry->extrinsic.data());
+  ASSERT_EQ(param_ptrs[4], imu_geometry->extrinsic.data());
+  ASSERT_EQ(param_ptrs[5], camera_geometry->extrinsic.data());
+  ASSERT_EQ(param_ptrs[6], camera_geometry->intrinsic.data());
 
   // Check Jacobians
   const double h = 1e-8;

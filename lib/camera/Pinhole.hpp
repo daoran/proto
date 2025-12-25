@@ -1,5 +1,5 @@
 #pragma once
-#include "../Core.hpp"
+#include "../core/Core.hpp"
 #include "CameraModel.hpp"
 
 namespace xyz {

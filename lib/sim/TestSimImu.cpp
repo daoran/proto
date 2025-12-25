@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "sim/SimImu.hpp"
 
 namespace xyz {

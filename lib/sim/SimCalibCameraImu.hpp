@@ -9,16 +9,16 @@ namespace xyz {
 using AprilGridMap = std::map<int, std::shared_ptr<AprilGrid>>;
 using CameraMap = std::map<int, AprilGridMap>;
 
-struct SimCalibCamera {
+struct SimCalibCameraImu {
   // Settings
-  const double camera_rate; // [Hz]
-  const double sample_x;
-  const double sample_y;
-  const double sample_z;
-  const double sample_z_offset;
-  const int sample_num_x;
-  const int sample_num_y;
-  const int sample_num_z;
+  const double camera_rate = 10.0; // [Hz]
+  const double sample_x = 1.0;
+  const double sample_y = 1.0;
+  const double sample_z = 0.3;
+  const double sample_z_offset = 1.0;
+  const int sample_num_x = 5;
+  const int sample_num_y = 7;
+  const int sample_num_z = 3;
 
   // Data
   std::map<int, AprilGridConfig> target_configs;
@@ -28,16 +28,8 @@ struct SimCalibCamera {
   std::map<timestamp_t, CameraMap> camera_views;
 
   /** Constructor / destructor */
-  SimCalibCamera() = delete;
-  SimCalibCamera(const double camera_rate_ = 10.0,
-                 const double sample_x_ = 1.0,
-                 const double sample_y_ = 1.0,
-                 const double sample_z_ = 0.3,
-                 const double sample_z_offset_ = 1.0,
-                 const int sample_num_x_ = 5,
-                 const int sample_num_y_ = 7,
-                 const int sample_num_z_ = 3);
-  virtual ~SimCalibCamera() = default;
+  SimCalibCameraImu();
+  virtual ~SimCalibCameraImu() = default;
 
   /** Setup */
   void setup_calib_targets();

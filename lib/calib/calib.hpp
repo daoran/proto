@@ -3,7 +3,7 @@
 #include "AprilGridConfig.hpp"
 #include "AprilGridDetector.hpp"
 #include "CalibCamera.hpp"
-#include "CalibData.hpp"
+#include "CalibProblem.hpp"
 #include "CalibTarget.hpp"
 #include "CalibTargetChain.hpp"
 #include "CalibTargetGeometry.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 #include <ceres/ceres.h>
 
-#include "../Core.hpp"
+#include "../core/Core.hpp"
 #include "../camera/CameraGeometry.hpp"
 
 #include "CalibTarget.hpp"
@@ -9,11 +9,9 @@
 namespace xyz {
 
 /** SolvePnp */
-class SolvePnp {
-private:
-  std::shared_ptr<CameraGeometry> camera_geometry_;
+struct SolvePnp {
+  std::shared_ptr<CameraGeometry> camera_geometry;
 
-public:
   SolvePnp() = delete;
   SolvePnp(const std::shared_ptr<CameraGeometry> &camera_geometry);
   virtual ~SolvePnp() = default;

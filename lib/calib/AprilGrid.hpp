@@ -5,7 +5,7 @@
 #include <set>
 #include <unordered_map>
 
-#include "../Core.hpp"
+#include "../core/Core.hpp"
 #include "../camera/CameraModel.hpp"
 #include "CalibTarget.hpp"
 #include "AprilGridConfig.hpp"

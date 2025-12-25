@@ -1,4 +1,4 @@
-data_path: "/data/euroc/cam_april/mav0"
+data_path: "/data/euroc/imu_april/mav0"
 
 target0:
   target_type: "aprilgrid"

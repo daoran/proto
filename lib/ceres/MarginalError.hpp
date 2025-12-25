@@ -1,5 +1,5 @@
 #pragma
-#include "../Core.hpp"
+#include "../core/Core.hpp"
 #include "ParamBlock.hpp"
 #include "ResidualBlock.hpp"
 

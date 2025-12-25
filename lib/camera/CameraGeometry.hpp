@@ -4,56 +4,27 @@
 namespace xyz {
 
 // Forward declaration
-class CameraGeometry;
+struct CameraGeometry;
 using CameraGeometryPtr = std::shared_ptr<CameraGeometry>;
 
 /** Camera Geometry */
-class CameraGeometry {
-private:
-  int camera_id_;
-  std::shared_ptr<CameraModel> camera_model_;
-  Vec2i resolution_;
-  VecX intrinsic_;
-  VecX extrinsic_;
+struct CameraGeometry {
+  int camera_id;
+  std::shared_ptr<CameraModel> camera_model;
+  Vec2i resolution;
+  VecX intrinsic;
+  VecX extrinsic;
 
-public:
   CameraGeometry() = delete;
-  CameraGeometry(const int camera_id,
-                 const std::string &camera_model,
-                 const Vec2i &resolution,
-                 const VecX &intrinsic,
-                 const VecX &extrinsic);
-  virtual ~CameraGeometry();
+  CameraGeometry(const int camera_id_,
+                 const std::string &camera_model_,
+                 const Vec2i &resolution_,
+                 const VecX &intrinsic_,
+                 const VecX &extrinsic_);
+  virtual ~CameraGeometry() = default;
 
-  /** Get camera id **/
-  int getCameraId() const;
-
-  /** Get camera model **/
-  CameraModel *getCameraModel() const;
-
-  /** Get camera model string **/
-  std::string getCameraModelString() const;
-
-  /** Get resoultion **/
-  Vec2i getResolution() const;
-
-  /** Get intrinsic **/
-  VecX getIntrinsic() const;
-
-  /** Get extrinsic **/
-  VecX getExtrinsic() const;
-
-  /** Get intrinsic pointer **/
-  double *getIntrinsicPtr();
-
-  /** Get extrinsic **/
-  double *getExtrinsicPtr();
-
-  /** Get transform T_body_camera **/
-  Mat4 getTransform() const;
-
-  /** Set extrinsic */
-  void setExtrinsic(const Mat4 &extrinsic);
+  /** Set Extrinsic */
+  void setExtrinsic(const Mat4 &transform);
 };
 
 } // namespace xyz

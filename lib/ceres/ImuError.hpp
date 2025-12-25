@@ -5,6 +5,10 @@
 
 namespace xyz {
 
+// Forward declaration
+class ImuError;
+using ImuErrorPtr = std::shared_ptr<ImuError>;
+
 /** Imu Error */
 class ImuError : public ResidualBlock {
 private:

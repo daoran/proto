@@ -1,6 +1,7 @@
 #pragma once
 #include <ceres/ceres.h>
 
+#include "../core/Core.hpp"
 #include "ParamBlock.hpp"
 
 namespace xyz {

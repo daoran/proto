@@ -12,9 +12,9 @@ TEST(Timeline, timeline_event) {
 
 TEST(Timeline, CameraEvent) {
   const timestamp_t ts = 0;
-  const int camera_index = 0;
+  const int camera_id = 0;
   const std::string image_path = "";
-  CameraEvent event(ts, camera_index, image_path);
+  CameraEvent event(ts, camera_id, image_path);
 }
 
 TEST(Timeline, ImuEvent) {
@@ -26,9 +26,10 @@ TEST(Timeline, ImuEvent) {
 
 TEST(Timeline, CalibTargetEvent) {
   const timestamp_t ts = 0;
-  const int camera_index = 0;
+  const int camera_id = 0;
+  const int target_id = 0;
   const std::shared_ptr<CalibTarget> calib_target;
-  CalibTargetEvent event(ts, camera_index, calib_target);
+  CalibTargetEvent event(ts, camera_id, target_id, calib_target);
 }
 
 } // namespace xyz

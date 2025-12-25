@@ -3,12 +3,10 @@
 #include "calib/CalibCamera.hpp"
 #include "sim/SimCalibCamera.hpp"
 
-#define TEST_CONFIG TEST_DATA "/calib_camera.yaml"
-
 namespace xyz {
 
 static void perturb_camera_intrinsic(CameraGeometryPtr &camera) {
-  auto intrinsic = camera->getIntrinsicPtr();
+  auto intrinsic = camera->intrinsic.data();
   intrinsic[0] += randf(0, 100);
   intrinsic[1] += randf(0, 100);
   intrinsic[2] += randf(0, 100);
@@ -25,7 +23,7 @@ static void perturb_camera_extrinsic(CameraGeometryPtr &camera) {
   const auto psi = randf(-1.0, 1.0);
   const auto quat = euler2quat(Vec3{phi, theta, psi});
 
-  auto extrinsic = camera->getExtrinsicPtr();
+  auto extrinsic = camera->extrinsic.data();
   extrinsic[0] = randf(0, 0.5);
   extrinsic[1] = randf(0, 0.5);
   extrinsic[2] = randf(0, 0.5);
@@ -37,30 +35,47 @@ static void perturb_camera_extrinsic(CameraGeometryPtr &camera) {
 
 static void perturb_camera(CameraGeometryPtr &camera) {
   perturb_camera_intrinsic(camera);
-  if (camera->getCameraId() != 0) {
+  if (camera->camera_id != 0) {
     perturb_camera_extrinsic(camera);
   }
 }
 
-TEST(CalibCamera, solve) {
-  CalibCamera calib;
-  SimCalibCamera sim;
+TEST(CalibCamera, solve_sim) {
+  const double camera_rate = 10.0;
+  const double sample_x = 1.0;
+  const double sample_y = 1.0;
+  const double sample_z = 0.3;
+  const double sample_z_offset = 1.0;
+  const int sample_num_x = 2;
+  const int sample_num_y = 2;
+  const int sample_num_z = 1;
+  SimCalibCamera sim{camera_rate,
+                     sample_x,
+                     sample_y,
+                     sample_z,
+                     sample_z_offset,
+                     sample_num_x,
+                     sample_num_y,
+                     sample_num_z};
 
-  // Add cameras
+  // Setup calibration problem
+  CalibCamera calib;
+
+  // -- Add cameras
   for (const auto &[_, camera] : sim.cameras) {
-    calib.addCamera(camera.getCameraId(),
-                    camera.getCameraModelString(),
-                    camera.getResolution(),
-                    camera.getIntrinsic(),
-                    camera.getExtrinsic());
+    calib.addCamera(camera.camera_id,
+                    camera.camera_model->type(),
+                    camera.resolution,
+                    camera.intrinsic,
+                    camera.extrinsic);
   }
 
-  // Add target
+  // -- Add targets
   for (const auto &[_, config] : sim.target_configs) {
     calib.addTarget(config, tf_vec());
   }
 
-  // Add camera data
+  // -- Add camera data
   auto timeline = sim.get_timeline();
   for (const auto &ts : timeline.timestamps) {
     for (const auto &event : timeline.getEvents(ts)) {

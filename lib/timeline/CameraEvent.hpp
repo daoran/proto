@@ -1,5 +1,6 @@
 #pragma once
-#include "../Core.hpp"
+
+#include "../core/Core.hpp"
 #include "TimelineEvent.hpp"
 
 namespace xyz {

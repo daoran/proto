@@ -214,13 +214,16 @@ TEST(ImuError, solve) {
   }
 
   // Solver options
+  bool verbose = false;
   ceres::Solver::Options options;
-  options.minimizer_progress_to_stdout = true;
+  options.minimizer_progress_to_stdout = verbose;
 
   // Solve
   ceres::Solver::Summary summary;
   ceres::Solve(options, &problem, &summary);
-  std::cout << summary.FullReport() << std::endl << std::endl;
+  if (verbose) {
+    std::cout << summary.FullReport() << std::endl << std::endl;
+  }
 
   // Save results
   FILE *fp = fopen("/tmp/imu_solve.csv", "w");

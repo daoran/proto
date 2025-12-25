@@ -1,24 +1,19 @@
 #pragma once
 
 #include "SolvePnp.hpp"
-#include "CalibData.hpp"
+#include "CalibProblem.hpp"
 #include "../ceres/PoseManifold.hpp"
 #include "../ceres/CalibCameraError.hpp"
 
 namespace xyz {
 
 /** Camera Calibrator **/
-class CalibCamera : public CalibData {
-private:
+struct CalibCamera : CalibProblem {
   using CameraResiduals = std::map<int, std::vector<CalibCameraErrorPtr>>;
+  std::map<timestamp_t, CameraResiduals> resblocks;
 
-  ceres::Problem::Options prob_options_;
-  std::shared_ptr<ceres::Problem> problem_;
-  PoseManifold pose_plus_;
-  std::map<timestamp_t, CameraResiduals> resblocks_;
 
-public:
-  CalibCamera();
+  CalibCamera() = default;
   CalibCamera(const std::string &config_file);
   virtual ~CalibCamera() = default;
 

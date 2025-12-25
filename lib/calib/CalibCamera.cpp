@@ -4,22 +4,8 @@
 
 namespace xyz {
 
-CalibCamera::CalibCamera() {
-  prob_options_.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options_.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options_.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options_.enable_fast_removal = true;
-  problem_ = std::make_shared<ceres::Problem>(prob_options_);
-}
-
 CalibCamera::CalibCamera(const std::string &config_file)
-    : CalibData{config_file} {
-  prob_options_.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options_.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options_.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options_.enable_fast_removal = true;
-  problem_ = std::make_shared<ceres::Problem>(prob_options_);
-}
+    : CalibProblem{config_file} {}
 
 void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
   // Lambda function - Find the target with the most observations
@@ -64,8 +50,8 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
   }
 
   // Estimate relative pose T_CiTj
-  const auto camera_geometry = camera_geometries_[camera_id];
-  const auto target_geometry = target_geometries_[target_id];
+  const auto camera_geometry = camera_geometries[camera_id];
+  const auto target_geometry = target_geometries[target_id];
   Mat4 T_CiTj;
   SolvePnp pnp{camera_geometry};
   int status = pnp.estimate(keypoints, object_points, T_CiTj);
@@ -74,8 +60,8 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
   }
 
   // Form T_C0T0
-  const Mat4 T_C0Ci = camera_geometry->getTransform();
-  const Mat4 T_TjT0 = target_geometry->getTransform().inverse();
+  const Mat4 T_C0Ci = tf(camera_geometry->extrinsic);
+  const Mat4 T_TjT0 = tf(target_geometry->extrinsic).inverse();
   Mat4 T_C0T0 = T_C0Ci * T_CiTj * T_TjT0;
 
   // Add camera measurement if it does not exist
@@ -114,20 +100,13 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
 
       // Form and add residual blocks
       for (size_t i = 0; i < point_ids.size(); i++) {
-        const int point_id = point_ids[i];
-        Vec3 &pt = target_geometry->getPoint(point_id);
-        problem_->AddParameterBlock(pt.data(), 3);
-        problem_->SetParameterBlockConstant(pt.data());
-
         auto resblock = CalibCameraError::create(camera_geometry,
                                                  target_geometry,
-                                                 point_id,
-                                                 poses_[ts].data(),
+                                                 point_ids[i],
+                                                 poses[ts].data(),
                                                  keypoints[i]);
-        resblocks_[ts][camera_id].push_back(resblock);
-        problem_->AddResidualBlock(resblock.get(),
-                                   nullptr,
-                                   resblock->getParamPtrs());
+        resblocks[ts][camera_id].push_back(resblock);
+        addResidualBlock(resblock.get());
       }
     }
   }
@@ -135,13 +114,13 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
 
 void CalibCamera::solve() {
   // Pre-check
-  if (camera_data_.size() == 0) {
+  if (camera_data.size() == 0) {
     FATAL("No camera data?");
   }
-  if (camera_geometries_.size() == 0) {
+  if (camera_geometries.size() == 0) {
     FATAL("No cameras added?");
   }
-  if (target_configs_.size() == 0 || target_geometries_.size() == 0) {
+  if (target_configs.size() == 0 || target_geometries.size() == 0) {
     FATAL("No targets added?");
   }
 
@@ -149,23 +128,9 @@ void CalibCamera::solve() {
   initializeCameraIntrinsics();
   initializeCameraExtrinsics();
 
-  // Add camera intrinsic and extrinsics to problem
-  for (auto &[camera_id, camera_geometry] : camera_geometries_) {
-    const int intrinsic_size = camera_geometry->getIntrinsic().size();
-    double *intrinsic = camera_geometry->getIntrinsicPtr();
-    double *extrinsic = camera_geometry->getExtrinsicPtr();
-    problem_->AddParameterBlock(intrinsic, intrinsic_size);
-    problem_->AddParameterBlock(extrinsic, 7);
-    problem_->SetManifold(extrinsic, &pose_plus_);
-
-    if (camera_id == 0) {
-      problem_->SetParameterBlockConstant(extrinsic);
-    }
-  }
-
   // Form timeline
   Timeline timeline;
-  for (const auto &[camera_id, measurements] : camera_data_) {
+  for (const auto &[camera_id, measurements] : camera_data) {
     for (const auto &[ts, targets] : measurements) {
       for (const auto &[target_id, target] : targets) {
         timeline.add(ts, camera_id, target);
@@ -189,7 +154,7 @@ void CalibCamera::solve() {
 
   // Solver options
   ceres::Solver::Options options;
-  options.minimizer_progress_to_stdout = true;
+  options.minimizer_progress_to_stdout = verbose;
   options.max_num_iterations = 30;
   options.num_threads = 1;
   options.initial_trust_region_radius = 10; // Default: 1e4
@@ -200,9 +165,11 @@ void CalibCamera::solve() {
 
   // Solve
   ceres::Solver::Summary summary;
-  ceres::Solve(options, problem_.get(), &summary);
-  std::cout << summary.FullReport() << std::endl << std::endl;
-  printSummary(stdout);
+  ceres::Solve(options, problem.get(), &summary);
+  if (verbose) {
+    std::cout << summary.FullReport() << std::endl << std::endl;
+    printSummary(stdout);
+  }
 }
 
 } // namespace xyz

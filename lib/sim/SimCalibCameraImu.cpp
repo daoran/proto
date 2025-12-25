@@ -1,26 +1,15 @@
-#include "SimCalibCamera.hpp"
+#include "SimCalibCameraImu.hpp"
 
 namespace xyz {
 
-SimCalibCamera::SimCalibCamera(const double camera_rate_,
-                               const double sample_x_,
-                               const double sample_y_,
-                               const double sample_z_,
-                               const double sample_z_offset_,
-                               const int sample_num_x_,
-                               const int sample_num_y_,
-                               const int sample_num_z_)
-    : camera_rate{camera_rate_}, sample_x{sample_x_}, sample_y{sample_y_},
-      sample_z{sample_z_}, sample_z_offset{sample_z_offset_},
-      sample_num_x{sample_num_x_}, sample_num_y{sample_num_y_},
-      sample_num_z{sample_num_z_} {
+SimCalibCameraImu::SimCalibCameraImu() {
   setup_calib_targets();
   setup_camera_geometries();
   setup_camera_poses();
   simulate_camera_views();
 }
 
-void SimCalibCamera::setup_calib_targets() {
+void SimCalibCameraImu::setup_calib_targets() {
   // Add target config
   const int target_id = 0;
   const int tag_rows = 8;
@@ -47,7 +36,7 @@ void SimCalibCamera::setup_calib_targets() {
   target_poses.emplace(0, T_WTj);
 }
 
-void SimCalibCamera::setup_camera_geometries() {
+void SimCalibCameraImu::setup_camera_geometries() {
   const std::string cam_model = "BrownConrady4";
   const Vec2i cam_res{640, 480};
   const double fx = pinhole_focal(cam_res[0], 90.0);
@@ -86,56 +75,58 @@ void SimCalibCamera::setup_camera_geometries() {
   cameras.emplace(1, CameraGeometry(1, cam_model, cam_res, cam1_int, cam1_ext));
 }
 
-void SimCalibCamera::setup_camera_poses() {
-  const auto half_x = sample_x / 2.0;
-  const auto half_y = sample_y / 2.0;
-  const auto half_z = sample_z / 2.0;
-  const auto range_x = linspace(-half_x, half_x, sample_num_x);
-  const auto range_y = linspace(-half_y, half_y, sample_num_y);
-  const auto range_z = linspace(-half_z, half_z, sample_num_z);
-
-  const auto target = target_configs.at(0);
-  const Mat4 T_WT0 = target_poses.at(0);
-  const Vec2 center = target.getCenter();
-  const Vec3 p_center = tf_point(T_WT0, Vec3{center.x(), center.y(), 0.0});
+void SimCalibCameraImu::setup_camera_poses() {
+  // const auto half_x = sample_x / 2.0;
+  // const auto half_y = sample_y / 2.0;
+  // const auto half_z = sample_z / 2.0;
+  // const auto range_x = linspace(-half_x, half_x, sample_num_x);
+  // const auto range_y = linspace(-half_y, half_y, sample_num_y);
+  // const auto range_z = linspace(-half_z, half_z, sample_num_z);
+  //
+  // const auto target = target_configs.at(0);
+  // const Mat4 T_WT0 = target_poses.at(0);
+  // const Vec2 center = target.getCenter();
+  // const Vec3 p_center = tf_point(T_WT0, Vec3{center.x(), center.y(), 0.0});
 
   // const time_t time_now = time(NULL);
   // timestamp_t ts = time_now * 1e9;
-  timestamp_t ts = 0;
-  timestamp_t ts_diff = (1.0 / camera_rate) * 1e9;
+  // const double trajectory_length = 5.0;
+  // timestamp_t ts = 0;
+  // timestamp_t ts_diff = (1.0 / camera_rate) * 1e9;
 
-  for (const auto y : range_y) {
-    for (const auto z : range_z) {
-      for (const auto x : range_x) {
-        // Transform camera position in target frame to world frame
-        const Vec3 p_T{x + center.x(), y + center.y(), z + sample_z_offset};
-        const Vec3 p_W = tf_point(T_WT0, p_T);
-
-        // Form camera rotation
-        // clang-format off
-        const Vec3 world_up{0.0, 0.0, 1.0};
-        const Vec3 dir = (p_center - p_W).normalized();
-        const Vec3 right= dir.cross(world_up).normalized();
-        const Vec3 up = dir.cross(right);
-        Mat3 R;
-        R << right.x(), up.x(), dir.x(),
-             right.y(), up.y(), dir.y(),
-             right.z(), up.z(), dir.z();
-        // clang-format on
-
-        // Form pose transform
-        Mat4 T_WC0 = I(4);
-        T_WC0.block<3, 3>(0, 0) = R;
-        T_WC0.block<3, 1>(0, 3) = p_W;
-
-        camera_poses[ts] = T_WC0;
-        ts += ts_diff;
-      }
-    }
-  }
+  // for (const auto x : range_x) {
+  //   const double x = A * sin(a * theta + delta);
+  //   const double y = B * sin(b * theta);
+  //   const double z = sqrt(R * R - x * x - y * y);
+  //   const vec3_t r_OS{x, y, z};
+  //
+  //   // Transform camera position in target frame to world frame
+  //   const Vec3 p_T{x + center.x(), y + center.y(), z + sample_z_offset};
+  //   const Vec3 p_W = tf_point(T_WT0, p_T);
+  //
+  //   // Form camera rotation
+  //   // clang-format off
+  //   const Vec3 world_up{0.0, 0.0, 1.0};
+  //   const Vec3 dir = (p_center - p_W).normalized();
+  //   const Vec3 right= dir.cross(world_up).normalized();
+  //   const Vec3 up = dir.cross(right);
+  //   Mat3 R;
+  //   R << right.x(), up.x(), dir.x(),
+  //        right.y(), up.y(), dir.y(),
+  //        right.z(), up.z(), dir.z();
+  //   // clang-format on
+  //
+  //   // Form pose transform
+  //   Mat4 T_WC0 = I(4);
+  //   T_WC0.block<3, 3>(0, 0) = R;
+  //   T_WC0.block<3, 1>(0, 3) = p_W;
+  //
+  //   camera_poses[ts] = T_WC0;
+  //   ts += ts_diff;
+  // }
 }
 
-void SimCalibCamera::simulate_camera_views() {
+void SimCalibCameraImu::simulate_camera_views() {
   // Simulate single camera view
   auto sim_view = [&](const timestamp_t ts,
                       const int camera_id,
@@ -177,7 +168,7 @@ void SimCalibCamera::simulate_camera_views() {
   }
 }
 
-Timeline SimCalibCamera::get_timeline() const {
+Timeline SimCalibCameraImu::get_timeline() const {
   Timeline timeline;
 
   for (const auto &[ts, camera_map] : camera_views) {
@@ -191,7 +182,7 @@ Timeline SimCalibCamera::get_timeline() const {
   return timeline;
 }
 
-int SimCalibCamera::save_target_configs(const fs::path &yaml_path) const {
+int SimCalibCameraImu::save_target_configs(const fs::path &yaml_path) const {
   const auto fp = fopen(yaml_path.c_str(), "w");
   if (fp == NULL) {
     LOG_ERROR("Failed to open [%s] for saving!", yaml_path.c_str());
@@ -212,7 +203,7 @@ int SimCalibCamera::save_target_configs(const fs::path &yaml_path) const {
   return 0;
 }
 
-int SimCalibCamera::save_target_poses(const fs::path &csv_path) const {
+int SimCalibCameraImu::save_target_poses(const fs::path &csv_path) const {
   const auto fp = fopen(csv_path.c_str(), "w");
   if (fp == NULL) {
     LOG_ERROR("Failed to open [%s] for saving!", csv_path.c_str());
@@ -232,7 +223,7 @@ int SimCalibCamera::save_target_poses(const fs::path &csv_path) const {
   return 0;
 }
 
-int SimCalibCamera::save_camera_geometries(const fs::path &yaml_path) const {
+int SimCalibCameraImu::save_camera_geometries(const fs::path &yaml_path) const {
   const auto fp = fopen(yaml_path.c_str(), "w");
   if (fp == NULL) {
     LOG_ERROR("Failed to open [%s] for saving!", yaml_path.c_str());
@@ -254,7 +245,7 @@ int SimCalibCamera::save_camera_geometries(const fs::path &yaml_path) const {
   return 0;
 }
 
-int SimCalibCamera::save_camera_poses(const fs::path &csv_path) const {
+int SimCalibCameraImu::save_camera_poses(const fs::path &csv_path) const {
   const auto fp = fopen(csv_path.c_str(), "w");
   if (fp == NULL) {
     LOG_ERROR("Failed to open [%s] for saving!", csv_path.c_str());
@@ -274,7 +265,7 @@ int SimCalibCamera::save_camera_poses(const fs::path &csv_path) const {
   return 0;
 }
 
-int SimCalibCamera::save_camera_views(const fs::path &save_dir) const {
+int SimCalibCameraImu::save_camera_views(const fs::path &save_dir) const {
   // Create target directories
   for (const auto &[target_id, _] : target_configs) {
     const fs::path &target_str = "target" + std::to_string(target_id);
@@ -301,7 +292,7 @@ int SimCalibCamera::save_camera_views(const fs::path &save_dir) const {
   return 0;
 }
 
-int SimCalibCamera::save(const fs::path &save_dir) const {
+int SimCalibCameraImu::save(const fs::path &save_dir) const {
   // Check save dir
   if (dir_create(save_dir) != 0) {
     LOG_ERROR("Could not create dir [%s]!", save_dir.c_str());

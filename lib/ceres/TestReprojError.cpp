@@ -2,7 +2,7 @@
 
 #include "camera/BrownConrady4.hpp"
 #include "ceres/ReprojError.hpp"
-#include "Core.hpp"
+#include "core/Core.hpp"
 
 namespace xyz {
 
@@ -56,9 +56,9 @@ TEST(ReprojError, evaluate) {
   auto cam_geom = setup_camera_geometry(0, cam_ext);
 
   // Simulate camera measurement
-  const auto res = cam_geom->getResolution();
-  const auto camera = cam_geom->getCameraModel();
-  const auto params = cam_geom->getIntrinsic();
+  const auto res = cam_geom->resolution;
+  const auto camera = cam_geom->camera_model;
+  const auto params = cam_geom->intrinsic;
   const Mat4 T_WB = tf(pose);
   const Mat4 T_BCi = tf(cam_ext);
   const Mat4 T_CiW = T_BCi.inverse() * T_WB.inverse();

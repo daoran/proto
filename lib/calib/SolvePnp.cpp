@@ -2,8 +2,8 @@
 
 namespace xyz {
 
-SolvePnp::SolvePnp(const std::shared_ptr<CameraGeometry> &camera_geometry)
-    : camera_geometry_{camera_geometry} {}
+SolvePnp::SolvePnp(const std::shared_ptr<CameraGeometry> &camera_geometry_)
+    : camera_geometry{camera_geometry_} {}
 
 int SolvePnp::estimate(const Vec2s &keypoints,
                        const Vec3s &object_points,
@@ -11,9 +11,9 @@ int SolvePnp::estimate(const Vec2s &keypoints,
   assert(keypoints.size() == object_points.size());
 
   // Form object and image points
-  const Vec2i resolution = camera_geometry_->getResolution();
-  const auto camera_model = camera_geometry_->getCameraModel();
-  const VecX &intrinsic = camera_geometry_->getIntrinsic();
+  const Vec2i resolution = camera_geometry->resolution;
+  const auto camera_model = camera_geometry->camera_model;
+  const VecX &intrinsic = camera_geometry->intrinsic;
   const size_t N = keypoints.size();
   std::vector<cv::Point2f> img_pts;
   std::vector<cv::Point3f> obj_pts;

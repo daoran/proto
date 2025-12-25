@@ -1,7 +1,7 @@
 #pragma once
 #include <ceres/ceres.h>
 
-#include "Core.hpp"
+#include "../core/Core.hpp"
 
 namespace xyz {
 

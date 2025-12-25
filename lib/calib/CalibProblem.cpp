@@ -1,16 +1,32 @@
-#include "CalibData.hpp"
+#include "CalibProblem.hpp"
 #include "CameraChain.hpp"
 #include "CalibTargetChain.hpp"
 
 namespace xyz {
 
-CalibData::CalibData(const std::string &config_path)
-    : config_path_{config_path} {
+CalibProblem::CalibProblem() {
+  // Ceres
+  prob_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.enable_fast_removal = true;
+  problem = std::make_shared<ceres::Problem>(prob_options);
+}
+
+CalibProblem::CalibProblem(const std::string &config_path_)
+    : config_path{config_path_} {
+  // Ceres
+  prob_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.enable_fast_removal = true;
+  problem = std::make_shared<ceres::Problem>(prob_options);
+
   // Parse config
-  config_t config{config_path_};
+  config_t config{config_path};
 
   // -- Parse data settings
-  parse(config, "data_path", data_path_);
+  parse(config, "data_path", data_path);
 
   // -- Parse calibration target settings
   for (int target_id = 0; target_id < 100; target_id++) {
@@ -30,7 +46,7 @@ CalibData::CalibData(const std::string &config_path)
     parse(config, prefix + ".tag_spacing", target_config.tag_spacing);
     parse(config, prefix + ".tag_id_offset", target_config.tag_id_offset, true);
     if (target_type != "aprilgrid") {
-      FATAL("CalibData currently only supports target type [aprilgrid]!");
+      FATAL("CalibProblem currently only supports target type [aprilgrid]!");
     }
 
     // Add calibration target
@@ -98,19 +114,19 @@ CalibData::CalibData(const std::string &config_path)
  * Load methods
  ******************************************************************************/
 
-void CalibData::loadCameraData(const int camera_id) {
+void CalibProblem::loadCameraData(const int camera_id) {
   // Setup detector
-  AprilGridDetector detector{target_configs_};
+  AprilGridDetector detector{target_configs};
 
   // Form target dirs
   bool cache_exists = false;
   const std::string camera_string = "cam" + std::to_string(camera_id);
-  const fs::path &camera_dir = data_path_ / camera_string / "data";
+  const fs::path &camera_dir = data_path / camera_string / "data";
 
-  for (size_t target_id = 0; target_id < target_configs_.size(); ++target_id) {
+  for (size_t target_id = 0; target_id < target_configs.size(); ++target_id) {
     // Check if target dir exists
     const std::string target_prefix = "target" + std::to_string(target_id);
-    const fs::path &target_dir = data_path_ / target_prefix / camera_string;
+    const fs::path &target_dir = data_path / target_prefix / camera_string;
     if (fs::exists(target_dir)) {
       cache_exists = true;
       continue;
@@ -130,7 +146,9 @@ void CalibData::loadCameraData(const int camera_id) {
   if (cache_exists == false) {
     const std::string desc = "Processing " + camera_string + " data: ";
     for (size_t k = 0; k < image_paths.size(); k++) {
-      print_progress((double) k / (double) image_paths.size(), desc);
+      if (verbose) {
+        print_progress((double) k / (double) image_paths.size(), desc);
+      }
 
       const std::string image_fname = image_paths[k];
       const fs::path image_path = camera_dir / image_fname;
@@ -144,18 +162,22 @@ void CalibData::loadCameraData(const int camera_id) {
       for (const auto &target : detector.detect(ts, camera_id, image)) {
         const int target_id = target->getTargetId();
         const fs::path target_prefix = "target" + std::to_string(target_id);
-        const fs::path target_dir = data_path_ / target_prefix / camera_string;
+        const fs::path target_dir = data_path / target_prefix / camera_string;
         const fs::path target_csv = target_dir / (ts_str + ".csv");
         target->save(target_csv);
       }
     }
-    print_progress(1.0);
+    if (verbose) {
+      print_progress(1.0);
+    }
   }
 
   // Load aprilgrids
   const std::string desc = "Loading " + camera_string + " data: ";
   for (size_t k = 0; k < image_paths.size(); k++) {
-    print_progress((double) k / (double) image_paths.size(), desc);
+    if (verbose) {
+      print_progress((double) k / (double) image_paths.size(), desc);
+    }
 
     const std::string image_fname = image_paths[k];
     const fs::path image_path = camera_dir / image_fname;
@@ -166,9 +188,9 @@ void CalibData::loadCameraData(const int camera_id) {
       FATAL("Invalid image file: [%s]!", image_path.c_str());
     }
 
-    for (const auto &[target_id, target_config] : target_configs_) {
+    for (const auto &[target_id, target_config] : target_configs) {
       const fs::path target_prefix = "target" + std::to_string(target_id);
-      const fs::path target_dir = data_path_ / target_prefix / camera_string;
+      const fs::path target_dir = data_path / target_prefix / camera_string;
       const fs::path target_csv = target_dir / (ts_str + ".csv");
 
       // Load apriltag
@@ -178,13 +200,15 @@ void CalibData::loadCameraData(const int camera_id) {
       addCameraMeasurement(ts, camera_id, calib_target);
     }
   }
-  print_progress(1.0);
+  if (verbose) {
+    print_progress(1.0);
+  }
 }
 
-void CalibData::loadImuData(const int imu_id) {
+void CalibProblem::loadImuData(const int imu_id) {
   // Setup
   const std::string imu_string = "imu" + std::to_string(imu_id);
-  const fs::path imu_path = data_path_ / imu_string / "data.csv";
+  const fs::path imu_path = data_path / imu_string / "data.csv";
 
   // Open IMU data.csv
   FILE *imu_csv = fopen(imu_path.c_str(), "r");
@@ -224,72 +248,85 @@ void CalibData::loadImuData(const int imu_id) {
   print_progress(1.0);
 
   // Add imu data
-  imu_data_[imu_id] = imu_buffer;
+  imu_data[imu_id] = imu_buffer;
 }
 
 /*******************************************************************************
  * Camera methods
  ******************************************************************************/
 
-void CalibData::addCamera(const int camera_id,
-                          const std::string &camera_model,
-                          const Vec2i &resolution,
-                          const VecX &intrinsic,
-                          const Vec7 &extrinsic) {
-  camera_geometries_[camera_id] = std::make_shared<CameraGeometry>(camera_id,
-                                                                   camera_model,
-                                                                   resolution,
-                                                                   intrinsic,
-                                                                   extrinsic);
+void CalibProblem::addCamera(const int camera_id,
+                             const std::string &camera_model,
+                             const Vec2i &resolution,
+                             const VecX &intrinsic,
+                             const Vec7 &extrinsic) {
+  // Add camera geometry
+  auto camera = std::make_shared<CameraGeometry>(camera_id,
+                                                 camera_model,
+                                                 resolution,
+                                                 intrinsic,
+                                                 extrinsic);
+  camera_geometries[camera_id] = camera;
+
+  // Add camera intrinsic
+  const int intrinsic_size = camera->intrinsic.size();
+  problem->AddParameterBlock(camera->intrinsic.data(), intrinsic_size);
+
+  // Add camera extrinsic
+  problem->AddParameterBlock(camera->extrinsic.data(), 7);
+  problem->SetManifold(camera->extrinsic.data(), &pose_plus);
+  if (camera_id == 0) {
+    problem->SetParameterBlockConstant(camera->extrinsic.data());
+  }
 }
 
-void CalibData::addCameraMeasurement(const timestamp_t ts,
-                                     const int camera_id,
-                                     const CalibTargetPtr &calib_target) {
+void CalibProblem::addCameraMeasurement(const timestamp_t ts,
+                                        const int camera_id,
+                                        const CalibTargetPtr &calib_target) {
   const int target_id = calib_target->getTargetId();
-  camera_data_[camera_id][ts][target_id] = calib_target;
+  camera_data[camera_id][ts][target_id] = calib_target;
 }
 
-bool CalibData::hasCameraMeasurement(const timestamp_t ts,
-                                     const int camera_id,
-                                     const int target_id) const {
-  if (camera_data_.count(camera_id) == 0) {
+bool CalibProblem::hasCameraMeasurement(const timestamp_t ts,
+                                        const int camera_id,
+                                        const int target_id) const {
+  if (camera_data.count(camera_id) == 0) {
     return false;
-  } else if (camera_data_.at(camera_id).count(ts) == 0) {
+  } else if (camera_data.at(camera_id).count(ts) == 0) {
     return false;
-  } else if (camera_data_.at(camera_id).at(ts).count(target_id) == 0) {
+  } else if (camera_data.at(camera_id).at(ts).count(target_id) == 0) {
     return false;
   }
   return true;
 }
 
-int CalibData::getNumCameras() const { return camera_geometries_.size(); }
+int CalibProblem::getNumCameras() const { return camera_geometries.size(); }
 
-std::map<int, CameraData> &CalibData::getAllCameraData() {
-  return camera_data_;
+std::map<int, CameraData> &CalibProblem::getAllCameraData() {
+  return camera_data;
 }
 
-CameraData &CalibData::getCameraData(const int camera_id) {
-  return camera_data_.at(camera_id);
+CameraData &CalibProblem::getCameraData(const int camera_id) {
+  return camera_data.at(camera_id);
 }
 
-std::map<int, CameraGeometryPtr> &CalibData::getAllCameraGeometries() {
-  return camera_geometries_;
+std::map<int, CameraGeometryPtr> &CalibProblem::getAllCameraGeometries() {
+  return camera_geometries;
 }
 
-CameraGeometryPtr &CalibData::getCameraGeometry(const int camera_id) {
-  return camera_geometries_.at(camera_id);
+CameraGeometryPtr &CalibProblem::getCameraGeometry(const int camera_id) {
+  return camera_geometries.at(camera_id);
 }
 
-void CalibData::initializeCameraIntrinsics() {
+void CalibProblem::initializeCameraIntrinsics() {
   // Pre-check
-  if (camera_data_.size() == 0) {
+  if (camera_data.size() == 0) {
     FATAL("No camera data?");
   }
-  if (camera_geometries_.size() == 0) {
+  if (camera_geometries.size() == 0) {
     FATAL("No cameras added?");
   }
-  if (target_configs_.size() == 0 || target_geometries_.size() == 0) {
+  if (target_configs.size() == 0 || target_geometries.size() == 0) {
     FATAL("No targets added?");
   }
 
@@ -298,7 +335,7 @@ void CalibData::initializeCameraIntrinsics() {
     std::map<int, int> target_count; // target_id, count
 
     // Initialize map
-    for (const auto &[target_id, _] : target_configs_) {
+    for (const auto &[target_id, _] : target_configs) {
       target_count[target_id] = 0;
     }
 
@@ -328,33 +365,32 @@ void CalibData::initializeCameraIntrinsics() {
     // Setup Problem
     std::map<timestamp_t, Vec7> relposes;
     std::vector<std::shared_ptr<CalibCameraError>> resblocks;
-    PoseManifold pose_plus;
-    ceres::Problem::Options prob_options;
-    prob_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-    prob_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-    prob_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-    prob_options.enable_fast_removal = true;
-    auto problem = std::make_unique<ceres::Problem>(prob_options);
+    ceres::Problem::Options init_prob_options;
+    init_prob_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+    init_prob_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+    init_prob_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+    init_prob_options.enable_fast_removal = true;
+    auto init_problem = std::make_unique<ceres::Problem>(init_prob_options);
 
     // -- Add camera to problem
     auto camera_geometry = getCameraGeometry(camera_id);
-    const int intrinsic_size = camera_geometry->getIntrinsic().size();
-    double *intrinsic = camera_geometry->getIntrinsicPtr();
-    double *extrinsic = camera_geometry->getExtrinsicPtr();
-    problem->AddParameterBlock(intrinsic, intrinsic_size);
-    problem->AddParameterBlock(extrinsic, 7);
-    problem->SetManifold(extrinsic, &pose_plus);
-    problem->SetParameterBlockConstant(extrinsic);
+    const int intrinsic_size = camera_geometry->intrinsic.size();
+    double *intrinsic = camera_geometry->intrinsic.data();
+    double *extrinsic = camera_geometry->extrinsic.data();
+    init_problem->AddParameterBlock(intrinsic, intrinsic_size);
+    init_problem->AddParameterBlock(extrinsic, 7);
+    init_problem->SetManifold(extrinsic, &pose_plus);
+    init_problem->SetParameterBlockConstant(extrinsic);
 
     // -- Add calibration target to problem
     const auto optimal_target_id = find_optimal_target(camera_data);
-    const auto target_config = target_configs_[optimal_target_id];
+    const auto target_config = target_configs[optimal_target_id];
     const auto points = target_config.getObjectPoints();
     const auto target_ext = tf_vec(I(4));
     auto target0 = std::make_shared<CalibTargetGeometry>(0, target_ext, points);
-    problem->AddParameterBlock(target0->getExtrinsicPtr(), 7);
-    problem->SetManifold(target0->getExtrinsicPtr(), &pose_plus);
-    problem->SetParameterBlockConstant(target0->getExtrinsicPtr());
+    init_problem->AddParameterBlock(target0->extrinsic.data(), 7);
+    init_problem->SetManifold(target0->extrinsic.data(), &pose_plus);
+    init_problem->SetParameterBlockConstant(target0->extrinsic.data());
 
     // -- Build problem
     for (const auto &[ts, targets] : camera_data) {
@@ -384,15 +420,15 @@ void CalibData::initializeCameraIntrinsics() {
       // Add pose
       Mat2 covar = I(2);
       relposes[ts] = tf_vec(T_CT);
-      problem->AddParameterBlock(relposes[ts].data(), 7);
-      problem->SetManifold(relposes[ts].data(), &pose_plus);
+      init_problem->AddParameterBlock(relposes[ts].data(), 7);
+      init_problem->SetManifold(relposes[ts].data(), &pose_plus);
 
       // Add residual blocks
       for (size_t i = 0; i < point_ids.size(); i++) {
         const int point_id = point_ids[i];
-        Vec3 &pt = target0->getPoint(point_id);
-        problem->AddParameterBlock(pt.data(), 3);
-        problem->SetParameterBlockConstant(pt.data());
+        Vec3 &pt = target0->points[point_id];
+        init_problem->AddParameterBlock(pt.data(), 3);
+        init_problem->SetParameterBlockConstant(pt.data());
 
         auto resblock = CalibCameraError::create(camera_geometry,
                                                  target0,
@@ -401,27 +437,29 @@ void CalibData::initializeCameraIntrinsics() {
                                                  keypoints[i],
                                                  covar);
         resblocks.push_back(resblock);
-        problem->AddResidualBlock(resblock.get(),
+        init_problem->AddResidualBlock(resblock.get(),
                                        nullptr,
                                        resblock->getParamPtrs());
       }
     }
 
     // -- Solver options
-    ceres::Solver::Options options;
-    options.minimizer_progress_to_stdout = true;
-    options.max_num_iterations = 30;
-    options.num_threads = 1;
-    options.initial_trust_region_radius = 10; // Default: 1e4
-    options.min_trust_region_radius = 1e-50;  // Default: 1e-32
-    options.function_tolerance = 1e-20;       // Default: 1e-6
-    options.gradient_tolerance = 1e-20;       // Default: 1e-10
-    options.parameter_tolerance = 1e-20;      // Default: 1e-8
+    ceres::Solver::Options init_options;
+    init_options.minimizer_progress_to_stdout = verbose;
+    init_options.max_num_iterations = 30;
+    init_options.num_threads = 1;
+    init_options.initial_trust_region_radius = 10; // Default: 1e4
+    init_options.min_trust_region_radius = 1e-50;  // Default: 1e-32
+    init_options.function_tolerance = 1e-20;       // Default: 1e-6
+    init_options.gradient_tolerance = 1e-20;       // Default: 1e-10
+    init_options.parameter_tolerance = 1e-20;      // Default: 1e-8
 
     // -- Solve
     ceres::Solver::Summary summary;
-    ceres::Solve(options, problem.get(), &summary);
-    std::cout << summary.FullReport() << std::endl << std::endl;
+    ceres::Solve(init_options, init_problem.get(), &summary);
+    if (verbose) {
+      std::cout << summary.FullReport() << std::endl << std::endl;
+    }
 
     std::vector<double> reproj_errors;
     for (const auto &resblock : resblocks) {
@@ -430,30 +468,29 @@ void CalibData::initializeCameraIntrinsics() {
         reproj_errors.push_back(error);
       }
     }
-    printf("mean reproj error: %f\n", mean(reproj_errors));
-    printf("rmse reproj error: %f\n", rmse(reproj_errors));
-    printf("median reproj error: %f\n", median(reproj_errors));
+    // printf("mean reproj error: %f\n", mean(reproj_errors));
+    // printf("rmse reproj error: %f\n", rmse(reproj_errors));
+    // printf("median reproj error: %f\n", median(reproj_errors));
   };
 
   // Solve all camera intrinsics
   for (const auto &[camera_id, camera_data] : getAllCameraData()) {
-    printf("camera_id: %d\n", camera_id);
     solve_intrinsics(camera_id, camera_data);
   }
 }
 
-void CalibData::initializeCameraExtrinsics() {
+void CalibProblem::initializeCameraExtrinsics() {
   // Pre-check
   if (getNumCameras() < 2) {
     return;
   }
-  if (camera_data_.size() == 0) {
+  if (camera_data.size() == 0) {
     FATAL("No camera data?");
   }
-  if (camera_geometries_.size() == 0) {
+  if (camera_geometries.size() == 0) {
     FATAL("No cameras added?");
   }
-  if (target_configs_.size() == 0 || target_geometries_.size() == 0) {
+  if (target_configs.size() == 0 || target_geometries.size() == 0) {
     FATAL("No targets added?");
   }
 
@@ -482,35 +519,34 @@ void CalibData::initializeCameraExtrinsics() {
   std::map<timestamp_t, Vec7> relposes;
   std::map<int, Vec3> target_points;
   std::vector<std::shared_ptr<CalibCameraError>> resblocks;
-  PoseManifold pose_plus;
-  ceres::Problem::Options prob_options;
-  prob_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.enable_fast_removal = true;
-  auto problem = std::make_unique<ceres::Problem>(prob_options);
+  ceres::Problem::Options init_problem_options;
+  init_problem_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  init_problem_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  init_problem_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  init_problem_options.enable_fast_removal = true;
+  auto init_problem = std::make_unique<ceres::Problem>(init_problem_options);
 
   // -- Add calibration target geometries
   for (auto &[target_id, target_geometry] : getAllTargetGeometries()) {
-    double *extrinsic = target_geometry->getExtrinsicPtr();
-    problem->AddParameterBlock(extrinsic, 7);
-    problem->SetManifold(extrinsic, &pose_plus);
+    double *extrinsic = target_geometry->extrinsic.data();
+    init_problem->AddParameterBlock(extrinsic, 7);
+    init_problem->SetManifold(extrinsic, &pose_plus);
     if (target_id == 0) {
-      problem->SetParameterBlockConstant(extrinsic);
+      init_problem->SetParameterBlockConstant(extrinsic);
     }
   }
 
   // -- Add camera geometries
   for (const auto &[camera_id, camera_data] : getAllCameraData()) {
     auto camera_geometry = getCameraGeometry(camera_id);
-    const int intrinsic_size = camera_geometry->getIntrinsic().size();
-    double *intrinsic = camera_geometry->getIntrinsicPtr();
-    double *extrinsic = camera_geometry->getExtrinsicPtr();
-    problem->AddParameterBlock(intrinsic, intrinsic_size);
-    problem->AddParameterBlock(extrinsic, 7);
-    problem->SetManifold(extrinsic, &pose_plus);
+    const int intrinsic_size = camera_geometry->intrinsic.size();
+    double *intrinsic = camera_geometry->intrinsic.data();
+    double *extrinsic = camera_geometry->extrinsic.data();
+    init_problem->AddParameterBlock(intrinsic, intrinsic_size);
+    init_problem->AddParameterBlock(extrinsic, 7);
+    init_problem->SetManifold(extrinsic, &pose_plus);
     if (camera_id == 0) {
-      problem->SetParameterBlockConstant(extrinsic);
+      init_problem->SetParameterBlockConstant(extrinsic);
     }
   }
 
@@ -548,14 +584,14 @@ void CalibData::initializeCameraExtrinsics() {
           }
 
           // Form T_C0T0
-          const Mat4 T_C0Ci = camera_geometry->getTransform();
-          const Mat4 T_TjT0 = target_geometry->getTransform().inverse();
+          const Mat4 T_C0Ci = tf(camera_geometry->extrinsic);
+          const Mat4 T_TjT0 = tf(target_geometry->extrinsic).inverse();
           T_C0T0 = T_C0Ci * T_CiTj * T_TjT0;
 
           // Add pose
           relposes[ts] = tf_vec(T_C0T0);
-          problem->AddParameterBlock(relposes[ts].data(), 7);
-          problem->SetManifold(relposes[ts].data(), &pose_plus);
+          init_problem->AddParameterBlock(relposes[ts].data(), 7);
+          init_problem->SetManifold(relposes[ts].data(), &pose_plus);
         } else {
           T_C0T0 = tf(relposes[ts]);
         }
@@ -563,9 +599,9 @@ void CalibData::initializeCameraExtrinsics() {
         // Add residual blocks
         for (size_t i = 0; i < point_ids.size(); i++) {
           const int point_id = point_ids[i];
-          Vec3 &pt = target_geometry->getPoint(point_id);
-          problem->AddParameterBlock(pt.data(), 3);
-          problem->SetParameterBlockConstant(pt.data());
+          Vec3 &pt = target_geometry->points[point_id];
+          init_problem->AddParameterBlock(pt.data(), 3);
+          init_problem->SetParameterBlockConstant(pt.data());
 
           auto resblock = CalibCameraError::create(camera_geometry,
                                                    target_geometry,
@@ -574,9 +610,9 @@ void CalibData::initializeCameraExtrinsics() {
                                                    keypoints[i],
                                                    covar);
           resblocks.push_back(resblock);
-          problem->AddResidualBlock(resblock.get(),
-                                    nullptr,
-                                    resblock->getParamPtrs());
+          init_problem->AddResidualBlock(resblock.get(),
+                                         nullptr,
+                                         resblock->getParamPtrs());
         }
       }
     }
@@ -584,7 +620,7 @@ void CalibData::initializeCameraExtrinsics() {
 
   // Solver options
   ceres::Solver::Options options;
-  options.minimizer_progress_to_stdout = true;
+  options.minimizer_progress_to_stdout = verbose;
   options.max_num_iterations = 30;
   options.num_threads = 1;
   options.initial_trust_region_radius = 10; // Default: 1e4
@@ -595,8 +631,10 @@ void CalibData::initializeCameraExtrinsics() {
 
   // Solve
   ceres::Solver::Summary summary;
-  ceres::Solve(options, problem.get(), &summary);
-  std::cout << summary.FullReport() << std::endl << std::endl;
+  ceres::Solve(options, init_problem.get(), &summary);
+  if (verbose) {
+    std::cout << summary.FullReport() << std::endl << std::endl;
+  }
 
   std::vector<double> reproj_errors;
   for (const auto &resblock : resblocks) {
@@ -605,124 +643,156 @@ void CalibData::initializeCameraExtrinsics() {
       reproj_errors.push_back(error);
     }
   }
-  printf("mean reproj error: %f\n", mean(reproj_errors));
-  printf("rmse reproj error: %f\n", rmse(reproj_errors));
-  printf("median reproj error: %f\n", median(reproj_errors));
+  // printf("mean reproj error: %f\n", mean(reproj_errors));
+  // printf("rmse reproj error: %f\n", rmse(reproj_errors));
+  // printf("median reproj error: %f\n", median(reproj_errors));
 }
 
 /*******************************************************************************
  * IMU methods
  ******************************************************************************/
 
-void CalibData::addImu(const int imu_id,
-                       const ImuParams &imu_params,
-                       const Vec7 &extrinsic) {
-  imu_geometries_[imu_id] =
-      std::make_shared<ImuGeometry>(imu_id, imu_params, extrinsic);
+void CalibProblem::addImu(const int imu_id,
+                          const ImuParams &imu_params,
+                          const Vec7 &extrinsic) {
+  // Add IMU geometry
+  auto imu = std::make_shared<ImuGeometry>(imu_id, imu_params, extrinsic);
+  imu_geometries[imu_id] = imu;
+
+  // Add IMU extrinsic
+  problem->AddParameterBlock(imu->extrinsic.data(), 7);
+  problem->SetManifold(imu->extrinsic.data(), &pose_plus);
 }
 
-int CalibData::getNumImus() const { return imu_geometries_.size(); }
+int CalibProblem::getNumImus() const { return imu_geometries.size(); }
 
-std::map<int, ImuBuffer> &CalibData::getAllImuData() { return imu_data_; }
+std::map<int, ImuBuffer> &CalibProblem::getAllImuData() { return imu_data; }
 
-ImuBuffer &CalibData::getImuData(const int imu_id) {
-  return imu_data_.at(imu_id);
+ImuBuffer &CalibProblem::getImuData(const int imu_id) {
+  return imu_data.at(imu_id);
 }
 
-std::map<int, ImuGeometryPtr> &CalibData::getAllImuGeometries() {
-  return imu_geometries_;
+std::map<int, ImuGeometryPtr> &CalibProblem::getAllImuGeometries() {
+  return imu_geometries;
 }
 
-ImuGeometryPtr &CalibData::getImuGeometry(const int imu_id) {
-  return imu_geometries_.at(imu_id);
+ImuGeometryPtr &CalibProblem::getImuGeometry(const int imu_id) {
+  return imu_geometries.at(imu_id);
 }
 
 /*******************************************************************************
  * Calibration target methods
  ******************************************************************************/
 
-void CalibData::addTarget(const AprilGridConfig &config,
-                          const Vec7 &extrinsic) {
+void CalibProblem::addTarget(const AprilGridConfig &config,
+                             const Vec7 &extrinsic) {
+  // Add target config and geometry
   const int target_id = config.target_id;
-  const auto points = config.getObjectPoints();
-  target_configs_[target_id] = config;
-  target_geometries_[target_id] =
-      std::make_shared<CalibTargetGeometry>(target_id, extrinsic, points);
+  const auto pts = config.getObjectPoints();
+  auto target =
+      std::make_shared<CalibTargetGeometry>(target_id, extrinsic, pts);
+  target_configs[target_id] = config;
+  target_geometries[target_id] = target;
+
+  // Target extrinsic
+  problem->AddParameterBlock(target->extrinsic.data(), 7);
+  problem->SetManifold(target->extrinsic.data(), &pose_plus);
+  if (target_id == 0) {
+    problem->SetParameterBlockConstant(target->extrinsic.data());
+  }
+
+  // Target points
+  for (auto &[point_id, point] : config.getObjectPoints()) {
+    target->points[point_id] = point;
+    problem->AddParameterBlock(target->points[point_id].data(), 3);
+    problem->SetParameterBlockConstant(target->points[point_id].data());
+  }
 }
 
-void CalibData::addTargetPoint(const int target_id,
-                               const int point_id,
-                               const Vec3 &point) {
-  target_geometries_[target_id]->addPoint(point_id, point);
+void CalibProblem::setTargetPose(const Mat4 &transform) {
+  target_pose = tf_vec(transform);
+  problem->AddParameterBlock(target_pose.data(), 7);
+  problem->SetManifold(target_pose.data(), &pose_plus);
 }
 
-void CalibData::setTargetPose(const Mat4 &target_pose) {
-  target_pose_ = tf_vec(target_pose);
+Vec7 &CalibProblem::getTargetPose() { return target_pose; }
+
+double *CalibProblem::getTargetPosePtr() { return target_pose.data(); }
+
+int CalibProblem::getNumTargets() const { return target_configs.size(); }
+
+std::map<int, CalibTargetGeometryPtr> &CalibProblem::getAllTargetGeometries() {
+  return target_geometries;
 }
 
-Vec7 &CalibData::getTargetPose() { return target_pose_; }
-
-double *CalibData::getTargetPosePtr() { return target_pose_.data(); }
-
-int CalibData::getNumTargets() const { return target_configs_.size(); }
-
-std::map<int, CalibTargetGeometryPtr> &CalibData::getAllTargetGeometries() {
-  return target_geometries_;
+CalibTargetGeometryPtr &CalibProblem::getTargetGeometry(const int target_id) {
+  return target_geometries.at(target_id);
 }
 
-CalibTargetGeometryPtr &CalibData::getTargetGeometry(const int target_id) {
-  return target_geometries_.at(target_id);
-}
-
-Vec3 &CalibData::getTargetPoint(const int target_id, const int point_id) {
-  return target_geometries_.at(target_id)->getPoint(point_id);
+Vec3 &CalibProblem::getTargetPoint(const int target_id, const int point_id) {
+  return target_geometries.at(target_id)->points[point_id];
 }
 
 /*******************************************************************************
  * Pose methods
  ******************************************************************************/
 
-void CalibData::addPose(const timestamp_t ts, const Mat4 &pose) {
-  timestamps_.insert(ts);
-  poses_[ts] = tf_vec(pose);
+void CalibProblem::addPose(const timestamp_t ts, const Mat4 &pose) {
+  timestamps.insert(ts);
+  poses[ts] = tf_vec(pose);
+  problem->AddParameterBlock(poses[ts].data(), 7);
+  problem->SetManifold(poses[ts].data(), &pose_plus);
 }
 
-Vec7 &CalibData::getPose(const timestamp_t ts) { return poses_[ts]; }
+Vec7 &CalibProblem::getPose(const timestamp_t ts) { return poses[ts]; }
 
-double *CalibData::getPosePtr(const timestamp_t ts) {
-  return poses_[ts].data();
+double *CalibProblem::getPosePtr(const timestamp_t ts) {
+  return poses[ts].data();
 }
 
 /*******************************************************************************
  * Speed and biases methods
  ******************************************************************************/
 
-void CalibData::addSpeedAndBiases(const timestamp_t ts,
-                                  const Vec3 &v_WS,
-                                  const Vec3 &bias_acc,
-                                  const Vec3 &bias_gyr) {
+void CalibProblem::addSpeedAndBiases(const timestamp_t ts,
+                                     const Vec3 &v_WS,
+                                     const Vec3 &bias_acc,
+                                     const Vec3 &bias_gyr) {
   Vec9 sb;
   sb << v_WS, bias_acc, bias_gyr;
-  speed_and_biases_[ts] = sb;
+  speed_and_biases[ts] = sb;
+  problem->AddParameterBlock(speed_and_biases[ts].data(), 9);
 }
 
-Vec9 &CalibData::getSpeedAndBiases(const timestamp_t ts) {
-  return speed_and_biases_[ts];
+Vec9 &CalibProblem::getSpeedAndBiases(const timestamp_t ts) {
+  return speed_and_biases[ts];
+}
+
+double *CalibProblem::getSpeedAndBiasesPtr(const timestamp_t ts) {
+  return speed_and_biases[ts].data();
+}
+
+/*******************************************************************************
+ * Ceres
+ ******************************************************************************/
+
+void CalibProblem::addResidualBlock(ResidualBlock *resblock) {
+  problem->AddResidualBlock(resblock, nullptr, resblock->getParamPtrs());
 }
 
 /*******************************************************************************
  * Misc methods
  ******************************************************************************/
 
-void CalibData::printSettings(FILE *fp) const {
+void CalibProblem::printSettings(FILE *fp) const {
   fprintf(fp, "settings:\n");
-  fprintf(fp, "  data_path:   \"%s\"\n", data_path_.c_str());
-  fprintf(fp, "  config_path: \"%s\"\n", config_path_.c_str());
+  fprintf(fp, "  data_path:   \"%s\"\n", data_path.c_str());
+  fprintf(fp, "  config_path: \"%s\"\n", config_path.c_str());
   fprintf(fp, "\n");
 }
 
-void CalibData::printCalibTargetConfigs(FILE *fp) const {
-  for (const auto &[target_id, target_config] : target_configs_) {
+void CalibProblem::printCalibTargetConfigs(FILE *fp) const {
+  for (const auto &[target_id, target_config] : target_configs) {
     const std::string target_prefix = "target" + std::to_string(target_id);
     fprintf(fp, "%s:\n", target_prefix.c_str());
     fprintf(fp, "  target_type:  \"%s\"\n", "aprilgrid");
@@ -735,21 +805,23 @@ void CalibData::printCalibTargetConfigs(FILE *fp) const {
   }
 }
 
-void CalibData::printTargetGeometries(FILE *fp, const bool max_digits) const {
-  for (const auto &[target_id, target] : target_geometries_) {
-    const auto extrinsic = vec2str(target->getExtrinsic(), false, max_digits);
+void CalibProblem::printTargetGeometries(FILE *fp,
+                                         const bool max_digits) const {
+  for (const auto &[target_id, target] : target_geometries) {
+    const auto extrinsic = vec2str(target->extrinsic, false, max_digits);
     fprintf(fp, "target%d:\n", target_id);
     fprintf(fp, "  extrinsic:  [%s]\n", extrinsic.c_str());
     fprintf(fp, "\n");
   }
 }
 
-void CalibData::printCameraGeometries(FILE *fp, const bool max_digits) const {
-  for (const auto &[camera_id, camera] : camera_geometries_) {
-    const auto model = camera->getCameraModelString();
-    const auto resolution = camera->getResolution();
-    const auto intrinsic = vec2str(camera->getIntrinsic(), false, max_digits);
-    const auto extrinsic = vec2str(camera->getExtrinsic(), false, max_digits);
+void CalibProblem::printCameraGeometries(FILE *fp,
+                                         const bool max_digits) const {
+  for (const auto &[camera_id, camera] : camera_geometries) {
+    const auto model = camera->camera_model->type();
+    const auto resolution = camera->resolution;
+    const auto intrinsic = vec2str(camera->intrinsic, false, max_digits);
+    const auto extrinsic = vec2str(camera->extrinsic, false, max_digits);
 
     fprintf(fp, "camera%d:\n", camera_id);
     fprintf(fp, "  model:     \"%s\"\n", model.c_str());
@@ -760,26 +832,26 @@ void CalibData::printCameraGeometries(FILE *fp, const bool max_digits) const {
   }
 }
 
-void CalibData::printImuGeometries(FILE *fp, const bool max_digits) const {
-  for (const auto &[imu_id, imu] : imu_geometries_) {
-    const auto extrinsic = vec2str(imu->getExtrinsic(), false, max_digits);
-    const auto imu_params = imu->getImuParams();
+void CalibProblem::printImuGeometries(FILE *fp, const bool max_digits) const {
+  for (const auto &[imu_id, imu] : imu_geometries) {
+    const auto extrinsic = vec2str(imu->extrinsic, false, max_digits);
+    const auto imu_params = imu->imu_params;
 
     fprintf(fp, "imu%d:\n", imu_id);
-    fprintf(fp, "  noise_acc:   %f\n", imu_params.noise_acc);
-    fprintf(fp, "  noise_gyr:   %f\n", imu_params.noise_gyr);
-    fprintf(fp, "  random_walk_acc:   %f\n", imu_params.noise_ba);
-    fprintf(fp, "  random_walk_gyr:   %f\n", imu_params.noise_bg);
+    fprintf(fp, "  noise_acc:         %.4e\n", imu_params.noise_acc);
+    fprintf(fp, "  noise_gyr:         %.4e\n", imu_params.noise_gyr);
+    fprintf(fp, "  random_walk_acc:   %.4e\n", imu_params.noise_ba);
+    fprintf(fp, "  random_walk_gyr:   %.4e\n", imu_params.noise_bg);
     fprintf(fp, "  extrinsic:  [%s]\n", extrinsic.c_str());
     fprintf(fp, "\n");
   }
 }
 
-void CalibData::printTargetPoints(FILE *fp) const {
-  for (const auto &[target_id, target_geometry] : target_geometries_) {
+void CalibProblem::printTargetPoints(FILE *fp) const {
+  for (const auto &[target_id, target_geometry] : target_geometries) {
     fprintf(fp, "# point_id, x, y, z\n");
     fprintf(fp, "target%d_points: [\n", target_id);
-    for (const auto &[point_id, point] : target_geometry->getPoints()) {
+    for (const auto &[point_id, point] : target_geometry->points) {
       fprintf(fp,
               "  %d, %f, %f, %f\n",
               point_id,
@@ -792,13 +864,15 @@ void CalibData::printTargetPoints(FILE *fp) const {
   }
 }
 
-void CalibData::printSummary(FILE *fp, const bool max_digits) const {
+void CalibProblem::printSummary(FILE *fp, const bool max_digits) const {
   printSettings(fp);
   printCalibTargetConfigs(fp);
   printCameraGeometries(fp, max_digits);
+  printImuGeometries(fp, max_digits);
+  printTargetGeometries(fp, max_digits);
 }
 
-void CalibData::saveResults(const std::string &save_path) const {
+void CalibProblem::saveResults(const std::string &save_path) const {
   FILE *fp = fopen(save_path.c_str(), "w");
   if (fp == NULL) {
     FATAL("Failed to open file [%s]", save_path.c_str());

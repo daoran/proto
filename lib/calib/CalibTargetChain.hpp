@@ -3,17 +3,15 @@
 #include <vector>
 #include <unordered_map>
 
-#include "CalibData.hpp"
-#include "../Core.hpp"
+#include "CalibProblem.hpp"
+#include "../core/Core.hpp"
 
 namespace xyz {
 
 /** Calibration Target Query Tool */
-class CalibTargetChain {
-private:
-  std::map<int, std::map<int, std::vector<Mat4>>> adjlist_;
+struct CalibTargetChain {
+  std::map<int, std::map<int, std::vector<Mat4>>> adjlist;
 
-public:
   CalibTargetChain() = default;
   CalibTargetChain(const std::map<int, CameraGeometryPtr> &camera_geometries,
                    const std::map<int, CameraData> &camera_measurements);

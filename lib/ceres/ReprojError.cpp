@@ -20,8 +20,8 @@ ReprojError::create(const std::shared_ptr<CameraGeometry> &camera,
   std::vector<double *> param_ptrs;
   param_ptrs.push_back(T_WB);
   param_ptrs.push_back(p_W);
-  param_ptrs.push_back(camera->getExtrinsicPtr());
-  param_ptrs.push_back(camera->getIntrinsicPtr());
+  param_ptrs.push_back(camera->extrinsic.data());
+  param_ptrs.push_back(camera->intrinsic.data());
 
   std::vector<ParamBlock::Type> param_types;
   param_types.push_back(ParamBlock::POSE);
@@ -62,8 +62,8 @@ bool ReprojError::eval(double const *const *params,
   const Mat4 T_CiW = T_BCi.inverse() * T_WB.inverse();
   const Vec3 p_Ci = tf_point(T_CiW, p_W);
   // -- Project point from camera frame to image plane
-  const auto camera_model = camera_geometry_->getCameraModel();
-  const Vec2i resolution = camera_geometry_->getResolution();
+  const auto camera_model = camera_geometry_->camera_model;
+  const Vec2i resolution = camera_geometry_->resolution;
   Vec2 z_hat;
   if (camera_model->project(resolution, intrinsic, p_Ci, z_hat) != 0) {
     valid_ = false;

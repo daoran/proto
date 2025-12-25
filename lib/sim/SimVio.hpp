@@ -1,5 +1,5 @@
 #pragma once
-#include "../Core.hpp"
+#include "../core/Core.hpp"
 #include "../timeline/timeline.hpp"
 
 namespace xyz {
