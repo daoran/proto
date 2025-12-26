@@ -6,6 +6,23 @@
 
 namespace xyz {
 
+static Mat3 Exp(const Vec3 &phi) {
+  const double norm = phi.norm();
+
+  // Small angle approx
+  if (norm < 1e-3) {
+    return Mat3{I(3) + skew(phi)};
+  }
+
+  // Exponential map from so(3) to SO(3)
+  const Mat3 phi_skew = skew(phi);
+  Mat3 C = I(3);
+  C += (sin(norm) / norm) * phi_skew;
+  C += ((1 - cos(norm)) / (norm * norm)) * (phi_skew * phi_skew);
+
+  return C;
+}
+
 static AprilGridConfig setup_target_config() {
   const int target_id = 0;
   const int tag_rows = 8;
@@ -69,7 +86,8 @@ TEST(LissajousTrajectory, construct) {
   log.init_series_line("angvel/z", Vec3{0.0, 0.0, 255.0}, 1.0f);
 
   double time = 0;
-  const double dt = 0.01;
+  const double imu_hz = 1000.0;
+  const double dt = 1.0 / imu_hz;
   std::map<timestamp_t, Mat4> poses;
 
   while (time <= T) {
@@ -92,6 +110,58 @@ TEST(LissajousTrajectory, construct) {
     log.log_scalar("angvel/z", ts, w_WS.z());
 
     time += dt;
+  }
+
+  {
+    // Initialize position, velocity and attidue
+    const Mat4 T_WS_init = traj.get_pose(0);
+    Vec3 r_WS = tf_trans(T_WS_init);
+    Mat3 C_WS = tf_rot(T_WS_init);
+    Vec3 v_WS = traj.get_velocity(0);
+
+    timestamp_t ts_k = 0;
+    timestamp_t ts_end = sec2ts(T);
+    double path_length = 0.0;
+
+    while (ts_k <= ts_end) {
+      // Get sensor acceleration and angular velocity in world frame
+      const auto a_WS_W = traj.get_acceleration(ts_k);
+      const auto w_WS_W = traj.get_angular_velocity(ts_k);
+
+      // Transform acceleration and angular velocity to body frame
+      const Vec3 g{0.0, 0.0, 9.81};
+      const Vec3 a_WS_S = C_WS.transpose() * (a_WS_W + g);
+      const Vec3 w_WS_S = C_WS.transpose() * w_WS_W;
+
+      // Propagate simulated ideal IMU measurements
+      const double dt_sq = dt * dt;
+      // -- Position at time k
+      const Vec3 r_WS_km1 = r_WS;
+      r_WS += v_WS * dt;
+      r_WS += 0.5 * -g * dt_sq;
+      r_WS += 0.5 * C_WS * a_WS_S * dt_sq;
+      path_length += (r_WS - r_WS_km1).norm();
+      // -- velocity at time k
+      v_WS += C_WS * a_WS_S * dt - g * dt;
+      // -- Attitude at time k
+      C_WS = C_WS * Exp(w_WS_S * dt);
+
+      // Update
+      ts_k += sec2ts(dt);
+    }
+
+    // Assert
+    const Mat4 T_WS_est = tf(C_WS, r_WS);
+    const Vec3 r_est = tf_trans(T_WS_est);
+    const Vec3 r_gnd = tf_trans(traj.get_pose(ts_end));
+    const Vec3 rpy_est = quat2euler(tf_quat(T_WS_est));
+    const Vec3 rpy_gnd = quat2euler(tf_quat(traj.get_pose(ts_end)));
+    // printf("trans diff: %f\t", (r_est - r_gnd).norm());
+    // printf("rot   diff: %f\t", (rpy_est - rpy_gnd).norm());
+    // printf("path_length: %f\n", path_length);
+    ASSERT_TRUE((r_est - r_gnd).norm() < 1e-2);
+    ASSERT_TRUE((rpy_est - rpy_gnd).norm() < 1e-2);
+    ASSERT_TRUE(path_length > 1.0);
   }
 
   // Log poses, trajectory and target
