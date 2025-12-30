@@ -17,7 +17,7 @@ private:
   const ImuBuffer imu_buffer_;
 
   // Pre-integrate relative position, velocity, rotation and biases
-  mutable Quat dq_{1.0, 0.0, 0.0, 0.0}; // Relative rotation
+  mutable Vec4 dq_{1.0, 0.0, 0.0, 0.0}; // Relative rotation
   mutable Vec3 dr_{0.0, 0.0, 0.0};      // Relative position
   mutable Vec3 dv_{0.0, 0.0, 0.0};      // Relative velocity
   Vec3 ba_{0.0, 0.0, 0.0};              // Accel biase at i
@@ -33,16 +33,16 @@ private:
 
   /** Form transiton matrix F */
   MatX formF(const int k,
-             const Quat &dq_i,
-             const Quat &dq_j,
+             const Vec4 &dq_i,
+             const Vec4 &dq_j,
              const Vec3 &ba_i,
              const Vec3 &bg_i,
              const double dt);
 
   /** Form matrix G */
   MatX formG(const int k,
-             const Quat &dq_i,
-             const Quat &dq_j,
+             const Vec4 &dq_i,
+             const Vec4 &dq_j,
              const Vec3 &ba_i,
              const double dt);
 
@@ -56,6 +56,9 @@ public:
            const ImuParams &imu_params,
            const ImuBuffer &imu_buffer);
 
+  /** Set square root information matrix manually */
+  void setSqrtInfo(const MatX &sqrt_info);
+
   /** Return state transition matrix F */
   MatX getMatrixF() const;
 
@@ -63,7 +66,7 @@ public:
   MatX getMatrixP() const;
 
   /** Return relative rotation dq */
-  Quat getRelativeRotation() const;
+  Vec4 getRelativeRotation() const;
 
   /** Return relative position dr */
   Vec3 getRelativePosition() const;
