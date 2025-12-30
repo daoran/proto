@@ -1502,7 +1502,7 @@ void print_vector(const std::string &name, const VecX &v) {
   printf("%s: ", name.c_str());
   for (long i = 0; i < v.size(); i++) {
     // printf("%f", v(i));
-    printf("%e", v(i));
+    printf("%.8e", v(i));
     if ((i + 1) != v.size()) {
       printf(", ");
     }
@@ -1527,7 +1527,8 @@ void print_matrix(const std::string &name,
   for (long i = 0; i < m.rows(); i++) {
     printf("%s", indent.c_str());
     for (long j = 0; j < m.cols(); j++) {
-      printf("%f", m(i, j));
+      // printf("%f", m(i, j));
+      printf("% 10.8f", m(i, j));
       if ((j + 1) != m.cols()) {
         printf(", ");
       }
@@ -1539,7 +1540,8 @@ void print_matrix(const std::string &name,
 
 void print_quaternion(const std::string &name, const Quat &q) {
   printf("%s: ", name.c_str());
-  printf("w:%f, x:%f, y:%f, z:%f\n", q.w(), q.x(), q.y(), q.z());
+  // printf("w:%f, x:%f, y:%f, z:%f\n", q.w(), q.x(), q.y(), q.z());
+  printf("w:%.8e, x:%.8e, y:%.8e, z:%.8e\n", q.w(), q.x(), q.y(), q.z());
 }
 
 std::string array2str(const double *array, const size_t size) {
@@ -2476,6 +2478,11 @@ VecX tf_vec(const Mat4 &T) {
 Mat3 tf_rot(const Mat4 &tf) { return tf.block<3, 3>(0, 0); }
 
 Quat tf_quat(const Mat4 &tf) { return Quat{tf.block<3, 3>(0, 0)}; }
+
+Vec4 tf_quat_vec(const Mat4 &tf) {
+  const Quat q = tf_quat(tf);
+  return Vec4{q.w(), q.x(), q.y(), q.z()};
+}
 
 Vec3 tf_trans(const Mat4 &tf) { return tf.block<3, 1>(0, 3); }
 

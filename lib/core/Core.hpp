@@ -1845,6 +1845,11 @@ Mat3 tf_rot(const Mat4 &tf);
 Quat tf_quat(const Mat4 &tf);
 
 /**
+ * Extract rotation and convert to quaternion from transform
+ */
+Vec4 tf_quat_vec(const Mat4 &tf);
+
+/**
  * Extract translation from transform
  */
 Vec3 tf_trans(const Mat4 &tf);

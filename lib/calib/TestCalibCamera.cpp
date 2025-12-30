@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "calib/CalibCamera.hpp"
-#include "sim/SimCalibCamera.hpp"
+#include "sim/SimCalib.hpp"
 
 namespace xyz {
 
@@ -49,14 +49,14 @@ TEST(CalibCamera, solve_sim) {
   const int sample_num_x = 2;
   const int sample_num_y = 2;
   const int sample_num_z = 1;
-  SimCalibCamera sim{camera_rate,
-                     sample_x,
-                     sample_y,
-                     sample_z,
-                     sample_z_offset,
-                     sample_num_x,
-                     sample_num_y,
-                     sample_num_z};
+  SimCalib sim{camera_rate,
+               sample_x,
+               sample_y,
+               sample_z,
+               sample_z_offset,
+               sample_num_x,
+               sample_num_y,
+               sample_num_z};
 
   // Setup calibration problem
   CalibCamera calib;

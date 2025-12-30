@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "core/Logger.hpp"
-#include "sim/SimCalibCamera.hpp"
+#include "sim/SimCalib.hpp"
 
 namespace xyz {
 
-TEST(SimCalibCamera, construct) {
+TEST(SimCalib, construct) {
   const double camera_rate = 10.0;
   const double sample_x = 1.0;
   const double sample_y = 1.0;
@@ -14,14 +14,14 @@ TEST(SimCalibCamera, construct) {
   const int sample_num_x = 2;
   const int sample_num_y = 2;
   const int sample_num_z = 1;
-  SimCalibCamera sim{camera_rate,
-                     sample_x,
-                     sample_y,
-                     sample_z,
-                     sample_z_offset,
-                     sample_num_x,
-                     sample_num_y,
-                     sample_num_z};
+  SimCalib sim{camera_rate,
+               sample_x,
+               sample_y,
+               sample_z,
+               sample_z_offset,
+               sample_num_x,
+               sample_num_y,
+               sample_num_z};
 
   std::vector<Vec3> pose_points;
   std::vector<Vec3> pose_colors;

@@ -63,8 +63,7 @@ add_library(
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
   lib/imu/ImuState.cpp
-  lib/sim/SimCalibCamera.cpp
-  lib/sim/SimCalibCameraImu.cpp
+  lib/sim/SimCalib.cpp
   lib/sim/SimImu.cpp
   # lib/sim/SimVio.cpp
   lib/timeline/CalibTargetEvent.cpp
@@ -102,11 +101,10 @@ add_executable(unittests
   lib/imu/TestImuBuffer.cpp
   lib/ceres/TestCalibCameraError.cpp
   lib/ceres/TestCalibCameraImuError.cpp
-  # lib/ceres/TestImuError.cpp
+  lib/ceres/TestImuError.cpp
   lib/ceres/TestReprojError.cpp
   lib/core/TestLogger.cpp
-  lib/sim/TestSimCalibCamera.cpp
-  lib/sim/TestSimCalibCameraImu.cpp
+  lib/sim/TestSimCalib.cpp
   lib/sim/TestSimImu.cpp
   lib/sim/TestSimVio.cpp
   lib/timeline/TestTimeline.cpp

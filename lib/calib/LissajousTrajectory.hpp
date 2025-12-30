@@ -9,13 +9,14 @@ namespace xyz {
  */
 struct LissajousTrajectory {
   const std::string traj_type = "figure8";
-  const timestamp_t ts_start; // Start timestamp
-  const Mat4 T_WT;            // Target pose
-  const Mat4 T_TO;            // Calibration origin
-  const double calib_width;   // Calibration width
-  const double calib_height;  // Calibration height
-  const double R;             // Distance in-front of calibration target
-  const double T;             // Period - Time it takes to complete [secs]
+  const timestamp_t ts_start;   // Start timestamp
+  const Mat4 T_WT;              // Target pose
+  const Mat4 T_TO;              // Calibration origin
+  const double calib_width;     // Calibration width
+  const double calib_height;    // Calibration height
+  const double R;               // Distance in-front of calibration target
+  const double T;               // Period - Time it takes to complete [secs]
+  const Vec3 g{0.0, 0.0, 9.81}; // Gravity vector
 
   double A;     // Amplitude in x-axis
   double B;     // Amplitude in y-axis

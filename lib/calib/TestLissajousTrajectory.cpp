@@ -112,6 +112,7 @@ TEST(LissajousTrajectory, construct) {
     time += dt;
   }
 
+  // Test propagate body acceleration and angular velocity
   {
     // Initialize position, velocity and attidue
     const Mat4 T_WS_init = traj.get_pose(0);
@@ -156,9 +157,7 @@ TEST(LissajousTrajectory, construct) {
     const Vec3 r_gnd = tf_trans(traj.get_pose(ts_end));
     const Vec3 rpy_est = quat2euler(tf_quat(T_WS_est));
     const Vec3 rpy_gnd = quat2euler(tf_quat(traj.get_pose(ts_end)));
-    // printf("trans diff: %f\t", (r_est - r_gnd).norm());
-    // printf("rot   diff: %f\t", (rpy_est - rpy_gnd).norm());
-    // printf("path_length: %f\n", path_length);
+
     ASSERT_TRUE((r_est - r_gnd).norm() < 1e-2);
     ASSERT_TRUE((rpy_est - rpy_gnd).norm() < 1e-2);
     ASSERT_TRUE(path_length > 1.0);

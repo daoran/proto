@@ -1,8 +1,9 @@
 #pragma once
-#include "CeresSolver.hpp"
+#include "CalibCameraError.hpp"
+#include "CalibCameraImuError.hpp"
 #include "ImuError.hpp"
 #include "MarginalError.hpp"
 #include "ParamBlock.hpp"
 #include "PoseManifold.hpp"
-#include "CalibCameraError.hpp"
+#include "ReprojError.hpp"
 #include "ResidualBlock.hpp"
