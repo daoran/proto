@@ -51,6 +51,5 @@ tmux send-keys -t $TARGET -R C-l C-m
 tmux send-keys -t $TARGET -R "\
 cd $HOME/code/xyz \
   && time make release -j \
-  && python3 lib/xyz.py TestIMUFactor.test_imu_factor2 \
   && ${CMD}
 " C-m C-m

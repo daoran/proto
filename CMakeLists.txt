@@ -91,7 +91,7 @@ add_executable(unittests
   lib/calib/TestAprilGrid.cpp
   lib/calib/TestAprilGridDetector.cpp
   lib/calib/TestCalibCamera.cpp
-  # lib/calib/TestCalibCameraImu.cpp
+  lib/calib/TestCalibCameraImu.cpp
   lib/calib/TestCalibProblem.cpp
   lib/calib/TestCameraChain.cpp
   lib/calib/TestLissajousTrajectory.cpp

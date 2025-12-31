@@ -91,48 +91,48 @@ TEST(ImuError, evaluate) {
   ASSERT_TRUE(residual_block->checkJacobian(1, "J_sb_j", h, tol, verbose));
 }
 
-// TEST(ImuError, propagation) {
-//   // Setup sim
-//   SimImu sim;
-//
-//   // Setup imu parameters
-//   ImuParams imu_params;
-//   imu_params.noise_acc = 0.08;
-//   imu_params.noise_gyr = 0.004;
-//   imu_params.noise_ba = 0.00004;
-//   imu_params.noise_bg = 2.0e-6;
-//
-//   // Form IMU buffer
-//   const int start_index = 0;
-//   const int end_index = 20;
-//   const ImuBuffer imu_buffer = sim.form_imu_buffer(start_index, end_index);
-//
-//   // State at timestamp i
-//   const timestamp_t ts_i = sim.timestamps[start_index];
-//   const VecX pose_i_gnd = tf_vec(sim.poses[ts_i]);
-//   const Vec3 vel_i_gnd = sim.vel[ts_i];
-//   auto state_i = ImuState::create(ts_i, pose_i_gnd, vel_i_gnd);
-//
-//   // State at timestamp j
-//   const timestamp_t ts_j = sim.timestamps[end_index - 1];
-//   const VecX pose_j_gnd = tf_vec(sim.poses[ts_j]);
-//   const Vec3 vel_j_gnd = sim.vel[ts_j];
-//   auto state_j = ImuState::create(ts_j, pose_j_gnd, vel_j_gnd);
-//
-//   // Form residual block
-//   double *pose_i = state_i->getPosePtr();
-//   double *sb_i = state_i->getSpeedBiasesPtr();
-//   double *pose_j = state_j->getPosePtr();
-//   double *sb_j = state_j->getSpeedBiasesPtr();
-//   auto resblock =
-//       ImuError::create(imu_params, imu_buffer, pose_i, sb_i, pose_j, sb_j);
-//
-//   // Evaluate residual block
-//   auto param_ptrs = resblock->getParamPtrs();
-//   VecX r = zeros(15, 1);
-//   resblock->Evaluate(param_ptrs.data(), r.data());
-//   ASSERT_TRUE(r.norm() < 1.0);
-// }
+TEST(ImuError, propagation) {
+  // Setup sim
+  SimImu sim;
+
+  // Setup imu parameters
+  ImuParams imu_params;
+  imu_params.noise_acc = 0.08;
+  imu_params.noise_gyr = 0.004;
+  imu_params.noise_ba = 0.00004;
+  imu_params.noise_bg = 2.0e-6;
+
+  // Form IMU buffer
+  const int start_index = 0;
+  const int end_index = 20;
+  const ImuBuffer imu_buffer = sim.form_imu_buffer(start_index, end_index);
+
+  // State at timestamp i
+  const timestamp_t ts_i = sim.timestamps[start_index];
+  const VecX pose_i_gnd = tf_vec(sim.poses[ts_i]);
+  const Vec3 vel_i_gnd = sim.vel[ts_i];
+  auto state_i = ImuState::create(ts_i, pose_i_gnd, vel_i_gnd);
+
+  // State at timestamp j
+  const timestamp_t ts_j = sim.timestamps[end_index - 1];
+  const VecX pose_j_gnd = tf_vec(sim.poses[ts_j]);
+  const Vec3 vel_j_gnd = sim.vel[ts_j];
+  auto state_j = ImuState::create(ts_j, pose_j_gnd, vel_j_gnd);
+
+  // Form residual block
+  double *pose_i = state_i->getPosePtr();
+  double *sb_i = state_i->getSpeedBiasesPtr();
+  double *pose_j = state_j->getPosePtr();
+  double *sb_j = state_j->getSpeedBiasesPtr();
+  auto resblock =
+      ImuError::create(imu_params, imu_buffer, pose_i, sb_i, pose_j, sb_j);
+
+  // Evaluate residual block
+  auto param_ptrs = resblock->getParamPtrs();
+  VecX r = zeros(15, 1);
+  resblock->Evaluate(param_ptrs.data(), r.data());
+  ASSERT_TRUE(r.norm() < 1.0);
+}
 
 TEST(ImuError, solve) {
   // Setup imu simulation  data
@@ -221,7 +221,7 @@ TEST(ImuError, solve) {
   }
 
   // Solver options
-  bool verbose = true;
+  bool verbose = false;
   ceres::Solver::Options options;
   options.minimizer_progress_to_stdout = verbose;
 
