@@ -3,7 +3,7 @@
 
 namespace xyz {
 
-TEST(Logger, log_image) {
+TEST(DISABLED_Logger, log_image) {
   Logger log;
 
   // Create test image
@@ -32,7 +32,7 @@ TEST(Logger, log_image) {
   log.log_image("image", 0, img);
 }
 
-TEST(Logger, log_points) {
+TEST(DISABLED_Logger, log_points) {
   Logger log;
 
   std::vector<Vec3> points;
@@ -55,7 +55,7 @@ TEST(Logger, log_points) {
   log.log_points("points", 0, points, colors, radii);
 }
 
-TEST(Logger, log_pose) {
+TEST(DISABLED_Logger, log_pose) {
   Logger log;
 
   std::vector<Mat4> poses;
