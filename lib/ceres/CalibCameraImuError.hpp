@@ -34,8 +34,8 @@ public:
   create(const std::shared_ptr<CameraGeometry> &camera,
          const std::shared_ptr<ImuGeometry> &imu,
          const std::shared_ptr<CalibTargetGeometry> &target,
-         double *T_WS,
-         double *T_WT0,
+         double *sensor_pose,
+         double *target_pose,
          const int point_id,
          const Vec2 &z,
          const Mat2 &covar = I(2));

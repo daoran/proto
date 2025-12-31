@@ -26,9 +26,9 @@ static Vec7 setup_target_pose() {
   // Target pose: T_WT0
   // clang-format off
   Mat4 T_WT0;
-  T_WT0 <<  0.0,  0.0, -1.0, 0.5,
-          -1.0,  0.0,  0.0, 0.001,
-           0.0,  1.0,  0.0, 0.001,
+  T_WT0 << 0.0,  0.0, -1.0, 0.5,
+          -1.0,  0.0,  0.0, 0.01,
+           0.0,  1.0,  0.0, 0.01,
            0.0,  0.0,  0.0, 1.0;
   T_WT0 = tf_perturb_rot(T_WT0, 0.01, 2);
   auto target_pose = tf_vec(T_WT0);
@@ -41,9 +41,9 @@ static Vec7 setup_target_extrinsic() {
   // Target extrinsics: T_T0Tj
   // clang-format off
   Mat4 T_T0Tj;
-  T_T0Tj << 1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
+  T_T0Tj << 1.0, 0.0, 0.0, 0.01,
+            0.0, 1.0, 0.0, 0.02,
+            0.0, 0.0, 1.0, 0.03,
             0.0, 0.0, 0.0, 1.0;
   T_T0Tj = tf_perturb_rot(T_T0Tj, 0.01, 2);
   auto extrinsic = tf_vec(T_T0Tj);
@@ -246,13 +246,13 @@ TEST(CalibCameraImuError, evaluate) {
   const double h = 1e-8;
   const double tol = 1e-4;
   const bool verbose = false;
-  ASSERT_TRUE(res->checkJacobian(0, "J_sensor_pose", h, tol, verbose));
-  ASSERT_TRUE(res->checkJacobian(1, "J_target_pose", h, tol, verbose));
-  ASSERT_TRUE(res->checkJacobian(2, "J_target_point", h, tol, verbose));
-  ASSERT_TRUE(res->checkJacobian(3, "J_target_extrinsic", h, tol, verbose));
-  ASSERT_TRUE(res->checkJacobian(4, "J_imu_extrinsic", h, tol, verbose));
-  ASSERT_TRUE(res->checkJacobian(5, "J_camera_extrinsic", h, tol, verbose));
-  ASSERT_TRUE(res->checkJacobian(6, "J_camera", h, tol, verbose));
+  EXPECT_TRUE(res->checkJacobian(0, "J_sensor_pose", h, tol, verbose));
+  EXPECT_TRUE(res->checkJacobian(1, "J_target_pose", h, tol, verbose));
+  EXPECT_TRUE(res->checkJacobian(2, "J_target_point", h, tol, verbose));
+  EXPECT_TRUE(res->checkJacobian(3, "J_target_extrinsic", h, tol, verbose));
+  EXPECT_TRUE(res->checkJacobian(4, "J_imu_extrinsic", h, tol, verbose));
+  EXPECT_TRUE(res->checkJacobian(5, "J_camera_extrinsic", h, tol, verbose));
+  EXPECT_TRUE(res->checkJacobian(6, "J_camera", h, tol, verbose));
 }
 
 } // namespace cartesian

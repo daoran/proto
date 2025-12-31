@@ -16,14 +16,14 @@ std::shared_ptr<CalibCameraImuError>
 CalibCameraImuError::create(const std::shared_ptr<CameraGeometry> &camera,
                             const std::shared_ptr<ImuGeometry> &imu,
                             const std::shared_ptr<CalibTargetGeometry> &target,
-                            double *T_WS,
-                            double *T_WT0,
+                            double *sensor_pose,
+                            double *target_pose,
                             const int point_id,
                             const Vec2 &z,
                             const Mat2 &covar) {
   std::vector<double *> param_ptrs;
-  param_ptrs.push_back(T_WS);                            // Sensor pose T_WS
-  param_ptrs.push_back(T_WT0);                           // Target pose T_WT0
+  param_ptrs.push_back(sensor_pose);                     // Sensor pose T_WS
+  param_ptrs.push_back(target_pose);                     // Target pose T_WT0
   param_ptrs.push_back(target->points[point_id].data()); // Target point p_Tj
   param_ptrs.push_back(target->extrinsic.data()); // Target extrinsic T_T0Tj
   param_ptrs.push_back(imu->extrinsic.data());    // Imu extrinsic T_C0S
@@ -103,8 +103,9 @@ bool CalibCameraImuError::eval(double const *const *params,
     const Vec3 r_WS = tf_trans(T_WS);
     const Mat3 C_WS = tf_rot(T_WS);
     const Mat4 T_CiS = T_CiC0 * T_C0S;
-    const Mat3 C_CiW = tf_rot(T_CiS * T_SW);
-    const Vec3 p_W = tf_point(T_WT0, p_Tj);
+    const Mat4 T_CiW = T_CiS * T_SW;
+    const Mat3 C_CiW = tf_rot(T_CiW);
+    const Vec3 p_W = tf_point(T_WT0 * T_T0Tj, p_Tj);
 
     Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[0]);
     J.setZero();
@@ -156,7 +157,7 @@ bool CalibCameraImuError::eval(double const *const *params,
 
   // -- Jacobians w.r.t imu extrinsic T_C0S
   if (jacs[4]) {
-    const Vec3 p_S = tf_point(T_WS.inverse() * T_WT0, p_Tj);
+    const Vec3 p_S = tf_point(T_WS.inverse() * T_WT0 * T_T0Tj, p_Tj);
     const Mat3 C_C0S = tf_rot(T_C0S);
     const Mat3 C_CiC0 = tf_rot(T_CiC0);
 
@@ -170,7 +171,7 @@ bool CalibCameraImuError::eval(double const *const *params,
 
   // -- Jacobians w.r.t camera extrinsic T_C0Ci
   if (jacs[5]) {
-    const Vec3 p_C0 = tf_point(T_C0S * T_WS.inverse() * T_WT0, p_Tj);
+    const Vec3 p_C0 = tf_point(T_C0S * T_WS.inverse() * T_WT0 * T_T0Tj, p_Tj);
     const Vec3 r_C0Ci = tf_trans(T_C0Ci);
     const Mat3 C_CiC0 = tf_rot(T_CiC0);
     const Mat3 C_C0Ci = C_CiC0.transpose();
