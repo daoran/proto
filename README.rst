@@ -1,10 +1,10 @@
-xyz
+cartesian
 =====
 
-.. image:: https://github.com/chutsu/xyz/actions/workflows/ci.yml/badge.svg
-  :target: https://github.com/chutsu/xyz/actions?query=ci
+.. image:: https://github.com/chutsu/cartesian/actions/workflows/ci.yml/badge.svg
+  :target: https://github.com/chutsu/cartesian/actions?query=ci
 
-``xyz`` contain notes and code used to learn about different aspects of
+``cartesian`` contain notes and code used to learn about different aspects of
 robotics.
 
 
@@ -12,16 +12,17 @@ Build
 -----
 
 For convenience there is a ``Makefile`` that automates the installation of
-dependencies and building of ``xyz``. To install dependencies, build and test
-``xyz`` simply issue the following commands:
+dependencies and building of ``cartesian``. To install dependencies, build and test
+``cartesian`` simply issue the following commands:
 
 .. code-block::
 
-  make third_party
-  make install
-  make tests
+  make all
+  make deps
+  make release
+  make debug
 
-alternatively just type ``make help`` to bring up other make targets.
+alternatively just type ``make help`` to bring up info on make targets.
 
 
 License
