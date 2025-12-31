@@ -43,6 +43,9 @@ public:
   /** Is point reprojection valid? */
   bool valid() const;
 
+  /** Get covariance matrix */
+  Mat2 getCovarianceMatrix() const;
+
   /** Get residuals */
   bool getResiduals(Vec2 &r) const;
 

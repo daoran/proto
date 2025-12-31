@@ -48,6 +48,8 @@ CalibCameraImuError::create(const std::shared_ptr<CameraGeometry> &camera,
 
 bool CalibCameraImuError::valid() const { return valid_; }
 
+Mat2 CalibCameraImuError::getCovarianceMatrix() const { return covar_; }
+
 bool CalibCameraImuError::getResiduals(Vec2 &r) const {
   r = residuals_;
   return valid_;
