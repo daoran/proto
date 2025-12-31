@@ -2,121 +2,6 @@
 
 namespace xyz {
 
-// static double quat_norm(const Vec4 &q) {
-//   const double qw2 = q[0] * q[0];
-//   const double qx2 = q[1] * q[1];
-//   const double qy2 = q[2] * q[2];
-//   const double qz2 = q[3] * q[3];
-//   const double norm = sqrt(qw2 + qx2 + qy2 + qz2);
-//   return norm;
-// }
-//
-// static Vec4 quat_normalize(const Vec4 &q) {
-//   const double qw = q[0];
-//   const double qx = q[1];
-//   const double qy = q[2];
-//   const double qz = q[3];
-//   const double n = quat_norm(q);
-//   return Vec4{qw / n, qx / n, qy / n, qz / n};
-// }
-//
-// static Vec4 quat_conj(const Vec4 &q) {
-//   const double qw = q[0];
-//   const double qx = q[1];
-//   const double qy = q[2];
-//   const double qz = q[3];
-//   const Vec4 q_inv{qw, -qx, -qy, -qz};
-//   return q_inv;
-// }
-//
-// static Vec4 quat_inv(const Vec4 &q) {
-//   // Invert quaternion
-//   return quat_conj(q);
-// }
-//
-// static Mat4 quat_left(const Vec4 &q) {
-//   const double qw = q[0];
-//   const double qx = q[1];
-//   const double qy = q[2];
-//   const double qz = q[3];
-//
-//   // clang-format off
-//   Mat4 Qleft;
-//   Qleft <<  qw, -qx, -qy, -qz,
-//             qx,  qw, -qz,  qy,
-//             qy,  qz,  qw, -qx,
-//             qz, -qy,  qx,  qw;
-//   // clang-format on
-//   return Qleft;
-// }
-//
-// static Mat4 quat_right(const Vec4 &q) {
-//   const double qw = q[0];
-//   const double qx = q[1];
-//   const double qy = q[2];
-//   const double qz = q[3];
-//
-//   // clang-format off
-//   Mat4 Qright;
-//   Qright << qw, -qx, -qy, -qz,
-//             qx,  qw,  qz, -qy,
-//             qy, -qz,  qw,  qx,
-//             qz,  qy, -qx,  qw;
-//   // clang-format on
-//   return Qright;
-// }
-//
-// static Vec4 quat_mul(const Vec4 &p, const Vec4 &q) {
-//   // P * q
-//   return quat_left(p) * q;
-// }
-//
-// static Vec3 quat_rot(const Vec4 &q, const Vec3 &pt) {
-//   const double qw = q[0];
-//   const double qx = q[1];
-//   const double qy = q[2];
-//   const double qz = q[3];
-//
-//   // p_new = q * p * q_conj
-//   const Vec4 q_conj{qw, -qx, -qy, -qz};
-//   const Vec4 p{0.0, pt.x(), pt.y(), pt.z()};
-//   const Vec4 p_new = quat_mul(quat_mul(q, p), q_conj);
-//   return Vec3{p_new.x(), p_new.y(), p_new.z()};
-// }
-//
-// /**
-//  * Convert quaternion to 3x3 rotation matrix.
-//  * Source:
-//  * Blanco, Jose-Luis. "A tutorial on se (3) transformation parameterizations
-//  * and on-manifold optimization." University of Malaga, Tech. Rep 3 (2010): 6.
-//  * [Page 18, Equation (2.20)]
-//  */
-// static Mat3 quat2rot(const Vec4 &q) {
-//   const auto qw = q[0];
-//   const auto qx = q[1];
-//   const auto qy = q[2];
-//   const auto qz = q[3];
-//
-//   const auto qx2 = qx * qx;
-//   const auto qy2 = qy * qy;
-//   const auto qz2 = qz * qz;
-//   const auto qw2 = qw * qw;
-//
-//   const auto C11 = qw2 + qx2 - qy2 - qz2;
-//   const auto C12 = 2.0 * (qx * qy - qw * qz);
-//   const auto C13 = 2.0 * (qx * qz + qw * qy);
-//   const auto C21 = 2.0 * (qx * qy + qw * qz);
-//   const auto C22 = qw2 - qx2 + qy2 - qz2;
-//   const auto C23 = 2.0 * (qy * qz - qw * qx);
-//   const auto C31 = 2.0 * (qx * qz - qw * qy);
-//   const auto C32 = 2.0 * (qy * qz + qw * qx);
-//   const auto C33 = qw2 - qx2 - qy2 + qz2;
-//
-//   Mat3 rot;
-//   rot << C11, C12, C13, C21, C22, C23, C31, C32, C33;
-//   return rot;
-// }
-
 MatX ImuError::formQ() {
   MatX Q = zeros(18, 18);
   Q.block<3, 3>(0, 0) = pow(imu_params_.noise_acc, 2) * I(3);
@@ -325,30 +210,30 @@ bool ImuError::eval(double const *const *params,
   const Mat4 T_j = tf(params[2]);
   Eigen::Map<const VecX> sb_j(params[3], 9);
 
-  const Quat q_i = tf_quat(T_i);
-  const Mat3 C_i = tf_rot(T_i);
-  const Vec3 r_i = tf_trans(T_i);
-  const Vec3 v_i = sb_i.segment<3>(0);
-  const Vec3 ba_i = sb_i.segment<3>(3);
-  const Vec3 bg_i = sb_i.segment<3>(6);
+  const Quat &q_i = tf_quat(T_i);
+  const Mat3 &C_i = tf_rot(T_i);
+  const Vec3 &r_i = tf_trans(T_i);
+  const Vec3 &v_i = sb_i.segment<3>(0);
+  const Vec3 &ba_i = sb_i.segment<3>(3);
+  const Vec3 &bg_i = sb_i.segment<3>(6);
 
-  const Quat q_j = tf_quat(T_j);
-  const Mat3 C_j = tf_rot(T_j);
-  const Vec3 r_j = tf_trans(T_j);
-  const Vec3 v_j = sb_j.segment<3>(0);
-  const Vec3 ba_j = sb_j.segment<3>(3);
-  const Vec3 bg_j = sb_j.segment<3>(6);
+  const Quat &q_j = tf_quat(T_j);
+  const Mat3 &C_j = tf_rot(T_j);
+  const Vec3 &r_j = tf_trans(T_j);
+  const Vec3 &v_j = sb_j.segment<3>(0);
+  const Vec3 &ba_j = sb_j.segment<3>(3);
+  const Vec3 &bg_j = sb_j.segment<3>(6);
 
   // Correct the relative position, velocity and orientation
   // -- Extract jacobians from error-state jacobian
-  const Mat3 dr_dba = state_F_.block<3, 3>(0, 9);
-  const Mat3 dr_dbg = state_F_.block<3, 3>(0, 12);
-  const Mat3 dq_dbg = state_F_.block<3, 3>(6, 12);
-  const Mat3 dv_dba = state_F_.block<3, 3>(3, 9);
-  const Mat3 dv_dbg = state_F_.block<3, 3>(3, 12);
-  const Vec3 dba = ba_i - ba_;
-  const Vec3 dbg = bg_i - bg_;
-  const Vec3 dhtheta = 0.5 * (dq_dbg * dbg);
+  const Mat3 &dr_dba = state_F_.block<3, 3>(0, 9);
+  const Mat3 &dr_dbg = state_F_.block<3, 3>(0, 12);
+  const Mat3 &dv_dba = state_F_.block<3, 3>(3, 9);
+  const Mat3 &dv_dbg = state_F_.block<3, 3>(3, 12);
+  const Mat3 &dq_dbg = state_F_.block<3, 3>(6, 12);
+  const Vec3 &dba = ba_i - ba_;
+  const Vec3 &dbg = bg_i - bg_;
+  const Vec3 &dhtheta = 0.5 * (dq_dbg * dbg);
   const Quat dq_theta{1.0, dhtheta.x(), dhtheta.y(), dhtheta.z()};
 
   // -- Correct the relative position, velocity and rotation
@@ -357,27 +242,21 @@ bool ImuError::eval(double const *const *params,
   const auto dq = dq_ * quat_delta(dq_dbg * dbg);
 
   // Form residuals
-  const Vec3 g = imu_params_.g;
   const double Dt_sq = Dt_ * Dt_;
-  const Mat3 C_iT = C_i.transpose();
-  const Quat dq_inv = dq.inverse();
-  const Quat qi_inv = q_i.inverse();
+  const Vec3 &g = imu_params_.g;
+  const Mat3 &C_iT = C_i.transpose();
+  const Quat &dq_inv = dq.inverse();
+  const Quat &qi_inv = q_i.inverse();
 
-  const Vec3 dr_est = C_iT * ((r_j - r_i) - (v_i * Dt_) + (0.5 * g * Dt_sq));
-  const Vec3 dv_est = C_iT * ((v_j - v_i) + (g * Dt_));
-  const Quat dq_est = qi_inv * q_j;
+  const Vec3 &dr_est = C_iT * ((r_j - r_i) - (v_i * Dt_) + (0.5 * g * Dt_sq));
+  const Vec3 &dv_est = C_iT * ((v_j - v_i) + (g * Dt_));
+  const Quat &dq_est = qi_inv * q_j;
 
-  // <<<<<<< Updated upstream
-  const Vec3 err_pos = dr_est - dr;
-  const Vec3 err_vel = dv_est - dv;
-  const Vec3 err_rot = 2.0 * (dq_inv * dq_est).vec();
-  // =======
-  //   const Vec3 err_pos = dr_meas - dr;
-  //   const Vec3 err_vel = dv_meas - dv;
-  //   const Vec3 err_rot = 2.0 * (dq.inverse() * (q_i.inverse() * q_j)).vec();
-  // >>>>>>> Stashed changes
-  const Vec3 err_ba = ba_j - ba_i;
-  const Vec3 err_bg = bg_j - bg_i;
+  const Vec3 &err_pos = dr_est - dr;
+  const Vec3 &err_vel = dv_est - dv;
+  const Vec3 &err_rot = 2.0 * (dq_inv * dq_est).vec();
+  const Vec3 &err_ba = ba_j - ba_i;
+  const Vec3 &err_bg = bg_j - bg_i;
 
   Eigen::Map<VecX> r(res, 15);
   r.segment(0, 3) = err_pos;

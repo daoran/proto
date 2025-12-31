@@ -17,16 +17,16 @@ private:
   const ImuBuffer imu_buffer_;
 
   // Pre-integrate relative position, velocity, rotation and biases
-  mutable Quat dq_{1.0, 0.0, 0.0, 0.0}; // Relative rotation
-  mutable Vec3 dr_{0.0, 0.0, 0.0};      // Relative position
-  mutable Vec3 dv_{0.0, 0.0, 0.0};      // Relative velocity
-  Vec3 ba_{0.0, 0.0, 0.0};              // Accel biase at i
-  Vec3 bg_{0.0, 0.0, 0.0};              // Gyro biase at i
+  Quat dq_{1.0, 0.0, 0.0, 0.0}; // Relative rotation
+  Vec3 dr_{0.0, 0.0, 0.0};      // Relative position
+  Vec3 dv_{0.0, 0.0, 0.0};      // Relative velocity
+  Vec3 ba_{0.0, 0.0, 0.0};      // Accel biase at i
+  Vec3 bg_{0.0, 0.0, 0.0};      // Gyro biase at i
 
   double Dt_ = 0.0;              // Preintegration time period [s]
   MatX state_F_ = I(15);         // State jacobian
   MatX state_P_ = zeros(15, 15); // State covariance
-  mutable MatX sqrt_info_ = I(15, 15);   // Square root information
+  MatX sqrt_info_ = I(15, 15);   // Square root information
 
   /** Form noise matrix Q */
   MatX formQ();

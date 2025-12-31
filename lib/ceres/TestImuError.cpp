@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/Logger.hpp"
 #include "sim/SimImu.hpp"
 #include "imu/ImuState.hpp"
 #include "ceres/ImuError.hpp"
@@ -140,10 +141,10 @@ TEST(ImuError, solve) {
 
   // Setup imu parameters
   ImuParams imu_params;
-  imu_params.noise_acc = 0.08;
-  imu_params.noise_gyr = 0.004;
-  imu_params.noise_ba = 0.00004;
-  imu_params.noise_bg = 2.0e-6;
+  imu_params.noise_acc = 1e-6;
+  imu_params.noise_gyr = 1e-6;
+  imu_params.noise_ba = 1e-7;
+  imu_params.noise_bg = 1e-7;
 
   // Setup problem
   std::vector<timestamp_t> state_timestamps;
@@ -160,10 +161,10 @@ TEST(ImuError, solve) {
   PoseManifold pose_plus;
 
   const int N = sim.get_num_measurements();
-  int step_size = 30;
+  int step_size = 20;
   int start_index = 0;
   int end_index = step_size;
-  const double dr = 0.1;
+  const double dr = 1.0;
   const double drot = 0.1;
 
   // Pose and velocity at timestamp i
@@ -232,20 +233,31 @@ TEST(ImuError, solve) {
     std::cout << summary.FullReport() << std::endl << std::endl;
   }
 
-  // Save results
-  FILE *fp = fopen("/tmp/imu_solve.csv", "w");
-  for (size_t k = 0; k < states_gnd.size(); k++) {
-    const timestamp_t ts = state_timestamps[k];
-    const Vec3 pos_gnd = states_gnd[ts]->getPose().segment<3>(0);
-    const Vec3 pos_init = states_init[ts]->getPose().segment<3>(0);
-    const Vec3 pos_est = states_est[ts]->getPose().segment<3>(0);
+  // Log
+  bool debug = false;
+  if (debug) {
+    Logger log;
+    std::map<timestamp_t, Mat4> traj_gnd;
+    std::map<timestamp_t, Mat4> traj_init;
+    std::map<timestamp_t, Mat4> traj_est;
+    for (size_t k = 0; k < states_gnd.size(); k++) {
+      const timestamp_t ts = state_timestamps[k];
+      const Mat4 &pose_gnd = tf(states_gnd[ts]->getPose());
+      const Mat4 &pose_init = tf(states_init[ts]->getPose());
+      const Mat4 &pose_est = tf(states_est[ts]->getPose());
 
-    fprintf(fp, "%ld,", ts);
-    fprintf(fp, "%f,%f,%f,", pos_gnd.x(), pos_gnd.y(), pos_gnd.z());
-    fprintf(fp, "%f,%f,%f,", pos_init.x(), pos_init.y(), pos_init.z());
-    fprintf(fp, "%f,%f,%f\n", pos_est.x(), pos_est.y(), pos_est.z());
+      traj_gnd[ts] = pose_gnd;
+      traj_init[ts] = pose_init;
+      traj_est[ts] = pose_est;
+
+      log.log_pose("gnd", ts, pose_gnd, 0.1);
+      log.log_pose("init", ts, pose_init, 0.1);
+      log.log_pose("est", ts, pose_est, 0.1);
+    }
+    log.log_trajectory("traj_gnd", traj_gnd, Vec3{255.0, 0.0, 0.0});
+    log.log_trajectory("traj_init", traj_init, Vec3{0.0, 0.0, 255.0});
+    log.log_trajectory("traj_est", traj_est, Vec3{0.0, 255.0, 0.0});
   }
-  fclose(fp);
 }
 
 } // namespace xyz

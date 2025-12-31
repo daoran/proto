@@ -73,45 +73,6 @@ TEST(LissajousTrajectory, construct) {
   LissajousTrajectory
       traj{traj_type, ts_start, T_WT, T_TO, calib_width, calib_height, R, T};
 
-  // Simulate
-  Logger log;
-  log.init_series_line("vel/x", Vec3{255.0, 0.0, 0.0}, 1.0f);
-  log.init_series_line("vel/y", Vec3{0.0, 255.0, 0.0}, 1.0f);
-  log.init_series_line("vel/z", Vec3{0.0, 0.0, 255.0}, 1.0f);
-  log.init_series_line("acc/x", Vec3{255.0, 0.0, 0.0}, 1.0f);
-  log.init_series_line("acc/y", Vec3{0.0, 255.0, 0.0}, 1.0f);
-  log.init_series_line("acc/z", Vec3{0.0, 0.0, 255.0}, 1.0f);
-  log.init_series_line("angvel/x", Vec3{255.0, 0.0, 0.0}, 1.0f);
-  log.init_series_line("angvel/y", Vec3{0.0, 255.0, 0.0}, 1.0f);
-  log.init_series_line("angvel/z", Vec3{0.0, 0.0, 255.0}, 1.0f);
-
-  double time = 0;
-  const double imu_hz = 1000.0;
-  const double dt = 1.0 / imu_hz;
-  std::map<timestamp_t, Mat4> poses;
-
-  while (time <= T) {
-    const timestamp_t ts = sec2ts(time);
-    poses[ts] = traj.get_pose(ts);
-    const Vec3 v_WS = traj.get_velocity(ts);
-    const Vec3 a_WS = traj.get_acceleration(ts);
-    const Vec3 w_WS = traj.get_angular_velocity(ts);
-
-    log.log_scalar("vel/x", ts, v_WS.x());
-    log.log_scalar("vel/y", ts, v_WS.y());
-    log.log_scalar("vel/z", ts, v_WS.z());
-
-    log.log_scalar("acc/x", ts, a_WS.x());
-    log.log_scalar("acc/y", ts, a_WS.y());
-    log.log_scalar("acc/z", ts, a_WS.z());
-
-    log.log_scalar("angvel/x", ts, w_WS.x());
-    log.log_scalar("angvel/y", ts, w_WS.y());
-    log.log_scalar("angvel/z", ts, w_WS.z());
-
-    time += dt;
-  }
-
   // Test propagate body acceleration and angular velocity
   {
     // Initialize position, velocity and attidue
@@ -120,6 +81,9 @@ TEST(LissajousTrajectory, construct) {
     Mat3 C_WS = tf_rot(T_WS_init);
     Vec3 v_WS = traj.get_velocity(0);
 
+    // Imu rate and time variables
+    const double imu_hz = 1000.0;
+    const double dt = 1.0 / imu_hz;
     timestamp_t ts_k = 0;
     timestamp_t ts_end = sec2ts(T);
     double path_length = 0.0;
@@ -163,10 +127,56 @@ TEST(LissajousTrajectory, construct) {
     ASSERT_TRUE(path_length > 1.0);
   }
 
-  // Log poses, trajectory and target
-  log.log_poses("pose", poses, 0.1);
-  log.log_trajectory("trajectory", poses);
-  log.log_target("calib_target", config, T_WT);
+  // Debug
+  bool debug = false;
+  if (debug) {
+    Logger log;
+    const Vec3 red{255.0, 0.0, 0.0};
+    const Vec3 green{0.0, 255.0, 0.0};
+    const Vec3 blue{0.0, 0.0, 255.0};
+
+    // Plot velocity, acceleration and angular velocity
+    log.init_series_line("vel/x", red, 1.0f);
+    log.init_series_line("vel/y", green, 1.0f);
+    log.init_series_line("vel/z", blue, 1.0f);
+    log.init_series_line("acc/x", red, 1.0f);
+    log.init_series_line("acc/y", green, 1.0f);
+    log.init_series_line("acc/z", blue, 1.0f);
+    log.init_series_line("angvel/x", red, 1.0f);
+    log.init_series_line("angvel/y", green, 1.0f);
+    log.init_series_line("angvel/z", blue, 1.0f);
+
+    double time = 0;
+    const double imu_hz = 1000.0;
+    const double dt = 1.0 / imu_hz;
+    std::map<timestamp_t, Mat4> poses;
+    while (time <= T) {
+      const timestamp_t ts = sec2ts(time);
+      poses[ts] = traj.get_pose(ts);
+      const Vec3 v_WS = traj.get_velocity(ts);
+      const Vec3 a_WS = traj.get_acceleration(ts);
+      const Vec3 w_WS = traj.get_angular_velocity(ts);
+
+      log.log_scalar("vel/x", ts, v_WS.x());
+      log.log_scalar("vel/y", ts, v_WS.y());
+      log.log_scalar("vel/z", ts, v_WS.z());
+
+      log.log_scalar("acc/x", ts, a_WS.x());
+      log.log_scalar("acc/y", ts, a_WS.y());
+      log.log_scalar("acc/z", ts, a_WS.z());
+
+      log.log_scalar("angvel/x", ts, w_WS.x());
+      log.log_scalar("angvel/y", ts, w_WS.y());
+      log.log_scalar("angvel/z", ts, w_WS.z());
+
+      time += dt;
+    }
+
+    // Log poses, trajectory and target
+    log.log_poses("pose", poses, 0.1);
+    log.log_trajectory("trajectory", poses);
+    log.log_target("calib_target", config, T_WT);
+  }
 }
 
 } // namespace xyz
