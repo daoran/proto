@@ -1,6 +1,6 @@
 #include "MarginalError.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 MarginalError::MarginalError() : ResidualBlock{"MarginalError"} {}
 
@@ -446,4 +446,4 @@ bool MarginalError::EvaluateWithMinimalJacobians(double const *const *params,
   return true;
 }
 
-} // namespace xyz
+} // namespace cartesian

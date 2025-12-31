@@ -1,7 +1,7 @@
 #pragma once
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Parameter Block **/
 struct ParamBlock {
@@ -30,4 +30,4 @@ struct ParamBlock {
                       double *ptr);
 };
 
-} // namespace xyz
+} // namespace cartesian

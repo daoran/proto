@@ -1,6 +1,6 @@
 #include "ImuBuffer.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 int ImuBuffer::getNumMeasurements() const { return timestamps_.size(); }
 
@@ -124,4 +124,4 @@ void ImuBuffer::print() const {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

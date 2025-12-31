@@ -6,7 +6,7 @@
 #include "CalibProblem.hpp"
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Camera Chain Query Tool */
 struct CameraChain {
@@ -24,4 +24,4 @@ struct CameraChain {
   int find(const int i, const int j, Mat4 &T_ij) const;
 };
 
-} // namespace xyz
+} // namespace cartesian

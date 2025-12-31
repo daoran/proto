@@ -2,7 +2,7 @@
 
 #include "timeline/Timeline.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(Timeline, timeline_event) {
   const std::string event_type = "event_t";
@@ -32,4 +32,4 @@ TEST(Timeline, CalibTargetEvent) {
   CalibTargetEvent event(ts, camera_id, target_id, calib_target);
 }
 
-} // namespace xyz
+} // namespace cartesian

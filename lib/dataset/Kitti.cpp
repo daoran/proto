@@ -1,6 +1,6 @@
 #include "Kitti.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static int file_lines(const char *fp) {
   FILE *f = fopen(fp, "r");
@@ -620,4 +620,4 @@ KittiRaw::KittiRaw(const fs::path &data_dir, const std::string &seq_name)
   calib = std::make_shared<KittiCalib>(data_dir);
 }
 
-} // namespace xyz
+} // namespace cartesian

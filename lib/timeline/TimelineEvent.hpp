@@ -2,7 +2,7 @@
 
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 struct TimelineEvent {
   std::string type;
@@ -13,4 +13,4 @@ struct TimelineEvent {
   virtual ~TimelineEvent() = default;
 };
 
-} // namespace xyz
+} // namespace cartesian

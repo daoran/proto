@@ -3,7 +3,7 @@
 #include "../camera/CameraGeometry.hpp"
 #include "../calib/CalibTargetGeometry.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 // Forward declaration
 class CalibCameraError;
@@ -56,4 +56,4 @@ public:
             double **jacs) const override;
 };
 
-} // namespace xyz
+} // namespace cartesian

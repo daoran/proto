@@ -1,7 +1,7 @@
 #pragma once
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 // Forward declaration
 struct CalibTargetGeometry;
@@ -23,4 +23,4 @@ struct CalibTargetGeometry {
   void setExtrinsic(const Mat4 &extrinsic);
 };
 
-} // namespace xyz
+} // namespace cartesian

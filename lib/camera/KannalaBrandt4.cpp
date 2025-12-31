@@ -1,6 +1,6 @@
 #include "KannalaBrandt4.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 ///////////////////////////////////////////////////////////////////////////////
 // EQUIDISTANT DISTORTION                                                    //
@@ -240,4 +240,4 @@ Vec2 KannalaBrandt4::undistort(const VecX &params, const Vec2 &z) const {
 
   return z_undist;
 }
-} // namespace xyz
+} // namespace cartesian

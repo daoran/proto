@@ -3,7 +3,7 @@
 #include "core/Logger.hpp"
 #include "sim/SimCalib.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(SimCalib, construct) {
   const double camera_rate = 10.0;
@@ -47,4 +47,4 @@ TEST(SimCalib, construct) {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

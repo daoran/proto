@@ -3,7 +3,7 @@
 #include "BrownConrady4.hpp"
 #include "KannalaBrandt4.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CameraGeometry::CameraGeometry(const int camera_id_,
                                const std::string &camera_model_str_,
@@ -48,4 +48,4 @@ void CameraGeometry::setExtrinsic(const Mat4 &transform) {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

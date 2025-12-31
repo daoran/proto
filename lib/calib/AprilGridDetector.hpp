@@ -15,7 +15,7 @@ extern "C" {
 #include "ethz_apriltag/TagDetector.h"
 #include "ethz_apriltag/Tag36h11.h"
 
-namespace xyz {
+namespace cartesian {
 
 /** AprilGrid Detector **/
 class AprilGridDetector {
@@ -55,4 +55,4 @@ public:
                                                  const cv::Mat &image);
 };
 
-} // namespace xyz
+} // namespace cartesian

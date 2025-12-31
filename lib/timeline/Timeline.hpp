@@ -5,7 +5,7 @@
 #include "CameraEvent.hpp"
 #include "ImuEvent.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Timeline **/
 struct Timeline {
@@ -39,4 +39,4 @@ struct Timeline {
   std::vector<TimelineEvent *> getEvents(const timestamp_t &ts);
 };
 
-} // namespace xyz
+} // namespace cartesian

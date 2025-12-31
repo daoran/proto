@@ -2,7 +2,7 @@
 
 #include "../timeline/Timeline.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CalibCamera::CalibCamera(const std::string &config_file)
     : CalibProblem{config_file} {}
@@ -172,4 +172,4 @@ void CalibCamera::solve() {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

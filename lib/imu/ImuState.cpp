@@ -1,6 +1,6 @@
 #include "ImuState.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 ImuState::ImuState(const timestamp_t ts, const VecX &pose, const Vec3 &vel)
     : ts_{ts}, pose_{pose} {
@@ -26,4 +26,4 @@ double *ImuState::getPosePtr() { return pose_.data(); }
 
 double *ImuState::getSpeedBiasesPtr() { return speed_biases_.data(); }
 
-} // namespace xyz
+} // namespace cartesian

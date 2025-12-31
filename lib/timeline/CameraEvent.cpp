@@ -1,6 +1,6 @@
 #include "CameraEvent.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CameraEvent::CameraEvent(const timestamp_t ts_,
                          const int camera_id_,
@@ -13,4 +13,4 @@ CameraEvent::CameraEvent(const timestamp_t ts_,
                          const cv::Mat &frame_)
     : TimelineEvent{"CameraEvent", ts_}, camera_id{camera_id_}, frame{frame_} {}
 
-} // namespace xyz
+} // namespace cartesian

@@ -3,7 +3,7 @@
 #include "calib/CalibProblem.hpp"
 #include "ceres/CalibCameraError.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static Vec7 setup_body_pose() {
   // Body pose in world frame: T_WC0
@@ -220,4 +220,4 @@ TEST(CalibCameraError, evaluate) {
   ASSERT_TRUE(resblock->checkJacobian(4, "J_camera", h, tol, debug));
 }
 
-} // namespace xyz
+} // namespace cartesian

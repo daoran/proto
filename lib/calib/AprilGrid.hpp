@@ -21,7 +21,7 @@ extern "C" {
 #include "ethz_apriltag/TagDetector.h"
 #include "ethz_apriltag/Tag36h11.h"
 
-namespace xyz {
+namespace cartesian {
 
 /** AprilGrid */
 class AprilGrid : public CalibTarget {
@@ -129,4 +129,4 @@ public:
   void imshow(const std::string &title, const cv::Mat &image) const;
 };
 
-} // namespace xyz
+} // namespace cartesian

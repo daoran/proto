@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace xyz {
+namespace cartesian {
 
 Logger::Logger(const std::string session_name) {
   rec_ = std::make_unique<rerun::RecordingStream>(session_name);
@@ -189,4 +189,4 @@ void Logger::log_target(const std::string &topic,
              points_radii);
 }
 
-} // namespace xyz
+} // namespace cartesian

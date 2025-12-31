@@ -2,7 +2,7 @@
 
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /**
  * Lissajous Trajectory
@@ -54,4 +54,4 @@ struct LissajousTrajectory {
   int save(const std::string &save_path) const;
 };
 
-} // namespace xyz
+} // namespace cartesian

@@ -1,7 +1,7 @@
 #pragma once
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 class ImuBuffer {
 private:
@@ -40,4 +40,4 @@ public:
   void print() const;
 };
 
-} // namespace xyz
+} // namespace cartesian

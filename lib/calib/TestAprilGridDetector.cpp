@@ -6,7 +6,7 @@
 
 #define TEST_IMAGE TEST_DATA "/aprilgrid/aprilgrid.png"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(AprilGridDetector, detect) {
   const int target_id = 0;
@@ -34,4 +34,4 @@ TEST(AprilGridDetector, detect) {
   ASSERT_EQ(object_points.size(), tag_rows * tag_cols * 4);
 }
 
-} // namespace xyz
+} // namespace cartesian

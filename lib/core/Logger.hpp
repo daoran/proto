@@ -8,7 +8,7 @@
 #include <eigen3/Eigen/Core>
 #include <opencv2/core.hpp>
 
-namespace xyz {
+namespace cartesian {
 
 class Logger {
 private:
@@ -93,4 +93,4 @@ public:
                   const Mat4 &T_WT);
 };
 
-} // namespace xyz
+} // namespace cartesian

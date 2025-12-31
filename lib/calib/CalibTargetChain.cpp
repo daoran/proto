@@ -1,7 +1,7 @@
 #include "CalibTargetChain.hpp"
 #include "SolvePnp.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CalibTargetChain::CalibTargetChain(
     const std::map<int, CameraGeometryPtr> &camera_geometries,
@@ -153,4 +153,4 @@ int CalibTargetChain::find(const int i, const int j, Mat4 &T_TiTj) const {
   return 0;
 }
 
-} // namespace xyz
+} // namespace cartesian

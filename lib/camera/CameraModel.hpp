@@ -2,7 +2,7 @@
 
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Camera Model */
 struct CameraModel {
@@ -22,4 +22,4 @@ struct CameraModel {
   virtual Vec2 undistort(const VecX &params, const Vec2 &z) const = 0;
 };
 
-} // namespace xyz
+} // namespace cartesian

@@ -2,11 +2,11 @@
 
 #include "sim/SimImu.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(SimImu, construct) {
   SimImu sim;
   sim.save("/tmp/sim.csv");
 }
 
-} // namespace xyz
+} // namespace cartesian

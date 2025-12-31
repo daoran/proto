@@ -1,7 +1,7 @@
 #pragma once
 #include "CameraModel.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 // Forward declaration
 struct CameraGeometry;
@@ -27,4 +27,4 @@ struct CameraGeometry {
   void setExtrinsic(const Mat4 &transform);
 };
 
-} // namespace xyz
+} // namespace cartesian

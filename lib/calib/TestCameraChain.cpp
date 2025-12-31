@@ -4,7 +4,7 @@
 
 #define TEST_CONFIG TEST_DATA "/calib_camera.yaml"
 
-namespace xyz {
+namespace cartesian {
 
 static std::shared_ptr<CameraGeometry> setup_euroc_camera0() {
   const int camera_index = 0;
@@ -80,4 +80,4 @@ TEST(CameraChain, construct) {
   ASSERT_EQ(camchain.find(0, 1, T_CiCj), 0);
 }
 
-} // namespace xyz
+} // namespace cartesian

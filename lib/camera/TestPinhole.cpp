@@ -2,7 +2,7 @@
 
 #include "Pinhole.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(Pinhole, pinhole_focal) {
   const double focal = pinhole_focal(640, 90.0);
@@ -39,4 +39,4 @@ TEST(Pinhole, pinhole_project) {
   ASSERT_FLOAT_EQ(z_hat(1), 240.0);
 }
 
-} // namespace xyz
+} // namespace cartesian

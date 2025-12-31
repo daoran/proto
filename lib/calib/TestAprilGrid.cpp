@@ -5,7 +5,7 @@
 
 #define TEST_OUTPUT "/tmp/aprilgrid.csv"
 
-namespace xyz {
+namespace cartesian {
 
 static AprilGrid setup_aprilgrid() {
   const timestamp_t ts = 0;
@@ -114,4 +114,4 @@ TEST(AprilGrid, saveAndLoad) {
   ASSERT_FLOAT_EQ(0.0, (keypoints[3] - kp3).norm());
 }
 
-} // namespace xyz
+} // namespace cartesian

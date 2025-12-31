@@ -1,6 +1,6 @@
 #include "ImuGeometry.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 ImuGeometry::ImuGeometry(const int imu_id_,
                          const ImuParams &imu_params_,
@@ -14,4 +14,4 @@ void ImuGeometry::setExtrinsic(const Mat4 &transform) {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

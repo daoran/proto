@@ -1,6 +1,6 @@
 #include "CalibTargetEvent.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CalibTargetEvent::CalibTargetEvent(
     const timestamp_t ts_,
@@ -12,4 +12,4 @@ CalibTargetEvent::CalibTargetEvent(
       target_id{target_id_},
       calib_target{calib_target_} {}
 
-} // namespace xyz
+} // namespace cartesian

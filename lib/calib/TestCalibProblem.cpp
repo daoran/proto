@@ -4,11 +4,11 @@
 
 #define TEST_CONFIG TEST_DATA "/calib_camera.yaml"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(CalibProblem, load) {
   CalibProblem calib{TEST_CONFIG};
   ASSERT_EQ(calib.getNumCameras(), 2);
 }
 
-} // namespace xyz
+} // namespace cartesian

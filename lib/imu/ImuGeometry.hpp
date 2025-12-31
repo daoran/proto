@@ -2,7 +2,7 @@
 
 #include "ImuParams.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 // Forward declaration
 struct ImuGeometry;
@@ -24,4 +24,4 @@ struct ImuGeometry {
   void setExtrinsic(const Mat4 &transform);
 };
 
-} // namespace xyz
+} // namespace cartesian

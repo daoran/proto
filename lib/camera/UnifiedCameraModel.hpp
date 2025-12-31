@@ -1,7 +1,7 @@
 #pragma once
 #include "CameraModel.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /**
  * Unified Camera Model
@@ -36,4 +36,4 @@ struct UnifiedCameraModel : CameraModel {
   virtual Vec2 undistort(const VecX &params, const Vec2 &z) const override;
 };
 
-} // namespace xyz
+} // namespace cartesian

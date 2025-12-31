@@ -6,7 +6,7 @@
 
 #include "CalibTarget.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** SolvePnp */
 struct SolvePnp {
@@ -27,4 +27,4 @@ struct SolvePnp {
                       Mat4 &T_camera_target);
 };
 
-} // namespace xyz
+} // namespace cartesian

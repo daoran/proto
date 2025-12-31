@@ -49,7 +49,7 @@ CMD="./build/unittests"
 
 tmux send-keys -t $TARGET -R C-l C-m
 tmux send-keys -t $TARGET -R "\
-cd $HOME/code/xyz \
+cd $HOME/code/cartesian \
   && time make release -j \
   && ${CMD}
 " C-m C-m

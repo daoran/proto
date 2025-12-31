@@ -4,7 +4,7 @@
 #include "../camera/camera.hpp"
 #include "../timeline/timeline.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 using AprilGridMap = std::map<int, std::shared_ptr<AprilGrid>>;
 using CameraMap = std::map<int, AprilGridMap>;
@@ -59,4 +59,4 @@ struct SimCalib {
   int save(const fs::path &save_dir) const;
 };
 
-} // namespace xyz
+} // namespace cartesian

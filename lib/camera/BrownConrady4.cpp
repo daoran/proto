@@ -1,6 +1,6 @@
 #include "BrownConrady4.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 ///////////////////////////////////////////////////////////////////////////////
 // RADIAL-TANGENTIAL DISTORTION                                              //
@@ -220,4 +220,4 @@ Vec2 BrownConrady4::undistort(const VecX &params, const Vec2 &z) const {
   return z_undist;
 }
 
-} // namespace xyz
+} // namespace cartesian

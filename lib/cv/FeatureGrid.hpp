@@ -1,6 +1,6 @@
 #pragma once
 
-namespace xyz {
+namespace cartesian {
 
 /**
  * Feature Grid
@@ -92,4 +92,4 @@ struct FeatureGrid {
   }
 };
 
-} // namespace xyz
+} // namespace cartesian

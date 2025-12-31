@@ -1,6 +1,6 @@
 #include "CalibCameraError.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CalibCameraError::CalibCameraError(
     const std::shared_ptr<CameraGeometry> &camera_geometry,
@@ -156,4 +156,4 @@ bool CalibCameraError::eval(double const *const *params,
   return true;
 }
 
-} // namespace xyz
+} // namespace cartesian

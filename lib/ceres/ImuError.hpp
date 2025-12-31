@@ -3,7 +3,7 @@
 #include "imu/ImuParams.hpp"
 #include "imu/ImuBuffer.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 // Forward declaration
 class ImuError;
@@ -88,4 +88,4 @@ public:
             double **jacs) const override;
 };
 
-} // namespace xyz
+} // namespace cartesian

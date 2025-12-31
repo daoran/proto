@@ -6,7 +6,7 @@
 #include "ceres/ImuError.hpp"
 #include "ceres/PoseManifold.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(ImuError, evaluate) {
   // Setup sim data
@@ -260,4 +260,4 @@ TEST(ImuError, solve) {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

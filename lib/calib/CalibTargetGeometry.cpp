@@ -1,6 +1,6 @@
 #include "CalibTargetGeometry.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CalibTargetGeometry::CalibTargetGeometry(const int target_id_,
                                          const Vec7 &extrinsic_,
@@ -14,4 +14,4 @@ void CalibTargetGeometry::setExtrinsic(const Mat4 &transform) {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

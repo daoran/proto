@@ -1,7 +1,7 @@
 #include "UnifiedCameraModel.hpp"
 #include "BrownConrady4.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 std::string UnifiedCameraModel::type() const {
   std::string typestr = "UnifiedCameraModel";
@@ -118,4 +118,4 @@ Vec2 UnifiedCameraModel::undistort(const VecX &params, const Vec2 &z) const {
   return z_undist;
 }
 
-} // namespace xyz
+} // namespace cartesian

@@ -1,6 +1,6 @@
 #include "SimCalib.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 SimCalib::SimCalib(const double camera_rate_,
                                const double sample_x_,
@@ -323,4 +323,4 @@ int SimCalib::save(const fs::path &save_dir) const {
   return 0;
 }
 
-} // namespace xyz
+} // namespace cartesian

@@ -2,7 +2,7 @@
 
 #include "BrownConrady4.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static void setup_test(Vec2i &cam_res, VecX &params) {
   cam_res = Vec2i{640, 480};
@@ -241,4 +241,4 @@ TEST(BrownConrady4, undistort) {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

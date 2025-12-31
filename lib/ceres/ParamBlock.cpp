@@ -1,6 +1,6 @@
 #include "ParamBlock.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 int ParamBlock::getParamSize(const ParamBlock::Type type) {
   switch (type) {
@@ -89,4 +89,4 @@ void ParamBlock::perturb(const ParamBlock::Type type,
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

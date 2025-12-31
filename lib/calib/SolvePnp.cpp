@@ -1,6 +1,6 @@
 #include "SolvePnp.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 SolvePnp::SolvePnp(const std::shared_ptr<CameraGeometry> &camera_geometry_)
     : camera_geometry{camera_geometry_} {}
@@ -81,4 +81,4 @@ int SolvePnp::estimate(const std::shared_ptr<CameraGeometry> &camera_geometry,
   return pnp.estimate(keypoints, object_points, T_camera_target);
 }
 
-} // namespace xyz
+} // namespace cartesian

@@ -2,7 +2,7 @@
 
 #include "imu/ImuBuffer.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(ImuBuffer, trim) {
   ImuBuffer imu_buffer;
@@ -35,4 +35,4 @@ TEST(ImuBuffer, extract) {
   ASSERT_EQ(imu_buffer2.getTimestamp(4), 7);
 }
 
-} // namespace xyz
+} // namespace cartesian

@@ -2,7 +2,7 @@
 
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 // Forward declaration
 class CalibTarget;
@@ -49,4 +49,4 @@ public:
                                Vec3s &object_points) const = 0;
 };
 
-} // namespace xyz
+} // namespace cartesian

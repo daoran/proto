@@ -1,7 +1,7 @@
 #include "CameraChain.hpp"
 #include "SolvePnp.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CameraChain::CameraChain(
     const std::map<int, CameraGeometryPtr> &camera_geometries,
@@ -163,4 +163,4 @@ int CameraChain::find(const int i, const int j, Mat4 &T_CiCj) const {
   return 0;
 }
 
-} // namespace xyz
+} // namespace cartesian

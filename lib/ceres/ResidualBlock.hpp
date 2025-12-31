@@ -4,7 +4,7 @@
 #include "../core/Core.hpp"
 #include "ParamBlock.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Residual Block */
 class ResidualBlock : public ceres::CostFunction {
@@ -52,4 +52,4 @@ public:
                 double **jacs = nullptr) const;
 };
 
-} // namespace xyz
+} // namespace cartesian

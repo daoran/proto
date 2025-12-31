@@ -2,7 +2,7 @@
 #include "ResidualBlock.hpp"
 #include "camera/CameraGeometry.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Reprojection Error */
 class ReprojError : public ResidualBlock {
@@ -49,4 +49,4 @@ public:
             double **jacs) const override;
 };
 
-} // namespace xyz
+} // namespace cartesian

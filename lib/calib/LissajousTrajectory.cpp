@@ -1,6 +1,6 @@
 #include "LissajousTrajectory.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 LissajousTrajectory::LissajousTrajectory(const std::string &traj_type_,
                                          const timestamp_t ts_start_,
@@ -377,4 +377,4 @@ int LissajousTrajectory::save(const std::string &save_path) const {
   return 0;
 }
 
-} // namespace xyz
+} // namespace cartesian

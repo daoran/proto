@@ -3,7 +3,7 @@
 #include "calib/CalibProblem.hpp"
 #include "ceres/CalibCameraImuError.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static Vec7 setup_sensor_pose() {
   // Imu pose in world frame: T_WS
@@ -255,4 +255,4 @@ TEST(CalibCameraImuError, evaluate) {
   ASSERT_TRUE(res->checkJacobian(6, "J_camera", h, tol, verbose));
 }
 
-} // namespace xyz
+} // namespace cartesian

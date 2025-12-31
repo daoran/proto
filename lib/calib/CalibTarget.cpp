@@ -1,6 +1,6 @@
 #include "CalibTarget.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CalibTarget::CalibTarget(const std::string &target_type,
                          const timestamp_t &ts,
@@ -17,4 +17,4 @@ int CalibTarget::getCameraId() const { return camera_id_; }
 
 int CalibTarget::getTargetId() const { return target_id_; }
 
-} // namespace xyz
+} // namespace cartesian

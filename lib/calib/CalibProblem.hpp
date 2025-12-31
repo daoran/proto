@@ -14,7 +14,7 @@
 #include "AprilGridDetector.hpp"
 #include "CalibTargetGeometry.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Calibration Problem */
 struct CalibProblem {
@@ -216,4 +216,4 @@ struct CalibProblem {
   void saveResults(const std::string &save_path) const;
 };
 
-} // namespace xyz
+} // namespace cartesian

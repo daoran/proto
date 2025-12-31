@@ -1,6 +1,6 @@
 #include "SimImu.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 SimImu::SimImu() {
   const Vec3 g{0.0, 0.0, 9.81};
@@ -106,4 +106,4 @@ void SimImu::save(const std::string &save_path) const {
   fclose(csv_file);
 }
 
-} // namespace xyz
+} // namespace cartesian

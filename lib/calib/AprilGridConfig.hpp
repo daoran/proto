@@ -1,7 +1,7 @@
 #pragma once
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** AprilGridConfig **/
 struct AprilGridConfig {
@@ -37,4 +37,4 @@ struct AprilGridConfig {
   std::map<int, Vec3> getObjectPoints() const;
 };
 
-} // namespace xyz
+} // namespace cartesian

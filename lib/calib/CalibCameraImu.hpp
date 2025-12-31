@@ -5,7 +5,7 @@
 #include "../ceres/ImuError.hpp"
 #include "../ceres/CalibCameraImuError.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Camera-IMU Calibrator **/
 struct CalibCameraImu : CalibProblem {
@@ -57,4 +57,4 @@ struct CalibCameraImu : CalibProblem {
   void solve();
 };
 
-} // namespace xyz
+} // namespace cartesian

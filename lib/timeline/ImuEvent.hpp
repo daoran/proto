@@ -3,7 +3,7 @@
 #include "../core/Core.hpp"
 #include "TimelineEvent.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 struct ImuEvent : TimelineEvent {
   Vec3 acc = zeros(3, 1);
@@ -13,4 +13,4 @@ struct ImuEvent : TimelineEvent {
   virtual ~ImuEvent() = default;
 };
 
-} // namespace xyz
+} // namespace cartesian

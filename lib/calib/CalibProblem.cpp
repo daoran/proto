@@ -2,7 +2,7 @@
 #include "CameraChain.hpp"
 #include "CalibTargetChain.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CalibProblem::CalibProblem() {
   // Ceres
@@ -885,4 +885,4 @@ void CalibProblem::saveResults(const std::string &save_path) const {
   fclose(fp);
 }
 
-} // namespace xyz
+} // namespace cartesian

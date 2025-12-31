@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "Logger.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(DISABLED_Logger, log_image) {
   Logger log;
@@ -76,4 +76,4 @@ TEST(DISABLED_Logger, log_pose) {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

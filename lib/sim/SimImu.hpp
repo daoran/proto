@@ -2,7 +2,7 @@
 #include "../core/Core.hpp"
 #include "../imu/imu.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 struct SimImu {
   // Data
@@ -25,4 +25,4 @@ struct SimImu {
   void save(const std::string &save_path) const;
 };
 
-} // namespace xyz
+} // namespace cartesian

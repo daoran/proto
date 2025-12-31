@@ -1,6 +1,6 @@
 #include "ImuError.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 MatX ImuError::formQ() {
   MatX Q = zeros(18, 18);
@@ -330,4 +330,4 @@ bool ImuError::eval(double const *const *params,
   return true;
 }
 
-} // namespace xyz
+} // namespace cartesian

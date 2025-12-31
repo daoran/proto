@@ -10,7 +10,7 @@
 #include <vector>
 #include <filesystem>
 
-namespace xyz {
+namespace cartesian {
 
 namespace fs = std::filesystem;
 
@@ -211,4 +211,4 @@ struct KittiRaw {
   ~KittiRaw() = delete;
 };
 
-} // namespace xyz
+} // namespace cartesian

@@ -2,7 +2,7 @@
 
 #include "KannalaBrandt4.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static void setup_test(Vec2i &cam_res, VecX &params) {
   cam_res = Vec2i{640, 480};
@@ -189,4 +189,4 @@ TEST(KannalaBrandt4, undistort) {
   ASSERT_FLOAT_EQ(z_hat_gnd.y(), z_hat.y());
 }
 
-} // namespace xyz
+} // namespace cartesian

@@ -3,7 +3,7 @@
 #include "../core/Core.hpp"
 #include "TimelineEvent.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 struct CameraEvent : TimelineEvent {
   int camera_id = -1;
@@ -21,4 +21,4 @@ struct CameraEvent : TimelineEvent {
   virtual ~CameraEvent() = default;
 };
 
-} // namespace xyz
+} // namespace cartesian

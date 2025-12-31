@@ -7,7 +7,7 @@
 #include "../core/Core.hpp"
 #include "../timeline/timeline.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /**
  * Euroc IMU data

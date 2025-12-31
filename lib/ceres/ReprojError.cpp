@@ -1,6 +1,6 @@
 #include "ReprojError.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 ReprojError::ReprojError(const std::shared_ptr<CameraGeometry> &camera_geometry,
                          const std::vector<double *> &param_ptrs,
@@ -135,4 +135,4 @@ bool ReprojError::eval(double const *const *params,
   return true;
 }
 
-} // namespace xyz
+} // namespace cartesian

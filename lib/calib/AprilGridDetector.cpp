@@ -1,6 +1,6 @@
 #include "AprilGridDetector.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 AprilGridDetector::AprilGridDetector(const AprilGridConfig &target_config) {
   // Initialize Ed Olsen's AprilTag detector
@@ -205,4 +205,4 @@ AprilGridDetector::detect(const timestamp_t ts,
   return result;
 }
 
-} // namespace xyz
+} // namespace cartesian

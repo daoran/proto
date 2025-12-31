@@ -1,6 +1,6 @@
 #include "PoseManifold.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 bool PoseManifold::Plus(const double *x,
                         const double *delta,
@@ -61,4 +61,4 @@ int PoseManifold::AmbientSize() const { return 7; }
 
 int PoseManifold::TangentSize() const { return 6; }
 
-} // namespace xyz
+} // namespace cartesian

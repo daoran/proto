@@ -1,7 +1,7 @@
 #pragma once
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 class ImuState {
 private:
@@ -33,4 +33,4 @@ public:
   double *getSpeedBiasesPtr();
 };
 
-} // namespace xyz
+} // namespace cartesian

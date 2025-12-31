@@ -6,7 +6,7 @@
 
 #define TEST_CONFIG TEST_DATA "/calib_camera_imu.yaml"
 
-namespace xyz {
+namespace cartesian {
 
 TEST(CalibCameraImu, construct) {
   // CalibCamera calib{TEST_CONFIG};
@@ -120,4 +120,4 @@ TEST(CalibCameraImu, construct) {
   calib.solve();
 }
 
-} // namespace xyz
+} // namespace cartesian

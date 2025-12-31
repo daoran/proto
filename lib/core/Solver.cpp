@@ -1,6 +1,6 @@
 #include "Solver.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 Solver::setVerbose(const bool verbose) { verbose_ = verbose; }
 
@@ -19,4 +19,4 @@ void Solver::addImuGeometry(std::shared_ptr<ImuGeometry> &imu_geometry) {
   imu_geometry_[imu_index] = imu_geometry;
 }
 
-} // namespace xyz
+} // namespace cartesian

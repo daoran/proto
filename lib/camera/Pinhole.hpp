@@ -2,7 +2,7 @@
 #include "../core/Core.hpp"
 #include "CameraModel.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 ///////////////////////////////////////////////////////////////////////////////
 // PINHOLE UTILS                                                             //
@@ -72,4 +72,4 @@ struct Pinhole : CameraModel {
   virtual Vec2 undistort(const VecX &params, const Vec2 &z) const override;
 };
 
-} // namespace xyz
+} // namespace cartesian

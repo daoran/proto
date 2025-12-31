@@ -4,7 +4,7 @@
 #include "AprilGridConfig.hpp"
 #include "../core/Logger.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static Mat3 Exp(const Vec3 &phi) {
   const double norm = phi.norm();
@@ -179,4 +179,4 @@ TEST(LissajousTrajectory, construct) {
   }
 }
 
-} // namespace xyz
+} // namespace cartesian

@@ -1,6 +1,6 @@
 #include "AprilGridConfig.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 double AprilGridConfig::getWidth() const {
   auto w = (tag_cols * tag_size) + ((tag_cols - 1) * tag_size * tag_spacing);
@@ -79,4 +79,4 @@ std::map<int, Vec3> AprilGridConfig::getObjectPoints() const {
   return object_points;
 }
 
-} // namespace xyz
+} // namespace cartesian

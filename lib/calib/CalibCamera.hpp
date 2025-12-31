@@ -5,7 +5,7 @@
 #include "../ceres/PoseManifold.hpp"
 #include "../ceres/CalibCameraError.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Camera Calibrator **/
 struct CalibCamera : CalibProblem {
@@ -24,4 +24,4 @@ struct CalibCamera : CalibProblem {
   void solve();
 };
 
-} // namespace xyz
+} // namespace cartesian

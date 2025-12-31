@@ -3,7 +3,7 @@
 #include "ParamBlock.hpp"
 #include "ResidualBlock.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 class MarginalError : public ResidualBlock {
 public:
@@ -73,4 +73,4 @@ public:
                                     double **min_jacs) const;
 };
 
-} // namespace xyz
+} // namespace cartesian

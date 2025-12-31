@@ -1,6 +1,6 @@
 #include "AprilGrid.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 AprilGrid::AprilGrid(const timestamp_t &ts,
                      const int camera_id,
@@ -421,4 +421,4 @@ void AprilGrid::imshow(const std::string &title, const cv::Mat &image) const {
   cv::waitKey(1);
 }
 
-} // namespace xyz
+} // namespace cartesian

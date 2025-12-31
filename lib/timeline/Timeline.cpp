@@ -1,6 +1,6 @@
 #include "Timeline.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 Timeline::~Timeline() {
   for (auto &kv : data) {
@@ -51,4 +51,4 @@ std::vector<TimelineEvent *> Timeline::getEvents(const timestamp_t &ts) {
 
   return events;
 }
-} // namespace xyz
+} // namespace cartesian

@@ -57,7 +57,7 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
-namespace xyz {
+namespace cartesian {
 
 namespace fs = std::filesystem;
 
@@ -2403,4 +2403,4 @@ void optflow_track(const cv::Mat &img_i,
 //                    std::vector<bool> &inliers,
 //                    const double reproj_threshold = 0.5);
 
-} //  namespace xyz
+} //  namespace cartesian

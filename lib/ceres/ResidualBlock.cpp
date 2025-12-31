@@ -1,6 +1,6 @@
 #include "ResidualBlock.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static int check_jacobian(const std::string &jac_name,
                           const MatX &fdiff,
@@ -195,4 +195,4 @@ bool ResidualBlock::checkJacobian(const int param_idx,
   return (retval == 0) ? true : false;
 }
 
-} // namespace xyz
+} // namespace cartesian

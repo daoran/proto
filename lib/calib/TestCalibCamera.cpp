@@ -3,7 +3,7 @@
 #include "calib/CalibCamera.hpp"
 #include "sim/SimCalib.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static void perturb_camera_intrinsic(CameraGeometryPtr &camera) {
   auto intrinsic = camera->intrinsic.data();
@@ -95,4 +95,4 @@ TEST(CalibCamera, solve_sim) {
   calib.solve();
 }
 
-} // namespace xyz
+} // namespace cartesian

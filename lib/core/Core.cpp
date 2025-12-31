@@ -1,6 +1,6 @@
 #include "Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /******************************************************************************
  *                               FILESYSTEM
@@ -3934,4 +3934,4 @@ void optflow_track(const cv::Mat &img_i,
 //   }
 // }
 
-} // namespace xyz
+} // namespace cartesian

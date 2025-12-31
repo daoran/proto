@@ -3,7 +3,7 @@
 #include "CalibCameraImu.hpp"
 #include "SolvePnp.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 CalibCameraImu::CalibCameraImu(const std::string &config_file)
     : CalibProblem{config_file} {}
@@ -345,4 +345,4 @@ void CalibCameraImu::solve() {
   printSummary(stdout);
 }
 
-} // namespace xyz
+} // namespace cartesian

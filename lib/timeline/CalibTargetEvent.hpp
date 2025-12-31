@@ -4,7 +4,7 @@
 #include "../calib/CalibTarget.hpp"
 #include "TimelineEvent.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 struct CalibTargetEvent : TimelineEvent {
   int camera_id;
@@ -19,4 +19,4 @@ struct CalibTargetEvent : TimelineEvent {
   virtual ~CalibTargetEvent() = default;
 };
 
-} // namespace xyz
+} // namespace cartesian

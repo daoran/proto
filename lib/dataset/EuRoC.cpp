@@ -1,6 +1,6 @@
 #include "EuRoC.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 ///////////////////////////////////////////////////////////////////////////////
 // EurocImu                                                                  //
@@ -412,4 +412,4 @@ Timeline EurocCalib::timeline() {
   return timeline;
 }
 
-} // namespace xyz
+} // namespace cartesian

@@ -1,7 +1,7 @@
 #include "CameraModel.hpp"
 #include "Pinhole.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 ///////////////////////////////////////////////////////////////////////////////
 // RADIAL-TANGENTIAL DISTORTION                                              //
@@ -47,4 +47,4 @@ struct BrownConrady4 : CameraModel {
   virtual Vec2 undistort(const VecX &params, const Vec2 &z) const override;
 };
 
-} // namespace xyz
+} // namespace cartesian

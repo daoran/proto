@@ -2,7 +2,7 @@
 
 #include "../camera/camera.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static Vec3s create_3d_features(const double *x_bounds,
                                 const double *y_bounds,
@@ -349,4 +349,4 @@ void SimVio::save(const std::string &dir) {
   fclose(imu_vel_csv);
 }
 
-} // namespace xyz
+} // namespace cartesian

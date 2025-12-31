@@ -1,7 +1,7 @@
 #pragma once
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 struct ImuParams {
   double noise_acc;
@@ -11,4 +11,4 @@ struct ImuParams {
   Vec3 g{0.0, 0.0, 9.81};
 };
 
-} // namespace xyz
+} // namespace cartesian

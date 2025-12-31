@@ -1,6 +1,6 @@
 #include "Pinhole.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 double pinhole_focal(const int image_size, const double fov) {
   return ((image_size / 2.0) / tan(deg2rad(fov) / 2.0));
@@ -167,4 +167,4 @@ Vec2 Pinhole::undistort(const VecX &params, const Vec2 &z) const {
   return Vec2{x, y};
 }
 
-} // namespace xyz
+} // namespace cartesian

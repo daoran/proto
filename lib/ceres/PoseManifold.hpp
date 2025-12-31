@@ -3,7 +3,7 @@
 
 #include "../core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /** Pose Manifold **/
 class PoseManifold : public ceres::Manifold {
@@ -34,4 +34,4 @@ public:
   virtual int TangentSize() const;
 };
 
-} // namespace xyz
+} // namespace cartesian

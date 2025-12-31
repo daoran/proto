@@ -2,7 +2,7 @@
 #include "../core/Core.hpp"
 #include "../timeline/timeline.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 struct SimVio {
   // Settings
@@ -44,4 +44,4 @@ struct SimVio {
   void save(const std::string &dir);
 };
 
-} // namespace xyz
+} // namespace cartesian

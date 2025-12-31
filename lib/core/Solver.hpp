@@ -9,7 +9,7 @@
 #include "ceres/ParamBlock.hpp"
 #include "ceres/ResidualBlock.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 /**
  * Solver base-class
@@ -51,4 +51,4 @@ public:
   virtual void solve() = 0;
 };
 
-} // namespace xyz
+} // namespace cartesian

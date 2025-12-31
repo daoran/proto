@@ -4,7 +4,7 @@
 #include "ceres/ReprojError.hpp"
 #include "core/Core.hpp"
 
-namespace xyz {
+namespace cartesian {
 
 static Vec7 setup_pose() {
   const Mat3 C_WB = euler321(Vec3{-M_PI / 2.0, 0.0, -M_PI / 2.0});
@@ -77,4 +77,4 @@ TEST(ReprojError, evaluate) {
   ASSERT_TRUE(r->checkJacobian(3, "J_camera_intrinsic"));
 }
 
-} // namespace xyz
+} // namespace cartesian
