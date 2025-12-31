@@ -31,11 +31,11 @@ struct CalibCameraImu : CalibProblem {
   /** Find target with the most observations */
   std::pair<int, int> findOptimalTarget();
 
-  /** Estimate pose T_WS */
-  int estimatePose(Mat4 &T_WS);
+  /** Estimate sensor pose T_WS */
+  int estimateSensorPose(Mat4 &T_WS);
 
-  /** Estimate relative pose T_C0T0 */
-  int estimateRelativePose(Mat4 &T_C0T0);
+  /** Estimate camera pose T_C0T0 */
+  int estimateCameraPose(Mat4 &T_C0T0);
 
   /** Add camera calibration view */
   void addView(const timestamp_t ts, const Mat4 &T_WS);

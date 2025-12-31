@@ -35,7 +35,7 @@ std::pair<int, int> CalibCameraImu::findOptimalTarget() {
   return std::pair<int, int>{optimal_camera_id, optimal_target_id};
 }
 
-int CalibCameraImu::estimatePose(Mat4 &T_WS) {
+int CalibCameraImu::estimateSensorPose(Mat4 &T_WS) {
   // Get calibration target measurements
   std::vector<int> point_ids;
   std::vector<int> corner_indicies;
@@ -70,7 +70,7 @@ int CalibCameraImu::estimatePose(Mat4 &T_WS) {
   return 0;
 }
 
-int CalibCameraImu::estimateRelativePose(Mat4 &T_C0T0) {
+int CalibCameraImu::estimateCameraPose(Mat4 &T_C0T0) {
   // // Get calibration target measurements
   std::vector<int> point_ids;
   std::vector<int> corner_indicies;
@@ -191,23 +191,23 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
   }
 
   // Add imu residual block
-  if (poses.size() >= 2) {
-    // Add IMU factor
-    const auto [ts_km1, ts_k] = *last_two_keys(poses);
-    const int imu_id = 0;
-    const auto &imu_params = getImuGeometry(imu_id)->imu_params;
-    double *pose_km1 = getPosePtr(ts_km1);
-    double *pose_k = getPosePtr(ts_k);
-    double *sb_km1 = getSpeedAndBiasesPtr(ts_km1);
-    double *sb_k = getSpeedAndBiasesPtr(ts_k);
-    auto imu_data = imu_buffer.extract(ts_km1, ts_k);
-    imu_buffer.trim(ts_k);
-
-    auto resblock =
-        ImuError::create(imu_params, imu_data, pose_km1, sb_km1, pose_k, sb_k);
-    imu_resblocks[ts_km1][imu_id] = resblock;
-    addResidualBlock(resblock.get());
-  }
+  // if (poses.size() >= 2) {
+  //   // Add IMU factor
+  //   const auto [ts_km1, ts_k] = *last_two_keys(poses);
+  //   const int imu_id = 0;
+  //   const auto &imu_params = getImuGeometry(imu_id)->imu_params;
+  //   double *pose_km1 = getPosePtr(ts_km1);
+  //   double *pose_k = getPosePtr(ts_k);
+  //   double *sb_km1 = getSpeedAndBiasesPtr(ts_km1);
+  //   double *sb_k = getSpeedAndBiasesPtr(ts_k);
+  //   auto imu_data = imu_buffer.extract(ts_km1, ts_k);
+  //   imu_buffer.trim(ts_k);
+  //
+  //   auto resblock =
+  //       ImuError::create(imu_params, imu_data, pose_km1, sb_km1, pose_k, sb_k);
+  //   imu_resblocks[ts_km1][imu_id] = resblock;
+  //   addResidualBlock(resblock.get());
+  // }
 
   // Clean up
   camera_buffers.clear();
@@ -218,7 +218,7 @@ void CalibCameraImu::initialize(const timestamp_t ts) {
 
   // Estimate relative pose - T_C0T0
   Mat4 T_C0T0;
-  if (estimateRelativePose(T_C0T0) != 0) {
+  if (estimateCameraPose(T_C0T0) != 0) {
     return;
   }
 
@@ -277,7 +277,7 @@ void CalibCameraImu::addMeasurement(const timestamp_t ts,
 
   } else {
     Mat4 T_WS;
-    if (estimatePose(T_WS) != 0) {
+    if (estimateSensorPose(T_WS) != 0) {
       return;
     }
     addView(ts, T_WS);
