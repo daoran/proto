@@ -25,19 +25,19 @@ venv
 *.egg-info
 
 # Dependencies
-third_party/bin
-third_party/include
-third_party/lib
-third_party/share
-third_party/src/SuiteSparse/
-third_party/src/abseil-cpp/
-third_party/src/apriltag/
-third_party/src/ceres-solver/
-third_party/src/eigen/
-third_party/src/googletest/
-third_party/src/opencv/
-third_party/src/rerun_cpp_sdk/
-third_party/src/yaml-cpp/
+deps/bin
+deps/include
+deps/lib
+deps/share
+deps/src/SuiteSparse/
+deps/src/abseil-cpp/
+deps/src/apriltag/
+deps/src/ceres-solver/
+deps/src/eigen/
+deps/src/googletest/
+deps/src/opencv/
+deps/src/rerun_cpp_sdk/
+deps/src/yaml-cpp/
 
 # Misc
 tags
