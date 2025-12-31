@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(xyz)
+project(cartesian)
 
 # Compilation Settings
 set(CMAKE_C_COMPILER "clang")

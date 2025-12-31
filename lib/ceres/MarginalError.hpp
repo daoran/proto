@@ -1,4 +1,4 @@
-#pragma
+#pragma once
 #include "../core/Core.hpp"
 #include "ParamBlock.hpp"
 #include "ResidualBlock.hpp"
