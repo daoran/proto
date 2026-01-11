@@ -36,7 +36,7 @@ private:
                                    const float &radii);
 
 public:
-  Logger(const std::string session_name = "xyz");
+  Logger(const std::string session_name = "cartesian");
   virtual ~Logger() = default;
 
   /** Log Image */

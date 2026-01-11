@@ -14,16 +14,18 @@ TEST(SimCalib, construct) {
   const int sample_num_x = 2;
   const int sample_num_y = 2;
   const int sample_num_z = 1;
-  SimCalib sim{camera_rate,
-               sample_x,
-               sample_y,
-               sample_z,
-               sample_z_offset,
-               sample_num_x,
-               sample_num_y,
-               sample_num_z};
 
-  bool debug = false;
+  SimCalib sim;
+  sim.sim_camera_calib(camera_rate,
+                       sample_x,
+                       sample_y,
+                       sample_z,
+                       sample_z_offset,
+                       sample_num_x,
+                       sample_num_y,
+                       sample_num_z);
+
+  bool debug = true;
   if (debug) {
     std::vector<Vec3> pose_points;
     std::vector<Vec3> pose_colors;
@@ -36,13 +38,14 @@ TEST(SimCalib, construct) {
 
     Logger log;
     log.log_poses("/world/camera_poses", sim.camera_poses, 0.1);
+    log.log_trajectory("/world/camera_trajectory", sim.camera_poses);
     log.log_target("/world/calib_target",
                    sim.target_configs.at(0),
                    sim.target_poses.at(0));
-    log.log_points("/world/candidate_camera_poses",
-                   pose_points,
-                   pose_colors,
-                   pose_radii);
+    // log.log_points("/world/candidate_camera_poses",
+    //                pose_points,
+    //                pose_colors,
+    //                pose_radii);
     sim.save("/tmp/sim_calib_camera");
   }
 }

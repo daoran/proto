@@ -3,17 +3,16 @@
 
 namespace cartesian {
 
-class ImuBuffer {
-private:
-  std::deque<timestamp_t> timestamps_;
-  std::deque<Vec3> acc_data_;
-  std::deque<Vec3> gyr_data_;
+struct ImuBuffer {
+  std::deque<timestamp_t> timestamps;
+  std::deque<Vec3> acc_data;
+  std::deque<Vec3> gyr_data;
 
-public:
   ImuBuffer() = default;
   virtual ~ImuBuffer() = default;
 
-  int getNumMeasurements() const;
+  /** Get number of measurements */
+  int size() const;
 
   /** Get timestamp */
   timestamp_t getTimestamp(const int index) const;

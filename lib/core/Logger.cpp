@@ -182,11 +182,8 @@ void Logger::log_target(const std::string &topic,
     }
   }
 
-  log_pose(topic + "-poses", T_WT, config.tag_size);
-  log_points(topic + "-candidate_poses",
-             points_data,
-             points_colors,
-             points_radii);
+  log_pose(topic + "-pose", T_WT, config.tag_size);
+  log_points(topic + "-points", points_data, points_colors, points_radii);
 }
 
 } // namespace cartesian

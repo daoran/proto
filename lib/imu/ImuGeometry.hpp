@@ -12,7 +12,7 @@ using ImuGeometryPtr = std::shared_ptr<ImuGeometry>;
 struct ImuGeometry {
   int imu_id;
   ImuParams imu_params;
-  VecX extrinsic;
+  Vec7 extrinsic;
 
   ImuGeometry() = delete;
   ImuGeometry(const int imu_id_,

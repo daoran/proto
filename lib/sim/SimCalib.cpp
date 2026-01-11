@@ -2,21 +2,53 @@
 
 namespace cartesian {
 
-SimCalib::SimCalib(const double camera_rate_,
-                               const double sample_x_,
-                               const double sample_y_,
-                               const double sample_z_,
-                               const double sample_z_offset_,
-                               const int sample_num_x_,
-                               const int sample_num_y_,
-                               const int sample_num_z_)
-    : camera_rate{camera_rate_}, sample_x{sample_x_}, sample_y{sample_y_},
-      sample_z{sample_z_}, sample_z_offset{sample_z_offset_},
-      sample_num_x{sample_num_x_}, sample_num_y{sample_num_y_},
-      sample_num_z{sample_num_z_} {
+static Mat3 Exp(const Vec3 &phi) {
+  const double norm = phi.norm();
+
+  // Small angle approx
+  if (norm < 1e-3) {
+    return Mat3{I(3) + skew(phi)};
+  }
+
+  // Exponential map from so(3) to SO(3)
+  const Mat3 phi_skew = skew(phi);
+  Mat3 C = I(3);
+  C += (sin(norm) / norm) * phi_skew;
+  C += ((1 - cos(norm)) / (norm * norm)) * (phi_skew * phi_skew);
+
+  return C;
+}
+
+void SimCalib::sim_camera_calib(const double camera_rate,
+                                const double sample_x,
+                                const double sample_y,
+                                const double sample_z,
+                                const double sample_z_offset,
+                                const int sample_num_x,
+                                const int sample_num_y,
+                                const int sample_num_z) {
   setup_calib_targets();
   setup_camera_geometries();
-  setup_camera_poses();
+  setup_imu_geometries();
+  setup_camera_poses(camera_rate,
+                     sample_x,
+                     sample_y,
+                     sample_z,
+                     sample_z_offset,
+                     sample_num_x,
+                     sample_num_y,
+                     sample_num_z);
+  simulate_camera_views();
+}
+
+void SimCalib::sim_camimu_calib(const double camera_rate,
+                                const std::string traj_type,
+                                const double R,
+                                const double T) {
+  setup_calib_targets();
+  setup_camera_geometries();
+  setup_imu_geometries();
+  setup_camera_poses(camera_rate, traj_type, R, T);
   simulate_camera_views();
 }
 
@@ -45,6 +77,11 @@ void SimCalib::setup_calib_targets() {
   const Mat3 target_rot = euler321(target_euler);
   const Mat4 T_WTj = tf(target_rot, target_pos);
   target_poses.emplace(0, T_WTj);
+
+  // Add target geoemtry
+  const Vec7 extrinsic{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+  const auto pts = target_config.getObjectPoints();
+  targets.emplace(target_id, CalibTargetGeometry(target_id, extrinsic, pts));
 }
 
 void SimCalib::setup_camera_geometries() {
@@ -86,7 +123,25 @@ void SimCalib::setup_camera_geometries() {
   cameras.emplace(1, CameraGeometry(1, cam_model, cam_res, cam1_int, cam1_ext));
 }
 
-void SimCalib::setup_camera_poses() {
+void SimCalib::setup_imu_geometries() {
+  ImuParams imu_params;
+  imu_params.noise_acc = 0.08;
+  imu_params.noise_gyr = 0.004;
+  imu_params.noise_ba = 0.00004;
+  imu_params.noise_bg = 2.0e-6;
+
+  Vec7 extrinsic{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+  imus.emplace(0, ImuGeometry(0, imu_params, extrinsic));
+}
+
+void SimCalib::setup_camera_poses(const double camera_rate,
+                                  const double sample_x,
+                                  const double sample_y,
+                                  const double sample_z,
+                                  const double sample_z_offset,
+                                  const int sample_num_x,
+                                  const int sample_num_y,
+                                  const int sample_num_z) {
   const auto half_x = sample_x / 2.0;
   const auto half_y = sample_y / 2.0;
   const auto half_z = sample_z / 2.0;
@@ -131,6 +186,67 @@ void SimCalib::setup_camera_poses() {
         camera_poses[ts] = T_WC0;
         ts += ts_diff;
       }
+    }
+  }
+}
+
+void SimCalib::setup_camera_poses(const double camera_rate,
+                                  const std::string traj_type,
+                                  const double R,
+                                  const double T) {
+  const auto target = target_configs.at(0);
+  const Mat4 T_WT0 = target_poses.at(0);
+  const Mat4 T_TO = target.getCenterRelativePose();
+  const timestamp_t ts_start = 0;
+  const double calib_width = target.getWidthHeight().x();
+  const double calib_height = target.getWidthHeight().y();
+  LissajousTrajectory
+      traj{traj_type, ts_start, T_WT0, T_TO, calib_width, calib_height, R, T};
+
+  // Simulate imu measurements
+  {
+    // Imu rate and time variables
+    const double imu_rate = 1000.0;
+    const double dt = 1.0 / imu_rate;
+    timestamp_t ts_k = 0;
+    timestamp_t ts_end = sec2ts(T);
+
+    // Simulate IMU measurements
+    while (ts_k <= ts_end) {
+      // Get sensor acceleration and angular velocity in world frame
+      const Mat4 T_WS = traj.get_pose(ts_k);
+      const Mat3 C_WS = tf_rot(T_WS);
+      const Vec3 v_WS = traj.get_velocity(ts_k);
+      const Vec3 a_WS_W = traj.get_acceleration(ts_k);
+      const Vec3 w_WS_W = traj.get_angular_velocity(ts_k);
+
+      // Transform acceleration and angular velocity to body frame
+      const Vec3 g{0.0, 0.0, 9.81};
+      const Vec3 a_WS_S = C_WS.transpose() * (a_WS_W + g);
+      const Vec3 w_WS_S = C_WS.transpose() * w_WS_W;
+
+      // Track imu measurements
+      imu_vel[ts_k] = v_WS;
+      imu_acc[ts_k] = a_WS_S;
+      imu_gyr[ts_k] = w_WS_S;
+
+      // Update
+      ts_k += sec2ts(dt);
+    }
+  }
+
+  // Simulate camera measurements
+  {
+    // Camera rate and time variables
+    const double dt = 1.0 / camera_rate;
+    timestamp_t ts_k = 0;
+    timestamp_t ts_end = sec2ts(T);
+
+    // Simulate IMU measurements
+    while (ts_k <= ts_end) {
+      const auto T_WS = traj.get_pose(ts_k);
+      camera_poses[ts_k] = T_WS;
+      ts_k += sec2ts(dt);
     }
   }
 }
@@ -186,6 +302,10 @@ Timeline SimCalib::get_timeline() const {
         timeline.add(ts, camera_id, target);
       }
     }
+  }
+
+  for (const auto &[ts, _] : imu_acc) {
+    timeline.add(ts, imu_acc.at(ts), imu_gyr.at(ts));
   }
 
   return timeline;
@@ -247,6 +367,27 @@ int SimCalib::save_camera_geometries(const fs::path &yaml_path) const {
     fprintf(fp, "  resolution:   [%d, %d]\n", res.x(), res.y());
     fprintf(fp, "  intrinsic:    %s\n", vec2str(camera.intrinsic).c_str());
     fprintf(fp, "  extrinsic:    %s\n", vec2str(camera.extrinsic).c_str());
+    fprintf(fp, "\n");
+  }
+  fclose(fp);
+
+  return 0;
+}
+
+int SimCalib::save_imu_geometries(const fs::path &yaml_path) const {
+  const auto fp = fopen(yaml_path.c_str(), "w");
+  if (fp == NULL) {
+    LOG_ERROR("Failed to open [%s] for saving!", yaml_path.c_str());
+    return -1;
+  }
+
+  for (const auto &[imu_id, imu] : imus) {
+    fprintf(fp, "imu%d:\n", imu_id);
+    fprintf(fp, "  noise_acc: %e\n", imu.imu_params.noise_acc);
+    fprintf(fp, "  noise_gyr: %e\n", imu.imu_params.noise_gyr);
+    fprintf(fp, "  noise_ba:  %e\n", imu.imu_params.noise_ba);
+    fprintf(fp, "  noise_bg:  %e\n", imu.imu_params.noise_bg);
+    fprintf(fp, "  extrinsic: %s\n", vec2str(imu.extrinsic).c_str());
     fprintf(fp, "\n");
   }
   fclose(fp);
