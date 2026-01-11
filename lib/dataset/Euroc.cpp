@@ -1,4 +1,4 @@
-#include "EuRoC.hpp"
+#include "Euroc.hpp"
 
 namespace cartesian {
 

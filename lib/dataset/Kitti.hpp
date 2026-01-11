@@ -208,7 +208,7 @@ struct KittiRaw {
 
   KittiRaw() = delete;
   KittiRaw(const fs::path &data_dir, const std::string &seq_name);
-  ~KittiRaw() = delete;
+  ~KittiRaw() = default;
 };
 
 } // namespace cartesian
