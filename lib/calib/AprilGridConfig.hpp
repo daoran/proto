@@ -24,6 +24,9 @@ struct AprilGridConfig {
   /** Get center */
   Vec2 getCenter() const;
 
+  /** Get center relative pose T_target_center */
+  Mat4 getCenterRelativePose() const;
+
   /** Get number of tags */
   int getNumTags() const;
 

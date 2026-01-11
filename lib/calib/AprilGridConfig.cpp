@@ -18,6 +18,15 @@ Vec2 AprilGridConfig::getWidthHeight() const {
 
 Vec2 AprilGridConfig::getCenter() const { return getWidthHeight() / 2.0; }
 
+Mat4 AprilGridConfig::getCenterRelativePose() const {
+  const double calib_width = getWidth();
+  const double calib_height = getHeight();
+  const Mat3 C_TO = I(3);
+  const Vec3 r_TO{calib_width / 2.0, calib_height / 2.0, 1.0};
+  const Mat4 T_TO = tf(C_TO, r_TO);
+  return T_TO;
+}
+
 int AprilGridConfig::getNumTags() const { return tag_rows * tag_cols; }
 
 void AprilGridConfig::getGridIndex(const int tag_id, int &i, int &j) const {
