@@ -3,20 +3,20 @@
 #include "CalibProblem.hpp"
 #include "../ceres/PoseManifold.hpp"
 #include "../ceres/ImuError.hpp"
-#include "../ceres/CalibCameraImuError.hpp"
+#include "../ceres/CalibCameraImuError2.hpp"
 
 namespace cartesian {
 
 /** Camera-IMU Calibrator **/
 struct CalibCameraImu : CalibProblem {
-  using CameraResiduals = std::map<int, std::vector<CalibCameraImuErrorPtr>>;
+  using CameraResiduals = std::map<int, std::vector<CalibCameraImuError2Ptr>>;
   using ImuResiduals = std::map<int, ImuErrorPtr>;
   using CameraBuffers = std::map<int, CalibTargetMap>;
 
   std::map<timestamp_t, CameraResiduals> camera_resblocks;
   std::map<timestamp_t, ImuResiduals> imu_resblocks;
 
-  bool verbose = false;
+  bool verbose = true;
   bool imu_started = false;
   bool camera_started = false;
   bool initialized = false;
@@ -26,7 +26,7 @@ struct CalibCameraImu : CalibProblem {
 
   CalibCameraImu() = default;
   CalibCameraImu(const std::string &config_file);
-  ~CalibCameraImu() = default;
+  virtual ~CalibCameraImu() = default;
 
   /** Find target with the most observations */
   std::pair<int, int> findOptimalTarget();

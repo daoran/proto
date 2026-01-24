@@ -6,9 +6,9 @@ namespace cartesian {
 // EurocImu                                                                  //
 ///////////////////////////////////////////////////////////////////////////////
 
-EurocImu::EurocImu(const std::string &data_dir_) : data_dir{data_dir_} {
-  const std::string data_path = data_dir + "/data.csv";
-  const std::string sensor_path = data_dir + "/sensor.yaml";
+EurocImu::EurocImu(const fs::path &data_dir_) : data_dir{data_dir_} {
+  const fs::path &data_path = data_dir / "data.csv";
+  const fs::path &sensor_path = data_dir / "sensor.yaml";
 
   // Open file for loading
   int nb_rows = 0;
@@ -80,10 +80,10 @@ void EurocImu::print() const {
 // EurocCamera                                                               //
 ///////////////////////////////////////////////////////////////////////////////
 
-EurocCamera::EurocCamera(const std::string &data_dir_, bool is_calib_data)
+EurocCamera::EurocCamera(const fs::path &data_dir_, bool is_calib_data)
     : data_dir{data_dir_} {
-  const std::string data_path = data_dir + "/data.csv";
-  const std::string sensor_path = data_dir + "/sensor.yaml";
+  const fs::path &data_path = data_dir / "data.csv";
+  const fs::path &sensor_path = data_dir / "sensor.yaml";
 
   // Open file for loading
   int nb_rows = 0;
@@ -110,8 +110,8 @@ EurocCamera::EurocCamera(const std::string &data_dir_, bool is_calib_data)
 
     // Check if file exists
     const std::string image_file{filename};
-    const auto image_path = data_dir + "/data/" + image_file;
-    if (file_exists(image_path) == false) {
+    const fs::path image_path = data_dir / "data" / image_file;
+    if (fs::exists(image_path) == false) {
       FATAL("File [%s] does not exist!", image_path.c_str());
     }
 
@@ -159,7 +159,7 @@ void EurocCamera::print() const {
 // EurocGroundTruth                                                          //
 ///////////////////////////////////////////////////////////////////////////////
 
-EurocGroundTruth::EurocGroundTruth(const std::string &data_dir_)
+EurocGroundTruth::EurocGroundTruth(const fs::path &data_dir_)
     : data_dir{data_dir_} {
   // Open file for loading
   const std::string data_path = data_dir + "/data.csv";
@@ -231,10 +231,9 @@ EurocGroundTruth::EurocGroundTruth(const std::string &data_dir_)
 // EurocData                                                                 //
 ///////////////////////////////////////////////////////////////////////////////
 
-EurocData::EurocData(const std::string &data_path)
-    : data_path{strip_end(data_path, "/")} {
+EurocData::EurocData(const fs::path &data_path_) : data_path{data_path_} {
   // Load IMU data
-  imu_data = EurocImu{data_path + "/mav0/imu0"};
+  imu_data = EurocImu{data_path / "mav0" / "imu0"};
   for (size_t i = 0; i < imu_data.timestamps.size(); i++) {
     const timestamp_t ts = imu_data.timestamps[i];
     const Vec3 acc = imu_data.a_B[i];
@@ -244,7 +243,7 @@ EurocData::EurocData(const std::string &data_path)
 
   // Load camera data
   // -- Load cam0 data
-  const auto cam0_path = data_path + "/mav0/cam0";
+  const auto cam0_path = data_path / "mav0" / "cam0";
   cam0_data = EurocCamera{cam0_path};
   for (size_t i = 0; i < cam0_data.timestamps.size(); i++) {
     const timestamp_t ts = cam0_data.timestamps[i];
@@ -252,7 +251,7 @@ EurocData::EurocData(const std::string &data_path)
     timeline.add(ts, 0, image_path);
   }
   // -- Load cam1 data
-  const auto cam1_path = data_path + "/mav0/cam1";
+  const auto cam1_path = data_path / "mav0" / "cam1";
   cam1_data = EurocCamera{cam0_path};
   for (size_t i = 0; i < cam1_data.timestamps.size(); i++) {
     const timestamp_t ts = cam1_data.timestamps[i];
@@ -264,7 +263,7 @@ EurocData::EurocData(const std::string &data_path)
   image_size = cv::Size(image.size());
 
   // Load ground truth
-  const auto gt_path = data_path + "/mav0/state_groundtruth_estimate0";
+  const auto gt_path = data_path / "mav0" / "state_groundtruth_estimate0";
   ground_truth = EurocGroundTruth{gt_path};
 
   // Process timestamps
@@ -320,8 +319,7 @@ timestamp_t EurocData::max_timestamp() const {
   return max_ts;
 }
 
-EurocTarget::EurocTarget(const std::string &target_file)
-    : file_path{target_file} {
+EurocTarget::EurocTarget(const fs::path &target_file) : file_path{target_file} {
   config_t config{target_file};
   if (config.ok != true) {
     FATAL("Failed to load target file [%s]!", target_file.c_str());
@@ -347,18 +345,17 @@ void EurocTarget::print() const {
 // EurocCalib                                                                //
 ///////////////////////////////////////////////////////////////////////////////
 
-EurocCalib::EurocCalib(const std::string &data_path)
-    : data_path{strip_end(data_path, "/")} {
+EurocCalib::EurocCalib(const fs::path &data_path_) : data_path{data_path_} {
   // Load IMU data
-  const std::string imu_data_dir = data_path + "/mav0/imu0";
+  const fs::path imu_data_dir = data_path / "mav0" / "imu0";
   imu_data = EurocImu{imu_data_dir};
 
   // Load cam0 data
-  const std::string cam0_dir = data_path + "/mav0/cam0";
+  const fs::path cam0_dir = data_path / "mav0" / "cam0";
   cam0_data = EurocCamera{cam0_dir, true};
 
   // Load cam1 data
-  const std::string cam1_dir = data_path + "/mav0/cam1";
+  const fs::path cam1_dir = data_path / "mav0" / "cam1";
   cam1_data = EurocCamera{cam1_dir, true};
 
   // Check if cam0 has same amount of images as cam1
@@ -379,7 +376,7 @@ EurocCalib::EurocCalib(const std::string &data_path)
   image_size = cv::Size(image.size());
 
   // Load calibration target data
-  const std::string target_path = data_path + "/april_6x6.yaml";
+  const fs::path target_path = data_path / "april_6x6.yaml";
   calib_target = EurocTarget{target_path};
 
   ok = true;

@@ -2,14 +2,15 @@
 
 namespace cartesian {
 
-MatX ImuError::formQ() {
+MatX ImuError::formQ() const {
+  const Mat3 I3 = I(3);
   MatX Q = zeros(18, 18);
-  Q.block<3, 3>(0, 0) = pow(imu_params_.noise_acc, 2) * I(3);
-  Q.block<3, 3>(3, 3) = pow(imu_params_.noise_gyr, 2) * I(3);
-  Q.block<3, 3>(6, 6) = pow(imu_params_.noise_acc, 2) * I(3);
-  Q.block<3, 3>(9, 9) = pow(imu_params_.noise_gyr, 2) * I(3);
-  Q.block<3, 3>(12, 12) = pow(imu_params_.noise_ba, 2) * I(3);
-  Q.block<3, 3>(15, 15) = pow(imu_params_.noise_bg, 2) * I(3);
+  Q.block<3, 3>(0, 0) = pow(imu_params.noise_acc, 2) * I3;
+  Q.block<3, 3>(3, 3) = pow(imu_params.noise_gyr, 2) * I3;
+  Q.block<3, 3>(6, 6) = pow(imu_params.noise_acc, 2) * I3;
+  Q.block<3, 3>(9, 9) = pow(imu_params.noise_gyr, 2) * I3;
+  Q.block<3, 3>(12, 12) = pow(imu_params.noise_ba, 2) * I3;
+  Q.block<3, 3>(15, 15) = pow(imu_params.noise_bg, 2) * I3;
   return Q;
 }
 
@@ -18,11 +19,12 @@ MatX ImuError::formF(const int k,
                      const Quat &dq_j,
                      const Vec3 &ba_i,
                      const Vec3 &bg_i,
-                     const double dt) {
-  const Vec3 w_k = imu_buffer_.getGyr(k);
-  const Vec3 w_kp1 = imu_buffer_.getGyr(k + 1);
-  const Vec3 a_k = imu_buffer_.getAcc(k);
-  const Vec3 a_kp1 = imu_buffer_.getAcc(k + 1);
+                     const double dt) const {
+  const Mat3 I3 = I(3);
+  const Vec3 w_k = imu_buffer.getGyr(k);
+  const Vec3 w_kp1 = imu_buffer.getGyr(k + 1);
+  const Vec3 a_k = imu_buffer.getAcc(k);
+  const Vec3 a_kp1 = imu_buffer.getAcc(k + 1);
   const Mat3 gyr_x = skew(0.5 * (w_k + w_kp1) - bg_i);
   const Mat3 acc_i_x = skew(a_k - ba_i);
   const Mat3 acc_j_x = skew(a_kp1 - ba_i);
@@ -33,25 +35,25 @@ MatX ImuError::formF(const int k,
   // Form transition matrix F
   MatX F = zeros(15, 15);
   // -- F row block 1
-  F.block<3, 3>(0, 0) = I(3);
+  F.block<3, 3>(0, 0) = I3;
   F.block<3, 3>(0, 3) = -0.25 * dC_i * acc_i_x * dt_sq;
-  F.block<3, 3>(0, 3) += -0.25 * dC_j * acc_j_x * (I(3) - gyr_x * dt) * dt_sq;
-  F.block<3, 3>(0, 6) = I(3) * dt;
+  F.block<3, 3>(0, 3) += -0.25 * dC_j * acc_j_x * (I3 - gyr_x * dt) * dt_sq;
+  F.block<3, 3>(0, 6) = I3 * dt;
   F.block<3, 3>(0, 9) = -0.25 * (dC_i + dC_j) * dt_sq;
   F.block<3, 3>(0, 12) = 0.25 * -dC_j * acc_j_x * dt_sq * -dt;
   // -- F row block 2
-  F.block<3, 3>(3, 3) = I(3) - gyr_x * dt;
-  F.block<3, 3>(3, 12) = -I(3) * dt;
+  F.block<3, 3>(3, 3) = I3 - gyr_x * dt;
+  F.block<3, 3>(3, 12) = -I3 * dt;
   // -- F row block 3
   F.block<3, 3>(6, 3) = -0.5 * dC_i * acc_i_x * dt;
-  F.block<3, 3>(6, 3) += -0.5 * dC_j * acc_j_x * (I(3) - gyr_x * dt) * dt;
-  F.block<3, 3>(6, 6) = I(3);
+  F.block<3, 3>(6, 3) += -0.5 * dC_j * acc_j_x * (I3 - gyr_x * dt) * dt;
+  F.block<3, 3>(6, 6) = I3;
   F.block<3, 3>(6, 9) = -0.5 * (dC_i + dC_j) * dt;
   F.block<3, 3>(6, 12) = 0.5 * -dC_j * acc_j_x * dt * -dt;
   // -- F row block 4
-  F.block<3, 3>(9, 9) = I(3);
+  F.block<3, 3>(9, 9) = I3;
   // -- F row block 5
-  F.block<3, 3>(12, 12) = I(3);
+  F.block<3, 3>(12, 12) = I3;
 
   return F;
 }
@@ -60,8 +62,9 @@ MatX ImuError::formG(const int k,
                      const Quat &dq_i,
                      const Quat &dq_j,
                      const Vec3 &ba_i,
-                     const double dt) {
-  const Vec3 a_k = imu_buffer_.getAcc(k);
+                     const double dt) const {
+  const Mat3 I3 = I(3);
+  const Vec3 a_k = imu_buffer.getAcc(k);
   const Mat3 acc_i_x = skew(a_k - ba_i);
   const Mat3 dC_i = dq_i.toRotationMatrix();
   const Mat3 dC_j = dq_j.toRotationMatrix();
@@ -74,30 +77,43 @@ MatX ImuError::formG(const int k,
   G.block<3, 3>(0, 6) = 0.25 * dC_j * acc_i_x * dt_sq;
   G.block<3, 3>(0, 9) = 0.25 * -dC_j * acc_i_x * dt_sq * 0.5 * dt;
   // -- G row block 2
-  G.block<3, 3>(3, 3) = I(3) * dt;
-  G.block<3, 3>(3, 9) = I(3) * dt;
+  G.block<3, 3>(3, 3) = I3 * dt;
+  G.block<3, 3>(3, 9) = I3 * dt;
   // -- G row block 3
   G.block<3, 3>(6, 0) = 0.5 * dC_i * dt;
   G.block<3, 3>(6, 3) = 0.5 * -dC_j * acc_i_x * dt * 0.5 * dt;
   G.block<3, 3>(6, 6) = 0.5 * dC_j * dt;
   G.block<3, 3>(6, 9) = 0.5 * -dC_j * acc_i_x * dt * 0.5 * dt;
   // -- G row block 4
-  G.block<3, 3>(9, 12) = I(3) * dt;
+  G.block<3, 3>(9, 12) = I3 * dt;
   // -- G row block 5
-  G.block<3, 3>(12, 15) = I(3) * dt;
+  G.block<3, 3>(12, 15) = I3 * dt;
 
   return G;
 }
 
 void ImuError::propagate() {
+  // Reset
+  dq_ = Quat{1.0, 0.0, 0.0, 0.0}; // Relative rotation
+  dr_ = Vec3{0.0, 0.0, 0.0};      // Relative position
+  dv_ = Vec3{0.0, 0.0, 0.0};      // Relative velocity
+  Eigen::Map<const VecX> sb_i(param_ptrs_[1], 9);
+  ba_ = Vec3{sb_i[3], sb_i[4], sb_i[5]};
+  bg_ = Vec3{sb_i[6], sb_i[7], sb_i[8]};
+
+  Dt_ = 0.0;                // Preintegration time period [s]
+  state_F_ = I(15);         // State jacobian
+  state_P_ = zeros(15, 15); // State covariance
+  sqrt_info_ = I(15, 15);   // Square root information
+
   // Noise matrix Q
   const MatX &Q = formQ();
 
   // Pre-integrate imu measuremenets
-  for (int k = 0; k < (imu_buffer_.getNumMeasurements() - 1); k++) {
+  for (int k = 0; k < (imu_buffer.size() - 1); k++) {
     // Timestep
-    const timestamp_t ts_i = imu_buffer_.getTimestamp(k);
-    const timestamp_t ts_j = imu_buffer_.getTimestamp(k + 1);
+    const timestamp_t ts_i = imu_buffer.getTimestamp(k);
+    const timestamp_t ts_j = imu_buffer.getTimestamp(k + 1);
     const double dt = ts2sec(ts_j - ts_i);
     const double dt_sq = dt * dt;
 
@@ -109,8 +125,8 @@ void ImuError::propagate() {
     const Vec3 bg_i = bg_;
 
     // Gyroscope measurement
-    const Vec3 w_k = imu_buffer_.getGyr(k);
-    const Vec3 w_kp1 = imu_buffer_.getGyr(k + 1);
+    const Vec3 w_k = imu_buffer.getGyr(k);
+    const Vec3 w_kp1 = imu_buffer.getGyr(k + 1);
     const Vec3 w = 0.5 * (w_k + w_kp1) - bg_i;
     const Quat dq_perturb{1.0,
                           w.x() * dt / 2.0,
@@ -118,8 +134,8 @@ void ImuError::propagate() {
                           w.z() * dt / 2.0};
 
     // Accelerometer measurement
-    const Vec3 a_k = imu_buffer_.getAcc(k);
-    const Vec3 a_kp1 = imu_buffer_.getAcc(k + 1);
+    const Vec3 a_k = imu_buffer.getAcc(k);
+    const Vec3 a_kp1 = imu_buffer.getAcc(k + 1);
     const Vec3 acc_i = dq_i * (a_k - ba_i);
     const Vec3 acc_j = (dq_i * dq_perturb) * (a_kp1 - ba_i);
     const Vec3 a = 0.5 * (acc_i + acc_j);
@@ -153,22 +169,17 @@ void ImuError::propagate() {
   sqrt_info_ = state_P_.inverse().llt().matrixU();
 }
 
-ImuError::ImuError(const std::vector<double *> &param_ptrs,
-                   const std::vector<ParamBlock::Type> &param_types,
-                   const ImuParams &imu_params,
-                   const ImuBuffer &imu_buffer)
-    : ResidualBlock{"ImuError", param_ptrs, param_types, 15},
-      imu_params_{imu_params}, imu_buffer_{imu_buffer} {
-  assert(imu_params_.noise_acc > 0);
-  assert(imu_params_.noise_gyr > 0);
-  assert(imu_params_.noise_ba > 0);
-  assert(imu_params_.noise_bg > 0);
-  assert(imu_params_.g.norm() > 0);
-
-  Eigen::Map<const VecX> sb_i(param_ptrs[1], 9);
-  ba_ = Vec3{sb_i[3], sb_i[4], sb_i[5]};
-  bg_ = Vec3{sb_i[6], sb_i[7], sb_i[8]};
-
+ImuError::ImuError(const std::vector<double *> &param_ptrs_,
+                   const std::vector<ParamBlock::Type> &param_types_,
+                   const ImuParams &imu_params_,
+                   const ImuBuffer &imu_buffer_)
+    : ResidualBlock{"ImuError", param_ptrs_, param_types_, 15},
+      imu_params{imu_params_}, imu_buffer{imu_buffer_} {
+  assert(imu_params.noise_acc > 0);
+  assert(imu_params.noise_gyr > 0);
+  assert(imu_params.noise_ba > 0);
+  assert(imu_params.noise_bg > 0);
+  assert(imu_params.g.norm() > 0);
   propagate();
 }
 
@@ -184,8 +195,8 @@ Vec3 ImuError::getRelativePosition() const { return dr_; }
 
 Vec3 ImuError::getRelativeVelocity() const { return dv_; }
 
-std::shared_ptr<ImuError> ImuError::create(const ImuParams &imu_params,
-                                           const ImuBuffer &imu_buffer,
+std::shared_ptr<ImuError> ImuError::create(const ImuParams &imu_params_,
+                                           const ImuBuffer &imu_buffer_,
                                            double *pose_i,
                                            double *sb_i,
                                            double *pose_j,
@@ -197,8 +208,8 @@ std::shared_ptr<ImuError> ImuError::create(const ImuParams &imu_params,
                                                ParamBlock::SPEED_BIASES};
   return std::make_shared<ImuError>(param_ptrs,
                                     param_types,
-                                    imu_params,
-                                    imu_buffer);
+                                    imu_params_,
+                                    imu_buffer_);
 }
 
 bool ImuError::eval(double const *const *params,
@@ -228,9 +239,9 @@ bool ImuError::eval(double const *const *params,
   // -- Extract jacobians from error-state jacobian
   const Mat3 &dr_dba = state_F_.block<3, 3>(0, 9);
   const Mat3 &dr_dbg = state_F_.block<3, 3>(0, 12);
-  const Mat3 &dv_dba = state_F_.block<3, 3>(3, 9);
-  const Mat3 &dv_dbg = state_F_.block<3, 3>(3, 12);
-  const Mat3 &dq_dbg = state_F_.block<3, 3>(6, 12);
+  const Mat3 &dq_dbg = state_F_.block<3, 3>(3, 12);
+  const Mat3 &dv_dba = state_F_.block<3, 3>(6, 9);
+  const Mat3 &dv_dbg = state_F_.block<3, 3>(6, 12);
   const Vec3 &dba = ba_i - ba_;
   const Vec3 &dbg = bg_i - bg_;
   const Vec3 &dhtheta = 0.5 * (dq_dbg * dbg);
@@ -239,11 +250,11 @@ bool ImuError::eval(double const *const *params,
   // -- Correct the relative position, velocity and rotation
   const auto dr = dr_ + dr_dba * dba + dr_dbg * dbg;
   const auto dv = dv_ + dv_dba * dba + dv_dbg * dbg;
-  const auto dq = dq_ * quat_delta(dq_dbg * dbg);
+  const auto dq = dq_ * dq_theta;
 
   // Form residuals
   const double Dt_sq = Dt_ * Dt_;
-  const Vec3 &g = imu_params_.g;
+  const Vec3 &g = imu_params.g;
   const Mat3 &C_iT = C_i.transpose();
   const Quat &dq_inv = dq.inverse();
   const Quat &qi_inv = q_i.inverse();

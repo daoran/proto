@@ -75,18 +75,18 @@ TEST(LissajousTrajectory, construct) {
 
   // Test propagate body acceleration and angular velocity
   {
-    // Initialize position, velocity and attidue
-    const Mat4 T_WS_init = traj.get_pose(0);
-    Vec3 r_WS = tf_trans(T_WS_init);
-    Mat3 C_WS = tf_rot(T_WS_init);
-    Vec3 v_WS = traj.get_velocity(0);
-
     // Imu rate and time variables
     const double imu_hz = 1000.0;
     const double dt = 1.0 / imu_hz;
     timestamp_t ts_k = 0;
     timestamp_t ts_end = sec2ts(T);
     double path_length = 0.0;
+
+    // Initialize position, velocity and attidue
+    const Mat4 T_WS_init = traj.get_pose(0);
+    Vec3 r_WS = tf_trans(T_WS_init);
+    Mat3 C_WS = tf_rot(T_WS_init);
+    Vec3 v_WS = traj.get_velocity(0);
 
     while (ts_k <= ts_end) {
       // Get sensor acceleration and angular velocity in world frame

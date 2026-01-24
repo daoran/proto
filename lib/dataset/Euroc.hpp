@@ -16,7 +16,7 @@ struct EurocImu {
   bool ok = false;
 
   // Data
-  std::string data_dir;
+  fs::path data_dir;
   timestamps_t timestamps;
   Vec3s w_B;
   Vec3s a_B;
@@ -32,7 +32,7 @@ struct EurocImu {
   double accel_random_walk = 0.0;
 
   EurocImu() = default;
-  EurocImu(const std::string &data_dir_);
+  EurocImu(const fs::path &data_dir_);
   ~EurocImu() = default;
   void print() const;
 };
@@ -44,7 +44,7 @@ struct EurocCamera {
   bool ok = false;
 
   // Data
-  std::string data_dir;
+  fs::path data_dir;
   timestamps_t timestamps;
   std::vector<std::string> image_paths;
 
@@ -60,7 +60,7 @@ struct EurocCamera {
   Vec4 distortion_coefficients = zeros(4, 1);
 
   EurocCamera() = default;
-  EurocCamera(const std::string &data_dir_, bool is_calib_data = false);
+  EurocCamera(const fs::path &data_dir_, bool is_calib_data = false);
   ~EurocCamera() = default;
   void print() const;
 };
@@ -81,7 +81,7 @@ struct EurocGroundTruth {
   Vec3s b_a_RS_S;
 
   EurocGroundTruth() = default;
-  EurocGroundTruth(const std::string &data_dir_);
+  EurocGroundTruth(const fs::path &data_dir_);
   ~EurocGroundTruth() = default;
 };
 
@@ -90,7 +90,7 @@ struct EurocGroundTruth {
  */
 struct EurocData {
   bool ok = false;
-  std::string data_path;
+  fs::path data_path;
 
   EurocImu imu_data;
   EurocCamera cam0_data;
@@ -109,7 +109,7 @@ struct EurocData {
   Timeline timeline;
 
   EurocData() = default;
-  EurocData(const std::string &data_path);
+  EurocData(const fs::path &data_path);
   ~EurocData() = default;
 
   void reset();
@@ -122,7 +122,7 @@ struct EurocData {
  */
 struct EurocTarget {
   bool ok = false;
-  std::string file_path;
+  fs::path file_path;
 
   std::string type;
   int tag_rows = 0;
@@ -131,7 +131,7 @@ struct EurocTarget {
   double tag_spacing = 0.0;
 
   EurocTarget() = default;
-  EurocTarget(const std::string &target_file);
+  EurocTarget(const fs::path &target_file);
   ~EurocTarget() = default;
 
   void print() const;
@@ -144,7 +144,7 @@ struct EurocCalib {
   bool ok = false;
 
   // Settings
-  std::string data_path;
+  fs::path data_path;
   bool imshow = false;
 
   // Data
@@ -154,7 +154,7 @@ struct EurocCalib {
   EurocTarget calib_target;
   cv::Size image_size;
 
-  EurocCalib(const std::string &data_path);
+  EurocCalib(const fs::path &data_path);
   ~EurocCalib() = default;
   Timeline timeline();
 };

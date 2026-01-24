@@ -45,7 +45,7 @@ static Vec7 setup_target_extrinsic() {
             0.0, 1.0, 0.0, 0.02,
             0.0, 0.0, 1.0, 0.03,
             0.0, 0.0, 0.0, 1.0;
-  T_T0Tj = tf_perturb_rot(T_T0Tj, 0.01, 2);
+  T_T0Tj = tf_perturb_rot(T_T0Tj, 0.01, 1);
   auto extrinsic = tf_vec(T_T0Tj);
   // clang-format on
 

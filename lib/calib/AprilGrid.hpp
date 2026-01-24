@@ -111,14 +111,14 @@ public:
   void remove(const int tag_id);
 
   /** Save AprilGrid **/
-  int save(const std::string &save_path) const;
+  int save(const fs::path &save_path) const;
 
   /** Load AprilGrid **/
-  static std::shared_ptr<AprilGrid> load(const std::string &data_path);
+  static std::shared_ptr<AprilGrid> load(const fs::path &data_path);
 
   /** Load CalibTargets **/
   static std::vector<std::shared_ptr<CalibTarget>>
-  loadDirectory(const std::string &dir_path);
+  loadDirectory(const fs::path &dir_path);
 
   /** Draw AprilGrid */
   cv::Mat draw(const cv::Mat &image,

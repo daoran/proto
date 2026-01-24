@@ -2,23 +2,6 @@
 
 namespace cartesian {
 
-static Mat3 Exp(const Vec3 &phi) {
-  const double norm = phi.norm();
-
-  // Small angle approx
-  if (norm < 1e-3) {
-    return Mat3{I(3) + skew(phi)};
-  }
-
-  // Exponential map from so(3) to SO(3)
-  const Mat3 phi_skew = skew(phi);
-  Mat3 C = I(3);
-  C += (sin(norm) / norm) * phi_skew;
-  C += ((1 - cos(norm)) / (norm * norm)) * (phi_skew * phi_skew);
-
-  return C;
-}
-
 void SimCalib::sim_camera_calib(const double camera_rate,
                                 const double sample_x,
                                 const double sample_y,
@@ -420,7 +403,7 @@ int SimCalib::save_camera_views(const fs::path &save_dir) const {
   for (const auto &[target_id, _] : target_configs) {
     const fs::path &target_str = "target" + std::to_string(target_id);
     const fs::path &target_dir = save_dir / target_str;
-    if (dir_create(target_dir) != 0) {
+    if (!fs::exists(target_dir) && !fs::create_directories(target_dir)) {
       LOG_ERROR("Could not create dir [%s]!", target_dir.c_str());
       return -1;
     }
@@ -444,7 +427,7 @@ int SimCalib::save_camera_views(const fs::path &save_dir) const {
 
 int SimCalib::save(const fs::path &save_dir) const {
   // Check save dir
-  if (dir_create(save_dir) != 0) {
+  if (!fs::exists(save_dir) && !fs::create_directories(save_dir)) {
     LOG_ERROR("Could not create dir [%s]!", save_dir.c_str());
     return -1;
   }

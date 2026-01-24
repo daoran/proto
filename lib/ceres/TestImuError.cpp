@@ -78,8 +78,6 @@ TEST(ImuError, evaluate) {
 
   Eigen::Vector<double, 15> r;
   residual_block->eval(param_ptrs.data(), r.data(), nullptr);
-  // print_vector("r", r);
-  // print_matrix("F", residual_block->getMatrixF());
 
   // Check Jacobians
   const double h = 1e-8;

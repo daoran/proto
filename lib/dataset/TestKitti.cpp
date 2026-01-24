@@ -107,6 +107,7 @@ struct KittiTestData {
 
   int setup_kitti_calib_test_data(const fs::path &data_dir) {
     // Create calib_cam_to_cam.txt
+    // clang-format off
     const fs::path &cam_to_cam_path = data_dir / "calib_cam_to_cam.txt";
     FILE *f = fopen(cam_to_cam_path.string().c_str(), "w");
     fprintf(f, "calib_time: 09-Jan-2012 13:57:47\n");
@@ -118,8 +119,7 @@ struct KittiTestData {
     fprintf(f, "T_00: 1.0 2.0 3.0\n");
     fprintf(f, "S_rect_00: 1.0 2.0\n");
     fprintf(f, "R_rect_00: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
-    fprintf(f,
-            "P_rect_00: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
+    fprintf(f, "P_rect_00: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
     fprintf(f, "S_01: 1.0 2.0\n");
     fprintf(f, "K_01: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
     fprintf(f, "D_01: 1.0 2.0 3.0 4.0 5.0\n");
@@ -127,8 +127,7 @@ struct KittiTestData {
     fprintf(f, "T_01: 1.0 2.0 3.0\n");
     fprintf(f, "S_rect_01: 1.0 2.0\n");
     fprintf(f, "R_rect_01: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
-    fprintf(f,
-            "P_rect_01: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
+    fprintf(f, "P_rect_01: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
     fprintf(f, "S_02: 1.0 2.0\n");
     fprintf(f, "K_02: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
     fprintf(f, "D_02: 1.0 2.0 3.0 4.0 5.0\n");
@@ -136,8 +135,7 @@ struct KittiTestData {
     fprintf(f, "T_02: 1.0 2.0 3.0\n");
     fprintf(f, "S_rect_02: 1.0 2.0\n");
     fprintf(f, "R_rect_02: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
-    fprintf(f,
-            "P_rect_02: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
+    fprintf(f, "P_rect_02: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
     fprintf(f, "S_03: 1.0 2.0\n");
     fprintf(f, "K_03: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
     fprintf(f, "D_03: 1.0 2.0 3.0 4.0 5.0\n");
@@ -145,9 +143,9 @@ struct KittiTestData {
     fprintf(f, "T_03: 1.0 2.0 3.0\n");
     fprintf(f, "S_rect_03: 1.0 2.0\n");
     fprintf(f, "R_rect_03: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0\n");
-    fprintf(f,
-            "P_rect_03: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
+    fprintf(f, "P_rect_03: 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0\n");
     fclose(f);
+    // clang-format on
 
     // Create calib_imu_to_velo.txt
     const fs::path &imu_to_velo_path = data_dir / "calib_imu_to_velo.txt";

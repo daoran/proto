@@ -204,10 +204,10 @@ void AprilGrid::remove(const int tag_id) {
   remove(tag_id, 3);
 }
 
-int AprilGrid::save(const std::string &save_path) const {
+int AprilGrid::save(const fs::path &save_path) const {
   // Check save dir
-  const std::string dir_path = dir_name(save_path);
-  if (dir_create(dir_path) != 0) {
+  const auto dir_path = save_path.parent_path();
+  if (!fs::exists(dir_path) && fs::create_directories(dir_path)) {
     LOG_ERROR("Could not create dir [%s]!", dir_path.c_str());
     return -1;
   }
@@ -311,7 +311,7 @@ static void aprilgrid_parse_skip_line(FILE *fp) {
   UNUSED(retval);
 }
 
-std::shared_ptr<AprilGrid> AprilGrid::load(const std::string &data_path) {
+std::shared_ptr<AprilGrid> AprilGrid::load(const fs::path &data_path) {
   // Open file for loading
   FILE *fp = fopen(data_path.c_str(), "r");
   if (fp == NULL) {
@@ -368,16 +368,16 @@ std::shared_ptr<AprilGrid> AprilGrid::load(const std::string &data_path) {
 }
 
 std::vector<std::shared_ptr<CalibTarget>>
-AprilGrid::loadDirectory(const std::string &dir_path) {
-  std::vector<std::string> csv_files;
-  if (list_dir(dir_path, csv_files) != 0) {
-    FATAL("Failed to list dir [%s]!", dir_path.c_str());
+AprilGrid::loadDirectory(const fs::path &dir_path) {
+  std::vector<fs::path> csv_files;
+  for (const auto &csv_file : fs::directory_iterator(dir_path)) {
+    csv_files.push_back(csv_file);
   }
   sort(csv_files.begin(), csv_files.end());
 
   std::vector<std::shared_ptr<CalibTarget>> grids;
   for (const auto &grid_csv : csv_files) {
-    const auto csv_path = dir_path + "/" + grid_csv;
+    const auto csv_path = dir_path / grid_csv;
     grids.push_back(AprilGrid::load(grid_csv));
   }
 

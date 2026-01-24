@@ -418,24 +418,21 @@ KittiVelodyne::load_points(const fs::path &pcd_path) {
 
 KittiVelodyne::KittiVelodyne(const fs::path &data_dir) {
   // Setup timestamp paths
-  char timestamps_path[1024] = {0};
-  char timestamps_start_path[1024] = {0};
-  char timestamps_end_path[1024] = {0};
-  sprintf(timestamps_path, "%s/timestamps.txt", data_dir.c_str());
-  sprintf(timestamps_start_path, "%s/timestamps_start.txt", data_dir.c_str());
-  sprintf(timestamps_end_path, "%s/timestamps_end.txt", data_dir.c_str());
+  const fs::path timestamps_path = data_dir / "timestamps.txt";
+  const fs::path timestamps_start_path = data_dir / "timestamps_start.txt";
+  const fs::path timestamps_end_path = data_dir / "timestamps_end.txt";
 
   // Load timestamps
-  timestamps = load_timestamps(timestamps_path);
-  timestamps_start = load_timestamps(timestamps_start_path);
-  timestamps_end = load_timestamps(timestamps_end_path);
+  timestamps = load_timestamps(timestamps_path.string().c_str());
+  timestamps_start = load_timestamps(timestamps_start_path.string().c_str());
+  timestamps_end = load_timestamps(timestamps_end_path.string().c_str());
 
   // Load data
   const int num_timestamps = timestamps.size();
   for (int i = 0; i < num_timestamps; ++i) {
     char pcd_path[1024] = {0};
-    sprintf(pcd_path, "%s/%s/%010d.bin", data_dir.c_str(), "data", i);
-    pcd_paths[i] = fs::path{pcd_path};
+    sprintf(pcd_path, "%s/%s/%010d.bin", data_dir.string().c_str(), "data", i);
+    pcd_paths.push_back(fs::path{pcd_path});
   }
 }
 

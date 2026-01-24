@@ -139,8 +139,10 @@ void CalibProblem::loadCameraData(const int camera_id) {
   }
 
   // Get image files
-  std::vector<std::string> image_paths;
-  list_files(camera_dir, image_paths);
+  std::vector<fs::path> image_paths;
+  for (const auto &path : fs::directory_iterator(camera_dir)) {
+    image_paths.push_back(path);
+  }
 
   // Detect aprilgrids
   if (cache_exists == false) {
@@ -150,9 +152,8 @@ void CalibProblem::loadCameraData(const int camera_id) {
         print_progress((double) k / (double) image_paths.size(), desc);
       }
 
-      const std::string image_fname = image_paths[k];
-      const fs::path image_path = camera_dir / image_fname;
-      const std::string ts_str = image_fname.substr(0, 19);
+      const fs::path image_path = image_paths[k];
+      const std::string ts_str = image_path.stem();
       const timestamp_t ts = std::stoull(ts_str);
       if (std::all_of(ts_str.begin(), ts_str.end(), ::isdigit) == false) {
         FATAL("Invalid image file: [%s]!", image_path.c_str());
@@ -179,9 +180,8 @@ void CalibProblem::loadCameraData(const int camera_id) {
       print_progress((double) k / (double) image_paths.size(), desc);
     }
 
-    const std::string image_fname = image_paths[k];
-    const fs::path image_path = camera_dir / image_fname;
-    const std::string ts_str = image_fname.substr(0, 19);
+    const fs::path image_path = image_paths[k];
+    const std::string ts_str = image_path.stem();
     const timestamp_t ts = std::stoull(ts_str);
     const fs::path target_fname = ts_str + ".csv";
     if (std::all_of(ts_str.begin(), ts_str.end(), ::isdigit) == false) {
@@ -224,7 +224,10 @@ void CalibProblem::loadImuData(const int imu_id) {
 
   ImuBuffer imu_buffer;
   for (int i = 0; i < num_rows; i++) {
-    print_progress((double) i / (double) num_rows, desc);
+    if (verbose) {
+      print_progress((double) i / (double) num_rows, desc);
+    }
+
     // Parse line
     timestamp_t ts;
     Vec3 imu_acc;
@@ -238,6 +241,7 @@ void CalibProblem::loadImuData(const int imu_id) {
                               &imu_acc.data()[0],
                               &imu_acc.data()[1],
                               &imu_acc.data()[2]);
+
     if (retval != 7) {
       FATAL("Failed to parse data line %d in [%s]\n", i, imu_path.c_str());
     }
@@ -245,7 +249,9 @@ void CalibProblem::loadImuData(const int imu_id) {
     // Add to imu buffer
     imu_buffer.add(ts, imu_acc, imu_gyr);
   }
-  print_progress(1.0);
+  if (verbose) {
+    print_progress(1.0);
+  }
 
   // Add imu data
   imu_data[imu_id] = imu_buffer;
@@ -623,11 +629,11 @@ void CalibProblem::initializeCameraExtrinsics() {
   options.minimizer_progress_to_stdout = verbose;
   options.max_num_iterations = 30;
   options.num_threads = 1;
-  options.initial_trust_region_radius = 10; // Default: 1e4
-  options.min_trust_region_radius = 1e-50;  // Default: 1e-32
-  options.function_tolerance = 1e-20;       // Default: 1e-6
-  options.gradient_tolerance = 1e-20;       // Default: 1e-10
-  options.parameter_tolerance = 1e-20;      // Default: 1e-8
+  options.initial_trust_region_radius = 1e-4; // Default: 1e4
+  options.min_trust_region_radius = 1e-50;    // Default: 1e-32
+  options.function_tolerance = 1e-20;         // Default: 1e-6
+  options.gradient_tolerance = 1e-20;         // Default: 1e-10
+  options.parameter_tolerance = 1e-20;        // Default: 1e-8
 
   // Solve
   ceres::Solver::Summary summary;
@@ -660,8 +666,8 @@ void CalibProblem::addImu(const int imu_id,
   imu_geometries[imu_id] = imu;
 
   // Add IMU extrinsic
-  problem->AddParameterBlock(imu->extrinsic.data(), 7);
-  problem->SetManifold(imu->extrinsic.data(), &pose_plus);
+  problem->AddParameterBlock(imu_geometries[imu_id]->extrinsic.data(), 7);
+  problem->SetManifold(imu_geometries[imu_id]->extrinsic.data(), &pose_plus);
 }
 
 int CalibProblem::getNumImus() const { return imu_geometries.size(); }
@@ -713,6 +719,7 @@ void CalibProblem::setTargetPose(const Mat4 &transform) {
   target_pose = tf_vec(transform);
   problem->AddParameterBlock(target_pose.data(), 7);
   problem->SetManifold(target_pose.data(), &pose_plus);
+  // problem->SetParameterBlockConstant(target_pose.data());
 }
 
 Vec7 &CalibProblem::getTargetPose() { return target_pose; }
@@ -740,14 +747,14 @@ Vec3 &CalibProblem::getTargetPoint(const int target_id, const int point_id) {
 void CalibProblem::addPose(const timestamp_t ts, const Mat4 &pose) {
   timestamps.insert(ts);
   poses[ts] = tf_vec(pose);
-  problem->AddParameterBlock(poses[ts].data(), 7);
-  problem->SetManifold(poses[ts].data(), &pose_plus);
+  problem->AddParameterBlock(poses.at(ts).data(), 7);
+  problem->SetManifold(poses.at(ts).data(), &pose_plus);
 }
 
 Vec7 &CalibProblem::getPose(const timestamp_t ts) { return poses[ts]; }
 
 double *CalibProblem::getPosePtr(const timestamp_t ts) {
-  return poses[ts].data();
+  return poses.at(ts).data();
 }
 
 /*******************************************************************************
@@ -761,15 +768,15 @@ void CalibProblem::addSpeedAndBiases(const timestamp_t ts,
   Vec9 sb;
   sb << v_WS, bias_acc, bias_gyr;
   speed_and_biases[ts] = sb;
-  problem->AddParameterBlock(speed_and_biases[ts].data(), 9);
+  problem->AddParameterBlock(speed_and_biases.at(ts).data(), 9);
 }
 
 Vec9 &CalibProblem::getSpeedAndBiases(const timestamp_t ts) {
-  return speed_and_biases[ts];
+  return speed_and_biases.at(ts);
 }
 
 double *CalibProblem::getSpeedAndBiasesPtr(const timestamp_t ts) {
-  return speed_and_biases[ts].data();
+  return speed_and_biases.at(ts).data();
 }
 
 /*******************************************************************************
@@ -807,10 +814,16 @@ void CalibProblem::printCalibTargetConfigs(FILE *fp) const {
 
 void CalibProblem::printTargetGeometries(FILE *fp,
                                          const bool max_digits) const {
+  // Print target0 pose
+  fprintf(fp, "target0:\n");
+  fprintf(fp, "  pose: %s\n", vec2str(target_pose, true, max_digits).c_str());
+  fprintf(fp, "\n");
+
+  // Print target geometries
   for (const auto &[target_id, target] : target_geometries) {
-    const auto extrinsic = vec2str(target->extrinsic, false, max_digits);
+    const auto extrinsic = vec2str(target->extrinsic, true, max_digits);
     fprintf(fp, "target%d:\n", target_id);
-    fprintf(fp, "  extrinsic:  [%s]\n", extrinsic.c_str());
+    fprintf(fp, "  extrinsic: %s\n", extrinsic.c_str());
     fprintf(fp, "\n");
   }
 }

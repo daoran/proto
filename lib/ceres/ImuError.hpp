@@ -6,15 +6,14 @@
 namespace cartesian {
 
 // Forward declaration
-class ImuError;
+struct ImuError;
 using ImuErrorPtr = std::shared_ptr<ImuError>;
 
 /** Imu Error */
-class ImuError : public ResidualBlock {
-private:
+struct ImuError : ResidualBlock {
   // Imu parameters and data
-  const ImuParams imu_params_;
-  const ImuBuffer imu_buffer_;
+  const ImuParams imu_params;
+  const ImuBuffer imu_buffer;
 
   // Pre-integrate relative position, velocity, rotation and biases
   Quat dq_{1.0, 0.0, 0.0, 0.0}; // Relative rotation
@@ -29,7 +28,7 @@ private:
   MatX sqrt_info_ = I(15, 15);   // Square root information
 
   /** Form noise matrix Q */
-  MatX formQ();
+  MatX formQ() const;
 
   /** Form transiton matrix F */
   MatX formF(const int k,
@@ -37,24 +36,23 @@ private:
              const Quat &dq_j,
              const Vec3 &ba_i,
              const Vec3 &bg_i,
-             const double dt);
+             const double dt) const;
 
   /** Form matrix G */
   MatX formG(const int k,
              const Quat &dq_i,
              const Quat &dq_j,
              const Vec3 &ba_i,
-             const double dt);
+             const double dt) const;
 
   /** Propagate IMU measurements */
   void propagate();
 
-public:
   /** Constructor */
   ImuError(const std::vector<double *> &param_ptrs,
            const std::vector<ParamBlock::Type> &param_types,
-           const ImuParams &imu_params,
-           const ImuBuffer &imu_buffer);
+           const ImuParams &imu_params_,
+           const ImuBuffer &imu_buffer_);
 
   /** Manually set square root information */
   void setSqrtInfo(const MatX &sqrt_info);
@@ -75,8 +73,8 @@ public:
   Vec3 getRelativeVelocity() const;
 
   /** Create residual block */
-  static std::shared_ptr<ImuError> create(const ImuParams &imu_params,
-                                          const ImuBuffer &imu_buffer,
+  static std::shared_ptr<ImuError> create(const ImuParams &imu_params_,
+                                          const ImuBuffer &imu_buffer_,
                                           double *pose_i,
                                           double *sb_i,
                                           double *pose_j,

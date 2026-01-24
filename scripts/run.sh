@@ -18,24 +18,28 @@ run_memcheck() {
   valgrind --leak-check=full $1 $2 $3
 }
 
-# CMD="./build/unittests"
+CMD="./build/unittests"
 # // calib
 # CMD="./build/unittests --gtest_filter=AprilGrid.*"
 # CMD="./build/unittests --gtest_filter=AprilGridDetector.*"
 # CMD="./build/unittests --gtest_filter=CalibCamera.*"
-CMD="./build/unittests --gtest_filter=CalibCameraImu.*"
-# CMD="./build/unittests --gtest_filter=CalibProblem.*"
+# CMD="./build/unittests --gtest_filter=CalibCameraImu.*"
+# CMD="$DEBUG ./build/unittests --gtest_filter=CalibProblem.*"
 # CMD="./build/unittests --gtest_filter=CameraChain.*"
 # CMD="./build/unittests --gtest_filter=LissajousTrajectory.*"
 # // camera
 # CMD="./build/unittests --gtest_filter=BrownConrady4.*"
 # CMD="./build/unittests --gtest_filter=KannalaBrandt4.*"
 # CMD="./build/unittests --gtest_filter=Pinhole.*"
+# // dataset
+# CMD="./build/unittests --gtest_filter=Euroc.*"
+# CMD="${DEBUG} ./build/unittests --gtest_filter=Kitti.*"
 # // imu
 # CMD="./build/unittests --gtest_filter=ImuBuffer.*"
 # // ceres
 # CMD="./build/unittests --gtest_filter=CalibCameraError.*"
 # CMD="./build/unittests --gtest_filter=CalibCameraImuError.*"
+# CMD="./build/unittests --gtest_filter=CalibCameraImuError2.*"
 # CMD="./build/unittests --gtest_filter=ImuError.*"
 # CMD="./build/unittests --gtest_filter=ReprojError.*"
 # // core

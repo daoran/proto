@@ -58,7 +58,7 @@ add_library(
   lib/ceres/ResidualBlock.cpp
   lib/core/Core.cpp
   lib/core/Logger.cpp
-  lib/dataset/EuRoC.cpp
+  lib/dataset/Euroc.cpp
   lib/dataset/Kitti.cpp
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
@@ -98,9 +98,12 @@ add_executable(unittests
   lib/camera/TestBrownConrady4.cpp
   lib/camera/TestKannalaBrandt4.cpp
   lib/camera/TestPinhole.cpp
+  lib/dataset/TestEuroc.cpp
+  lib/dataset/TestKitti.cpp
   lib/imu/TestImuBuffer.cpp
   lib/ceres/TestCalibCameraError.cpp
   lib/ceres/TestCalibCameraImuError.cpp
+  lib/ceres/TestCalibCameraImuError2.cpp
   lib/ceres/TestImuError.cpp
   lib/ceres/TestReprojError.cpp
   lib/core/TestLogger.cpp
