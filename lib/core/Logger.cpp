@@ -45,7 +45,7 @@ rerun::Transform3D Logger::convert_pose(const Mat4 &pose,
 }
 
 rerun::Points3D Logger::convert_points(const std::vector<Vec3> &points,
-                                       const std::vector<Vec3> &colors,
+                                       const std::vector<Vec3i> &colors,
                                        const std::vector<double> &radii) const {
 
   std::vector<rerun::Position3D> rerun_positions;
@@ -65,7 +65,7 @@ rerun::Points3D Logger::convert_points(const std::vector<Vec3> &points,
 }
 
 rerun::LineStrips3D Logger::convert_line(const std::vector<Vec3> &points,
-                                         const Vec3 &color,
+                                         const Vec3i &color,
                                          const float &radii) {
   std::vector<std::vector<std::array<float, 3>>> rerun_points;
   rerun_points.resize(1);
@@ -89,7 +89,7 @@ void Logger::log_image(const std::string &topic,
 }
 
 void Logger::init_series_line(const std::string &topic,
-                              const Vec3 color,
+                              const Vec3i &color,
                               const float line_width) {
   rerun::Rgba32 rr_color(color.x(), color.y(), color.z());
   rec_->log_static(topic,
@@ -106,16 +106,23 @@ void Logger::log_scalar(const std::string &topic,
   rec_->log(topic, rerun::Scalars{value});
 }
 
+void Logger::log_scalar(const std::string &topic,
+                        const std::map<timestamp_t, double> &values) {
+  for (const auto &[ts, value] : values) {
+    log_scalar(topic, ts, value);
+  }
+}
+
 void Logger::log_line(const std::string &topic,
                       const std::vector<Vec3> &points,
-                      const Vec3 &color,
+                      const Vec3i &color,
                       const float radii) {
   rec_->log_static(topic, convert_line(points, color, radii));
 }
 
 void Logger::log_points(const std::string &topic,
                         const std::vector<Vec3> &points,
-                        const std::vector<Vec3> &colors,
+                        const std::vector<Vec3i> &colors,
                         const std::vector<double> &radii) {
   assert(points.size() == colors.size());
   rec_->log_static(topic, convert_points(points, colors, radii));
@@ -124,7 +131,7 @@ void Logger::log_points(const std::string &topic,
 void Logger::log_points(const std::string &topic,
                         const timestamp_t ts,
                         const std::vector<Vec3> &points,
-                        const std::vector<Vec3> &colors,
+                        const std::vector<Vec3i> &colors,
                         const std::vector<double> &radii) {
   assert(points.size() == colors.size());
   rec_->set_time_timestamp("time", convert_timestamp(ts));
@@ -155,7 +162,7 @@ void Logger::log_poses(const std::string &topic,
 
 void Logger::log_trajectory(const std::string &topic,
                             const std::map<timestamp_t, Mat4> &poses,
-                            const Vec3 &color,
+                            const Vec3i &color,
                             const float radii) {
   std::vector<Vec3> positions;
   for (const auto &[ts, pose] : poses) {
@@ -168,7 +175,7 @@ void Logger::log_target(const std::string &topic,
                         const AprilGridConfig &config,
                         const Mat4 &T_WT) {
   std::vector<Vec3> points_data;
-  std::vector<Vec3> points_colors;
+  std::vector<Vec3i> points_colors;
   std::vector<double> points_radii;
 
   const auto num_tags = config.tag_rows * config.tag_cols;
@@ -177,7 +184,7 @@ void Logger::log_target(const std::string &topic,
       const Vec3 p_T = config.getObjectPoint(tag_id, corner_index);
       const Vec3 p_W = tf_point(T_WT, p_T);
       points_data.push_back(p_W);
-      points_colors.emplace_back(255.0, 0.0, 0.0);
+      points_colors.emplace_back(255, 0, 0);
       points_radii.emplace_back(0.01);
     }
   }

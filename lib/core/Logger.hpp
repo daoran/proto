@@ -27,12 +27,12 @@ private:
 
   /** Convert std::vector<Vec3> to rerun::Points3D **/
   rerun::Points3D convert_points(const std::vector<Vec3> &points,
-                                 const std::vector<Vec3> &colors,
+                                 const std::vector<Vec3i> &colors,
                                  const std::vector<double> &radii) const;
 
   /** Convert std::vector<Vec3> to rerun::LineStrips3D **/
   rerun::LineStrips3D convert_line(const std::vector<Vec3> &points,
-                                   const Vec3 &colors,
+                                   const Vec3i &color,
                                    const float &radii);
 
 public:
@@ -46,27 +46,29 @@ public:
 
   /** Log scalar */
   void init_series_line(const std::string &topic,
-                        const Vec3 color,
+                        const Vec3i &color,
                         const float line_width);
   void log_scalar(const std::string &topic,
                   const timestamp_t ts,
                   const double value);
+  void log_scalar(const std::string &topic,
+                  const std::map<timestamp_t, double> &values);
 
   /** Log line */
   void log_line(const std::string &topic,
                 const std::vector<Vec3> &points,
-                const Vec3 &color = Vec3{255.0, 0.0, 0.0},
+                const Vec3i &color = Vec3i{255.0, 0.0, 0.0},
                 const float radii = 0.01);
 
   /** Log Points */
   void log_points(const std::string &topic,
                   const std::vector<Vec3> &points,
-                  const std::vector<Vec3> &colors,
+                  const std::vector<Vec3i> &colors,
                   const std::vector<double> &radii);
   void log_points(const std::string &topic,
                   const timestamp_t ts,
                   const std::vector<Vec3> &points,
-                  const std::vector<Vec3> &colors,
+                  const std::vector<Vec3i> &colors,
                   const std::vector<double> &radii);
 
   /** Log pose */
@@ -84,7 +86,7 @@ public:
   /** Log trajectory */
   void log_trajectory(const std::string &topic,
                       const std::map<timestamp_t, Mat4> &poses,
-                      const Vec3 &color = Vec3{255.0, 0.0, 0.0},
+                      const Vec3i &color = Vec3i{255.0, 0.0, 0.0},
                       const float radii = 0.005);
 
   /** Log Calibration Target */

@@ -36,7 +36,7 @@ TEST(DISABLED_Logger, log_points) {
   Logger log;
 
   std::vector<Vec3> points;
-  std::vector<Vec3> colors;
+  std::vector<Vec3i> colors;
   std::vector<double> radii;
   for (int i = 0; i < 10; ++i) {
     const auto x = randf(-1.0, 1.0);
