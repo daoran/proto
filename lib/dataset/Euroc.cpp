@@ -11,14 +11,14 @@ EurocImu::EurocImu(const fs::path &data_dir_) : data_dir{data_dir_} {
   const fs::path &sensor_path = data_dir / "sensor.yaml";
 
   // Open file for loading
-  int nb_rows = 0;
-  FILE *fp = file_open(data_path, "r", &nb_rows);
+  int num_rows = 0;
+  FILE *fp = file_open(data_path, "r", &num_rows);
   if (fp == nullptr) {
     FATAL("Failed to open [%s]!", data_path.c_str());
   }
 
   // Parse file
-  for (int i = 0; i < nb_rows; i++) {
+  for (int i = 0; i < num_rows; i++) {
     // Skip first line
     if (i == 0) {
       skip_line(fp);
@@ -86,14 +86,14 @@ EurocCamera::EurocCamera(const fs::path &data_dir_, bool is_calib_data)
   const fs::path &sensor_path = data_dir / "sensor.yaml";
 
   // Open file for loading
-  int nb_rows = 0;
-  FILE *fp = file_open(data_path, "r", &nb_rows);
+  int num_rows = 0;
+  FILE *fp = file_open(data_path, "r", &num_rows);
   if (fp == nullptr) {
     FATAL("Failed to open [%s]!", data_path.c_str());
   }
 
   // Parse file
-  for (int i = 0; i < nb_rows; i++) {
+  for (int i = 0; i < num_rows; i++) {
     // Skip first line
     if (i == 0) {
       skip_line(fp);
@@ -163,8 +163,8 @@ EurocGroundTruth::EurocGroundTruth(const fs::path &data_dir_)
     : data_dir{data_dir_} {
   // Open file for loading
   const std::string data_path = data_dir + "/data.csv";
-  int nb_rows = 0;
-  FILE *fp = file_open(data_path, "r", &nb_rows);
+  int num_rows = 0;
+  FILE *fp = file_open(data_path, "r", &num_rows);
   if (fp == nullptr) {
     FATAL("Failed to open [%s]!", data_path.c_str());
   }
@@ -178,7 +178,7 @@ EurocGroundTruth::EurocGroundTruth(const fs::path &data_dir_)
   str_format += "%lf,%lf,%lf,";     // Gyro bias
   str_format += "%lf,%lf,%lf";      // Accel bias
 
-  for (int i = 0; i < nb_rows; i++) {
+  for (int i = 0; i < num_rows; i++) {
     // Skip first line
     if (i == 0) {
       skip_line(fp);
@@ -198,10 +198,10 @@ EurocGroundTruth::EurocGroundTruth(const fs::path &data_dir_)
                         &p_x,
                         &p_y,
                         &p_z,
+                        &q_w,
                         &q_x,
                         &q_y,
                         &q_z,
-                        &q_w,
                         &v_x,
                         &v_y,
                         &v_z,
@@ -359,13 +359,13 @@ EurocCalib::EurocCalib(const fs::path &data_path_) : data_path{data_path_} {
   cam1_data = EurocCamera{cam1_dir, true};
 
   // Check if cam0 has same amount of images as cam1
-  const size_t cam0_nb_images = cam0_data.image_paths.size();
-  const size_t cam1_nb_images = cam1_data.image_paths.size();
-  if (cam0_nb_images != cam1_nb_images) {
-    if (cam0_nb_images > cam1_nb_images) {
+  const size_t cam0_num_images = cam0_data.image_paths.size();
+  const size_t cam1_num_images = cam1_data.image_paths.size();
+  if (cam0_num_images != cam1_num_images) {
+    if (cam0_num_images > cam1_num_images) {
       cam0_data.timestamps.pop_back();
       cam0_data.image_paths.pop_back();
-    } else if (cam0_nb_images < cam1_nb_images) {
+    } else if (cam0_num_images < cam1_num_images) {
       cam1_data.timestamps.pop_back();
       cam1_data.image_paths.pop_back();
     }

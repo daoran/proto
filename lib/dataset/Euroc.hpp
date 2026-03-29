@@ -75,7 +75,7 @@ struct EurocGroundTruth {
   std::string data_dir;
   timestamps_t timestamps;
   Vec3s p_RS_R;
-  Vec4s q_RS;
+  Quats q_RS;
   Vec3s v_RS_R;
   Vec3s b_w_RS_S;
   Vec3s b_a_RS_S;

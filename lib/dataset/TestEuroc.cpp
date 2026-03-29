@@ -211,10 +211,10 @@ TEST(Euroc, load_ground_truth) {
   ASSERT_FLOAT_EQ(data.p_RS_R[0].x(), 2);
   ASSERT_FLOAT_EQ(data.p_RS_R[0].y(), 3);
   ASSERT_FLOAT_EQ(data.p_RS_R[0].z(), 4);
-  // ASSERT_FLOAT_EQ(data.q_RS[0].w(), 5);
-  // ASSERT_FLOAT_EQ(data.q_RS[0].x(), 6);
-  // ASSERT_FLOAT_EQ(data.q_RS[0].y(), 7);
-  // ASSERT_FLOAT_EQ(data.q_RS[0].z(), 8);
+  ASSERT_FLOAT_EQ(data.q_RS[0].w(), 5);
+  ASSERT_FLOAT_EQ(data.q_RS[0].x(), 6);
+  ASSERT_FLOAT_EQ(data.q_RS[0].y(), 7);
+  ASSERT_FLOAT_EQ(data.q_RS[0].z(), 8);
   ASSERT_FLOAT_EQ(data.v_RS_R[0].x(), 9);
   ASSERT_FLOAT_EQ(data.v_RS_R[0].y(), 10);
   ASSERT_FLOAT_EQ(data.v_RS_R[0].z(), 11);
