@@ -252,9 +252,9 @@ TEST(ImuError, solve) {
       log.log_pose("init", ts, pose_init, 0.1);
       log.log_pose("est", ts, pose_est, 0.1);
     }
-    log.log_trajectory("traj_gnd", traj_gnd, Vec3{255.0, 0.0, 0.0});
-    log.log_trajectory("traj_init", traj_init, Vec3{0.0, 0.0, 255.0});
-    log.log_trajectory("traj_est", traj_est, Vec3{0.0, 255.0, 0.0});
+    log.log_trajectory("traj_gnd", traj_gnd, Vec3i{255.0, 0.0, 0.0});
+    log.log_trajectory("traj_init", traj_init, Vec3i{0.0, 0.0, 255.0});
+    log.log_trajectory("traj_est", traj_est, Vec3i{0.0, 255.0, 0.0});
   }
 }
 

@@ -131,9 +131,9 @@ TEST(LissajousTrajectory, construct) {
   bool debug = false;
   if (debug) {
     Logger log;
-    const Vec3 red{255.0, 0.0, 0.0};
-    const Vec3 green{0.0, 255.0, 0.0};
-    const Vec3 blue{0.0, 0.0, 255.0};
+    const Vec3i red{255.0, 0.0, 0.0};
+    const Vec3i green{0.0, 255.0, 0.0};
+    const Vec3i blue{0.0, 0.0, 255.0};
 
     // Plot velocity, acceleration and angular velocity
     log.init_series_line("vel/x", red, 1.0f);
