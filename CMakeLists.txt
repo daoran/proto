@@ -64,6 +64,7 @@ add_library(
   lib/imu/ImuGeometry.cpp
   lib/imu/ImuState.cpp
   lib/sim/SimCalib.cpp
+  lib/sim/SimCircle.cpp
   lib/sim/SimImu.cpp
   # lib/sim/SimVio.cpp
   lib/timeline/CalibTargetEvent.cpp
@@ -108,6 +109,7 @@ add_executable(unittests
   lib/ceres/TestReprojError.cpp
   lib/core/TestLogger.cpp
   lib/sim/TestSimCalib.cpp
+  lib/sim/TestSimCircle.cpp
   lib/sim/TestSimImu.cpp
   lib/sim/TestSimVio.cpp
   lib/timeline/TestTimeline.cpp
