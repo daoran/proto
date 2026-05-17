@@ -5,22 +5,14 @@
 namespace cartesian {
 
 CalibProblem::CalibProblem() {
-  // Ceres
-  prob_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.enable_fast_removal = true;
-  problem = std::make_shared<ceres::Problem>(prob_options);
+  // Setup solver
+  setupSolver();
 }
 
 CalibProblem::CalibProblem(const std::string &config_path_)
     : config_path{config_path_} {
-  // Ceres
-  prob_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
-  prob_options.enable_fast_removal = true;
-  problem = std::make_shared<ceres::Problem>(prob_options);
+  // Setup solver
+  setupSolver();
 
   // Parse config
   config_t config{config_path};
@@ -62,9 +54,6 @@ CalibProblem::CalibProblem(const std::string &config_path_)
       continue;
     }
 
-    // Load camera data
-    loadCameraData(camera_id);
-
     // Parse
     Vec2i resolution;
     std::string camera_model;
@@ -85,6 +74,9 @@ CalibProblem::CalibProblem(const std::string &config_path_)
 
     // Add camera
     addCamera(camera_id, camera_model, resolution, intrinsic, extrinsic);
+
+    // Load camera data
+    loadCameraData(camera_id);
   }
 
   // -- Parse IMU settings
@@ -108,6 +100,18 @@ CalibProblem::CalibProblem(const std::string &config_path_)
     // Load IMU data
     loadImuData(imu_id);
   }
+}
+
+/*******************************************************************************
+ * Setup methods
+ ******************************************************************************/
+
+void CalibProblem::setupSolver() {
+  prob_options.manifold_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.cost_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+  prob_options.enable_fast_removal = true;
+  problem = std::make_shared<ceres::Problem>(prob_options);
 }
 
 /*******************************************************************************
@@ -143,6 +147,7 @@ void CalibProblem::loadCameraData(const int camera_id) {
   for (const auto &path : fs::directory_iterator(camera_dir)) {
     image_paths.push_back(path);
   }
+  sort(image_paths.begin(), image_paths.end());
 
   // Detect aprilgrids
   if (cache_exists == false) {
