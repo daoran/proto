@@ -41,7 +41,7 @@ int Timeline::getNumEvents(const timestamp_t &ts) {
   return std::distance(range.first, range.second);
 }
 
-std::vector<TimelineEvent *> Timeline::getEvents(const timestamp_t &ts) {
+std::vector<TimelineEvent *> Timeline::getEvents(const timestamp_t &ts) const {
   std::vector<TimelineEvent *> events;
 
   const auto range = data.equal_range(ts);

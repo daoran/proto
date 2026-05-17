@@ -36,7 +36,7 @@ struct Timeline {
   int getNumEvents(const timestamp_t &ts);
 
   /** Get events **/
-  std::vector<TimelineEvent *> getEvents(const timestamp_t &ts);
+  std::vector<TimelineEvent *> getEvents(const timestamp_t &ts) const;
 };
 
 } // namespace cartesian

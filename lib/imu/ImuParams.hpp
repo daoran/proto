@@ -4,6 +4,7 @@
 namespace cartesian {
 
 struct ImuParams {
+  int imu_id = 0;
   double noise_acc;
   double noise_gyr;
   double noise_ba;

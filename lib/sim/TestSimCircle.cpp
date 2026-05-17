@@ -8,7 +8,7 @@ namespace cartesian {
 TEST(SimCircle, construct) {
   SimCircle sim;
 
-  bool debug = true;
+  bool debug = false;
   if (debug) {
     std::vector<Vec3> pose_points;
     std::vector<Vec3> pose_colors;

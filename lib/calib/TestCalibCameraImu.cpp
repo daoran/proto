@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 
 #include "core/Logger.hpp"
+#include "core/SO3.hpp"
 #include "calib/CalibCameraImu.hpp"
+#include "calib/CalibInit.hpp"
+#include "imu/ImuPreintegrate.hpp"
 #include "sim/SimCalib.hpp"
 #include "timeline/timeline.hpp"
 
@@ -14,7 +17,7 @@ const fs::path imu_path = TEST_EUROC "/mav0/imu0/data.csv";
 const fs::path cam0_dir = TEST_EUROC "/mav0/cam0/data";
 const fs::path cam1_dir = TEST_EUROC "/mav0/cam0/data";
 
-Timeline form_timeline() {
+static Timeline form_timeline() {
   Timeline timeline;
 
   // -- Load imu data
@@ -64,7 +67,7 @@ Timeline form_timeline() {
   return timeline;
 }
 
-AprilGridConfig setup_target_config() {
+static AprilGridConfig setup_target_config() {
   AprilGridConfig target_config;
   target_config.target_id = 0;
   target_config.tag_rows = 6;
@@ -75,24 +78,13 @@ AprilGridConfig setup_target_config() {
   return target_config;
 }
 
-CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
-                                const Mat4 &T_cam0_imu = Mat4::Identity()) {
+static CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
+                                       const Timeline &timeline) {
   // Calibrate
   CalibCameraImu calib;
 
   // -- Add target
   calib.addTarget(target_config, tf_vec());
-
-  // -- Add Imu
-  {
-    ImuParams imu_params;
-    imu_params.imu_id = 0;
-    imu_params.noise_acc = 0.08;
-    imu_params.noise_gyr = 0.004;
-    imu_params.noise_ba = 0.00004;
-    imu_params.noise_bg = 2.0e-6;
-    calib.addImu(imu_params.imu_id, imu_params, tf_vec(T_cam0_imu));
-  }
 
   // -- Add cam0
   {
@@ -145,7 +137,7 @@ CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
     cam1_intrinsic[7] = -3.55590700e-05; // p2
 
     // Extrinsics
-    Vec7 cam1_extrinsic = zeros(7);
+    Vec7 cam1_extrinsic = zeros(7, 1);
     cam1_extrinsic[0] = 0.109935;
     cam1_extrinsic[1] = -0.000336639;
     cam1_extrinsic[2] = 0.000643293;
@@ -162,8 +154,23 @@ CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
                     cam1_extrinsic);
   }
 
-  // Form timeline
-  Timeline timeline = form_timeline();
+  // -- Add Imu
+  {
+    ImuParams imu_params;
+    imu_params.imu_id = 0;
+    imu_params.noise_acc = 0.08;
+    imu_params.noise_gyr = 0.004;
+    imu_params.noise_ba = 0.00004;
+    imu_params.noise_bg = 2.0e-6;
+
+    CalibInit calib_init;
+    const Mat4 &T_cam0_imu0 =
+        calib_init.initializeCameraImuExtrinsic(timeline,
+                                                calib.camera_geometries,
+                                                imu_params);
+
+    calib.addImu(imu_params.imu_id, imu_params, tf_vec(T_cam0_imu0));
+  }
 
   // Add to calibration problem
   for (const auto &ts : timeline.timestamps) {
@@ -183,103 +190,11 @@ CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
   return calib;
 }
 
-// TEST(CalibCameraImu, initialize_extrinsics) {
-//   // Form timeline
-//   Timeline timeline = form_timeline();
-//
-//   // cam0 geometry
-//   const int cam_id = 0;
-//   const std::string cam_model = "BrownConrady4";
-//   const Vec2i &cam_res{752, 480};
-//   // -- Intrinsics
-//   Vec8 cam0_int;
-//   cam0_int[0] = 458.654;        // fx
-//   cam0_int[1] = 457.296;        // fy
-//   cam0_int[2] = 367.215;        // cx
-//   cam0_int[3] = 248.375;        // cy
-//   cam0_int[4] = -0.28340811;    // k1
-//   cam0_int[5] = 0.07395907;     // k2
-//   cam0_int[6] = 0.00019359;     // p1
-//   cam0_int[7] = 1.76187114e-05; // p2
-//   // -- Extrinsics
-//   Vec7 cam0_ext = tf_vec();
-//   // -- Camera geometry
-//   auto cam0_geom = std::make_shared<CameraGeometry>(cam_id,
-//                                                     cam_model,
-//                                                     cam_res,
-//                                                     cam0_int,
-//                                                     cam0_ext);
-//
-//   // Get cam0 calibration targets and imu data
-//   ImuBuffer imu_buf;
-//   std::map<timestamp_t, std::shared_ptr<CalibTarget>> cam0_targets;
-//
-//   for (const auto &ts : timeline.timestamps) {
-//     for (const auto &event : timeline.getEvents(ts)) {
-//       if (auto target_event = dynamic_cast<CalibTargetEvent *>(event)) {
-//         const auto &cam_id = target_event->camera_id;
-//         if (cam_id == 0) {
-//           cam0_targets[ts] = target_event->calib_target;
-//         }
-//       }
-//
-//       if (auto imu_event = dynamic_cast<ImuEvent *>(event)) {
-//         imu_buf.add(ts, imu_event->acc, imu_event->gyr);
-//       }
-//     }
-//   }
-//
-//   // Get relative poses
-//   std::map<timestamp_t, Mat4> cam0_poses;
-//   for (const auto &[ts, target] : cam0_targets) {
-//     // Get calibration target measurements
-//     std::vector<int> point_ids;
-//     std::vector<int> corner_indicies;
-//     Vec2s keypoints;
-//     Vec3s object_points;
-//     target->getMeasurements(point_ids, keypoints, object_points);
-//     if (point_ids.size() < 10) {
-//       continue;
-//     }
-//
-//     // Estimate relative pose T_CiTj
-//     Mat4 T_CiTj;
-//     SolvePnp pnp{cam0_geom};
-//     int status = pnp.estimate(keypoints, object_points, T_CiTj);
-//     if (status != 0) {
-//       continue;
-//     }
-//
-//     // Add camera pose
-//     cam0_poses[ts] = T_CiTj.inverse();
-//   }
-//
-//   // Estimate relative transform
-// }
-
 TEST(CalibCameraImu, test_euroc) {
-  // clang-format off
-  Mat4 T_imu_cam0;
-  T_imu_cam0 <<
-    0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
-    0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
-    -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
-    0.0, 0.0, 0.0, 1.0;
-
-  Mat4 T_imu_cam1;
-  T_imu_cam1 <<
-    0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
-    0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
-    -0.0253898008918, 0.0179005838253, 0.999517347078, 0.00786212447038,
-    0.0, 0.0, 0.0, 1.0;
-
-  // Mat4 T_cam0_imu = T_imu_cam0.inverse();
-  Mat4 T_cam0_imu = Mat4::Identity();
-  // clang-format on
-
   // Calibrate
   const auto target_config = setup_target_config();
-  CalibCameraImu calib = setup_calibrator(target_config, T_cam0_imu);
+  const auto timeline = form_timeline();
+  CalibCameraImu calib = setup_calibrator(target_config, timeline);
 
   // Solve
   calib.solve();

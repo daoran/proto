@@ -71,7 +71,7 @@ int CalibCameraImu::estimateSensorPose(Mat4 &T_WS) {
 }
 
 int CalibCameraImu::estimateCameraPose(Mat4 &T_C0T0) {
-  // // Get calibration target measurements
+  // Get calibration target measurements
   std::vector<int> point_ids;
   std::vector<int> corner_indicies;
   Vec2s keypoints;
@@ -239,7 +239,7 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
 }
 
 void CalibCameraImu::initialize(const timestamp_t ts) {
-  assert(initialized_ == false);
+  assert(initialized == false);
 
   // Estimate relative pose - T_C0T0
   Mat4 T_C0T0;
@@ -388,7 +388,7 @@ void CalibCameraImu::solve() {
   // Solver options
   ceres::Solver::Options options;
   options.minimizer_progress_to_stdout = true;
-  options.max_num_iterations = 50;
+  options.max_num_iterations = 100;
   options.num_threads = 1;
   options.min_trust_region_radius = 1e-50; // Default: 1e-32
   options.function_tolerance = 1e-20;      // Default: 1e-6
@@ -416,6 +416,7 @@ void CalibCameraImu::solve() {
   std::cout << summary.BriefReport() << std::endl << std::endl;
   // std::cout << summary.FullReport() << std::endl << std::endl;
   printSummary(stdout);
+  printf("num_poses: %ld\n", poses.size());
 }
 
 } // namespace cartesian
