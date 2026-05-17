@@ -163,9 +163,8 @@ static CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
     imu_params.noise_ba = 0.00004;
     imu_params.noise_bg = 2.0e-6;
 
-    CalibInit calib_init;
     const Mat4 &T_cam0_imu0 =
-        calib_init.initializeCameraImuExtrinsic(timeline,
+        CalibInit::initializeCameraImuExtrinsic(timeline,
                                                 calib.camera_geometries,
                                                 imu_params);
 

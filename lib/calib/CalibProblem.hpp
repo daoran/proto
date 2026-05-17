@@ -2,6 +2,7 @@
 #include <filesystem>
 
 #include "../core/Core.hpp"
+#include "../calib/CalibInit.hpp"
 #include "../camera/CameraGeometry.hpp"
 #include "../imu/ImuBuffer.hpp"
 #include "../imu/ImuGeometry.hpp"

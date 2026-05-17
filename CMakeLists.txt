@@ -38,6 +38,7 @@ add_library(
   lib/calib/AprilGridDetector.cpp
   lib/calib/CalibCamera.cpp
   lib/calib/CalibCameraImu.cpp
+  lib/calib/CalibInit.cpp
   lib/calib/CalibProblem.cpp
   lib/calib/CalibTarget.cpp
   lib/calib/CalibTargetChain.cpp
@@ -58,10 +59,12 @@ add_library(
   lib/ceres/ResidualBlock.cpp
   lib/core/Core.cpp
   lib/core/Logger.cpp
+  lib/core/SO3.cpp
   lib/dataset/Euroc.cpp
   lib/dataset/Kitti.cpp
   lib/imu/ImuBuffer.cpp
   lib/imu/ImuGeometry.cpp
+  lib/imu/ImuPreintegrate.cpp
   lib/imu/ImuState.cpp
   lib/sim/SimCalib.cpp
   lib/sim/SimCircle.cpp
@@ -93,6 +96,7 @@ add_executable(unittests
   lib/calib/TestAprilGridDetector.cpp
   lib/calib/TestCalibCamera.cpp
   lib/calib/TestCalibCameraImu.cpp
+  lib/calib/TestCalibInit.cpp
   lib/calib/TestCalibProblem.cpp
   lib/calib/TestCameraChain.cpp
   lib/calib/TestLissajousTrajectory.cpp

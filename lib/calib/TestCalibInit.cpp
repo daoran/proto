@@ -106,9 +106,8 @@ TEST(CalibInit, initialize_extrinsics) {
   std::map<int, std::shared_ptr<CameraGeometry>> cam_geoms;
   cam_geoms[0] = cam0_geom;
 
-  CalibInit calib_init;
   const Mat4 &T_cam0_imu0_est =
-      calib_init.initializeCameraImuExtrinsic(timeline, cam_geoms, imu_params);
+      CalibInit::initializeCameraImuExtrinsic(timeline, cam_geoms, imu_params);
 
   // clang-format off
   Mat4 T_imu0_cam0_gnd;
