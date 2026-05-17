@@ -15,6 +15,7 @@ struct SimCalib {
   std::map<int, CalibTargetGeometry> targets;
   std::map<int, CameraGeometry> cameras;
   std::map<int, ImuGeometry> imus;
+
   std::map<timestamp_t, Mat4> camera_poses;
   std::map<timestamp_t, Vec3> imu_vel;
   std::map<timestamp_t, Vec3> imu_acc;

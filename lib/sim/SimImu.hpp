@@ -1,5 +1,4 @@
 #pragma once
-#include "../core/Core.hpp"
 #include "../imu/imu.hpp"
 
 namespace cartesian {
