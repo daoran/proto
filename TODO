@@ -1,0 +1,12 @@
+# TODO
+- Add SimCalibCameraImu
+- Add SimVio
+- Add Lidar odometry (similiar to KISS-ICP)
+- Add camera-IMU time delay
+
+# Done
+- Add multiple aprilgrid support
+- Add multicamera support to CalibCamera
+  - Initialize multiple target poses
+  - Refactor CalibCameraError to take in target pose
+- Add SimCalibCamera
