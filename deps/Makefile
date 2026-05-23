@@ -13,6 +13,7 @@ SUITESPARSE_VERSION=v7.11.0
 CERES_VERSION=2.2.0
 OPENCV_VERSION=4.11.0
 APRILTAG_VERSION=v3.4.5
+APRILTAG_IMGS_VERSION=master
 RERUN_VERSION=0.25.1
 
 YAML_REPO=https://github.com/jbeder/yaml-cpp
@@ -23,6 +24,7 @@ SUITESPARSE_REPO=https://github.com/DrTimothyAldenDavis/SuiteSparse
 CERES_REPO=https://github.com/ceres-solver/ceres-solver
 OPENCV_REPO=https://github.com/opencv/opencv
 APRILTAG_REPO=https://github.com/AprilRobotics/apriltag
+APRILTAG_IMGS_REPO=https://github.com/AprilRobotics/apriltag-imgs
 RERUN_URL=https://github.com/rerun-io/rerun/releases/download/$(RERUN_VERSION)/rerun_cpp_sdk.zip
 
 define get_repo_name
@@ -59,7 +61,7 @@ help:
 	@echo "\033[1;34m[make targets]:\033[0m"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; \
-		{printf "\033[1;36m%-14s\033[0m%s\n", $$1, $$2}'
+		{printf "\033[1;36m%-15s\033[0m%s\n", $$1, $$2}'
 
 default: setup
 
@@ -109,6 +111,7 @@ opencv: setup eigen ## Build opencv
 
 apriltag: setup opencv  ## Build apriltag
 	$(call git_clone,$(APRILTAG_REPO),$(APRILTAG_VERSION))
+	$(call git_clone,$(APRILTAG_IMGS_REPO),$(APRILTAG_IMGS_VERSION))
 	$(call cmake_build,apriltag)
 
 ethz_apriltag: setup opencv  ## Build ethz_apriltag

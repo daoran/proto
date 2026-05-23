@@ -32,6 +32,7 @@ deps/share
 deps/src/SuiteSparse/
 deps/src/abseil-cpp/
 deps/src/apriltag/
+deps/src/apriltag-imgs/
 deps/src/ceres-solver/
 deps/src/eigen/
 deps/src/googletest/
