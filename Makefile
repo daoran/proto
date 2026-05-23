@@ -41,7 +41,7 @@ debug: setup ## Build in debug mode
 	$(call cmake_build,Debug)
 
 .PHONY: unittests
-unittests: ## Build and run tests
+unittests: debug ## Build and run tests
 	@./build/unittests
 
 
