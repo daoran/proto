@@ -18,7 +18,7 @@ help:
 	@echo "\033[1;34m[make targets]:\033[0m"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; \
-		{printf "\033[1;36m%-10s\033[0m%s\n", $$1, $$2}'
+		{printf "\033[1;36m%-14s\033[0m%s\n", $$1, $$2}'
 
 .PHONY: setup
 setup:
@@ -39,6 +39,17 @@ release: setup ## Build in release mode
 .PHONY: debug
 debug: setup ## Build in debug mode
 	$(call cmake_build,Debug)
+
+.PHONY: unittests
+unittests: ## Build and run tests
+	@./build/unittests
+
+
+.PHONY: format-code
+format-code: ## Run clang-format
+	@find lib \
+		-type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) \
+		-exec clang-format -i {} +
 
 #.PHONY: docs
 #docs: ## Build docs
