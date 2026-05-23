@@ -36,7 +36,9 @@ define git_clone
 	if [ ! -d "$(SRC_PATH)/$(call get_repo_name,$(1))" ]; then \
 		cd $(SRC_PATH) && git clone $(1); \
 	fi \
-	|| cd $(SRC_PATH)/$(call get_repo_name,$(1)) git checkout $(2) \
+	&& cd $(SRC_PATH)/$(call get_repo_name,$(1)) \
+		&& git checkout $(2) \
+		&& { if [ -f .gitmodules ]; then git submodule update --init; fi; } \
 	) > "$(LOG_PATH)/$(call get_repo_name,$(1)).log" 2>&1
 endef
 
