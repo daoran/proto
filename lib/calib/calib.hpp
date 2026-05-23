@@ -4,6 +4,7 @@
 #include "AprilGridDetector.hpp"
 #include "CalibCamera.hpp"
 #include "CalibCameraImu.hpp"
+#include "CalibInit.hpp"
 #include "CalibProblem.hpp"
 #include "CalibTarget.hpp"
 #include "CalibTargetChain.hpp"
