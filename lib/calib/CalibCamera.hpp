@@ -17,7 +17,7 @@ struct CalibCamera : CalibProblem {
   virtual ~CalibCamera() = default;
 
   /** Add camera calibration view */
-  void addView(const std::map<int, CalibTargetMap> &measurements);
+  void add_view(const std::map<int, CalibTargetMap> &measurements);
 
   /** Solve */
   void solve();

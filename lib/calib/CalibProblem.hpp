@@ -53,175 +53,175 @@ struct CalibProblem {
    ****************************************************************************/
 
   /** Setup Solver */
-  void setupSolver();
+  void setup_solver();
 
   /*****************************************************************************
    * Load methods
    ****************************************************************************/
 
   /** Load Camera Data */
-  void loadCameraData(const int camera_id);
+  void load_camera_data(const int camera_id);
 
   /** Load IMU Data */
-  void loadImuData(const int imu_id);
+  void load_imu_data(const int imu_id);
 
   /*****************************************************************************
    * Camera methods
    ****************************************************************************/
 
   /** Add Camera */
-  void addCamera(const int camera_id,
-                 const std::string &camera_model,
-                 const Vec2i &resolution,
-                 const VecX &intrinsic,
-                 const Vec7 &extrinsic);
+  void add_camera(const int camera_id,
+                  const std::string &camera_model,
+                  const Vec2i &resolution,
+                  const VecX &intrinsic,
+                  const Vec7 &extrinsic);
 
   /** Add camera measurement */
-  void addCameraMeasurement(const timestamp_t ts,
-                            const int camera_id,
-                            const CalibTargetPtr &calib_target);
+  void add_camera_measurement(const timestamp_t ts,
+                              const int camera_id,
+                              const CalibTargetPtr &calib_target);
 
   /** Check if we have a camera measurement already */
-  bool hasCameraMeasurement(const timestamp_t ts,
-                            const int camera_id,
-                            const int target_id) const;
+  bool has_camera_measurement(const timestamp_t ts,
+                              const int camera_id,
+                              const int target_id) const;
 
   /** Get number of cameras */
-  int getNumCameras() const;
+  int get_num_cameras() const;
 
   /** Get all camera data */
-  std::map<int, CameraData> &getAllCameraData();
+  std::map<int, CameraData> &get_all_camera_data();
 
   /** Get camera data */
-  CameraData &getCameraData(const int camera_id);
+  CameraData &get_camera_data(const int camera_id);
 
   /** Get camera geometries */
-  std::map<int, CameraGeometryPtr> &getAllCameraGeometries();
+  std::map<int, CameraGeometryPtr> &get_all_camera_geometries();
 
   /** Get camera geometry */
-  CameraGeometryPtr &getCameraGeometry(const int camera_id);
+  CameraGeometryPtr &get_camera_geometry(const int camera_id);
 
   /** Initialize camera intrinsic */
-  void initializeCameraIntrinsics();
+  void initialize_camera_intrinsics();
 
   /** Initialize camera extrinsic */
-  void initializeCameraExtrinsics();
+  void initialize_camera_extrinsics();
 
   /*****************************************************************************
    * IMU methods
    ****************************************************************************/
 
   /** Add Imu */
-  void addImu(const int imu_id,
-              const ImuParams &imu_params,
-              const Vec7 &extrinsic);
+  void add_imu(const int imu_id,
+               const ImuParams &imu_params,
+               const Vec7 &extrinsic);
 
   /** Get number of IMUs */
-  int getNumImus() const;
+  int get_num_imus() const;
 
   /** Get all IMU data */
-  std::map<int, ImuBuffer> &getAllImuData();
+  std::map<int, ImuBuffer> &get_all_imu_data();
 
   /** Get IMU data */
-  ImuBuffer &getImuData(const int imu_id);
+  ImuBuffer &get_imu_data(const int imu_id);
 
   /** Get IMU geometries */
-  std::map<int, ImuGeometryPtr> &getAllImuGeometries();
+  std::map<int, ImuGeometryPtr> &get_all_imu_geometries();
 
   /** Get IMU geometry */
-  ImuGeometryPtr &getImuGeometry(const int imu_id);
+  ImuGeometryPtr &get_imu_geometry(const int imu_id);
 
   /*****************************************************************************
    * Calibration target methods
    ****************************************************************************/
 
   /** Add calibration target */
-  void addTarget(const AprilGridConfig &config, const Vec7 &extrinsic);
+  void add_target(const AprilGridConfig &config, const Vec7 &extrinsic);
 
   /** Set target pose */
-  void setTargetPose(const Mat4 &pose);
+  void set_target_pose(const Mat4 &pose);
 
   /** Get target pose */
-  Vec7 &getTargetPose();
+  Vec7 &get_target_pose();
 
   /** Get target pose pointer */
-  double *getTargetPosePtr();
+  double *get_target_pose_ptr();
 
   /** Get number of targets */
-  int getNumTargets() const;
+  int get_num_targets() const;
 
   /** Get calibration target geometries */
-  std::map<int, CalibTargetGeometryPtr> &getAllTargetGeometries();
+  std::map<int, CalibTargetGeometryPtr> &get_all_target_geometries();
 
   /** Get calibration target geometry */
-  CalibTargetGeometryPtr &getTargetGeometry(const int target_id);
+  CalibTargetGeometryPtr &get_target_geometry(const int target_id);
 
   /** Get target point */
-  Vec3 &getTargetPoint(const int target_id, const int point_id);
+  Vec3 &get_target_point(const int target_id, const int point_id);
 
   /*****************************************************************************
    * Pose methods
    ****************************************************************************/
 
   /** Add pose */
-  void addPose(const timestamp_t ts, const Mat4 &pose);
+  void add_pose(const timestamp_t ts, const Mat4 &pose);
 
   /** Get pose */
-  Vec7 &getPose(const timestamp_t ts);
+  Vec7 &get_pose(const timestamp_t ts);
 
   /** Get pose pointer  */
-  double *getPosePtr(const timestamp_t ts);
+  double *get_pose_ptr(const timestamp_t ts);
 
   /*****************************************************************************
    * Speed and biases methods
    ****************************************************************************/
 
   /** Add speed and biases */
-  void addSpeedAndBiases(const timestamp_t ts,
-                         const Vec3 &v_WS,
-                         const Vec3 &bias_acc = zeros(3, 1),
-                         const Vec3 &bias_gyr = zeros(3, 1));
+  void add_speed_and_biases(const timestamp_t ts,
+                            const Vec3 &v_WS,
+                            const Vec3 &bias_acc = zeros(3, 1),
+                            const Vec3 &bias_gyr = zeros(3, 1));
 
   /** Get pose */
-  Vec9 &getSpeedAndBiases(const timestamp_t ts);
+  Vec9 &get_speed_and_biases(const timestamp_t ts);
 
   /** Get pose pointer */
-  double *getSpeedAndBiasesPtr(const timestamp_t ts);
+  double *get_speed_and_biases_ptr(const timestamp_t ts);
 
   /*****************************************************************************
    * Ceres
    ****************************************************************************/
 
   /** Add residual block */
-  void addResidualBlock(ResidualBlock *resblock);
+  void add_residual_block(ResidualBlock *resblock);
 
   /*****************************************************************************
    * Misc methods
    ****************************************************************************/
 
   /** Print settings */
-  void printSettings(FILE *fp) const;
+  void print_settings(FILE *fp) const;
 
   /** Print calibration target configs */
-  void printCalibTargetConfigs(FILE *fp) const;
+  void print_calib_target_configs(FILE *fp) const;
 
   /** Print target geometries */
-  void printTargetGeometries(FILE *fp, const bool max_digits = false) const;
+  void print_target_geometries(FILE *fp, const bool max_digits = false) const;
 
   /** Print camera geometries */
-  void printCameraGeometries(FILE *fp, const bool max_digits = false) const;
+  void print_camera_geometries(FILE *fp, const bool max_digits = false) const;
 
   /** Print IMU geometries */
-  void printImuGeometries(FILE *fp, const bool max_digits = false) const;
+  void print_imu_geometries(FILE *fp, const bool max_digits = false) const;
 
   /** Print target points */
-  void printTargetPoints(FILE *fp) const;
+  void print_target_points(FILE *fp) const;
 
   /** Print summary */
-  void printSummary(FILE *fp, const bool max_digits = false) const;
+  void print_summary(FILE *fp, const bool max_digits = false) const;
 
   /** Save results */
-  void saveResults(const std::string &save_path) const;
+  void save_results(const std::string &save_path) const;
 };
 
 } // namespace cartesian

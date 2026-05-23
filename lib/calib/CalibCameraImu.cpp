@@ -120,40 +120,40 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
   };
 
   // Add pose
-  addPose(ts, T_WS);
+  add_pose(ts, T_WS);
 
   // Add speed and biases
   if (poses.size() == 1) {
     const Vec3 v_WS_k{0.0, 0.0, 0.0};
-    addSpeedAndBiases(ts, v_WS_k);
+    add_speed_and_biases(ts, v_WS_k);
 
   } else {
     // Infer velocity from two poses T_WS_k and T_WS_km1
     const auto [ts_km1, ts_k] = *last_two_keys(poses);
     const double dt = ts2sec(ts_k - ts_km1);
-    const double *pose_km1 = getPosePtr(ts_km1);
-    const double *pose_k = getPosePtr(ts_k);
+    const double *pose_km1 = get_pose_ptr(ts_km1);
+    const double *pose_k = get_pose_ptr(ts_k);
     const Mat4 T_WS_km1 = tf(pose_km1);
     const Mat4 T_WS_k = tf(pose_k);
     const Vec3 r_WS_km1 = tf_trans(T_WS_km1);
     const Vec3 r_WS_k = tf_trans(T_WS_k);
     const Vec3 v_WS_k = (r_WS_k - r_WS_km1) / dt;
-    addSpeedAndBiases(ts_k, v_WS_k);
+    add_speed_and_biases(ts_k, v_WS_k);
   }
 
   // Add camera measurement if it does not exist
   for (const auto &[camera_id, targets] : camera_buffers) {
     for (const auto &[target_id, target] : targets) {
-      if (hasCameraMeasurement(ts, camera_id, target_id) == false) {
-        addCameraMeasurement(ts, camera_id, target);
+      if (has_camera_measurement(ts, camera_id, target_id) == false) {
+        add_camera_measurement(ts, camera_id, target);
       }
     }
   }
 
   // Add camera residual blocks
-  double *pose_ptr = getPosePtr(ts);
-  double *target_pose_ptr = getTargetPosePtr();
-  // auto &imu_geometry = getImuGeometry(0);
+  double *pose_ptr = get_pose_ptr(ts);
+  double *target_pose_ptr = get_target_pose_ptr();
+  // auto &imu_geometry = get_imu_geometry(0);
 
   // printf("target_pose: ");
   // for (int i = 0; i < 7; i++) {
@@ -168,11 +168,11 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
   // printf("\n");
 
   for (const auto &[camera_id, targets] : camera_buffers) {
-    const auto &camera_geometry = getCameraGeometry(camera_id);
+    const auto &camera_geometry = get_camera_geometry(camera_id);
 
     for (const auto &[target_id, target] : targets) {
       // Check if detected
-      const auto target_geometry = getTargetGeometry(target_id);
+      const auto target_geometry = get_target_geometry(target_id);
       if (target->detected() == false) {
         continue;
       }
@@ -197,7 +197,7 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
                                                      point_ids[i],
                                                      keypoints[i]);
         camera_resblocks[ts][camera_id].push_back(resblock);
-        addResidualBlock(resblock.get());
+        add_residual_block(resblock.get());
       }
     }
   }
@@ -207,11 +207,11 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
     // Add IMU factor
     const auto [ts_km1, ts_k] = *last_two_keys(poses);
     const int imu_id = 0;
-    const auto &imu_params = getImuGeometry(imu_id)->imu_params;
-    double *pose_km1 = getPosePtr(ts_km1);
-    double *pose_k = getPosePtr(ts_k);
-    double *sb_km1 = getSpeedAndBiasesPtr(ts_km1);
-    double *sb_k = getSpeedAndBiasesPtr(ts_k);
+    const auto &imu_params = get_imu_geometry(imu_id)->imu_params;
+    double *pose_km1 = get_pose_ptr(ts_km1);
+    double *pose_k = get_pose_ptr(ts_k);
+    double *sb_km1 = get_speed_and_biases_ptr(ts_km1);
+    double *sb_k = get_speed_and_biases_ptr(ts_k);
     auto imu_data = imu_buffer.extract(ts_km1, ts_k);
     imu_buffer.trim(ts_k);
 
@@ -231,7 +231,7 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
     auto resblock =
         ImuError::create(imu_params, imu_data, pose_km1, sb_km1, pose_k, sb_k);
     imu_resblocks[ts_km1][imu_id] = resblock;
-    addResidualBlock(resblock.get());
+    add_residual_block(resblock.get());
   }
 
   // Clean up
@@ -267,14 +267,14 @@ void CalibCameraImu::initialize(const timestamp_t ts) {
   T_WS = tf(C_WS, offset);
 
   // Add target pose
-  setTargetPose(T_WT0);
+  set_target_pose(T_WT0);
 
   // Print to screen
   // if (verbose) {
   //   printf("Initial estimates\n");
-  //   printTargetGeometries(stdout);
-  //   printCameraGeometries(stdout);
-  //   printImuGeometries(stdout);
+  //   print_target_geometries(stdout);
+  //   print_camera_geometries(stdout);
+  //   print_imu_geometries(stdout);
   // }
 
   // Add camera residuals
@@ -292,7 +292,7 @@ void CalibCameraImu::addMeasurement(const timestamp_t ts,
   imu_started = true;
 
   // Check if calibration target buffer is filled
-  if (static_cast<int>(camera_buffers.size()) != getNumCameras()) {
+  if (static_cast<int>(camera_buffers.size()) != get_num_cameras()) {
     return;
   }
 
@@ -377,9 +377,9 @@ void CalibCameraImu::solve() {
     printf("Initial estimates\n");
     printf("-----------------\n");
 
-    printTargetGeometries(stdout);
-    printCameraGeometries(stdout);
-    printImuGeometries(stdout);
+    print_target_geometries(stdout);
+    print_camera_geometries(stdout);
+    print_imu_geometries(stdout);
 
     printf("-----------------\n");
     printf("\n");
@@ -415,7 +415,7 @@ void CalibCameraImu::solve() {
   ceres::Solve(options, problem.get(), &summary);
   std::cout << summary.BriefReport() << std::endl << std::endl;
   // std::cout << summary.FullReport() << std::endl << std::endl;
-  printSummary(stdout);
+  print_summary(stdout);
   printf("num_poses: %ld\n", poses.size());
 }
 

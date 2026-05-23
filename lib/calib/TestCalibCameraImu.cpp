@@ -84,7 +84,7 @@ static CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
   CalibCameraImu calib;
 
   // -- Add target
-  calib.addTarget(target_config, tf_vec());
+  calib.add_target(target_config, tf_vec());
 
   // -- Add cam0
   {
@@ -113,11 +113,11 @@ static CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
     cam0_extrinsic[6] = 1.0;
 
     // Add camera
-    calib.addCamera(cam0_id,
-                    camera_model,
-                    resolution,
-                    cam0_intrinsic,
-                    cam0_extrinsic);
+    calib.add_camera(cam0_id,
+                     camera_model,
+                     resolution,
+                     cam0_intrinsic,
+                     cam0_extrinsic);
   }
 
   // -- Add cam1
@@ -147,11 +147,11 @@ static CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
     cam1_extrinsic[6] = 0.999969;
 
     // Add camera
-    calib.addCamera(cam1_id,
-                    camera_model,
-                    resolution,
-                    cam1_intrinsic,
-                    cam1_extrinsic);
+    calib.add_camera(cam1_id,
+                     camera_model,
+                     resolution,
+                     cam1_intrinsic,
+                     cam1_extrinsic);
   }
 
   // -- Add Imu
@@ -164,11 +164,11 @@ static CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
     imu_params.noise_bg = 2.0e-6;
 
     const Mat4 &T_cam0_imu0 =
-        CalibInit::initializeCameraImuExtrinsic(timeline,
+        CalibInit::initialize_camera_imu_extrinsic(timeline,
                                                 calib.camera_geometries,
                                                 imu_params);
 
-    calib.addImu(imu_params.imu_id, imu_params, tf_vec(T_cam0_imu0));
+    calib.add_imu(imu_params.imu_id, imu_params, tf_vec(T_cam0_imu0));
   }
 
   // Add to calibration problem
@@ -272,20 +272,20 @@ TEST(CalibCameraImu, test_sim) {
   CalibCameraImu calib;
 
   // -- Add target
-  calib.addTarget(sim.target_configs[0], sim.targets.at(0).extrinsic);
+  calib.add_target(sim.target_configs[0], sim.targets.at(0).extrinsic);
 
   // -- Add camera
   for (auto &[camera_id, camera] : sim.cameras) {
-    calib.addCamera(camera.camera_id,
-                    camera.camera_model->type(),
-                    camera.resolution,
-                    camera.intrinsic,
-                    camera.extrinsic);
+    calib.add_camera(camera.camera_id,
+                     camera.camera_model->type(),
+                     camera.resolution,
+                     camera.intrinsic,
+                     camera.extrinsic);
   }
 
   // -- Add Imu
   for (auto &[imu_id, imu] : sim.imus) {
-    calib.addImu(imu_id, imu.imu_params, imu.extrinsic);
+    calib.add_imu(imu_id, imu.imu_params, imu.extrinsic);
   }
 
   // -- Add data

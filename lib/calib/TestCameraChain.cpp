@@ -65,7 +65,7 @@ static std::shared_ptr<CameraGeometry> setup_euroc_camera1() {
 TEST(CameraChain, construct) {
   // Load data
   CalibProblem calib{TEST_CONFIG};
-  auto camera_data = calib.getAllCameraData();
+  auto camera_data = calib.get_all_camera_data();
 
   // Setup camera geometries
   auto camera0 = setup_euroc_camera0();

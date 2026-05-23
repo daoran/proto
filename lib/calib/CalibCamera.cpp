@@ -7,7 +7,7 @@ namespace cartesian {
 CalibCamera::CalibCamera(const std::string &config_file)
     : CalibProblem{config_file} {}
 
-void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
+void CalibCamera::add_view(const std::map<int, CalibTargetMap> &measurements) {
   // Lambda function - Find the target with the most observations
   auto find_optimal_target =
       [&](const std::map<int, CalibTargetMap> &measurements) {
@@ -68,22 +68,22 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
   const timestamp_t ts = target->get_timestamp();
   for (const auto &[camera_id, targets] : measurements) {
     for (const auto &[target_id, target] : targets) {
-      if (hasCameraMeasurement(ts, camera_id, target_id) == false) {
-        addCameraMeasurement(ts, camera_id, target);
+      if (has_camera_measurement(ts, camera_id, target_id) == false) {
+        add_camera_measurement(ts, camera_id, target);
       }
     }
   }
 
   // Add timestamp and pose
-  addPose(ts, T_C0T0);
+  add_pose(ts, T_C0T0);
 
   // Add residual blocks
   for (const auto &[camera_id, targets] : measurements) {
-    const auto camera_geometry = getCameraGeometry(camera_id);
+    const auto camera_geometry = get_camera_geometry(camera_id);
 
     for (const auto &[target_id, target] : targets) {
       // Check if detected
-      const auto target_geometry = getTargetGeometry(target_id);
+      const auto target_geometry = get_target_geometry(target_id);
       if (target->detected() == false) {
         continue;
       }
@@ -106,7 +106,7 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
                                                  poses[ts].data(),
                                                  keypoints[i]);
         resblocks[ts][camera_id].push_back(resblock);
-        addResidualBlock(resblock.get());
+        add_residual_block(resblock.get());
       }
     }
   }
@@ -125,8 +125,8 @@ void CalibCamera::solve() {
   }
 
   // Initialize intrinsics and extrinsics
-  initializeCameraIntrinsics();
-  initializeCameraExtrinsics();
+  initialize_camera_intrinsics();
+  initialize_camera_extrinsics();
 
   // Form timeline
   Timeline timeline;
@@ -149,7 +149,7 @@ void CalibCamera::solve() {
         viewset[camera_id][target_id] = calib_target;
       }
     }
-    addView(viewset);
+    add_view(viewset);
   }
 
   // Solver options
@@ -168,7 +168,7 @@ void CalibCamera::solve() {
   ceres::Solve(options, problem.get(), &summary);
   if (verbose) {
     std::cout << summary.FullReport() << std::endl << std::endl;
-    printSummary(stdout);
+    print_summary(stdout);
   }
 }
 

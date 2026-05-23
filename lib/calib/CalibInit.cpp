@@ -2,7 +2,7 @@
 
 namespace cartesian {
 
-void CalibInit::initializeCameraIntrinsics(
+void CalibInit::initialize_camera_intrinsics(
     const std::map<int, CameraData> camera_data,
     const std::map<int, AprilGridConfig> target_configs,
     std::map<int, std::shared_ptr<CameraGeometry>> &cam_geoms,
@@ -157,7 +157,7 @@ void CalibInit::initializeCameraIntrinsics(
   }
 }
 
-void CalibInit::initializeCameraExtrinsics(
+void CalibInit::initialize_camera_extrinsics(
     const std::map<int, CameraData> cam_data,
     std::map<int, std::shared_ptr<CameraGeometry>> &cam_geoms,
     std::map<int, CalibTargetGeometryPtr> &target_geoms,
@@ -317,7 +317,7 @@ void CalibInit::initializeCameraExtrinsics(
   // printf("median reproj error: %f\n", median(reproj_errors));
 }
 
-Mat4 CalibInit::initializeCameraImuExtrinsic(
+Mat4 CalibInit::initialize_camera_imu_extrinsic(
     const Timeline &timeline,
     const std::map<int, std::shared_ptr<CameraGeometry>> &cam_geoms,
     const ImuParams &imu_params) {

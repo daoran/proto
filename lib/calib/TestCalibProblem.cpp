@@ -8,7 +8,7 @@ namespace cartesian {
 
 TEST(CalibProblem, load) {
   CalibProblem calib{TEST_CONFIG};
-  ASSERT_EQ(calib.getNumCameras(), 2);
+  ASSERT_EQ(calib.get_num_cameras(), 2);
 }
 
 } // namespace cartesian

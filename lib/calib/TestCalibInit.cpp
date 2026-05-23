@@ -138,10 +138,10 @@ TEST(CalibInit, initialize_intrinsics) {
   cam_geoms[0] = cam0_geom;
 
   // Initialize intrinsics
-  CalibInit::initializeCameraIntrinsics(camera_data,
-                                        sim.target_configs,
-                                        cam_geoms,
-                                        false);
+  CalibInit::initialize_camera_intrinsics(camera_data,
+                                          sim.target_configs,
+                                          cam_geoms,
+                                          false);
 
   // Check intrinsics converged to ground truth
   const Vec8 &gt = gt_cam.intrinsic;
@@ -166,7 +166,7 @@ TEST(CalibInit, initialize_extrinsics) {
   cam_geoms[0] = cam0_geom;
 
   const Mat4 &T_cam0_imu0_est =
-      CalibInit::initializeCameraImuExtrinsic(timeline, cam_geoms, imu_params);
+      CalibInit::initialize_camera_imu_extrinsic(timeline, cam_geoms, imu_params);
 
   // clang-format off
   Mat4 T_imu0_cam0_gnd;

@@ -64,16 +64,16 @@ TEST(CalibCamera, solve_sim) {
 
   // -- Add cameras
   for (const auto &[_, camera] : sim.cameras) {
-    calib.addCamera(camera.camera_id,
-                    camera.camera_model->type(),
-                    camera.resolution,
-                    camera.intrinsic,
-                    camera.extrinsic);
+    calib.add_camera(camera.camera_id,
+                     camera.camera_model->type(),
+                     camera.resolution,
+                     camera.intrinsic,
+                     camera.extrinsic);
   }
 
   // -- Add targets
   for (const auto &[_, config] : sim.target_configs) {
-    calib.addTarget(config, tf_vec());
+    calib.add_target(config, tf_vec());
   }
 
   // -- Add camera data
@@ -83,14 +83,14 @@ TEST(CalibCamera, solve_sim) {
       if (auto target_event = dynamic_cast<CalibTargetEvent *>(event)) {
         const auto camera_id = target_event->camera_id;
         const auto calib_target = target_event->calib_target;
-        calib.addCameraMeasurement(ts, camera_id, calib_target);
+        calib.add_camera_measurement(ts, camera_id, calib_target);
       }
     }
   }
 
   // Perturb camera intrinsic and extrinsic
-  perturb_camera(calib.getCameraGeometry(0));
-  perturb_camera(calib.getCameraGeometry(1));
+  perturb_camera(calib.get_camera_geometry(0));
+  perturb_camera(calib.get_camera_geometry(1));
 
   // Solve
   calib.solve();
