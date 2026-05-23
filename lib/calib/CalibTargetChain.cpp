@@ -27,7 +27,7 @@ CalibTargetChain::CalibTargetChain(
         continue;
       }
       for (const auto &[target_id, target] : camera_data.at(ts)) {
-        if (target->getNumDetected() > 5) {
+        if (target->get_num_detected() > 5) {
           data[camera_id].push_back(target);
         }
       }
@@ -63,8 +63,8 @@ CalibTargetChain::CalibTargetChain(
         }
 
         // Insert into adjacency list
-        const int target_i = targets[0]->getTargetId();
-        const int target_j = targets[j]->getTargetId();
+        const int target_i = targets[0]->get_target_id();
+        const int target_j = targets[j]->get_target_id();
         insert(target_i, target_j, T_TiC * T_CTj);
       }
     }

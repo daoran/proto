@@ -20,8 +20,8 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
           int camera_target_count = 0;
           int camera_target_id = -1;
           for (const auto &[target_id, target] : targets) {
-            if (target->getNumDetected() > camera_target_count) {
-              camera_target_count = target->getNumDetected();
+            if (target->get_num_detected() > camera_target_count) {
+              camera_target_count = target->get_num_detected();
               camera_target_id = target_id;
             }
           }
@@ -44,7 +44,7 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
   Vec3s object_points;
   const auto [camera_id, target_id] = find_optimal_target(measurements);
   const auto target = measurements.at(camera_id).at(target_id);
-  target->getMeasurements(point_ids, keypoints, object_points);
+  target->get_measurements(point_ids, keypoints, object_points);
   if (keypoints.size() < 10) {
     return;
   }
@@ -65,7 +65,7 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
   Mat4 T_C0T0 = T_C0Ci * T_CiTj * T_TjT0;
 
   // Add camera measurement if it does not exist
-  const timestamp_t ts = target->getTimestamp();
+  const timestamp_t ts = target->get_timestamp();
   for (const auto &[camera_id, targets] : measurements) {
     for (const auto &[target_id, target] : targets) {
       if (hasCameraMeasurement(ts, camera_id, target_id) == false) {
@@ -93,7 +93,7 @@ void CalibCamera::addView(const std::map<int, CalibTargetMap> &measurements) {
       std::vector<int> corner_indicies;
       Vec2s keypoints;
       Vec3s object_points;
-      target->getMeasurements(point_ids, keypoints, object_points);
+      target->get_measurements(point_ids, keypoints, object_points);
       if (keypoints.size() < 10) {
         continue;
       }

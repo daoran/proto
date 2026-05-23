@@ -30,7 +30,7 @@ void Timeline::add(const timestamp_t &ts, const Vec3 &acc, const Vec3 &gyr) {
 void Timeline::add(const timestamp_t &ts,
                    const int camera_id,
                    const std::shared_ptr<CalibTarget> &calib_target) {
-  const int target_id = calib_target->getTargetId();
+  const int target_id = calib_target->get_target_id();
   timestamps.insert(ts);
   data.insert(
       {ts, new CalibTargetEvent{ts, camera_id, target_id, calib_target}});

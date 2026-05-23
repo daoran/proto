@@ -24,8 +24,8 @@ static AprilGrid setup_aprilgrid() {
 TEST(AprilGrid, construct) {
   AprilGrid grid = setup_aprilgrid();
 
-  ASSERT_EQ(grid.getTimestamp(), 0);
-  ASSERT_EQ(grid.getCameraId(), 0);
+  ASSERT_EQ(grid.get_timestamp(), 0);
+  ASSERT_EQ(grid.get_camera_id(), 0);
   ASSERT_EQ(grid.getTagRows(), 6);
   ASSERT_EQ(grid.getTagCols(), 7);
   ASSERT_EQ(grid.getTagSize(), 0.088);
@@ -52,7 +52,7 @@ TEST(AprilGrid, addAndRemove) {
     std::vector<int> corner_indicies;
     Vec2s keypoints;
     Vec3s object_points;
-    grid.getMeasurements(tag_ids, corner_indicies, keypoints, object_points);
+    grid.get_measurements(tag_ids, corner_indicies, keypoints, object_points);
     ASSERT_EQ(tag_ids.size(), 4);
     ASSERT_EQ(corner_indicies.size(), 4);
     ASSERT_EQ(keypoints.size(), 4);
@@ -72,7 +72,7 @@ TEST(AprilGrid, addAndRemove) {
     std::vector<int> corner_indicies;
     Vec2s keypoints;
     Vec3s object_points;
-    grid.getMeasurements(tag_ids, corner_indicies, keypoints, object_points);
+    grid.get_measurements(tag_ids, corner_indicies, keypoints, object_points);
     ASSERT_EQ(tag_ids.size(), 2);
     ASSERT_EQ(corner_indicies.size(), 2);
     ASSERT_EQ(keypoints.size(), 2);
@@ -105,9 +105,9 @@ TEST(AprilGrid, saveAndLoad) {
   std::vector<int> corner_indicies;
   Vec2s keypoints;
   Vec3s object_points;
-  grid.getMeasurements(tag_ids, corner_indicies, keypoints, object_points);
+  grid.get_measurements(tag_ids, corner_indicies, keypoints, object_points);
 
-  ASSERT_EQ(grid.getTimestamp(), grid2->getTimestamp());
+  ASSERT_EQ(grid.get_timestamp(), grid2->get_timestamp());
   ASSERT_FLOAT_EQ(0.0, (keypoints[0] - kp0).norm());
   ASSERT_FLOAT_EQ(0.0, (keypoints[1] - kp1).norm());
   ASSERT_FLOAT_EQ(0.0, (keypoints[2] - kp2).norm());

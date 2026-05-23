@@ -166,7 +166,7 @@ void CalibProblem::loadCameraData(const int camera_id) {
 
       const auto &image = cv::imread(image_path, cv::IMREAD_GRAYSCALE);
       for (const auto &target : detector.detect(ts, camera_id, image)) {
-        const int target_id = target->getTargetId();
+        const int target_id = target->get_target_id();
         const fs::path target_prefix = "target" + std::to_string(target_id);
         const fs::path target_dir = data_path / target_prefix / camera_string;
         const fs::path target_csv = target_dir / (ts_str + ".csv");
@@ -294,7 +294,7 @@ void CalibProblem::addCamera(const int camera_id,
 void CalibProblem::addCameraMeasurement(const timestamp_t ts,
                                         const int camera_id,
                                         const CalibTargetPtr &calib_target) {
-  const int target_id = calib_target->getTargetId();
+  const int target_id = calib_target->get_target_id();
   camera_data[camera_id][ts][target_id] = calib_target;
 }
 

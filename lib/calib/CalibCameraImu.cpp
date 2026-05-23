@@ -18,8 +18,8 @@ std::pair<int, int> CalibCameraImu::findOptimalTarget() {
     int camera_target_count = 0;
     int camera_target_id = -1;
     for (const auto &[target_id, target] : targets) {
-      if (target->getNumDetected() > camera_target_count) {
-        camera_target_count = target->getNumDetected();
+      if (target->get_num_detected() > camera_target_count) {
+        camera_target_count = target->get_num_detected();
         camera_target_id = target_id;
       }
     }
@@ -43,7 +43,7 @@ int CalibCameraImu::estimateSensorPose(Mat4 &T_WS) {
   Vec3s object_points;
   const auto [camera_id, target_id] = findOptimalTarget();
   const auto target = camera_buffers.at(camera_id).at(target_id);
-  target->getMeasurements(point_ids, keypoints, object_points);
+  target->get_measurements(point_ids, keypoints, object_points);
   if (keypoints.size() <= 8) {
     return -1;
   }
@@ -78,7 +78,7 @@ int CalibCameraImu::estimateCameraPose(Mat4 &T_C0T0) {
   Vec3s object_points;
   const auto [camera_id, target_id] = findOptimalTarget();
   const auto target = camera_buffers.at(camera_id).at(target_id);
-  target->getMeasurements(point_ids, keypoints, object_points);
+  target->get_measurements(point_ids, keypoints, object_points);
   if (keypoints.size() < 10) {
     return -1;
   }
@@ -182,7 +182,7 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
       std::vector<int> corner_indicies;
       Vec2s keypoints;
       Vec3s object_points;
-      target->getMeasurements(point_ids, keypoints, object_points);
+      target->get_measurements(point_ids, keypoints, object_points);
       if (keypoints.size() < 10) {
         continue;
       }
@@ -313,8 +313,8 @@ void CalibCameraImu::addMeasurement(const timestamp_t ts,
                                     const int camera_id,
                                     const CalibTargetPtr &calib_target) {
   // Pre-check
-  if (ts != calib_target->getTimestamp()) {
-    FATAL("ts != calib_target->getTimestamp()");
+  if (ts != calib_target->get_timestamp()) {
+    FATAL("ts != calib_target->get_timestamp()");
   }
 
   // Do not add vision data before first imu measurement
@@ -323,7 +323,7 @@ void CalibCameraImu::addMeasurement(const timestamp_t ts,
   }
 
   // Add to camera buffer
-  const auto target_id = calib_target->getTargetId();
+  const auto target_id = calib_target->get_target_id();
   camera_buffers[camera_id][target_id] = calib_target;
   camera_started = true;
 

@@ -19,7 +19,7 @@ void CalibInit::initializeCameraIntrinsics(
     // Count
     for (const auto &[ts, targets] : camera_data) {
       for (const auto &[target_id, target] : targets) {
-        target_count[target_id] += target->getNumDetected();
+        target_count[target_id] += target->get_num_detected();
       }
     }
 
@@ -82,7 +82,7 @@ void CalibInit::initializeCameraIntrinsics(
       std::vector<int> point_ids;
       Vec2s keypoints;
       Vec3s object_points;
-      target->getMeasurements(point_ids, keypoints, object_points);
+      target->get_measurements(point_ids, keypoints, object_points);
       if (keypoints.size() < 10) {
         continue;
       }
@@ -236,7 +236,7 @@ void CalibInit::initializeCameraExtrinsics(
         std::vector<int> corner_indicies;
         Vec2s keypoints;
         Vec3s object_points;
-        target->getMeasurements(point_ids, keypoints, object_points);
+        target->get_measurements(point_ids, keypoints, object_points);
         if (keypoints.size() < 10) {
           continue;
         }
@@ -348,7 +348,7 @@ Mat4 CalibInit::initializeCameraImuExtrinsic(
     std::vector<int> corner_indicies;
     Vec2s keypoints;
     Vec3s object_points;
-    target->getMeasurements(point_ids, keypoints, object_points);
+    target->get_measurements(point_ids, keypoints, object_points);
     if (point_ids.size() < 10) {
       continue;
     }

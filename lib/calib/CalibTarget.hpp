@@ -29,22 +29,22 @@ public:
   virtual bool detected() const = 0;
 
   /** Get number detected */
-  virtual int getNumDetected() const = 0;
+  virtual int get_num_detected() const = 0;
 
   /** Get Target Type **/
-  std::string getTargetType() const;
+  std::string get_target_type() const;
 
   /** Get Timestamp **/
-  timestamp_t getTimestamp() const;
+  timestamp_t get_timestamp() const;
 
   /** Get Camera ID **/
-  int getCameraId() const;
+  int get_camera_id() const;
 
   /** Get Target ID **/
-  int getTargetId() const;
+  int get_target_id() const;
 
   /** Get measurements **/
-  virtual void getMeasurements(std::vector<int> &point_ids,
+  virtual void get_measurements(std::vector<int> &point_ids,
                                Vec2s &keypoints,
                                Vec3s &object_points) const = 0;
 };

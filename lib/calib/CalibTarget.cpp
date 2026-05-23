@@ -9,9 +9,9 @@ CalibTarget::CalibTarget(const std::string &target_type,
     : target_type_{target_type}, ts_{ts}, camera_id_{camera_id},
       target_id_{target_id} {}
 
-std::string CalibTarget::getTargetType() const { return target_type_; }
-timestamp_t CalibTarget::getTimestamp() const { return ts_; }
-int CalibTarget::getCameraId() const { return camera_id_; }
-int CalibTarget::getTargetId() const { return target_id_; }
+std::string CalibTarget::get_target_type() const { return target_type_; }
+timestamp_t CalibTarget::get_timestamp() const { return ts_; }
+int CalibTarget::get_camera_id() const { return camera_id_; }
+int CalibTarget::get_target_id() const { return target_id_; }
 
 } // namespace cartesian

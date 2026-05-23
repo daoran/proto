@@ -9,15 +9,15 @@ AprilGrid::AprilGrid(const timestamp_t &ts,
                                                                      config} {}
 
 AprilGrid::AprilGrid(const AprilGrid &src)
-    : CalibTarget{src.getTargetType(),
-                  src.getTimestamp(),
-                  src.getCameraId(),
-                  src.getTargetId()},
+    : CalibTarget{src.get_target_type(),
+      src.get_timestamp(),
+                   src.get_camera_id(),
+                   src.get_target_id()},
       config_{src.getConfig()}, data_{src.data_} {}
 
 bool AprilGrid::detected() const { return (data_.size() > 0); }
 
-int AprilGrid::getNumDetected() const {
+int AprilGrid::get_num_detected() const {
   int num_detected = 0;
   for (const auto &[tag_id, tag_det] : data_) {
     num_detected += tag_det.keypoints.size();
@@ -108,10 +108,10 @@ Vec3 AprilGrid::getObjectPoint(const int point_id) const {
   return getObjectPoint(tag_id, corner_index);
 }
 
-void AprilGrid::getMeasurements(std::vector<int> &tag_ids,
-                                std::vector<int> &corner_indicies,
-                                Vec2s &keypoints,
-                                Vec3s &object_points) const {
+void AprilGrid::get_measurements(std::vector<int> &tag_ids,
+                                 std::vector<int> &corner_indicies,
+                                 Vec2s &keypoints,
+                                 Vec3s &object_points) const {
   for (const auto &[tag_id, tag_det] : data_) {
     for (const auto corner_index : tag_det.corner_indicies) {
       tag_ids.push_back(tag_id);
@@ -122,9 +122,9 @@ void AprilGrid::getMeasurements(std::vector<int> &tag_ids,
   }
 }
 
-void AprilGrid::getMeasurements(std::vector<int> &point_ids,
-                                Vec2s &keypoints,
-                                Vec3s &object_points) const {
+void AprilGrid::get_measurements(std::vector<int> &point_ids,
+                                 Vec2s &keypoints,
+                                 Vec3s &object_points) const {
   for (const auto &[tag_id, tag_det] : data_) {
     for (const auto corner_index : tag_det.corner_indicies) {
       point_ids.push_back(tag_id * 4 + corner_index);
@@ -224,13 +224,13 @@ int AprilGrid::save(const fs::path &save_path) const {
   std::vector<int> corner_indicies;
   Vec2s keypoints;
   Vec3s object_points;
-  getMeasurements(tag_ids, corner_indicies, keypoints, object_points);
+  get_measurements(tag_ids, corner_indicies, keypoints, object_points);
 
   // Output header
-  fprintf(fp, "timestamp %ld\n", getTimestamp());
-  fprintf(fp, "camera_id %d\n", getCameraId());
-  fprintf(fp, "target_type %s\n", getTargetType().c_str());
-  fprintf(fp, "target_id %d\n", getTargetId());
+  fprintf(fp, "timestamp %ld\n", get_timestamp());
+  fprintf(fp, "camera_id %d\n", get_camera_id());
+  fprintf(fp, "target_type %s\n", get_target_type().c_str());
+  fprintf(fp, "target_id %d\n", get_target_id());
   fprintf(fp, "tag_rows %d\n", getTagRows());
   fprintf(fp, "tag_cols %d\n", getTagCols());
   fprintf(fp, "tag_size %f\n", getTagSize());
@@ -396,7 +396,7 @@ cv::Mat AprilGrid::draw(const cv::Mat &image,
   std::vector<int> point_ids;
   Vec2s keypoints;
   Vec3s object_points;
-  getMeasurements(point_ids, keypoints, object_points);
+  get_measurements(point_ids, keypoints, object_points);
 
   for (size_t i = 0; i < point_ids.size(); i++) {
     // Setup

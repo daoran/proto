@@ -46,7 +46,7 @@ public:
   bool detected() const override;
 
   /** Return number detected */
-  int getNumDetected() const override;
+  int get_num_detected() const override;
 
   /** Return AprilGrid config */
   AprilGridConfig getConfig() const;
@@ -88,15 +88,15 @@ public:
   Vec3 getCenter3d() const;
 
   /** Get measurements */
-  void getMeasurements(std::vector<int> &tag_ids,
-                       std::vector<int> &corner_indicies,
-                       Vec2s &keypoints,
-                       Vec3s &object_points) const;
+  void get_measurements(std::vector<int> &tag_ids,
+                        std::vector<int> &corner_indicies,
+                        Vec2s &keypoints,
+                        Vec3s &object_points) const;
 
   /** Get measurements */
-  void getMeasurements(std::vector<int> &point_ids,
-                       Vec2s &keypoints,
-                       Vec3s &object_points) const override;
+  void get_measurements(std::vector<int> &point_ids,
+                        Vec2s &keypoints,
+                        Vec3s &object_points) const override;
 
   /** Check to see if AprilGrid has specific tag id and corner index */
   bool has(const int tag_id, const int corner_index) const;

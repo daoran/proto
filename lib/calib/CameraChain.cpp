@@ -27,7 +27,7 @@ CameraChain::CameraChain(
         continue;
       }
       for (const auto &[target_id, target] : camera_data.at(ts)) {
-        if (target->getNumDetected() > 5) {
+        if (target->get_num_detected() > 5) {
           data[target_id].push_back(camera_id);
         }
       }
