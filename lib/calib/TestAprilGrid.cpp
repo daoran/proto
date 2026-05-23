@@ -26,10 +26,10 @@ TEST(AprilGrid, construct) {
 
   ASSERT_EQ(grid.get_timestamp(), 0);
   ASSERT_EQ(grid.get_camera_id(), 0);
-  ASSERT_EQ(grid.getTagRows(), 6);
-  ASSERT_EQ(grid.getTagCols(), 7);
-  ASSERT_EQ(grid.getTagSize(), 0.088);
-  ASSERT_EQ(grid.getTagSpacing(), 0.3);
+  ASSERT_EQ(grid.get_tag_rows(), 6);
+  ASSERT_EQ(grid.get_tag_cols(), 7);
+  ASSERT_EQ(grid.get_tag_size(), 0.088);
+  ASSERT_EQ(grid.get_tag_spacing(), 0.3);
 }
 
 TEST(AprilGrid, addAndRemove) {

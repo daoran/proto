@@ -13,7 +13,7 @@ AprilGrid::AprilGrid(const AprilGrid &src)
       src.get_timestamp(),
                    src.get_camera_id(),
                    src.get_target_id()},
-      config_{src.getConfig()}, data_{src.data_} {}
+      config_{src.get_config()}, data_{src.data_} {}
 
 bool AprilGrid::detected() const { return (data_.size() > 0); }
 
@@ -26,34 +26,34 @@ int AprilGrid::get_num_detected() const {
   return num_detected;
 }
 
-AprilGridConfig AprilGrid::getConfig() const { return config_; }
+AprilGridConfig AprilGrid::get_config() const { return config_; }
 
-int AprilGrid::getTagRows() const { return config_.tag_rows; }
+int AprilGrid::get_tag_rows() const { return config_.tag_rows; }
 
-int AprilGrid::getTagCols() const { return config_.tag_cols; }
+int AprilGrid::get_tag_cols() const { return config_.tag_cols; }
 
-double AprilGrid::getTagSize() const { return config_.tag_size; }
+double AprilGrid::get_tag_size() const { return config_.tag_size; }
 
-double AprilGrid::getTagSpacing() const { return config_.tag_spacing; }
+double AprilGrid::get_tag_spacing() const { return config_.tag_spacing; }
 
-int AprilGrid::getTagIdOffset() const { return config_.tag_id_offset; }
+int AprilGrid::get_tag_id_offset() const { return config_.tag_id_offset; }
 
-Vec2 AprilGrid::getWidthHeight() const {
-  const auto rows = getTagRows();
-  const auto cols = getTagCols();
-  const auto size = getTagSize();
-  const auto spacing = getTagSpacing();
+Vec2 AprilGrid::get_width_height() const {
+  const auto rows = get_tag_rows();
+  const auto cols = get_tag_cols();
+  const auto size = get_tag_size();
+  const auto spacing = get_tag_spacing();
   const auto w = (cols * size) + ((cols - 1) * size * spacing);
   const auto h = (rows * size) + ((rows - 1) * size * spacing);
   return Vec2{w, h};
 }
 
-Vec2 AprilGrid::getCenter() const { return getWidthHeight() / 2.0; }
+Vec2 AprilGrid::get_center() const { return get_width_height() / 2.0; }
 
-void AprilGrid::getGridIndex(const int tag_id, int &i, int &j) const {
-  const auto tag_rows = getTagRows();
-  const auto tag_cols = getTagCols();
-  const auto tag_id_offset = getTagIdOffset();
+void AprilGrid::get_grid_index(const int tag_id, int &i, int &j) const {
+  const auto tag_rows = get_tag_rows();
+  const auto tag_cols = get_tag_cols();
+  const auto tag_id_offset = get_tag_id_offset();
 
   if ((tag_id - tag_id_offset) > (tag_rows * tag_cols)) {
     FATAL("tag_id > (tag_rows * tag_cols)!");
@@ -65,16 +65,16 @@ void AprilGrid::getGridIndex(const int tag_id, int &i, int &j) const {
   j = int((tag_id - tag_id_offset) % tag_cols);
 }
 
-Vec3 AprilGrid::getObjectPoint(const int tag_id, const int corner_index) const {
+Vec3 AprilGrid::get_object_point(const int tag_id, const int corner_index) const {
   // Calculate the AprilGrid index using tag id
   int i = 0;
   int j = 0;
-  getGridIndex(tag_id, i, j);
+  get_grid_index(tag_id, i, j);
 
   // Calculate the x and y of the tag origin (bottom left corner of tag)
   // relative to grid origin (bottom left corner of entire grid)
-  const auto tag_size = getTagSize();
-  const auto tag_spacing = getTagSpacing();
+  const auto tag_size = get_tag_size();
+  const auto tag_spacing = get_tag_spacing();
   const double x = j * (tag_size + tag_size * tag_spacing);
   const double y = i * (tag_size + tag_size * tag_spacing);
 
@@ -101,11 +101,11 @@ Vec3 AprilGrid::getObjectPoint(const int tag_id, const int corner_index) const {
   return object_point;
 }
 
-Vec3 AprilGrid::getObjectPoint(const int point_id) const {
-  const int tag_id_offset = getTagIdOffset();
+Vec3 AprilGrid::get_object_point(const int point_id) const {
+  const int tag_id_offset = get_tag_id_offset();
   const int tag_id = int(point_id / 4) + tag_id_offset;
   const int corner_index = std::fmod(point_id, 4);
-  return getObjectPoint(tag_id, corner_index);
+  return get_object_point(tag_id, corner_index);
 }
 
 void AprilGrid::get_measurements(std::vector<int> &tag_ids,
@@ -134,11 +134,11 @@ void AprilGrid::get_measurements(std::vector<int> &point_ids,
   }
 }
 
-Vec2 AprilGrid::getCenter2d() const {
+Vec2 AprilGrid::get_center_2d() const {
   const auto tag_rows = getTagRows();
   const auto tag_cols = getTagCols();
-  const auto tag_size = getTagSize();
-  const auto tag_spacing = getTagSpacing();
+  const auto tag_size = get_tag_size();
+  const auto tag_spacing = get_tag_spacing();
 
   double x = ((tag_cols / 2.0) * tag_size);
   x += (((tag_cols / 2.0) - 1) * tag_spacing * tag_size);
@@ -151,8 +151,8 @@ Vec2 AprilGrid::getCenter2d() const {
   return Vec2{x, y};
 }
 
-Vec3 AprilGrid::getCenter3d() const {
-  const Vec2 center = getCenter2d();
+Vec3 AprilGrid::get_center_3d() const {
+  const Vec2 center = get_center_2d();
   return Vec3{center.x(), center.y(), 0.0};
 }
 
@@ -171,7 +171,7 @@ bool AprilGrid::has(const int tag_id, const int corner_index) const {
 void AprilGrid::add(const int tag_id, const int corner_index, const Vec2 &kp) {
   const auto tag_rows = getTagRows();
   const auto tag_cols = getTagCols();
-  const auto id_offset = getTagIdOffset();
+  const auto id_offset = get_tag_id_offset();
   const auto num_tags = tag_rows * tag_cols;
   if ((tag_id - id_offset) < 0 || (tag_id - id_offset) >= num_tags) {
     return;
@@ -231,11 +231,11 @@ int AprilGrid::save(const fs::path &save_path) const {
   fprintf(fp, "camera_id %d\n", get_camera_id());
   fprintf(fp, "target_type %s\n", get_target_type().c_str());
   fprintf(fp, "target_id %d\n", get_target_id());
-  fprintf(fp, "tag_rows %d\n", getTagRows());
-  fprintf(fp, "tag_cols %d\n", getTagCols());
-  fprintf(fp, "tag_size %f\n", getTagSize());
-  fprintf(fp, "tag_spacing %f\n", getTagSpacing());
-  fprintf(fp, "tag_id_offset %d\n", getTagIdOffset());
+  fprintf(fp, "tag_rows %d\n", get_tag_rows());
+  fprintf(fp, "tag_cols %d\n", get_tag_cols());
+  fprintf(fp, "tag_size %f\n", get_tag_size());
+  fprintf(fp, "tag_spacing %f\n", get_tag_spacing());
+  fprintf(fp, "tag_id_offset %d\n", get_tag_id_offset());
   fprintf(fp, "corners_detected %ld\n", corner_indicies.size());
   fprintf(fp, "\n");
   fprintf(fp, "# tag_id corner_index kp_x kp_y pt_x pt_y pt_z\n");

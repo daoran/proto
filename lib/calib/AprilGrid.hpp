@@ -49,43 +49,43 @@ public:
   int get_num_detected() const override;
 
   /** Return AprilGrid config */
-  AprilGridConfig getConfig() const;
+  AprilGridConfig get_config() const;
 
   /** Return number of tag rows */
-  int getTagRows() const;
+  int get_tag_rows() const;
 
   /** Return number of tag cols */
-  int getTagCols() const;
+  int get_tag_cols() const;
 
   /** Return number of tag size */
-  double getTagSize() const;
+  double get_tag_size() const;
 
   /** Return number of tag spacing */
-  double getTagSpacing() const;
+  double get_tag_spacing() const;
 
   /** Return tag id offset */
-  int getTagIdOffset() const;
+  int get_tag_id_offset() const;
 
   /** Calculate width and height */
-  Vec2 getWidthHeight() const;
+  Vec2 get_width_height() const;
 
   /** Calculate center */
-  Vec2 getCenter() const;
+  Vec2 get_center() const;
 
   /** Calculate AprilGrid tag index based on tag id */
-  void getGridIndex(const int tag_id, int &i, int &j) const;
+  void get_grid_index(const int tag_id, int &i, int &j) const;
 
   /** Calculate object point based on tag id and corner index */
-  Vec3 getObjectPoint(const int tag_id, const int corner_index) const;
+  Vec3 get_object_point(const int tag_id, const int corner_index) const;
 
   /** Calculate object point based on point id */
-  Vec3 getObjectPoint(const int point_id) const;
+  Vec3 get_object_point(const int point_id) const;
 
   /** Get the 2D center of the AprilGrid */
-  Vec2 getCenter2d() const;
+  Vec2 get_center_2d() const;
 
   /** Get the 3D center of the AprilGrid */
-  Vec3 getCenter3d() const;
+  Vec3 get_center_3d() const;
 
   /** Get measurements */
   void get_measurements(std::vector<int> &tag_ids,
