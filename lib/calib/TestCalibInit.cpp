@@ -3,6 +3,7 @@
 #include "core/Logger.hpp"
 #include "calib/AprilGrid.hpp"
 #include "calib/CalibInit.hpp"
+#include "sim/SimCalib.hpp"
 
 #define TEST_EUROC "/data/euroc/imu_april"
 #define TEST_CONFIG TEST_DATA "/calib_camera_imu.yaml"
@@ -96,6 +97,64 @@ static std::shared_ptr<CameraGeometry> setup_camera_geometry() {
                                                     cam0_int,
                                                     cam0_ext);
   return cam0_geom;
+}
+
+TEST(CalibInit, initialize_intrinsics) {
+  SimCalib sim;
+  sim.sim_camera_calib();
+
+  // Build camera data from synthetic observations (camera 0 only)
+  std::map<int, CameraData> camera_data;
+  for (const auto &[ts, cam_map] : sim.camera_views) {
+    for (const auto &[cam_id, target_map] : cam_map) {
+      if (cam_id != 0) {
+        continue;
+      }
+
+      for (const auto &[tgt_id, target] : target_map) {
+        camera_data[cam_id][ts][tgt_id] = target;
+      }
+    }
+  }
+
+  // Perturb ground-truth intrinsics as initial guess
+  const auto &gt_cam = sim.cameras.at(0);
+  Vec8 init_intrinsic = gt_cam.intrinsic;
+  init_intrinsic[0] += 50.0; // fx
+  init_intrinsic[1] += 50.0; // fy
+  init_intrinsic[2] += 20.0; // cx
+  init_intrinsic[3] += 20.0; // cy
+  init_intrinsic[4] = 0.0;   // k1
+  init_intrinsic[5] = 0.0;   // k2
+  init_intrinsic[6] = 0.0;   // p1
+  init_intrinsic[7] = 0.0;   // p2
+
+  auto cam0_geom = std::make_shared<CameraGeometry>(gt_cam.camera_id,
+                                                    gt_cam.camera_model->type(),
+                                                    gt_cam.resolution,
+                                                    init_intrinsic,
+                                                    gt_cam.extrinsic);
+  std::map<int, std::shared_ptr<CameraGeometry>> cam_geoms;
+  cam_geoms[0] = cam0_geom;
+
+  // Initialize intrinsics
+  CalibInit::initializeCameraIntrinsics(camera_data,
+                                        sim.target_configs,
+                                        cam_geoms,
+                                        false);
+
+  // Check intrinsics converged to ground truth
+  const Vec8 &gt = gt_cam.intrinsic;
+  const Vec8 &est = cam0_geom->intrinsic;
+
+  EXPECT_NEAR(est[0], gt[0], 1.0);  // fx
+  EXPECT_NEAR(est[1], gt[1], 1.0);  // fy
+  EXPECT_NEAR(est[2], gt[2], 5.0);  // cx
+  EXPECT_NEAR(est[3], gt[3], 5.0);  // cy
+  EXPECT_NEAR(est[4], gt[4], 0.05); // k1
+  EXPECT_NEAR(est[5], gt[5], 0.01); // k2
+  EXPECT_NEAR(est[6], gt[6], 0.01); // p1
+  EXPECT_NEAR(est[7], gt[7], 0.01); // p2
 }
 
 TEST(CalibInit, initialize_extrinsics) {
