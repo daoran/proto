@@ -25,7 +25,7 @@ TEST(SimCalib, construct) {
                        sample_num_y,
                        sample_num_z);
 
-  bool debug = true;
+  bool debug = false;
   if (debug) {
     std::vector<Vec3> pose_points;
     std::vector<Vec3> pose_colors;
