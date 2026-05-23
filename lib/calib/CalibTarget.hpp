@@ -45,8 +45,8 @@ public:
 
   /** Get measurements **/
   virtual void get_measurements(std::vector<int> &point_ids,
-                               Vec2s &keypoints,
-                               Vec3s &object_points) const = 0;
+                                Vec2s &keypoints,
+                                Vec3s &object_points) const = 0;
 };
 
 } // namespace cartesian

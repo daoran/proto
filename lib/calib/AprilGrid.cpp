@@ -10,9 +10,9 @@ AprilGrid::AprilGrid(const timestamp_t &ts,
 
 AprilGrid::AprilGrid(const AprilGrid &src)
     : CalibTarget{src.get_target_type(),
-      src.get_timestamp(),
-                   src.get_camera_id(),
-                   src.get_target_id()},
+                  src.get_timestamp(),
+                  src.get_camera_id(),
+                  src.get_target_id()},
       config_{src.get_config()}, data_{src.data_} {}
 
 bool AprilGrid::detected() const { return (data_.size() > 0); }
@@ -65,7 +65,8 @@ void AprilGrid::get_grid_index(const int tag_id, int &i, int &j) const {
   j = int((tag_id - tag_id_offset) % tag_cols);
 }
 
-Vec3 AprilGrid::get_object_point(const int tag_id, const int corner_index) const {
+Vec3 AprilGrid::get_object_point(const int tag_id,
+                                 const int corner_index) const {
   // Calculate the AprilGrid index using tag id
   int i = 0;
   int j = 0;
@@ -117,7 +118,7 @@ void AprilGrid::get_measurements(std::vector<int> &tag_ids,
       tag_ids.push_back(tag_id);
       corner_indicies.push_back(corner_index);
       keypoints.push_back(tag_det.keypoints.at(corner_index));
-      object_points.push_back(getObjectPoint(tag_id, corner_index));
+      object_points.push_back(get_object_point(tag_id, corner_index));
     }
   }
 }
@@ -129,14 +130,14 @@ void AprilGrid::get_measurements(std::vector<int> &point_ids,
     for (const auto corner_index : tag_det.corner_indicies) {
       point_ids.push_back(tag_id * 4 + corner_index);
       keypoints.push_back(tag_det.keypoints.at(corner_index));
-      object_points.push_back(getObjectPoint(tag_id, corner_index));
+      object_points.push_back(get_object_point(tag_id, corner_index));
     }
   }
 }
 
 Vec2 AprilGrid::get_center_2d() const {
-  const auto tag_rows = getTagRows();
-  const auto tag_cols = getTagCols();
+  const auto tag_rows = get_tag_rows();
+  const auto tag_cols = get_tag_cols();
   const auto tag_size = get_tag_size();
   const auto tag_spacing = get_tag_spacing();
 
@@ -169,8 +170,8 @@ bool AprilGrid::has(const int tag_id, const int corner_index) const {
 }
 
 void AprilGrid::add(const int tag_id, const int corner_index, const Vec2 &kp) {
-  const auto tag_rows = getTagRows();
-  const auto tag_cols = getTagCols();
+  const auto tag_rows = get_tag_rows();
+  const auto tag_cols = get_tag_cols();
   const auto id_offset = get_tag_id_offset();
   const auto num_tags = tag_rows * tag_cols;
   if ((tag_id - id_offset) < 0 || (tag_id - id_offset) >= num_tags) {

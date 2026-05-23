@@ -156,8 +156,8 @@ static void simulate_camera_measurements(
   // Get target parameters
   const Vec7 target_extrinsic = target_geometry->extrinsic;
   const AprilGrid aprilgrid{0, 0, config};
-  const int tag_rows = aprilgrid.getTagRows();
-  const int tag_cols = aprilgrid.getTagCols();
+  const int tag_rows = aprilgrid.get_tag_rows();
+  const int tag_cols = aprilgrid.get_tag_cols();
 
   // Form fiducial target to camera pose T_CiF
   const Mat4 T_SW = tf(sensor_pose).inverse();

@@ -1,6 +1,5 @@
 #pragma once
 
-
 /**
  * Perform RANSAC on keypoints `kps0` and `kps1` to reject outliers.
  */

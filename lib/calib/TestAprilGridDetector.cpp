@@ -27,7 +27,10 @@ TEST(AprilGridDetector, detect) {
   std::vector<int> corner_indicies;
   Vec2s keypoints;
   Vec3s object_points;
-  grids[0]->get_measurements(tag_ids, corner_indicies, keypoints, object_points);
+  grids[0]->get_measurements(tag_ids,
+                             corner_indicies,
+                             keypoints,
+                             object_points);
   ASSERT_EQ(tag_ids.size(), tag_rows * tag_cols * 4);
   ASSERT_EQ(corner_indicies.size(), tag_rows * tag_cols * 4);
   ASSERT_EQ(keypoints.size(), tag_rows * tag_cols * 4);

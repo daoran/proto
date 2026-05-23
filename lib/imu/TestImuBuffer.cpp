@@ -23,7 +23,7 @@ TEST(ImuBuffer, trim) {
 
 TEST(ImuBuffer, extract) {
   ImuBuffer imu_buffer;
-  for (int i = 0; i < 10; i+=2) {
+  for (int i = 0; i < 10; i += 2) {
     const timestamp_t ts = i;
     const Vec3 acc(i, i, i);
     const Vec3 gyr(i, i, i);

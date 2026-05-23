@@ -12,7 +12,6 @@ struct CalibCamera : CalibProblem {
   using CameraResiduals = std::map<int, std::vector<CalibCameraErrorPtr>>;
   std::map<timestamp_t, CameraResiduals> resblocks;
 
-
   CalibCamera() = default;
   CalibCamera(const std::string &config_file);
   virtual ~CalibCamera() = default;
