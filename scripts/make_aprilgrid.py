@@ -5,27 +5,32 @@ Script to generate a grid of AprilTags, aka AprilGrid.
 import argparse
 from PIL import Image
 
-# Config
-NUM_ROWS = 10
-NUM_COLS = 10
-TAG_FAMILY = "tag36h11"
-# TAG_FAMILY = "tagStandard41h12"
-TAG_IMG_DIR = "./deps/src/apriltag-imgs"
-TAG_SPACING = 1  # Space between tags in pixels
-SAVE_PATH = "./aprilgrid.png"
-
 
 def make_aprilgrid(
-    tag_rows,
-    tag_cols,
-    tag_img_dir,
-    tag_family,
-    tag_spacing,
-    output_path,
-):
-    """ Make AprilGrid """
-    # Settings
+    tag_rows: int,
+    tag_cols: int,
+    tag_img_dir: str,
+    tag_family: str,
+    tag_spacing: int,
+    output_path: str,
+) -> None:
+    """Generate an AprilGrid image and save it to disk.
 
+    Parameters
+    ----------
+    tag_rows : int
+        Number of tag rows in the grid.
+    tag_cols : int
+        Number of tag columns in the grid.
+    tag_img_dir : str
+        Path to the apriltag-imgs directory containing tag images.
+    tag_family : str
+        AprilTag family name (e.g. ``tag36h11``).
+    tag_spacing : int
+        Spacing between tags in pixels.
+    output_path : str
+        Path to save the output PNG image.
+    """
     # AprilTag defaults
     tag_size = 8  # Default tag size in pixels
 
@@ -65,12 +70,12 @@ def make_aprilgrid(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tag_rows", default=NUM_ROWS)
-    parser.add_argument("--tag_cols", default=NUM_COLS)
-    parser.add_argument("--tag_img_dir", default=TAG_IMG_DIR)
-    parser.add_argument("--tag_family", default=TAG_FAMILY)
-    parser.add_argument("--tag_spacing", default=TAG_SPACING)
-    parser.add_argument("--output_path", default=SAVE_PATH)
+    parser.add_argument("--tag_rows", type=int, default=10)
+    parser.add_argument("--tag_cols", type=int, default=10)
+    parser.add_argument("--tag_img_dir", default="./deps/src/apriltag-imgs")
+    parser.add_argument("--tag_family", default="tag36h11")
+    parser.add_argument("--tag_spacing", type=int, default=1)
+    parser.add_argument("--output_path", default="./aprilgrid.png")
     args = parser.parse_args()
 
     make_aprilgrid(
