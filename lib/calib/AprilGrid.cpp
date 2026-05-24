@@ -405,7 +405,7 @@ cv::Mat AprilGrid::draw(const cv::Mat &image,
     const auto kp = keypoints[i];
 
     // Draw corners
-    cv::Point2f p(kp(0), kp(1));
+    cv::Point2f p(kp.x(), kp.y());
     cv::circle(image_rgb, p, marker_size, color, -1);
 
     // Label corner

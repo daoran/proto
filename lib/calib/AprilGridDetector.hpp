@@ -22,25 +22,32 @@ class AprilGridDetector {
 private:
   // Settings
   int min_border_dist_ = 5;
+  std::string detector_type_ = "kaess";
   std::map<int, AprilGridConfig> target_configs_;
   std::map<int, int> target_lut_; // tag_id, target_id
 
-  // Ed Olsen's AprilTag detector
-  apriltag_family_t *tf_ = tag36h11_create();
-  apriltag_detector_t *det_ = apriltag_detector_create();
+  // Form target lut
+  void form_target_lut();
 
-  void olsenDetect(const cv::Mat &image,
-                   std::vector<int> &tag_ids,
-                   std::vector<int> &corner_indicies,
-                   std::vector<Vec2> &keypoints);
+  // Ed Olsen's AprilTag detector
+  apriltag_family_t *olsen_tf_ = nullptr;
+  apriltag_detector_t *olsen_detector_ = nullptr;
+
+  void olsen_setup();
+  void olsen_cleanup();
+  void olsen_detect(const cv::Mat &image,
+                    std::vector<int> &tag_ids,
+                    std::vector<int> &corner_indicies,
+                    std::vector<Vec2> &keypoints);
 
   // Michale Kaess's AprilTag detector
-  ethz_apriltag::TagDetector detector{ethz_apriltag::tagCodes36h11};
+  std::unique_ptr<ethz_apriltag::TagDetector> kaess_detector_;
 
-  void kaessDetect(const cv::Mat &image,
-                   std::vector<int> &tag_ids,
-                   std::vector<int> &corner_indicies,
-                   std::vector<Vec2> &keypoints);
+  void kaess_setup();
+  void kaess_detect(const cv::Mat &image,
+                    std::vector<int> &tag_ids,
+                    std::vector<int> &corner_indicies,
+                    std::vector<Vec2> &keypoints);
 
 public:
   /** Constructor / Destructor **/
@@ -48,6 +55,9 @@ public:
   AprilGridDetector(const AprilGridConfig &target_config);
   AprilGridDetector(const std::map<int, AprilGridConfig> &target_configs);
   virtual ~AprilGridDetector();
+
+  /** Set detector */
+  void set_detector(const std::string &detector_type);
 
   /** Detect AprilGrid **/
   std::vector<std::shared_ptr<AprilGrid>> detect(const timestamp_t ts,
