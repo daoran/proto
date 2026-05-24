@@ -9,8 +9,8 @@ NUM_ROWS = 10
 NUM_COLS = 10
 TAG_FAMILY = "tag36h11"
 # TAG_FAMILY = "tagStandard41h12"
-TAG_IMG_DIR = "./third_party/src/apriltag-imgs"
-TAG_SPACING = 0  # Space between tags in pixels
+TAG_IMG_DIR = "./deps/src/apriltag-imgs"
+TAG_SPACING = 1  # Space between tags in pixels
 SAVE_PATH = "./aprilgrid.png"
 
 
@@ -25,13 +25,15 @@ def make_aprilgrid(**kwargs):
   save_path = kwargs.get("save_path", SAVE_PATH)
 
   # AprilTag defaults
-  tag_size = 10  # Default tag size in pixels
+  tag_size = 8  # Default tag size in pixels
 
   # Create AprilGrid
   img_w = tag_size * num_cols + tag_spacing * (num_cols - 1)
   img_h = tag_size * num_rows + tag_spacing * (num_rows - 1)
   img_scale = 10
-  mosaic = Image.new(mode='RGB', size=(img_w, img_h))
+  mosaic_size = (img_w, img_h)
+  mosaic_bg_color = (255, 255, 255)
+  mosaic = Image.new(mode='RGB', size=mosaic_size, color=mosaic_bg_color)
 
   tag_id = 0
   for i in range(num_rows - 1, -1, -1):
@@ -44,6 +46,9 @@ def make_aprilgrid(**kwargs):
       tag_id_str = str(tag_id).zfill(5)
       tag_img_path = f'{tag_img_dir}/{tag_family}/{img_prefix}_{tag_id_str}.png'
       tag_img = Image.open(tag_img_path)
+
+      tag_w, tag_h = tag_img.size
+      tag_img = tag_img.crop((1, 1, tag_w - 1, tag_h - 1))
 
       px = (tag_size * j) + tag_spacing * j
       py = (tag_size * i) + tag_spacing * i
