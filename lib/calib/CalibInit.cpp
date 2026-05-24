@@ -179,7 +179,7 @@ void CalibInit::initialize_camera_extrinsics(
     if (camchain.find(0, target_id, T_T0Tj) != 0) {
       FATAL("No observations between target0 and target%d\n", target_id);
     }
-    t_geom->setExtrinsic(T_T0Tj);
+    t_geom->set_extrinsic(T_T0Tj);
   }
 
   // Build problem

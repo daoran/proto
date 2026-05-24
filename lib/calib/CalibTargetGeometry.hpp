@@ -20,7 +20,7 @@ struct CalibTargetGeometry {
   virtual ~CalibTargetGeometry() = default;
 
   /** Set extrinsic */
-  void setExtrinsic(const Mat4 &extrinsic);
+  void set_extrinsic(const Mat4 &extrinsic);
 };
 
 } // namespace cartesian
