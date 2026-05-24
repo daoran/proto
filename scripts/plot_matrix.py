@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import numpy as np
-import matplotlib.pylab as plt
-
+import matplotlib.pylab as plt  # type: ignore
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
