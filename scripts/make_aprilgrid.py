@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 
 from PIL import Image
+import numpy as np
 
 
 def make_aprilgrid(
@@ -15,8 +16,8 @@ def make_aprilgrid(
     tag_img_dir: str,
     tag_family: str,
     tag_spacing: int,
-    output_path: str,
-) -> None:
+    output_path: str | None = None,
+) -> np.ndarray:
   """Generate an AprilGrid image and save it to disk.
 
     Parameters
@@ -71,7 +72,46 @@ def make_aprilgrid(
   # Scale image and save
   mosaic_size_px = (img_w * img_scale, img_h * img_scale)
   mosaic = mosaic.resize(mosaic_size_px, Image.NEAREST)  # type: ignore
-  mosaic.save(output_path)
+
+  if output_path:
+    mosaic.save(output_path)
+
+  return np.array(mosaic.convert("L"))
+
+
+def make_test_image(args):
+  num_targets = 4
+
+  targets = []
+  for target_id in range(num_targets):
+    targets.append(
+        make_aprilgrid(
+            target_id=target_id,
+            tag_rows=args.tag_rows,
+            tag_cols=args.tag_cols,
+            tag_img_dir=args.tag_img_dir,
+            tag_family=args.tag_family,
+            tag_spacing=args.tag_spacing,
+            output_path=None,
+        ))
+
+  target_h, target_w, = targets[0].shape
+  pad = 40
+  w = target_w * 2 + pad
+  h = target_h * 2 + pad
+  test_image = 255 * np.ones((h, w))
+  test_image[0:target_h, 0:target_w] = targets[0]
+  test_image[0:target_h, target_w + pad:] = targets[1]
+  test_image[target_h + pad:, 0:target_w] = targets[2]
+  test_image[target_h + pad:, target_w + pad:] = targets[3]
+  test_image= np.pad(test_image, pad_width=5, mode='constant', constant_values=255)
+
+  import cv2
+  cv2.imwrite("./test_image.png", test_image)
+
+  # import cv2
+  # cv2.imshow("Image", image)
+  # cv2.waitKey(0)
 
 
 if __name__ == "__main__":
@@ -81,10 +121,11 @@ if __name__ == "__main__":
   parser.add_argument("--tag-cols", type=int, default=10)
   parser.add_argument("--tag-img_dir", default="./deps/src/apriltag-imgs")
   parser.add_argument("--tag-family", default="tag36h11")
-  parser.add_argument("--tag-spacing", type=int, default=1)
+  parser.add_argument("--tag-spacing", type=int, default=2)
   parser.add_argument("--output-dir", type=Path, default="./")
   args = parser.parse_args()
 
+  # Make calibration targets
   for target_id in range(args.num_targets):
     output_path = args.output_dir / f"./aprilgrid-target{target_id}.png"
     make_aprilgrid(
@@ -96,3 +137,6 @@ if __name__ == "__main__":
         tag_spacing=args.tag_spacing,
         output_path=output_path,
     )
+
+  # Make test image
+  # make_test_image(args)
