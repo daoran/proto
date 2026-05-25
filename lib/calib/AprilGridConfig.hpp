@@ -13,31 +13,31 @@ struct AprilGridConfig {
   int tag_id_offset = 0;
 
   /** Get width */
-  double getWidth() const;
+  double get_width() const;
 
   /** Get height */
-  double getHeight() const;
+  double get_height() const;
 
   /** Get width and height */
-  Vec2 getWidthHeight() const;
+  Vec2 get_width_height() const;
 
   /** Get center */
-  Vec2 getCenter() const;
+  Vec2 get_center() const;
 
   /** Get center relative pose T_target_center */
-  Mat4 getCenterRelativePose() const;
+  Mat4 get_center_relative_pose() const;
 
   /** Get number of tags */
-  int getNumTags() const;
+  int get_num_tags() const;
 
   /** Get grid index */
-  void getGridIndex(const int tag_id, int &i, int &j) const;
+  void get_grid_index(const int tag_id, int &i, int &j) const;
 
   /** Get object point */
-  Vec3 getObjectPoint(const int tag_id, const int corner_index) const;
+  Vec3 get_object_point(const int tag_id, const int corner_index) const;
 
   /** Get object points */
-  std::map<int, Vec3> getObjectPoints() const;
+  std::map<int, Vec3> get_object_points() const;
 };
 
 } // namespace cartesian

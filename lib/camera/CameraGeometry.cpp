@@ -41,7 +41,7 @@ CameraGeometry::CameraGeometry(const int camera_id_,
   intrinsic[3] = cy;
 }
 
-void CameraGeometry::setExtrinsic(const Mat4 &transform) {
+void CameraGeometry::set_extrinsic(const Mat4 &transform) {
   const Vec7 data = tf_vec(transform);
   for (int i = 0; i < 7; ++i) {
     extrinsic(i) = data(i);

@@ -181,7 +181,7 @@ void Logger::log_target(const std::string &topic,
   const auto num_tags = config.tag_rows * config.tag_cols;
   for (int tag_id = 0; tag_id < num_tags; ++tag_id) {
     for (int corner_index = 0; corner_index < 4; ++corner_index) {
-      const Vec3 p_T = config.getObjectPoint(tag_id, corner_index);
+      const Vec3 p_T = config.get_object_point(tag_id, corner_index);
       const Vec3 p_W = tf_point(T_WT, p_T);
       points_data.push_back(p_W);
       points_colors.emplace_back(255, 0, 0);

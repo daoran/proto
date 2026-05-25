@@ -54,7 +54,7 @@ void SimCalib::setup_calib_targets() {
   target_configs.emplace(target_id, target_config);
 
   // Add target pose
-  const auto target_center = target_config.getCenter();
+  const auto target_center = target_config.get_center();
   const Vec3 target_pos{1.0, target_center.x(), 0.0};
   const Vec3 target_euler{M_PI / 2.0, 0.0, -M_PI / 2.0};
   const Mat3 target_rot = euler321(target_euler);
@@ -63,7 +63,7 @@ void SimCalib::setup_calib_targets() {
 
   // Add target geoemtry
   const Vec7 extrinsic{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
-  const auto pts = target_config.getObjectPoints();
+  const auto pts = target_config.get_object_points();
   targets.emplace(target_id, CalibTargetGeometry(target_id, extrinsic, pts));
 }
 
@@ -134,7 +134,7 @@ void SimCalib::setup_camera_poses(const double camera_rate,
 
   const auto target = target_configs.at(0);
   const Mat4 T_WT0 = target_poses.at(0);
-  const Vec2 center = target.getCenter();
+  const Vec2 center = target.get_center();
   const Vec3 p_center = tf_point(T_WT0, Vec3{center.x(), center.y(), 0.0});
 
   // const time_t time_now = time(NULL);
@@ -179,10 +179,10 @@ void SimCalib::setup_camera_poses(const double camera_rate,
                                   const double T) {
   const auto target = target_configs.at(0);
   const Mat4 T_WT0 = target_poses.at(0);
-  const Mat4 T_TO = target.getCenterRelativePose();
+  const Mat4 T_TO = target.get_center_relative_pose();
   const timestamp_t ts_start = 0;
-  const double calib_width = target.getWidthHeight().x();
-  const double calib_height = target.getWidthHeight().y();
+  const double calib_width = target.get_width_height().x();
+  const double calib_height = target.get_width_height().y();
   LissajousTrajectory
       traj{traj_type, ts_start, T_WT0, T_TO, calib_width, calib_height, R, T};
 
@@ -250,9 +250,9 @@ void SimCalib::simulate_camera_views() {
     const AprilGridConfig &config = target_configs[target_id];
     auto target = std::make_shared<AprilGrid>(ts, camera_id, config);
 
-    for (int tag_id = 0; tag_id < config.getNumTags(); ++tag_id) {
+    for (int tag_id = 0; tag_id < config.get_num_tags(); ++tag_id) {
       for (int corner_index = 0; corner_index < 4; ++corner_index) {
-        const Vec3 p_Tj = config.getObjectPoint(tag_id, corner_index);
+        const Vec3 p_Tj = config.get_object_point(tag_id, corner_index);
         const Vec3 p_Ci = tf_point(T_CiTj, p_Tj);
         Vec2 z{0.0, 0.0};
         if (camera->project(res, intrinsic, p_Ci, z) != 0) {

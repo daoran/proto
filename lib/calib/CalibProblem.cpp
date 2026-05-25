@@ -408,7 +408,7 @@ void CalibProblem::add_target(const AprilGridConfig &config,
                              const Vec7 &extrinsic) {
   // Add target config and geometry
   const int target_id = config.target_id;
-  const auto pts = config.getObjectPoints();
+  const auto pts = config.get_object_points();
   auto target =
       std::make_shared<CalibTargetGeometry>(target_id, extrinsic, pts);
   target_configs[target_id] = config;
@@ -422,7 +422,7 @@ void CalibProblem::add_target(const AprilGridConfig &config,
   }
 
   // Target points
-  for (auto &[point_id, point] : config.getObjectPoints()) {
+  for (auto &[point_id, point] : config.get_object_points()) {
     target->points[point_id] = point;
     problem->AddParameterBlock(target->points[point_id].data(), 3);
     problem->SetParameterBlockConstant(target->points[point_id].data());

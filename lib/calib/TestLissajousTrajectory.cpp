@@ -42,7 +42,7 @@ static AprilGridConfig setup_target_config() {
 }
 
 static Mat4 setup_target_pose(const AprilGridConfig &config) {
-  const auto target_center = config.getCenter();
+  const auto target_center = config.get_center();
   const Vec3 target_pos{1.0, target_center.x(), 0.0};
   const Vec3 target_euler{M_PI / 2.0, 0.0, -M_PI / 2.0};
   const Mat3 target_rot = euler321(target_euler);
@@ -51,8 +51,8 @@ static Mat4 setup_target_pose(const AprilGridConfig &config) {
 }
 
 static Mat4 setup_target_center_pose(const AprilGridConfig &config) {
-  const double calib_width = config.getWidthHeight().x();
-  const double calib_height = config.getWidthHeight().y();
+  const double calib_width = config.get_width_height().x();
+  const double calib_height = config.get_width_height().y();
   const Mat3 C_TO = I(3);
   const Vec3 r_TO{calib_width / 2.0, calib_height / 2.0, 1.0};
   const Mat4 T_TO = tf(C_TO, r_TO);
@@ -66,8 +66,8 @@ TEST(LissajousTrajectory, construct) {
   const Mat4 &T_WT = setup_target_pose(config);
   const Mat4 &T_TO = setup_target_center_pose(config);
   const timestamp_t ts_start = 0;
-  const double calib_width = config.getWidthHeight().x();
-  const double calib_height = config.getWidthHeight().y();
+  const double calib_width = config.get_width_height().x();
+  const double calib_height = config.get_width_height().y();
   const double R = 0.5;
   const double T = 1.0;
   LissajousTrajectory

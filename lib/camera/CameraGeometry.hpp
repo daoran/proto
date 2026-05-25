@@ -24,7 +24,7 @@ struct CameraGeometry {
   virtual ~CameraGeometry() = default;
 
   /** Set Extrinsic */
-  void setExtrinsic(const Mat4 &transform);
+  void set_extrinsic(const Mat4 &transform);
 };
 
 } // namespace cartesian

@@ -133,7 +133,7 @@ static std::shared_ptr<CalibTargetGeometry>
 setup_target_geometry(const AprilGridConfig &config, const Vec7 &extrinsic) {
   return std::make_shared<CalibTargetGeometry>(config.target_id,
                                                extrinsic,
-                                               config.getObjectPoints());
+                                               config.get_object_points());
 }
 
 static void simulate_camera_measurements(
@@ -169,7 +169,7 @@ static void simulate_camera_measurements(
   // Simulate camera measurements
   for (int tag_id = 0; tag_id < (tag_rows * tag_cols); ++tag_id) {
     for (int corner_index = 0; corner_index < 4; ++corner_index) {
-      const Vec3 p_Tj = config.getObjectPoint(tag_id, corner_index);
+      const Vec3 p_Tj = config.get_object_point(tag_id, corner_index);
       const Vec3 p_Ci = tf_point(T_CiTj, p_Tj);
       Vec2 z{0.0, 0.0};
       if (camera->project(res, params, p_Ci, z) != 0) {

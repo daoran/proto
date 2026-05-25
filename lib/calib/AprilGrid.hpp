@@ -118,7 +118,7 @@ public:
 
   /** Load CalibTargets **/
   static std::vector<std::shared_ptr<CalibTarget>>
-  loadDirectory(const fs::path &dir_path);
+  load_directory(const fs::path &dir_path);
 
   /** Draw AprilGrid */
   cv::Mat draw(const cv::Mat &image,

@@ -369,7 +369,7 @@ std::shared_ptr<AprilGrid> AprilGrid::load(const fs::path &data_path) {
 }
 
 std::vector<std::shared_ptr<CalibTarget>>
-AprilGrid::loadDirectory(const fs::path &dir_path) {
+AprilGrid::load_directory(const fs::path &dir_path) {
   std::vector<fs::path> csv_files;
   for (const auto &csv_file : fs::directory_iterator(dir_path)) {
     csv_files.push_back(csv_file);

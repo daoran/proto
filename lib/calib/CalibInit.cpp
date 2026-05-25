@@ -63,7 +63,7 @@ void CalibInit::initialize_camera_intrinsics(
     // -- Add calibration target to problem
     const auto optimal_target_id = find_optimal_target(camera_data);
     const auto target_config = target_configs.at(optimal_target_id);
-    const auto points = target_config.getObjectPoints();
+    const auto points = target_config.get_object_points();
     const auto target_ext = tf_vec(I(4));
     auto target0 = std::make_shared<CalibTargetGeometry>(0, target_ext, points);
     init_problem->AddParameterBlock(target0->extrinsic.data(), 7);
@@ -169,7 +169,7 @@ void CalibInit::initialize_camera_extrinsics(
     if (camchain.find(0, camera_id, T_CiCj) != 0) {
       FATAL("No observations between camera0 and camera%d\n", camera_id);
     }
-    camera_geometry->setExtrinsic(T_CiCj);
+    camera_geometry->set_extrinsic(T_CiCj);
   }
 
   // Initialize calibration target extrinsics

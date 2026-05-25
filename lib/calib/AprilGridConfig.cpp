@@ -2,34 +2,34 @@
 
 namespace cartesian {
 
-double AprilGridConfig::getWidth() const {
+double AprilGridConfig::get_width() const {
   auto w = (tag_cols * tag_size) + ((tag_cols - 1) * tag_size * tag_spacing);
   return w;
 }
 
-double AprilGridConfig::getHeight() const {
+double AprilGridConfig::get_height() const {
   auto h = (tag_rows * tag_size) + ((tag_rows - 1) * tag_size * tag_spacing);
   return h;
 }
 
-Vec2 AprilGridConfig::getWidthHeight() const {
-  return Vec2{getWidth(), getHeight()};
+Vec2 AprilGridConfig::get_width_height() const {
+  return Vec2{get_width(), get_height()};
 }
 
-Vec2 AprilGridConfig::getCenter() const { return getWidthHeight() / 2.0; }
+Vec2 AprilGridConfig::get_center() const { return get_width_height() / 2.0; }
 
-Mat4 AprilGridConfig::getCenterRelativePose() const {
-  const double calib_width = getWidth();
-  const double calib_height = getHeight();
+Mat4 AprilGridConfig::get_center_relative_pose() const {
+  const double calib_width = get_width();
+  const double calib_height = get_height();
   const Mat3 C_TO = I(3);
   const Vec3 r_TO{calib_width / 2.0, calib_height / 2.0, 1.0};
   const Mat4 T_TO = tf(C_TO, r_TO);
   return T_TO;
 }
 
-int AprilGridConfig::getNumTags() const { return tag_rows * tag_cols; }
+int AprilGridConfig::get_num_tags() const { return tag_rows * tag_cols; }
 
-void AprilGridConfig::getGridIndex(const int tag_id, int &i, int &j) const {
+void AprilGridConfig::get_grid_index(const int tag_id, int &i, int &j) const {
   if ((tag_id - tag_id_offset) > (tag_rows * tag_cols)) {
     FATAL("tag_id > (tag_rows * tag_cols)!");
   } else if (tag_id < 0) {
@@ -40,12 +40,12 @@ void AprilGridConfig::getGridIndex(const int tag_id, int &i, int &j) const {
   j = int((tag_id - tag_id_offset) % tag_cols);
 }
 
-Vec3 AprilGridConfig::getObjectPoint(const int tag_id,
+Vec3 AprilGridConfig::get_object_point(const int tag_id,
                                      const int corner_index) const {
   // Calculate the AprilGrid index using tag id
   int i = 0;
   int j = 0;
-  getGridIndex(tag_id, i, j);
+  get_grid_index(tag_id, i, j);
 
   // Calculate the x and y of the tag origin (bottom left corner of tag)
   // relative to grid origin (bottom left corner of entire grid)
@@ -75,13 +75,13 @@ Vec3 AprilGridConfig::getObjectPoint(const int tag_id,
   return object_point;
 }
 
-std::map<int, Vec3> AprilGridConfig::getObjectPoints() const {
+std::map<int, Vec3> AprilGridConfig::get_object_points() const {
   std::map<int, Vec3> object_points;
 
   for (int tag_id = 0; tag_id < (tag_rows * tag_cols); ++tag_id) {
     for (int corner_index = 0; corner_index < 4; ++corner_index) {
       const int point_id = tag_id * 4 + corner_index;
-      object_points[point_id] = getObjectPoint(tag_id, corner_index);
+      object_points[point_id] = get_object_point(tag_id, corner_index);
     }
   }
 
