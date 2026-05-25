@@ -173,13 +173,13 @@ void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
 
       // Form and add residual blocks
       for (size_t i = 0; i < point_ids.size(); ++i) {
-        auto resblock = CalibCameraImuError2::create(camera_geometry,
-                                                     imu_geometries.at(0),
-                                                     target_geometry,
-                                                     pose_ptr,
-                                                     target_pose_ptr,
-                                                     point_ids[i],
-                                                     keypoints[i]);
+        auto resblock = CalibCameraImuError::create(camera_geometry,
+                                                    imu_geometries.at(0),
+                                                    target_geometry,
+                                                    pose_ptr,
+                                                    target_pose_ptr,
+                                                    point_ids[i],
+                                                    keypoints[i]);
         camera_resblocks[ts][camera_id].push_back(resblock);
         add_residual_block(resblock.get());
       }

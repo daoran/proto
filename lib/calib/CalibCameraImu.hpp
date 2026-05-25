@@ -3,13 +3,13 @@
 #include "CalibProblem.hpp"
 #include "../ceres/PoseManifold.hpp"
 #include "../ceres/ImuError.hpp"
-#include "../ceres/CalibCameraImuError2.hpp"
+#include "../ceres/CalibCameraImuError.hpp"
 
 namespace cartesian {
 
 /** Camera-IMU Calibrator **/
 struct CalibCameraImu : CalibProblem {
-  using CameraResiduals = std::map<int, std::vector<CalibCameraImuError2Ptr>>;
+  using CameraResiduals = std::map<int, std::vector<CalibCameraImuErrorPtr>>;
   using ImuResiduals = std::map<int, ImuErrorPtr>;
   using CameraBuffers = std::map<int, CalibTargetMap>;
 
