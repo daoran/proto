@@ -38,14 +38,14 @@ ReprojError::create(const std::shared_ptr<CameraGeometry> &camera,
 
 bool ReprojError::valid() const { return valid_; }
 
-Mat2 ReprojError::getCovarianceMatrix() const { return covar_; }
+Mat2 ReprojError::get_covariance_matrix() const { return covar_; }
 
-bool ReprojError::getResiduals(Vec2 &r) const {
+bool ReprojError::get_residuals(Vec2 &r) const {
   r = residuals_;
   return valid_;
 }
 
-bool ReprojError::getReprojError(double *error) const {
+bool ReprojError::get_reproj_error(double *error) const {
   *error = residuals_.norm();
   return valid_;
 }

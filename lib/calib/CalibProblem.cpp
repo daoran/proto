@@ -498,7 +498,7 @@ double *CalibProblem::get_speed_and_biases_ptr(const timestamp_t ts) {
  ******************************************************************************/
 
 void CalibProblem::add_residual_block(ResidualBlock *resblock) {
-  problem->AddResidualBlock(resblock, nullptr, resblock->getParamPtrs());
+  problem->AddResidualBlock(resblock, nullptr, resblock->get_param_ptrs());
 }
 
 /*******************************************************************************

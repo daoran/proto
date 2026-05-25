@@ -71,10 +71,10 @@ TEST(ReprojError, evaluate) {
   auto r = ReprojError::create(cam_geom, pose.data(), point.data(), z, covar);
 
   // Check Jacobians
-  ASSERT_TRUE(r->checkJacobian(0, "J_pose"));
-  ASSERT_TRUE(r->checkJacobian(1, "J_point"));
-  ASSERT_TRUE(r->checkJacobian(2, "J_cam_ext"));
-  ASSERT_TRUE(r->checkJacobian(3, "J_camera_intrinsic"));
+  ASSERT_TRUE(r->check_jacobian(0, "J_pose"));
+  ASSERT_TRUE(r->check_jacobian(1, "J_point"));
+  ASSERT_TRUE(r->check_jacobian(2, "J_cam_ext"));
+  ASSERT_TRUE(r->check_jacobian(3, "J_camera_intrinsic"));
 }
 
 } // namespace cartesian

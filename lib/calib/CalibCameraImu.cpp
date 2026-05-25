@@ -153,19 +153,6 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
   // Add camera residual blocks
   double *pose_ptr = get_pose_ptr(ts);
   double *target_pose_ptr = get_target_pose_ptr();
-  // auto &imu_geometry = get_imu_geometry(0);
-
-  // printf("target_pose: ");
-  // for (int i = 0; i < 7; i++) {
-  //   printf("%f, ", target_pose_ptr[i]);
-  // }
-  // printf("\n");
-  //
-  // printf("imu_extrinsic: ");
-  // for (int i = 0; i < 7; i++) {
-  //   printf("%f, ", imu_geometry->extrinsic.data()[i]);
-  // }
-  // printf("\n");
 
   for (const auto &[camera_id, targets] : camera_buffers) {
     const auto &camera_geometry = get_camera_geometry(camera_id);
@@ -398,14 +385,14 @@ void CalibCameraImu::solve() {
   // timestamp_t ts = *timestamps.begin();
   // {
   //   const auto &resblock = camera_resblocks[ts][0][0];
-  //   auto param_ptrs = resblock->getParamPtrs();
+  //   auto param_ptrs = resblock->get_param_ptrs();
   //   Vec2 r;
   //   resblock->eval(param_ptrs.data(), r.data(), nullptr);
   // }
 
   // {
   //   const auto &resblock = imu_resblocks[ts][0];
-  //   auto param_ptrs = resblock->getParamPtrs();
+  //   auto param_ptrs = resblock->get_param_ptrs();
   //   Vec2 r;
   //   resblock->eval(param_ptrs.data(), r.data(), nullptr);
   // }

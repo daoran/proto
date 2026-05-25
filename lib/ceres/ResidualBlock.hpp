@@ -26,13 +26,13 @@ public:
   virtual ~ResidualBlock() = default;
 
   /** Get type */
-  std::string getType() const;
+  std::string get_type() const;
 
   /** Get number of parameter blocks */
-  int getNumParams() const;
+  int get_num_params() const;
 
   /** Get parameter block pointers */
-  std::vector<double *> getParamPtrs() const;
+  std::vector<double *> get_param_ptrs() const;
 
   /** Evaluate with minimal jacobians */
   virtual bool eval(double const *const *params,
@@ -40,7 +40,7 @@ public:
                     double **jacs = nullptr) const = 0;
 
   /** Check jacobian */
-  bool checkJacobian(const int param_idx,
+  bool check_jacobian(const int param_idx,
                      const std::string &jac_name,
                      const double step = 1e-8,
                      const double tol = 1e-4,

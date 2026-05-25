@@ -42,13 +42,13 @@ public:
   bool valid() const;
 
   /** Get covariance matrix */
-  Mat2 getCovarianceMatrix() const;
+  Mat2 get_covariance_matrix() const;
 
   /** Get residuals */
-  bool getResiduals(Vec2 &r) const;
+  bool get_residuals(Vec2 &r) const;
 
   /** Get reprojection error */
-  bool getReprojError(double *error) const;
+  bool get_reproj_error(double *error) const;
 
   /** Evaluate with minimial Jacobians */
   bool eval(double const *const *params,

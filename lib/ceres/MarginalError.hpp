@@ -67,7 +67,7 @@ public:
   VecX compute_delta_chi(double const *const *params) const;
 
   /* Evaluate */
-  bool EvaluateWithMinimalJacobians(double const *const *params,
+  bool evaluate_with_minimal_jacobians(double const *const *params,
                                     double *res,
                                     double **jacs,
                                     double **min_jacs) const;

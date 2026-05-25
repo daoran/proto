@@ -69,16 +69,16 @@ public:
   bool valid() const { return valid_; }
 
   /** Get covariance matrix */
-  Mat2 getCovarianceMatrix() const { return covar_; }
+  Mat2 get_covariance_matrix() const { return covar_; }
 
   /** Get residuals */
-  bool getResiduals(Vec2 &r) const {
+  bool get_residuals(Vec2 &r) const {
     r = residuals_;
     return valid_;
   }
 
   /** Get reprojection error */
-  bool getReprojError(double *error) const {
+  bool get_reproj_error(double *error) const {
     *error = residuals_.norm();
     return valid_;
   }

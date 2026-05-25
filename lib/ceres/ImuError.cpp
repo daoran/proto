@@ -2,7 +2,7 @@
 
 namespace cartesian {
 
-MatX ImuError::formQ() const {
+MatX ImuError::form_Q() const {
   const Mat3 I3 = I(3);
   MatX Q = zeros(18, 18);
   Q.block<3, 3>(0, 0) = pow(imu_params.noise_acc, 2) * I3;
@@ -14,12 +14,12 @@ MatX ImuError::formQ() const {
   return Q;
 }
 
-MatX ImuError::formF(const int k,
-                     const Quat &dq_i,
-                     const Quat &dq_j,
-                     const Vec3 &ba_i,
-                     const Vec3 &bg_i,
-                     const double dt) const {
+MatX ImuError::form_F(const int k,
+                      const Quat &dq_i,
+                      const Quat &dq_j,
+                      const Vec3 &ba_i,
+                      const Vec3 &bg_i,
+                      const double dt) const {
   const Mat3 I3 = I(3);
   const Vec3 w_k = imu_buffer.getGyr(k);
   const Vec3 w_kp1 = imu_buffer.getGyr(k + 1);
@@ -58,11 +58,11 @@ MatX ImuError::formF(const int k,
   return F;
 }
 
-MatX ImuError::formG(const int k,
-                     const Quat &dq_i,
-                     const Quat &dq_j,
-                     const Vec3 &ba_i,
-                     const double dt) const {
+MatX ImuError::form_G(const int k,
+                      const Quat &dq_i,
+                      const Quat &dq_j,
+                      const Vec3 &ba_i,
+                      const double dt) const {
   const Mat3 I3 = I(3);
   const Vec3 a_k = imu_buffer.getAcc(k);
   const Mat3 acc_i_x = skew(a_k - ba_i);
@@ -107,7 +107,7 @@ void ImuError::propagate() {
   sqrt_info_ = I(15, 15);   // Square root information
 
   // Noise matrix Q
-  const MatX &Q = formQ();
+  const MatX &Q = form_Q();
 
   // Pre-integrate imu measuremenets
   for (int k = 0; k < (imu_buffer.size() - 1); k++) {
@@ -148,8 +148,8 @@ void ImuError::propagate() {
     const Vec3 bg_j = bg_i;
 
     // Continuous time transition matrix F and input matrix G
-    const MatX F = formF(k, dq_i, dq_j, ba_i, bg_i, dt);
-    const MatX G = formG(k, dq_i, dq_j, ba_i, dt);
+    const MatX F = form_F(k, dq_i, dq_j, ba_i, bg_i, dt);
+    const MatX G = form_G(k, dq_i, dq_j, ba_i, dt);
 
     // Map results
     dq_ = dq_j;
@@ -183,17 +183,17 @@ ImuError::ImuError(const std::vector<double *> &param_ptrs_,
   propagate();
 }
 
-void ImuError::setSqrtInfo(const MatX &sqrt_info) { sqrt_info_ = sqrt_info; }
+void ImuError::set_sqrt_info(const MatX &sqrt_info) { sqrt_info_ = sqrt_info; }
 
-MatX ImuError::getMatrixF() const { return state_F_; }
+MatX ImuError::get_matrix_f() const { return state_F_; }
 
-MatX ImuError::getMatrixP() const { return state_P_; }
+MatX ImuError::get_matrix_p() const { return state_P_; }
 
-Quat ImuError::getRelativeRotation() const { return dq_; }
+Quat ImuError::get_relative_rotation() const { return dq_; }
 
-Vec3 ImuError::getRelativePosition() const { return dr_; }
+Vec3 ImuError::get_relative_position() const { return dr_; }
 
-Vec3 ImuError::getRelativeVelocity() const { return dv_; }
+Vec3 ImuError::get_relative_velocity() const { return dv_; }
 
 std::shared_ptr<ImuError> ImuError::create(const ImuParams &imu_params_,
                                            const ImuBuffer &imu_buffer_,

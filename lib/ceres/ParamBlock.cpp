@@ -2,7 +2,7 @@
 
 namespace cartesian {
 
-int ParamBlock::getParamSize(const ParamBlock::Type type) {
+int ParamBlock::get_param_size(const ParamBlock::Type type) {
   switch (type) {
     case POSE:
     case EXTRINSIC:
@@ -23,7 +23,7 @@ int ParamBlock::getParamSize(const ParamBlock::Type type) {
   }
 }
 
-int ParamBlock::getLocalSize(const ParamBlock::Type type) {
+int ParamBlock::get_local_size(const ParamBlock::Type type) {
   switch (type) {
     case POSE:
     case EXTRINSIC:

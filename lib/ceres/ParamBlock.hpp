@@ -18,10 +18,10 @@ struct ParamBlock {
   };
 
   /** Get Parameter Size */
-  static int getParamSize(const ParamBlock::Type type);
+  static int get_param_size(const ParamBlock::Type type);
 
   /** Get Local Size */
-  static int getLocalSize(const ParamBlock::Type type);
+  static int get_local_size(const ParamBlock::Type type);
 
   /** Perturb parameter based on type */
   static void perturb(const ParamBlock::Type type,

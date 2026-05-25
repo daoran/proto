@@ -42,14 +42,14 @@ CalibCameraError::create(const std::shared_ptr<CameraGeometry> &camera,
 
 bool CalibCameraError::valid() const { return valid_; }
 
-Mat2 CalibCameraError::getCovarianceMatrix() const { return covar_; }
+Mat2 CalibCameraError::get_covariance_matrix() const { return covar_; }
 
-bool CalibCameraError::getResiduals(Vec2 &r) const {
+bool CalibCameraError::get_residuals(Vec2 &r) const {
   r = residuals_;
   return valid_;
 }
 
-bool CalibCameraError::getReprojError(double *error) const {
+bool CalibCameraError::get_reproj_error(double *error) const {
   *error = residuals_.norm();
   return valid_;
 }

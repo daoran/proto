@@ -70,7 +70,7 @@ TEST(ImuError, evaluate) {
   ASSERT_EQ(block_sizes[3], 9);
 
   // Check param pointers
-  auto param_ptrs = residual_block->getParamPtrs();
+  auto param_ptrs = residual_block->get_param_ptrs();
   ASSERT_EQ(param_ptrs[0], pose_i.data());
   ASSERT_EQ(param_ptrs[1], sb_i.data());
   ASSERT_EQ(param_ptrs[2], pose_j.data());
@@ -83,11 +83,11 @@ TEST(ImuError, evaluate) {
   const double h = 1e-8;
   const double tol = 1e-4;
   const bool verbose = false;
-  residual_block->setSqrtInfo(I(15));
-  ASSERT_TRUE(residual_block->checkJacobian(0, "J_pose_i", h, tol, verbose));
-  ASSERT_TRUE(residual_block->checkJacobian(1, "J_sb_i", h, tol, verbose));
-  ASSERT_TRUE(residual_block->checkJacobian(0, "J_pose_j", h, tol, verbose));
-  ASSERT_TRUE(residual_block->checkJacobian(1, "J_sb_j", h, tol, verbose));
+  residual_block->set_sqrt_info(I(15));
+  ASSERT_TRUE(residual_block->check_jacobian(0, "J_pose_i", h, tol, verbose));
+  ASSERT_TRUE(residual_block->check_jacobian(1, "J_sb_i", h, tol, verbose));
+  ASSERT_TRUE(residual_block->check_jacobian(0, "J_pose_j", h, tol, verbose));
+  ASSERT_TRUE(residual_block->check_jacobian(1, "J_sb_j", h, tol, verbose));
 }
 
 TEST(ImuError, propagation) {
@@ -127,7 +127,7 @@ TEST(ImuError, propagation) {
       ImuError::create(imu_params, imu_buffer, pose_i, sb_i, pose_j, sb_j);
 
   // Evaluate residual block
-  auto param_ptrs = resblock->getParamPtrs();
+  auto param_ptrs = resblock->get_param_ptrs();
   VecX r = zeros(15, 1);
   resblock->Evaluate(param_ptrs.data(), r.data());
   ASSERT_TRUE(r.norm() < 1.0);
@@ -211,7 +211,7 @@ TEST(ImuError, solve) {
     problem.AddParameterBlock(sb_j, 9);
     problem.SetManifold(pose_i, &pose_plus);
     problem.SetManifold(pose_j, &pose_plus);
-    problem.AddResidualBlock(resblock.get(), nullptr, resblock->getParamPtrs());
+    problem.AddResidualBlock(resblock.get(), nullptr, resblock->get_param_ptrs());
 
     // Update indicies
     start_index = end_index;

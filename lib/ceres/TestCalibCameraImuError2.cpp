@@ -231,7 +231,7 @@ TEST(CalibCameraImuError2, evaluate) {
   ASSERT_EQ(block_sizes[5], 8); // Camera parameters
 
   // Check param pointers
-  auto param_ptrs = res->getParamPtrs();
+  auto param_ptrs = res->get_param_ptrs();
   ASSERT_EQ(param_ptrs[0], sensor_pose.data());
   ASSERT_EQ(param_ptrs[1], target_pose.data());
   ASSERT_EQ(param_ptrs[2], target_geometry->points[point_ids[0]].data());
@@ -243,12 +243,12 @@ TEST(CalibCameraImuError2, evaluate) {
   const double h = 1e-8;
   const double tol = 1e-4;
   const bool verbose = false;
-  EXPECT_TRUE(res->checkJacobian(0, "J_sensor_pose", h, tol, verbose));
-  EXPECT_TRUE(res->checkJacobian(1, "J_target_pose", h, tol, verbose));
-  EXPECT_TRUE(res->checkJacobian(2, "J_target_point", h, tol, verbose));
-  EXPECT_TRUE(res->checkJacobian(3, "J_imu_extrinsic", h, tol, verbose));
-  EXPECT_TRUE(res->checkJacobian(4, "J_camera_extrinsic", h, tol, verbose));
-  EXPECT_TRUE(res->checkJacobian(5, "J_camera", h, tol, verbose));
+  EXPECT_TRUE(res->check_jacobian(0, "J_sensor_pose", h, tol, verbose));
+  EXPECT_TRUE(res->check_jacobian(1, "J_target_pose", h, tol, verbose));
+  EXPECT_TRUE(res->check_jacobian(2, "J_target_point", h, tol, verbose));
+  EXPECT_TRUE(res->check_jacobian(3, "J_imu_extrinsic", h, tol, verbose));
+  EXPECT_TRUE(res->check_jacobian(4, "J_camera_extrinsic", h, tol, verbose));
+  EXPECT_TRUE(res->check_jacobian(5, "J_camera", h, tol, verbose));
 }
 
 } // namespace cartesian

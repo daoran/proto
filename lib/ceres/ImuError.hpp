@@ -28,22 +28,22 @@ struct ImuError : ResidualBlock {
   MatX sqrt_info_ = I(15, 15);   // Square root information
 
   /** Form noise matrix Q */
-  MatX formQ() const;
+  MatX form_Q() const;
 
   /** Form transiton matrix F */
-  MatX formF(const int k,
-             const Quat &dq_i,
-             const Quat &dq_j,
-             const Vec3 &ba_i,
-             const Vec3 &bg_i,
-             const double dt) const;
+  MatX form_F(const int k,
+              const Quat &dq_i,
+              const Quat &dq_j,
+              const Vec3 &ba_i,
+              const Vec3 &bg_i,
+              const double dt) const;
 
   /** Form matrix G */
-  MatX formG(const int k,
-             const Quat &dq_i,
-             const Quat &dq_j,
-             const Vec3 &ba_i,
-             const double dt) const;
+  MatX form_G(const int k,
+              const Quat &dq_i,
+              const Quat &dq_j,
+              const Vec3 &ba_i,
+              const double dt) const;
 
   /** Propagate IMU measurements */
   void propagate();
@@ -55,22 +55,22 @@ struct ImuError : ResidualBlock {
            const ImuBuffer &imu_buffer_);
 
   /** Manually set square root information */
-  void setSqrtInfo(const MatX &sqrt_info);
+  void set_sqrt_info(const MatX &sqrt_info);
 
   /** Return state transition matrix F */
-  MatX getMatrixF() const;
+  MatX get_matrix_f() const;
 
   /** Return state transition matrix P */
-  MatX getMatrixP() const;
+  MatX get_matrix_p() const;
 
   /** Return relative rotation dq */
-  Quat getRelativeRotation() const;
+  Quat get_relative_rotation() const;
 
   /** Return relative position dr */
-  Vec3 getRelativePosition() const;
+  Vec3 get_relative_position() const;
 
   /** Return relative velocity dv */
-  Vec3 getRelativeVelocity() const;
+  Vec3 get_relative_velocity() const;
 
   /** Create residual block */
   static std::shared_ptr<ImuError> create(const ImuParams &imu_params_,

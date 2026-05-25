@@ -117,7 +117,7 @@ void CalibInit::initialize_camera_intrinsics(
         resblocks.push_back(resblock);
         init_problem->AddResidualBlock(resblock.get(),
                                        nullptr,
-                                       resblock->getParamPtrs());
+                                       resblock->get_param_ptrs());
       }
     }
 
@@ -142,7 +142,7 @@ void CalibInit::initialize_camera_intrinsics(
     std::vector<double> reproj_errors;
     for (const auto &resblock : resblocks) {
       double error = 0.0;
-      if (resblock->getReprojError(&error)) {
+      if (resblock->get_reproj_error(&error)) {
         reproj_errors.push_back(error);
       }
     }
@@ -281,7 +281,7 @@ void CalibInit::initialize_camera_extrinsics(
           resblocks.push_back(resblock);
           init_problem->AddResidualBlock(resblock.get(),
                                          nullptr,
-                                         resblock->getParamPtrs());
+                                         resblock->get_param_ptrs());
         }
       }
     }
@@ -308,7 +308,7 @@ void CalibInit::initialize_camera_extrinsics(
   std::vector<double> reproj_errors;
   for (const auto &resblock : resblocks) {
     double error = 0.0;
-    if (resblock->getReprojError(&error)) {
+    if (resblock->get_reproj_error(&error)) {
       reproj_errors.push_back(error);
     }
   }

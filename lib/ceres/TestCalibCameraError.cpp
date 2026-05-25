@@ -202,7 +202,7 @@ TEST(CalibCameraError, evaluate) {
   ASSERT_EQ(block_sizes[4], 8); // Camera intrinsic
 
   // Check param pointers
-  auto param_ptrs = resblock->getParamPtrs();
+  auto param_ptrs = resblock->get_param_ptrs();
   ASSERT_EQ(param_ptrs[0], relpose.data());
   ASSERT_EQ(param_ptrs[1], target_geometry->points[point_ids[0]].data());
   ASSERT_EQ(param_ptrs[2], target_geometry->extrinsic.data());
@@ -213,11 +213,11 @@ TEST(CalibCameraError, evaluate) {
   const double h = 1e-8;
   const double tol = 1e-4;
   const bool debug = false;
-  ASSERT_TRUE(resblock->checkJacobian(0, "J_relpose", h, tol, debug));
-  ASSERT_TRUE(resblock->checkJacobian(1, "J_point", h, tol, debug));
-  ASSERT_TRUE(resblock->checkJacobian(2, "J_target_extrinsic", h, tol, debug));
-  ASSERT_TRUE(resblock->checkJacobian(3, "J_camera_extrinsic", h, tol, debug));
-  ASSERT_TRUE(resblock->checkJacobian(4, "J_camera", h, tol, debug));
+  ASSERT_TRUE(resblock->check_jacobian(0, "J_relpose", h, tol, debug));
+  ASSERT_TRUE(resblock->check_jacobian(1, "J_point", h, tol, debug));
+  ASSERT_TRUE(resblock->check_jacobian(2, "J_target_extrinsic", h, tol, debug));
+  ASSERT_TRUE(resblock->check_jacobian(3, "J_camera_extrinsic", h, tol, debug));
+  ASSERT_TRUE(resblock->check_jacobian(4, "J_camera", h, tol, debug));
 }
 
 } // namespace cartesian

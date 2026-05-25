@@ -152,7 +152,7 @@ void MarginalError::form_hessian(matx_t &H, vecx_t &b) {
 
     // Evaluate residual block
     vecx_t r = zeros(r_size, 1);
-    res_block->EvaluateWithMinimalJacobians(param_ptrs.data(),
+    res_block->evaluate_with_minimal_jacobians(param_ptrs.data(),
                                             r.data(),
                                             jac_ptrs.data(),
                                             min_jac_ptrs.data());
@@ -396,7 +396,7 @@ vecx_t MarginalError::compute_delta_chi(double const *const *params) const {
   return DeltaChi;
 }
 
-bool MarginalError::EvaluateWithMinimalJacobians(double const *const *params,
+bool MarginalError::evaluate_with_minimal_jacobians(double const *const *params,
                                                  double *res,
                                                  double **jacs,
                                                  double **min_jacs) const {

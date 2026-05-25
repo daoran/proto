@@ -2,11 +2,11 @@
 
 namespace cartesian {
 
-static int check_jacobian(const std::string &jac_name,
-                          const MatX &fdiff,
-                          const MatX &jac,
-                          const double tol,
-                          const bool print) {
+static int compare_jacobian(const std::string &jac_name,
+                            const MatX &fdiff,
+                            const MatX &jac,
+                            const double tol,
+                            const bool print) {
   // Pre-check
   if (jac.size() == 0) {
     LOG_ERROR("Provided analytical jacobian is empty!");
@@ -67,16 +67,16 @@ ResidualBlock::ResidualBlock(const std::string &type,
   set_num_residuals(num_residuals);
   auto block_sizes = mutable_parameter_block_sizes();
   for (auto param_type : param_types) {
-    auto param_size = ParamBlock::getParamSize(param_type);
+    auto param_size = ParamBlock::get_param_size(param_type);
     block_sizes->push_back(param_size);
   }
 }
 
-std::string ResidualBlock::getType() const { return type_; }
+std::string ResidualBlock::get_type() const { return type_; }
 
-int ResidualBlock::getNumParams() const { return param_ptrs_.size(); }
+int ResidualBlock::get_num_params() const { return param_ptrs_.size(); }
 
-std::vector<double *> ResidualBlock::getParamPtrs() const {
+std::vector<double *> ResidualBlock::get_param_ptrs() const {
   return param_ptrs_;
 }
 
@@ -85,14 +85,14 @@ bool ResidualBlock::Evaluate(double const *const *params,
                              double **jacs) const {
   // Setup
   const int r_size = num_residuals();
-  const int num_params = getNumParams();
+  const int num_params = get_num_params();
 
   // Malloc minimal jacobians
   double **min_jacs = nullptr;
   if (jacs != nullptr) {
     min_jacs = (double **) calloc(num_params, sizeof(double *));
     for (int i = 0; i < num_params; i++) {
-      const int local_size = ParamBlock::getLocalSize(param_types_[i]);
+      const int local_size = ParamBlock::get_local_size(param_types_[i]);
       const auto min_jac_size = r_size * local_size;
       min_jacs[i] = (double *) calloc(min_jac_size, sizeof(double));
     }
@@ -118,8 +118,8 @@ bool ResidualBlock::Evaluate(double const *const *params,
       }
 
       const ParamBlock::Type param_type = param_types_[param_idx];
-      const size_t param_size = ParamBlock::getParamSize(param_type);
-      const size_t local_size = ParamBlock::getLocalSize(param_type);
+      const size_t param_size = ParamBlock::get_param_size(param_type);
+      const size_t local_size = ParamBlock::get_local_size(param_type);
 
       if (param_size == local_size) {
         const auto jac_size = r_size * param_size;
@@ -148,11 +148,11 @@ bool ResidualBlock::Evaluate(double const *const *params,
   return true;
 }
 
-bool ResidualBlock::checkJacobian(const int param_idx,
-                                  const std::string &jac_name,
-                                  const double step,
-                                  const double tol,
-                                  const bool verbose) const {
+bool ResidualBlock::check_jacobian(const int param_idx,
+                                   const std::string &jac_name,
+                                   const double step,
+                                   const double tol,
+                                   const bool verbose) const {
   // Setup
   const int r_size = num_residuals();
   const size_t num_params = param_ptrs_.size();
@@ -160,7 +160,7 @@ bool ResidualBlock::checkJacobian(const int param_idx,
   // Jacobians
   double **jac_ptrs = (double **) calloc(num_params, sizeof(double *));
   for (size_t i = 0; i < num_params; i++) {
-    const int local_size = ParamBlock::getLocalSize(param_types_[i]);
+    const int local_size = ParamBlock::get_local_size(param_types_[i]);
     const auto jac_size = r_size * local_size;
     jac_ptrs[i] = (double *) calloc(jac_size, sizeof(double));
   }
@@ -172,7 +172,7 @@ bool ResidualBlock::checkJacobian(const int param_idx,
   // Finite difference
   double *param = param_ptrs_[param_idx];
   const auto param_type = param_types_[param_idx];
-  const int param_local_size = ParamBlock::getLocalSize(param_type);
+  const int param_local_size = ParamBlock::get_local_size(param_type);
   MatX fdiff = zeros(r_size, param_local_size);
   VecX r_fd = zeros(r_size, 1);
   for (int i = 0; i < param_local_size; i++) {
@@ -184,7 +184,7 @@ bool ResidualBlock::checkJacobian(const int param_idx,
 
   // Check jacobian
   Eigen::Map<MatXRowMajor> J(jac_ptrs[param_idx], r_size, param_local_size);
-  const int retval = check_jacobian(jac_name, fdiff, J, tol, verbose);
+  const int retval = compare_jacobian(jac_name, fdiff, J, tol, verbose);
 
   // Clean up
   for (size_t i = 0; i < num_params; i++) {
