@@ -292,15 +292,15 @@ void CalibProblem::add_camera(const int camera_id,
 }
 
 void CalibProblem::add_camera_measurement(const timestamp_t ts,
-                                        const int camera_id,
-                                        const CalibTargetPtr &calib_target) {
+                                          const int camera_id,
+                                          const CalibTargetPtr &calib_target) {
   const int target_id = calib_target->get_target_id();
   camera_data[camera_id][ts][target_id] = calib_target;
 }
 
 bool CalibProblem::has_camera_measurement(const timestamp_t ts,
-                                        const int camera_id,
-                                        const int target_id) const {
+                                          const int camera_id,
+                                          const int target_id) const {
   if (camera_data.count(camera_id) == 0) {
     return false;
   } else if (camera_data.at(camera_id).count(ts) == 0) {
@@ -373,8 +373,8 @@ void CalibProblem::initialize_camera_extrinsics() {
  ******************************************************************************/
 
 void CalibProblem::add_imu(const int imu_id,
-                          const ImuParams &imu_params,
-                          const Vec7 &extrinsic) {
+                           const ImuParams &imu_params,
+                           const Vec7 &extrinsic) {
   // Add IMU geometry
   auto imu = std::make_shared<ImuGeometry>(imu_id, imu_params, extrinsic);
   imu_geometries[imu_id] = imu;
@@ -405,7 +405,7 @@ ImuGeometryPtr &CalibProblem::get_imu_geometry(const int imu_id) {
  ******************************************************************************/
 
 void CalibProblem::add_target(const AprilGridConfig &config,
-                             const Vec7 &extrinsic) {
+                              const Vec7 &extrinsic) {
   // Add target config and geometry
   const int target_id = config.target_id;
   const auto pts = config.get_object_points();
@@ -442,7 +442,8 @@ double *CalibProblem::get_target_pose_ptr() { return target_pose.data(); }
 
 int CalibProblem::get_num_targets() const { return target_configs.size(); }
 
-std::map<int, CalibTargetGeometryPtr> &CalibProblem::get_all_target_geometries() {
+std::map<int, CalibTargetGeometryPtr> &
+CalibProblem::get_all_target_geometries() {
   return target_geometries;
 }
 
@@ -476,9 +477,9 @@ double *CalibProblem::get_pose_ptr(const timestamp_t ts) {
  ******************************************************************************/
 
 void CalibProblem::add_speed_and_biases(const timestamp_t ts,
-                                     const Vec3 &v_WS,
-                                     const Vec3 &bias_acc,
-                                     const Vec3 &bias_gyr) {
+                                        const Vec3 &v_WS,
+                                        const Vec3 &bias_acc,
+                                        const Vec3 &bias_gyr) {
   Vec9 sb;
   sb << v_WS, bias_acc, bias_gyr;
   speed_and_biases[ts] = sb;
@@ -492,6 +493,21 @@ Vec9 &CalibProblem::get_speed_and_biases(const timestamp_t ts) {
 double *CalibProblem::get_speed_and_biases_ptr(const timestamp_t ts) {
   return speed_and_biases.at(ts).data();
 }
+
+/*****************************************************************************
+ * Time-delay methods
+ ****************************************************************************/
+
+void CalibProblem::add_time_delay() {
+  if (time_delay_added_) {
+    return;
+  }
+
+  problem->AddParameterBlock(time_delay_, 1);
+  time_delay_added_ = true;
+}
+
+double *CalibProblem::get_time_delay_ptr() { return time_delay_; }
 
 /*******************************************************************************
  * Ceres
@@ -527,7 +543,7 @@ void CalibProblem::print_calib_target_configs(FILE *fp) const {
 }
 
 void CalibProblem::print_target_geometries(FILE *fp,
-                                         const bool max_digits) const {
+                                           const bool max_digits) const {
   // Print target0 pose
   fprintf(fp, "target0:\n");
   fprintf(fp, "  pose: %s\n", vec2str(target_pose, true, max_digits).c_str());
@@ -543,7 +559,7 @@ void CalibProblem::print_target_geometries(FILE *fp,
 }
 
 void CalibProblem::print_camera_geometries(FILE *fp,
-                                         const bool max_digits) const {
+                                           const bool max_digits) const {
   for (const auto &[camera_id, camera] : camera_geometries) {
     const auto model = camera->camera_model->type();
     const auto resolution = camera->resolution;

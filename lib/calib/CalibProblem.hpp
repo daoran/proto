@@ -32,6 +32,8 @@ struct CalibProblem {
   std::map<timestamp_t, Vec7> poses;
   std::map<timestamp_t, Vec9> speed_and_biases;
   Vec7 target_pose;
+  double time_delay_[1] = {0.0};
+  bool time_delay_added_ = false;
 
   std::map<int, CameraData> camera_data;
   std::map<int, ImuBuffer> imu_data;
@@ -187,6 +189,16 @@ struct CalibProblem {
 
   /** Get pose pointer */
   double *get_speed_and_biases_ptr(const timestamp_t ts);
+
+  /*****************************************************************************
+   * Time-delay methods
+   ****************************************************************************/
+
+  /** Add time delay */
+  void add_time_delay();
+
+  /** Get time delay pointer */
+  double *get_time_delay_ptr();
 
   /*****************************************************************************
    * Ceres
