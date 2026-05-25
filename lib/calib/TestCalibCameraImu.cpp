@@ -177,11 +177,11 @@ static CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
       if (auto target_event = dynamic_cast<CalibTargetEvent *>(event)) {
         const auto &cam_id = target_event->camera_id;
         const auto &calib_target = target_event->calib_target;
-        calib.addMeasurement(ts, cam_id, calib_target);
+        calib.add_measurement(ts, cam_id, calib_target);
       }
 
       if (auto imu_event = dynamic_cast<ImuEvent *>(event)) {
-        calib.addMeasurement(ts, imu_event->acc, imu_event->gyr);
+        calib.add_measurement(ts, imu_event->acc, imu_event->gyr);
       }
     }
   }
@@ -293,13 +293,13 @@ TEST(CalibCameraImu, test_sim) {
   for (const auto &ts : timeline.timestamps) {
     for (const auto &event : timeline.getEvents(ts)) {
       if (auto target_event = dynamic_cast<CalibTargetEvent *>(event)) {
-        calib.addMeasurement(ts,
+        calib.add_measurement(ts,
                              target_event->camera_id,
                              target_event->calib_target);
       }
 
       if (auto imu_event = dynamic_cast<ImuEvent *>(event)) {
-        calib.addMeasurement(ts, imu_event->acc, imu_event->gyr);
+        calib.add_measurement(ts, imu_event->acc, imu_event->gyr);
       }
     }
   }

@@ -77,7 +77,7 @@ Mat2 equi4_point_jacobian(const Vec4 &dist_params, const Vec2 &p) {
   const double r_x = 1.0 / r * x;
   const double r_y = 1.0 / r * y;
 
-  Mat2 J_point = I(2);
+  Mat2 J_point = eye(2);
   J_point(0, 0) = s + x * s_r * r_x;
   J_point(0, 1) = x * s_r * r_y;
   J_point(1, 0) = y * s_r * r_x;

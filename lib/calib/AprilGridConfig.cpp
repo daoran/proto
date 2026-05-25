@@ -21,7 +21,7 @@ Vec2 AprilGridConfig::get_center() const { return get_width_height() / 2.0; }
 Mat4 AprilGridConfig::get_center_relative_pose() const {
   const double calib_width = get_width();
   const double calib_height = get_height();
-  const Mat3 C_TO = I(3);
+  const Mat3 C_TO = eye(3);
   const Vec3 r_TO{calib_width / 2.0, calib_height / 2.0, 1.0};
   const Mat4 T_TO = tf(C_TO, r_TO);
   return T_TO;

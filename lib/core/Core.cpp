@@ -1185,7 +1185,7 @@ Mat4 load_pose(const std::string &fpath) {
     return tf(q, r);
   }
 
-  return I(4);
+  return eye(4);
 }
 
 void load_poses(const std::string &fpath,
@@ -1540,9 +1540,9 @@ MatX zeros(const int rows, const int cols) { return MatX::Zero(rows, cols); }
 
 MatX zeros(const int size) { return MatX::Zero(size, size); }
 
-MatX I(const int rows, const int cols) { return MatX::Identity(rows, cols); }
+MatX eye(const int rows, const int cols) { return MatX::Identity(rows, cols); }
 
-MatX I(const int size) { return MatX::Identity(size, size); }
+MatX eye(const int size) { return MatX::Identity(size, size); }
 
 MatX ones(const int rows, const int cols) {
   MatX A{rows, cols};
@@ -1586,7 +1586,7 @@ Mat3 skew(const Vec3 &w) {
 }
 
 Mat3 skewsq(const Vec3 &w) {
-  Mat3 SS = (w * w.transpose()) - pow(w.norm(), 2) * I(3);
+  Mat3 SS = (w * w.transpose()) - pow(w.norm(), 2) * eye(3);
   return SS;
 }
 
@@ -1727,7 +1727,7 @@ int schurs_complement(MatX &H,
   const MatX Hmm_inv = V * Lambda_inv * V.transpose();
   // const MatX Hmm_inv = pinv(Hmm);
   // const MatX Hmm_inv = Hmm.inverse();
-  const double inv_check = ((Hmm * Hmm_inv) - I(m, m)).sum();
+  const double inv_check = ((Hmm * Hmm_inv) - eye(m, m)).sum();
   if (fabs(inv_check) > 1e-4) {
     LOG_ERROR("FAILED!: Inverse identity check: %f", inv_check);
     return -1;
@@ -2241,7 +2241,7 @@ Mat4 tf(const VecX &params) {
 }
 
 Mat4 tf(const Mat3 &C, const Vec3 &r) {
-  Mat4 T = I(4);
+  Mat4 T = eye(4);
   T.block(0, 0, 3, 3) = C;
   T.block(0, 3, 3, 1) = r;
   return T;
@@ -2283,7 +2283,7 @@ Mat4 tf_perturb_rot(const Mat4 &T, double step_size, const int i) {
   if (i == -1) {
     C_diff = rvec2rot(ones(3, 1) * step_size, 1e-8) * C;
   } else {
-    const Mat3 drvec = I(3) * step_size;
+    const Mat3 drvec = eye(3) * step_size;
     C_diff = rvec2rot(drvec.col(i), 1e-8) * C;
   }
   return tf(C_diff, r);
@@ -2297,7 +2297,7 @@ Mat4 tf_perturb_trans(const Mat4 &T, const double step_size, const int i) {
   if (i == -1) {
     r_diff = r + ones(3, 1) * step_size;
   } else {
-    const Mat3 dr = I(3) * step_size;
+    const Mat3 dr = eye(3) * step_size;
     r_diff = r + dr.col(i);
   }
   return tf(C, r_diff);
@@ -2925,8 +2925,8 @@ void interp_poses(const timestamps_t &timestamps,
   // Interpolation variables
   timestamp_t ts_start = 0;
   timestamp_t ts_end = 0;
-  Mat4 pose0 = I(4);
-  Mat4 pose1 = I(4);
+  Mat4 pose0 = eye(4);
+  Mat4 pose1 = eye(4);
 
   size_t interp_idx = 0;
   for (size_t i = 0; i < timestamps.size(); i++) {
@@ -2959,7 +2959,7 @@ void interp_poses(const timestamps_t &timestamps,
 
       // Reset interpolation end point
       ts_end = 0;
-      pose1 = I(4);
+      pose1 = eye(4);
     }
 
     // Check if we're done

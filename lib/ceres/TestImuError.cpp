@@ -83,7 +83,7 @@ TEST(ImuError, evaluate) {
   const double h = 1e-8;
   const double tol = 1e-4;
   const bool verbose = false;
-  residual_block->set_sqrt_info(I(15));
+  residual_block->set_sqrt_info(eye(15));
   ASSERT_TRUE(residual_block->check_jacobian(0, "J_pose_i", h, tol, verbose));
   ASSERT_TRUE(residual_block->check_jacobian(1, "J_sb_i", h, tol, verbose));
   ASSERT_TRUE(residual_block->check_jacobian(0, "J_pose_j", h, tol, verbose));

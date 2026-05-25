@@ -180,7 +180,7 @@ TEST(CalibCameraError, evaluate) {
                                object_points);
 
   // Create residual block
-  const Mat2 covar = I(2);
+  const Mat2 covar = eye(2);
   const Mat4 T_WC0 = tf(body_pose);
   const Mat4 T_WT0 = tf(target_pose);
   const Mat4 T_BF = T_WC0.inverse() * T_WT0;

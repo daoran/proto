@@ -24,7 +24,7 @@ struct EurocImu {
   // Sensor properties
   std::string sensor_type;
   std::string comment;
-  Mat4 T_BS = I(4);
+  Mat4 T_BS = eye(4);
   double rate_hz = 0.0;
   double gyro_noise_density = 0.0;
   double gyro_random_walk = 0.0;
@@ -51,7 +51,7 @@ struct EurocCamera {
   // Sensor properties
   std::string sensor_type;
   std::string comment;
-  Mat4 T_BS = I(4);
+  Mat4 T_BS = eye(4);
   double rate_hz = 0.0;
   Vec2i resolution;
   std::string camera_model;

@@ -64,7 +64,7 @@ void CalibInit::initialize_camera_intrinsics(
     const auto optimal_target_id = find_optimal_target(camera_data);
     const auto target_config = target_configs.at(optimal_target_id);
     const auto points = target_config.get_object_points();
-    const auto target_ext = tf_vec(I(4));
+    const auto target_ext = tf_vec(eye(4));
     auto target0 = std::make_shared<CalibTargetGeometry>(0, target_ext, points);
     init_problem->AddParameterBlock(target0->extrinsic.data(), 7);
     init_problem->SetManifold(target0->extrinsic.data(), &pose_plus);
@@ -96,7 +96,7 @@ void CalibInit::initialize_camera_intrinsics(
       }
 
       // Add pose
-      Mat2 covar = I(2);
+      Mat2 covar = eye(2);
       relposes[ts] = tf_vec(T_CT);
       init_problem->AddParameterBlock(relposes[ts].data(), 7);
       init_problem->SetManifold(relposes[ts].data(), &pose_plus);
@@ -184,7 +184,7 @@ void CalibInit::initialize_camera_extrinsics(
 
   // Build problem
   PoseManifold pose_plus;
-  Mat2 covar = I(2);
+  Mat2 covar = eye(2);
   std::map<timestamp_t, Vec7> relposes;
   std::map<int, Vec3> target_points;
   std::vector<std::shared_ptr<CalibCameraError>> resblocks;

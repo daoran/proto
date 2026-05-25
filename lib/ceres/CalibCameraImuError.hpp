@@ -38,7 +38,7 @@ public:
          double *target_pose,
          const int point_id,
          const Vec2 &z,
-         const Mat2 &covar = I(2));
+         const Mat2 &covar = eye(2));
 
   /** Is point reprojection valid? */
   bool valid() const;

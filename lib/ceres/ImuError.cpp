@@ -3,7 +3,7 @@
 namespace cartesian {
 
 MatX ImuError::form_Q() const {
-  const Mat3 I3 = I(3);
+  const Mat3 I3 = eye(3);
   MatX Q = zeros(18, 18);
   Q.block<3, 3>(0, 0) = pow(imu_params.noise_acc, 2) * I3;
   Q.block<3, 3>(3, 3) = pow(imu_params.noise_gyr, 2) * I3;
@@ -20,7 +20,7 @@ MatX ImuError::form_F(const int k,
                       const Vec3 &ba_i,
                       const Vec3 &bg_i,
                       const double dt) const {
-  const Mat3 I3 = I(3);
+  const Mat3 I3 = eye(3);
   const Vec3 w_k = imu_buffer.getGyr(k);
   const Vec3 w_kp1 = imu_buffer.getGyr(k + 1);
   const Vec3 a_k = imu_buffer.getAcc(k);
@@ -63,7 +63,7 @@ MatX ImuError::form_G(const int k,
                       const Quat &dq_j,
                       const Vec3 &ba_i,
                       const double dt) const {
-  const Mat3 I3 = I(3);
+  const Mat3 I3 = eye(3);
   const Vec3 a_k = imu_buffer.getAcc(k);
   const Mat3 acc_i_x = skew(a_k - ba_i);
   const Mat3 dC_i = dq_i.toRotationMatrix();
@@ -102,9 +102,9 @@ void ImuError::propagate() {
   bg_ = Vec3{sb_i[6], sb_i[7], sb_i[8]};
 
   Dt_ = 0.0;                // Preintegration time period [s]
-  state_F_ = I(15);         // State jacobian
+  state_F_ = eye(15);         // State jacobian
   state_P_ = zeros(15, 15); // State covariance
-  sqrt_info_ = I(15, 15);   // Square root information
+  sqrt_info_ = eye(15, 15);   // Square root information
 
   // Noise matrix Q
   const MatX &Q = form_Q();
@@ -311,8 +311,8 @@ bool ImuError::eval(double const *const *params,
     J.block<3, 3>(3, 3) = -dv_dba;                // dv w.r.t ba
     J.block<3, 3>(3, 6) = -dv_dbg;                // dv w.r.t bg
     J.block<3, 3>(6, 6) = -dQ_left_xyz * dq_dbg;  // dtheta w.r.t C_i
-    J.block<3, 3>(9, 3) = -I(3);
-    J.block<3, 3>(12, 6) = -I(3);
+    J.block<3, 3>(9, 3) = -eye(3);
+    J.block<3, 3>(12, 6) = -eye(3);
     J = sqrt_info_ * J;
   }
 
@@ -333,8 +333,8 @@ bool ImuError::eval(double const *const *params,
     Eigen::Map<Mat<15, 9, Eigen::RowMajor>> J(jacs[3]);
     J.setZero();
     J.block<3, 3>(3, 0) = C_i.transpose(); // dv w.r.t v_j
-    J.block<3, 3>(9, 3) = I(3);
-    J.block<3, 3>(12, 6) = I(3);
+    J.block<3, 3>(9, 3) = eye(3);
+    J.block<3, 3>(12, 6) = eye(3);
     J = sqrt_info_ * J;
   }
 

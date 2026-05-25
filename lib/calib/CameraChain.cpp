@@ -103,7 +103,7 @@ int CameraChain::find(const int i, const int j, Mat4 &T_CiCj) const {
 
   // Straight-forward case
   if (i == j) {
-    T_CiCj = I(4);
+    T_CiCj = eye(4);
     return 0;
   }
 
@@ -151,7 +151,7 @@ int CameraChain::find(const int i, const int j, Mat4 &T_CiCj) const {
   }
 
   // Traverse the path backwards and chain the transforms
-  Mat4 T_CjCi = I(4);
+  Mat4 T_CjCi = eye(4);
   int child = j;
   while (path_map.count(child)) {
     const int parent = path_map[child];

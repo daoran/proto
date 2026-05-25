@@ -93,7 +93,7 @@ int CalibTargetChain::find(const int i, const int j, Mat4 &T_TiTj) const {
 
   // Straight-forward case
   if (i == j) {
-    T_TiTj = I(4);
+    T_TiTj = eye(4);
     return 0;
   }
 
@@ -141,7 +141,7 @@ int CalibTargetChain::find(const int i, const int j, Mat4 &T_TiTj) const {
   }
 
   // Traverse the path backwards and chain the transforms
-  Mat4 T_TjTi = I(4);
+  Mat4 T_TjTi = eye(4);
   int child = j;
   while (path_map.count(child)) {
     const int parent = path_map[child];

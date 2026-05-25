@@ -23,9 +23,9 @@ struct ImuError : ResidualBlock {
   Vec3 bg_{0.0, 0.0, 0.0};      // Gyro biase at i
 
   double Dt_ = 0.0;              // Preintegration time period [s]
-  MatX state_F_ = I(15);         // State jacobian
+  MatX state_F_ = eye(15);         // State jacobian
   MatX state_P_ = zeros(15, 15); // State covariance
-  MatX sqrt_info_ = I(15, 15);   // Square root information
+  MatX sqrt_info_ = eye(15, 15);   // Square root information
 
   /** Form noise matrix Q */
   MatX form_Q() const;

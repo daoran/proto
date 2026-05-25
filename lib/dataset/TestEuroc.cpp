@@ -170,7 +170,7 @@ TEST(Euroc, load_imu) {
   ASSERT_FLOAT_EQ(data.a_B[0].x(), 5.0);
   ASSERT_FLOAT_EQ(data.a_B[0].y(), 6.0);
   ASSERT_FLOAT_EQ(data.a_B[0].z(), 7.0);
-  ASSERT_TRUE((data.T_BS - I(4)).norm() < 1e-8);
+  ASSERT_TRUE((data.T_BS - eye(4)).norm() < 1e-8);
   ASSERT_TRUE(data.sensor_type == "imu");
   ASSERT_TRUE(data.comment == "VI-Sensor IMU (ADIS16448)");
   ASSERT_FLOAT_EQ(data.rate_hz, 200.0);
@@ -186,7 +186,7 @@ TEST(Euroc, load_camera) {
 
   ASSERT_EQ(data.timestamps.size(), 1);
   ASSERT_EQ(data.timestamps[0], 1403636579763555584);
-  ASSERT_TRUE((data.T_BS - I(4)).norm() < 1e-8);
+  ASSERT_TRUE((data.T_BS - eye(4)).norm() < 1e-8);
   ASSERT_TRUE(data.sensor_type == "camera");
   ASSERT_TRUE(data.comment == "VI-Sensor cam0 (MT9M034)");
   ASSERT_FLOAT_EQ(data.rate_hz, 20.0);

@@ -225,7 +225,7 @@ void MarginalError::schurs_complement(const matx_t &H,
   const matx_t Lambda_inv = vecx_t(eigvals_inv).asDiagonal();
   const matx_t Hmm_inv = V * Lambda_inv * V.transpose();
   if (debug) {
-    const double inv_check = ((Hmm * Hmm_inv) - I(m, m)).sum();
+    const double inv_check = ((Hmm * Hmm_inv) - eye(m, m)).sum();
     if (fabs(inv_check) > 1e-4) {
       LOG_WARN("Inverse identity check: %f", inv_check);
       LOG_WARN("This is bad ... Usually means MarginalError is bad!");

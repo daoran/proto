@@ -14,9 +14,9 @@ struct ImuPreintegrate {
   Vec3 bg{0.0, 0.0, 0.0};      // Gyro biase at i
 
   double Dt = 0.0;              // Preintegration time period [s]
-  MatX state_F = I(15);         // State jacobian
+  MatX state_F = eye(15);         // State jacobian
   MatX state_P = zeros(15, 15); // State covariance
-  MatX sqrt_info = I(15, 15);   // Square root information
+  MatX sqrt_info = eye(15, 15);   // Square root information
 
   ImuPreintegrate() = delete;
   ImuPreintegrate(const ImuParams &imu_params, const ImuBuffer &imu_buffer);

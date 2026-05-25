@@ -162,7 +162,7 @@ void SimCalib::setup_camera_poses(const double camera_rate,
         // clang-format on
 
         // Form pose transform
-        Mat4 T_WC0 = I(4);
+        Mat4 T_WC0 = eye(4);
         T_WC0.block<3, 3>(0, 0) = R;
         T_WC0.block<3, 1>(0, 3) = p_W;
 

@@ -1245,7 +1245,7 @@ MatX zeros(const int size);
  * @param cols Number of cols
  * @returns Identity matrix
  */
-MatX I(const int rows, const int cols);
+MatX eye(const int rows, const int cols);
 
 /**
  * Identity square matrix
@@ -1253,7 +1253,7 @@ MatX I(const int rows, const int cols);
  * @param size Square size of matrix
  * @returns Identity square matrix
  */
-MatX I(const int size);
+MatX eye(const int size);
 
 /**
  * Ones-matrix
@@ -1713,7 +1713,7 @@ Mat4 tf_inv(const Mat4 &T);
 /**
  * Form a 7x1 pose vector
  */
-VecX tf_vec(const Mat4 &T = I(4));
+VecX tf_vec(const Mat4 &T = eye(4));
 
 /**
  * Extract rotation from transform

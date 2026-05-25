@@ -27,7 +27,7 @@ public:
                    const std::vector<double *> &param_ptrs,
                    const std::vector<ParamBlock::Type> &param_types,
                    const Vec2 &z,
-                   const Mat2 &covar = I(2));
+                   const Mat2 &covar = eye(2));
 
   /** Create residual block */
   static std::shared_ptr<CalibCameraError>
@@ -36,7 +36,7 @@ public:
          const int point_id,
          double *T_C0T0,
          const Vec2 &z,
-         const Mat2 &covar = I(2));
+         const Mat2 &covar = eye(2));
 
   /** Is point reprojection valid? */
   bool valid() const;

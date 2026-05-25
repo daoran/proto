@@ -6,7 +6,7 @@ ImuPreintegrate::ImuPreintegrate(const ImuParams &imu_params,
                                  const ImuBuffer &imu_buffer) {
   // Form Q
   auto formQ = [](const ImuParams &imu_params) {
-    const Mat3 I3 = I(3);
+    const Mat3 I3 = eye(3);
     MatX Q = zeros(18, 18);
     Q.block<3, 3>(0, 0) = pow(imu_params.noise_acc, 2) * I3;
     Q.block<3, 3>(3, 3) = pow(imu_params.noise_gyr, 2) * I3;
@@ -26,7 +26,7 @@ ImuPreintegrate::ImuPreintegrate(const ImuParams &imu_params,
                   const Vec3 &bg_i,
                   const double dt) {
     // Setup
-    const Mat3 I3 = I(3);
+    const Mat3 I3 = eye(3);
     const Vec3 w_k = imu_buffer.getGyr(k);
     const Vec3 w_kp1 = imu_buffer.getGyr(k + 1);
     const Vec3 a_k = imu_buffer.getAcc(k);
@@ -71,7 +71,7 @@ ImuPreintegrate::ImuPreintegrate(const ImuParams &imu_params,
                   const Quat &dq_j,
                   const Vec3 &ba_i,
                   const double dt) {
-    const Mat3 I3 = I(3);
+    const Mat3 I3 = eye(3);
     const Vec3 a_k = imu_buffer.getAcc(k);
     const Mat3 acc_i_x = skew(a_k - ba_i);
     const Mat3 dC_i = dq_i.toRotationMatrix();
@@ -171,9 +171,9 @@ void ImuPreintegrate::reset() {
   bg = Vec3{0.0, 0.0, 0.0};
 
   Dt = 0.0;                // Preintegration time period [s]
-  state_F = I(15);         // State jacobian
+  state_F = eye(15);         // State jacobian
   state_P = zeros(15, 15); // State covariance
-  sqrt_info = I(15, 15);   // Square root information
+  sqrt_info = eye(15, 15);   // Square root information
 }
 
 } // namespace cartesian

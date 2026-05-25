@@ -211,7 +211,7 @@ TEST(CalibCameraImuError, evaluate) {
                                object_points);
 
   // Create residual block
-  Mat2 covar = I(2);
+  Mat2 covar = eye(2);
   auto res = CalibCameraImuError::create(camera_geometry,
                                          imu_geometry,
                                          target_geometry,

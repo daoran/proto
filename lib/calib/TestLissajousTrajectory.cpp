@@ -11,12 +11,12 @@ static Mat3 Exp(const Vec3 &phi) {
 
   // Small angle approx
   if (norm < 1e-3) {
-    return Mat3{I(3) + skew(phi)};
+    return Mat3{eye(3) + skew(phi)};
   }
 
   // Exponential map from so(3) to SO(3)
   const Mat3 phi_skew = skew(phi);
-  Mat3 C = I(3);
+  Mat3 C = eye(3);
   C += (sin(norm) / norm) * phi_skew;
   C += ((1 - cos(norm)) / (norm * norm)) * (phi_skew * phi_skew);
 
@@ -53,7 +53,7 @@ static Mat4 setup_target_pose(const AprilGridConfig &config) {
 static Mat4 setup_target_center_pose(const AprilGridConfig &config) {
   const double calib_width = config.get_width_height().x();
   const double calib_height = config.get_width_height().y();
-  const Mat3 C_TO = I(3);
+  const Mat3 C_TO = eye(3);
   const Vec3 r_TO{calib_width / 2.0, calib_height / 2.0, 1.0};
   const Mat4 T_TO = tf(C_TO, r_TO);
   return T_TO;

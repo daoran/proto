@@ -67,7 +67,7 @@ TEST(ReprojError, evaluate) {
   ASSERT_EQ(camera->project(res, params, p_C, z), 0);
 
   // Create residual block
-  const Mat2 covar = I(2);
+  const Mat2 covar = eye(2);
   auto r = ReprojError::create(cam_geom, pose.data(), point.data(), z, covar);
 
   // Check Jacobians

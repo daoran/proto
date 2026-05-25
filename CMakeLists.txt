@@ -56,6 +56,7 @@ add_library(
   lib/ceres/ReprojError.cpp
   lib/ceres/CalibCameraError.cpp
   lib/ceres/CalibCameraImuError.cpp
+  lib/ceres/CalibCameraImuError2.cpp
   lib/ceres/ResidualBlock.cpp
   lib/core/Core.cpp
   lib/core/Logger.cpp

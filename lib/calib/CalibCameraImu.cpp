@@ -8,7 +8,7 @@ namespace cartesian {
 CalibCameraImu::CalibCameraImu(const std::string &config_file)
     : CalibProblem{config_file} {}
 
-std::pair<int, int> CalibCameraImu::findOptimalTarget() {
+std::pair<int, int> CalibCameraImu::find_optimal_target() {
   int best_count = 0;
   int optimal_camera_id = 0;
   int optimal_target_id = 0;
@@ -35,13 +35,13 @@ std::pair<int, int> CalibCameraImu::findOptimalTarget() {
   return std::pair<int, int>{optimal_camera_id, optimal_target_id};
 }
 
-int CalibCameraImu::estimateSensorPose(Mat4 &T_WS) {
+int CalibCameraImu::estimate_sensor_pose(Mat4 &T_WS) {
   // Get calibration target measurements
   std::vector<int> point_ids;
   std::vector<int> corner_indicies;
   Vec2s keypoints;
   Vec3s object_points;
-  const auto [camera_id, target_id] = findOptimalTarget();
+  const auto [camera_id, target_id] = find_optimal_target();
   const auto target = camera_buffers.at(camera_id).at(target_id);
   target->get_measurements(point_ids, keypoints, object_points);
   if (keypoints.size() <= 8) {
@@ -70,13 +70,13 @@ int CalibCameraImu::estimateSensorPose(Mat4 &T_WS) {
   return 0;
 }
 
-int CalibCameraImu::estimateCameraPose(Mat4 &T_C0T0) {
+int CalibCameraImu::estimate_camera_pose(Mat4 &T_C0T0) {
   // Get calibration target measurements
   std::vector<int> point_ids;
   std::vector<int> corner_indicies;
   Vec2s keypoints;
   Vec3s object_points;
-  const auto [camera_id, target_id] = findOptimalTarget();
+  const auto [camera_id, target_id] = find_optimal_target();
   const auto target = camera_buffers.at(camera_id).at(target_id);
   target->get_measurements(point_ids, keypoints, object_points);
   if (keypoints.size() < 10) {
@@ -101,15 +101,12 @@ int CalibCameraImu::estimateCameraPose(Mat4 &T_C0T0) {
   return 0;
 }
 
-void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
+void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
   // Lambda function - Get last two keys in std::map
   auto last_two_keys = [](const auto &m)
-      -> std::optional<
-          std::pair<typename std::decay_t<decltype(m)>::key_type,
-                    typename std::decay_t<decltype(m)>::key_type>> {
-    if (m.size() < 2) {
-      return std::nullopt;
-    }
+      -> std::pair<typename std::decay_t<decltype(m)>::key_type,
+                   typename std::decay_t<decltype(m)>::key_type> {
+    assert(m.size() >= 2);
 
     auto it = m.rbegin();
     auto last = it->first;
@@ -129,7 +126,7 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
 
   } else {
     // Infer velocity from two poses T_WS_k and T_WS_km1
-    const auto [ts_km1, ts_k] = *last_two_keys(poses);
+    const auto [ts_km1, ts_k] = last_two_keys(poses);
     const double dt = ts2sec(ts_k - ts_km1);
     const double *pose_km1 = get_pose_ptr(ts_km1);
     const double *pose_k = get_pose_ptr(ts_k);
@@ -192,7 +189,7 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
   // Add imu residual block
   if (poses.size() >= 2) {
     // Add IMU factor
-    const auto [ts_km1, ts_k] = *last_two_keys(poses);
+    const auto [ts_km1, ts_k] = last_two_keys(poses);
     const int imu_id = 0;
     const auto &imu_params = get_imu_geometry(imu_id)->imu_params;
     double *pose_km1 = get_pose_ptr(ts_km1);
@@ -201,19 +198,6 @@ void CalibCameraImu::addView(const timestamp_t ts, const Mat4 &T_WS) {
     double *sb_k = get_speed_and_biases_ptr(ts_k);
     auto imu_data = imu_buffer.extract(ts_km1, ts_k);
     imu_buffer.trim(ts_k);
-
-    // const auto imu_size = imu_data.size();
-    // const auto imu_km1 = imu_data.getTimestamp(0);
-    // const auto imu_k = imu_data.getTimestamp(imu_size - 1);
-    // printf("ts_km1:     %ld\n", ts_km1);
-    // printf("ts_k:       %ld\n", ts_k);
-    // printf("imu ts_km1: %ld\n", imu_km1);
-    // printf("imu ts_k:   %ld\n", imu_k);
-    // print_array("pose_km1", pose_km1, 7);
-    // print_array("pose_k", pose_k, 7);
-    // print_array("sb_km1", sb_km1, 9);
-    // print_array("sb_k", sb_k, 9);
-    // printf("\n");
 
     auto resblock =
         ImuError::create(imu_params, imu_data, pose_km1, sb_km1, pose_k, sb_k);
@@ -230,7 +214,7 @@ void CalibCameraImu::initialize(const timestamp_t ts) {
 
   // Estimate relative pose - T_C0T0
   Mat4 T_C0T0;
-  if (estimateCameraPose(T_C0T0) != 0) {
+  if (estimate_camera_pose(T_C0T0) != 0) {
     return;
   }
 
@@ -265,15 +249,15 @@ void CalibCameraImu::initialize(const timestamp_t ts) {
   // }
 
   // Add camera residuals
-  addView(ts, T_WS);
+  add_view(ts, T_WS);
 
   // Update
   initialized = true;
 }
 
-void CalibCameraImu::addMeasurement(const timestamp_t ts,
-                                    const Vec3 &imu_acc,
-                                    const Vec3 &imu_gyr) {
+void CalibCameraImu::add_measurement(const timestamp_t ts,
+                                     const Vec3 &imu_acc,
+                                     const Vec3 &imu_gyr) {
   // Add Imu measurement
   imu_buffer.add(ts, imu_acc, imu_gyr);
   imu_started = true;
@@ -289,16 +273,16 @@ void CalibCameraImu::addMeasurement(const timestamp_t ts,
 
   } else {
     Mat4 T_WS;
-    if (estimateSensorPose(T_WS) != 0) {
+    if (estimate_sensor_pose(T_WS) != 0) {
       return;
     }
-    addView(ts, T_WS);
+    add_view(ts, T_WS);
   }
 }
 
-void CalibCameraImu::addMeasurement(const timestamp_t ts,
-                                    const int camera_id,
-                                    const CalibTargetPtr &calib_target) {
+void CalibCameraImu::add_measurement(const timestamp_t ts,
+                                     const int camera_id,
+                                     const CalibTargetPtr &calib_target) {
   // Pre-check
   if (ts != calib_target->get_timestamp()) {
     FATAL("ts != calib_target->get_timestamp()");
