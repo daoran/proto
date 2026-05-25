@@ -34,6 +34,10 @@ deps: setup ## Build dependencies
 
 .PHONY: release
 release: setup ## Build in release mode
+	$(call cmake_build,Release)
+
+.PHONY: relwithdeb
+relwithdeb: setup ## Build in release mode with debug info
 	$(call cmake_build,RelWithDebInfo)
 
 .PHONY: debug
@@ -41,7 +45,7 @@ debug: setup ## Build in debug mode
 	$(call cmake_build,Debug)
 
 .PHONY: unittests
-unittests: debug ## Build and run tests
+unittests: relwithdeb ## Build and run tests
 	@./build/unittests
 
 
