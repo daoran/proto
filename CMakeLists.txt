@@ -59,6 +59,7 @@ add_library(
   lib/ceres/ResidualBlock.cpp
   lib/core/Core.cpp
   lib/core/Logger.cpp
+  lib/core/Plane.cpp
   lib/core/SO3.cpp
   lib/dataset/Euroc.cpp
   lib/dataset/Kitti.cpp
@@ -111,6 +112,7 @@ add_executable(unittests
   lib/ceres/TestImuError.cpp
   lib/ceres/TestReprojError.cpp
   lib/core/TestLogger.cpp
+  lib/core/TestPlane.cpp
   lib/sim/TestSimCalib.cpp
   lib/sim/TestSimCircle.cpp
   lib/sim/TestSimImu.cpp
