@@ -103,10 +103,10 @@ TEST(BrownConrady4, project) {
     const double p1 = params(6);
     const double p2 = params(7);
     const cv::Point3f obj_pt(p_C.x(), p_C.y(), p_C.z());
-    const cv::Mat K = (cv::Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
-    const cv::Mat D = (cv::Mat_<double>(4, 1) << k1, k2, p1, p2);
-    const cv::Mat rvec = (cv::Mat_<double>(3, 1) << 0, 0, 0);
-    const cv::Mat tvec = (cv::Mat_<double>(3, 1) << 0, 0, 0);
+    const cv::Mat K = cv::Mat(cv::Matx33d(fx, 0, cx, 0, fy, cy, 0, 0, 1), true);
+    const cv::Mat D = cv::Mat(cv::Matx41d(k1, k2, p1, p2), true);
+    const cv::Mat rvec = cv::Mat(cv::Matx31d(0, 0, 0), true);
+    const cv::Mat tvec = cv::Mat(cv::Matx31d(0, 0, 0), true);
     const std::vector<cv::Point3f> object_points = {obj_pt};
     std::vector<cv::Point2f> image_points;
     cv::projectPoints(object_points, rvec, tvec, K, D, image_points);

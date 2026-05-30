@@ -95,10 +95,10 @@ TEST(KannalaBrandt4, project) {
   const double k3 = params(6);
   const double k4 = params(7);
   const cv::Point3f obj_pt(p_C.x(), p_C.y(), p_C.z());
-  const cv::Mat K = (cv::Mat_<double>(3, 3) << fx, 0, cx, 0, fy, cy, 0, 0, 1);
-  const cv::Mat D = (cv::Mat_<double>(4, 1) << k1, k2, k3, k4);
-  const cv::Mat rvec = (cv::Mat_<double>(3, 1) << 0, 0, 0);
-  const cv::Mat tvec = (cv::Mat_<double>(3, 1) << 0, 0, 0);
+  const cv::Mat K = cv::Mat(cv::Matx33d(fx, 0, cx, 0, fy, cy, 0, 0, 1), true);
+  const cv::Mat D = cv::Mat(cv::Matx41d(k1, k2, k3, k4), true);
+  const cv::Mat rvec = cv::Mat(cv::Matx31d(0, 0, 0), true);
+  const cv::Mat tvec = cv::Mat(cv::Matx31d(0, 0, 0), true);
   const std::vector<cv::Point3f> object_points = {obj_pt};
   std::vector<cv::Point2f> image_points;
   cv::fisheye::projectPoints(object_points, image_points, rvec, tvec, K, D);
