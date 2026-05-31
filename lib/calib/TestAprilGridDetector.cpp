@@ -69,7 +69,7 @@ TEST(AprilGridDetector, detect_multiple) {
   const int expected_measurements = 4 * 4 * 4; // tag_rows * tag_cols * 4
   for (int i = 0; i < num_targets; ++i) {
     ASSERT_TRUE(grids[i]->detected());
-    ASSERT_EQ(grids[i]->get_target_id(), i);
+    ASSERT_EQ(grids[i]->target_id, i);
     ASSERT_EQ(grids[i]->get_tag_rows(), 4);
     ASSERT_EQ(grids[i]->get_tag_cols(), 4);
     ASSERT_EQ(grids[i]->get_tag_size(), 1.0);
@@ -111,7 +111,7 @@ TEST(AprilGridDetector, detect_multiple) {
       const double font_scale = 5;
       const int thickness = 6;
       const cv::Scalar text_color(0, 0, 255);
-      std::string text = std::to_string(grids[i]->get_target_id());
+      std::string text = std::to_string(grids[i]->target_id);
       cv::putText(viz,
                   text,
                   cv::Point2f(center.x(), center.y()),

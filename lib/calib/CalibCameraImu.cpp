@@ -276,8 +276,8 @@ void CalibCameraImu::add_measurement(const timestamp_t ts,
                                      const int camera_id,
                                      const CalibTargetPtr &calib_target) {
   // Pre-check
-  if (ts != calib_target->get_timestamp()) {
-    FATAL("ts != calib_target->get_timestamp()");
+  if (ts != calib_target->ts) {
+    FATAL("ts != calib_target->ts");
   }
 
   // Do not add vision data before first imu measurement
@@ -286,7 +286,7 @@ void CalibCameraImu::add_measurement(const timestamp_t ts,
   }
 
   // Add to camera buffer
-  const auto target_id = calib_target->get_target_id();
+  const auto target_id = calib_target->target_id;
   camera_buffers[camera_id][target_id] = calib_target;
   camera_started = true;
 

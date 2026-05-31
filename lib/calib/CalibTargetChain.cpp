@@ -63,8 +63,8 @@ CalibTargetChain::CalibTargetChain(
         }
 
         // Insert into adjacency list
-        const int target_i = targets[0]->get_target_id();
-        const int target_j = targets[j]->get_target_id();
+        const int target_i = targets[0]->target_id;
+        const int target_j = targets[j]->target_id;
         insert(target_i, target_j, T_TiC * T_CTj);
       }
     }

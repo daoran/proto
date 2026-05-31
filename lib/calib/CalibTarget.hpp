@@ -5,20 +5,18 @@
 namespace cartesian {
 
 // Forward declaration
-class CalibTarget;
+struct CalibTarget;
 using CalibTargetPtr = std::shared_ptr<CalibTarget>;
 using CalibTargetMap = std::map<int, CalibTargetPtr>;
 using CalibTargetData = std::map<timestamp_t, CalibTargetMap>;
 
 /** Calibration Target */
-class CalibTarget {
-private:
-  std::string target_type_;
-  timestamp_t ts_ = 0;
-  int camera_id_ = 0;
-  int target_id_ = 0;
+struct CalibTarget {
+  std::string target_type;
+  timestamp_t ts = 0;
+  int camera_id = 0;
+  int target_id = 0;
 
-public:
   CalibTarget(const std::string &target_type,
               const timestamp_t &timestamp,
               const int camera_id,
@@ -30,18 +28,6 @@ public:
 
   /** Get number detected */
   virtual int get_num_detected() const = 0;
-
-  /** Get Target Type **/
-  std::string get_target_type() const;
-
-  /** Get Timestamp **/
-  timestamp_t get_timestamp() const;
-
-  /** Get Camera ID **/
-  int get_camera_id() const;
-
-  /** Get Target ID **/
-  int get_target_id() const;
 
   /** Get measurements **/
   virtual void get_measurements(std::vector<int> &point_ids,

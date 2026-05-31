@@ -24,8 +24,8 @@ static AprilGrid setup_aprilgrid() {
 TEST(AprilGrid, construct) {
   AprilGrid grid = setup_aprilgrid();
 
-  ASSERT_EQ(grid.get_timestamp(), 0);
-  ASSERT_EQ(grid.get_camera_id(), 0);
+  ASSERT_EQ(grid.ts, 0);
+  ASSERT_EQ(grid.camera_id, 0);
   ASSERT_EQ(grid.get_tag_rows(), 6);
   ASSERT_EQ(grid.get_tag_cols(), 7);
   ASSERT_EQ(grid.get_tag_size(), 0.088);
@@ -107,7 +107,7 @@ TEST(AprilGrid, saveAndLoad) {
   Vec3s object_points;
   grid.get_measurements(tag_ids, corner_indicies, keypoints, object_points);
 
-  ASSERT_EQ(grid.get_timestamp(), grid2->get_timestamp());
+  ASSERT_EQ(grid.ts, grid2->ts);
   ASSERT_FLOAT_EQ(0.0, (keypoints[0] - kp0).norm());
   ASSERT_FLOAT_EQ(0.0, (keypoints[1] - kp1).norm());
   ASSERT_FLOAT_EQ(0.0, (keypoints[2] - kp2).norm());

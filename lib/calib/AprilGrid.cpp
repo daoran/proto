@@ -9,10 +9,10 @@ AprilGrid::AprilGrid(const timestamp_t &ts,
                                                                      config} {}
 
 AprilGrid::AprilGrid(const AprilGrid &src)
-    : CalibTarget{src.get_target_type(),
-                  src.get_timestamp(),
-                  src.get_camera_id(),
-                  src.get_target_id()},
+    : CalibTarget{src.target_type,
+                  src.ts,
+                  src.camera_id,
+                  src.target_id},
       config_{src.get_config()}, data_{src.data_} {}
 
 bool AprilGrid::detected() const { return (data_.size() > 0); }
@@ -228,10 +228,10 @@ int AprilGrid::save(const fs::path &save_path) const {
   get_measurements(tag_ids, corner_indicies, keypoints, object_points);
 
   // Output header
-  fprintf(fp, "timestamp %ld\n", get_timestamp());
-  fprintf(fp, "camera_id %d\n", get_camera_id());
-  fprintf(fp, "target_type %s\n", get_target_type().c_str());
-  fprintf(fp, "target_id %d\n", get_target_id());
+  fprintf(fp, "timestamp %ld\n", ts);
+  fprintf(fp, "camera_id %d\n", camera_id);
+  fprintf(fp, "target_type %s\n", target_type.c_str());
+  fprintf(fp, "target_id %d\n", target_id);
   fprintf(fp, "tag_rows %d\n", get_tag_rows());
   fprintf(fp, "tag_cols %d\n", get_tag_cols());
   fprintf(fp, "tag_size %f\n", get_tag_size());

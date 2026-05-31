@@ -65,7 +65,7 @@ void CalibCamera::add_view(const std::map<int, CalibTargetMap> &measurements) {
   Mat4 T_C0T0 = T_C0Ci * T_CiTj * T_TjT0;
 
   // Add camera measurement if it does not exist
-  const timestamp_t ts = target->get_timestamp();
+  const timestamp_t ts = target->ts;
   for (const auto &[camera_id, targets] : measurements) {
     for (const auto &[target_id, target] : targets) {
       if (has_camera_measurement(ts, camera_id, target_id) == false) {
