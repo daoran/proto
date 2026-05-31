@@ -240,14 +240,6 @@ void CalibCameraImu::initialize(const timestamp_t ts) {
   // Add target pose
   set_target_pose(T_WT0);
 
-  // Print to screen
-  // if (verbose) {
-  //   printf("Initial estimates\n");
-  //   print_target_geometries(stdout);
-  //   print_camera_geometries(stdout);
-  //   print_imu_geometries(stdout);
-  // }
-
   // Add camera residuals
   add_view(ts, T_WS);
 
@@ -302,47 +294,18 @@ void CalibCameraImu::add_measurement(const timestamp_t ts,
 }
 
 void CalibCameraImu::solve() {
-  // Pre-check
-  // if (camera_data.size() == 0) {
-  //   FATAL("No camera data?");
-  // }
-  // if (camera_geometries.size() == 0) {
-  //   FATAL("No cameras added?");
-  // }
-  // if (imu_geometries.size() == 0) {
-  //   FATAL("No imus added?");
-  // }
-  // if (target_configs.size() == 0 || target_geometries.size() == 0) {
-  //   FATAL("No targets added?");
-  // }
+  assert(camera_data.size() != 0);
+  assert(camera_geometries.size() != 0);
+  assert(imu_geometries.size() != 0);
+  assert(target_configs.size() != 0 || target_geometries.size() == 0);
 
-  // for (auto &[imu_id, imu] : imu_geometries) {
-  //   printf("imu%d:\n", imu_id);
-  //   printf("  extrinsic addr: %p\n", imu->extrinsic.data());
-  //   printf("\n");
-  // }
-  //
   for (auto &[camera_id, camera] : camera_geometries) {
-    // printf("camera%d:\n", camera_id);
-    // printf("  intrinsic addr: %p\n", camera->intrinsic.data());
-    // printf("  extrinsic addr: %p\n", camera->extrinsic.data());
-    // printf("\n");
     problem->SetParameterBlockConstant(camera->intrinsic.data());
     problem->SetParameterBlockConstant(camera->extrinsic.data());
   }
   for (auto &[target_id, target] : target_geometries) {
     problem->SetParameterBlockConstant(target->extrinsic.data());
   }
-  // for (auto &[ts, pose] : poses) {
-  //   printf("ts: %ld", ts);
-  //   printf(" pose addr: %p", pose.data());
-  //   printf("\n");
-  // }
-  // for (auto &[ts, sb] : speed_and_biases) {
-  //   printf("ts: %ld", ts);
-  //   printf(" sb addr: %p", sb.data());
-  //   printf("\n");
-  // }
 
   if (verbose) {
     printf("Initial estimates\n");
@@ -365,21 +328,6 @@ void CalibCameraImu::solve() {
   options.function_tolerance = 1e-20;      // Default: 1e-6
   options.gradient_tolerance = 1e-20;      // Default: 1e-10
   options.parameter_tolerance = 1e-20;     // Default: 1e-8
-
-  // timestamp_t ts = *timestamps.begin();
-  // {
-  //   const auto &resblock = camera_resblocks[ts][0][0];
-  //   auto param_ptrs = resblock->get_param_ptrs();
-  //   Vec2 r;
-  //   resblock->eval(param_ptrs.data(), r.data(), nullptr);
-  // }
-
-  // {
-  //   const auto &resblock = imu_resblocks[ts][0];
-  //   auto param_ptrs = resblock->get_param_ptrs();
-  //   Vec2 r;
-  //   resblock->eval(param_ptrs.data(), r.data(), nullptr);
-  // }
 
   // Solve
   ceres::Solver::Summary summary;
