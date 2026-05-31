@@ -14,7 +14,7 @@ struct CalibTargetChain {
 
   CalibTargetChain() = default;
   CalibTargetChain(const std::map<int, CameraGeometryPtr> &camera_geometries,
-                   const std::map<int, CameraData> &camera_measurements);
+                   const std::map<int, CalibTargetData> &camera_measurements);
   virtual ~CalibTargetChain() = default;
 
   /** Insert link beteen target i and j */

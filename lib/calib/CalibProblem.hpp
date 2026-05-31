@@ -35,7 +35,7 @@ struct CalibProblem {
   double time_delay_[1] = {0.0};
   bool time_delay_added_ = false;
 
-  std::map<int, CameraData> camera_data;
+  std::map<int, CalibTargetData> camera_data;
   std::map<int, ImuBuffer> imu_data;
   std::map<int, CalibTargetGeometryPtr> target_geometries;
   std::map<int, CameraGeometryPtr> camera_geometries;
@@ -92,10 +92,10 @@ struct CalibProblem {
   int get_num_cameras() const;
 
   /** Get all camera data */
-  std::map<int, CameraData> &get_all_camera_data();
+  std::map<int, CalibTargetData> &get_all_camera_data();
 
   /** Get camera data */
-  CameraData &get_camera_data(const int camera_id);
+  CalibTargetData &get_camera_data(const int camera_id);
 
   /** Get camera geometries */
   std::map<int, CameraGeometryPtr> &get_all_camera_geometries();

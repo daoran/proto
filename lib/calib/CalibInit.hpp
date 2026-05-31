@@ -18,14 +18,14 @@ namespace cartesian {
 struct CalibInit {
   /** Initialize camera intrinsics */
   static void initialize_camera_intrinsics(
-      const std::map<int, CameraData> camera_data,
+      const std::map<int, CalibTargetData> camera_data,
       const std::map<int, AprilGridConfig> target_configs,
       std::map<int, std::shared_ptr<CameraGeometry>> &cam_geoms,
       const bool verbose = false);
 
   /** Initialize camera-camera extrinsics */
   static void initialize_camera_extrinsics(
-      const std::map<int, CameraData> camera_data,
+      const std::map<int, CalibTargetData> camera_data,
       std::map<int, std::shared_ptr<CameraGeometry>> &cam_geoms,
       std::map<int, CalibTargetGeometryPtr> &target_geoms,
       const bool verbose = false);

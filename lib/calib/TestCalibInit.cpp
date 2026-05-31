@@ -104,7 +104,7 @@ TEST(CalibInit, initialize_intrinsics) {
   sim.sim_camera_calib();
 
   // Build camera data from synthetic observations (camera 0 only)
-  std::map<int, CameraData> camera_data;
+  std::map<int, CalibTargetData> camera_data;
   for (const auto &[ts, cam_map] : sim.camera_views) {
     for (const auto &[cam_id, target_map] : cam_map) {
       if (cam_id != 0) {

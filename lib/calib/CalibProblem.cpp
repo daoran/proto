@@ -313,11 +313,11 @@ bool CalibProblem::has_camera_measurement(const timestamp_t ts,
 
 int CalibProblem::get_num_cameras() const { return camera_geometries.size(); }
 
-std::map<int, CameraData> &CalibProblem::get_all_camera_data() {
+std::map<int, CalibTargetData> &CalibProblem::get_all_camera_data() {
   return camera_data;
 }
 
-CameraData &CalibProblem::get_camera_data(const int camera_id) {
+CalibTargetData &CalibProblem::get_camera_data(const int camera_id) {
   return camera_data.at(camera_id);
 }
 

@@ -3,12 +3,12 @@
 namespace cartesian {
 
 void CalibInit::initialize_camera_intrinsics(
-    const std::map<int, CameraData> camera_data,
+    const std::map<int, CalibTargetData> camera_data,
     const std::map<int, AprilGridConfig> target_configs,
     std::map<int, std::shared_ptr<CameraGeometry>> &cam_geoms,
     const bool verbose) {
   // Find the target with the most observations for a particular camera
-  auto find_optimal_target = [&](const CameraData &camera_data) {
+  auto find_optimal_target = [&](const CalibTargetData &camera_data) {
     std::map<int, int> target_count; // target_id, count
 
     // Initialize map
@@ -38,7 +38,7 @@ void CalibInit::initialize_camera_intrinsics(
 
   // Solve intrinsics of a single camera
   auto solve_intrinsics = [&](const int camera_id,
-                              const CameraData &camera_data) {
+                              const CalibTargetData &camera_data) {
     // Setup Problem
     PoseManifold pose_plus;
     std::map<timestamp_t, Vec7> relposes;
@@ -158,7 +158,7 @@ void CalibInit::initialize_camera_intrinsics(
 }
 
 void CalibInit::initialize_camera_extrinsics(
-    const std::map<int, CameraData> cam_data,
+    const std::map<int, CalibTargetData> cam_data,
     std::map<int, std::shared_ptr<CameraGeometry>> &cam_geoms,
     std::map<int, CalibTargetGeometryPtr> &target_geoms,
     const bool verbose) {

@@ -5,10 +5,10 @@ namespace cartesian {
 
 CameraChain::CameraChain(
     const std::map<int, CameraGeometryPtr> &camera_geometries,
-    const std::map<int, CameraData> &camera_measurements) {
+    const std::map<int, CalibTargetData> &camera_measurements) {
   // Lambda function - Get all camera timestamps
   auto get_timestamps =
-      [](const std::map<int, CameraData> &camera_measurements) {
+      [](const std::map<int, CalibTargetData> &camera_measurements) {
         std::set<timestamp_t> timestamps;
         for (const auto &[_, camera_data] : camera_measurements) {
           for (const auto &[ts, _] : camera_data) {
@@ -20,7 +20,7 @@ CameraChain::CameraChain(
 
   // Lamda function - Form (target, camera ids) map
   auto get_data = [](const timestamp_t ts,
-                     const std::map<int, CameraData> &camera_measurements) {
+                     const std::map<int, CalibTargetData> &camera_measurements) {
     std::map<int, std::vector<int>> data;
     for (const auto &[camera_id, camera_data] : camera_measurements) {
       if (camera_data.count(ts) == 0) {
