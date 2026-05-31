@@ -1,0 +1,224 @@
+#include "CalibCameraImuError2.hpp"
+
+namespace cartesian {
+
+CalibCameraImuError2::CalibCameraImuError2(
+    const timestamp_t ts_km1,
+    const timestamp_t ts_k,
+    const std::shared_ptr<CameraGeometry> &camera_geometry,
+    const std::vector<double *> &param_ptrs,
+    const std::vector<ParamBlock::Type> &param_types,
+    const Vec2 &z_km1,
+    const Vec2 &z_k,
+    const Mat2 &covar)
+    : ResidualBlock{"CalibCameraImuError2", param_ptrs, param_types, 2},
+      ts_km1_{ts_km1}, ts_k_{ts_k}, camera_geometry_{camera_geometry},
+      z_km1_{z_km1}, z_k_{z_k}, v_km1_{(z_k - z_km1) / ts2sec(ts_k - ts_km1)},
+      covar_{covar}, info_{covar.inverse()}, sqrt_info_{info_.llt().matrixU()} {
+}
+
+std::shared_ptr<CalibCameraImuError2>
+CalibCameraImuError2::create(const timestamp_t ts_km1,
+                             const timestamp_t ts_k,
+                             const std::shared_ptr<CameraGeometry> &camera,
+                             const std::shared_ptr<ImuGeometry> &imu,
+                             const std::shared_ptr<CalibTargetGeometry> &target,
+                             double *sensor_pose_km1,
+                             double *target_pose,
+                             double *time_delay,
+                             const int point_id,
+                             const Vec2 &z_km1,
+                             const Vec2 &z_k,
+                             const Mat2 &covar) {
+  std::vector<double *> param_ptrs;
+  param_ptrs.push_back(sensor_pose_km1); // Sensor pose T_WS at k-1
+  param_ptrs.push_back(target_pose);     // Target pose T_WT0
+  param_ptrs.push_back(target->points[point_id].data()); // Target point p_Tj
+  param_ptrs.push_back(target->extrinsic.data()); // Target extrinsic T_T0Tj
+  param_ptrs.push_back(imu->extrinsic.data());    // Imu extrinsic T_C0S
+  param_ptrs.push_back(camera->extrinsic.data()); // Camera extrinsic T_C0Ci
+  param_ptrs.push_back(camera->intrinsic.data()); // Camera intrinsic
+  param_ptrs.push_back(time_delay);               // Time-delay
+
+  std::vector<ParamBlock::Type> param_types;
+  param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS at k-1
+  param_types.push_back(ParamBlock::POSE);       // Target pose T_WT0
+  param_types.push_back(ParamBlock::POINT);      // Target point p_Tj
+  param_types.push_back(ParamBlock::EXTRINSIC);  // Target extrinsic T_T0Tj
+  param_types.push_back(ParamBlock::EXTRINSIC);  // Imu extrinsic T_C0S
+  param_types.push_back(ParamBlock::EXTRINSIC);  // Camera extrinsic T_C0Ci
+  param_types.push_back(ParamBlock::INTRINSIC8); // Camera intrinsic
+  param_types.push_back(ParamBlock::TIME_DELAY); // Time-delay
+
+  return std::make_shared<CalibCameraImuError2>(ts_km1,
+                                                ts_k,
+                                                camera,
+                                                param_ptrs,
+                                                param_types,
+                                                z_km1,
+                                                z_k,
+                                                covar);
+}
+
+bool CalibCameraImuError2::valid() const { return valid_; }
+
+Mat2 CalibCameraImuError2::get_covariance_matrix() const { return covar_; }
+
+bool CalibCameraImuError2::get_residuals(Vec2 &r) const {
+  r = residuals_;
+  return valid_;
+}
+
+bool CalibCameraImuError2::get_reproj_error(double *error) const {
+  *error = residuals_.norm();
+  return valid_;
+}
+
+bool CalibCameraImuError2::eval(double const *const *params,
+                                double *res,
+                                double **jacs) const {
+  // Map parameters out
+  const Mat4 T_WS = tf(params[0]);                 // Sensor pose at k-1
+  const Mat4 T_WT0 = tf(params[1]);                // Target pose
+  const Eigen::Map<const Vec3> p_Tj(params[2], 3); // Target point
+  const Mat4 T_T0Tj = tf(params[3]);               // Target extrinsic
+  const Mat4 T_C0S = tf(params[4]);                // Imu extrinsic
+  const Mat4 T_C0Ci = tf(params[5]);               // Camera extrinsic
+  Eigen::Map<const VecX> intrinsic(params[6], 8);  // Camera parameters
+  const double td = params[7][0];                  // Time-delay
+
+  // Transform and project point to image plane
+  // -- Transform point from target frame to camera
+  const Mat4 T_CiC0 = tf_inv(T_C0Ci);
+  const Mat4 T_SW = tf_inv(T_WS);
+  const Mat4 T_CiTj = T_CiC0 * T_C0S * T_SW * T_WT0 * T_T0Tj;
+  const Vec3 p_Ci = tf_point(T_CiTj, p_Tj);
+  // -- Project point from camera frame to image plane
+  const auto camera_model = camera_geometry_->camera_model;
+  const Vec2i resolution = camera_geometry_->resolution;
+  Vec2 z_hat;
+  if (camera_model->project(resolution, intrinsic, p_Ci, z_hat) != 0) {
+    valid_ = false;
+  }
+
+  // Residual
+  const Vec2 z_corrected = z_km1_ + (td * v_km1_);
+  Eigen::Map<Vec2> r(res);
+  r = sqrt_info_ * (z_corrected - z_hat);
+  residuals_ = z_corrected - z_hat;
+
+  // Jacobians
+  const MatX Jh = camera_model->project_jacobian(intrinsic, p_Ci);
+  const MatX Jhw = -1.0 * sqrt_info_ * Jh;
+  if (jacs == nullptr) {
+    return true;
+  }
+
+  // -- Jacobians w.r.t imu pose T_WS
+  if (jacs[0]) {
+    const Vec3 r_WS = tf_trans(T_WS);
+    const Mat3 C_WS = tf_rot(T_WS);
+    const Mat4 T_CiS = T_CiC0 * T_C0S;
+    const Mat4 T_CiW = T_CiS * T_SW;
+    const Mat3 C_CiW = tf_rot(T_CiW);
+    const Vec3 p_W = tf_point(T_WT0 * T_T0Tj, p_Tj);
+
+    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[0]);
+    J.setZero();
+    if (valid_) {
+      J.block<2, 3>(0, 0) = Jhw * -C_CiW;
+      J.block<2, 3>(0, 3) = Jhw * -C_CiW * skew(p_W - r_WS) * -C_WS;
+    }
+  }
+
+  // -- Jacobians w.r.t target pose T_WT0
+  if (jacs[1]) {
+    const Mat4 T_CiS = T_CiC0 * T_C0S;
+    const Mat3 C_CiW = tf_rot(T_CiS * T_SW);
+    const Mat3 C_WT0 = tf_rot(T_WT0);
+    const Vec3 p_T0 = tf_point(T_T0Tj, p_Tj);
+
+    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[1]);
+    J.setZero();
+    if (valid_) {
+      J.block<2, 3>(0, 0) = Jhw * C_CiW;
+      J.block<2, 3>(0, 3) = Jhw * C_CiW * -C_WT0 * skew(p_T0);
+    }
+  }
+
+  // -- Jacobians w.r.t target point p_Tj
+  if (jacs[2]) {
+    Eigen::Map<Mat<2, 3, Eigen::RowMajor>> J(jacs[2]);
+    J.setZero();
+
+    if (valid_) {
+      const Mat3 C_CiTj = tf_rot(T_CiTj);
+      J = Jhw * C_CiTj;
+    }
+  }
+
+  // -- Jacobians w.r.t target extrinsic T_T0Tj
+  if (jacs[3]) {
+    const Mat4 T_CiT0 = T_CiC0 * T_C0S * T_SW * T_WT0;
+    const Mat3 C_CiT0 = tf_rot(T_CiT0);
+    const Mat3 C_T0Tj = tf_rot(T_T0Tj);
+
+    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[3]);
+    J.setZero();
+    if (valid_) {
+      J.block<2, 3>(0, 0) = Jhw * C_CiT0;
+      J.block<2, 3>(0, 3) = Jhw * C_CiT0 * -C_T0Tj * skew(p_Tj);
+    }
+  }
+
+  // -- Jacobians w.r.t imu extrinsic T_C0S
+  if (jacs[4]) {
+    const Vec3 p_S = tf_point(T_WS.inverse() * T_WT0 * T_T0Tj, p_Tj);
+    const Mat3 C_C0S = tf_rot(T_C0S);
+    const Mat3 C_CiC0 = tf_rot(T_CiC0);
+
+    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[4]);
+    J.setZero();
+    if (valid_) {
+      J.block<2, 3>(0, 0) = Jhw * C_CiC0;
+      J.block<2, 3>(0, 3) = Jhw * C_CiC0 * -C_C0S * skew(p_S);
+    }
+  }
+
+  // -- Jacobians w.r.t camera extrinsic T_C0Ci
+  if (jacs[5]) {
+    const Vec3 p_C0 = tf_point(T_C0S * T_WS.inverse() * T_WT0 * T_T0Tj, p_Tj);
+    const Vec3 r_C0Ci = tf_trans(T_C0Ci);
+    const Mat3 C_CiC0 = tf_rot(T_CiC0);
+    const Mat3 C_C0Ci = C_CiC0.transpose();
+
+    Eigen::Map<Mat<2, 6, Eigen::RowMajor>> J(jacs[5]);
+    J.setZero();
+    if (valid_) {
+      J.block<2, 3>(0, 0) = Jhw * -C_CiC0;
+      J.block<2, 3>(0, 3) = Jhw * -C_CiC0 * skew(p_C0 - r_C0Ci) * -C_C0Ci;
+    }
+  }
+
+  // -- Jacobians w.r.t intrinsic
+  if (jacs[6]) {
+    Eigen::Map<Mat<2, 8, Eigen::RowMajor>> J(jacs[6]);
+    J.setZero();
+    if (valid_) {
+      J = -1.0 * sqrt_info_ * camera_model->params_jacobian(intrinsic, p_Ci);
+    }
+  }
+
+  // -- Jacobians w.r.t time-delay
+  if (jacs[7]) {
+    Eigen::Map<Vec2> J(jacs[7]);
+    J.setZero();
+    if (valid_) {
+      J = sqrt_info_ * v_km1_;
+    }
+  }
+
+  return true;
+}
+
+} // namespace cartesian
