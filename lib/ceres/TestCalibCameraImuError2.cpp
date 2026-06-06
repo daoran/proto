@@ -185,7 +185,7 @@ static void simulate_camera_measurements(
 TEST(CalibCameraImuError2, evaluate) {
   // Setup
   auto target_config = setup_aprilgrid_config();
-  auto sensor_pose = setup_sensor_pose();
+  auto sensor_pose_k = setup_sensor_pose();
   auto target_pose = setup_target_pose();
   auto imu_extrinsic = setup_imu_extrinsic();
   auto imu_geometry = setup_imu_geometry(0, imu_extrinsic);
@@ -194,38 +194,73 @@ TEST(CalibCameraImuError2, evaluate) {
   auto target_extrinsic = setup_target_extrinsic();
   auto target_geometry = setup_target_geometry(target_config, target_extrinsic);
 
-  // Simulate camera measurements
-  std::vector<int> point_ids;
-  Vec2s keypoints;
-  Vec3s object_points;
+  // Create a second sensor pose with slight translation offset (simulating motion)
+  Mat4 T_WS_k = tf(sensor_pose_k);
+  Mat4 T_WS_km1 = T_WS_k;
+  T_WS_km1(0, 3) -= 0.1; // 10cm translation in x
+  auto sensor_pose_km1 = tf_vec(T_WS_km1);
+
+  // Simulate camera measurements for both poses
+  std::vector<int> point_ids_k, point_ids_km1;
+  Vec2s keypoints_k, keypoints_km1;
+  Vec3s object_points_k, object_points_km1;
   simulate_camera_measurements(target_config,
                                target_geometry,
                                camera_geometry,
-                               sensor_pose,
+                               sensor_pose_k,
                                target_pose,
                                imu_extrinsic,
-                               point_ids,
-                               keypoints,
-                               object_points);
+                               point_ids_k,
+                               keypoints_k,
+                               object_points_k);
+  simulate_camera_measurements(target_config,
+                               target_geometry,
+                               camera_geometry,
+                               sensor_pose_km1,
+                               target_pose,
+                               imu_extrinsic,
+                               point_ids_km1,
+                               keypoints_km1,
+                               object_points_km1);
+
+  // Build map of point_id -> keypoint for previous frame
+  std::map<int, Vec2> kp_km1_map;
+  for (size_t i = 0; i < point_ids_km1.size(); ++i) {
+    kp_km1_map[point_ids_km1[i]] = keypoints_km1[i];
+  }
+
+  // Find a point visible in both frames
+  int common_pid = -1;
+  Vec2 z_km1, z_k;
+  for (size_t i = 0; i < point_ids_k.size(); ++i) {
+    auto it = kp_km1_map.find(point_ids_k[i]);
+    if (it != kp_km1_map.end()) {
+      common_pid = point_ids_k[i];
+      z_k = keypoints_k[i];
+      z_km1 = it->second;
+      break;
+    }
+  }
+  ASSERT_NE(common_pid, -1);
 
   // Timestamps (needed for CalibCameraImuError2)
   const timestamp_t ts_km1 = 0;
   const timestamp_t ts_k = 1e9; // 1 second
   double time_delay = 0.0;
 
-  // Create residual block (z_km1 == z_k so v_km1 = 0)
+  // Create residual block with different z_km1 and z_k (non-zero v_k)
   Mat2 covar = eye(2);
   auto res = CalibCameraImuError2::create(ts_km1,
                                           ts_k,
                                           camera_geometry,
                                           imu_geometry,
                                           target_geometry,
-                                          sensor_pose.data(), // T_WS at k-1
-                                          target_pose.data(), // T_WT0
+                                          sensor_pose_k.data(), // T_WS at k
+                                          target_pose.data(),  // T_WT0
                                           &time_delay,
-                                          point_ids[0],
-                                          keypoints[0],
-                                          keypoints[0],
+                                          common_pid,
+                                          z_km1,
+                                          z_k,
                                           covar);
 
   // Check residual size and parameter block sizes
@@ -243,9 +278,9 @@ TEST(CalibCameraImuError2, evaluate) {
 
   // Check param pointers
   auto param_ptrs = res->get_param_ptrs();
-  ASSERT_EQ(param_ptrs[0], sensor_pose.data());
+  ASSERT_EQ(param_ptrs[0], sensor_pose_k.data());
   ASSERT_EQ(param_ptrs[1], target_pose.data());
-  ASSERT_EQ(param_ptrs[2], target_geometry->points[point_ids[0]].data());
+  ASSERT_EQ(param_ptrs[2], target_geometry->points[common_pid].data());
   ASSERT_EQ(param_ptrs[3], target_geometry->extrinsic.data());
   ASSERT_EQ(param_ptrs[4], imu_geometry->extrinsic.data());
   ASSERT_EQ(param_ptrs[5], camera_geometry->extrinsic.data());

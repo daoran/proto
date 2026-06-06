@@ -18,7 +18,7 @@ private:
   std::shared_ptr<CameraGeometry> camera_geometry_;
   Vec2 z_km1_;
   Vec2 z_k_;
-  Vec2 v_km1_;
+  Vec2 v_k_;
   Mat2 covar_;
   Mat2 info_;
   Mat2 sqrt_info_;
@@ -43,7 +43,7 @@ public:
          const std::shared_ptr<CameraGeometry> &camera,
          const std::shared_ptr<ImuGeometry> &imu,
          const std::shared_ptr<CalibTargetGeometry> &target,
-         double *sensor_pose_km1,
+         double *sensor_pose_k,
          double *target_pose,
          double *time_delay,
          const int point_id,

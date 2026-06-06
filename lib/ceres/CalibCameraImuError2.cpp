@@ -13,7 +13,7 @@ CalibCameraImuError2::CalibCameraImuError2(
     const Mat2 &covar)
     : ResidualBlock{"CalibCameraImuError2", param_ptrs, param_types, 2},
       ts_km1_{ts_km1}, ts_k_{ts_k}, camera_geometry_{camera_geometry},
-      z_km1_{z_km1}, z_k_{z_k}, v_km1_{(z_k - z_km1) / ts2sec(ts_k - ts_km1)},
+      z_km1_{z_km1}, z_k_{z_k}, v_k_{(z_k - z_km1) / ts2sec(ts_k - ts_km1)},
       covar_{covar}, info_{covar.inverse()}, sqrt_info_{info_.llt().matrixU()} {
 }
 
@@ -23,15 +23,15 @@ CalibCameraImuError2::create(const timestamp_t ts_km1,
                              const std::shared_ptr<CameraGeometry> &camera,
                              const std::shared_ptr<ImuGeometry> &imu,
                              const std::shared_ptr<CalibTargetGeometry> &target,
-                             double *sensor_pose_km1,
-                             double *target_pose,
+                              double *sensor_pose_k,
+                              double *target_pose,
                              double *time_delay,
                              const int point_id,
                              const Vec2 &z_km1,
                              const Vec2 &z_k,
                              const Mat2 &covar) {
   std::vector<double *> param_ptrs;
-  param_ptrs.push_back(sensor_pose_km1); // Sensor pose T_WS at k-1
+  param_ptrs.push_back(sensor_pose_k); // Sensor pose T_WS at k
   param_ptrs.push_back(target_pose);     // Target pose T_WT0
   param_ptrs.push_back(target->points[point_id].data()); // Target point p_Tj
   param_ptrs.push_back(target->extrinsic.data()); // Target extrinsic T_T0Tj
@@ -41,7 +41,7 @@ CalibCameraImuError2::create(const timestamp_t ts_km1,
   param_ptrs.push_back(time_delay);               // Time-delay
 
   std::vector<ParamBlock::Type> param_types;
-  param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS at k-1
+  param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS at k
   param_types.push_back(ParamBlock::POSE);       // Target pose T_WT0
   param_types.push_back(ParamBlock::POINT);      // Target point p_Tj
   param_types.push_back(ParamBlock::EXTRINSIC);  // Target extrinsic T_T0Tj
@@ -77,15 +77,18 @@ bool CalibCameraImuError2::get_reproj_error(double *error) const {
 bool CalibCameraImuError2::eval(double const *const *params,
                                 double *res,
                                 double **jacs) const {
+  // Reset valid flag
+  valid_ = true;
+
   // Map parameters out
-  const Mat4 T_WS = tf(params[0]);                 // Sensor pose at k-1
+  const Mat4 T_WS = tf(params[0]);                 // Sensor pose at k
   const Mat4 T_WT0 = tf(params[1]);                // Target pose
   const Eigen::Map<const Vec3> p_Tj(params[2], 3); // Target point
   const Mat4 T_T0Tj = tf(params[3]);               // Target extrinsic
   const Mat4 T_C0S = tf(params[4]);                // Imu extrinsic
   const Mat4 T_C0Ci = tf(params[5]);               // Camera extrinsic
   Eigen::Map<const VecX> intrinsic(params[6], 8);  // Camera parameters
-  const double td = params[7][0];                  // Time-delay
+  const double time_delay = params[7][0];          // Time-delay
 
   // Transform and project point to image plane
   // -- Transform point from target frame to camera
@@ -99,10 +102,14 @@ bool CalibCameraImuError2::eval(double const *const *params,
   Vec2 z_hat;
   if (camera_model->project(resolution, intrinsic, p_Ci, z_hat) != 0) {
     valid_ = false;
+    Eigen::Map<Vec2> r(res);
+    r.setZero();
+    residuals_.setZero();
+    return true;
   }
 
   // Residual
-  const Vec2 z_corrected = z_km1_ + (td * v_km1_);
+  const Vec2 z_corrected = z_k_ + (time_delay * v_k_);
   Eigen::Map<Vec2> r(res);
   r = sqrt_info_ * (z_corrected - z_hat);
   residuals_ = z_corrected - z_hat;
@@ -214,7 +221,7 @@ bool CalibCameraImuError2::eval(double const *const *params,
     Eigen::Map<Vec2> J(jacs[7]);
     J.setZero();
     if (valid_) {
-      J = sqrt_info_ * v_km1_;
+      J = sqrt_info_ * v_k_;
     }
   }
 
