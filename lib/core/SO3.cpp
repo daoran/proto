@@ -15,6 +15,16 @@ Vec3 log(const Mat3 &R) {
   return omega;
 }
 
+Mat3 exp(const Vec3 &w) {
+  const double theta = w.norm();
+  if (theta < 1e-8) {
+    return Mat3::Identity() + skew(w);
+  }
+  const Mat3 wx = skew(w);
+  return Mat3::Identity() + (std::sin(theta) / theta) * wx
+         + ((1.0 - std::cos(theta)) / (theta * theta)) * wx * wx;
+}
+
 Mat3 solve_handeye(const std::map<timestamp_t, Mat4> &A,
                    const std::map<timestamp_t, Mat4> &B) {
   // Extract timestamps from A and B
