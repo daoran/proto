@@ -503,11 +503,13 @@ void CalibProblem::add_time_delay() {
     return;
   }
 
-  problem->AddParameterBlock(time_delay_, 1);
+  problem->AddParameterBlock(&time_delay_, 1);
+  problem->SetParameterLowerBound(&time_delay_, 0, -0.1);
+  problem->SetParameterUpperBound(&time_delay_, 0, 0.1);
   time_delay_added_ = true;
 }
 
-double *CalibProblem::get_time_delay_ptr() { return time_delay_; }
+double *CalibProblem::get_time_delay_ptr() { return &time_delay_; }
 
 /*******************************************************************************
  * Ceres
@@ -589,6 +591,11 @@ void CalibProblem::print_imu_geometries(FILE *fp, const bool max_digits) const {
     fprintf(fp, "\n");
   }
 }
+void CalibProblem::print_time_delay(FILE *fp) const {
+  fprintf(fp, "time_delay:\n");
+  fprintf(fp, "  data: %f  # [s]\n", time_delay_);
+  fprintf(fp, "\n");
+}
 
 void CalibProblem::print_target_points(FILE *fp) const {
   for (const auto &[target_id, target_geometry] : target_geometries) {
@@ -612,6 +619,7 @@ void CalibProblem::print_summary(FILE *fp, const bool max_digits) const {
   print_calib_target_configs(fp);
   print_camera_geometries(fp, max_digits);
   print_imu_geometries(fp, max_digits);
+  print_time_delay(fp);
   print_target_geometries(fp, max_digits);
 }
 

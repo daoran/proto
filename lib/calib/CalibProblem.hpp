@@ -32,7 +32,7 @@ struct CalibProblem {
   std::map<timestamp_t, Vec7> poses;
   std::map<timestamp_t, Vec9> speed_and_biases;
   Vec7 target_pose;
-  double time_delay_[1] = {0.0};
+  double time_delay_ = 0.0;
   bool time_delay_added_ = false;
 
   std::map<int, CalibTargetData> camera_data;
@@ -225,6 +225,9 @@ struct CalibProblem {
 
   /** Print IMU geometries */
   void print_imu_geometries(FILE *fp, const bool max_digits = false) const;
+
+  /** Print time delay */
+  void print_time_delay(FILE *fp) const;
 
   /** Print target points */
   void print_target_points(FILE *fp) const;
