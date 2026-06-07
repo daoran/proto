@@ -17,7 +17,7 @@ Mat3 SimCircle::get_rotation(const double time_s) const {
   return C_WS;
 }
 
-Mat4 SimCircle::get_pose(const double time_s) {
+Mat4 SimCircle::get_pose(const double time_s) const {
   const Vec3 r_WS = get_position(time_s);
   const Mat3 C_WS = get_rotation(time_s);
   const Mat4 T_WS = tf(C_WS, r_WS);
@@ -40,6 +40,32 @@ Vec3 SimCircle::get_acceleration(const double time_s) const {
   const double az = 0.0;
   const Vec3 a_WS{ax, ay, az};
   return a_WS;
+}
+
+Vec3 SimCircle::get_angular_velocity(const double time_s) const {
+  UNUSED(time_s);
+  const double wx = 0.0;
+  const double wy = 0.0;
+  const double wz = w;
+  const Vec3 w_WS{wx, wy, wz};
+  return w_WS;
+}
+
+Vec3 SimCircle::get_body_acceleration(const double time_s,
+                                      const Vec3 &g) const {
+  const Mat4 &T_WS = get_pose(time_s);
+  const Mat3 &C_WS = tf_rot(T_WS);
+  const Vec3 &a_WS = get_acceleration(time_s);
+  const Vec3 a_S_WS = C_WS.transpose() * (a_WS + g);
+  return a_S_WS;
+}
+
+Vec3 SimCircle::get_body_angular_velocity(const double time_s) const {
+  const Mat4 &T_WS = get_pose(time_s);
+  const Mat3 &C_WS = tf_rot(T_WS);
+  const Vec3 &w_WS = get_angular_velocity(time_s);
+  const Vec3 &w_S_WS = C_WS.transpose() * w_WS;
+  return w_S_WS;
 }
 
 } // namespace cartesian

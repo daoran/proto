@@ -1,5 +1,6 @@
 #pragma once
 #include "../imu/imu.hpp"
+#include "SimCircle.hpp"
 
 namespace cartesian {
 

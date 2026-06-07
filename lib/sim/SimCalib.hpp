@@ -38,7 +38,8 @@ struct SimCalib {
   void sim_camimu_calib(const double camera_rate = 10.0,
                         const std::string traj_type = "fig8-horiz",
                         const double R = 0.5,
-                        const double T = 10.0);
+                        const double T = 10.0,
+                        const double time_delay = 0.0);
 
   /** Setup */
   void setup_calib_targets();
@@ -54,7 +55,8 @@ struct SimCalib {
   void setup_camera_poses(const double camera_rate,
                           const std::string traj_type,
                           const double R,
-                          const double T);
+                          const double T,
+                          const double time_delay = 0.0);
   void setup_imu_geometries();
   void setup_imu_poses();
 

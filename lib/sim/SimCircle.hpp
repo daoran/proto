@@ -14,9 +14,12 @@ struct SimCircle {
 
   Vec3 get_position(const double time_s) const;
   Mat3 get_rotation(const double time_s) const;
-  Mat4 get_pose(const double time_s);
+  Mat4 get_pose(const double time_s)const;
   Vec3 get_velocity(const double time_s) const;
   Vec3 get_acceleration(const double time_s) const;
+  Vec3 get_angular_velocity(const double time_s) const;
+  Vec3 get_body_acceleration(const double time_s, const Vec3 &g) const;
+  Vec3 get_body_angular_velocity(const double time_s) const;
 };
 
 } // namespace cartesian

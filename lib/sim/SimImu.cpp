@@ -3,58 +3,25 @@
 namespace cartesian {
 
 SimImu::SimImu() {
+  SimCircle sim;
+
   const Vec3 g{0.0, 0.0, 9.81};
   const double imu_rate = 200.0;
-  const double circle_r = 5.0;
-  const double circle_v = 1.0;
-  const double circle_dist = 2.0 * M_PI * circle_r;
-  const double time_taken = circle_dist / circle_v;
-
-  const double w = -2.0 * M_PI * (1.0 / time_taken);
-  const double theta_init = M_PI;
-  const double yaw_init = M_PI / 2.0;
 
   timestamp_t ts = 0;
   timestamp_t dt_ns = sec2ts(1.0 / imu_rate);
-  double theta = theta_init;
-  double yaw = yaw_init;
+  while (ts <= sec2ts(sim.time_taken)) {
+    const double time_s = ts2sec(ts);
+    const Mat4 T_WS = sim.get_pose(time_s);
+    const Vec3 v_WS = sim.get_velocity(time_s);
+    const Vec3 a_S_WS = sim.get_body_acceleration(time_s, g);
+    const Vec3 w_S_WS = sim.get_body_angular_velocity(time_s);
 
-  while (ts <= sec2ts(time_taken)) {
-    // IMU pose
-    const double rx = circle_r * cos(theta);
-    const double ry = circle_r * sin(theta);
-    const double rz = 0.0;
-    const Vec3 r_WS{rx, ry, rz};
-    const Mat3 C_WS = euler321(Vec3{0.0, 0.0, yaw});
-    const Mat4 T_WS = tf(C_WS, r_WS);
-
-    // IMU velocity
-    const double vx = -circle_r * w * sin(theta);
-    const double vy = circle_r * w * cos(theta);
-    const double vz = 0.0;
-    const Vec3 v_WS{vx, vy, vz};
-
-    // IMU acceleration
-    const double ax = -circle_r * w * w * cos(theta);
-    const double ay = -circle_r * w * w * sin(theta);
-    const double az = 0.0;
-    const Vec3 a_WS{ax, ay, az};
-
-    // IMU angular velocity
-    const double wx = 0.0;
-    const double wy = 0.0;
-    const double wz = w;
-    const Vec3 w_WS{wx, wy, wz};
-
-    // Update
     timestamps.push_back(ts);
     poses[ts] = T_WS;
     vel[ts] = v_WS;
-    imu_acc[ts] = C_WS.transpose() * (a_WS + g);
-    imu_gyr[ts] = C_WS.transpose() * w_WS;
-
-    theta += w * ts2sec(dt_ns);
-    yaw += w * ts2sec(dt_ns);
+    imu_acc[ts] = a_S_WS;
+    imu_gyr[ts] = w_S_WS;
     ts += dt_ns;
   }
 }

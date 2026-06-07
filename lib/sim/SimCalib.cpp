@@ -27,11 +27,12 @@ void SimCalib::sim_camera_calib(const double camera_rate,
 void SimCalib::sim_camimu_calib(const double camera_rate,
                                 const std::string traj_type,
                                 const double R,
-                                const double T) {
+                                const double T,
+                                const double time_delay) {
   setup_calib_targets();
   setup_camera_geometries();
   setup_imu_geometries();
-  setup_camera_poses(camera_rate, traj_type, R, T);
+  setup_camera_poses(camera_rate, traj_type, R, T, time_delay);
   simulate_camera_views();
 }
 
@@ -176,7 +177,8 @@ void SimCalib::setup_camera_poses(const double camera_rate,
 void SimCalib::setup_camera_poses(const double camera_rate,
                                   const std::string traj_type,
                                   const double R,
-                                  const double T) {
+                                  const double T,
+                                  const double time_delay) {
   const auto target = target_configs.at(0);
   const Mat4 T_WT0 = target_poses.at(0);
   const Mat4 T_TO = target.get_center_relative_pose();
@@ -225,9 +227,15 @@ void SimCalib::setup_camera_poses(const double camera_rate,
     timestamp_t ts_k = 0;
     timestamp_t ts_end = sec2ts(T);
 
-    // Simulate IMU measurements
-    while (ts_k <= ts_end) {
-      const auto T_WS = traj.get_pose(ts_k);
+    // Simulate camera measurements with time delay
+    // The camera measurement at timestamp ts_k is physically taken at
+    // IMU time ts_k + time_delay.  Generate the camera pose at the
+    // delayed time so that the view at timestamp ts_k reflects the
+    // pose at the actual capture time.
+    const timestamp_t td_ns = sec2ts(time_delay);
+    // Stop early when the shifted timestamp would exceed the trajectory range
+    while (ts_k + td_ns <= ts_end) {
+      const auto T_WS = traj.get_pose(ts_k + td_ns);
       camera_poses[ts_k] = T_WS;
       ts_k += sec2ts(dt);
     }
