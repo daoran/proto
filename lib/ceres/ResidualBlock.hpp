@@ -6,6 +6,11 @@
 
 namespace cartesian {
 
+// Forward declaration
+class ResidualBlock;
+using ResidualBlockPtr = std::shared_ptr<ResidualBlock>;
+using ResidualBlockPtrs = std::vector<ResidualBlockPtr>;
+
 /** Residual Block */
 class ResidualBlock : public ceres::CostFunction {
 protected:
@@ -41,10 +46,10 @@ public:
 
   /** Check jacobian */
   bool check_jacobian(const int param_idx,
-                     const std::string &jac_name,
-                     const double step = 1e-8,
-                     const double tol = 1e-4,
-                     const bool verbose = false) const;
+                      const std::string &jac_name,
+                      const double step = 1e-8,
+                      const double tol = 1e-4,
+                      const bool verbose = false) const;
 
   /** Ceres solver evaluate */
   bool Evaluate(double const *const *params,
