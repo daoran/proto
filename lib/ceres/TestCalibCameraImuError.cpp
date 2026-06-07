@@ -212,14 +212,22 @@ TEST(CalibCameraImuError, evaluate) {
 
   // Create residual block
   Mat2 covar = eye(2);
-  auto res = CalibCameraImuError::create(camera_geometry,
-                                         imu_geometry,
-                                         target_geometry,
-                                         sensor_pose.data(), // T_WS
-                                         target_pose.data(), // T_WT0
-                                         point_ids[0],
-                                         keypoints[0],
-                                         covar);
+  const timestamp_t ts_km1 = 0;
+  const timestamp_t ts_k = 1e9; // 1 second apart (so v_k is small)
+  double time_delay = 0.0;
+  auto res = CalibCameraImuError::
+      create(ts_km1,
+             ts_k,
+             camera_geometry,
+             imu_geometry,
+             target_geometry,
+             sensor_pose.data(), // T_WS
+             target_pose.data(), // T_WT0
+             &time_delay,
+             point_ids[0],
+             keypoints[0], // z_km1 (same as z_k, no motion)
+             keypoints[0], // z_k
+             covar);
 
   // Check residual size and parameter block sizes
   auto block_sizes = res->parameter_block_sizes();
@@ -231,6 +239,7 @@ TEST(CalibCameraImuError, evaluate) {
   ASSERT_EQ(block_sizes[4], 7); // Imu extrinsic
   ASSERT_EQ(block_sizes[5], 7); // Camera extrinsic
   ASSERT_EQ(block_sizes[6], 8); // Camera parameters
+  ASSERT_EQ(block_sizes[7], 1); // Time-delay
 
   // Check param pointers
   auto param_ptrs = res->get_param_ptrs();
@@ -241,6 +250,7 @@ TEST(CalibCameraImuError, evaluate) {
   ASSERT_EQ(param_ptrs[4], imu_geometry->extrinsic.data());
   ASSERT_EQ(param_ptrs[5], camera_geometry->extrinsic.data());
   ASSERT_EQ(param_ptrs[6], camera_geometry->intrinsic.data());
+  ASSERT_EQ(param_ptrs[7], &time_delay);
 
   // Check Jacobians
   const double h = 1e-8;
@@ -253,6 +263,7 @@ TEST(CalibCameraImuError, evaluate) {
   EXPECT_TRUE(res->check_jacobian(4, "J_imu_extrinsic", h, tol, verbose));
   EXPECT_TRUE(res->check_jacobian(5, "J_camera_extrinsic", h, tol, verbose));
   EXPECT_TRUE(res->check_jacobian(6, "J_camera", h, tol, verbose));
+  EXPECT_TRUE(res->check_jacobian(7, "J_time_delay", h, tol, verbose));
 }
 
 } // namespace cartesian
