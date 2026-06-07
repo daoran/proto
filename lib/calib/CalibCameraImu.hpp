@@ -9,10 +9,11 @@ namespace cartesian {
 
 /** Camera-IMU Calibrator **/
 struct CalibCameraImu : CalibProblem {
-  using CameraResiduals = std::map<int, std::vector<CalibCameraImuErrorPtr>>;
+  enum TimeDelayMethod { PIXEL_VELOCITY, POSE_INTERP };
+
+  using CameraResiduals = std::map<int, ResidualBlockPtrs>;
   using ImuResiduals = std::map<int, ImuErrorPtr>;
   using CameraBuffers = std::map<int, CalibTargetMap>;
-
   std::map<timestamp_t, CameraResiduals> camera_resblocks;
   std::map<timestamp_t, ImuResiduals> imu_resblocks;
 
@@ -21,8 +22,13 @@ struct CalibCameraImu : CalibProblem {
   bool camera_started = false;
   bool initialized = false;
 
+  TimeDelayMethod td_method = POSE_INTERP;
+  int max_iters = 100;
+  int num_iters = 0;
+  double final_cost = 0.0;
   ImuBuffer imu_buffer;
   CameraBuffers camera_buffers;
+  CameraBuffers prev_camera_buffers;
 
   CalibCameraImu() = default;
   CalibCameraImu(const std::string &config_file);
@@ -38,7 +44,7 @@ struct CalibCameraImu : CalibProblem {
   int estimate_camera_pose(Mat4 &T_C0T0);
 
   /** Add camera calibration view */
-  void add_view(const timestamp_t ts, const Mat4 &T_WS);
+  virtual void add_view(const timestamp_t ts, const Mat4 &T_WS);
 
   /** Initialize */
   void initialize(const timestamp_t ts);

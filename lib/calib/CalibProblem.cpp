@@ -506,6 +506,8 @@ void CalibProblem::add_time_delay() {
   problem->AddParameterBlock(&time_delay_, 1);
   problem->SetParameterLowerBound(&time_delay_, 0, -0.1);
   problem->SetParameterUpperBound(&time_delay_, 0, 0.1);
+  // problem->SetParameterBlockConstant(&time_delay_);
+
   time_delay_added_ = true;
 }
 

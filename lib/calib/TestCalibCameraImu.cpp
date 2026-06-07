@@ -17,23 +17,20 @@ const fs::path imu_path = TEST_EUROC "/mav0/imu0/data.csv";
 const fs::path cam0_dir = TEST_EUROC "/mav0/cam0/data";
 const fs::path cam1_dir = TEST_EUROC "/mav0/cam0/data";
 
-static Timeline form_timeline() {
+static Timeline form_timeline(const timestamp_t camera_time_delay = 0) {
   Timeline timeline;
 
-  // -- Load imu data
+  // -- Load imu data (original timestamps)
   {
-    // Open IMU data.csv
     FILE *imu_csv = fopen(imu_path.c_str(), "r");
     if (imu_csv == nullptr) {
       FATAL("IMU data not found [%s]!", imu_path.c_str());
     }
-    skip_line(imu_csv); // Skip header
+    skip_line(imu_csv);
 
-    // Parse csv file
     const char *scan_format = "%ld,%lf,%lf,%lf,%lf,%lf,%lf";
     const int num_rows = file_rows(imu_path) - 1;
     for (int i = 0; i < num_rows; i++) {
-      // Parse line
       timestamp_t ts;
       Vec3 imu_acc;
       Vec3 imu_gyr;
@@ -53,12 +50,22 @@ static Timeline form_timeline() {
     }
   }
 
-  // -- Load camera data
+  // -- Load camera data (timestamps shifted forward by camera_time_delay)
+  // Shifting camera timestamps forward simulates the camera capturing
+  // camera_time_delay after its reported timestamp, creating a real
+  // inconsistency between the visual pose interval and the IMU integration
+  // interval that the time delay parameter must resolve.  We also update
+  // the target's internal timestamp to match the shifted timeline timestamp
+  // so that CalibCameraImu::add_measurement's ts-check assertion passes.
   auto load_targets = [&](const int camera_id, const fs::path data_dir) {
     for (const auto &target_csv : fs::directory_iterator(data_dir)) {
       const std::string ts_str = target_csv.path().stem();
       const timestamp_t ts = std::stoull(ts_str);
-      timeline.add(ts, camera_id, AprilGrid::load(target_csv));
+      const timestamp_t ts_shifted = ts + camera_time_delay;
+
+      auto calib_target = AprilGrid::load(target_csv);
+      calib_target->ts = ts_shifted;
+      timeline.add(ts_shifted, camera_id, calib_target);
     }
   };
   load_targets(0, TEST_EUROC "/mav0/target0/cam0");
@@ -165,8 +172,8 @@ static CalibCameraImu setup_calibrator(const AprilGridConfig &target_config,
 
     const Mat4 &T_cam0_imu0 =
         CalibInit::initialize_camera_imu_extrinsic(timeline,
-                                                calib.camera_geometries,
-                                                imu_params);
+                                                   calib.camera_geometries,
+                                                   imu_params);
 
     calib.add_imu(imu_params.imu_id, imu_params, tf_vec(T_cam0_imu0));
   }
@@ -264,9 +271,10 @@ TEST(CalibCameraImu, test_euroc) {
 }
 
 TEST(CalibCameraImu, test_sim) {
-  // Simulate
+  // Simulate with a known time delay
+  const double gt_time_delay = 0.02; // 20 ms
   SimCalib sim;
-  sim.sim_camimu_calib();
+  sim.sim_camimu_calib(10.0, "fig8-horiz", 0.5, 10.0, gt_time_delay);
 
   // Calibrate
   CalibCameraImu calib;
@@ -294,8 +302,8 @@ TEST(CalibCameraImu, test_sim) {
     for (const auto &event : timeline.getEvents(ts)) {
       if (auto target_event = dynamic_cast<CalibTargetEvent *>(event)) {
         calib.add_measurement(ts,
-                             target_event->camera_id,
-                             target_event->calib_target);
+                              target_event->camera_id,
+                              target_event->calib_target);
       }
 
       if (auto imu_event = dynamic_cast<ImuEvent *>(event)) {
@@ -324,6 +332,160 @@ TEST(CalibCameraImu, test_sim) {
   // clang-format on
 
   calib.solve();
+
+  // Verify time delay was estimated correctly
+  EXPECT_NEAR(calib.time_delay_, gt_time_delay, 0.005);
+}
+
+// -----------------------------------------------------------------------
+// Error-model comparison test
+// -----------------------------------------------------------------------
+
+struct ExpResult {
+  double estimated_delay;
+  double abs_error;
+  double final_cost;
+  int num_iterations;
+};
+
+static ExpResult
+run_calibration(const double gt_time_delay,
+                const CalibCameraImu::TimeDelayMethod td_method) {
+  SimCalib sim;
+  sim.sim_camimu_calib(10.0, "fig8-horiz", 0.5, 10.0, gt_time_delay);
+
+  CalibCameraImu calib;
+  calib.verbose = false;
+  calib.td_method = td_method;
+
+  calib.add_target(sim.target_configs[0], sim.targets.at(0).extrinsic);
+  for (auto &[camera_id, camera] : sim.cameras) {
+    calib.add_camera(camera.camera_id,
+                     camera.camera_model->type(),
+                     camera.resolution,
+                     camera.intrinsic,
+                     camera.extrinsic);
+  }
+  for (auto &[imu_id, imu] : sim.imus) {
+    calib.add_imu(imu_id, imu.imu_params, imu.extrinsic);
+  }
+
+  auto timeline = sim.get_timeline();
+  for (const auto &ts : timeline.timestamps) {
+    for (const auto &event : timeline.getEvents(ts)) {
+      if (auto target_event = dynamic_cast<CalibTargetEvent *>(event)) {
+        calib.add_measurement(ts,
+                              target_event->camera_id,
+                              target_event->calib_target);
+      }
+      if (auto imu_event = dynamic_cast<ImuEvent *>(event)) {
+        calib.add_measurement(ts, imu_event->acc, imu_event->gyr);
+      }
+    }
+  }
+
+  // clang-format off
+  Mat4 T_C0S;
+  T_C0S << 0.0, 1.0, 0.0, 0.1,
+           1.0, 0.0, 0.0, 0.2,
+           0.0, 0.0, 1.0, 0.3,
+           0.0, 0.0, 0.0, 1.0;
+  // clang-format on
+  Vec7 imu_extrinsic = tf_vec(T_C0S);
+  double *imu0_ext = calib.imu_geometries.at(0)->extrinsic.data();
+  for (int i = 0; i < 7; i++) {
+    imu0_ext[i] = imu_extrinsic[i];
+  }
+  calib.solve();
+
+  // Form result
+  ExpResult result;
+  result.estimated_delay = calib.time_delay_;
+  result.abs_error = std::abs(calib.time_delay_ - gt_time_delay);
+  result.final_cost = calib.final_cost;
+  result.num_iterations = calib.num_iters;
+
+  return result;
+}
+
+TEST(CalibCameraImu, test_time_delay_sim) {
+  printf("\n");
+  printf("  Error Model Comparison: PIXEL_VELOCITY vs POSE_INTERP\n");
+  printf("  %s\n", std::string(78, '=').c_str());
+  printf("  %-7s  %-10s  %-10s  %-10s  %-10s  %9s  %9s   %s\n",
+         "gt[ms]",
+         "pv_est[ms]",
+         "pi_est[ms]",
+         "pv_err[ms]",
+         "pi_err[ms]",
+         "pv_iter",
+         "pi_iter",
+         "");
+  printf("  %s\n", std::string(78, '-').c_str());
+
+  const std::vector<double> delays = {0.001, 0.002, 0.005, 0.010, 0.020};
+  for (const double delay : delays) {
+    const auto r2 = run_calibration(delay, CalibCameraImu::PIXEL_VELOCITY);
+    const auto r3 = run_calibration(delay, CalibCameraImu::POSE_INTERP);
+    printf("  %7.2f  %10.3f  %10.3f  %10.3f  %10.3f  %9d  %9d\n",
+           delay * 1000,
+           r2.estimated_delay * 1000.0,
+           r3.estimated_delay * 1000.0,
+           r2.abs_error * 1000.0,
+           r3.abs_error * 1000.0,
+           r2.num_iterations,
+           r3.num_iterations);
+  }
+
+  printf("  %s", std::string(78, '=').c_str());
+  printf("\n\n");
+}
+
+TEST(CalibCameraImu, test_time_delay_euroc) {
+  printf("\n");
+  printf("  EuRoC Synthetic Delay: PIXEL_VELOCITY vs POSE_INTERP\n");
+  printf("  %s\n", std::string(78, '=').c_str());
+  printf("  %-10s  %-10s  %-10s  %11s   %s\n",
+         "model",
+         "td_est[ms]",
+         "cost",
+         "iter",
+         "");
+  printf("  %s\n", std::string(78, '-').c_str());
+
+  auto run_exp = [&](const CalibCameraImu::TimeDelayMethod method,
+                     const char *label,
+                     const double time_delay) {
+    const auto target_config = setup_target_config();
+    const timestamp_t delay_ns = static_cast<timestamp_t>(time_delay * 1e9);
+    const auto shifted_timeline = form_timeline(delay_ns);
+    CalibCameraImu calib = setup_calibrator(target_config, shifted_timeline);
+    calib.verbose = false;
+    calib.td_method = method;
+    calib.max_iters = 15;
+    calib.solve();
+
+    printf("  %-10s  %10.3f  %10.2e  %11d\n",
+           label,
+           calib.time_delay_ * 1000.0,
+           calib.final_cost,
+           calib.num_iters);
+
+    return calib;
+  };
+
+  const double td = 0.01;
+  const auto calib_pv = run_exp(CalibCameraImu::PIXEL_VELOCITY, "pv", td);
+  const auto calib_pi = run_exp(CalibCameraImu::POSE_INTERP, "pi", td);
+
+  printf("  %s\n", std::string(78, '-').c_str());
+  printf("  gt_delay: %.3f ms\n", td * 1000.0);
+  printf("  pv_est:   %.3f ms\n", calib_pv.time_delay_ * 1000.0);
+  printf("  pi_est:   %.3f ms\n", calib_pi.time_delay_ * 1000.0);
+  printf("  %s", std::string(78, '=').c_str());
+  printf("\n\n");
+
+  EXPECT_NEAR(calib_pv.time_delay_, calib_pi.time_delay_, 0.010);
 }
 
 } // namespace cartesian

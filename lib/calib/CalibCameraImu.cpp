@@ -102,6 +102,11 @@ int CalibCameraImu::estimate_camera_pose(Mat4 &T_C0T0) {
 }
 
 void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
+  // Only process the first 100 frames
+  if (imu_resblocks.size() >= 100) {
+    return;
+  }
+
   // Lambda function - Get last two keys in std::map
   auto last_two_keys = [](const auto &m)
       -> std::pair<typename std::decay_t<decltype(m)>::key_type,
@@ -147,53 +152,131 @@ void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
     }
   }
 
-  // Add camera residual blocks
-  double *pose_ptr = get_pose_ptr(ts);
+  // Make sure we have 2 poses before adding vision and imu factors
+  if (poses.size() < 2) {
+    prev_camera_buffers = camera_buffers;
+    camera_buffers.clear();
+    return;
+  }
+
+  // Setup
+  const auto [ts_km1, ts_k] = last_two_keys(poses);
+  double *pose_km1 = get_pose_ptr(ts_km1);
+  double *pose_k = get_pose_ptr(ts_k);
+
+  // Add time delay parameter
   double *target_pose_ptr = get_target_pose_ptr();
+  if (time_delay_added_ == false) {
+    add_time_delay();
+  }
 
-  for (const auto &[camera_id, targets] : camera_buffers) {
-    const auto &camera_geometry = get_camera_geometry(camera_id);
+  // Lambda function to check target overlap between current and previous frame
+  auto target_overlap = [](const int camera_id,
+                           const CalibTargetPtr &target,
+                           const CameraBuffers &prev_camera_buffers) {
+    if (target->detected() == false) {
+      return false;
+    }
+    if (prev_camera_buffers.count(camera_id) == 0) {
+      return false;
+    }
+    if (prev_camera_buffers.at(camera_id).count(target->target_id) == 0) {
+      return false;
+    }
+    return true;
+  };
 
+  // Lambda function to add vision factors
+  auto add_vision_factors = [&](const timestamp_t ts_km1,
+                                const timestamp_t ts_k,
+                                const TimeDelayMethod td_method,
+                                const int cam_id,
+                                const int imu_id,
+                                const CalibTargetPtr &target_k) {
+    // Precheck
+    if (target_overlap(cam_id, target_k, prev_camera_buffers) == false) {
+      return;
+    }
+
+    // Setup
+    const int target_id = target_k->target_id;
+    const auto target_geometry = get_target_geometry(target_id);
+    const auto &camera_geometry = get_camera_geometry(cam_id);
+    const auto &imu_geometry = get_imu_geometry(imu_id);
+
+    // Get previous target measurements
+    std::vector<int> prev_point_ids;
+    Vec2s prev_keypoints;
+    Vec3s prev_object_points;
+    const auto target_km1 = prev_camera_buffers.at(cam_id).at(target_id);
+    target_km1->get_measurements(prev_point_ids,
+                                 prev_keypoints,
+                                 prev_object_points);
+
+    // Get current target measurements
+    std::vector<int> curr_point_ids;
+    Vec2s curr_keypoints;
+    Vec3s curr_object_points;
+    target_k->get_measurements(curr_point_ids,
+                               curr_keypoints,
+                               curr_object_points);
+
+    // Build point_id -> keypoint map for previous frame
+    std::map<int, Vec2> prev_kp_map;
+    for (size_t i = 0; i < prev_point_ids.size(); ++i) {
+      prev_kp_map[prev_point_ids[i]] = prev_keypoints[i];
+    }
+
+    // Form and add residual blocks for common point_ids
+    for (size_t i = 0; i < curr_point_ids.size(); ++i) {
+      const int pid = curr_point_ids[i];
+      if (prev_kp_map.count(pid) == 0) {
+        continue;
+      }
+
+      std::shared_ptr<ResidualBlock> resblock;
+      if (td_method == PIXEL_VELOCITY) {
+        resblock = CalibCameraImuError::create(ts_km1,
+                                               ts_k,
+                                               camera_geometry,
+                                               imu_geometry,
+                                               target_geometry,
+                                               pose_k,
+                                               target_pose_ptr,
+                                               &time_delay_,
+                                               pid,
+                                               prev_kp_map[pid],
+                                               curr_keypoints[i]);
+      } else {
+        resblock = CalibCameraImuError::create(ts_km1,
+                                               ts_k,
+                                               camera_geometry,
+                                               imu_geometries.at(0),
+                                               target_geometry,
+                                               pose_km1,
+                                               pose_k,
+                                               target_pose_ptr,
+                                               &time_delay_,
+                                               pid,
+                                               curr_keypoints[i]);
+      }
+
+      camera_resblocks[ts][cam_id].push_back(resblock);
+      add_residual_block(resblock.get());
+    }
+  };
+
+  // Add vision factors
+  for (const auto &[cam_id, targets] : camera_buffers) {
     for (const auto &[target_id, target] : targets) {
-      // Check if detected
-      const auto target_geometry = get_target_geometry(target_id);
-      if (target->detected() == false) {
-        continue;
-      }
-
-      // Get calibration target measurements
-      std::vector<int> point_ids;
-      std::vector<int> corner_indicies;
-      Vec2s keypoints;
-      Vec3s object_points;
-      target->get_measurements(point_ids, keypoints, object_points);
-      if (keypoints.size() < 10) {
-        continue;
-      }
-
-      // Form and add residual blocks
-      for (size_t i = 0; i < point_ids.size(); ++i) {
-        auto resblock = CalibCameraImuError::create(camera_geometry,
-                                                    imu_geometries.at(0),
-                                                    target_geometry,
-                                                    pose_ptr,
-                                                    target_pose_ptr,
-                                                    point_ids[i],
-                                                    keypoints[i]);
-        camera_resblocks[ts][camera_id].push_back(resblock);
-        add_residual_block(resblock.get());
-      }
+      add_vision_factors(ts_km1, ts_k, td_method, cam_id, 0, target);
     }
   }
 
   // Add imu residual block
-  if (poses.size() >= 2) {
-    // Add IMU factor
-    const auto [ts_km1, ts_k] = last_two_keys(poses);
+  {
     const int imu_id = 0;
     const auto &imu_params = get_imu_geometry(imu_id)->imu_params;
-    double *pose_km1 = get_pose_ptr(ts_km1);
-    double *pose_k = get_pose_ptr(ts_k);
     double *sb_km1 = get_speed_and_biases_ptr(ts_km1);
     double *sb_k = get_speed_and_biases_ptr(ts_k);
     auto imu_data = imu_buffer.extract(ts_km1, ts_k);
@@ -206,6 +289,7 @@ void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
   }
 
   // Clean up
+  prev_camera_buffers = camera_buffers;
   camera_buffers.clear();
 }
 
@@ -314,6 +398,7 @@ void CalibCameraImu::solve() {
     print_target_geometries(stdout);
     print_camera_geometries(stdout);
     print_imu_geometries(stdout);
+    print_time_delay(stdout);
 
     printf("-----------------\n");
     printf("\n");
@@ -321,9 +406,9 @@ void CalibCameraImu::solve() {
 
   // Solver options
   ceres::Solver::Options options;
-  options.minimizer_progress_to_stdout = true;
-  options.max_num_iterations = 100;
-  options.num_threads = 1;
+  options.minimizer_progress_to_stdout = verbose;
+  options.max_num_iterations = max_iters;
+  options.num_threads = 4;
   options.min_trust_region_radius = 1e-50; // Default: 1e-32
   options.function_tolerance = 1e-20;      // Default: 1e-6
   options.gradient_tolerance = 1e-20;      // Default: 1e-10
@@ -332,10 +417,13 @@ void CalibCameraImu::solve() {
   // Solve
   ceres::Solver::Summary summary;
   ceres::Solve(options, problem.get(), &summary);
-  std::cout << summary.BriefReport() << std::endl << std::endl;
-  // std::cout << summary.FullReport() << std::endl << std::endl;
-  print_summary(stdout);
-  printf("num_poses: %ld\n", poses.size());
+  num_iters = summary.iterations.size();
+  final_cost = summary.final_cost;
+  if (verbose) {
+    std::cout << summary.BriefReport() << std::endl << std::endl;
+    // std::cout << summary.FullReport() << std::endl << std::endl;
+    print_summary(stdout);
+  }
 }
 
 } // namespace cartesian

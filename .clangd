@@ -4,3 +4,7 @@ CompileFlags:
     -Ilib
     -DDEBUG_MODE
   ]
+
+PreambleBackingStore: None
+PreambleParseTimeSlack: 0.1
+LimitResults: 100

@@ -56,7 +56,7 @@ add_library(
   lib/ceres/ReprojError.cpp
   lib/ceres/CalibCameraError.cpp
   lib/ceres/CalibCameraImuError.cpp
-  lib/ceres/CalibCameraImuError2.cpp
+  lib/ceres/CalibCameraImuError.cpp
   lib/ceres/ResidualBlock.cpp
   lib/core/Core.cpp
   lib/core/Logger.cpp
@@ -110,7 +110,8 @@ add_executable(unittests
   lib/imu/TestImuBuffer.cpp
   lib/ceres/TestCalibCameraError.cpp
   lib/ceres/TestCalibCameraImuError.cpp
-  lib/ceres/TestCalibCameraImuError2.cpp
+  lib/ceres/TestCalibCameraImuError.cpp
+
   lib/ceres/TestImuError.cpp
   lib/ceres/TestReprojError.cpp
   lib/core/TestLogger.cpp
