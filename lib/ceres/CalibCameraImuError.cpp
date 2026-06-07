@@ -19,52 +19,8 @@ CalibCameraImuError::CalibCameraImuError(
       info_{covar.inverse()}, sqrt_info_{info_.llt().matrixU()} {}
 
 std::shared_ptr<CalibCameraImuError>
-CalibCameraImuError::create(const timestamp_t ts_km1,
-                            const timestamp_t ts_k,
-                            const std::shared_ptr<CameraGeometry> &camera,
-                            const std::shared_ptr<ImuGeometry> &imu,
-                            const std::shared_ptr<CalibTargetGeometry> &target,
-                            double *sensor_pose,
-                            double *target_pose,
-                            double *time_delay,
-                            const int point_id,
-                            const Vec2 &z_km1,
-                            const Vec2 &z_k,
-                            const Mat2 &covar) {
-  std::vector<double *> param_ptrs;
-  param_ptrs.push_back(sensor_pose);                     // Sensor pose T_WS
-  param_ptrs.push_back(target_pose);                     // Target pose T_WT0
-  param_ptrs.push_back(target->points[point_id].data()); // Target point p_Tj
-  param_ptrs.push_back(target->extrinsic.data()); // Target extrinsic T_T0Tj
-  param_ptrs.push_back(imu->extrinsic.data());    // Imu extrinsic T_C0S
-  param_ptrs.push_back(camera->extrinsic.data()); // Camera extrinsic T_C0Ci
-  param_ptrs.push_back(camera->intrinsic.data()); // Camera intrinsic
-  param_ptrs.push_back(time_delay);               // Time-delay
-
-  std::vector<ParamBlock::Type> param_types;
-  param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS
-  param_types.push_back(ParamBlock::POSE);       // Target pose T_WT0
-  param_types.push_back(ParamBlock::POINT);      // Target point p_Tj
-  param_types.push_back(ParamBlock::EXTRINSIC);  // Target extrinsic T_T0Tj
-  param_types.push_back(ParamBlock::EXTRINSIC);  // Imu extrinsic T_C0S
-  param_types.push_back(ParamBlock::EXTRINSIC);  // Camera extrinsic T_C0Ci
-  param_types.push_back(ParamBlock::INTRINSIC8); // Camera intrinsic
-  param_types.push_back(ParamBlock::TIME_DELAY); // Time-delay
-
-  const Vec2 v_k = (z_k - z_km1) / ts2sec(ts_k - ts_km1);
-  return std::make_shared<CalibCameraImuError>(PIXEL_VELOCITY,
-                                               ts_km1,
-                                               ts_k,
-                                               camera,
-                                               param_ptrs,
-                                               param_types,
-                                               z_k,
-                                               v_k,
-                                               covar);
-}
-
-std::shared_ptr<CalibCameraImuError>
-CalibCameraImuError::create(const timestamp_t ts_km1,
+CalibCameraImuError::create(CalibCameraImuError::Mode mode,
+                            const timestamp_t ts_km1,
                             const timestamp_t ts_k,
                             const std::shared_ptr<CameraGeometry> &camera,
                             const std::shared_ptr<ImuGeometry> &imu,
@@ -74,40 +30,77 @@ CalibCameraImuError::create(const timestamp_t ts_km1,
                             double *target_pose,
                             double *time_delay,
                             const int point_id,
+                            const Vec2 &z_km1,
                             const Vec2 &z_k,
                             const Mat2 &covar) {
-  std::vector<double *> param_ptrs;
-  param_ptrs.push_back(sensor_pose_km1); // Sensor pose T_WS at k-1
-  param_ptrs.push_back(sensor_pose_k);   // Sensor pose T_WS at k
-  param_ptrs.push_back(target_pose);     // Target pose T_WT0
-  param_ptrs.push_back(target->points[point_id].data()); // Target point p_Tj
-  param_ptrs.push_back(target->extrinsic.data()); // Target extrinsic T_T0Tj
-  param_ptrs.push_back(imu->extrinsic.data());    // Imu extrinsic T_C0S
-  param_ptrs.push_back(camera->extrinsic.data()); // Camera extrinsic T_C0Ci
-  param_ptrs.push_back(camera->intrinsic.data()); // Camera intrinsic
-  param_ptrs.push_back(time_delay);               // Time-delay
+  if (mode == PIXEL_VELOCITY) {
+    std::vector<double *> param_ptrs;
+    param_ptrs.push_back(sensor_pose_k);                   // Sensor pose T_WS
+    param_ptrs.push_back(target_pose);                     // Target pose T_WT0
+    param_ptrs.push_back(target->points[point_id].data()); // Target point p_Tj
+    param_ptrs.push_back(target->extrinsic.data()); // Target extrinsic T_T0Tj
+    param_ptrs.push_back(imu->extrinsic.data());    // Imu extrinsic T_C0S
+    param_ptrs.push_back(camera->extrinsic.data()); // Camera extrinsic T_C0Ci
+    param_ptrs.push_back(camera->intrinsic.data()); // Camera intrinsic
+    param_ptrs.push_back(time_delay);               // Time-delay
 
-  std::vector<ParamBlock::Type> param_types;
-  param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS at k-1
-  param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS at k
-  param_types.push_back(ParamBlock::POSE);       // Target pose T_WT0
-  param_types.push_back(ParamBlock::POINT);      // Target point p_Tj
-  param_types.push_back(ParamBlock::EXTRINSIC);  // Target extrinsic T_T0Tj
-  param_types.push_back(ParamBlock::EXTRINSIC);  // Imu extrinsic T_C0S
-  param_types.push_back(ParamBlock::EXTRINSIC);  // Camera extrinsic T_C0Ci
-  param_types.push_back(ParamBlock::INTRINSIC8); // Camera intrinsic
-  param_types.push_back(ParamBlock::TIME_DELAY); // Time-delay
+    std::vector<ParamBlock::Type> param_types;
+    param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS
+    param_types.push_back(ParamBlock::POSE);       // Target pose T_WT0
+    param_types.push_back(ParamBlock::POINT);      // Target point p_Tj
+    param_types.push_back(ParamBlock::EXTRINSIC);  // Target extrinsic T_T0Tj
+    param_types.push_back(ParamBlock::EXTRINSIC);  // Imu extrinsic T_C0S
+    param_types.push_back(ParamBlock::EXTRINSIC);  // Camera extrinsic T_C0Ci
+    param_types.push_back(ParamBlock::INTRINSIC8); // Camera intrinsic
+    param_types.push_back(ParamBlock::TIME_DELAY); // Time-delay
 
-  const Vec2 v_k = Vec2::Zero(); // unused for POSE_INTERP
-  return std::make_shared<CalibCameraImuError>(POSE_INTERP,
-                                               ts_km1,
-                                               ts_k,
-                                               camera,
-                                               param_ptrs,
-                                               param_types,
-                                               z_k,
-                                               v_k,
-                                               covar);
+    const Vec2 v_k = (z_k - z_km1) / ts2sec(ts_k - ts_km1);
+    return std::make_shared<CalibCameraImuError>(PIXEL_VELOCITY,
+                                                 ts_km1,
+                                                 ts_k,
+                                                 camera,
+                                                 param_ptrs,
+                                                 param_types,
+                                                 z_k,
+                                                 v_k,
+                                                 covar);
+
+  } else if (mode == POSE_INTERP) {
+    std::vector<double *> param_ptrs;
+    param_ptrs.push_back(sensor_pose_km1); // Sensor pose T_WS at k-1
+    param_ptrs.push_back(sensor_pose_k);   // Sensor pose T_WS at k
+    param_ptrs.push_back(target_pose);     // Target pose T_WT0
+    param_ptrs.push_back(target->points[point_id].data()); // Target point p_Tj
+    param_ptrs.push_back(target->extrinsic.data()); // Target extrinsic T_T0Tj
+    param_ptrs.push_back(imu->extrinsic.data());    // Imu extrinsic T_C0S
+    param_ptrs.push_back(camera->extrinsic.data()); // Camera extrinsic T_C0Ci
+    param_ptrs.push_back(camera->intrinsic.data()); // Camera intrinsic
+    param_ptrs.push_back(time_delay);               // Time-delay
+
+    std::vector<ParamBlock::Type> param_types;
+    param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS at k-1
+    param_types.push_back(ParamBlock::POSE);       // Sensor pose T_WS at k
+    param_types.push_back(ParamBlock::POSE);       // Target pose T_WT0
+    param_types.push_back(ParamBlock::POINT);      // Target point p_Tj
+    param_types.push_back(ParamBlock::EXTRINSIC);  // Target extrinsic T_T0Tj
+    param_types.push_back(ParamBlock::EXTRINSIC);  // Imu extrinsic T_C0S
+    param_types.push_back(ParamBlock::EXTRINSIC);  // Camera extrinsic T_C0Ci
+    param_types.push_back(ParamBlock::INTRINSIC8); // Camera intrinsic
+    param_types.push_back(ParamBlock::TIME_DELAY); // Time-delay
+
+    const Vec2 v_k = Vec2::Zero(); // unused for POSE_INTERP
+    return std::make_shared<CalibCameraImuError>(POSE_INTERP,
+                                                 ts_km1,
+                                                 ts_k,
+                                                 camera,
+                                                 param_ptrs,
+                                                 param_types,
+                                                 z_k,
+                                                 v_k,
+                                                 covar);
+  }
+
+  throw std::runtime_error("Invalid CalibCameraImuError mode!");
 }
 
 bool CalibCameraImuError::valid() const { return valid_; }
@@ -198,9 +191,12 @@ bool CalibCameraImuError::eval(double const *const *params,
   // Jacobians
   const MatX Jh = camera_model->project_jacobian(intrinsic, p_Ci);
   const MatX Jhw = -1.0 * sqrt_info_ * Jh;
-  if (jacs == nullptr) { return true; }
-
-  if (!valid_) { return true; }
+  if (jacs == nullptr) {
+    return true;
+  }
+  if (!valid_) {
+    return true;
+  }
 
   // Common terms for projection Jacobian w.r.t. T_WS
   const Vec3 r_WS = tf_trans(T_WS);

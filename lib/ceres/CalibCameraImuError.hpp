@@ -11,7 +11,7 @@ using CalibCameraImuErrorPtr = std::shared_ptr<CalibCameraImuError>;
 
 class CalibCameraImuError : public ResidualBlock {
 public:
-  enum Mode { PIXEL_VELOCITY, POSE_INTERP };
+  enum Mode { NOT_SET, PIXEL_VELOCITY, POSE_INTERP };
 
 private:
   Mode mode_;
@@ -37,22 +37,9 @@ public:
                       const Vec2 &v_k,
                       const Mat2 &covar);
 
-  static std::shared_ptr<CalibCameraImuError>
-  create(const timestamp_t ts_km1,
-         const timestamp_t ts_k,
-         const std::shared_ptr<CameraGeometry> &camera,
-         const std::shared_ptr<ImuGeometry> &imu,
-         const std::shared_ptr<CalibTargetGeometry> &target,
-         double *sensor_pose,
-         double *target_pose,
-         double *time_delay,
-         const int point_id,
-         const Vec2 &z_km1,
-         const Vec2 &z_k,
-         const Mat2 &covar = eye(2));
-
-  static std::shared_ptr<CalibCameraImuError>
-  create(const timestamp_t ts_km1,
+  static CalibCameraImuErrorPtr
+  create(CalibCameraImuError::Mode mode,
+         const timestamp_t ts_km1,
          const timestamp_t ts_k,
          const std::shared_ptr<CameraGeometry> &camera,
          const std::shared_ptr<ImuGeometry> &imu,
@@ -62,6 +49,7 @@ public:
          double *target_pose,
          double *time_delay,
          const int point_id,
+         const Vec2 &z_km1,
          const Vec2 &z_k,
          const Mat2 &covar = eye(2));
 

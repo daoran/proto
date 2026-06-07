@@ -121,6 +121,102 @@ void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
     return std::make_pair(second_last, last);
   };
 
+  // Lambda function - check target overlap between current and previous frame
+  auto target_overlap = [](const int camera_id,
+                           const CalibTargetPtr &target,
+                           const CameraBuffers &prev_camera_buffers) {
+    if (target->detected() == false) {
+      return false;
+    }
+    if (prev_camera_buffers.count(camera_id) == 0) {
+      return false;
+    }
+    if (prev_camera_buffers.at(camera_id).count(target->target_id) == 0) {
+      return false;
+    }
+    return true;
+  };
+
+  // Lambda function - add vision factors
+  auto add_vision_factors = [&](const timestamp_t ts_km1,
+                                const timestamp_t ts_k,
+                                const TimeDelayMethod td_method,
+                                const int cam_id,
+                                const int imu_id,
+                                const CalibTargetPtr &target_k) {
+    // Pre-check
+    if (target_overlap(cam_id, target_k, prev_camera_buffers) == false) {
+      return;
+    }
+
+    // Setup
+    const int target_id = target_k->target_id;
+    const auto target_geometry = get_target_geometry(target_id);
+    const auto &camera_geometry = get_camera_geometry(cam_id);
+    const auto &imu_geometry = get_imu_geometry(imu_id);
+    double *pose_km1 = get_pose_ptr(ts_km1);
+    double *pose_k = get_pose_ptr(ts_k);
+    double *target_pose_ptr = get_target_pose_ptr();
+    double *td_ptr = get_time_delay_ptr();
+
+    // Get previous target measurements
+    std::vector<int> prev_point_ids;
+    Vec2s prev_keypoints;
+    Vec3s prev_object_points;
+    const auto target_km1 = prev_camera_buffers.at(cam_id).at(target_id);
+    target_km1->get_measurements(prev_point_ids,
+                                 prev_keypoints,
+                                 prev_object_points);
+
+    // Get current target measurements
+    std::vector<int> curr_point_ids;
+    Vec2s curr_keypoints;
+    Vec3s curr_object_points;
+    target_k->get_measurements(curr_point_ids,
+                               curr_keypoints,
+                               curr_object_points);
+
+    // Build point_id -> keypoint map for previous frame
+    std::map<int, Vec2> prev_kp_map;
+    for (size_t i = 0; i < prev_point_ids.size(); ++i) {
+      prev_kp_map[prev_point_ids[i]] = prev_keypoints[i];
+    }
+
+    // Form and add residual blocks for common point_ids
+    for (size_t i = 0; i < curr_point_ids.size(); ++i) {
+      const int pid = curr_point_ids[i];
+      if (prev_kp_map.count(pid) == 0) {
+        continue;
+      }
+
+      CalibCameraImuError::Mode mode = CalibCameraImuError::NOT_SET;
+      if (td_method == TimeDelayMethod::PIXEL_VELOCITY) {
+        mode = CalibCameraImuError::PIXEL_VELOCITY;
+      } else if (td_method == TimeDelayMethod::POSE_INTERP) {
+        mode = CalibCameraImuError::POSE_INTERP;
+      }
+
+      const auto z_km1 = prev_kp_map[pid];
+      const auto z_k = curr_keypoints[i];
+      auto resblock = CalibCameraImuError::create(mode,
+                                                  ts_km1,
+                                                  ts_k,
+                                                  camera_geometry,
+                                                  imu_geometry,
+                                                  target_geometry,
+                                                  pose_km1,
+                                                  pose_k,
+                                                  target_pose_ptr,
+                                                  td_ptr,
+                                                  pid,
+                                                  z_km1,
+                                                  z_k);
+
+      camera_resblocks[ts][cam_id].push_back(resblock);
+      add_residual_block(resblock.get());
+    }
+  };
+
   // Add pose
   add_pose(ts, T_WS);
 
@@ -161,110 +257,11 @@ void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
 
   // Setup
   const auto [ts_km1, ts_k] = last_two_keys(poses);
-  double *pose_km1 = get_pose_ptr(ts_km1);
-  double *pose_k = get_pose_ptr(ts_k);
 
   // Add time delay parameter
-  double *target_pose_ptr = get_target_pose_ptr();
   if (time_delay_added_ == false) {
     add_time_delay();
   }
-
-  // Lambda function to check target overlap between current and previous frame
-  auto target_overlap = [](const int camera_id,
-                           const CalibTargetPtr &target,
-                           const CameraBuffers &prev_camera_buffers) {
-    if (target->detected() == false) {
-      return false;
-    }
-    if (prev_camera_buffers.count(camera_id) == 0) {
-      return false;
-    }
-    if (prev_camera_buffers.at(camera_id).count(target->target_id) == 0) {
-      return false;
-    }
-    return true;
-  };
-
-  // Lambda function to add vision factors
-  auto add_vision_factors = [&](const timestamp_t ts_km1,
-                                const timestamp_t ts_k,
-                                const TimeDelayMethod td_method,
-                                const int cam_id,
-                                const int imu_id,
-                                const CalibTargetPtr &target_k) {
-    // Precheck
-    if (target_overlap(cam_id, target_k, prev_camera_buffers) == false) {
-      return;
-    }
-
-    // Setup
-    const int target_id = target_k->target_id;
-    const auto target_geometry = get_target_geometry(target_id);
-    const auto &camera_geometry = get_camera_geometry(cam_id);
-    const auto &imu_geometry = get_imu_geometry(imu_id);
-
-    // Get previous target measurements
-    std::vector<int> prev_point_ids;
-    Vec2s prev_keypoints;
-    Vec3s prev_object_points;
-    const auto target_km1 = prev_camera_buffers.at(cam_id).at(target_id);
-    target_km1->get_measurements(prev_point_ids,
-                                 prev_keypoints,
-                                 prev_object_points);
-
-    // Get current target measurements
-    std::vector<int> curr_point_ids;
-    Vec2s curr_keypoints;
-    Vec3s curr_object_points;
-    target_k->get_measurements(curr_point_ids,
-                               curr_keypoints,
-                               curr_object_points);
-
-    // Build point_id -> keypoint map for previous frame
-    std::map<int, Vec2> prev_kp_map;
-    for (size_t i = 0; i < prev_point_ids.size(); ++i) {
-      prev_kp_map[prev_point_ids[i]] = prev_keypoints[i];
-    }
-
-    // Form and add residual blocks for common point_ids
-    for (size_t i = 0; i < curr_point_ids.size(); ++i) {
-      const int pid = curr_point_ids[i];
-      if (prev_kp_map.count(pid) == 0) {
-        continue;
-      }
-
-      std::shared_ptr<ResidualBlock> resblock;
-      if (td_method == PIXEL_VELOCITY) {
-        resblock = CalibCameraImuError::create(ts_km1,
-                                               ts_k,
-                                               camera_geometry,
-                                               imu_geometry,
-                                               target_geometry,
-                                               pose_k,
-                                               target_pose_ptr,
-                                               &time_delay_,
-                                               pid,
-                                               prev_kp_map[pid],
-                                               curr_keypoints[i]);
-      } else {
-        resblock = CalibCameraImuError::create(ts_km1,
-                                               ts_k,
-                                               camera_geometry,
-                                               imu_geometries.at(0),
-                                               target_geometry,
-                                               pose_km1,
-                                               pose_k,
-                                               target_pose_ptr,
-                                               &time_delay_,
-                                               pid,
-                                               curr_keypoints[i]);
-      }
-
-      camera_resblocks[ts][cam_id].push_back(resblock);
-      add_residual_block(resblock.get());
-    }
-  };
 
   // Add vision factors
   for (const auto &[cam_id, targets] : camera_buffers) {
@@ -273,10 +270,12 @@ void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
     }
   }
 
-  // Add imu residual block
+  // Add imu factor
   {
     const int imu_id = 0;
     const auto &imu_params = get_imu_geometry(imu_id)->imu_params;
+    double *pose_km1 = get_pose_ptr(ts_km1);
+    double *pose_k = get_pose_ptr(ts_k);
     double *sb_km1 = get_speed_and_biases_ptr(ts_km1);
     double *sb_k = get_speed_and_biases_ptr(ts_k);
     auto imu_data = imu_buffer.extract(ts_km1, ts_k);
