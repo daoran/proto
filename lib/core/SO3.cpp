@@ -25,6 +25,31 @@ Mat3 exp(const Vec3 &w) {
          + ((1.0 - std::cos(theta)) / (theta * theta)) * wx * wx;
 }
 
+Mat3 right_jacobian(const Vec3 &w) {
+  const double theta = w.norm();
+  const Mat3 wx = skew(w);
+  if (theta < 1e-8) {
+    return Mat3::Identity() - 0.5 * wx + (1.0 / 6.0) * wx * wx;
+  }
+  const double theta2 = theta * theta;
+  const double theta3 = theta2 * theta;
+  return Mat3::Identity()
+         - ((1.0 - std::cos(theta)) / theta2) * wx
+         + ((theta - std::sin(theta)) / theta3) * wx * wx;
+}
+
+Mat3 right_jacobian_inv(const Vec3 &w) {
+  const double theta = w.norm();
+  const Mat3 wx = skew(w);
+  if (theta < 1e-8) {
+    return Mat3::Identity() + 0.5 * wx + (1.0 / 12.0) * wx * wx;
+  }
+  const double theta2 = theta * theta;
+  return Mat3::Identity() + 0.5 * wx
+         + ((1.0 / theta2) - (1.0 + std::cos(theta))
+            / (2.0 * theta * std::sin(theta))) * wx * wx;
+}
+
 Mat3 solve_handeye(const std::map<timestamp_t, Mat4> &A,
                    const std::map<timestamp_t, Mat4> &B) {
   // Extract timestamps from A and B
