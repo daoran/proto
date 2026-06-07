@@ -11,7 +11,7 @@ using CalibCameraImuErrorPtr = std::shared_ptr<CalibCameraImuError>;
 
 class CalibCameraImuError : public ResidualBlock {
 public:
-  enum Mode { NOT_SET, PIXEL_VELOCITY, POSE_INTERP };
+  enum Mode { NOT_SET, STANDARD, PIXEL_VELOCITY, POSE_INTERP };
 
 private:
   Mode mode_;
@@ -57,6 +57,11 @@ public:
   Mat2 get_covariance_matrix() const;
   bool get_residuals(Vec2 &r) const;
   bool get_reproj_error(double *error) const;
+
+  bool eval_std(double const *const *params, double *res, double **jacs) const;
+  bool eval_pv(double const *const *params, double *res, double **jacs) const;
+  bool eval_pi(double const *const *params, double *res, double **jacs) const;
+
   bool eval(double const *const *params,
             double *res,
             double **jacs) const override;
