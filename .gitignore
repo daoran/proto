@@ -37,6 +37,7 @@ deps/src/ceres-solver/
 deps/src/eigen/
 deps/src/googletest/
 deps/src/opencv/
+deps/src/pcl/
 deps/src/rerun_cpp_sdk/
 deps/src/yaml-cpp/
 
