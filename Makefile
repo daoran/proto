@@ -48,12 +48,15 @@ debug: setup ## Build in debug mode
 unittests: relwithdeb ## Build and run tests
 	@./build/unittests
 
-
 .PHONY: format-code
 format-code: ## Run clang-format
 	@find lib \
 		-type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) \
 		-exec clang-format -i {} +
+
+.PHONY: clean
+clean: ## Clean
+	@rm -rf build
 
 #.PHONY: docs
 #docs: ## Build docs
