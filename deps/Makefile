@@ -14,6 +14,7 @@ CERES_VERSION=2.2.0
 OPENCV_VERSION=4.11.0
 APRILTAG_VERSION=v3.4.5
 APRILTAG_IMGS_VERSION=master
+PCL_VERSION=pcl-1.15.0
 RERUN_VERSION=0.25.1
 
 YAML_REPO=https://github.com/jbeder/yaml-cpp
@@ -25,6 +26,7 @@ CERES_REPO=https://github.com/ceres-solver/ceres-solver
 OPENCV_REPO=https://github.com/opencv/opencv
 APRILTAG_REPO=https://github.com/AprilRobotics/apriltag
 APRILTAG_IMGS_REPO=https://github.com/AprilRobotics/apriltag-imgs
+PCL_REPO=https://github.com/PointCloudLibrary/pcl
 RERUN_URL=https://github.com/rerun-io/rerun/releases/download/$(RERUN_VERSION)/rerun_cpp_sdk.zip
 
 define get_repo_name
@@ -119,6 +121,10 @@ apriltag: setup opencv  ## Build apriltag
 ethz_apriltag: setup opencv  ## Build ethz_apriltag
 	$(call cmake_build,ethz_apriltag)
 
+pcl: setup eigen ## Build pcl
+	$(call git_clone,$(PCL_REPO),$(PCL_VERSION))
+	$(call cmake_build,pcl)
+
 rerun: setup ## Build rerun
 	@wget $(RERUN_URL) -O $(SRC_PATH)/$(shell basename $(RERUN_URL))
 	@unzip -o $(SRC_PATH)/$(shell basename $(RERUN_URL)) -d $(SRC_PATH)
@@ -134,5 +140,6 @@ BUILD_TARGETS := \
 	opencv \
 	apriltag \
 	ethz_apriltag \
+	pcl \
 	rerun
 all: $(BUILD_TARGETS)  ## Build all
