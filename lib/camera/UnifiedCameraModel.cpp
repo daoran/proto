@@ -80,7 +80,7 @@ void UnifiedCameraModel::back_project(const VecX &params,
                                       const Vec2 &x,
                                       Vec3 &ray) const {
   // Back-project and undistort
-  const double xi = params(0);
+  // const double xi = params(0);
   const double fx = params(1);
   const double fy = params(2);
   const double cx = params(3);
@@ -98,7 +98,7 @@ void UnifiedCameraModel::back_project(const VecX &params,
 
 Vec2 UnifiedCameraModel::undistort(const VecX &params, const Vec2 &z) const {
   // Back-project and undistort
-  const double xi = params(0);
+  // const double xi = params(0);
   const double fx = params(1);
   const double fy = params(2);
   const double cx = params(3);
