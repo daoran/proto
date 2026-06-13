@@ -58,6 +58,7 @@ add_library(
   lib/ceres/CalibCameraImuError.cpp
   lib/ceres/CalibCameraImuError.cpp
   lib/ceres/ResidualBlock.cpp
+  lib/core/Colormap.cpp
   lib/core/Core.cpp
   lib/core/Logger.cpp
   lib/core/Plane.cpp
