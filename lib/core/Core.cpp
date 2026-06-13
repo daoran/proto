@@ -1664,7 +1664,7 @@ void load_matrix(const MatX &A, std::vector<double> &x) {
 }
 
 MatX pinv(const MatX &A, const double tol) {
-  auto svd = A.jacobiSvd<Eigen::ComputeFullU | Eigen::ComputeFullV>();
+  auto svd = A.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
   const auto &vals_ = svd.singularValues();
   MatX vals_inv = zeros(A.cols(), A.rows());
 
