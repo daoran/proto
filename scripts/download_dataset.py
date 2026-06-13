@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import glob
 import urllib.request
 import zipfile
 
@@ -19,6 +18,8 @@ def download(url, save_dir):
   # Initialize the progress bar
   desc = f"Downloading [{os.path.basename(url)}]"
   pbar = tqdm(total=total_size, unit='B', unit_scale=True, desc=desc)
+  response = None
+  out_file = None
 
   try:
     # Open the URL and the output file
@@ -38,8 +39,12 @@ def download(url, save_dir):
   finally:
     # Clean up: Close the file and the response
     pbar.close()
-    out_file.close()
-    response.close()
+
+    if out_file:
+      out_file.close()
+
+    if response:
+      response.close()
 
 
 def extract_zip(src, dst=None):
@@ -234,6 +239,14 @@ def download_kitti_raw(dst_dir):
       "2011_10_03_drive_0047", "2011_10_03_drive_0058"
   ]
 
+  calib_sequences = [
+    f"{kitti_url}/2011_09_26_drive_0119/2011_09_26_drive_0119_extract.zip",
+    f"{kitti_url}/2011_09_28_drive_0225/2011_09_28_drive_0225_extract.zip",
+    f"{kitti_url}/2011_09_29_drive_0108/2011_09_29_drive_0108_extract.zip",
+    f"{kitti_url}/2011_09_30_drive_0072/2011_09_30_drive_0072_extract.zip",
+    f"{kitti_url}/2011_10_03_drive_0058/2011_10_03_drive_0058_extract.zip",
+  ]
+
   # Make destination folder if it doesn't exist already
   ds_path = os.path.join(dst_dir, "kitti_raw")
   os.makedirs(ds_path, exist_ok=True)
@@ -248,11 +261,19 @@ def download_kitti_raw(dst_dir):
     zip_file = os.path.basename(url_path)
     extract_zip(f"{ds_path}/{zip_file}", ds_path)
 
+  # Download calib seqeunces
+  for url_path in calib_sequences:
+    # Download
+    download(url_path, ds_path)
+
+    # Extract zip file
+    zip_file = os.path.basename(url_path)
+    extract_zip(f"{ds_path}/{zip_file}", ds_path)
+
 
 if __name__ == "__main__":
   dst_dir = "/data"
   # download_euroc_sequences(dst_dir)
-  download_euroc_rosbags(dst_dir)
+  # download_euroc_rosbags(dst_dir)
   # download_kitti_odometry(dst_dir)
-  # download_kitti_raw(dst_dir)
-  pass
+  download_kitti_raw(dst_dir)
