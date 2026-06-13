@@ -28,11 +28,11 @@ void SimCalib::sim_camimu_calib(const double camera_rate,
                                 const std::string traj_type,
                                 const double R,
                                 const double T,
-                                const double time_delay) {
+                                const double td_s) {
   setup_calib_targets();
   setup_camera_geometries();
   setup_imu_geometries();
-  setup_camera_poses(camera_rate, traj_type, R, T, time_delay);
+  setup_camera_poses(camera_rate, traj_type, R, T, td_s);
   simulate_camera_views();
 }
 
@@ -178,7 +178,7 @@ void SimCalib::setup_camera_poses(const double camera_rate,
                                   const std::string traj_type,
                                   const double R,
                                   const double T,
-                                  const double time_delay) {
+                                  const double td_s) {
   const auto target = target_configs.at(0);
   const Mat4 T_WT0 = target_poses.at(0);
   const Mat4 T_TO = target.get_center_relative_pose();
@@ -188,22 +188,40 @@ void SimCalib::setup_camera_poses(const double camera_rate,
   LissajousTrajectory
       traj{traj_type, ts_start, T_WT0, T_TO, calib_width, calib_height, R, T};
 
-  // Simulate imu measurements
+  // Simulate camera measurements
   {
-    // Imu rate and time variables
-    const double imu_rate = 1000.0;
-    const double dt = 1.0 / imu_rate;
+    // Camera rate and time variables
+    const double dt = 1.0 / camera_rate;
     timestamp_t ts_k = 0;
     timestamp_t ts_end = sec2ts(T);
 
-    // Simulate IMU measurements
+    // Camera measurements at true timestamps (no delay)
     while (ts_k <= ts_end) {
-      // Get sensor acceleration and angular velocity in world frame
-      const Mat4 T_WS = traj.get_pose(ts_k);
+      const auto T_WS = traj.get_pose(ts_k);
+      camera_poses[ts_k] = T_WS;
+      ts_k += sec2ts(dt);
+    }
+  }
+
+  // Simulate imu measurements with time delay
+  // The IMU at reported timestamp ts_k measured the physical state at
+  // time ts_k - td_s (IMU clock runs ahead of camera clock by
+  // td_s).  This reverses the earlier approach where the time
+  // delay was introduced in the camera.
+  {
+    const double imu_rate = 1000.0;
+    const double dt = 1.0 / imu_rate;
+    const timestamp_t td_ns = sec2ts(td);
+    timestamp_t ts_k = td_ns; // first IMU event corresponds to phys t=0
+    timestamp_t ts_end_imu = sec2ts(T) + td_ns;
+
+    while (ts_k <= ts_end_imu) {
+      const timestamp_t ts_td_k = ts_k - td_ns;
+      const Mat4 T_WS = traj.get_pose(ts_td_k);
       const Mat3 C_WS = tf_rot(T_WS);
-      const Vec3 v_WS = traj.get_velocity(ts_k);
-      const Vec3 a_WS_W = traj.get_acceleration(ts_k);
-      const Vec3 w_WS_W = traj.get_angular_velocity(ts_k);
+      const Vec3 v_WS = traj.get_velocity(ts_td_k);
+      const Vec3 a_WS_W = traj.get_acceleration(ts_td_k);
+      const Vec3 w_WS_W = traj.get_angular_velocity(ts_td_k);
 
       // Transform acceleration and angular velocity to body frame
       const Vec3 g{0.0, 0.0, 9.81};
@@ -216,27 +234,6 @@ void SimCalib::setup_camera_poses(const double camera_rate,
       imu_gyr[ts_k] = w_WS_S;
 
       // Update
-      ts_k += sec2ts(dt);
-    }
-  }
-
-  // Simulate camera measurements
-  {
-    // Camera rate and time variables
-    const double dt = 1.0 / camera_rate;
-    timestamp_t ts_k = 0;
-    timestamp_t ts_end = sec2ts(T);
-
-    // Simulate camera measurements with time delay
-    // The camera measurement at timestamp ts_k is physically taken at
-    // IMU time ts_k + time_delay.  Generate the camera pose at the
-    // delayed time so that the view at timestamp ts_k reflects the
-    // pose at the actual capture time.
-    const timestamp_t td_ns = sec2ts(time_delay);
-    // Stop early when the shifted timestamp would exceed the trajectory range
-    while (ts_k + td_ns <= ts_end) {
-      const auto T_WS = traj.get_pose(ts_k + td_ns);
-      camera_poses[ts_k] = T_WS;
       ts_k += sec2ts(dt);
     }
   }

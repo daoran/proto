@@ -39,7 +39,7 @@ struct SimCalib {
                         const std::string traj_type = "fig8-horiz",
                         const double R = 0.5,
                         const double T = 10.0,
-                        const double time_delay = 0.0);
+                        const double td_s = 0.0);
 
   /** Setup */
   void setup_calib_targets();
@@ -56,7 +56,7 @@ struct SimCalib {
                           const std::string traj_type,
                           const double R,
                           const double T,
-                          const double time_delay = 0.0);
+                          const double td_s = 0.0);
   void setup_imu_geometries();
   void setup_imu_poses();
 
