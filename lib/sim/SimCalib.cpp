@@ -211,7 +211,7 @@ void SimCalib::setup_camera_poses(const double camera_rate,
   {
     const double imu_rate = 1000.0;
     const double dt = 1.0 / imu_rate;
-    const timestamp_t td_ns = sec2ts(td);
+    const timestamp_t td_ns = sec2ts(td_s);
     timestamp_t ts_k = td_ns; // first IMU event corresponds to phys t=0
     timestamp_t ts_end_imu = sec2ts(T) + td_ns;
 
