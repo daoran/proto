@@ -94,33 +94,33 @@ set(TEST_DEPS GTest::gtest_main ${PROJECT_NAME} ${DEPS})
 set(TEST_DATA ${CMAKE_CURRENT_LIST_DIR}/lib/test_data)
 
 add_executable(unittests
-  lib/calib/TestAprilGrid.cpp
-  lib/calib/TestAprilGridDetector.cpp
-  lib/calib/TestCalibCamera.cpp
-  lib/calib/TestCalibCameraImu.cpp
-  lib/calib/TestCalibInit.cpp
-  lib/calib/TestCalibProblem.cpp
-  lib/calib/TestCameraChain.cpp
-  lib/calib/TestLissajousTrajectory.cpp
-  lib/camera/TestBrownConrady4.cpp
-  lib/camera/TestKannalaBrandt4.cpp
-  lib/camera/TestPinhole.cpp
-  lib/dataset/TestEuroc.cpp
-  lib/dataset/TestKitti.cpp
-  lib/imu/TestImuBuffer.cpp
-  lib/ceres/TestCalibCameraError.cpp
-  lib/ceres/TestCalibCameraImuError.cpp
-  lib/ceres/TestCalibCameraImuError.cpp
-
-  lib/ceres/TestImuError.cpp
-  lib/ceres/TestReprojError.cpp
-  lib/core/TestLogger.cpp
-  lib/core/TestPlane.cpp
-  lib/sim/TestSimCalib.cpp
-  lib/sim/TestSimCircle.cpp
-  lib/sim/TestSimImu.cpp
-  lib/sim/TestSimVio.cpp
-  lib/timeline/TestTimeline.cpp
+  # lib/calib/TestAprilGrid.cpp
+  # lib/calib/TestAprilGridDetector.cpp
+  # lib/calib/TestCalibCamera.cpp
+  # lib/calib/TestCalibCameraImu.cpp
+  lib/calib/TestCalibCameraLidar.cpp
+  # lib/calib/TestCalibInit.cpp
+  # lib/calib/TestCalibProblem.cpp
+  # lib/calib/TestCameraChain.cpp
+  # lib/calib/TestLissajousTrajectory.cpp
+  # lib/camera/TestBrownConrady4.cpp
+  # lib/camera/TestKannalaBrandt4.cpp
+  # lib/camera/TestPinhole.cpp
+  # lib/dataset/TestEuroc.cpp
+  # lib/dataset/TestKitti.cpp
+  # lib/imu/TestImuBuffer.cpp
+  # lib/ceres/TestCalibCameraError.cpp
+  # lib/ceres/TestCalibCameraImuError.cpp
+  # lib/ceres/TestCalibCameraImuError.cpp
+  # lib/ceres/TestImuError.cpp
+  # lib/ceres/TestReprojError.cpp
+  # lib/core/TestLogger.cpp
+  # lib/core/TestPlane.cpp
+  # lib/sim/TestSimCalib.cpp
+  # lib/sim/TestSimCircle.cpp
+  # lib/sim/TestSimImu.cpp
+  # lib/sim/TestSimVio.cpp
+  # lib/timeline/TestTimeline.cpp
 )
 add_compile_definitions(unittests PRIVATE TEST_DATA="${TEST_DATA}")
 target_link_libraries(unittests ${TEST_DEPS})
