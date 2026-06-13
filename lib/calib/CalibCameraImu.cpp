@@ -149,6 +149,14 @@ void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
       return;
     }
 
+    // Get CalibCameraImuError mode
+    CalibCameraImuError::Mode mode = CalibCameraImuError::NOT_SET;
+    if (td_method == TimeDelayMethod::PIXEL_VELOCITY) {
+      mode = CalibCameraImuError::PIXEL_VELOCITY;
+    } else if (td_method == TimeDelayMethod::POSE_INTERP) {
+      mode = CalibCameraImuError::POSE_INTERP;
+    }
+
     // Setup
     const int target_id = target_k->target_id;
     const auto target_geometry = get_target_geometry(target_id);
@@ -187,13 +195,6 @@ void CalibCameraImu::add_view(const timestamp_t ts, const Mat4 &T_WS) {
       const int pid = curr_point_ids[i];
       if (prev_kp_map.count(pid) == 0) {
         continue;
-      }
-
-      CalibCameraImuError::Mode mode = CalibCameraImuError::NOT_SET;
-      if (td_method == TimeDelayMethod::PIXEL_VELOCITY) {
-        mode = CalibCameraImuError::PIXEL_VELOCITY;
-      } else if (td_method == TimeDelayMethod::POSE_INTERP) {
-        mode = CalibCameraImuError::POSE_INTERP;
       }
 
       const auto z_km1 = prev_kp_map[pid];
