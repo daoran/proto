@@ -1,5 +1,7 @@
 #include "Kitti.hpp"
 
+#include <algorithm>
+
 namespace cartesian {
 
 static int file_lines(const char *fp) {
@@ -338,80 +340,6 @@ KittiOxts::KittiOxts(const fs::path &data_dir) {
   }
 }
 
-std::vector<std::array<float, 4>>
-KittiVelodyne::load_points(const fs::path &pcd_path) {
-  std::vector<std::array<float, 4>> result;
-
-  // Load pcd file
-  FILE *pcd_file = fopen(pcd_path.c_str(), "rb");
-  if (!pcd_file) {
-    KITTI_LOG("Failed to open [%s]", pcd_path.c_str());
-    return result;
-  }
-
-  // Get the size of the file to know how many points
-  fseek(pcd_file, 0, SEEK_END);
-  const long int file_size = ftell(pcd_file);
-  rewind(pcd_file);
-
-  // Allocate memory for the points
-  const size_t num_points = file_size / (sizeof(float) * 4);
-  float *points = (float *) malloc(sizeof(float) * 4 * num_points);
-  if (!points) {
-    KITTI_LOG("Failed to allocate memory for points");
-    fclose(pcd_file);
-    return result;
-  }
-
-  // Read points from the file
-  const size_t point_size = sizeof(float) * 4;
-  const size_t read_count = fread(points, point_size, num_points, pcd_file);
-  if (read_count != num_points) {
-    KITTI_LOG("Failed to read all points");
-    free(points);
-    fclose(pcd_file);
-    return result;
-  }
-  fclose(pcd_file);
-
-  // Form results
-  for (size_t i = 0; i < num_points; ++i) {
-    const auto x = points[i * 4 + 0];
-    const auto y = points[i * 4 + 1];
-    const auto z = points[i * 4 + 2];
-    const auto intensity = points[i * 4 + 3];
-    result.push_back({x, y, z, intensity});
-  }
-  free(points);
-
-  return result;
-}
-
-// float *kitti_lidar_xyz(const char *pcd_path,
-//                        const float voxel_size,
-//                        size_t *nout) {
-//   // Load Kitti LIDAR points [x, y, z, intensity]
-//   size_t n = 0;
-//   float *raw_points = kitti_load_points(pcd_path, &n);
-//
-//   // Extract only the relevant parts (x, y, z)
-//   float *points_xyz = malloc(sizeof(float) * 3 * n);
-//   for (size_t i = 0; i < n; ++i) {
-//     points_xyz[i * 3 + 0] = raw_points[i * 4 + 0];
-//     points_xyz[i * 3 + 1] = raw_points[i * 4 + 1];
-//     points_xyz[i * 3 + 2] = raw_points[i * 4 + 2];
-//   }
-//
-//   // Downsample
-//   float *points_out = voxel_grid_downsample(points_xyz, n, voxel_size, nout);
-//
-//   // Clean up
-//   free(raw_points);
-//   free(points_xyz);
-//
-//   return points_out;
-// }
-
 ///////////////////
 // KittiVelodyne //
 ///////////////////
@@ -427,13 +355,98 @@ KittiVelodyne::KittiVelodyne(const fs::path &data_dir) {
   timestamps_start = load_timestamps(timestamps_start_path.string().c_str());
   timestamps_end = load_timestamps(timestamps_end_path.string().c_str());
 
-  // Load data
-  const int num_timestamps = timestamps.size();
-  for (int i = 0; i < num_timestamps; ++i) {
-    char pcd_path[1024] = {0};
-    sprintf(pcd_path, "%s/%s/%010d.bin", data_dir.string().c_str(), "data", i);
-    pcd_paths.push_back(fs::path{pcd_path});
+  // Check velodyne data directory exists
+  const fs::path velodyne_data_dir = data_dir / "data";
+  if (!fs::exists(velodyne_data_dir) || !fs::is_directory(velodyne_data_dir)) {
+    KITTI_FATAL("Velodyne data directory does not exist [%s]!\n",
+                velodyne_data_dir.string().c_str());
   }
+
+  // Build pcd_paths from .bin files in data directory
+  std::vector<fs::path> bin_files;
+  for (const auto &entry : fs::directory_iterator(velodyne_data_dir)) {
+    bin_files.push_back(entry.path());
+  }
+
+  // Sort numerically by stem (filename without extension)
+  std::sort(bin_files.begin(),
+            bin_files.end(),
+            [](const fs::path &a, const fs::path &b) {
+              return a.stem().string() < b.stem().string();
+            });
+
+  pcd_paths = std::move(bin_files);
+}
+
+std::vector<std::array<float, 4>>
+KittiVelodyne::load_points(const fs::path &pcd_path) {
+  std::vector<std::array<float, 4>> result;
+
+  // Load pcd file
+  FILE *pcd_file = fopen(pcd_path.c_str(), "rb");
+  if (!pcd_file) {
+    KITTI_LOG("Failed to open [%s]", pcd_path.c_str());
+    return result;
+  }
+
+  if (pcd_path.extension() == ".bin") {
+    // Get the size of the file to know how many points
+    fseek(pcd_file, 0, SEEK_END);
+    const long int file_size = ftell(pcd_file);
+    rewind(pcd_file);
+
+    // Allocate memory for the points
+    const size_t num_points = file_size / (sizeof(float) * 4);
+    float *points = (float *) malloc(sizeof(float) * 4 * num_points);
+    if (!points) {
+      KITTI_LOG("Failed to allocate memory for points");
+      fclose(pcd_file);
+      return result;
+    }
+
+    // Read points from the file
+    const size_t point_size = sizeof(float) * 4;
+    const size_t read_count = fread(points, point_size, num_points, pcd_file);
+    if (read_count != num_points) {
+      KITTI_LOG("Failed to read all points");
+      free(points);
+      fclose(pcd_file);
+      return result;
+    }
+
+    // Form results
+    for (size_t i = 0; i < num_points; ++i) {
+      const auto x = points[i * 4 + 0];
+      const auto y = points[i * 4 + 1];
+      const auto z = points[i * 4 + 2];
+      const auto intensity = points[i * 4 + 3];
+      result.push_back({x, y, z, intensity});
+    }
+    free(points);
+  }
+
+  if (pcd_path.extension() == ".txt") {
+    const int num_rows = file_lines(pcd_path.c_str());
+
+    for (int i = 0; i < num_rows; ++i) {
+      float x, y, z, intensity = 0.0;
+      int retval = fscanf(pcd_file,
+                          "%f %f %f %f", // x y z intensity
+                          &x,
+                          &y,
+                          &z,
+                          &intensity);
+      if (retval != 4) {
+        KITTI_FATAL("Failed to parse line in [%s]", pcd_path.c_str());
+      }
+      result.push_back({x, y, z, intensity});
+    }
+  }
+
+  // Clean up
+  fclose(pcd_file);
+
+  return result;
 }
 
 ////////////////
